@@ -44,7 +44,7 @@ pub fn update_hash_for_entry_startup(
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          chunk.id.hash(hasher);
+          chunk.id().hash(hasher);
         }
       }
     }

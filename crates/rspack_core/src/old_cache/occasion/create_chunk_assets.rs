@@ -35,7 +35,7 @@ impl CreateChunkAssetsOccasion {
     let chunk_id = Identifier::from(chunk.expect_id());
     let modules = &compilation
       .chunk_graph
-      .get_chunk_modules_identifier(&chunk.ukey);
+      .get_chunk_modules_identifier(&chunk.ukey());
     let is_cache_valid = modules.iter().all(|module_id| {
       matches!(
         compilation

@@ -381,7 +381,7 @@ pub fn get_css_chunk_filename_template<'filename>(
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L444
-  if let Some(css_filename_template) = &chunk.css_filename_template {
+  if let Some(css_filename_template) = chunk.css_filename_template() {
     css_filename_template
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.css_filename
@@ -397,11 +397,11 @@ pub fn get_js_chunk_filename_template<'filename>(
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L480
-  if let Some(filename_template) = &chunk.filename_template {
+  if let Some(filename_template) = chunk.filename_template() {
     filename_template
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.filename
-  } else if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  } else if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     // TODO: Should return output_options.hotUpdateChunkFilename
     // See https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L484
     &output_options.chunk_filename

@@ -46,7 +46,7 @@ impl SplitChunksPlugin {
         // chunk.
 
         let actually_requests = chunk
-          .groups
+          .groups()
           .iter()
           .map(|g| chunk_group_db.expect_get(g))
           .map(|group| group.chunks.len())
@@ -55,7 +55,7 @@ impl SplitChunksPlugin {
           .unwrap_or_default();
 
         if actually_requests as f64 >= allowed_max_request {
-          Some(chunk.ukey)
+          Some(chunk.ukey())
         } else {
           None
         }

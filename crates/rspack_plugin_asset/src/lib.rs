@@ -582,7 +582,7 @@ async fn render_manifest(
     .map(|m| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&m.identifier(), Some(&chunk.runtime));
+        .get(&m.identifier(), Some(chunk.runtime()));
 
       let result = code_gen_result.get(&SourceType::Asset).map(|source| {
         let asset_filename = code_gen_result

@@ -47,7 +47,7 @@ impl CssPlugin {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime));
+          .get(module_id, Some(chunk.runtime()));
         code_gen_result
           .data
           .get::<CodeGenerationDataUnusedLocalIdent>()
@@ -70,7 +70,7 @@ impl CssPlugin {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime));
+          .get(module_id, Some(chunk.runtime()));
         if let Some(meta_data_str) = code_gen_result.data.get::<CssUsedExports>() {
           meta_data.push(meta_data_str.0.as_str());
         }
@@ -108,7 +108,7 @@ impl CssPlugin {
     let name_with_id = format!(
       "{}-{}",
       &compilation.options.output.unique_name,
-      chunk.id.as_deref().unwrap_or_default()
+      chunk.id().unwrap_or_default()
     );
     let meta_data_str = format!(
       "head{{--webpack-{}:{};}}",
@@ -243,7 +243,7 @@ async fn content_hash(
       (
         compilation
           .code_generation_results
-          .get_hash(&m.identifier(), Some(&chunk.runtime)),
+          .get_hash(&m.identifier(), Some(chunk.runtime())),
         compilation.chunk_graph.get_module_id(m.identifier()),
       )
     })
@@ -310,7 +310,7 @@ async fn render_manifest(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
@@ -339,7 +339,7 @@ async fn render_manifest(
     PathData::default()
       .chunk(chunk)
       .content_hash_type(SourceType::Css)
-      .runtime(&chunk.runtime),
+      .runtime(chunk.runtime()),
   )?;
   asset_info.set_css_unused_idents(unused_idents);
 
@@ -376,9 +376,8 @@ async fn render_manifest(
         format!(
           "chunk {}\nConflicting order between {} and {}",
           chunk
-            .name
-            .as_ref()
-            .unwrap_or(chunk.id.as_ref().expect("should have chunk id")),
+            .name()
+            .unwrap_or(chunk.id().expect("should have chunk id")),
           failed_module.readable_identifier(&compilation.options.context),
           selected_module.readable_identifier(&compilation.options.context)
         ),

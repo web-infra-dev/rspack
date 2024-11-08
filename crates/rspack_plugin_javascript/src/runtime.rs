@@ -70,7 +70,7 @@ pub fn render_module(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(&chunk.runtime));
+    .get(&module.identifier(), Some(chunk.runtime()));
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
@@ -92,8 +92,11 @@ pub fn render_module(
   let mut sources = ConcatSource::default();
 
   if factory {
-    let runtime_requirements =
-      ChunkGraph::get_module_runtime_requirements(compilation, module.identifier(), &chunk.runtime);
+    let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
+      compilation,
+      module.identifier(),
+      chunk.runtime(),
+    );
 
     let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
     let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));

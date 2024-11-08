@@ -49,7 +49,7 @@ impl RuntimeModule for ShareRuntimeModule {
       for m in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime));
+          .get(&m.identifier(), Some(chunk.runtime()));
         let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
           continue;
         };

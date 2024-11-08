@@ -408,7 +408,7 @@ impl SourceMapDevToolPlugin {
             let data = match chunk {
               Some(chunk) => data
                 .chunk(chunk)
-                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+                .content_hash_optional(chunk.content_hash().get(source_type).map(|i| i.encoded())),
               None => data,
             };
             let source_map_filename = compilation
@@ -524,13 +524,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    for file in &chunk.files {
+    for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
-    for file in &chunk.auxiliary_files {
+    for file in chunk.auxiliary_files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
   }
 
@@ -568,7 +568,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
-        chunk.auxiliary_files.insert(source_map_filename);
+        chunk.add_auxiliary_file(source_map_filename);
       }
     }
   }

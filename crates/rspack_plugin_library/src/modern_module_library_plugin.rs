@@ -146,7 +146,7 @@ fn render_startup(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let codegen = compilation
     .code_generation_results
-    .get(module_id, Some(&chunk.runtime));
+    .get(module_id, Some(chunk.runtime()));
 
   let mut exports = vec![];
   let mut exports_with_property_access = vec![];
@@ -168,7 +168,7 @@ fn render_startup(
     for export_info in exports_info.ordered_exports(&module_graph) {
       let info_name = export_info.name(&module_graph).expect("should have name");
       let used_name = export_info
-        .get_used_name(&module_graph, Some(info_name), Some(&chunk.runtime))
+        .get_used_name(&module_graph, Some(info_name), Some(chunk.runtime()))
         .expect("name can't be empty");
 
       let final_name = exports_final_names.get(used_name.as_str());

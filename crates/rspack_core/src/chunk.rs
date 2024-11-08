@@ -14,7 +14,7 @@ use crate::{
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkKind {
   HotUpdate,
   Normal,
@@ -24,26 +24,26 @@ pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
+  ukey: ChunkUkey,
+  kind: ChunkKind,
   // - If the chunk is create by entry config, the name is the entry name
   // - The name of chunks create by dynamic import is `None` unless users use
   // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
-  pub name: Option<String>,
-  pub filename_template: Option<Filename>,
-  pub css_filename_template: Option<Filename>,
-  pub ukey: ChunkUkey,
-  pub id: Option<String>,
-  pub id_name_hints: HashSet<String>,
-  pub prevent_integration: bool,
-  pub files: HashSet<String>,
-  pub auxiliary_files: HashSet<String>,
-  pub groups: UkeySet<ChunkGroupUkey>,
-  pub runtime: RuntimeSpec,
-  pub kind: ChunkKind,
-  pub hash: Option<RspackHashDigest>,
-  pub rendered_hash: Option<Arc<str>>,
-  pub content_hash: ChunkContentHash,
-  pub chunk_reason: Option<String>,
-  pub rendered: bool,
+  name: Option<String>,
+  id: Option<String>,
+  id_name_hints: HashSet<String>,
+  filename_template: Option<Filename>,
+  css_filename_template: Option<Filename>,
+  prevent_integration: bool,
+  groups: UkeySet<ChunkGroupUkey>,
+  runtime: RuntimeSpec,
+  files: HashSet<String>,
+  auxiliary_files: HashSet<String>,
+  hash: Option<RspackHashDigest>,
+  rendered_hash: Option<Arc<str>>,
+  content_hash: ChunkContentHash,
+  chunk_reason: Option<String>,
+  rendered: bool,
 }
 
 impl DatabaseItem for Chunk {
@@ -51,6 +51,157 @@ impl DatabaseItem for Chunk {
 
   fn ukey(&self) -> Self::ItemUkey {
     self.ukey
+  }
+}
+
+impl Chunk {
+  pub fn ukey(&self) -> ChunkUkey {
+    self.ukey
+  }
+
+  pub fn kind(&self) -> ChunkKind {
+    self.kind
+  }
+
+  pub fn name(&self) -> Option<&str> {
+    self.name.as_deref()
+  }
+
+  pub fn set_name(&mut self, name: Option<String>) {
+    self.name = name;
+  }
+
+  pub fn filename_template(&self) -> Option<&Filename> {
+    self.filename_template.as_ref()
+  }
+
+  pub fn set_filename_template(&mut self, filename_template: Option<Filename>) {
+    self.filename_template = filename_template;
+  }
+
+  pub fn css_filename_template(&self) -> Option<&Filename> {
+    self.css_filename_template.as_ref()
+  }
+
+  pub fn set_css_filename_template(&mut self, filename_template: Option<Filename>) {
+    self.css_filename_template = filename_template;
+  }
+
+  pub fn id(&self) -> Option<&str> {
+    self.id.as_deref()
+  }
+
+  pub fn set_id(&mut self, id: Option<String>) {
+    self.id = id;
+  }
+
+  pub fn prevent_integration(&self) -> bool {
+    self.prevent_integration
+  }
+
+  pub fn set_prevent_integration(&mut self, prevent_integration: bool) {
+    self.prevent_integration = prevent_integration;
+  }
+
+  pub fn id_name_hints(&self) -> &HashSet<String> {
+    &self.id_name_hints
+  }
+
+  pub fn add_id_name_hints(&mut self, hint: String) {
+    self.id_name_hints.insert(hint);
+  }
+
+  pub fn groups(&self) -> &UkeySet<ChunkGroupUkey> {
+    &self.groups
+  }
+
+  pub fn add_group(&mut self, group: ChunkGroupUkey) {
+    self.groups.insert(group);
+  }
+
+  pub fn is_in_group(&self, chunk_group: &ChunkGroupUkey) -> bool {
+    self.groups.contains(chunk_group)
+  }
+
+  pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) -> bool {
+    self.groups.remove(chunk_group)
+  }
+
+  pub fn runtime(&self) -> &RuntimeSpec {
+    &self.runtime
+  }
+
+  pub fn set_runtime(&mut self, runtime: RuntimeSpec) {
+    self.runtime = runtime;
+  }
+
+  pub fn files(&self) -> &HashSet<String> {
+    &self.files
+  }
+
+  pub fn add_file(&mut self, file: String) {
+    self.files.insert(file);
+  }
+
+  pub fn remove_file(&mut self, file: &str) -> bool {
+    self.files.remove(file)
+  }
+
+  pub fn auxiliary_files(&self) -> &HashSet<String> {
+    &self.auxiliary_files
+  }
+
+  pub fn add_auxiliary_file(&mut self, auxiliary_file: String) {
+    self.auxiliary_files.insert(auxiliary_file);
+  }
+
+  pub fn remove_auxiliary_file(&mut self, auxiliary_file: &str) -> bool {
+    self.auxiliary_files.remove(auxiliary_file)
+  }
+
+  pub fn chunk_reason(&self) -> Option<&str> {
+    self.chunk_reason.as_deref()
+  }
+
+  pub fn chunk_reason_mut(&mut self) -> &mut Option<String> {
+    &mut self.chunk_reason
+  }
+
+  pub fn hash(&self) -> Option<&RspackHashDigest> {
+    self.hash.as_ref()
+  }
+
+  pub fn rendered_hash(&self) -> Option<&str> {
+    self.rendered_hash.as_deref()
+  }
+
+  pub fn set_hash(&mut self, hash: RspackHashDigest, len: usize) {
+    self.set_rendered_hash(Some(hash.rendered(len).into()));
+    self.hash = Some(hash);
+  }
+
+  pub fn set_rendered_hash(&mut self, rendered_hash: Option<Arc<str>>) {
+    self.rendered_hash = rendered_hash;
+  }
+
+  pub fn content_hash(&self) -> &ChunkContentHash {
+    &self.content_hash
+  }
+
+  pub fn content_hash_mut(&mut self) -> &mut ChunkContentHash {
+    &mut self.content_hash
+  }
+
+  pub fn insert_content_hash(&mut self, source_type: SourceType, hash: RspackHashDigest) {
+    self.content_hash.insert(source_type, hash);
+  }
+
+  pub fn rendered(&self) -> bool {
+    self.rendered
+  }
+
+  pub fn set_rendered(&mut self, rendered: bool) {
+    self.rendered = rendered;
   }
 }
 
@@ -99,10 +250,6 @@ impl Chunk {
       }
     }
     None
-  }
-
-  pub fn add_group(&mut self, group: ChunkGroupUkey) {
-    self.groups.insert(group);
   }
 
   pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
@@ -404,10 +551,6 @@ impl Chunk {
     }
   }
 
-  pub fn is_in_group(&self, chunk_group: &ChunkGroupUkey) -> bool {
-    self.groups.contains(chunk_group)
-  }
-
   pub fn disconnect_from_groups(&mut self, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
     for group_ukey in self.groups.iter() {
       let group = chunk_group_by_ukey.expect_get_mut(group_ukey);
@@ -455,10 +598,6 @@ impl Chunk {
         chunk_group.id(compilation).hash(hasher);
       }
     }
-  }
-
-  pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) {
-    self.groups.remove(chunk_group);
   }
 
   pub fn get_children_of_type_in_order(

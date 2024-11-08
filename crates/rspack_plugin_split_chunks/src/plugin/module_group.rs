@@ -41,7 +41,7 @@ impl Hasher for IdentityHasher {
 
 type ChunksKeyHashBuilder = BuildHasherDefault<IdentityHasher>;
 
-fn get_key<'a, I: Iterator<Item = &'a ChunkUkey>>(chunks: I) -> ChunksKey {
+fn get_key<I: Iterator<Item = ChunkUkey>>(chunks: I) -> ChunksKey {
   let mut sorted_chunk_ukeys = chunks
     .map(|chunk| {
       // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
@@ -86,7 +86,7 @@ impl Combinator {
     let mut grouped_by_used_exports: FxHashMap<UsageKey, UkeySet<ChunkUkey>> = Default::default();
     for chunk_ukey in module_chunks {
       let chunk = chunk_by_ukey.expect_get(&chunk_ukey);
-      let usage_key = exports_info.get_usage_key(module_graph, Some(&chunk.runtime));
+      let usage_key = exports_info.get_usage_key(module_graph, Some(chunk.runtime()));
 
       grouped_by_used_exports
         .entry(usage_key)
@@ -145,7 +145,7 @@ impl Combinator {
         .expect("should have exports for module");
 
       for chunks in chunks_by_module_used.iter() {
-        let chunks_key = get_key(chunks.iter());
+        let chunks_key = get_key(chunks.iter().copied());
         let combs = self.get_combination(
           chunks_key,
           &self.used_exports_combinations_cache,
@@ -160,7 +160,7 @@ impl Combinator {
       let (chunk_sets_in_graph, chunk_sets_by_count) = self.group_by_chunks();
       let chunks = chunk_graph.get_module_chunks(module);
       self.get_combination(
-        get_key(chunks.iter()),
+        get_key(chunks.iter().copied()),
         &self.combinations_cache,
         chunk_sets_in_graph,
         chunk_sets_by_count,
@@ -181,7 +181,7 @@ impl Combinator {
       if chunks.is_empty() {
         continue;
       }
-      let chunk_key = get_key(chunks.iter());
+      let chunk_key = get_key(chunks.iter().copied());
       chunk_sets_in_graph.insert(chunk_key, chunks.clone());
     }
 
@@ -222,7 +222,7 @@ impl Combinator {
         if chunks.is_empty() {
           continue;
         }
-        let chunk_key = get_key(chunks.iter());
+        let chunk_key = get_key(chunks.iter().copied());
         used_exports_chunk_sets_in_graph.insert(chunk_key, chunks.clone());
       }
 
@@ -418,7 +418,7 @@ impl SplitChunksPlugin {
           }
 
           let selected_chunks_key =
-            { get_key(selected_chunks.iter().map(|chunk| &chunk.ukey)) };
+            { get_key(selected_chunks.iter().map(|chunk| chunk.ukey())) };
 
           merge_matched_item_into_module_group_map(
             MatchedItem {
@@ -492,7 +492,7 @@ impl SplitChunksPlugin {
             module_group.add_module(module, compilation);
             module_group
               .chunks
-              .extend(selected_chunks.iter().map(|c| c.ukey));
+              .extend(selected_chunks.iter().map(|c| c.ukey()));
             Ok(())
           }
         }

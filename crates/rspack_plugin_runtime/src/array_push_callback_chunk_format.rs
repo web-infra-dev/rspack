@@ -107,7 +107,7 @@ fn render_chunk(
   let hot_update_global = &compilation.options.output.hot_update_global;
   let mut source = ConcatSource::default();
 
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     source.add(RawSource::from(format!(
       "{}[{}]('{}', ",
       global_object,

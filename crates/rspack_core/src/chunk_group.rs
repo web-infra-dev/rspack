@@ -90,7 +90,7 @@ impl ChunkGroup {
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
           .expect_get(chunk_ukey)
-          .files
+          .files()
           .iter()
           .map(|file| file.to_string())
       })
@@ -98,19 +98,19 @@ impl ChunkGroup {
   }
 
   pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.push(chunk.ukey);
+    self.chunks.push(chunk.ukey());
     chunk.add_group(self.ukey);
   }
 
   pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
-    if let Ok(index) = self.chunks.binary_search(&chunk.ukey) {
+    if let Ok(index) = self.chunks.binary_search(&chunk.ukey()) {
       if index > 0 {
         self.chunks.remove(index);
-        self.chunks.insert(0, chunk.ukey);
+        self.chunks.insert(0, chunk.ukey());
       }
       false
     } else {
-      self.chunks.insert(0, chunk.ukey);
+      self.chunks.insert(0, chunk.ukey());
       true
     }
   }
@@ -264,7 +264,7 @@ impl ChunkGroup {
         compilation
           .chunk_by_ukey
           .get(chunk)
-          .and_then(|item| item.id.as_ref())
+          .and_then(|item| item.id())
       })
       .join("+")
   }

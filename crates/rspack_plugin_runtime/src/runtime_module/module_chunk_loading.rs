@@ -59,7 +59,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
 
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
@@ -71,7 +71,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let condition_map =
       compilation
         .chunk_graph
-        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+        .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 

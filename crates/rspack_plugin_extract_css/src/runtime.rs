@@ -171,7 +171,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               .filter_map(|id| {
                 let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-                chunk.id.as_ref().map(|id| {
+                chunk.id().map(|id| {
                   format!(
                     "{}: 1,\n",
                     serde_json::to_string(id).expect("json stringify failed")

@@ -154,8 +154,8 @@ pub fn is_enabled_for_chunk(
   chunk_loading == expected
 }
 
-pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
-  if let Some(chunk_id) = &chunk.id {
+pub fn unquoted_stringify(chunk: &Chunk, str: &str) -> String {
+  if let Some(chunk_id) = chunk.id() {
     if str.len() >= 5 && str == chunk_id {
       return "\" + chunkId + \"".to_string();
     }
@@ -166,8 +166,8 @@ pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &UkeyIndexSet<&ChunkUkey>,
-  chunk_map: &UkeyIndexMap<&ChunkUkey, &Chunk>,
+  chunks: &UkeyIndexSet<ChunkUkey>,
+  chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,
@@ -179,16 +179,16 @@ where
 
   for chunk_ukey in chunks.iter() {
     if let Some(chunk) = chunk_map.get(chunk_ukey) {
-      if let Some(chunk_id) = &chunk.id {
+      if let Some(chunk_id) = chunk.id() {
         if let Some(value) = f(chunk) {
           if value == *chunk_id {
             use_id = true;
           } else {
             result.insert(
-              chunk_id.clone(),
+              chunk_id.to_owned(),
               serde_json::to_string(&value).expect("invalid json to_string"),
             );
-            last_key = Some(chunk_id.clone());
+            last_key = Some(chunk_id);
             entries += 1;
           }
         }
@@ -204,11 +204,11 @@ where
         format!(
           "(chunkId === {} ? {} : chunkId)",
           serde_json::to_string(&last_key).expect("invalid json to_string"),
-          result.get(&last_key).expect("cannot find last key value")
+          result.get(last_key).expect("cannot find last key value")
         )
       } else {
         result
-          .get(&last_key)
+          .get(last_key)
           .expect("cannot find last key value")
           .clone()
       }
@@ -223,7 +223,7 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&String]) -> String {
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> String {
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
@@ -251,9 +251,9 @@ pub fn create_fake_chunk(
   rendered_hash: Option<String>,
 ) -> Chunk {
   let mut fake_chunk = Chunk::new(None, ChunkKind::Normal);
-  fake_chunk.name = name;
-  fake_chunk.rendered_hash = rendered_hash.map(|h| h.into());
-  fake_chunk.id = id;
+  fake_chunk.set_name(name);
+  fake_chunk.set_rendered_hash(rendered_hash.map(|h| h.into()));
+  fake_chunk.set_id(id);
   fake_chunk
 }
 

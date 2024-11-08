@@ -23,7 +23,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     .copied()
     .collect::<Vec<_>>();
 
-  chunk_ukeys.sort_by_key(|ukey| compilation.chunk_by_ukey.expect_get(ukey).name.as_ref());
+  chunk_ukeys.sort_by_key(|ukey| compilation.chunk_by_ukey.expect_get(ukey).name());
 
   for chunk_ukey in chunk_ukeys {
     if !compilation.chunk_by_ukey.contains(&chunk_ukey) {
@@ -90,14 +90,15 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         {
           continue;
         }
-        if !is_runtime_equal(&chunk.runtime, &other_chunk.runtime) {
+        if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
           let module_graph = compilation.get_module_graph();
           for module in compilation
             .chunk_graph
             .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
           {
             let exports_info = module_graph.get_exports_info(&module.identifier());
-            if !exports_info.is_equally_used(&module_graph, &chunk.runtime, &other_chunk.runtime) {
+            if !exports_info.is_equally_used(&module_graph, chunk.runtime(), other_chunk.runtime())
+            {
               continue 'outer;
             }
           }

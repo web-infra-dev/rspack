@@ -322,7 +322,7 @@ fn runtime_requirements_in_tree(
             RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
             |_| false,
             |chunk, compilation| {
-              chunk_has_js(&chunk.ukey, compilation).then(|| {
+              chunk_has_js(&chunk.ukey(), compilation).then(|| {
                 get_js_chunk_filename_template(
                   chunk,
                   &compilation.options.output,
@@ -347,7 +347,7 @@ fn runtime_requirements_in_tree(
               runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
             },
             |chunk, compilation| {
-              chunk_has_css(&chunk.ukey, compilation).then(|| {
+              chunk_has_css(&chunk.ukey(), compilation).then(|| {
                 get_css_chunk_filename_template(
                   chunk,
                   &compilation.options.output,

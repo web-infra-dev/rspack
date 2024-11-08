@@ -601,7 +601,7 @@ impl ChunkGraph {
     chunk: &mut Chunk,
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
   ) {
-    let chunk_ukey = &chunk.ukey;
+    let chunk_ukey = &chunk.ukey();
     let cgc = self.expect_chunk_graph_chunk_mut(*chunk_ukey);
     let cgc_modules = std::mem::take(&mut cgc.modules);
     for module in cgc_modules {
@@ -681,7 +681,7 @@ impl ChunkGraph {
   ) -> bool {
     let chunk_a = chunk_by_ukey.expect_get(chunk_a_ukey);
     let chunk_b = chunk_by_ukey.expect_get(chunk_b_ukey);
-    if chunk_a.prevent_integration || chunk_b.prevent_integration {
+    if chunk_a.prevent_integration() || chunk_b.prevent_integration() {
       return false;
     }
 
@@ -690,7 +690,7 @@ impl ChunkGraph {
 
     // true, if a is always a parent of b
     let is_available_chunk = |a: &Chunk, b: &Chunk| {
-      let mut queue = b.groups.clone().into_iter().collect::<Vec<_>>();
+      let mut queue = b.groups().clone().into_iter().collect::<Vec<_>>();
       while let Some(chunk_group_ukey) = queue.pop() {
         if a.is_in_group(&chunk_group_ukey) {
           continue;
@@ -716,8 +716,8 @@ impl ChunkGraph {
       }
     }
 
-    if self.get_number_of_entry_modules(&chunk_a.ukey) > 0
-      || self.get_number_of_entry_modules(&chunk_b.ukey) > 0
+    if self.get_number_of_entry_modules(&chunk_a.ukey()) > 0
+      || self.get_number_of_entry_modules(&chunk_b.ukey()) > 0
     {
       return false;
     }
@@ -807,38 +807,39 @@ impl ChunkGraph {
     let chunk_a = chunk_by_ukey.expect_get_mut(a);
 
     // Decide for one name (deterministic)
-    if let (Some(chunk_a_name), Some(chunk_b_name)) = (&chunk_a.name, &chunk_b.name) {
+    if let (Some(chunk_a_name), Some(chunk_b_name)) = (chunk_a.name(), chunk_b.name()) {
       if (self.get_number_of_entry_modules(a) > 0) == (self.get_number_of_entry_modules(b) > 0) {
         // When both chunks have entry modules or none have one, use
         // shortest name
-        if chunk_a_name.len() != chunk_b_name.len() {
-          chunk_a.name = if chunk_a_name.len() < chunk_b_name.len() {
-            Some(chunk_a_name.to_string())
+        let new_name = if chunk_a_name.len() != chunk_b_name.len() {
+          if chunk_a_name.len() < chunk_b_name.len() {
+            chunk_a_name
           } else {
-            Some(chunk_b_name.to_string())
-          };
+            chunk_b_name
+          }
         } else {
-          chunk_a.name = if chunk_a_name < chunk_b_name {
-            Some(chunk_a_name.to_string())
+          if chunk_a_name < chunk_b_name {
+            chunk_a_name
           } else {
-            Some(chunk_b_name.to_string())
-          };
-        }
+            chunk_b_name
+          }
+        };
+        chunk_a.set_name(Some(new_name.to_string()));
       } else if self.get_number_of_entry_modules(b) > 0 {
         // Pick the name of the chunk with the entry module
-        chunk_a.name = chunk_b.name;
+        chunk_a.set_name(chunk_b.name().map(ToOwned::to_owned));
       }
-    } else if chunk_b.name.is_some() {
-      chunk_a.name = chunk_b.name;
+    } else if let Some(chunk_b_name) = chunk_b.name() {
+      chunk_a.set_name(Some(chunk_b_name.to_string()));
     }
 
     // Merge id name hints
-    for hint in &chunk_b.id_name_hints {
-      chunk_a.id_name_hints.insert(hint.to_string());
+    for hint in chunk_b.id_name_hints() {
+      chunk_a.add_id_name_hints(hint.to_string());
     }
 
     // Merge runtime
-    chunk_a.runtime = merge_runtime(&chunk_a.runtime, &chunk_b.runtime);
+    chunk_a.set_runtime(merge_runtime(chunk_a.runtime(), chunk_b.runtime()));
 
     // get_chunk_modules is used here to create a clone, because disconnect_chunk_and_module modifies
     for module in self.get_chunk_modules(b, module_graph) {
@@ -855,7 +856,7 @@ impl ChunkGraph {
     }
 
     let mut remove_group_ukeys = vec![];
-    for chunk_group_ukey in chunk_b.groups {
+    for &chunk_group_ukey in chunk_b.groups() {
       let chunk_group = chunk_group_by_ukey.expect_get_mut(&chunk_group_ukey);
       chunk_group.replace_chunk(b, a);
       chunk_a.add_group(chunk_group_ukey);

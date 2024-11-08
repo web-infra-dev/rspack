@@ -78,19 +78,17 @@ impl SplitChunksPlugin {
       );
 
       let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
-      tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason);
+      tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason());
 
-      if let Some(chunk_reason) = &mut new_chunk_mut.chunk_reason {
+      if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
         chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()))
       }
 
       if let Some(filename) = &cache_group.filename {
-        new_chunk_mut.filename_template = Some(filename.clone());
+        new_chunk_mut.set_filename_template(Some(filename.clone()));
       }
 
-      new_chunk_mut
-        .id_name_hints
-        .insert(cache_group.id_hint.clone());
+      new_chunk_mut.add_id_name_hints(cache_group.id_hint.clone());
 
       if is_reuse_existing_chunk {
         // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove

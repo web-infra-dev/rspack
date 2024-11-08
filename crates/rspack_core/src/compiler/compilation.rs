@@ -598,8 +598,8 @@ impl Compilation {
         self.delete_asset(&source_map);
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        chunk.files.remove(filename);
-        chunk.auxiliary_files.remove(filename);
+        chunk.remove_file(filename);
+        chunk.remove_auxiliary_file(filename);
       });
     }
   }
@@ -608,12 +608,12 @@ impl Compilation {
     if let Some(asset) = self.assets.remove(filename) {
       self.assets.insert(new_name.clone(), asset);
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        if chunk.files.remove(filename) {
-          chunk.files.insert(new_name.clone());
+        if chunk.remove_file(filename) {
+          chunk.add_file(new_name.clone());
         }
 
-        if chunk.auxiliary_files.remove(filename) {
-          chunk.auxiliary_files.insert(new_name.clone());
+        if chunk.remove_auxiliary_file(filename) {
+          chunk.add_auxiliary_file(new_name.clone());
         }
       });
     }
@@ -722,8 +722,8 @@ impl Compilation {
       *chunk_ukey
     } else {
       let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
-      let ukey = chunk.ukey;
-      named_chunks.insert(name, chunk.ukey);
+      let ukey = chunk.ukey();
+      named_chunks.insert(name, ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
       ukey
     }
@@ -731,7 +731,7 @@ impl Compilation {
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> ChunkUkey {
     let chunk = Chunk::new(None, ChunkKind::Normal);
-    let ukey = chunk.ukey;
+    let ukey = chunk.ukey();
     chunk_by_ukey.add(chunk);
     ukey
   }
@@ -934,7 +934,7 @@ impl Compilation {
 
     for (chunk, asset) in temp {
       let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
-      chunk.auxiliary_files.insert(asset);
+      chunk.add_auxiliary_file(asset);
     }
   }
 
@@ -949,10 +949,10 @@ impl Compilation {
         plugin_driver
           .compilation_hooks
           .render_manifest
-          .call(self, &chunk.ukey, &mut manifest, &mut diagnostics)
+          .call(self, &chunk.ukey(), &mut manifest, &mut diagnostics)
           .await?;
 
-        Ok((chunk.ukey, manifest, diagnostics))
+        Ok((chunk.ukey(), manifest, diagnostics))
       })
       .collect::<FuturesResults<Result<_>>>();
 
@@ -966,11 +966,11 @@ impl Compilation {
         let filename = file_manifest.filename().to_string();
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
-        current_chunk.rendered = true;
+        current_chunk.set_rendered(true);
         if file_manifest.auxiliary {
-          current_chunk.auxiliary_files.insert(filename.clone());
+          current_chunk.add_auxiliary_file(filename.clone());
         } else {
-          current_chunk.files.insert(filename.clone());
+          current_chunk.add_file(filename.clone());
         }
 
         self.emit_asset(
@@ -1371,7 +1371,7 @@ impl Compilation {
         runtime,
         chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),
       ) {
-        chunk_graph.set_runtime_id(runtime, chunk.id.clone());
+        chunk_graph.set_runtime_id(runtime, chunk.id().map(ToOwned::to_owned));
       }
     }
     for i in self.entrypoints.iter() {
@@ -1475,7 +1475,7 @@ impl Compilation {
       {
         let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
         if let Some(runtime_requirements) =
-          ChunkGraph::get_module_runtime_requirements(self, module.identifier(), &chunk.runtime)
+          ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
         {
           set.insert(*runtime_requirements);
         }
@@ -1575,13 +1575,8 @@ impl Compilation {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
         if let Some(chunk) = compilation.chunk_by_ukey.get_mut(&chunk_ukey) {
-          chunk.rendered_hash = Some(
-            chunk_hash
-              .rendered(compilation.options.output.hash_digest_length)
-              .into(),
-          );
-          chunk.hash = Some(chunk_hash);
-          chunk.content_hash = content_hash;
+          chunk.set_hash(chunk_hash, compilation.options.output.hash_digest_length);
+          *chunk.content_hash_mut() = content_hash;
         }
       }
       Ok(())
@@ -1703,17 +1698,11 @@ impl Compilation {
         .filter(|(_, (_, remaining))| *remaining != 0)
         .map(|(chunk_ukey, _)| self.chunk_by_ukey.expect_get(chunk_ukey))
         .collect();
-      circular.sort_unstable_by(|a, b| a.id.cmp(&b.id));
-      runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey));
+      circular.sort_unstable_by(|a, b| a.id().cmp(&b.id()));
+      runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey()));
       let circular_names = circular
         .iter()
-        .map(|chunk| {
-          chunk
-            .name
-            .as_deref()
-            .or(chunk.id.as_deref())
-            .unwrap_or("no id chunk")
-        })
+        .map(|chunk| chunk.name().or(chunk.id()).unwrap_or("no id chunk"))
         .join(", ");
       self.push_diagnostic(diagnostic!(severity = Severity::Warn, "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.", circular_names).boxed().into());
     }
@@ -1740,13 +1729,8 @@ impl Compilation {
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
       let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
-      chunk.rendered_hash = Some(
-        chunk_hash
-          .rendered(self.options.output.hash_digest_length)
-          .into(),
-      );
-      chunk.hash = Some(chunk_hash);
-      chunk.content_hash = content_hash;
+      chunk.set_hash(chunk_hash, self.options.output.hash_digest_length);
+      *chunk.content_hash_mut() = content_hash;
     }
     logger.time_end(start);
 
@@ -1754,8 +1738,8 @@ impl Compilation {
     self
       .chunk_by_ukey
       .values()
-      .sorted_unstable_by_key(|chunk| chunk.ukey)
-      .filter_map(|chunk| chunk.hash.as_ref())
+      .sorted_unstable_by_key(|chunk| chunk.ukey())
+      .filter_map(|chunk| chunk.hash())
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
@@ -1780,18 +1764,16 @@ impl Compilation {
         }
       }
       let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
-      if let Some(chunk_hash) = &mut chunk.hash {
+      if let Some(chunk_hash) = chunk.hash() {
         let mut hasher = RspackHash::from(&self.options.output);
         chunk_hash.hash(&mut hasher);
         self.hash.hash(&mut hasher);
-        *chunk_hash = hasher.digest(&self.options.output.hash_digest);
-        chunk.rendered_hash = Some(
-          chunk_hash
-            .rendered(self.options.output.hash_digest_length)
-            .into(),
+        chunk.set_hash(
+          hasher.digest(&self.options.output.hash_digest),
+          self.options.output.hash_digest_length,
         );
       }
-      if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
+      if let Some(content_hash) = chunk.content_hash_mut().get_mut(&SourceType::JavaScript) {
         let mut hasher = RspackHash::from(&self.options.output);
         content_hash.hash(&mut hasher);
         self.hash.hash(&mut hasher);
@@ -1887,7 +1869,7 @@ impl Compilation {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_module_identifier =
-      ModuleIdentifier::from(format!("{}/{}", &chunk.runtime, module.identifier()));
+      ModuleIdentifier::from(format!("{}/{}", chunk.runtime(), module.identifier()));
     module.attach(*chunk_ukey);
 
     self.chunk_graph.add_module(runtime_module_identifier);

@@ -65,7 +65,7 @@ impl CodeSplitter {
       .iter()
       .flat_map(|chunk| {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.groups.clone()
+        chunk.groups().clone()
       })
       .collect::<UkeySet<ChunkGroupUkey>>();
 
@@ -159,9 +159,9 @@ impl CodeSplitter {
         continue;
       };
 
-      if chunk.groups.remove(&chunk_group_ukey) && chunk.groups.is_empty() {
+      if chunk.remove_group(&chunk_group_ukey) && chunk.groups().is_empty() {
         // remove orphan chunk
-        if let Some(name) = &chunk.name {
+        if let Some(name) = chunk.name() {
           compilation.named_chunks.remove(name);
         }
         compilation.chunk_by_ukey.remove(chunk_ukey);
@@ -262,7 +262,7 @@ impl CodeSplitter {
 
       for chunk_ukey in &cgm.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-        chunk_groups.extend(chunk.groups.clone());
+        chunk_groups.extend(chunk.groups().clone());
       }
     }
     for group in chunk_groups {

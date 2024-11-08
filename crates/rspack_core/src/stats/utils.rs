@@ -85,7 +85,7 @@ pub fn get_chunk_group_oreded_child_assets(
         .expect_get(ukey)
         .chunks
         .iter()
-        .flat_map(|c| chunk_by_ukey.expect_get(c).files.clone())
+        .flat_map(|c| chunk_by_ukey.expect_get(c).files().clone())
         .collect::<Vec<_>>()
     })
     .unique()
@@ -101,13 +101,13 @@ pub fn get_chunk_relations(
   let mut children = HashSet::default();
   let mut siblings = HashSet::default();
 
-  for cg in &chunk.groups {
+  for cg in chunk.groups() {
     if let Some(cg) = chunk_group_by_ukey.get(cg) {
       for p in &cg.parents {
         if let Some(pg) = chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = chunk_by_ukey.get(c)
-              && let Some(id) = &c.id
+              && let Some(id) = c.id()
             {
               parents.insert(id.to_string());
             }
@@ -119,7 +119,7 @@ pub fn get_chunk_relations(
         if let Some(pg) = chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = chunk_by_ukey.get(c)
-              && let Some(id) = &c.id
+              && let Some(id) = &c.id()
             {
               children.insert(id.to_string());
             }
@@ -129,8 +129,8 @@ pub fn get_chunk_relations(
 
       for c in &cg.chunks {
         if let Some(c) = chunk_by_ukey.get(c)
-          && c.id != chunk.id
-          && let Some(id) = &c.id
+          && c.id() != chunk.id()
+          && let Some(id) = c.id()
         {
           siblings.insert(id.to_string());
         }

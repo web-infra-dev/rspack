@@ -43,8 +43,8 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
 
     // split chunks from original chunks and create new chunk
     let mut new_chunk = Chunk::new(None, rspack_core::ChunkKind::Normal);
-    new_chunk.chunk_reason = Some("modules are shared across multiple chunks".into());
-    let new_chunk_ukey = new_chunk.ukey;
+    *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
+    let new_chunk_ukey = new_chunk.ukey();
     compilation.chunk_graph.add_chunk(new_chunk_ukey);
 
     for chunk_ukey in &chunks {

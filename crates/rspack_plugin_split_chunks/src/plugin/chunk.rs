@@ -37,7 +37,7 @@ impl SplitChunksPlugin {
 
       if compilation
         .chunk_graph
-        .get_number_of_chunk_modules(&chunk.ukey)
+        .get_number_of_chunk_modules(&chunk.ukey())
         != module_group.modules.len()
       {
         // Fast path
@@ -47,7 +47,7 @@ impl SplitChunksPlugin {
       if module_group.chunks.len() > 1
         && compilation
           .chunk_graph
-          .get_number_of_entry_modules(&chunk.ukey)
+          .get_number_of_entry_modules(&chunk.ukey())
           > 0
       {
         // `module_group.chunks.len() > 1`: This `ModuleGroup` are related to multiple code splitting chunks.
@@ -64,7 +64,7 @@ impl SplitChunksPlugin {
       let is_all_module_in_chunk = module_group.modules.iter().all(|each_module| {
         compilation
           .chunk_graph
-          .is_module_in_chunk(each_module, chunk.ukey)
+          .is_module_in_chunk(each_module, chunk.ukey())
       });
       if !is_all_module_in_chunk {
         return None;
@@ -75,7 +75,7 @@ impl SplitChunksPlugin {
 
     /// Port https://github.com/webpack/webpack/blob/b471a6bfb71020f6d8f136ef10b7efb239ef5bbf/lib/optimize/SplitChunksPlugin.js#L1360-L1373
     fn best_reusable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
-      match (&first.name, &second.name) {
+      match (first.name(), second.name()) {
         (None, None) => first,
         (None, Some(_)) => second,
         (Some(_), None) => first,
@@ -95,7 +95,7 @@ impl SplitChunksPlugin {
 
     let best_reusable_chunk = candidates.reduce(|best, each| best_reusable_chunk(best, each));
 
-    best_reusable_chunk.map(|c| c.ukey)
+    best_reusable_chunk.map(|c| c.ukey())
   }
 
   pub(crate) fn get_corresponding_chunk(
@@ -118,12 +118,12 @@ impl SplitChunksPlugin {
         let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
 
         put_split_chunk_reason(
-          &mut new_chunk.chunk_reason,
+          new_chunk.chunk_reason_mut(),
           *is_reuse_existing_chunk_with_all_modules,
         );
 
-        compilation.chunk_graph.add_chunk(new_chunk.ukey);
-        new_chunk.ukey
+        compilation.chunk_graph.add_chunk(new_chunk.ukey());
+        new_chunk.ukey()
       }
     } else if let Some(reusable_chunk) =
       self.find_the_best_reusable_chunk(compilation, module_group)
@@ -137,12 +137,12 @@ impl SplitChunksPlugin {
       let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
 
       put_split_chunk_reason(
-        &mut new_chunk.chunk_reason,
+        new_chunk.chunk_reason_mut(),
         *is_reuse_existing_chunk_with_all_modules,
       );
 
-      compilation.chunk_graph.add_chunk(new_chunk.ukey);
-      new_chunk.ukey
+      compilation.chunk_graph.add_chunk(new_chunk.ukey());
+      new_chunk.ukey()
     }
   }
 

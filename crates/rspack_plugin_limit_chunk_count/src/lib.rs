@@ -169,8 +169,8 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     if !modified_chunks.is_empty() {
       let a_chunk = chunk_by_ukey.expect_get(&a);
       let b_chunk = chunk_by_ukey.expect_get(&b);
-      let mut queue = a_chunk.groups.iter().copied().collect::<HashSet<_>>();
-      for group_ukey in b_chunk.groups.iter() {
+      let mut queue = a_chunk.groups().iter().copied().collect::<HashSet<_>>();
+      for group_ukey in b_chunk.groups().iter() {
         queue.insert(*group_ukey);
       }
       for group_ukey in queue.clone() {

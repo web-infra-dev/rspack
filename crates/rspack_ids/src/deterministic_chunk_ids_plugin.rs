@@ -40,7 +40,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   let chunks = compilation
     .chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id.is_none())
+    .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
   let mut chunk_key_to_id = HashMap::with_capacity(chunks.len());
 
@@ -55,7 +55,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
         return false;
       }
 
-      chunk_key_to_id.insert(chunk.ukey, id);
+      chunk_key_to_id.insert(chunk.ukey(), id);
       true
     },
     &[usize::pow(10, max_length)],
@@ -66,7 +66,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
 
   chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.id = Some(id.to_string());
+    chunk.set_id(Some(id.to_string()));
   });
 
   Ok(())

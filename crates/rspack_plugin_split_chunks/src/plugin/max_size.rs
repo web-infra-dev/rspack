@@ -218,13 +218,13 @@ impl SplitChunksPlugin {
     .values()
     .par_bridge()
     .map(|chunk| {
-      let max_size_setting = max_size_setting_map.get(&chunk.ukey);
-      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey);
+      let max_size_setting = max_size_setting_map.get(&chunk.ukey());
+      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey());
 
       if max_size_setting.is_none()
         && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
       {
-        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason);
+        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
         return Ok(None);
       }
 
@@ -254,7 +254,7 @@ impl SplitChunksPlugin {
       if allow_max_size.is_empty() {
         tracing::debug!(
           "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reason
+          chunk.chunk_reason()
         );
         return Ok(None);
       }
@@ -279,7 +279,7 @@ impl SplitChunksPlugin {
       Ok(Some(ChunkWithSizeInfo {
         allow_max_size,
         min_size,
-        chunk: chunk.ukey,
+        chunk: chunk.ukey(),
         automatic_name_delimiter,
       }))
     }).collect::<Result<Vec<_>>>()?
@@ -328,12 +328,11 @@ impl SplitChunksPlugin {
         };
         let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
-          .get(&chunk.ukey)
+          .get(&chunk.ukey())
           .map(|s| s.automatic_name_delimiter.as_str())
           .unwrap_or(DEFAULT_DELIMITER);
         let mut name = chunk
-          .name
-          .as_ref()
+          .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));
 
         if let Some(n) = name.clone() {
@@ -345,7 +344,7 @@ impl SplitChunksPlugin {
         }
 
         if index != last_index {
-          let old_chunk = chunk.ukey;
+          let old_chunk = chunk.ukey();
           let new_chunk_ukey = if let Some(name) = name {
             Compilation::add_named_chunk(
               name,
@@ -363,19 +362,19 @@ impl SplitChunksPlugin {
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
 
           group.nodes.iter().for_each(|module| {
-            compilation.chunk_graph.add_chunk(new_part.ukey);
+            compilation.chunk_graph.add_chunk(new_part.ukey());
 
             // Add module to new chunk
             compilation
               .chunk_graph
-              .connect_chunk_and_module(new_part.ukey, module.module);
+              .connect_chunk_and_module(new_part.ukey(), module.module);
             // Remove module from used chunks
             compilation
               .chunk_graph
               .disconnect_chunk_and_module(&old_chunk, module.module)
           })
         } else {
-          chunk.name = name;
+          chunk.set_name(name);
         }
       })
     });

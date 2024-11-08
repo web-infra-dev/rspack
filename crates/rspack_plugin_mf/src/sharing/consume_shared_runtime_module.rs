@@ -55,7 +55,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       ids.push(id.clone());
       let code_gen = compilation
         .code_generation_results
-        .get(&module, Some(&chunk.runtime));
+        .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
@@ -88,8 +88,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
       chunk_to_module_mapping.insert(
         chunk
-          .id
-          .clone()
+          .id()
+          .map(ToOwned::to_owned)
           .expect("should have chunkId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate"),
         ids,
       );

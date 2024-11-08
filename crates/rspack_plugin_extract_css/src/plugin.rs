@@ -130,7 +130,7 @@ impl PluginCssExtract {
       .map(|module| (module.identifier(), IdentifierSet::default()))
       .collect();
 
-    let mut groups = chunk.groups.iter().cloned().collect::<Vec<_>>();
+    let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
     groups.sort_unstable();
 
     let mut modules_by_chunk_group = groups
@@ -241,7 +241,7 @@ impl PluginCssExtract {
             .expect("should have dep reason");
 
           let new_conflict = CssOrderConflicts {
-            chunk: chunk.ukey,
+            chunk: chunk.ukey(),
             fallback_module,
             reasons: best_match_deps
               .into_iter()
@@ -475,7 +475,7 @@ fn runtime_requirement_in_tree(
         "__webpack_require__.miniCssF".into(),
         |_| false,
         move |chunk, compilation| {
-          chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
+          chunk.content_hash().contains_key(&SOURCE_TYPE[0]).then(|| {
             if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
               filename.clone()
             } else {
@@ -529,7 +529,7 @@ async fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
-    .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), &chunk.runtime))
+    .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), chunk.runtime()))
     .for_each(|current| current.hash(&mut hasher));
 
   Ok(())
@@ -546,7 +546,7 @@ async fn render_manifest(
   let module_graph = compilation.get_module_graph();
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
 
@@ -589,10 +589,7 @@ async fn render_manifest(
         format!(
           "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
 despite it was not able to fulfill desired ordering with these modules:\n{}",
-          chunk
-            .name
-            .as_deref()
-            .unwrap_or(chunk.id.as_deref().unwrap_or_default()),
+          chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
           fallback_module.readable_identifier(&compilation.options.context),
           conflict
             .reasons

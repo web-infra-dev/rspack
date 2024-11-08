@@ -40,7 +40,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     let mut target_chunks = HashSet::default();
     for chunk_key in chunk_keys {
       if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
-        let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
+        let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();
         visited_chunk_group_keys.clear();
         'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
           if visited_chunk_group_keys.contains(chunk_group_key) {

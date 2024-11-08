@@ -128,7 +128,7 @@ impl AssignLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: &ChunkUkey,
   ) -> Result<Option<AssignLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.options.library_type)
@@ -306,12 +306,12 @@ fn embed_in_runtime_bailout(
   module: &BoxModule,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
-  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {
     return Ok(None);
   };
   let codegen = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(&chunk.runtime));
+    .get(&module.identifier(), Some(chunk.runtime()));
   let top_level_decls = codegen
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()

@@ -333,7 +333,7 @@ pub fn get_short_chunk_name(
   module_graph: &ModuleGraph,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
@@ -349,7 +349,7 @@ pub fn get_short_chunk_name(
     })
     .collect::<Vec<_>>();
 
-  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints.clone());
+  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints().clone());
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
@@ -382,7 +382,7 @@ pub fn get_long_chunk_name(
   module_graph: &ModuleGraph,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
@@ -400,7 +400,7 @@ pub fn get_long_chunk_name(
     .iter()
     .map(|m| request_to_id(&get_long_module_name("", m, context)))
     .collect::<Vec<_>>();
-  let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
+  let mut id_name_hints = chunk.id_name_hints().iter().cloned().collect::<Vec<_>>();
   id_name_hints.sort_unstable();
 
   let chunk_name = {
@@ -418,12 +418,12 @@ pub fn get_full_chunk_name(
   module_graph: &ModuleGraph,
   context: &str,
 ) -> String {
-  if let Some(name) = &chunk.name {
+  if let Some(name) = chunk.name() {
     return name.to_owned();
   }
 
   let full_module_names = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
@@ -454,8 +454,8 @@ pub fn get_used_chunk_ids(compilation: &Compilation) -> HashSet<String> {
     .cloned()
     .collect::<HashSet<_>>();
   for chunk in compilation.chunk_by_ukey.values() {
-    if let Some(id) = &chunk.id {
-      used_ids.insert(id.clone());
+    if let Some(id) = chunk.id() {
+      used_ids.insert(id.to_owned());
     }
   }
   used_ids
@@ -468,19 +468,19 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   if !used_ids.is_empty() {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id.is_none() {
+      if chunk.id().is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.id = Some(next_id.to_string());
+        chunk.set_id(Some(next_id.to_string()));
         next_id += 1;
       }
     }
   } else {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id.is_none() {
-        chunk.id = Some(next_id.to_string());
+      if chunk.id().is_none() {
+        chunk.set_id(Some(next_id.to_string()));
         next_id += 1;
       }
     }
@@ -493,8 +493,8 @@ fn compare_chunks_by_modules(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
-  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
+  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey(), module_graph);
+  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey(), module_graph);
 
   let eq = a_modules
     .into_iter()
@@ -520,7 +520,7 @@ fn compare_chunks_by_modules(
   // 2 chunks are exactly the same, we have to compare
   // the ukey to get stable results
   if matches!(eq, Ordering::Equal) {
-    return a.ukey.cmp(&b.ukey);
+    return a.ukey().cmp(&b.ukey());
   }
 
   eq
@@ -532,15 +532,12 @@ pub fn compare_chunks_natural(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let name_ordering = compare_ids(
-    &a.name.clone().unwrap_or_default(),
-    &b.name.clone().unwrap_or_default(),
-  );
+  let name_ordering = compare_ids(a.name().unwrap_or_default(), b.name().unwrap_or_default());
   if name_ordering != Ordering::Equal {
     return name_ordering;
   }
 
-  let runtime_ordering = compare_runtime(&a.runtime, &b.runtime);
+  let runtime_ordering = compare_runtime(a.runtime(), b.runtime());
   if runtime_ordering != Ordering::Equal {
     return runtime_ordering;
   }

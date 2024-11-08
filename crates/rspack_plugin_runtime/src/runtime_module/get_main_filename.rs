@@ -38,7 +38,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         PathData::default()
           .chunk(chunk)
           .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
-          .runtime(&chunk.runtime),
+          .runtime(chunk.runtime()),
       )?;
       Ok(
         RawSource::from(format!(

@@ -37,7 +37,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
             .chunk(chunk)
             .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
             .id("' + chunkId + '")
-            .runtime(&chunk.runtime),
+            .runtime(chunk.runtime()),
         )
         .always_ok();
       Ok(

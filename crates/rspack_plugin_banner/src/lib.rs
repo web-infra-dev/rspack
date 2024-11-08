@@ -156,7 +156,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     }
 
-    for file in &chunk.files {
+    for file in chunk.files() {
       let is_match = match_object(&self.config, file);
 
       if !is_match {

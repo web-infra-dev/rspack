@@ -142,7 +142,7 @@ impl ChunkGraph {
     let mut runtimes = RuntimeSpecSet::default();
     for chunk_ukey in cgm.chunks.iter() {
       let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-      runtimes.set(chunk.runtime.clone());
+      runtimes.set(chunk.runtime().clone());
     }
     runtimes
   }

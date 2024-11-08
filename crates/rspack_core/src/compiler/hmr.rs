@@ -29,13 +29,13 @@ impl Compiler {
       .get_chunk_graph_entries()
       .into_iter()
       .filter_map(|entry_ukey| old.compilation.chunk_by_ukey.get(&entry_ukey))
-      .flat_map(|entry_chunk| entry_chunk.runtime.clone())
+      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect();
 
     let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
     for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
-      if chunk.kind != ChunkKind::HotUpdate {
-        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime.clone()));
+      if chunk.kind() != ChunkKind::HotUpdate {
+        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime().clone()));
       }
     }
 

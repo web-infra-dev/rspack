@@ -47,26 +47,21 @@ pub struct JsChunkPathData {
 impl JsChunkPathData {
   pub fn to_chunk(&self, compilation: &Compilation) -> Chunk {
     let mut chunk = rspack_core::Chunk::new(self.name.clone(), rspack_core::ChunkKind::Normal);
-    chunk.id = self.id.clone();
-    chunk.hash = self
-      .hash
-      .clone()
-      .map(|s| RspackHashDigest::from(s.as_str()));
-
-    chunk.rendered_hash = chunk.hash.as_ref().map(|h| {
-      h.rendered(compilation.options.output.hash_digest_length)
-        .into()
-    });
+    chunk.set_id(self.id.clone());
+    if let Some(hash) = &self.hash {
+      chunk.set_hash(
+        RspackHashDigest::from(hash.as_str()),
+        compilation.options.output.hash_digest_length,
+      );
+    }
     if let Some(hash) = self.content_hash.as_ref() {
       match hash {
         Either::A(hash) => {
-          chunk
-            .content_hash
-            .insert(SourceType::Unknown, RspackHashDigest::from(hash.as_str()));
+          chunk.insert_content_hash(SourceType::Unknown, RspackHashDigest::from(hash.as_str()));
         }
         Either::B(map) => {
           for (key, hash) in map {
-            chunk.content_hash.insert(
+            chunk.insert_content_hash(
               SourceType::from(key.as_str()),
               RspackHashDigest::from(hash.as_str()),
             );
@@ -79,12 +74,12 @@ impl JsChunkPathData {
 
   fn from_chunk(chunk: &rspack_core::Chunk, hash_digest_length: usize) -> JsChunkPathData {
     Self {
-      id: chunk.id.clone(),
-      name: chunk.name.clone(),
-      hash: chunk.hash.as_ref().map(|d| d.encoded().to_string()),
+      id: chunk.id().map(ToOwned::to_owned),
+      name: chunk.name().map(ToOwned::to_owned),
+      hash: chunk.hash().map(|d| d.encoded().to_string()),
       content_hash: Some(Either::B(
         chunk
-          .content_hash
+          .content_hash()
           .iter()
           .map(|(key, v)| (key.to_string(), v.rendered(hash_digest_length).to_string()))
           .collect(),

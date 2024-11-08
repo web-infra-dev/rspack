@@ -28,58 +28,38 @@ pub struct JsChunk {
 
 impl JsChunk {
   pub fn from(chunk: &rspack_core::Chunk) -> Self {
-    let Chunk {
-      // not implement yet
-      ukey: _ukey,
-      prevent_integration: _prevent_integration,
-      groups: _groups,
-      kind: _kind,
-
-      // used in js chunk
-      name,
-      filename_template,
-      css_filename_template,
-      id,
-      id_name_hints,
-      files,
-      auxiliary_files,
-      runtime,
-      hash,
-      rendered_hash,
-      content_hash,
-      chunk_reason,
-      ..
-    } = chunk;
-    let mut files = Vec::from_iter(files.iter().cloned());
+    let mut files = Vec::from_iter(chunk.files().iter().cloned());
     files.sort_unstable();
-    let mut auxiliary_files = auxiliary_files.iter().cloned().collect::<Vec<_>>();
+    let mut auxiliary_files = Vec::from_iter(chunk.auxiliary_files().iter().cloned());
     auxiliary_files.sort_unstable();
-    let mut runtime = Vec::<String>::from_iter(runtime.clone().into_iter().map(|r| r.to_string()));
-    runtime.sort_unstable();
 
     Self {
-      inner_ukey: chunk.ukey.as_u32(),
-      inner_groups: chunk.groups.iter().map(|ukey| ukey.as_u32()).collect(),
-      name: name.clone(),
-      id: id.clone(),
-      ids: id.clone().map_or(Vec::new(), |id| vec![id]),
-      id_name_hints: Vec::from_iter(id_name_hints.clone()),
-      filename_template: filename_template
-        .as_ref()
+      inner_ukey: chunk.ukey().as_u32(),
+      inner_groups: chunk.groups().iter().map(|ukey| ukey.as_u32()).collect(),
+      name: chunk.name().map(ToOwned::to_owned),
+      id: chunk.id().map(ToOwned::to_owned),
+      ids: chunk
+        .id()
+        .clone()
+        .map_or(Vec::new(), |id| vec![id.to_owned()]),
+      id_name_hints: Vec::from_iter(chunk.id_name_hints().clone()),
+      filename_template: chunk
+        .filename_template()
         .and_then(|f| Some(f.template()?.to_string())),
-      css_filename_template: css_filename_template
-        .as_ref()
+      css_filename_template: chunk
+        .css_filename_template()
         .and_then(|f| Some(f.template()?.to_string())),
       files,
-      runtime,
-      hash: hash.as_ref().map(|d| d.encoded().to_string()),
-      content_hash: content_hash
+      auxiliary_files,
+      runtime: chunk.runtime().iter().map(|r| r.to_string()).collect(),
+      hash: chunk.hash().map(|d| d.encoded().to_string()),
+      content_hash: chunk
+        .content_hash()
         .iter()
         .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
         .collect::<std::collections::HashMap<String, String>>(),
-      rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reason: chunk_reason.clone(),
-      auxiliary_files,
+      rendered_hash: chunk.rendered_hash().map(|hash| hash.to_string()),
+      chunk_reason: chunk.chunk_reason().map(ToOwned::to_owned),
     }
   }
 }

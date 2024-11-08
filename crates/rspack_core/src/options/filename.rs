@@ -302,7 +302,7 @@ fn render_template(
     let chunk = options.chunk?;
     let content_hash_type = options.content_hash_type?;
     chunk
-      .content_hash
+      .content_hash()
       .get(&content_hash_type)
       .map(|h| h.rendered(hash_digest_length))
   }) {
@@ -336,15 +336,14 @@ fn render_template(
     }
   }
   if let Some(chunk) = options.chunk {
-    if let Some(id) = options.id.or(chunk.id.as_deref()) {
+    if let Some(id) = options.id.or(chunk.id()) {
       t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
     }
     if let Some(name) = chunk.name_for_filename_template() {
       t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
     }
-    if let Some(d) = chunk.rendered_hash.as_ref() {
+    if let Some(hash) = chunk.rendered_hash() {
       t = t.map(|t| {
-        let hash = &**d;
         replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
           let hash: &str = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
