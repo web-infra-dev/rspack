@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::{Either3, FromNapiValue};
+use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_binding_values::{JsChunk, JsModuleWrapper};
 use rspack_core::Chunk;
@@ -21,15 +21,6 @@ pub struct RawChunkOptionNameCtx {
   pub module: JsModuleWrapper,
   pub chunks: Vec<JsChunk>,
   pub cache_group_key: String,
-}
-
-impl FromNapiValue for RawChunkOptionNameCtx {
-  unsafe fn from_napi_value(
-    _env: napi::sys::napi_env,
-    _napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    unreachable!()
-  }
 }
 
 impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
