@@ -56,8 +56,6 @@ impl Dependency for DllEntryDependency {
   }
 }
 
-// impl AsModuleDependency for DllEntryDependency {}
-
 impl AsContextDependency for DllEntryDependency {}
 
 impl AsDependencyTemplate for DllEntryDependency {}

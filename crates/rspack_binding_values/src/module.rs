@@ -1,6 +1,5 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
-use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{

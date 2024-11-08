@@ -304,7 +304,7 @@ impl ModuleConcatenationPlugin {
       }
     }
 
-    // Every module_graph_module that tags concatenaion_bail should be return a warning problem to avoid this module concate.
+    // Every module_graph_module that tags concatenation_bail should be return a warning problem to avoid this module concate.
     if let Some(concatenation_bail) = module_graph
       .module_graph_module_by_identifier(module_id)
       .map(|mgm| &mgm.concatenation_bail)
