@@ -22,6 +22,8 @@ pub struct ModuleGraphModule {
   pub profile: Option<Box<ModuleProfile>>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
+
+  // reason why this module can't be concatenated, empty string means it can be concatenated
   pub concatenation_bail: String,
 }
 

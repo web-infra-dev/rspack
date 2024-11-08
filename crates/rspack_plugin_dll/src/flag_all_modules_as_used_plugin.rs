@@ -58,10 +58,10 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
     exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
-    // webpack avoid those modules concate using add a virtual module_graph_connection.
+    // webpack avoid those modules be concatenated using add a virtual module_graph_connection.
     // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L42
     // Rspack need incremental build, so we should not add virtual connection to module.
-    // We can add a bail reason to avoid those modules concate.
+    // We can add a bail reason to avoid those modules be concatenated.
     if let Some(mgm) = mg.module_graph_module_by_identifier_mut(&module_id) {
       mgm.add_concatenation_bail_reason(&self.explanation);
     };
