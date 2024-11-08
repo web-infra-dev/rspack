@@ -1,9 +1,7 @@
 let globalId = 0;
 
 const buildModule = jest.fn();
-const stillValidModule = jest.fn();
 const succeedModule = jest.fn();
-const executeModule = jest.fn();
 const finishModules = jest.fn();
 const optimizeModules = jest.fn();
 const afterOptimizeModules = jest.fn();
@@ -27,16 +25,8 @@ class MyPlugin {
                 buildModule();
                 expect(localId).toBe(globalId);
             });
-            compilation.hooks.stillValidModule.tap("PLUGIN", () => {
-                stillValidModule();
-                expect(localId).toBe(globalId);
-            });
             compilation.hooks.succeedModule.tap("PLUGIN", () => {
                 succeedModule();
-                expect(localId).toBe(globalId);
-            });
-            compilation.hooks.executeModule.tap("PLUGIN", () => {
-                executeModule();
                 expect(localId).toBe(globalId);
             });
             compilation.hooks.finishModules.tap("PLUGIN", () => {
@@ -125,22 +115,20 @@ module.exports = {
         });
     },
     async check() {
-        // expect(buildModule.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(stillValidModule.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(succeedModule.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(executeModule.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(finishModules.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(optimizeModules.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(afterOptimizeModules.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(optimizeTree.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(optimizeChunkModules.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(additionalTreeRuntimeRequirements.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(runtimeModule.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(chunkHash.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(chunkAsset.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(processAssets.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(afterProcessAssets.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(seal.mock.calls.length).toBeGreaterThanOrEqual(2);
-        // expect(afterSeal.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(buildModule.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(succeedModule.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(finishModules.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(optimizeModules.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(afterOptimizeModules.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(optimizeTree.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(optimizeChunkModules.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(additionalTreeRuntimeRequirements.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(runtimeModule.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(chunkHash.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(chunkAsset.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(processAssets.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(afterProcessAssets.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(seal.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(afterSeal.mock.calls.length).toBeGreaterThanOrEqual(2);
     }
 };
