@@ -90,12 +90,9 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
     let raw_exports = value.exports;
 
     let exports = raw_exports.map(|exports| match exports {
-      Either::A(seq) => DllManifestContentItemExports::Vec(
-        seq
-          .into_iter()
-          .map(|export| Atom::from(export))
-          .collect::<Vec<_>>(),
-      ),
+      Either::A(seq) => {
+        DllManifestContentItemExports::Vec(seq.into_iter().map(Atom::from).collect::<Vec<_>>())
+      }
       Either::B(bool) => {
         if bool {
           DllManifestContentItemExports::True
@@ -108,7 +105,7 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
     Self {
       build_meta: value.build_meta.map(|meta| meta.into()),
       exports,
-      id: value.id.into(),
+      id: value.id,
     }
   }
 }
@@ -128,8 +125,8 @@ impl From<RawDllManifest> for DllManifest {
         .into_iter()
         .map(|(k, v)| (k, v.into()))
         .collect::<DllManifestContent>(),
-      name: value.name.map(|n| n.into()),
-      r#type: value.r#type.into(),
+      name: value.name,
+      r#type: value.r#type,
     }
   }
 }
