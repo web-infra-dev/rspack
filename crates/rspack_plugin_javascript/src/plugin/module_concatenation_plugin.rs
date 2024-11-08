@@ -278,22 +278,23 @@ impl ModuleConcatenationPlugin {
         .filter(|&connection| connection.is_active(&module_graph, runtime))
         .collect::<Vec<_>>();
 
+      // TODO: ADD module connection explanations
       if !active_non_modules_connections.is_empty() {
         let problem = {
-          let importing_explanations = active_non_modules_connections
-            .iter()
-            .flat_map(|&c| c.explanation())
-            .collect::<HashSet<_>>();
-          let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
-          explanations.sort();
+          // let importing_explanations = active_non_modules_connections
+          //   .iter()
+          //   .flat_map(|&c| c.explanation())
+          //   .collect::<HashSet<_>>();
+          // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
+          // explanations.sort();
           format!(
-            "Module {} is referenced {}",
+            "Module {} is referenced",
             module_readable_identifier,
-            if !explanations.is_empty() {
-              format!("by: {}", explanations.join(", "))
-            } else {
-              "in an unsupported way".to_string()
-            }
+            // if !explanations.is_empty() {
+            //   format!("by: {}", explanations.join(", "))
+            // } else {
+            //   "in an unsupported way".to_string()
+            // }
           )
         };
         let problem = Warning::Problem(problem);
@@ -302,6 +303,23 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
+
+    // Every module_graph_module that tags concatenaion_bail should be return a warning problem to avoid this module concate.
+    if let Some(concatenation_bail) = module_graph
+      .module_graph_module_by_identifier(module_id)
+      .map(|mgm| &mgm.concatenation_bail)
+    {
+      if !concatenation_bail.is_empty() {
+        let problem = Warning::Problem(format!(
+          "Module {} is bail by: {}",
+          module_readable_identifier, concatenation_bail,
+        ));
+        statistics.incorrect_dependency += 1;
+        failure_cache.insert(*module_id, problem.clone());
+        return Some(problem);
+      }
+    };
+
     let mut incoming_connections_from_modules = HashMap::default();
     for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {

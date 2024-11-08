@@ -15,7 +15,7 @@ use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::concatenated_module::ConcatenatedModule;
 use crate::dependencies_block::dependencies_block_update_hash;
@@ -79,7 +79,8 @@ impl Default for BuildInfo {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -97,7 +98,8 @@ pub enum ExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -111,7 +113,8 @@ pub enum BuildMetaDefaultObject {
   },
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ModuleArgument {
   #[default]
   Module,
@@ -127,7 +130,8 @@ impl Display for ModuleArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ExportsArgument {
   #[default]
   Exports,
@@ -143,7 +147,7 @@ impl Display for ExportsArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BuildMeta {
   pub strict_esm_module: bool,
@@ -153,7 +157,9 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub exports_final_name: Option<Vec<(String, String)>>,
 }
 

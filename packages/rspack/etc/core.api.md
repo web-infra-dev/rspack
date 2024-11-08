@@ -32,6 +32,7 @@ import { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
 import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import { JsBeforeEmitData } from '@rspack/binding';
+import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
@@ -1448,9 +1449,7 @@ export type DllReferencePluginOptions = {
 // @public
 export interface DllReferencePluginOptionsContent {
     [k: string]: {
-        buildMeta?: {
-            [k: string]: any;
-        };
+        buildMeta?: JsBuildMeta;
         exports?: string[] | true;
         id: number | string;
     };

@@ -14,8 +14,8 @@ use crate::{DllManifest, DllManifestContent};
 pub struct DllReferenceAgencyPluginOptions {
   pub context: Option<Context>,
   pub name: Option<String>,
-  pub content: Option<String>,
-  pub manifest: Option<String>,
+  pub content: Option<DllManifestContent>,
+  pub manifest: Option<DllManifest>,
   pub extensions: Vec<String>,
   pub scope: Option<String>,
   pub source_type: Option<LibraryType>,
@@ -42,29 +42,19 @@ impl Plugin for DllReferenceAgencyPlugin {
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, options: &CompilerOptions) -> Result<()> {
     let mut name = self.options.name.clone();
     let mut source_type = self.options.source_type.clone();
-    let mut resolved_content = self
-      .options
-      .content
-      .as_ref()
-      .and_then(|content| serde_json::from_str::<DllManifestContent>(content).ok());
+    let mut resolved_content = self.options.content.clone();
 
-    let manifest = self
-      .options
-      .manifest
-      .as_ref()
-      .and_then(|manifest| serde_json::from_str::<DllManifest>(manifest).ok());
-
-    if let Some(manifest) = manifest {
+    if let Some(manifest) = &self.options.manifest {
       if name.is_none() {
-        name = manifest.name;
+        name = manifest.name.clone();
       }
 
       if source_type.is_none() {
-        source_type = manifest.r#type;
+        source_type = manifest.r#type.clone();
       }
 
       if resolved_content.is_none() {
-        resolved_content = Some(manifest.content);
+        resolved_content = Some(manifest.content.clone());
       }
     }
 

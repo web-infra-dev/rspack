@@ -58,7 +58,9 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
     exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
-    mg.add_extra_reason(&module_id, self.explanation.clone());
+    if let Some(mgm) = mg.module_graph_module_by_identifier_mut(&module_id) {
+      mgm.add_concatenation_bail_reason(&self.explanation);
+    };
   }
 
   Ok(None)
@@ -71,7 +73,7 @@ async fn nmf_module(
   _create_date: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  // set all modules have effects. To avoid any module remove by tree shakeing.
+  // set all modules have effects. To avoid any module remove by tree shaking.
   // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L43-L47
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(false),

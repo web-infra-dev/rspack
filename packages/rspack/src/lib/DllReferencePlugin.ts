@@ -8,10 +8,14 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import type { JsBuildMeta } from "@rspack/binding";
 import z from "zod";
+import type { CompilationParams } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { DllReferenceAgencyPlugin } from "../builtin-plugin";
+import { makePathsRelative } from "../util/identifier";
 import { validate } from "../util/validate";
+import WebpackError from "./WebpackError";
 
 export type DllReferencePluginOptions =
 	| {
@@ -121,9 +125,7 @@ export interface DllReferencePluginOptionsContent {
 		/**
 		 * Meta information about the module.
 		 */
-		buildMeta?: {
-			[k: string]: any;
-		};
+		buildMeta?: JsBuildMeta;
 		/**
 		 * Information about the provided exports of the module.
 		 */
@@ -136,7 +138,7 @@ export interface DllReferencePluginOptionsContent {
 }
 
 const dllReferencePluginOptionsContentItem = z.object({
-	buildMeta: z.record(z.any()).optional(),
+	buildMeta: z.custom<JsBuildMeta>().optional(),
 	exports: z.array(z.string()).or(z.literal(true)).optional(),
 	id: z.union([z.number(), z.string()])
 });
@@ -189,40 +191,75 @@ const dllReferencePluginOptions = z.union([
 	})
 ]) satisfies z.ZodType<DllReferencePluginOptions>;
 
-const DLL_REFERENCE_PLUGIN_NAME = "DllReferencePlugin";
-
 export class DllReferencePlugin {
 	private options: DllReferencePluginOptions;
+
+	private errors: WeakMap<CompilationParams, DllManifestError>;
 
 	constructor(options: DllReferencePluginOptions) {
 		validate(options, dllReferencePluginOptions);
 
 		this.options = options;
+		this.errors = new WeakMap();
 	}
 
 	apply(compiler: Compiler) {
-		compiler.hooks.beforeCompile.tapAsync(
-			DLL_REFERENCE_PLUGIN_NAME,
-			(_, callback) => {
-				if ("manifest" in this.options) {
-					const manifest = this.options.manifest;
+		compiler.hooks.beforeCompile.tapPromise(
+			DllReferencePlugin.name,
+			async params => {
+				const manifest = await new Promise<
+					DllReferencePluginOptionsManifest | undefined
+				>((resolve, reject) => {
+					if ("manifest" in this.options) {
+						const manifest = this.options.manifest;
 
-					let manifest_content: string | undefined = undefined;
+						if (typeof manifest === "string") {
+							const manifestParameter = manifest;
 
-					if (typeof manifest === "string") {
-						compiler.inputFileSystem?.readFile(
-							manifest,
-							"utf8",
-							(err, result) => {
-								if (err) return callback(err);
+							compiler.inputFileSystem?.readFile(
+								manifestParameter,
+								"utf8",
+								(err, result) => {
+									if (err) return reject(err);
 
-								manifest_content = result;
-							}
-						);
+									if (!result)
+										return reject(
+											new DllManifestError(
+												manifestParameter,
+												`Can't read anything from ${manifestParameter}`
+											)
+										);
+
+									try {
+										const manifest: DllReferencePluginOptionsManifest =
+											JSON.parse(result);
+										resolve(manifest);
+									} catch (parseError) {
+										const manifestPath = makePathsRelative(
+											compiler.context,
+											manifestParameter,
+											compiler.root
+										);
+
+										this.errors.set(
+											params,
+											new DllManifestError(
+												manifestPath,
+												(parseError as Error).message
+											)
+										);
+									}
+								}
+							);
+						} else {
+							resolve(manifest);
+						}
 					} else {
-						manifest_content = JSON.stringify(manifest);
+						resolve(undefined);
 					}
+				});
 
+				if (!this.errors.has(params)) {
 					new DllReferenceAgencyPlugin({
 						...this.options,
 						type: this.options.type || "require",
@@ -232,24 +269,36 @@ export class DllReferencePlugin {
 							".json",
 							".wasm"
 						],
-						manifest: manifest_content
+						manifest
 					}).apply(compiler);
-
-					callback();
 				}
 			}
 		);
 
 		compiler.hooks.compilation.tap(
-			DLL_REFERENCE_PLUGIN_NAME,
-			(compilation, _) => {
+			DllReferencePlugin.name,
+			(compilation, params) => {
 				if (
 					"manifest" in this.options &&
 					typeof this.options.manifest === "string"
 				) {
+					const error = this.errors.get(params);
+					if (error) {
+						compilation.errors.push(error);
+					}
+
 					compilation.fileDependencies.add(this.options.manifest);
 				}
 			}
 		);
+	}
+}
+
+class DllManifestError extends WebpackError {
+	constructor(filename: string, message: string) {
+		super();
+
+		this.name = "DllManifestError";
+		this.message = `Dll manifest ${filename}\n${message}`;
 	}
 }

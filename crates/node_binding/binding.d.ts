@@ -450,6 +450,22 @@ export interface JsBeforeResolveArgs {
   issuer: string
 }
 
+export interface JsBuildMeta {
+  strictEsmModule: boolean
+  hasTopLevelAwait: boolean
+  esm: boolean
+  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  moduleArgument: 'module' | 'webpackModule'
+  exportsArgument: 'exports' | 'webpackExports'
+  sideEffectFree?: boolean
+  exportsFinalName?: Array<[string, string]> | undefined
+}
+
+export interface JsBuildMetaDefaultObjectRedirectWarn {
+  redirectWarn: JsDefaultObjectRedirectWarnObject
+}
+
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
@@ -521,6 +537,10 @@ export interface JsCreateData {
   request: string
   userRequest: string
   resource: string
+}
+
+export interface JsDefaultObjectRedirectWarnObject {
+  ignore: boolean
 }
 
 export interface JsDiagnostic {
@@ -1279,6 +1299,18 @@ export interface RawDllEntryPluginOptions {
   name: string
 }
 
+export interface RawDllManifest {
+  content: RawDllManifestContent
+  name?: string
+  type?: string
+}
+
+export interface RawDllManifestContentItem {
+  buildMeta?: JsBuildMeta
+  exports?: Array<string>
+  id?: string
+}
+
 export interface RawDllReferenceAgencyPluginOptions {
   context?: string
   name?: string
@@ -1286,8 +1318,8 @@ export interface RawDllReferenceAgencyPluginOptions {
   scope?: string
   sourceType?: string
   type: string
-  content?: string
-  manifest?: string
+  content?: RawDllManifestContent
+  manifest?: RawDllManifest
 }
 
 export interface RawDraft {

@@ -1,8 +1,11 @@
 use napi_derive::napi;
-use rspack_binding_values::JsFilename;
+use rspack_binding_values::{JsBuildMeta, JsFilename};
 use rspack_plugin_dll::{
-  DllEntryPluginOptions, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
+  DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
+  DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
+use rustc_hash::FxHashMap as HashMap;
+use swc_core::atoms::Atom;
 
 #[derive(Debug)]
 #[napi(object)]
@@ -61,8 +64,7 @@ impl From<RawLibManifestPluginOptions> for LibManifestPluginOptions {
   }
 }
 
-#[derive(Debug)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawDllReferenceAgencyPluginOptions {
   pub context: Option<String>,
   pub name: Option<String>,
@@ -70,8 +72,53 @@ pub struct RawDllReferenceAgencyPluginOptions {
   pub scope: Option<String>,
   pub source_type: Option<String>,
   pub r#type: String,
-  pub content: Option<String>,
-  pub manifest: Option<String>,
+  pub content: Option<RawDllManifestContent>,
+  pub manifest: Option<RawDllManifest>,
+}
+
+type RawDllManifestContent = HashMap<String, RawDllManifestContentItem>;
+
+#[napi(object, object_to_js = false)]
+pub struct RawDllManifestContentItem {
+  pub build_meta: Option<JsBuildMeta>,
+  pub exports: Option<Vec<String>>,
+  pub id: Option<String>,
+}
+
+impl From<RawDllManifestContentItem> for DllManifestContentItem {
+  fn from(value: RawDllManifestContentItem) -> Self {
+    Self {
+      build_meta: value.build_meta.map(|meta| meta.into()),
+      exports: value.exports.map(|exports| {
+        exports
+          .into_iter()
+          .map(|export| Atom::from(export))
+          .collect::<Vec<_>>()
+      }),
+      id: value.id.into(),
+    }
+  }
+}
+
+#[napi(object, object_to_js = false)]
+pub struct RawDllManifest {
+  pub content: RawDllManifestContent,
+  pub name: Option<String>,
+  pub r#type: Option<String>,
+}
+
+impl From<RawDllManifest> for DllManifest {
+  fn from(value: RawDllManifest) -> Self {
+    Self {
+      content: value
+        .content
+        .into_iter()
+        .map(|(k, v)| (k, v.into()))
+        .collect::<DllManifestContent>(),
+      name: value.name.map(|n| n.into()),
+      r#type: value.r#type.into(),
+    }
+  }
 }
 
 impl From<RawDllReferenceAgencyPluginOptions> for DllReferenceAgencyPluginOptions {
@@ -94,8 +141,12 @@ impl From<RawDllReferenceAgencyPluginOptions> for DllReferenceAgencyPluginOption
       scope,
       source_type,
       r#type,
-      content,
-      manifest,
+      content: content.map(|c| {
+        c.into_iter()
+          .map(|(k, v)| (k, v.into()))
+          .collect::<DllManifestContent>()
+      }),
+      manifest: manifest.map(|m| m.into()),
     }
   }
 }

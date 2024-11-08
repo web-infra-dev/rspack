@@ -1,18 +1,18 @@
 use rspack_core::{BuildMeta, LibraryType};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 mod dll_entry;
 mod dll_reference;
 mod flag_all_modules_as_used_plugin;
 mod lib_manifest_plugin;
 
-pub(crate) type DllManifestContent = HashMap<String, DllManifestContentItem>;
+pub type DllManifestContent = HashMap<String, DllManifestContentItem>;
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct DllManifestContentItem {
+pub struct DllManifestContentItem {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub build_meta: Option<BuildMeta>,
 
@@ -23,8 +23,8 @@ pub(crate) struct DllManifestContentItem {
   pub id: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct DllManifest {
+#[derive(Debug, Clone, Serialize)]
+pub struct DllManifest {
   pub content: DllManifestContent,
 
   #[serde(skip_serializing_if = "Option::is_none")]

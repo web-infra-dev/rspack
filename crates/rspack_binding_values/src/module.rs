@@ -1,10 +1,12 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
+use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  DependenciesBlock, Module, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, Compilation, CompilationId, DependenciesBlock, ExportsArgument, Module,
+  ModuleArgument, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -534,3 +536,118 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
     }
   }
 }
+
+#[napi(object, object_to_js = false)]
+pub struct JsBuildMeta {
+  pub strict_esm_module: bool,
+  pub has_top_level_await: bool,
+  pub esm: bool,
+  #[napi(ts_type = "'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'")]
+  pub exports_type: String,
+  #[napi(ts_type = "'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn")]
+  pub default_object: JsBuildMetaDefaultObject,
+  #[napi(ts_type = "'module' | 'webpackModule'")]
+  pub module_argument: String,
+  #[napi(ts_type = "'exports' | 'webpackExports'")]
+  pub exports_argument: String,
+  pub side_effect_free: Option<bool>,
+  #[napi(ts_type = "Array<[string, string]> | undefined")]
+  pub exports_final_name: Option<Vec<Vec<String>>>,
+}
+
+impl From<JsBuildMeta> for BuildMeta {
+  fn from(value: JsBuildMeta) -> Self {
+    let JsBuildMeta {
+      strict_esm_module,
+      has_top_level_await,
+      esm,
+      exports_argument: raw_exports_argument,
+      default_object: raw_default_object,
+      module_argument: raw_module_argument,
+      exports_final_name: raw_exports_final_name,
+      side_effect_free,
+      exports_type: raw_exports_type,
+    } = value;
+
+    let default_object = match raw_default_object {
+      Either::A(s) => match s.as_str() {
+        "false" => BuildMetaDefaultObject::False,
+        "redirect" => BuildMetaDefaultObject::Redirect,
+        _ => unreachable!(),
+      },
+      Either::B(default_object) => BuildMetaDefaultObject::RedirectWarn {
+        ignore: default_object.redirect_warn.ignore,
+      },
+    };
+
+    let exports_type = match raw_exports_type.as_str() {
+      "unset" => BuildMetaExportsType::Unset,
+      "default" => BuildMetaExportsType::Default,
+      "namespace" => BuildMetaExportsType::Namespace,
+      "flagged" => BuildMetaExportsType::Flagged,
+      "dynamic" => BuildMetaExportsType::Dynamic,
+      _ => unreachable!(),
+    };
+
+    let module_argument = match raw_module_argument.as_str() {
+      "module" => ModuleArgument::Module,
+      "webpackModule" => ModuleArgument::WebpackModule,
+      _ => unreachable!(),
+    };
+
+    let exports_argument = match raw_exports_argument.as_str() {
+      "exports" => ExportsArgument::Exports,
+      "webpackExports" => ExportsArgument::WebpackExports,
+      _ => unreachable!(),
+    };
+
+    let exports_final_name = raw_exports_final_name.map(|exports_name| {
+      exports_name
+        .into_iter()
+        .map(|export_name| {
+          let first = export_name
+            .get(0)
+            .expect("The buildMeta exportsFinalName item should have first value")
+            .clone();
+          let second = export_name
+            .get(1)
+            .expect("The buildMeta exportsFinalName item should have second value")
+            .clone();
+          (first, second)
+        })
+        .collect::<Vec<_>>()
+    });
+
+    Self {
+      strict_esm_module,
+      has_top_level_await,
+      esm,
+      exports_type,
+      default_object,
+      module_argument,
+      exports_argument,
+      side_effect_free,
+      exports_final_name,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsBuildMetaDefaultObjectRedirectWarn {
+  pub redirect_warn: JsDefaultObjectRedirectWarnObject,
+}
+
+impl From<JsBuildMetaDefaultObjectRedirectWarn> for BuildMetaDefaultObject {
+  fn from(value: JsBuildMetaDefaultObjectRedirectWarn) -> Self {
+    Self::RedirectWarn {
+      ignore: value.redirect_warn.ignore,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsDefaultObjectRedirectWarnObject {
+  pub ignore: bool,
+}
+
+pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedirectWarn>;
