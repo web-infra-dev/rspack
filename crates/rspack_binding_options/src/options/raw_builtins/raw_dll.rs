@@ -1,8 +1,9 @@
+use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::{JsBuildMeta, JsFilename};
 use rspack_plugin_dll::{
   DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
-  DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
+  DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
@@ -72,29 +73,41 @@ pub struct RawDllReferenceAgencyPluginOptions {
   pub scope: Option<String>,
   pub source_type: Option<String>,
   pub r#type: String,
-  pub content: Option<RawDllManifestContent>,
+  pub content: Option<HashMap<String, RawDllManifestContentItem>>,
   pub manifest: Option<RawDllManifest>,
 }
-
-type RawDllManifestContent = HashMap<String, RawDllManifestContentItem>;
 
 #[napi(object, object_to_js = false)]
 pub struct RawDllManifestContentItem {
   pub build_meta: Option<JsBuildMeta>,
-  pub exports: Option<Vec<String>>,
+  #[napi(ts_type = "string[] | true")]
+  pub exports: Option<Either<Vec<String>, bool>>,
   pub id: Option<String>,
 }
 
 impl From<RawDllManifestContentItem> for DllManifestContentItem {
   fn from(value: RawDllManifestContentItem) -> Self {
-    Self {
-      build_meta: value.build_meta.map(|meta| meta.into()),
-      exports: value.exports.map(|exports| {
-        exports
+    let raw_exports = value.exports;
+
+    let exports = raw_exports.map(|exports| match exports {
+      Either::A(seq) => DllManifestContentItemExports::Vec(
+        seq
           .into_iter()
           .map(|export| Atom::from(export))
-          .collect::<Vec<_>>()
-      }),
+          .collect::<Vec<_>>(),
+      ),
+      Either::B(bool) => {
+        if bool {
+          DllManifestContentItemExports::True
+        } else {
+          unreachable!()
+        }
+      }
+    });
+
+    Self {
+      build_meta: value.build_meta.map(|meta| meta.into()),
+      exports,
       id: value.id.into(),
     }
   }
@@ -102,7 +115,7 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
 
 #[napi(object, object_to_js = false)]
 pub struct RawDllManifest {
-  pub content: RawDllManifestContent,
+  pub content: HashMap<String, RawDllManifestContentItem>,
   pub name: Option<String>,
   pub r#type: Option<String>,
 }

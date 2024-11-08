@@ -5,16 +5,16 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawSource, Source},
-  throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
+  throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
+  Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_util::source_map::ModuleSourceMapConfig;
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
-use crate::DllManifestContentItem;
+use crate::{DllManifestContentItem, DllManifestContentItemExports};
 
 pub type SourceRequest = String;
 
@@ -95,17 +95,21 @@ impl Module for DelegatedModule {
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      dependencies: vec![
-        Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
-        Box::new(StaticExportsDependency::new(
-          match self.delegate_data.exports.clone() {
-            Some(exports) => StaticExportsSpec::Array(exports),
-            None => StaticExportsSpec::True,
+    let dependencies = vec![
+      Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
+      Box::new(StaticExportsDependency::new(
+        match self.delegate_data.exports.clone() {
+          Some(exports) => match exports {
+            DllManifestContentItemExports::True => StaticExportsSpec::True,
+            DllManifestContentItemExports::Vec(vec) => StaticExportsSpec::Array(vec),
           },
-          false,
-        )),
-      ],
+          None => StaticExportsSpec::True,
+        },
+        false,
+      )) as BoxDependency,
+    ];
+    Ok(BuildResult {
+      dependencies,
       build_meta: self.delegate_data.build_meta.clone().unwrap_or_default(),
       ..Default::default()
     })

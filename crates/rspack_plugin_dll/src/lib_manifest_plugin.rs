@@ -11,7 +11,9 @@ use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{DllManifest, DllManifestContent, DllManifestContentItem};
+use crate::{
+  DllManifest, DllManifestContent, DllManifestContentItem, DllManifestContentItemExports,
+};
 
 #[derive(Debug, Clone)]
 pub struct LibManifestPluginOptions {
@@ -124,13 +126,8 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         let exports_info = module_graph.get_exports_info(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports(&module_graph) {
-          ProvidedExports::Vec(vec) => {
-            if vec.is_empty() {
-              None
-            } else {
-              Some(vec)
-            }
-          }
+          ProvidedExports::Vec(vec) => Some(DllManifestContentItemExports::Vec(vec)),
+          ProvidedExports::True => Some(DllManifestContentItemExports::True),
           _ => None,
         };
 

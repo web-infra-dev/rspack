@@ -1300,14 +1300,14 @@ export interface RawDllEntryPluginOptions {
 }
 
 export interface RawDllManifest {
-  content: RawDllManifestContent
+  content: Record<string, RawDllManifestContentItem>
   name?: string
   type?: string
 }
 
 export interface RawDllManifestContentItem {
   buildMeta?: JsBuildMeta
-  exports?: Array<string>
+  exports?: string[] | true
   id?: string
 }
 
@@ -1318,7 +1318,7 @@ export interface RawDllReferenceAgencyPluginOptions {
   scope?: string
   sourceType?: string
   type: string
-  content?: RawDllManifestContent
+  content?: Record<string, RawDllManifestContentItem>
   manifest?: RawDllManifest
 }
 

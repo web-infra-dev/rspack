@@ -605,7 +605,7 @@ impl From<JsBuildMeta> for BuildMeta {
         .into_iter()
         .map(|export_name| {
           let first = export_name
-            .get(0)
+            .first()
             .expect("The buildMeta exportsFinalName item should have first value")
             .clone();
           let second = export_name

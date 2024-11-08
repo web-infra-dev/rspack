@@ -1,7 +1,7 @@
 use rspack_core::{BuildMeta, LibraryType};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
-use serde::Serialize;
+use serde::{ser::SerializeSeq, Serialize};
 
 mod dll_entry;
 mod dll_reference;
@@ -10,6 +10,31 @@ mod lib_manifest_plugin;
 
 pub type DllManifestContent = HashMap<String, DllManifestContentItem>;
 
+#[derive(Debug, Default, Clone)]
+pub enum DllManifestContentItemExports {
+  #[default]
+  True,
+  Vec(Vec<Atom>),
+}
+
+impl Serialize for DllManifestContentItemExports {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    match self {
+      DllManifestContentItemExports::True => serializer.serialize_bool(true),
+      DllManifestContentItemExports::Vec(vec) => {
+        let mut seq = serializer.serialize_seq(Some(vec.len()))?;
+        for item in vec {
+          seq.serialize_element(item)?;
+        }
+        seq.end()
+      }
+    }
+  }
+}
+
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DllManifestContentItem {
@@ -17,7 +42,7 @@ pub struct DllManifestContentItem {
   pub build_meta: Option<BuildMeta>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports: Option<Vec<Atom>>,
+  pub exports: Option<DllManifestContentItemExports>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub id: Option<String>,
