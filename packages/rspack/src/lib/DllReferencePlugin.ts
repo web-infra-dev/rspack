@@ -133,14 +133,14 @@ export interface DllReferencePluginOptionsContent {
 		/**
 		 * Module ID.
 		 */
-		id: string;
+		id?: string;
 	};
 }
 
 const dllReferencePluginOptionsContentItem = z.object({
 	buildMeta: z.custom<JsBuildMeta>().optional(),
 	exports: z.array(z.string()).or(z.literal(true)).optional(),
-	id: z.string()
+	id: z.string().optional()
 });
 
 const dllReferencePluginOptionsContent = z.record(
