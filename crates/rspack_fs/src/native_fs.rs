@@ -1,14 +1,11 @@
-use std::{
-  fs::{self, Metadata},
-  io,
-  path::{Path, PathBuf},
-};
+use std::fs;
 
-use rspack_paths::Utf8Path;
+use futures::future::BoxFuture;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
-use super::{
-  sync::{ReadableFileSystem, WritableFileSystem},
-  Error, Result,
+use crate::{
+  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, ReadableFileSystem,
+  Result, WritableFileSystem,
 };
 
 #[derive(Debug)]
@@ -29,31 +26,27 @@ impl WritableFileSystem for NativeFileSystem {
 }
 
 impl ReadableFileSystem for NativeFileSystem {
-  fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-    fs::read(path)
+  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    fs::read(path).map_err(Error::from)
   }
 
-  fn metadata(&self, path: &Path) -> io::Result<Metadata> {
-    fs::metadata(path)
+  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::metadata(path)?;
+    meta.try_into()
   }
 
-  fn symlink_metadata(&self, path: &Path) -> io::Result<Metadata> {
-    fs::symlink_metadata(path)
+  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::symlink_metadata(path)?;
+    meta.try_into()
   }
 
-  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
-    dunce::canonicalize(path)
+  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let path = dunce::canonicalize(path)?;
+    Ok(path.assert_utf8())
   }
 }
 
-use futures::future::BoxFuture;
-
-use crate::{r#async::FileStat, AsyncReadableFileSystem, AsyncWritableFileSystem};
-
-#[derive(Debug)]
-pub struct AsyncNativeFileSystem;
-
-impl AsyncWritableFileSystem for AsyncNativeFileSystem {
+impl AsyncWritableFileSystem for NativeFileSystem {
   fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
     let dir = dir.to_path_buf();
     let fut = async move { tokio::fs::create_dir(dir).await.map_err(Error::from) };
@@ -99,51 +92,18 @@ impl AsyncWritableFileSystem for AsyncNativeFileSystem {
     Box::pin(fut)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<crate::r#async::FileStat>> {
+  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
     let fut = async move {
       let metadata = tokio::fs::metadata(file).await.map_err(Error::from)?;
-      FileStat::try_from(metadata)
+      FileMetadata::try_from(metadata)
     };
     Box::pin(fut)
   }
 }
 
-impl AsyncReadableFileSystem for AsyncNativeFileSystem {
+impl AsyncReadableFileSystem for NativeFileSystem {
   fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
     Box::pin(fut)
   }
-}
-
-impl TryFrom<Metadata> for FileStat {
-  fn try_from(metadata: Metadata) -> Result<Self> {
-    let mtime_ms = metadata
-      .modified()
-      .map_err(Error::from)?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("mtime is before unix epoch")
-      .as_millis() as u64;
-    let ctime_ms = metadata
-      .created()
-      .map_err(Error::from)?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("ctime is before unix epoch")
-      .as_millis() as u64;
-    let atime_ms = metadata
-      .accessed()
-      .map_err(Error::from)?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("atime is before unix epoch")
-      .as_millis() as u64;
-    Ok(Self {
-      is_directory: metadata.is_dir(),
-      is_file: metadata.is_file(),
-      size: metadata.len(),
-      mtime_ms,
-      ctime_ms,
-      atime_ms,
-    })
-  }
-
-  type Error = Error;
 }
