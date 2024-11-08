@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # Configure Rspack
 
 Rspack provides configurations similar to webpack. This chapter will show you how to use the Rspack configuration.
@@ -21,11 +23,39 @@ module.exports = {
 Rspack supports four types of configuration files, `.js`, `.ts`, `.cjs` and `.mjs` formats.
 
 - `rspack.config.js`: defaults to `CommonJS` format, or `ES modules` format if the type of the package.json is module.
-- `rspack.config.ts`: `TypeScript` format, which is compiled internally to `.js` format using `ts-node`.
+- `rspack.config.ts`: `TypeScript` format, see [TypeScript Configuration File](#typescript-configuration-file) for more details.
 - `rspack.config.cjs`: Forced to `CommonJS` format.
 - `rspack.config.mjs`: Forced to `ES modules` format.
 
 > See [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES modules`.
+
+### TypeScript Configuration File
+
+When using `rspack.config.ts`, you need to install additional dependencies to resolve TypeScript files. You can choose one of the following:
+
+#### Using esbuild
+
+Install [esbuild](https://npmjs.com/package/esbuild) and [esbuild-register](https://npmjs.com/package/esbuild-register), no additional configuration is needed.
+
+<PackageManagerTabs command="add esbuild esbuild-register -D" />
+
+#### Using ts-node
+
+Install [ts-node](https://npmjs.com/package/ts-node):
+
+<PackageManagerTabs command="add ts-node -D" />
+
+Then configure `ts-node` to use `CommonJS` modules in `tsconfig.json`:
+
+```json title="tsconfig.json"
+{
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
+}
+```
 
 ### Type Checking
 

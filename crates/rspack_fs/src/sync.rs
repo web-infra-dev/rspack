@@ -1,13 +1,8 @@
 use std::fmt::Debug;
-use std::fs::Metadata;
-use std::io;
-use std::path::Path;
-use std::path::PathBuf;
 
-use rspack_paths::Utf8Path;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-// pubResolverFileSystem
-use super::Result;
+use super::{FileMetadata, Result};
 
 pub trait WritableFileSystem: Debug {
   /// Creates a new, empty directory at the provided path.
@@ -32,16 +27,16 @@ pub trait WritableFileSystem: Debug {
 
 pub trait ReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::read]
-  fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>>;
 
   /// See [std::fs::metadata]
-  fn metadata(&self, path: &Path) -> io::Result<Metadata>;
+  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
 
   /// See [std::fs::symlink_metadata]
-  fn symlink_metadata(&self, path: &Path) -> io::Result<Metadata>;
+  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
 
   /// See [std::fs::canonicalize]
-  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
+  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf>;
 }
 
 /// Readable and writable file system representation.

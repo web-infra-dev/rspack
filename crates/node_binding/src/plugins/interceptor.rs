@@ -6,8 +6,8 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  bindgen_prelude::{Buffer, FromNapiValue, Promise, ToNapiValue},
-  Env, JsFunction, NapiRaw,
+  bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
+  Env, NapiRaw,
 };
 use rspack_binding_values::{
   JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
@@ -69,17 +69,17 @@ use rspack_plugin_html::{
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 
 #[napi(object)]
-pub struct JsTap {
-  pub function: JsFunction,
+pub struct JsTap<'f> {
+  pub function: Function<'f>,
   pub stage: i32,
 }
 
-pub struct ThreadsafeJsTap<T: 'static, R> {
+pub struct ThreadsafeJsTap<T: 'static + JsValuesTupleIntoVec, R> {
   pub function: ThreadsafeFunction<T, R>,
   pub stage: i32,
 }
 
-impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> Clone for ThreadsafeJsTap<T, R> {
   fn clone(&self) -> Self {
     Self {
       function: self.function.clone(),
@@ -88,7 +88,9 @@ impl<T: 'static, R> Clone for ThreadsafeJsTap<T, R> {
   }
 }
 
-impl<T: 'static + ToNapiValue, R> ThreadsafeJsTap<T, R> {
+impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
+  ThreadsafeJsTap<T, R>
+{
   pub fn from_js_tap(js_tap: JsTap, env: Env) -> napi::Result<Self> {
     let function =
       unsafe { ThreadsafeFunction::from_napi_value(env.raw(), js_tap.function.raw()) }?;
@@ -99,7 +101,9 @@ impl<T: 'static + ToNapiValue, R> ThreadsafeJsTap<T, R> {
   }
 }
 
-impl<T: 'static + ToNapiValue, R> FromNapiValue for ThreadsafeJsTap<T, R> {
+impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue> FromNapiValue
+  for ThreadsafeJsTap<T, R>
+{
   unsafe fn from_napi_value(
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
@@ -112,13 +116,13 @@ impl<T: 'static + ToNapiValue, R> FromNapiValue for ThreadsafeJsTap<T, R> {
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
 type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
-struct RegisterJsTapsInner<T: 'static, R> {
+struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,
   cache: RegisterJsTapsCache<T, R>,
   non_skippable_registers: Option<NonSkippableRegisters>,
 }
 
-impl<T: 'static, R> Clone for RegisterJsTapsInner<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
   fn clone(&self) -> Self {
     Self {
       register: self.register.clone(),
@@ -128,12 +132,12 @@ impl<T: 'static, R> Clone for RegisterJsTapsInner<T, R> {
   }
 }
 
-enum RegisterJsTapsCache<T: 'static, R> {
+enum RegisterJsTapsCache<T: 'static + JsValuesTupleIntoVec, R> {
   NoCache,
   Cache(Arc<RwLock<Option<RegisterFunctionOutput<T, R>>>>),
 }
 
-impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsCache<T, R> {
   fn clone(&self) -> Self {
     match self {
       Self::NoCache => Self::NoCache,
@@ -142,7 +146,7 @@ impl<T: 'static, R> Clone for RegisterJsTapsCache<T, R> {
   }
 }
 
-impl<T: 'static, R> RegisterJsTapsCache<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> RegisterJsTapsCache<T, R> {
   pub fn new(cache: bool, _sync: bool) -> Self {
     if cache {
       Self::Cache(Default::default())
@@ -152,7 +156,7 @@ impl<T: 'static, R> RegisterJsTapsCache<T, R> {
   }
 }
 
-impl<T: 'static + ToNapiValue, R: 'static> RegisterJsTapsInner<T, R> {
+impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T, R> {
   pub fn new(
     register: RegisterFunction<T, R>,
     non_skippable_registers: Option<NonSkippableRegisters>,

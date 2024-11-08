@@ -34,7 +34,7 @@ impl TryFrom<RawContextReplacementPluginOptions> for ContextReplacementPluginOpt
       let mut map = HashMap::default();
       let keys = Object::keys(&raw).into_diagnostic()?;
       for key in keys {
-        let value = raw.get::<&str, String>(&key).into_diagnostic()?;
+        let value = raw.get::<String>(&key).into_diagnostic()?;
         if let Some(value) = value {
           map.insert(key, value);
         }

@@ -419,7 +419,7 @@ export async function runLoaders(
 						options.baseUri,
 						context._module.moduleIdentifier,
 						loaderContext.context,
-						(err, res) => {
+						(err: Error, res: any) => {
 							if (err) reject(err);
 							else {
 								for (const dep of res.buildDependencies) {
@@ -459,7 +459,7 @@ export async function runLoaders(
 				options.baseUri,
 				context._module.moduleIdentifier,
 				loaderContext.context,
-				(err, res) => {
+				(err: Error, res: any) => {
 					if (err) {
 						callback(err, undefined);
 					} else {
