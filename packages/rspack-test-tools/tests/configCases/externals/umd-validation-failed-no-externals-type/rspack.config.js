@@ -4,13 +4,13 @@ const { CopyRspackPlugin } = require("@rspack/core");
 module.exports = {
 	entry: "./index.js",
 	output: {
-		library: {
-			type: "commonjs",
-		}
+		libraryTarget: "umd"
 	},
 	externals: {
 		lodash: {
+			root: "./lodash.js",
 			commonjs: "./lodash.js",
+			commonjs2: "./lodash.js",
 		}
 	},
 	plugins: [

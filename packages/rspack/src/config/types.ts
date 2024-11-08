@@ -1319,6 +1319,22 @@ export type ExternalsType =
 //#endregion
 
 //#region Externals
+
+/**
+ * External item object when both libraryTarget and externalsType is 'umd'
+ */
+export type ExternalItemUmdValue = {
+	root: string | string[];
+	commonjs: string | string[];
+	commonjs2: string | string[];
+	amd: string | string[];
+};
+
+/**
+ * External item object when not umd
+ */
+export type ExternalItemObjectValue = Record<string, string | string[]>;
+
 /**
  * The dependency used for the external.
  */
@@ -1326,15 +1342,11 @@ export type ExternalItemValue =
 	| string
 	| boolean
 	| string[]
-	| {
-			/**
-			 * only available when libraryTarget and externalsType is 'umd'
-			 */
-			root: string | string[];
-			commonjs: string | string[];
-			commonjs2: string | string[];
-			amd?: string | string[];
-	  };
+	| ExternalItemUmdValue
+	/**
+	 * when libraryTarget and externalsType is not 'umd'
+	 */
+	| ExternalItemObjectValue;
 
 /**
  * If an dependency matches exactly a property of the object, the property value is used as dependency.

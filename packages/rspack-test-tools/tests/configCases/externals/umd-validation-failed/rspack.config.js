@@ -5,12 +5,15 @@ module.exports = {
 	entry: "./index.js",
 	output: {
 		library: {
-			type: "commonjs",
+			type: "umd"
 		}
 	},
+	externalsType: "umd",
 	externals: {
 		lodash: {
+			root: "./lodash.js",
 			commonjs: "./lodash.js",
+			commonjs2: "./lodash.js",
 		}
 	},
 	plugins: [
