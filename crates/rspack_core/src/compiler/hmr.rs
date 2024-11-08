@@ -71,6 +71,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
+        self.cache.clone(),
         self.old_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
@@ -156,12 +157,14 @@ impl Compiler {
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
+      self.cache.before_compile(&mut self.compilation);
       self.compile().await?;
 
       self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
+    self.cache.after_compile(&self.compilation);
 
     Ok(())
   }

@@ -26,6 +26,7 @@ pub mod external_module;
 pub use external_module::*;
 mod logger;
 pub use logger::*;
+pub mod cache;
 mod normal_module;
 pub mod old_cache;
 mod raw_module;

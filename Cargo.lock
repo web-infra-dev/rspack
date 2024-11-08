@@ -3645,6 +3645,7 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_ast",
+ "rspack_cacheable",
  "rspack_collections",
  "rspack_error",
  "rspack_fs",

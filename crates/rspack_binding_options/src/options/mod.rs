@@ -70,54 +70,10 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
     let cache = value.cache.into();
-    let experiments = Experiments {
-      incremental: match value.experiments.incremental {
-        Some(value) => {
-          let mut passes = IncrementalPasses::empty();
-          if !matches!(cache, CacheOptions::Disabled) && value.make {
-            passes.insert(IncrementalPasses::MAKE);
-          }
-          if value.infer_async_modules {
-            passes.insert(IncrementalPasses::INFER_ASYNC_MODULES);
-          }
-          if value.provided_exports {
-            passes.insert(IncrementalPasses::PROVIDED_EXPORTS);
-          }
-          if value.dependencies_diagnostics {
-            passes.insert(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-          }
-          if value.build_chunk_graph {
-            passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
-          }
-          if value.modules_hashes {
-            passes.insert(IncrementalPasses::MODULES_HASHES);
-          }
-          if value.modules_codegen {
-            passes.insert(IncrementalPasses::MODULES_CODEGEN);
-          }
-          if value.modules_runtime_requirements {
-            passes.insert(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS);
-          }
-          if value.chunks_runtime_requirements {
-            passes.insert(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS);
-          }
-          if value.chunks_hashes {
-            passes.insert(IncrementalPasses::CHUNKS_HASHES);
-          }
-          if value.chunks_render {
-            passes.insert(IncrementalPasses::CHUNKS_RENDER);
-          }
-          if value.emit_assets {
-            passes.insert(IncrementalPasses::EMIT_ASSETS);
-          }
-          passes
-        }
-        None => IncrementalPasses::empty(),
-      },
-      layers: value.experiments.layers,
-      top_level_await: value.experiments.top_level_await,
-      rspack_future: value.experiments.rspack_future.into(),
-    };
+    let mut experiments: Experiments = value.experiments.into();
+    if let CacheOptions::Disabled = cache {
+      experiments.incremental = IncrementalPasses::empty();
+    }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
     let snapshot = value.snapshot.into();

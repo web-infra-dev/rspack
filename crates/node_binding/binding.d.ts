@@ -1336,11 +1336,18 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
+export interface RawExperimentCacheOptions {
+  type: "disable"|"memory"|"persistent"
+  snapshot: RawSnapshotOptions
+  storage: Array<RawStorageOption>
+}
+
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
   incremental?: RawIncremental
   rspackFuture: RawRspackFuture
+  cache: RawExperimentCacheOptions
 }
 
 export interface RawExposeOptions {
@@ -1387,6 +1394,11 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
+}
+
+export interface RawFileSystemOption {
+  type: "filesystem"
+  directory: string
 }
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
@@ -1890,6 +1902,12 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
+}
+
+export interface RawSnapshotOptions {
+  immutablePaths: Array<RawPathMatcher>
+  unmanagedPaths: Array<RawPathMatcher>
+  managedPaths: Array<RawPathMatcher>
 }
 
 export interface RawSnapshotOptions {
