@@ -1,10 +1,11 @@
 import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
-import { z } from "zod";
+import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import type * as t from "./types";
+import { ZodRspackCrossChecker } from "./utils";
 
 const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 
@@ -794,19 +795,56 @@ export const externalsType = z.enum([
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
-//#region Externals
+const ZodExternalObjectValue = new ZodRspackCrossChecker<
+	t.ExternalItemUmdValue | t.ExternalItemObjectValue
+>({
+	patterns: [
+		{
+			test: config => {
+				let isLibraryUmd = false;
+				const library = config?.output?.library;
+				if (typeof library === "object" && "type" in library) {
+					isLibraryUmd = library.type === "umd";
+				} else {
+					isLibraryUmd = config?.output?.libraryTarget === "umd";
+				}
+				if (isLibraryUmd) {
+					return (
+						config?.externalsType === undefined ||
+						config?.externalsType === "umd"
+					);
+				}
+				return false;
+			},
+			type: z.strictObject({
+				root: z.string().or(z.string().array()),
+				commonjs: z.string().or(z.string().array()),
+				commonjs2: z.string().or(z.string().array()),
+				amd: z.string().or(z.string().array())
+			}),
+			issue: res => {
+				if ((res as SyncParseReturnType).status === "aborted") {
+					return [
+						{
+							fatal: true,
+							code: ZodIssueCode.custom,
+							message: `External object must have "root", "commonjs", "commonjs2", "amd" properties when "libraryType" or "externalsType" is "umd"`
+						}
+					];
+				}
+				return [];
+			}
+		}
+	],
+	default: z.record(z.string().or(z.string().array()))
+});
+
+// #region Externals
 const externalItemValue = z
 	.string()
 	.or(z.boolean())
 	.or(z.string().array().min(1))
-	.or(
-		z.strictObject({
-			root: z.string().or(z.string().array()),
-			commonjs: z.string().or(z.string().array()),
-			commonjs2: z.string().or(z.string().array()),
-			amd: z.string().or(z.string().array())
-		})
-	) satisfies z.ZodType<t.ExternalItemValue>;
+	.or(ZodExternalObjectValue) satisfies z.ZodType<t.ExternalItemValue>;
 
 const externalItemObjectUnknown = z.record(
 	externalItemValue
