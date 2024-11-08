@@ -117,14 +117,8 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-  //...
   externals: {
-    react: 'react',
-  },
-
-  // 或者
-
-  externals: {
+    // 在 `libraryTarget: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
     lodash: {
       root: '_', // 指向全局变量
       commonjs: 'lodash',

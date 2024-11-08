@@ -22,6 +22,16 @@ import {
 } from "zod";
 import type { RspackOptions } from "./types";
 
+/**
+ * The following code is modified based on
+ * https://github.com/colinhacks/zod/blob/f487d74ecd3ae703ef8932462d14d643e31658b3/src/types.ts
+ *
+ * MIT Licensed
+ * Author Colin McDonnell @colinhacks
+ * MIT License
+ * https://github.com/colinhacks/zod/blob/main/LICENSE
+ */
+
 function processCreateParams(params: RawCreateParams): ProcessedCreateParams {
 	if (!params) return {};
 	const { errorMap, invalid_type_error, required_error, description } = params;
@@ -48,7 +58,7 @@ function processCreateParams(params: RawCreateParams): ProcessedCreateParams {
 
 /**
  * Modified `z.union` for overriding its `_parse` to support `parent` field of context.
- * https://github.com/colinhacks/zod/blob/f487d74ecd3ae703ef8932462d14d643e31658b3/src/types.ts#L2935-L3034
+ *
  * We need to use `parent` field to get the root config object.
  */
 class RspackZodUnion<T extends ZodUnionOptions> extends z.ZodUnion<T> {
