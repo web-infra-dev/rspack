@@ -258,7 +258,7 @@ fn render_startup(
       exports = "__webpack_exports_export__";
     }
     source.add(RawSource::from(format!(
-      "for(var i in {exports}) __webpack_export_target__[i] = {exports}[i];\n"
+      "for(var __webpack_i__ in {exports}) __webpack_export_target__[__webpack_i__] = {exports}[__webpack_i__];\n"
     )));
     source.add(RawSource::from(format!(
       "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
