@@ -60,7 +60,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     TaskType::Sync
   }
 
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       entry_dep_id,
       layer,
