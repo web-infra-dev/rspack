@@ -6,6 +6,7 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyLocation, DependencyRange,
   RuntimeGlobals, SpanExt,
 };
+use rspack_error::miette::Severity;
 use rspack_util::atom::Atom;
 use swc_core::{
   common::Spanned,
@@ -19,10 +20,10 @@ use crate::{
   dependency::{
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency,
-    local_module_dependency::LocalModuleDependency,
+    local_module_dependency::LocalModuleDependency, unsupported_dependency::UnsupportedDependency,
   },
   utils::eval::BasicEvaluatedExpression,
-  visitors::{JavascriptParser, Statement},
+  visitors::{create_traceable_error, JavascriptParser, Statement},
 };
 
 fn is_reserved_param(pat: &Pat) -> bool {
@@ -291,7 +292,21 @@ impl AMDRequireDependenciesBlockParserPlugin {
       });
 
       if !result.is_some_and(|x| x) {
-        // TODO: UnsupportedDependency
+        let dep = Box::new(UnsupportedDependency::new(
+          "unsupported".into(),
+          (call_expr.span.real_lo(), call_expr.span.real_hi()),
+        ));
+        parser.presentational_dependencies.push(dep);
+        parser.warning_diagnostics.push(Box::new(
+          create_traceable_error(
+            "UnsupportedFeatureWarning".into(),
+            "Cannot statically analyse 'require(…, …)'".into(),
+            parser.source_file,
+            call_expr.span.into(),
+          )
+          .with_severity(Severity::Warning)
+          .with_hide_stack(Some(true)),
+        ));
         return Some(true);
       }
 
