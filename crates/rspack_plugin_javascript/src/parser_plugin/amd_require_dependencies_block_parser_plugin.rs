@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_util::atom::Atom;
 use swc_core::{
   common::Spanned,
-  ecma::ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread},
+  ecma::ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, Pat},
 };
 
 use super::{
@@ -24,6 +24,13 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{JavascriptParser, Statement},
 };
+
+fn is_reserved_param(pat: &Pat) -> bool {
+  const RESERVED_NAMES: [&str; 3] = ["require", "module", "exports"];
+  pat
+    .as_ident()
+    .is_some_and(|ident| RESERVED_NAMES.contains(&ident.id.sym.as_str()))
+}
 
 pub struct AMDRequireDependenciesBlockParserPlugin;
 
@@ -187,6 +194,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
               .function
               .params
               .iter()
+              .filter(|param| !is_reserved_param(&param.pat))
               .map(|param| Cow::Borrowed(&param.pat));
             parser.in_function_scope(true, params, |parser| {
               parser.walk_statement(Statement::Block(body));
@@ -194,7 +202,11 @@ impl AMDRequireDependenciesBlockParserPlugin {
           }
         }
         Either::Right(arrow) => {
-          let params = arrow.params.iter().map(|param| Cow::Borrowed(param));
+          let params = arrow
+            .params
+            .iter()
+            .filter(|param| !is_reserved_param(param))
+            .map(|param| Cow::Borrowed(param));
           parser.in_function_scope(true, params, |parser| match &*arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
