@@ -103,6 +103,14 @@ export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
 export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
+export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
+export {
+	DllReferencePlugin,
+	type DllReferencePluginOptions,
+	type DllReferencePluginOptionsSourceType,
+	type DllReferencePluginOptionsContent,
+	type DllReferencePluginOptionsManifest
+} from "./lib/DllReferencePlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";

@@ -48,7 +48,6 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   match sym {
     WEBPACK_REQUIRE => Some("function"),
     WEBPACK_HASH => Some("string"),
-    WEBPACK_LAYER => Some("string"),
     WEBPACK_PUBLIC_PATH => Some("string"),
     WEBPACK_MODULES => Some("object"),
     WEBPACK_MODULE => Some("object"),
@@ -71,13 +70,26 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    get_typeof_evaluate_of_api(for_name).map(|res| {
-      eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
-    })
+    if for_name == WEBPACK_LAYER {
+      let value = if parser.module_layer.is_none() {
+        "object"
+      } else {
+        "string"
+      };
+      Some(eval::evaluate_to_string(
+        value.to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      ))
+    } else {
+      get_typeof_evaluate_of_api(for_name).map(|res| {
+        eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
+      })
+    }
   }
 
   fn identifier(
@@ -297,6 +309,24 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       _ => None,
+    }
+  }
+
+  fn evaluate_identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<eval::BasicEvaluatedExpression> {
+    if ident == WEBPACK_LAYER {
+      if let Some(layer) = parser.module_layer {
+        Some(eval::evaluate_to_string(layer.into(), start, end))
+      } else {
+        Some(eval::evaluate_to_null(start, end))
+      }
+    } else {
+      None
     }
   }
 

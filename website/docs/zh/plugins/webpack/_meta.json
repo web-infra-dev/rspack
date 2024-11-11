@@ -26,5 +26,7 @@
   "runtime-chunk-plugin",
   "source-map-dev-tool-plugin",
   "split-chunks-plugin",
-  "internal-plugins"
+  "internal-plugins",
+  "dll-plugin",
+  "dll-reference-plugin"
 ]

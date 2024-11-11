@@ -21,6 +21,7 @@
     "sass-loader": "^16.0.0",
     "jsdom": "^25.0.0",
     "del": "^6.0.0",
+    "lodash": "^4.17.21",
     "memfs": "4.8.1"
   },
   "dependencies": {}

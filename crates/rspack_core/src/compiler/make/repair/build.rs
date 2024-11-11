@@ -6,8 +6,8 @@ use rspack_fs::ReadableFileSystem;
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerOptions,
-  DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildInfo, BuildResult, CompilationId,
+  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -59,12 +59,6 @@ impl Task<MakeTaskContext> for BuildTask {
       )
       .await;
 
-    plugin_driver
-      .compilation_hooks
-      .succeed_module
-      .call(compilation_id, &mut module)
-      .await?;
-
     let build_result = result.map(|t| {
       let diagnostics = module
         .clone_diagnostics()
@@ -83,8 +77,10 @@ impl Task<MakeTaskContext> for BuildTask {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
+        plugin_driver,
         diagnostics,
         current_profile,
+        compilation_id,
       })]
     })
   }
@@ -95,7 +91,9 @@ struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
+  pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub compilation_id: CompilationId,
 }
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for BuildResultTask {
@@ -108,7 +106,22 @@ impl Task<MakeTaskContext> for BuildResultTask {
       build_result,
       diagnostics,
       current_profile,
+      plugin_driver,
+      compilation_id,
     } = *self;
+
+    module.set_build_info(build_result.build_info);
+    module.set_build_meta(build_result.build_meta);
+
+    plugin_driver
+      .compilation_hooks
+      .succeed_module
+      .call(compilation_id, &mut module)
+      .await?;
+
+    let build_info_default = BuildInfo::default();
+
+    let build_info = module.build_info().unwrap_or(&build_info_default);
 
     let artifact = &mut context.artifact;
     let module_graph =
@@ -125,16 +138,16 @@ impl Task<MakeTaskContext> for BuildResultTask {
       .extend(build_result.optimization_bailouts);
     artifact
       .file_dependencies
-      .add_batch_file(&build_result.build_info.file_dependencies);
+      .add_batch_file(&build_info.file_dependencies);
     artifact
       .context_dependencies
-      .add_batch_file(&build_result.build_info.context_dependencies);
+      .add_batch_file(&build_info.context_dependencies);
     artifact
       .missing_dependencies
-      .add_batch_file(&build_result.build_info.missing_dependencies);
+      .add_batch_file(&build_info.missing_dependencies);
     artifact
       .build_dependencies
-      .add_batch_file(&build_result.build_info.build_dependencies);
+      .add_batch_file(&build_info.build_dependencies);
 
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
@@ -183,9 +196,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
-
-    module.set_build_info(build_result.build_info);
-    module.set_build_meta(build_result.build_meta);
 
     module_graph.add_module(module);
 
