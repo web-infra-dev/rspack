@@ -168,6 +168,34 @@ export declare class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export declare class JsLoaderContext {
+  get additionalData(): any
+  set additionalData(val: any)
+  get resourceData(): JsResourceData
+  get _module(): JsModule
+  get hot(): boolean
+  get content(): null | Buffer | string
+  set content(val: null | Buffer | string)
+  get sourceMap(): string | undefined
+  set sourceMap(val: string | undefined)
+  get cacheable(): boolean
+  set cacheable(val: boolean)
+  get loaderItems(): Array<JsLoaderItem>
+  set loaderItems(val: Array<JsLoaderItem>)
+  get loaderIndex(): number
+  set loaderIndex(val: number)
+  get loaderState(): JsLoaderState
+  __internal__addParseMeta(key: string, val: string): void
+  addDependency(file: string): void
+  addContextDependency(file: string): void
+  addMissingDependency(file: string): void
+  addBuildDependency(file: string): void
+  getDependencies(): Array<string>
+  getContextDependencies(): Array<string>
+  getMissingDependencies(): Array<string>
+  clearDependencies(): void
+}
+
 export declare class JsModule {
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined

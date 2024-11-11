@@ -771,110 +771,87 @@ export async function runLoaders(
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
 	});
-	Object.defineProperty(loaderContext, "__internal__addParseMeta", {
-		enumerable: true,
-		get: () => context.__internal__addParseMeta
-	});
+	loaderContext.__internal__addParseMeta =
+		context.__internal__addParseMeta.bind(context);
 
-	try {
-		switch (loaderState) {
-			case JsLoaderState.Pitching: {
-				while (loaderContext.loaderIndex < loaderContext.loaders.length) {
-					const currentLoaderObject =
-						loaderContext.loaders[loaderContext.loaderIndex];
+	switch (loaderState) {
+		case JsLoaderState.Pitching: {
+			while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
 
-					if (currentLoaderObject.shouldYield()) break;
-					if (currentLoaderObject.pitchExecuted) {
-						loaderContext.loaderIndex += 1;
-						continue;
-					}
-
-					await loadLoaderAsync(currentLoaderObject);
-					const fn = currentLoaderObject.pitch;
-					currentLoaderObject.pitchExecuted = true;
-					if (!fn) continue;
-
-					const args =
-						(await runSyncOrAsync(fn, loaderContext, [
-							loaderContext.remainingRequest,
-							loaderContext.previousRequest,
-							currentLoaderObject.data
-						])) || [];
-
-					const hasArg = args.some(value => value !== undefined);
-
-					if (hasArg) {
-						const [content, sourceMap, additionalData] = args;
-						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = sourceMap
-							? JSON.stringify(sourceMap)
-							: undefined;
-						context.additionalData = additionalData;
-						break;
-					}
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.pitchExecuted) {
+					loaderContext.loaderIndex += 1;
+					continue;
 				}
 
-				break;
-			}
-			case JsLoaderState.Normal: {
-				let content = context.content;
-				let sourceMap = context.sourceMap
-					? JSON.parse(context.sourceMap)
-					: undefined;
-				let additionalData = context.additionalData;
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.pitch;
+				currentLoaderObject.pitchExecuted = true;
+				if (!fn) continue;
 
-				while (loaderContext.loaderIndex >= 0) {
-					const currentLoaderObject =
-						loaderContext.loaders[loaderContext.loaderIndex];
+				const args =
+					(await runSyncOrAsync(fn, loaderContext, [
+						loaderContext.remainingRequest,
+						loaderContext.previousRequest,
+						currentLoaderObject.data
+					])) || [];
 
-					if (currentLoaderObject.shouldYield()) break;
-					if (currentLoaderObject.normalExecuted) {
-						loaderContext.loaderIndex--;
-						continue;
-					}
+				const hasArg = args.some(value => value !== undefined);
 
-					await loadLoaderAsync(currentLoaderObject);
-					const fn = currentLoaderObject.normal;
-					currentLoaderObject.normalExecuted = true;
-					if (!fn) continue;
-					const args = [content, sourceMap, additionalData];
-					convertArgs(args, !!currentLoaderObject.raw);
-					[content, sourceMap, additionalData] =
-						(await runSyncOrAsync(fn, loaderContext, args)) || [];
+				if (hasArg) {
+					const [content, sourceMap, additionalData] = args;
+					context.content = isNil(content) ? null : toBuffer(content);
+					context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
+					context.additionalData = additionalData;
+					break;
 				}
-
-				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
-				context.additionalData = additionalData;
-
-				break;
 			}
-			default:
-				throw new Error(`Unexpected loader runner state: ${loaderState}`);
+
+			break;
 		}
+		case JsLoaderState.Normal: {
+			let content = context.content;
+			let sourceMap = context.sourceMap
+				? JSON.parse(context.sourceMap)
+				: undefined;
+			let additionalData = context.additionalData;
 
-		// update loader state
-		context.loaderItems = loaderContext.loaders.map(item =>
-			LoaderObject.__to_binding(item)
-		);
-	} catch (e) {
-		// const error = e as Error & { hideStack?: boolean | "true" };
-		// context.__internal__error =
-		// 	typeof e === "string"
-		// 		? {
-		// 				name: "ModuleBuildError",
-		// 				message: e
-		// 			}
-		// 		: {
-		// 				name: "ModuleBuildError",
-		// 				message: error.message,
-		// 				stack: typeof error.stack === "string" ? error.stack : undefined,
-		// 				hideStack:
-		// 					"hideStack" in error
-		// 						? error.hideStack === true || error.hideStack === "true"
-		// 						: undefined
-		// 			};
+			while (loaderContext.loaderIndex >= 0) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
+
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.normalExecuted) {
+					loaderContext.loaderIndex--;
+					continue;
+				}
+
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.normal;
+				currentLoaderObject.normalExecuted = true;
+				if (!fn) continue;
+				const args = [content, sourceMap, additionalData];
+				convertArgs(args, !!currentLoaderObject.raw);
+				[content, sourceMap, additionalData] =
+					(await runSyncOrAsync(fn, loaderContext, args)) || [];
+			}
+
+			context.content = isNil(content) ? null : toBuffer(content);
+			context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
+			context.additionalData = additionalData;
+
+			break;
+		}
+		default:
+			throw new Error(`Unexpected loader runner state: ${loaderState}`);
 	}
+
+	// update loader state
+	context.loaderItems = loaderContext.loaders.map(item =>
+		LoaderObject.__to_binding(item)
+	);
 
 	context.loaderIndex = loaderContext.loaderIndex;
 }
