@@ -3809,6 +3809,7 @@ dependencies = [
  "async-trait",
  "derivative",
  "once_cell",
+ "rayon",
  "regex",
  "rspack_collections",
  "rspack_error",

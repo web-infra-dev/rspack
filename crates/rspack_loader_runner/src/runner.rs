@@ -1,10 +1,16 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{
+  fmt::Debug,
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
+use rayon::ThreadPool;
+use rayon::ThreadPoolBuilder;
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::task::spawn_blocking;
+use tokio::sync::oneshot;
 
 use crate::{
   content::{AdditionalData, Content, ResourceData},
@@ -12,6 +18,14 @@ use crate::{
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
+
+static IO_POOL: LazyLock<ThreadPool> = LazyLock::new(|| {
+  ThreadPoolBuilder::new()
+    .thread_name(|_| "fs_thread".to_string())
+    .num_threads(100)
+    .build()
+    .unwrap()
+});
 
 impl<Context> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
@@ -44,9 +58,13 @@ async fn process_resource<Context: Send>(
     {
       let resource_path_owned = resource_path.to_owned();
       // use spawn_blocking to avoid block,see https://docs.rs/tokio/latest/src/tokio/fs/read.rs.html#48
-      let result = spawn_blocking(move || fs.read(resource_path_owned.as_path()))
-        .await
-        .map_err(|e| error!("{e}, spawn task failed"))?;
+      let (tx, rx) = oneshot::channel();
+      IO_POOL.spawn(move || {
+        let res = fs.read(resource_path_owned.as_path());
+        let _ = tx.send(res);
+      });
+
+      let result = rx.await.map_err(|e| error!("{e}, spawn task failed"))?;
       let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
       loader_context.content = Some(Content::from(result));
     } else if !resource_data.get_scheme().is_none() {
