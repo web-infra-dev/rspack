@@ -3960,14 +3960,12 @@ dependencies = [
 name = "rspack_plugin_banner"
 version = "0.1.0"
 dependencies = [
- "async-recursion",
  "cow-utils",
  "futures",
  "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_regex",
  "rspack_util",
  "tracing",
 ]
