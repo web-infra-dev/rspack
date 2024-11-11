@@ -29,12 +29,6 @@ pub struct JsModule {
 }
 
 impl JsModule {
-  fn attach(&mut self, compilation: NonNull<Compilation>) {
-    if self.compilation.is_none() {
-      self.compilation = Some(compilation);
-    }
-  }
-
   fn as_ref(&mut self) -> napi::Result<&'static dyn Module> {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
@@ -359,11 +353,8 @@ impl ToNapiValue for JsModuleWrapper {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
           let instance = r.from_napi_mut_ref()?;
-          if let Some(compilation) = val.compilation {
-            instance.attach(compilation);
-          } else {
-            instance.module = val.module;
-          }
+          instance.compilation = val.compilation;
+          instance.module = val.module;
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {

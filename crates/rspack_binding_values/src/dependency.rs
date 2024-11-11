@@ -16,12 +16,6 @@ pub struct JsDependency {
 }
 
 impl JsDependency {
-  fn attach(&mut self, compilation: NonNull<Compilation>) {
-    if self.compilation.is_none() {
-      self.compilation = Some(compilation);
-    }
-  }
-
   fn as_ref(&mut self) -> napi::Result<&dyn Dependency> {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
@@ -166,11 +160,9 @@ impl ToNapiValue for JsDependencyWrapper {
         std::collections::hash_map::Entry::Occupied(occupied_entry) => {
           let r = occupied_entry.get();
           let instance = r.from_napi_mut_ref()?;
-          if let Some(compilation) = val.compilation {
-            instance.attach(compilation);
-          } else {
-            instance.dependency = val.dependency;
-          }
+          instance.compilation = val.compilation;
+          instance.dependency = val.dependency;
+
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {

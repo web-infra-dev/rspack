@@ -1,4 +1,4 @@
-import { type JsDependency } from "@rspack/binding";
+import type { JsDependency } from "@rspack/binding";
 
 export class Dependency {
 	declare readonly type: string;

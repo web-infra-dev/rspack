@@ -27,10 +27,9 @@ class Plugin {
 						});
 					});
 
-					console.log('newModule.originalSource().source()', newModule.originalSource())
-					// expect(
-					// 	newModule.originalSource().source().includes("a = 2")
-					// ).toBe(true);
+					expect(
+						newModule.originalSource().source().includes("a = 2")
+					).toBe(true);
 				}
 			});
 		});
