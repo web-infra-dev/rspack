@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::sync::Mutex;
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::bindgen_prelude::*;
+use napi::{bindgen_prelude::*, tokio::runtime::Builder};
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
@@ -204,6 +204,8 @@ enum TraceState {
 #[ctor]
 fn init() {
   panic::install_panic_handler();
+  let rt = Builder::new_multi_thread().build().unwrap();
+  create_custom_tokio_runtime(rt);
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
