@@ -308,6 +308,10 @@ export declare enum BuiltinPluginName {
   SizeLimitsPlugin = 'SizeLimitsPlugin',
   NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
   ContextReplacementPlugin = 'ContextReplacementPlugin',
+  DllEntryPlugin = 'DllEntryPlugin',
+  DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
+  LibManifestPlugin = 'LibManifestPlugin',
+  FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -451,6 +455,22 @@ export interface JsBeforeResolveArgs {
   issuer: string
 }
 
+export interface JsBuildMeta {
+  strictEsmModule: boolean
+  hasTopLevelAwait: boolean
+  esm: boolean
+  exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
+  defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  moduleArgument: 'module' | 'webpackModule'
+  exportsArgument: 'exports' | 'webpackExports'
+  sideEffectFree?: boolean
+  exportsFinalName?: Array<[string, string]> | undefined
+}
+
+export interface JsBuildMetaDefaultObjectRedirectWarn {
+  redirectWarn: JsDefaultObjectRedirectWarnObject
+}
+
 export interface JsBuildTimeExecutionOption {
   publicPath?: string
   baseUri?: string
@@ -522,6 +542,10 @@ export interface JsCreateData {
   request: string
   userRequest: string
   resource: string
+}
+
+export interface JsDefaultObjectRedirectWarnObject {
+  ignore: boolean
 }
 
 export interface JsDiagnostic {
@@ -1267,6 +1291,35 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
+export interface RawDllEntryPluginOptions {
+  context: string
+  entries: Array<string>
+  name: string
+}
+
+export interface RawDllManifest {
+  content: Record<string, RawDllManifestContentItem>
+  name?: string
+  type?: string
+}
+
+export interface RawDllManifestContentItem {
+  buildMeta?: JsBuildMeta
+  exports?: string[] | true
+  id?: string
+}
+
+export interface RawDllReferenceAgencyPluginOptions {
+  context?: string
+  name?: string
+  extensions: Array<string>
+  scope?: string
+  sourceType?: string
+  type: string
+  content?: Record<string, RawDllManifestContentItem>
+  manifest?: RawDllManifest
+}
+
 export interface RawDraft {
   customMedia: boolean
 }
@@ -1343,6 +1396,10 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
+}
+
+export interface RawFlagAllModulesAsUsedPluginOptions {
+  explanation: string
 }
 
 export interface RawFuncUseCtx {
@@ -1471,6 +1528,15 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   cacheable: boolean
+}
+
+export interface RawLibManifestPluginOptions {
+  context?: string
+  entryOnly?: boolean
+  name?: JsFilename
+  path: JsFilename
+  format?: boolean
+  type?: string
 }
 
 export interface RawLightningCssBrowsers {

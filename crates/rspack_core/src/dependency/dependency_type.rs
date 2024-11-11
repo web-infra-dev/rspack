@@ -103,6 +103,8 @@ pub enum DependencyType {
   LoaderImport,
   LazyImport,
   ModuleDecorator,
+  DllEntry,
+  DelegatedSource,
   Custom(&'static str),
 }
 
@@ -159,6 +161,7 @@ impl DependencyType {
       DependencyType::ImportMetaContext => "import.meta context",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
+      DependencyType::DllEntry => "dll entry",
       DependencyType::RemoteToExternal => "remote to external",
       DependencyType::RemoteToFallback => "fallback",
       DependencyType::RemoteToFallbackItem => "fallback item",
@@ -169,6 +172,7 @@ impl DependencyType {
       DependencyType::WebpackIsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",
+      DependencyType::DelegatedSource => "delegated source",
     }
   }
 }

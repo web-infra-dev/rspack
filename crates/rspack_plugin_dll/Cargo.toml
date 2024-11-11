@@ -1,0 +1,28 @@
+[package]
+description        = "rspack dynamic entry plugin"
+edition            = "2021"
+homepage.workspace = true
+license            = "MIT"
+name               = "rspack_plugin_dll"
+repository         = "https://github.com/web-infra-dev/rspack"
+version            = "0.1.0"
+
+[dependencies]
+rspack_collections      = { version = "0.1.0", path = "../rspack_collections" }
+rspack_core             = { version = "0.1.0", path = "../rspack_core" }
+rspack_error            = { version = "0.1.0", path = "../rspack_error" }
+rspack_hook             = { version = "0.1.0", path = "../rspack_hook" }
+rspack_plugin_externals = { version = "0.1.0", path = "../rspack_plugin_externals" }
+rspack_util             = { version = "0.1.0", path = "../rspack_util" }
+
+async-trait = { workspace = true }
+rustc-hash  = { workspace = true }
+serde       = { workspace = true, features = ["derive"] }
+serde_json  = { workspace = true }
+tracing     = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

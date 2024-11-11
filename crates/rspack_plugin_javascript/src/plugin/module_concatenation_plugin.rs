@@ -281,11 +281,10 @@ impl ModuleConcatenationPlugin {
       // TODO: ADD module connection explanations
       if !active_non_modules_connections.is_empty() {
         let problem = {
-          // let importing_explanations: HashSet<_> = active_non_modules_connections
+          // let importing_explanations = active_non_modules_connections
           //   .iter()
-          //   .flat_map(|&c| c.explanation.as_ref())
-          //   .cloned()
-          //   .collect();
+          //   .flat_map(|&c| c.explanation())
+          //   .collect::<HashSet<_>>();
           // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
           // explanations.sort();
           format!(
@@ -304,6 +303,7 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
     }
+
     let mut incoming_connections_from_modules = HashMap::default();
     for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {

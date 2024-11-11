@@ -32,6 +32,7 @@ import { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
 import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import { JsBeforeEmitData } from '@rspack/binding';
+import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
@@ -1440,6 +1441,68 @@ type DIRTY<T> = {
 
 // @public (undocumented)
 const DIRTY: <T>(value: T) => DIRTY<T>;
+
+// @public (undocumented)
+export class DllPlugin {
+    constructor(options: DllPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
+export type DllPluginOptions = {
+    context?: string;
+    entryOnly?: boolean;
+    format?: boolean;
+    name?: string;
+    path: string;
+    type?: string;
+};
+
+// @public (undocumented)
+export class DllReferencePlugin {
+    constructor(options: DllReferencePluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
+export type DllReferencePluginOptions = {
+    context?: string;
+    extensions?: string[];
+    manifest: string | DllReferencePluginOptionsManifest;
+    name?: string;
+    scope?: string;
+    sourceType?: DllReferencePluginOptionsSourceType;
+    type?: "require" | "object";
+} | {
+    content: DllReferencePluginOptionsContent;
+    context?: string;
+    extensions?: string[];
+    name: string;
+    scope?: string;
+    sourceType?: DllReferencePluginOptionsSourceType;
+    type?: "require" | "object";
+};
+
+// @public
+export interface DllReferencePluginOptionsContent {
+    [k: string]: {
+        buildMeta?: JsBuildMeta;
+        exports?: string[] | true;
+        id?: string;
+    };
+}
+
+// @public
+export interface DllReferencePluginOptionsManifest {
+    content: DllReferencePluginOptionsContent;
+    name?: string;
+    type?: DllReferencePluginOptionsSourceType;
+}
+
+// @public
+export type DllReferencePluginOptionsSourceType = "var" | "assign" | "this" | "window" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "amd" | "amd-require" | "umd" | "umd2" | "jsonp" | "system";
 
 // @public (undocumented)
 interface Drafts {
@@ -4870,6 +4933,13 @@ declare namespace rspackExports {
         ExternalsPlugin,
         HotModuleReplacementPlugin,
         NoEmitOnErrorsPlugin,
+        DllPlugin,
+        DllPluginOptions,
+        DllReferencePlugin,
+        DllReferencePluginOptions,
+        DllReferencePluginOptionsSourceType,
+        DllReferencePluginOptionsContent,
+        DllReferencePluginOptionsManifest,
         EnvironmentPlugin,
         LoaderOptionsPlugin,
         LoaderTargetPlugin,
