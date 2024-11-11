@@ -1,1 +1,1 @@
-export default 'v';
+export default 1;

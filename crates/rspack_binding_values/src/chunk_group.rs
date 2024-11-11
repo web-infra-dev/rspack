@@ -1,10 +1,9 @@
-use napi::bindgen_prelude::FromNapiValue;
 use napi_derive::napi;
 use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation};
 
 use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsChunkGroup {
   #[napi(js_name = "__inner_parents")]
   pub inner_parents: Vec<u32>,
@@ -22,15 +21,6 @@ pub struct JsChunkGroupOrigin {
   #[napi(ts_type = "JsModule | undefined")]
   pub module: Option<JsModuleWrapper>,
   pub request: Option<String>,
-}
-
-impl FromNapiValue for JsChunkGroupOrigin {
-  unsafe fn from_napi_value(
-    _env: napi::sys::napi_env,
-    _napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    unreachable!()
-  }
 }
 
 impl JsChunkGroup {

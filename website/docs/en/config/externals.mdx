@@ -112,23 +112,18 @@ module.exports = {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd?, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
 ```js title="rspack.config.js"
 module.exports = {
-  //...
   externals: {
-    react: 'react',
-  },
-
-  // or
-  externals: {
+    // When `libraryTarget: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
     lodash: {
-      root: '_', // required, indicates global variable
-      commonjs: 'lodash', // required
-      commonjs2: 'lodash', // required
-      amd: 'lodash', // optional
+      root: '_', // indicates global variable
+      commonjs: 'lodash',
+      commonjs2: 'lodash',
+      amd: 'lodash',
     },
   },
 };

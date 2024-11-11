@@ -258,7 +258,7 @@ impl AssetParserAndGenerator {
 }
 
 // Webpack's default parser.dataUrlCondition.maxSize
-const DEFAULT_MAX_SIZE: u32 = 8096;
+const DEFAULT_MAX_SIZE: f64 = 8096.0;
 
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {

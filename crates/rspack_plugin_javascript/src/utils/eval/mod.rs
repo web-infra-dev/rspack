@@ -592,6 +592,12 @@ pub fn evaluate_to_number(value: f64, start: u32, end: u32) -> BasicEvaluatedExp
   eval
 }
 
+pub fn evaluate_to_null(start: u32, end: u32) -> BasicEvaluatedExpression {
+  let mut eval = BasicEvaluatedExpression::with_range(start, end);
+  eval.set_null();
+  eval
+}
+
 pub fn evaluate_to_identifier(
   identifier: String,
   root_info: String,

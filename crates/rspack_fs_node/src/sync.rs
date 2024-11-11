@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use napi::Env;
-use rspack_fs::{sync::WritableFileSystem, Error, Result};
+use rspack_fs::{Error, Result, WritableFileSystem};
 use rspack_paths::Utf8Path;
 
 use crate::node::{NodeFS, NodeFSRef, TryIntoNodeFSRef};

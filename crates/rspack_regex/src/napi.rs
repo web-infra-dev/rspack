@@ -1,6 +1,6 @@
 use napi::{
-  bindgen_prelude::{FromNapiValue, ToNapiValue, TypeName, ValidateNapiValue},
-  Env, JsFunction, JsObject, NapiRaw, NapiValue,
+  bindgen_prelude::{FromNapiValue, Function, ToNapiValue, TypeName, ValidateNapiValue},
+  Env, JsObject, NapiRaw, NapiValue,
 };
 
 use crate::RspackRegex;
@@ -29,10 +29,11 @@ impl FromNapiValue for RspackRegex {
     let object_prototype_to_string = global
       .get_named_property_unchecked::<JsObject>("Object")?
       .get_named_property::<JsObject>("prototype")?
-      .get_named_property::<JsFunction>("toString")?;
+      .get_named_property::<Function>("toString")?;
 
     let js_string = object_prototype_to_string
-      .call_without_args(Some(&js_object))?
+      .apply(&js_object, env.get_undefined()?.into_unknown())?
+      // .call_without_args(Some(&js_object))?
       .coerce_to_string()?
       .into_utf8()?;
     let js_object_type = js_string.as_str()?;
@@ -63,11 +64,11 @@ impl ToNapiValue for RspackRegex {
     let env = Env::from(env);
 
     let global = env.get_global()?;
-    let regex = global.get_named_property::<JsFunction>("RegExp")?;
+    let regex = global.get_named_property::<Function<'_, _>>("RegExp")?;
 
     let flags = env.create_string(&val.flags)?;
     let source = env.create_string(&val.source)?;
 
-    Ok(regex.new_instance(&[source, flags])?.raw())
+    Ok(regex.new_instance((source, flags))?.raw())
   }
 }

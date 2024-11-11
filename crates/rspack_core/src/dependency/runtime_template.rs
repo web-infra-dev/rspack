@@ -771,6 +771,7 @@ pub fn define_es_module_flag_statement(
 #[allow(unused_imports)]
 mod test_items_to_regexp {
   use crate::items_to_regexp;
+
   #[test]
   fn basic() {
     assert_eq!(
@@ -811,6 +812,59 @@ mod test_items_to_regexp {
           .collect::<Vec<_>>(),
       ),
       "[1234a]".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["foo_js", "_js"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "(|foo)_js".to_string()
+    );
+  }
+
+  #[test]
+  fn multibyte() {
+    assert_eq!(
+      items_to_regexp(
+        vec!["🍉", "🍊", "🍓", "🍐", "🍍🫙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "([🍉🍊🍐🍓]|🍍🫙)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["🫙🍉", "🫙🍊", "🫙🍓", "🫙🍐", "🍽🍍"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "(🫙[🍉🍊🍐🍓]|🍽🍍)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["🍉🍭", "🍊🍭", "🍓🍭", "🍐🍭", "🍍🫙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "([🍉🍊🍐🍓]🍭|🍍🫙)".to_string()
+    );
+
+    assert_eq!(
+      items_to_regexp(
+        vec!["🍉", "🍊", "🍓", "🍐", "🫙"]
+          .into_iter()
+          .map(String::from)
+          .collect::<Vec<_>>(),
+      ),
+      "[🍉🍊🍐🍓🫙]".to_string()
     );
   }
 }

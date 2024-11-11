@@ -1,20 +1,23 @@
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ModuleDependency,
+  DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, RuntimeSpec,
 };
+use rspack_util::atom::Atom;
 
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
+  names: Vec<Atom>,
   range: DependencyRange,
 }
 
 impl CssComposeDependency {
-  pub fn new(request: String, range: DependencyRange) -> Self {
+  pub fn new(request: String, names: Vec<Atom>, range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
       request,
+      names,
       range,
     }
   }
@@ -39,6 +42,18 @@ impl Dependency for CssComposeDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
+  }
+
+  fn get_referenced_exports(
+    &self,
+    _module_graph: &rspack_core::ModuleGraph,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    self
+      .names
+      .iter()
+      .map(|n| ExtendedReferencedExport::Array(vec![n.clone()]))
+      .collect()
   }
 }
 

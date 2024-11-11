@@ -1,3 +1,5 @@
+import { PackageManagerTabs } from '@theme';
+
 # 配置 Rspack
 
 Rspack 提供了与 webpack 相似的配置项，通过本章节，你可以了解 Rspack 配置的使用方式。
@@ -21,11 +23,39 @@ module.exports = {
 Rspack 支持四种配置文件，支持`.js`，`.ts`，`.cjs` 和 `.mjs` 格式:
 
 - `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 module 则变成 `ES modules` 格式。
-- `rspack.config.ts`: `TypeScript`格式，内部会使用 `ts-node` 将其编译为 `.js` 格式。
+- `rspack.config.ts`: `TypeScript` 格式，参考 [TypeScript 配置文件](#typescript-配置文件) 了解更多。
 - `rspack.config.cjs`: 强制为 `CommonJS` 格式。
 - `rspack.config.mjs`: 强制为 `ES modules` 格式。
 
 > `CommonJS` 和 `ES modules`的区别请参考 [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)。
+
+### TypeScript 配置文件
+
+在使用 `rspack.config.ts` 时，你需要安装额外的依赖来解析 TypeScript 文件，你可以选择以下任意一种：
+
+#### 使用 esbuild
+
+安装 [esbuild](https://npmjs.com/package/esbuild) 和 [esbuild-register](https://npmjs.com/package/esbuild-register) 即可，不需要任何配置。
+
+<PackageManagerTabs command="add esbuild esbuild-register -D" />
+
+#### 使用 ts-node
+
+安装 [ts-node](https://npmjs.com/package/ts-node)：
+
+<PackageManagerTabs command="add ts-node -D" />
+
+然后在 `tsconfig.json` 中配置 `ts-node` 使用 `CommonJS` 模块：
+
+```json title="tsconfig.json"
+{
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
+}
+```
 
 ### 配置类型检查
 
