@@ -41,6 +41,7 @@ impl MergeFrom for Vec<String> {
 
 impl_merge_from!(i8, i16, i32, i64, i128);
 impl_merge_from!(u8, u16, u32, u64, u128);
+impl_merge_from!(f64);
 impl_merge_from!(bool);
 impl_merge_from!(String);
 impl_merge_from!(Atom);

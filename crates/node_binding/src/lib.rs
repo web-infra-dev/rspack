@@ -93,7 +93,7 @@ impl Rspack {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: JsFunction) -> Result<()> {
+  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -121,7 +121,7 @@ impl Rspack {
     reference: Reference<Rspack>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: JsFunction,
+    f: Function,
   ) -> Result<()> {
     use std::collections::HashSet;
 

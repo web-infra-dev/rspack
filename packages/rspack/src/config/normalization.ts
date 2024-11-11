@@ -11,9 +11,7 @@
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
-	AsyncChunks,
 	Bail,
-	BaseUri,
 	CacheOptions,
 	ChunkFilename,
 	ChunkLoading,
@@ -31,8 +29,7 @@ import type {
 	DevtoolNamespace,
 	EnabledLibraryTypes,
 	EnabledWasmLoadingTypes,
-	EntryFilename,
-	EntryRuntime,
+	EntryDescription,
 	EntryStatic,
 	Environment,
 	Externals,
@@ -53,7 +50,6 @@ import type {
 	ImportMetaName,
 	Incremental,
 	InfrastructureLogging,
-	Layer,
 	LazyCompilationOptions,
 	LibraryOptions,
 	Loader,
@@ -459,18 +455,21 @@ export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
 export interface EntryStaticNormalized {
 	[k: string]: EntryDescriptionNormalized;
 }
-export interface EntryDescriptionNormalized {
+
+export type EntryDescriptionNormalized = Pick<
+	EntryDescription,
+	| "runtime"
+	| "chunkLoading"
+	| "asyncChunks"
+	| "publicPath"
+	| "baseUri"
+	| "filename"
+	| "library"
+	| "layer"
+> & {
 	import?: string[];
-	runtime?: EntryRuntime;
-	chunkLoading?: ChunkLoading;
-	asyncChunks?: AsyncChunks;
-	publicPath?: PublicPath;
-	baseUri?: BaseUri;
-	filename?: EntryFilename;
-	library?: LibraryOptions;
 	dependOn?: string[];
-	layer?: Layer;
-}
+};
 
 export interface OutputNormalized {
 	path?: Path;

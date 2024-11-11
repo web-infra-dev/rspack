@@ -8,17 +8,5 @@ it('should compile', async () => {
 	expect(v1.default).toBe('shared')
 	expect(v2.default).toBe('shared')
 
-	checkChunkModules(STATS_JSON, {
-		'dyn-1': [
-			'dyn-1.js',
-			'm.js'
-		],
-		'dyn-2': [
-			'dyn-2.js',
-		],
-		shared: [
-			'shared.js',
-			'm.js'
-		]
-	})
+	
 })

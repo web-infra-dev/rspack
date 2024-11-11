@@ -61,7 +61,8 @@ impl Compiler {
       self
         .old_cache
         .set_modified_files(all_files.into_iter().collect());
-      self.plugin_driver.resolver_factory.clear_cache();
+
+      self.plugin_driver.clear_cache();
 
       let mut new_compilation = Compilation::new(
         self.options.clone(),

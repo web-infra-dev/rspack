@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use rspack_collections::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
@@ -5,12 +6,34 @@ use swc_core::atoms::Atom;
 use super::super::MakeArtifact;
 use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleIdentifier};
 
-#[derive(Debug, Default, Eq, PartialEq, Clone)]
+#[derive(Debug, Default, Clone)]
 struct ModuleDeps {
   // child module identifier of current module
-  child_modules: IdentifierMap<HashSet<Atom>>,
+  child_modules: IndexMap<ModuleIdentifier, HashSet<Atom>>,
   // blocks in current module
   module_blocks: Vec<(AsyncDependenciesBlockIdentifier, Option<GroupOptions>)>,
+}
+
+impl std::cmp::PartialEq for ModuleDeps {
+  fn eq(&self, other: &Self) -> bool {
+    // check imports order
+    if !self.child_modules.iter().eq(other.child_modules.iter()) {
+      return false;
+    }
+    /* TODO:
+     * we should check order in imported ids as well,
+     * different ids may comes from different modules
+     * after reexports optimized, but check the order
+     * of imported ids can break some usual sceneries
+     * like turns `import {A, B} from 'foo'` into
+     * `import {B, A} from 'foo'`, chunk graph cannot
+     * change, this is usual in development, we will
+     * drop this module deps support after newIncremental
+     * is stabilized
+     */
+
+    self.module_blocks == other.module_blocks
+  }
 }
 
 impl ModuleDeps {
@@ -21,7 +44,7 @@ impl ModuleDeps {
       .expect("should have module");
 
     let deps = module.get_dependencies();
-    let mut child_deps: IdentifierMap<HashSet<Atom>> = Default::default();
+    let mut child_deps: IndexMap<ModuleIdentifier, HashSet<Atom>> = Default::default();
 
     for dep_id in deps {
       let dep = module_graph

@@ -78,8 +78,10 @@ impl JsCompilation {
   pub fn update_asset(
     &mut self,
     filename: String,
-    new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
+    new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
+    asset_info_update_or_function: Option<
+      Either<JsAssetInfo, Function<'_, JsAssetInfo, JsAssetInfo>>,
+    >,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -90,7 +92,7 @@ impl JsCompilation {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
               let js_compat_source: JsCompatSource =
-                new_source_fn.call1(original_source.to_js_compat_source())?;
+                new_source_fn.call(original_source.to_js_compat_source()?)?;
               js_compat_source.into()
             }
           };
@@ -102,11 +104,9 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => Ok(
-                asset_info_fn
-                  .call1::<JsAssetInfo, JsAssetInfo>(original_info.clone().into())?
-                  .into(),
-              ),
+              Either::B(asset_info_fn) => {
+                Ok(asset_info_fn.call(original_info.clone().into())?.into())
+              }
             },
           )
           .transpose();
@@ -168,9 +168,9 @@ impl JsCompilation {
         .modules()
         .keys()
         .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+          compilation.module_by_identifier(module_id).map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          })
         })
         .collect::<Vec<_>>(),
     )
@@ -185,9 +185,9 @@ impl JsCompilation {
         .built_modules
         .iter()
         .filter_map(|module_id| {
-          compilation
-            .module_by_identifier(module_id)
-            .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
+          compilation.module_by_identifier(module_id).map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          })
         })
         .collect::<Vec<_>>(),
     )
@@ -433,17 +433,17 @@ impl JsCompilation {
   }
 
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
-  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) -> Result<()> {
+  pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    compilation.push_diagnostic(diagnostic.clone());
+    compilation.push_diagnostic((**diagnostic).clone());
     Ok(())
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
   pub fn push_native_diagnostics(
     &mut self,
-    mut diagnostics: External<Vec<Diagnostic>>,
+    diagnostics: &mut External<Vec<Diagnostic>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -582,23 +582,28 @@ impl JsCompilation {
     Ok(())
   }
 
+  /// This is a very unsafe function.
+  /// Please don't use this at the moment.
+  /// Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
   #[napi]
   pub fn rebuild_module(
     &mut self,
     env: Env,
     module_identifiers: Vec<String>,
-    f: JsFunction,
+    f: Function,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
     callbackify(env, f, async {
+      let compilation_id = compilation.id();
+
       let mut modules = compilation
         .rebuild_module(
           IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.as_ref(), None))
+              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
               .collect::<Vec<_>>()
           },
         )
@@ -624,7 +629,7 @@ impl JsCompilation {
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: JsFunction,
+    callback: Function,
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
@@ -697,7 +702,7 @@ impl JsCompilation {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<JsCompilation>>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
@@ -740,13 +745,11 @@ impl ToNapiValue for JsCompilationWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let env_wrapper = Env::from_raw(env);
-          let instance = JsCompilation {
+          let js_compilation = JsCompilation {
             id: val.id,
             inner: val.inner,
-          }
-          .into_instance(env_wrapper)?;
-          let r = OneShotRef::new(env, instance)?;
+          };
+          let r = OneShotRef::new(env, js_compilation)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }

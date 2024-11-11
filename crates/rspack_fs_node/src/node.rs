@@ -1,64 +1,7 @@
-use napi::{
-  bindgen_prelude::{Buffer, Either3},
-  Env, JsFunction, Ref,
-};
-use napi_derive::napi;
-
-pub(crate) struct JsFunctionRef {
-  env: Env,
-  reference: Ref<()>,
-}
-
-impl JsFunctionRef {
-  fn new(env: Env, f: JsFunction) -> napi::Result<Self> {
-    Ok(Self {
-      env,
-      reference: env.create_reference(f)?,
-    })
-  }
-
-  pub(crate) fn get(&self) -> napi::Result<JsFunction> {
-    self.env.get_reference_value(&self.reference)
-  }
-}
-
-impl Drop for JsFunctionRef {
-  fn drop(&mut self) {
-    let result = self.reference.unref(self.env);
-    debug_assert!(result.is_ok());
-  }
-}
-
-#[napi(object, js_name = "NodeFS")]
-pub struct NodeFS {
-  pub write_file: JsFunction,
-  pub remove_file: JsFunction,
-  pub mkdir: JsFunction,
-  pub mkdirp: JsFunction,
-}
-
-pub(crate) trait TryIntoNodeFSRef {
-  fn try_into_node_fs_ref(self, env: &Env) -> napi::Result<NodeFSRef>;
-}
-
-impl TryIntoNodeFSRef for NodeFS {
-  fn try_into_node_fs_ref(self, env: &Env) -> napi::Result<NodeFSRef> {
-    Ok(NodeFSRef {
-      write_file: JsFunctionRef::new(*env, self.write_file)?,
-      mkdir: JsFunctionRef::new(*env, self.mkdir)?,
-      mkdirp: JsFunctionRef::new(*env, self.mkdirp)?,
-    })
-  }
-}
-
-pub(crate) struct NodeFSRef {
-  pub(crate) write_file: JsFunctionRef,
-  pub(crate) mkdir: JsFunctionRef,
-  pub(crate) mkdirp: JsFunctionRef,
-}
-
+use napi::bindgen_prelude::{Buffer, Either3};
 use napi::Either;
-use rspack_fs::r#async::FileStat;
+use napi_derive::napi;
+use rspack_fs::FileMetadata;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
@@ -94,11 +37,12 @@ pub struct NodeFsStats {
   pub size: u32,
 }
 
-impl From<NodeFsStats> for FileStat {
+impl From<NodeFsStats> for FileMetadata {
   fn from(value: NodeFsStats) -> Self {
     Self {
       is_file: value.is_file,
       is_directory: value.is_directory,
+      is_symlink: false,
       atime_ms: value.atime_ms as u64,
       mtime_ms: value.mtime_ms as u64,
       ctime_ms: value.ctime_ms as u64,

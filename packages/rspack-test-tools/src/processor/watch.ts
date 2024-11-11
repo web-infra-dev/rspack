@@ -95,6 +95,8 @@ export class WatchProcessor<
 		const warnings: Array<{ message: string; stack?: string }> = [];
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
+		const checkStats = testConfig.checkStats || (() => true);
+
 		if (stats) {
 			fs.writeFileSync(
 				path.join(context.getDist(), "stats.txt"),
@@ -107,6 +109,10 @@ export class WatchProcessor<
 			const jsonStats = stats.toJson({
 				errorDetails: true
 			});
+
+			if (!checkStats(this._watchOptions.stepName, jsonStats)) {
+				throw new Error("stats check failed");
+			}
 			fs.writeFileSync(
 				path.join(context.getDist(), "stats.json"),
 				JSON.stringify(jsonStats, null, 2),

@@ -57,6 +57,8 @@ pub enum DependencyType {
   CssExport,
   // css modules local ident
   CssLocalIdent,
+  // css modules self reference
+  CssSelfReferenceLocalIdent,
   // context element
   ContextElement(ContextTypePrefix),
   // import context
@@ -136,6 +138,7 @@ impl DependencyType {
       DependencyType::CssCompose => "css compose",
       DependencyType::CssExport => "css export",
       DependencyType::CssLocalIdent => "css local ident",
+      DependencyType::CssSelfReferenceLocalIdent => "css self reference local ident",
       DependencyType::ContextElement(type_prefix) => match type_prefix {
         ContextTypePrefix::Import => "import() context element",
         ContextTypePrefix::Normal => "context element",

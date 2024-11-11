@@ -372,7 +372,7 @@ impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
 #[derive(Debug, Clone, Default)]
 #[napi(object)]
 pub struct RawAssetParserDataUrlOptions {
-  pub max_size: Option<u32>,
+  pub max_size: Option<f64>,
 }
 
 impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {

@@ -15,6 +15,7 @@ pub struct AddTask {
   pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
+
 #[async_trait::async_trait]
 impl Task<MakeTaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
@@ -72,6 +73,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
+      compilation_id: context.compilation_id,
       module: self.module,
       current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),

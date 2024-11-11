@@ -15,23 +15,21 @@ function getSnapshotStatus(snapshot, afterUpdate) {
 	if (snapshot.added) {
 		statuses.push(
 			SNAPSHOT_ADDED(
-				`${ARROW + jestUtil().pluralize("snapshot", snapshot.added)} written.`
+				`${ARROW + jestUtil.pluralize("snapshot", snapshot.added)} written.`
 			)
 		);
 	}
 	if (snapshot.updated) {
 		statuses.push(
 			SNAPSHOT_UPDATED(
-				`${ARROW + jestUtil().pluralize("snapshot", snapshot.updated)} updated.`
+				`${ARROW + jestUtil.pluralize("snapshot", snapshot.updated)} updated.`
 			)
 		);
 	}
 	if (snapshot.unmatched) {
 		statuses.push(
 			FAIL_COLOR(
-				`${
-					ARROW + jestUtil().pluralize("snapshot", snapshot.unmatched)
-				} failed.`
+				`${ARROW + jestUtil.pluralize("snapshot", snapshot.unmatched)} failed.`
 			)
 		);
 	}
@@ -40,7 +38,7 @@ function getSnapshotStatus(snapshot, afterUpdate) {
 			statuses.push(
 				SNAPSHOT_UPDATED(
 					`${
-						ARROW + jestUtil().pluralize("snapshot", snapshot.unchecked)
+						ARROW + jestUtil.pluralize("snapshot", snapshot.unchecked)
 					} removed.`
 				)
 			);
@@ -51,7 +49,7 @@ function getSnapshotStatus(snapshot, afterUpdate) {
 			statuses.push(
 				`${SNAPSHOT_OUTDATED(
 					`${
-						ARROW + jestUtil().pluralize("snapshot", snapshot.unchecked)
+						ARROW + jestUtil.pluralize("snapshot", snapshot.unchecked)
 					} obsolete`
 				)}.`
 			);

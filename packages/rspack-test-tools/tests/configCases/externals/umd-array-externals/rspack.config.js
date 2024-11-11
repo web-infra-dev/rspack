@@ -7,7 +7,8 @@ module.exports = {
 		external: {
 			root: ["a", "b"],
 			commonjs: "a",
-			commonjs2: "a"
+			commonjs2: "a",
+			amd: "a"
 		}
 	}
 };

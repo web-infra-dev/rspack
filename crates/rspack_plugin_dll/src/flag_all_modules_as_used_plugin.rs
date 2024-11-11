@@ -1,6 +1,6 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation,
+  get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation, CompilationId,
   CompilationOptimizeDependencies, CompilationSucceedModule, CompilerOptions, FactoryMeta, Plugin,
   PluginContext, RuntimeSpec,
 };
@@ -64,7 +64,11 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
 }
 
 #[plugin_hook(CompilationSucceedModule for FlagAllModulesAsUsedPlugin)]
-async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
+async fn succeed_module(
+  &self,
+  _compilation_id: CompilationId,
+  module: &mut BoxModule,
+) -> Result<()> {
   // set all modules have effects. To avoid any module remove by tree shaking.
   // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L43-L47
   module.set_factory_meta(FactoryMeta {

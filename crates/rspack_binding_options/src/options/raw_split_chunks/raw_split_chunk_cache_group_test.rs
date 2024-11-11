@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use napi::bindgen_prelude::{Either3, FromNapiValue};
+use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_binding_values::JsModuleWrapper;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -16,19 +16,14 @@ pub struct JsCacheGroupTestCtx {
   pub module: JsModuleWrapper,
 }
 
-impl FromNapiValue for JsCacheGroupTestCtx {
-  unsafe fn from_napi_value(
-    _env: napi::sys::napi_env,
-    _napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    unreachable!()
-  }
-}
-
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
     JsCacheGroupTestCtx {
-      module: JsModuleWrapper::new(value.module, Some(value.compilation)),
+      module: JsModuleWrapper::new(
+        value.module,
+        value.compilation.id(),
+        Some(value.compilation),
+      ),
     }
   }
 }
