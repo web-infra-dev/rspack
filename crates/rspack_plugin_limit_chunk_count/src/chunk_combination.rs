@@ -99,7 +99,7 @@ impl ChunkCombinationBucket {
           Ordering::Less
         } else {
           // Layer 3: ordered by position difference in orderedChunk (-> to be deterministic)
-          match a.b_idx.cmp(&b.a_idx) {
+          match a.a_idx.cmp(&b.a_idx) {
             Ordering::Less => Ordering::Greater,
             Ordering::Greater => Ordering::Less,
             Ordering::Equal => {
