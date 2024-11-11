@@ -195,7 +195,7 @@ impl JsModule {
     })
   }
 
-  #[napi(getter, ts_return_type = "JsDependenciesBlock")]
+  #[napi(getter, ts_return_type = "JsDependenciesBlock[]")]
   pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlockWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
@@ -219,7 +219,7 @@ impl JsModule {
     })
   }
 
-  #[napi(getter, ts_return_type = "JsDependency")]
+  #[napi(getter, ts_return_type = "JsDependency[]")]
   pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
