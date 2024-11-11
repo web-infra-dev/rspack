@@ -16,7 +16,6 @@ futures           = { workspace = true }
 itertools         = { workspace = true }
 path-clean        = { workspace = true }
 rayon             = { workspace = true }
-regex             = { workspace = true }
 rspack_base64     = { version = "0.1.0", path = "../rspack_base64" }
 rspack_core       = { version = "0.1.0", path = "../rspack_core" }
 rspack_dojang     = { workspace = true }

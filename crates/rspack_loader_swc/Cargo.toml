@@ -6,7 +6,8 @@ name        = "rspack_loader_swc"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
+[package.metadata.cargo-shear]
+ignored = ["swc"]
 [features]
 default = []
 plugin = [
@@ -31,8 +32,8 @@ rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 stacker                  = { workspace = true }
+swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 swc_plugin_import        = { version = "0.1.5", path = "../swc_plugin_import" }
-tokio                    = { workspace = true }
 url                      = "2.5.0"

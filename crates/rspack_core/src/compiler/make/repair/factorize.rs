@@ -61,7 +61,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
     let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
     let factorize_result_task = FactorizeResultTask {
-      //      dependency: dep_id,
+      // dependency: dep_id,
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
       dependencies: vec![],
@@ -80,6 +80,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
+      compilation_id: self.compilation_id,
       resolve_options: self.resolve_options,
       options: self.options.clone(),
       context,
@@ -198,11 +199,12 @@ impl FactorizeResultTask {
   }
 }
 
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,

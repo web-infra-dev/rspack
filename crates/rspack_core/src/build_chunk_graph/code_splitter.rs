@@ -21,9 +21,9 @@ use crate::incremental::IncrementalPasses;
 use crate::{
   assign_depths, get_entry_runtime, merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, EntryDependency,
-  EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation,
+  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, DependencyName,
+  EntryDependency, EntryRuntime, GroupOptions, Logger, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
@@ -404,9 +404,7 @@ impl CodeSplitter {
     ));
 
     for request in requests {
-      let loc = Some(DependencyLocation::Synthetic(
-        SyntheticDependencyLocation::new(name),
-      ));
+      let loc = Some(DependencyLocation::Synthetic(DependencyName::new(name)));
       entrypoint.add_origin(None, loc, request);
     }
 

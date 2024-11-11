@@ -12,7 +12,8 @@ homepage      = "https://rspack.dev/"
 license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
 
-
+[workspace.metadata.cargo-shear]
+ignored = ["swc"]
 [workspace.dependencies]
 anyhow             = { version = "1.0.81", features = ["backtrace"] }
 anymap             = { version = "=1.0.0-beta.2" }
@@ -36,7 +37,7 @@ indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
-lightningcss_rs    = { version = "0.1.0" }
+lightningcss       = { version = "1.0.0-alpha.60" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.4" }
@@ -45,6 +46,7 @@ parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
+pollster           = { version = "*" }
 proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
@@ -69,22 +71,24 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi        = { package = "napi-h", version = "=2.16.1" }
+napi        = { version = "3.0.0-alpha.19" }
 napi-build  = { version = "2" }
-napi-derive = { version = "2" }
+napi-derive = { version = "3.0.0-alpha.17" }
 
 # Serialize and Deserialize
 inventory = { version = "0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
+swc                 = { version = "5.0.0" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=3.0.1", default-features = false }
-swc_ecma_minifier   = { version = "=3.0.0", default-features = false }
-swc_error_reporters = { version = "=3.0.0" }
-swc_html            = { version = "=3.0.0" }
-swc_html_minifier   = { version = "=3.0.0", default-features = false }
-swc_node_comments   = { version = "=2.0.0" }
+swc_core            = { version = "=5.0.1", default-features = false }
+swc_ecma_minifier   = { version = "=5.0.0", default-features = false }
+swc_error_reporters = { version = "=5.0.0" }
+swc_html            = { version = "=5.0.0" }
+swc_html_minifier   = { version = "=5.0.0", default-features = false }
+swc_node_comments   = { version = "=4.0.0" }
+
 
 rspack_dojang = { version = "0.1.9" }
 [workspace.metadata.release]

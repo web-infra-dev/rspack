@@ -39,11 +39,11 @@ impl RuntimeModule for PublicPathRuntimeModule {
   }
 
   // be cacheable only when the template does not contain a hash placeholder
-  fn cacheable(&self) -> bool {
+  fn full_hash(&self) -> bool {
     if let Some(template) = self.public_path.template() {
-      !has_hash_placeholder(template)
+      has_hash_placeholder(template)
     } else {
-      false
+      true
     }
   }
 }

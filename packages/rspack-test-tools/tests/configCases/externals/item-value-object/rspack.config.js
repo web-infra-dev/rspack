@@ -5,18 +5,14 @@ module.exports = {
 	entry: "./index.js",
 	output: {
 		library: {
-			type: "umd",
+			type: "commonjs",
 		}
 	},
 	externals: {
 		lodash: {
-			root: "_",
 			commonjs: "./lodash.js",
-			commonjs2: "./lodash.js",
-			amd: "./lodash.js"
 		}
 	},
-	externalsType: "umd",
 	plugins: [
 		new CopyRspackPlugin({
 			patterns: ["./lodash.js"]

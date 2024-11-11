@@ -215,8 +215,8 @@ async fn content_hash(
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
-    if let Some((hash, _)) = compilation
-      .runtime_module_code_generation_results
+    if let Some(hash) = compilation
+      .runtime_modules_hash
       .get(runtime_module_idenfitier)
     {
       hash.hash(&mut hasher);

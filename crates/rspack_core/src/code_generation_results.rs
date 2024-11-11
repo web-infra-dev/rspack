@@ -171,6 +171,7 @@ impl CodeGenerationResult {
       source.hash(&mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
@@ -188,8 +189,8 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
-  pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
-  pub map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+  module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
+  map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
 impl CodeGenerationResults {
@@ -208,6 +209,21 @@ impl CodeGenerationResults {
           .next()
           .and_then(|result_id| self.module_generation_result_map.get(result_id)),
       })
+  }
+
+  pub fn insert(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    codegen_res: CodeGenerationResult,
+    runtimes: impl IntoIterator<Item = RuntimeSpec>,
+  ) {
+    let codegen_res_id = codegen_res.id;
+    self
+      .module_generation_result_map
+      .insert(codegen_res_id, codegen_res);
+    for runtime in runtimes {
+      self.add(module_identifier, runtime, codegen_res_id);
+    }
   }
 
   pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
@@ -302,6 +318,15 @@ impl CodeGenerationResults {
     let code_generation_result = self.get(module_identifier, runtime);
 
     code_generation_result.hash.as_ref()
+  }
+
+  pub fn into_inner(
+    self,
+  ) -> (
+    IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+    HashMap<CodeGenResultId, CodeGenerationResult>,
+  ) {
+    (self.map, self.module_generation_result_map)
   }
 }
 

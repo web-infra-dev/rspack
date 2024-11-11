@@ -88,7 +88,7 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments);
+	applyExperimentsDefaults(options.experiments, { production });
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -192,7 +192,10 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+	experiments: ExperimentsNormalized,
+	{ production }: { production: boolean }
+) => {
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
@@ -202,17 +205,17 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	D(experiments, "topLevelAwait", true);
 
 	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
-	D(experiments, "incremental", {});
+	D(experiments, "incremental", !production ? {} : false);
 	if (typeof experiments.incremental === "object") {
 		D(experiments.incremental, "make", true);
-		D(experiments.incremental, "emitAssets", true);
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
 		D(experiments.incremental, "dependenciesDiagnostics", false);
+		D(experiments.incremental, "buildChunkGraph", false);
 		D(experiments.incremental, "modulesHashes", false);
 		D(experiments.incremental, "modulesCodegen", false);
 		D(experiments.incremental, "modulesRuntimeRequirements", false);
-		D(experiments.incremental, "buildChunkGraph", false);
+		D(experiments.incremental, "emitAssets", true);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});

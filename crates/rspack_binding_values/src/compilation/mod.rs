@@ -15,6 +15,7 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ChunkUkey;
 use rspack_core::Compilation;
+use rspack_core::CompilationAsset;
 use rspack_core::CompilationId;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
@@ -36,7 +37,38 @@ use crate::{
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
-pub struct JsCompilation(pub(crate) NonNull<rspack_core::Compilation>);
+pub struct JsCompilation {
+  pub(crate) id: CompilationId,
+  pub(crate) inner: NonNull<Compilation>,
+}
+
+impl JsCompilation {
+  fn as_ref(&self) -> napi::Result<&'static Compilation> {
+    let compilation = unsafe { self.inner.as_ref() };
+    if compilation.id() == self.id {
+      return Ok(compilation);
+    }
+
+    Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
+    )))
+  }
+
+  fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
+    let compilation = unsafe { self.inner.as_mut() };
+    if compilation.id() == self.id {
+      return Ok(compilation);
+    }
+
+    Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
+    )))
+  }
+}
 
 #[napi]
 impl JsCompilation {
@@ -46,10 +78,12 @@ impl JsCompilation {
   pub fn update_asset(
     &mut self,
     filename: String,
-    new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
+    new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
+    asset_info_update_or_function: Option<
+      Either<JsAssetInfo, Function<'_, JsAssetInfo, JsAssetInfo>>,
+    >,
   ) -> Result<()> {
-    let compilation = unsafe { self.0.as_mut() };
+    let compilation = self.as_mut()?;
 
     compilation
       .update_asset(&filename, |original_source, mut original_info| {
@@ -58,7 +92,7 @@ impl JsCompilation {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
               let js_compat_source: JsCompatSource =
-                new_source_fn.call1(original_source.to_js_compat_source())?;
+                new_source_fn.call(original_source.to_js_compat_source()?)?;
               js_compat_source.into()
             }
           };
@@ -70,11 +104,9 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => Ok(
-                asset_info_fn
-                  .call1::<JsAssetInfo, JsAssetInfo>(original_info.clone().into())?
-                  .into(),
-              ),
+              Either::B(asset_info_fn) => {
+                Ok(asset_info_fn.call(original_info.clone().into())?.into())
+              }
             },
           )
           .transpose();
@@ -88,7 +120,7 @@ impl JsCompilation {
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
   pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     let mut assets = Vec::<JsAsset>::with_capacity(compilation.assets().len());
 
@@ -104,7 +136,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     match compilation.assets().get(&name) {
       Some(asset) => Ok(Some(JsAsset {
@@ -117,7 +149,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     compilation
       .assets()
@@ -127,101 +159,113 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<JsModule>")]
-  pub fn modules(&self) -> Vec<JsModuleWrapper> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn modules(&self) -> Result<Vec<JsModuleWrapper>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .get_module_graph()
-      .modules()
-      .keys()
-      .filter_map(|module_id| {
-        compilation
-          .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
-      })
-      .collect::<Vec<_>>()
+    Ok(
+      compilation
+        .get_module_graph()
+        .modules()
+        .keys()
+        .filter_map(|module_id| {
+          compilation.module_by_identifier(module_id).map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          })
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi(getter, ts_return_type = "Array<JsModule>")]
-  pub fn built_modules(&self) -> Vec<JsModuleWrapper> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn built_modules(&self) -> Result<Vec<JsModuleWrapper>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .built_modules
-      .iter()
-      .filter_map(|module_id| {
-        compilation
-          .module_by_identifier(module_id)
-          .map(|module| JsModuleWrapper::new(module.as_ref(), Some(compilation)))
-      })
-      .collect::<Vec<_>>()
+    Ok(
+      compilation
+        .built_modules
+        .iter()
+        .filter_map(|module_id| {
+          compilation.module_by_identifier(module_id).map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          })
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi]
-  pub fn get_optimization_bailout(&self) -> Vec<JsStatsOptimizationBailout> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_optimization_bailout(&self) -> Result<Vec<JsStatsOptimizationBailout>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .get_module_graph()
-      .module_graph_modules()
-      .values()
-      .flat_map(|item| item.optimization_bailout.clone())
-      .map(|item| JsStatsOptimizationBailout { inner: item })
-      .collect::<Vec<_>>()
+    Ok(
+      compilation
+        .get_module_graph()
+        .module_graph_modules()
+        .values()
+        .flat_map(|item| item.optimization_bailout.clone())
+        .map(|item| JsStatsOptimizationBailout { inner: item })
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi]
-  pub fn get_chunks(&self) -> Vec<JsChunk> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_chunks(&self) -> Result<Vec<JsChunk>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .chunk_by_ukey
-      .values()
-      .map(JsChunk::from)
-      .collect::<Vec<_>>()
+    Ok(
+      compilation
+        .chunk_by_ukey
+        .values()
+        .map(JsChunk::from)
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi]
-  pub fn get_named_chunk_keys(&self) -> Vec<String> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_named_chunk_keys(&self) -> Result<Vec<String>> {
+    let compilation = self.as_ref()?;
 
-    compilation.named_chunks.keys().cloned().collect::<Vec<_>>()
+    Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
   #[napi]
-  pub fn get_named_chunk(&self, name: String) -> Option<JsChunk> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunk>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .named_chunks
-      .get(&name)
-      .and_then(|c| get_chunk_from_ukey(c, &compilation.chunk_by_ukey).map(JsChunk::from))
+    Ok(
+      compilation
+        .named_chunks
+        .get(&name)
+        .and_then(|c| get_chunk_from_ukey(c, &compilation.chunk_by_ukey).map(JsChunk::from)),
+    )
   }
 
   #[napi]
-  pub fn get_named_chunk_group_keys(&self) -> Vec<String> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_named_chunk_group_keys(&self) -> Result<Vec<String>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .named_chunk_groups
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>()
+    Ok(
+      compilation
+        .named_chunk_groups
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>(),
+    )
   }
 
   #[napi]
-  pub fn get_named_chunk_group(&self, name: String) -> Option<JsChunkGroup> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_named_chunk_group(&self, name: String) -> Result<Option<JsChunkGroup>> {
+    let compilation = self.as_ref()?;
 
-    compilation.named_chunk_groups.get(&name).and_then(|c| {
+    Ok(compilation.named_chunk_groups.get(&name).and_then(|c| {
       get_chunk_group_from_ukey(c, &compilation.chunk_group_by_ukey)
         .map(|cg| JsChunkGroup::from_chunk_group(cg, compilation))
-    })
+    }))
   }
 
   #[napi]
-  pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     let source: BoxSource = source.into();
     match compilation.assets_mut().entry(name) {
@@ -230,36 +274,40 @@ impl JsCompilation {
         e.insert(rspack_core::CompilationAsset::from(source));
       }
     };
+    Ok(())
   }
 
   #[napi]
-  pub fn delete_asset_source(&mut self, name: String) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn delete_asset_source(&mut self, name: String) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation
       .assets_mut()
       .entry(name)
       .and_modify(|a| a.set_source(None));
+    Ok(())
   }
 
   #[napi]
-  pub fn get_asset_filenames(&self) -> Vec<String> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .assets()
-      .iter()
-      .filter(|(_, asset)| asset.get_source().is_some())
-      .map(|(filename, _)| filename)
-      .cloned()
-      .collect()
+    Ok(
+      compilation
+        .assets()
+        .iter()
+        .filter(|(_, asset)| asset.get_source().is_some())
+        .map(|(filename, _)| filename)
+        .cloned()
+        .collect(),
+    )
   }
 
   #[napi]
-  pub fn has_asset(&self, name: String) -> bool {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn has_asset(&self, name: String) -> Result<bool> {
+    let compilation = self.as_ref()?;
 
-    compilation.assets().contains_key(&name)
+    Ok(compilation.assets().contains_key(&name))
   }
 
   #[napi]
@@ -269,87 +317,105 @@ impl JsCompilation {
     source: JsCompatSource,
     asset_info: JsAssetInfo,
     module: String,
-  ) {
-    let compilation = unsafe { self.0.as_mut() };
+  ) -> Result<()> {
+    let compilation = self.as_mut()?;
 
-    self.emit_asset(filename.clone(), source, asset_info);
+    compilation.emit_asset(
+      filename.clone(),
+      CompilationAsset::new(Some(source.into()), asset_info.into()),
+    );
+
     compilation
       .module_assets
       .entry(ModuleIdentifier::from(module))
       .or_default()
       .insert(filename);
+    Ok(())
   }
 
   #[napi]
-  pub fn emit_asset(&mut self, filename: String, source: JsCompatSource, asset_info: JsAssetInfo) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn emit_asset(
+    &mut self,
+    filename: String,
+    source: JsCompatSource,
+    asset_info: JsAssetInfo,
+  ) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation.emit_asset(
       filename,
       rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
     );
+    Ok(())
   }
 
   #[napi]
-  pub fn delete_asset(&mut self, filename: String) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn delete_asset(&mut self, filename: String) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation.delete_asset(&filename);
+    Ok(())
   }
 
   #[napi]
-  pub fn rename_asset(&mut self, filename: String, new_name: String) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn rename_asset(&mut self, filename: String, new_name: String) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation.rename_asset(&filename, new_name);
+    Ok(())
   }
 
   #[napi(getter)]
-  pub fn entrypoints(&self) -> HashMap<String, JsChunkGroup> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn entrypoints(&self) -> Result<HashMap<String, JsChunkGroup>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .entrypoints()
-      .iter()
-      .map(|(n, _)| {
-        (
-          n.clone(),
-          JsChunkGroup::from_chunk_group(compilation.entrypoint_by_name(n), compilation),
-        )
-      })
-      .collect()
+    Ok(
+      compilation
+        .entrypoints()
+        .iter()
+        .map(|(n, _)| {
+          (
+            n.clone(),
+            JsChunkGroup::from_chunk_group(compilation.entrypoint_by_name(n), compilation),
+          )
+        })
+        .collect(),
+    )
   }
 
   #[napi(getter)]
-  pub fn chunk_groups(&self) -> Vec<JsChunkGroup> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn chunk_groups(&self) -> Result<Vec<JsChunkGroup>> {
+    let compilation = self.as_ref()?;
 
-    compilation
-      .chunk_group_by_ukey
-      .values()
-      .map(|cg| JsChunkGroup::from_chunk_group(cg, compilation))
-      .collect::<Vec<JsChunkGroup>>()
+    Ok(
+      compilation
+        .chunk_group_by_ukey
+        .values()
+        .map(|cg| JsChunkGroup::from_chunk_group(cg, compilation))
+        .collect::<Vec<JsChunkGroup>>(),
+    )
   }
 
   #[napi(getter)]
-  pub fn hash(&self) -> Option<String> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn hash(&self) -> Result<Option<String>> {
+    let compilation = self.as_ref()?;
 
-    compilation.get_hash().map(|hash| hash.to_owned())
+    Ok(compilation.get_hash().map(|hash| hash.to_owned()))
   }
 
   #[napi]
-  pub fn dependencies(&'static self) -> JsDependencies {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn dependencies(&'static self) -> Result<JsDependencies> {
+    let compilation = self.as_ref()?;
 
-    JsDependencies::new(compilation)
+    Ok(JsDependencies::new(compilation))
   }
 
   #[napi]
-  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation.push_diagnostic(diagnostic.into());
+    Ok(())
   }
 
   #[napi]
@@ -358,61 +424,71 @@ impl JsCompilation {
     start: u32,
     end: u32,
     replace_with: Vec<crate::JsRspackDiagnostic>,
-  ) {
-    let compilation = unsafe { self.0.as_mut() };
+  ) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     let diagnostics = replace_with.into_iter().map(Into::into).collect();
     compilation.splice_diagnostic(start as usize, end as usize, diagnostics);
+    Ok(())
   }
 
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]
-  pub fn push_native_diagnostic(&mut self, diagnostic: External<Diagnostic>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn push_native_diagnostic(&mut self, diagnostic: &External<Diagnostic>) -> Result<()> {
+    let compilation = self.as_mut()?;
 
-    compilation.push_diagnostic(diagnostic.clone());
+    compilation.push_diagnostic((**diagnostic).clone());
+    Ok(())
   }
 
   #[napi(ts_args_type = r#"diagnostics: ExternalObject<'Diagnostic[]'>"#)]
-  pub fn push_native_diagnostics(&mut self, mut diagnostics: External<Vec<Diagnostic>>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn push_native_diagnostics(
+    &mut self,
+    diagnostics: &mut External<Vec<Diagnostic>>,
+  ) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     while let Some(diagnostic) = diagnostics.pop() {
       compilation.push_diagnostic(diagnostic);
     }
+    Ok(())
   }
 
   #[napi]
-  pub fn get_errors(&self) -> Vec<JsRspackError> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_errors(&self) -> Result<Vec<JsRspackError>> {
+    let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    compilation
-      .get_errors_sorted()
-      .map(|d| {
-        JsRspackError::try_from_diagnostic(d, colored)
-          .expect("should convert diagnostic to `JsRspackError`")
-      })
-      .collect()
+    Ok(
+      compilation
+        .get_errors_sorted()
+        .map(|d| {
+          JsRspackError::try_from_diagnostic(d, colored)
+            .expect("should convert diagnostic to `JsRspackError`")
+        })
+        .collect(),
+    )
   }
 
   #[napi]
-  pub fn get_warnings(&self) -> Vec<JsRspackError> {
-    let compilation = unsafe { self.0.as_ref() };
+  pub fn get_warnings(&self) -> Result<Vec<JsRspackError>> {
+    let compilation = self.as_ref()?;
 
     let colored = compilation.options.stats.colors;
-    compilation
-      .get_warnings_sorted()
-      .map(|d| {
-        JsRspackError::try_from_diagnostic(d, colored)
-          .expect("should convert diagnostic to `JsRspackError`")
-      })
-      .collect()
+    Ok(
+      compilation
+        .get_warnings_sorted()
+        .map(|d| {
+          JsRspackError::try_from_diagnostic(d, colored)
+            .expect("should convert diagnostic to `JsRspackError`")
+        })
+        .collect(),
+    )
   }
 
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
-      let compilation = unsafe { compilation.0.as_ref() };
+      let compilation = compilation.as_ref()?;
 
       Ok(compilation.get_stats())
     })?))
@@ -424,7 +500,7 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<String> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     compilation.get_asset_path(&filename.into(), data.to_path_data(chunk.as_ref()))
@@ -436,7 +512,7 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     let path_and_asset_info =
@@ -446,7 +522,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     compilation.get_path(&filename.into(), data.to_path_data(chunk.as_ref()))
@@ -458,7 +534,7 @@ impl JsCompilation {
     filename: LocalJsFilename,
     data: JsPathData,
   ) -> napi::Result<PathWithInfo> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     let path_and_asset_info =
@@ -467,63 +543,77 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn add_file_dependencies(&mut self, deps: Vec<String>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn add_file_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation
       .file_dependencies
-      .extend(deps.into_iter().map(Into::into))
+      .extend(deps.into_iter().map(Into::into));
+    Ok(())
   }
 
   #[napi]
-  pub fn add_context_dependencies(&mut self, deps: Vec<String>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn add_context_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation
       .context_dependencies
-      .extend(deps.into_iter().map(Into::into))
+      .extend(deps.into_iter().map(Into::into));
+    Ok(())
   }
 
   #[napi]
-  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation
       .missing_dependencies
-      .extend(deps.into_iter().map(Into::into))
+      .extend(deps.into_iter().map(Into::into));
+    Ok(())
   }
 
   #[napi]
-  pub fn add_build_dependencies(&mut self, deps: Vec<String>) {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn add_build_dependencies(&mut self, deps: Vec<String>) -> Result<()> {
+    let compilation = self.as_mut()?;
 
     compilation
       .build_dependencies
-      .extend(deps.into_iter().map(Into::into))
+      .extend(deps.into_iter().map(Into::into));
+    Ok(())
   }
 
+  /// This is a very unsafe function.
+  /// Please don't use this at the moment.
+  /// Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
   #[napi]
   pub fn rebuild_module(
     &mut self,
     env: Env,
     module_identifiers: Vec<String>,
-    f: JsFunction,
+    f: Function,
   ) -> Result<()> {
-    let compilation = unsafe { self.0.as_mut() };
+    let compilation = self.as_mut()?;
 
     callbackify(env, f, async {
-      let modules = compilation
+      let compilation_id = compilation.id();
+
+      let mut modules = compilation
         .rebuild_module(
           IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.as_ref(), None))
+              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
               .collect::<Vec<_>>()
           },
         )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+
+      modules
+        .iter_mut()
+        .for_each(|module| module.attach(compilation));
+
       Ok(modules)
     })
   }
@@ -539,16 +629,16 @@ impl JsCompilation {
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: JsFunction,
+    callback: Function,
   ) -> Result<()> {
-    let compilation = unsafe { self.0.as_ref() };
+    let compilation = self.as_ref()?;
 
     callbackify(env, callback, async {
       let module_executor = compilation
         .module_executor
         .as_ref()
         .expect("should have module executor");
-      let result = module_executor
+      let res = module_executor
         .import_module(
           request,
           layer,
@@ -558,45 +648,40 @@ impl JsCompilation {
           original_module.map(ModuleIdentifier::from),
         )
         .await;
-      match result {
-        Ok(res) => {
-          let js_result = JsExecuteModuleResult {
-            cacheable: res.cacheable,
-            file_dependencies: res
-              .file_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            context_dependencies: res
-              .context_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            build_dependencies: res
-              .build_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            missing_dependencies: res
-              .missing_dependencies
-              .into_iter()
-              .map(|d| d.to_string_lossy().to_string())
-              .collect(),
-            assets: res.assets.into_iter().collect(),
-            id: res.id,
-          };
-          Ok(js_result)
-        }
-        Err(e) => Err(Error::new(napi::Status::GenericFailure, format!("{e}"))),
-      }
+      let js_result = JsExecuteModuleResult {
+        cacheable: res.cacheable,
+        file_dependencies: res
+          .file_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        context_dependencies: res
+          .context_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        build_dependencies: res
+          .build_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        missing_dependencies: res
+          .missing_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        assets: res.assets.into_iter().collect(),
+        id: res.id,
+      };
+      Ok(js_result)
     })
   }
 
   #[napi(getter)]
-  pub fn entries(&mut self) -> JsEntries {
-    let compilation = unsafe { self.0.as_mut() };
+  pub fn entries(&mut self) -> Result<JsEntries> {
+    let compilation = self.as_mut()?;
 
-    JsEntries::new(compilation)
+    Ok(JsEntries::new(compilation))
   }
 
   #[napi]
@@ -605,7 +690,7 @@ impl JsCompilation {
     chunk_ukey: u32,
     runtime_module: JsAddingRuntimeModule,
   ) -> napi::Result<()> {
-    let compilation = unsafe { self.0.as_mut() };
+    let compilation = self.as_mut()?;
 
     compilation
       .add_runtime_module(
@@ -617,21 +702,27 @@ impl JsCompilation {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<ClassInstance<JsCompilation>>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
 // JsCompilationWrapper maintains a cache to ensure that the corresponding instance of the same Compilation is unique on the JS side.
 //
 // This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
-pub struct JsCompilationWrapper(NonNull<rspack_core::Compilation>);
+pub struct JsCompilationWrapper {
+  id: CompilationId,
+  inner: NonNull<Compilation>,
+}
 
 unsafe impl Send for JsCompilationWrapper {}
 
 impl JsCompilationWrapper {
   pub fn new(compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
-    Self(NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap())
+    Self {
+      id: compilation.id(),
+      inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+    }
   }
 
   pub fn compilation_by_id(compilation_id: &CompilationId) -> Option<&mut Compilation> {
@@ -663,18 +754,18 @@ impl ToNapiValue for JsCompilationWrapper {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     COMPILATION_INSTANCE_REFS.with(|ref_cell| {
       let mut refs = ref_cell.borrow_mut();
-      let compilation = unsafe { val.0.as_ref() };
 
-      let compilation_id = compilation.id();
-      match refs.entry(compilation_id) {
+      match refs.entry(val.id) {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
-          let env_wrapper = Env::from_raw(env);
-          let instance = JsCompilation(val.0).into_instance(env_wrapper)?;
-          let r = OneShotRef::new(env, instance)?;
+          let js_compilation = JsCompilation {
+            id: val.id,
+            inner: val.inner,
+          };
+          let r = OneShotRef::new(env, js_compilation)?;
           let r = entry.insert(r);
           ToNapiValue::to_napi_value(env, r)
         }

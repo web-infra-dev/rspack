@@ -196,13 +196,13 @@ struct FinishModuleTask {
   ctrl_task: Box<CtrlTask>,
   module_identifier: ModuleIdentifier,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for FinishModuleTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       mut ctrl_task,
       module_identifier,

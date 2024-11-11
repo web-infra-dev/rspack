@@ -1,5 +1,5 @@
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, RealDependencyLocation, RuntimeGlobals,
+  BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
   RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::atoms::Atom;
@@ -391,7 +391,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
           // exports.aaa = require('xx');
           // module.exports.aaa = require('xx');
           // this.aaa = require('xx');
-          let range: RealDependencyLocation = assign_expr.span.into();
+          let range: DependencyRange = assign_expr.span.into();
           parser
             .dependencies
             .push(Box::new(CommonJsExportRequireDependency::new(

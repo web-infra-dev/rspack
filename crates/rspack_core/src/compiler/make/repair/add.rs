@@ -16,11 +16,12 @@ pub struct AddTask {
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
     let module_graph =
@@ -72,6 +73,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
+      compilation_id: context.compilation_id,
       module: self.module,
       current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),

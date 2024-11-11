@@ -79,21 +79,10 @@ export class ContextModuleFactoryBeforeResolveData {
 			regExp: {
 				enumerable: true,
 				get(): RegExp | undefined {
-					if (!binding.regExp) {
-						return undefined;
-					}
-					const { source, flags } = binding.regExp;
-					return new RegExp(source, flags);
+					return binding.regExp;
 				},
 				set(val: RegExp | undefined) {
-					if (!val) {
-						binding.regExp = undefined;
-						return;
-					}
-					binding.regExp = {
-						source: val.source,
-						flags: val.flags
-					};
+					binding.regExp = val;
 				}
 			},
 			recursive: {
@@ -167,21 +156,10 @@ export class ContextModuleFactoryAfterResolveData {
 			regExp: {
 				enumerable: true,
 				get(): RegExp | undefined {
-					if (!binding.regExp) {
-						return undefined;
-					}
-					const { source, flags } = binding.regExp;
-					return new RegExp(source, flags);
+					return binding.regExp;
 				},
 				set(val: RegExp | undefined) {
-					if (!val) {
-						binding.regExp = undefined;
-						return;
-					}
-					binding.regExp = {
-						source: val.source,
-						flags: val.flags
-					};
+					binding.regExp = val;
 				}
 			},
 			recursive: {
@@ -213,7 +191,6 @@ const MODULE_MAPPINGS = new WeakMap<JsModule, Module>();
 
 export class Module {
 	#inner: JsModule;
-	#originalSource?: Source;
 
 	declare readonly context?: string;
 	declare readonly resource?: string;
@@ -343,6 +320,15 @@ export class Module {
 					return [];
 				}
 			},
+			dependencies: {
+				enumerable: true,
+				get(): Dependency[] {
+					if ("dependencies" in module) {
+						return module.dependencies.map(d => Dependency.__from_binding(d));
+					}
+					return [];
+				}
+			},
 			useSourceMap: {
 				enumerable: true,
 				get(): boolean {
@@ -353,12 +339,8 @@ export class Module {
 	}
 
 	originalSource(): Source | null {
-		if (this.#originalSource) return this.#originalSource;
 		if (this.#inner.originalSource) {
-			this.#originalSource = JsSource.__from_binding(
-				this.#inner.originalSource
-			);
-			return this.#originalSource;
+			return JsSource.__from_binding(this.#inner.originalSource);
 		}
 		return null;
 	}

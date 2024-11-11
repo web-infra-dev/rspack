@@ -5,7 +5,9 @@ use std::marker::PhantomData;
 use std::ptr;
 use std::rc::Rc;
 
-use napi::bindgen_prelude::{check_status, FromNapiValue, ToNapiValue};
+use napi::bindgen_prelude::{
+  check_status, FromNapiMutRef, FromNapiRef, FromNapiValue, ToNapiValue,
+};
 use napi::sys::{self, napi_env};
 use napi::{Env, Result};
 
@@ -28,7 +30,7 @@ impl<T: ToNapiValue + 'static> OneShotRef<T> {
 
     // cleanup references to be executed when the JS thread exits normally
     let cleanup_flag = Rc::new(RefCell::new(false));
-    let mut env_wrapper = unsafe { Env::from_raw(env) };
+    let env_wrapper = Env::from_raw(env);
     let _ = env_wrapper.add_env_cleanup_hook(cleanup_flag.clone(), move |cleanup_flag| {
       if !*cleanup_flag.borrow() {
         *cleanup_flag.borrow_mut() = true;
@@ -54,6 +56,34 @@ impl<T: FromNapiValue + ToNapiValue + 'static> OneShotRef<T> {
         "Failed to get reference value"
       )?;
       T::from_napi_value(self.env, result)?
+    };
+    Ok(r)
+  }
+}
+
+impl<T: FromNapiRef + ToNapiValue + 'static> OneShotRef<T> {
+  pub fn from_napi_ref(&self) -> Result<&T> {
+    let r = unsafe {
+      let mut result = ptr::null_mut();
+      check_status!(
+        sys::napi_get_reference_value(self.env, self.napi_ref, &mut result),
+        "Failed to get reference value"
+      )?;
+      T::from_napi_ref(self.env, result)?
+    };
+    Ok(r)
+  }
+}
+
+impl<T: FromNapiMutRef + ToNapiValue + 'static> OneShotRef<T> {
+  pub fn from_napi_mut_ref(&self) -> Result<&mut T> {
+    let r = unsafe {
+      let mut result = ptr::null_mut();
+      check_status!(
+        sys::napi_get_reference_value(self.env, self.napi_ref, &mut result),
+        "Failed to get reference value"
+      )?;
+      T::from_napi_mut_ref(self.env, result)?
     };
     Ok(r)
   }

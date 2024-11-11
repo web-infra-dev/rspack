@@ -1,6 +1,6 @@
 use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
-use rspack_fs::r#async::{AsyncWritableFileSystem, FileStat};
+use rspack_fs::{AsyncWritableFileSystem, FileMetadata};
 use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
@@ -158,7 +158,7 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<FileStat>> {
+  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<FileMetadata>> {
     let fut = async {
       let file = file.as_str().to_string();
       let res = self.0.stat.call(file).await.map_err(|e| {
@@ -168,7 +168,7 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
         ))
       })?;
       match res {
-        Either::A(stat) => Ok(FileStat::from(stat)),
+        Either::A(stat) => Ok(FileMetadata::from(stat)),
         Either::B(_) => Err(rspack_fs::Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           "output file system call stat failed",

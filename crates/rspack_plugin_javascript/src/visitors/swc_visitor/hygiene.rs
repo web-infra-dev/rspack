@@ -9,5 +9,7 @@ pub fn hygiene(keep_class_names: bool, top_level_mark: Mark) -> impl 'static + P
     safari_10: true,
     top_level_mark,
     ignore_eval: false,
+    // FIXME: support user passing preserved_symbols in the future
+    preserved_symbols: Default::default(),
   })
 }

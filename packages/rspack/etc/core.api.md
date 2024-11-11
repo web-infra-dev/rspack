@@ -84,6 +84,9 @@ interface AdditionalData {
 type AffectedHooks = keyof Compiler["hooks"];
 
 // @public (undocumented)
+type allKeys<T> = T extends any ? keyof T : never;
+
+// @public (undocumented)
 type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
 
 // @public (undocumented)
@@ -102,6 +105,12 @@ export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) 
 
 // @public (undocumented)
 export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
+
+// @public (undocumented)
+type ArrayCardinality = "many" | "atleastone";
+
+// @public (undocumented)
+type arrayOutputType<T extends ZodTypeAny, Cardinality extends ArrayCardinality = "many"> = Cardinality extends "atleastone" ? [T["_output"], ...T["_output"][]] : T["_output"][];
 
 // @public
 const asRegExp: (test: string | RegExp) => RegExp;
@@ -193,6 +202,9 @@ export type Assets = Record<string, Source>;
 
 // @public
 export type AsyncChunks = boolean;
+
+// @public (undocumented)
+type AsyncParseReturnType<T> = Promise<SyncParseReturnType<T>>;
 
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
@@ -297,12 +309,27 @@ export type BaseUri = string;
 type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
 
 // @public (undocumented)
+const BRAND: unique symbol;
+
+// @public (undocumented)
+type BRAND<T extends string | number | symbol> = {
+    [BRAND]: {
+        [k in T]: true;
+    };
+};
+
+// @public (undocumented)
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
 
 // @public (undocumented)
 type BufferEncodingOption = "buffer" | {
     encoding: "buffer";
 };
+
+// @public (undocumented)
+type BuiltIn = (((...args: any[]) => any) | (new (...args: any[]) => any)) | {
+    readonly [Symbol.toStringTag]: string;
+} | Date | Error | Generator | Promise<unknown> | RegExp;
 
 // @public (undocumented)
 class Cache_2 {
@@ -1257,6 +1284,9 @@ export type CssParserOptions = {
 };
 
 // @public (undocumented)
+type CustomErrorParams = Partial<util_2.Omit<ZodCustomIssue, "code">>;
+
+// @public (undocumented)
 export const DefinePlugin: {
     new (define: DefinePluginOptions): {
         name: BuiltinPluginName;
@@ -1403,6 +1433,15 @@ class DirectoryWatcher extends EventEmitter {
 }
 
 // @public (undocumented)
+type DIRTY<T> = {
+    status: "dirty";
+    value: T;
+};
+
+// @public (undocumented)
+const DIRTY: <T>(value: T) => DIRTY<T>;
+
+// @public (undocumented)
 interface Drafts {
     customMedia?: boolean;
 }
@@ -1417,6 +1456,9 @@ export class DynamicEntryPlugin extends RspackBuiltinPlugin {
     // (undocumented)
     raw(compiler: Compiler): BuiltinPlugin | undefined;
 }
+
+// @public (undocumented)
+type Effect<T> = RefinementEffect<T> | TransformEffect<T> | PreprocessEffect<T>;
 
 // @public (undocumented)
 interface Electron {
@@ -1500,7 +1542,7 @@ type EntryData = binding.JsEntryData;
 // @public
 export type EntryDependOn = string | string[];
 
-// @public (undocumented)
+// @public
 export type EntryDescription = {
     import: EntryItem;
     runtime?: EntryRuntime;
@@ -1516,28 +1558,10 @@ export type EntryDescription = {
 };
 
 // @public (undocumented)
-export interface EntryDescriptionNormalized {
-    // (undocumented)
-    asyncChunks?: AsyncChunks;
-    // (undocumented)
-    baseUri?: BaseUri;
-    // (undocumented)
-    chunkLoading?: ChunkLoading;
-    // (undocumented)
-    dependOn?: string[];
-    // (undocumented)
-    filename?: EntryFilename;
-    // (undocumented)
+export type EntryDescriptionNormalized = Pick<EntryDescription, "runtime" | "chunkLoading" | "asyncChunks" | "publicPath" | "baseUri" | "filename" | "library" | "layer"> & {
     import?: string[];
-    // (undocumented)
-    layer?: Layer;
-    // (undocumented)
-    library?: LibraryOptions;
-    // (undocumented)
-    publicPath?: PublicPath;
-    // (undocumented)
-    runtime?: EntryRuntime;
-}
+    dependOn?: string[];
+};
 
 // @public
 export type EntryDynamic = () => EntryStatic | Promise<EntryStatic>;
@@ -1567,21 +1591,12 @@ export class EntryOptionPlugin {
     static entryDescriptionToOptions(compiler: Compiler, name: string, desc: EntryDescriptionNormalized): EntryOptions;
 }
 
-// @public (undocumented)
-export type EntryOptions = {
+// @public
+export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
     name?: string;
-    runtime?: EntryRuntime;
-    chunkLoading?: ChunkLoading;
-    asyncChunks?: boolean;
-    publicPath?: PublicPath;
-    baseUri?: string;
-    filename?: Filename;
-    library?: LibraryOptions;
-    layer?: Layer;
-    dependOn?: string[];
 };
 
-// @public (undocumented)
+// @public
 export const EntryPlugin: {
     new (context: string, entry: string, options?: string | EntryOptions | undefined): {
         name: BuiltinPluginName;
@@ -1669,6 +1684,26 @@ export class EnvironmentPlugin {
     defaultValues: Record<string, string | undefined | null>;
     // (undocumented)
     keys: string[];
+}
+
+// @public (undocumented)
+type ErrorMapCtx = {
+    defaultError: string;
+    data: any;
+};
+
+// @public (undocumented)
+namespace errorUtil {
+    // (undocumented)
+    type ErrMessage = string | {
+        message?: string;
+    };
+    const // (undocumented)
+    errToObj: (message?: ErrMessage | undefined) => {
+        message?: string | undefined;
+    };
+    const // (undocumented)
+    toString: (message?: ErrMessage | undefined) => string | undefined;
 }
 
 // @public (undocumented)
@@ -1860,12 +1895,22 @@ export type ExternalItemObjectUnknown = {
 };
 
 // @public
-export type ExternalItemValue = string | boolean | string[] | {
+export type ExternalItemObjectValue = Record<string, string | string[]>;
+
+// @public
+export type ExternalItemUmdValue = {
     root: string | string[];
     commonjs: string | string[];
     commonjs2: string | string[];
-    amd?: string | string[];
+    amd: string | string[];
 };
+
+// @public
+export type ExternalItemValue = string | boolean | string[] | ExternalItemUmdValue
+/**
+* when libraryTarget and externalsType is not 'umd'
+*/
+| ExternalItemObjectValue;
 
 // @public
 export type Externals = ExternalItem | ExternalItem[];
@@ -2247,6 +2292,9 @@ export type InfrastructureLogging = {
 };
 
 // @public (undocumented)
+type input<T extends ZodType<any, any, any>> = T["_input"];
+
+// @public (undocumented)
 type InputFileSystem = {
     readFile: ReadFile;
     readFileSync?: ReadFileSync;
@@ -2266,6 +2314,20 @@ type InputFileSystem = {
     join?: (path1: string, path2: string) => string;
     relative?: (from: string, to: string) => string;
     dirname?: (path: string) => string;
+};
+
+// @public (undocumented)
+type INVALID = {
+    status: "aborted";
+};
+
+// @public (undocumented)
+const INVALID: INVALID;
+
+// @public (undocumented)
+type IssueData = stripPath<ZodIssueOptionalMessage> & {
+    path?: (string | number)[];
+    fatal?: boolean;
 };
 
 // @public (undocumented)
@@ -3365,6 +3427,9 @@ type LStatSync = {
 };
 
 // @public (undocumented)
+type MakeReadonly<T> = T extends Map<infer K, infer V> ? ReadonlyMap<K, V> : T extends Set<infer V> ? ReadonlySet<V> : T extends [infer Head, ...infer Tail] ? readonly [Head, ...Tail] : T extends Array<infer V> ? ReadonlyArray<V> : T extends BuiltIn ? T : Readonly<T>;
+
+// @public (undocumented)
 type MapOptions = { columns?: boolean; module?: boolean };
 
 // @public
@@ -3759,6 +3824,62 @@ type ObjectEncodingOptions = {
 };
 
 // @public (undocumented)
+namespace objectUtil {
+    // (undocumented)
+    type addQuestionMarks<T extends object, _O = any> = {
+        [K in requiredKeys<T>]: T[K];
+    } & {
+        [K in optionalKeys<T>]?: T[K];
+    } & {
+        [k in keyof T]?: unknown;
+    };
+    // (undocumented)
+    type extendShape<A extends object, B extends object> = {
+        [K in keyof A as K extends keyof B ? never : K]: A[K];
+    } & {
+        [K in keyof B]: B[K];
+    };
+    // (undocumented)
+    type flatten<T> = identity<{
+        [k in keyof T]: T[k];
+    }>;
+    // (undocumented)
+    type identity<T> = T;
+    // (undocumented)
+    type MergeShapes<U, V> = {
+        [k in Exclude<keyof U, keyof V>]: U[k];
+    } & V;
+    // (undocumented)
+    type noNever<T> = identity<{
+        [k in noNeverKeys<T>]: k extends keyof T ? T[k] : never;
+    }>;
+    // (undocumented)
+    type noNeverKeys<T> = {
+        [k in keyof T]: [T[k]] extends [never] ? never : k;
+    }[keyof T];
+    // (undocumented)
+    type optionalKeys<T extends object> = {
+        [k in keyof T]: undefined extends T[k] ? k : never;
+    }[keyof T];
+    const // (undocumented)
+    mergeShapes: <U, T>(first: U, second: T) => T & U;
+    // (undocumented)
+    type requiredKeys<T extends object> = {
+        [k in keyof T]: undefined extends T[k] ? never : k;
+    }[keyof T];
+        {  };
+}
+
+// @public (undocumented)
+type OK<T> = {
+    status: "valid";
+    value: T;
+};
+
+// @public (undocumented)
+const OK: <T>(value: T) => OK<T>;
+
+// @public (undocumented)
 export type Optimization = {
     moduleIds?: "named" | "natural" | "deterministic";
     chunkIds?: "natural" | "named" | "deterministic";
@@ -3914,6 +4035,9 @@ export type Output = {
 };
 
 // @public (undocumented)
+type output<T extends ZodType<any, any, any>> = T["_output"];
+
+// @public (undocumented)
 export interface OutputFileSystem {
     // (undocumented)
     dirname?: (arg0: string) => string;
@@ -4043,6 +4167,26 @@ export interface OutputNormalized {
 }
 
 // @public (undocumented)
+interface ParseContext {
+    // (undocumented)
+    readonly common: {
+        readonly issues: ZodIssue[];
+        readonly contextualErrorMap?: ZodErrorMap;
+        readonly async: boolean;
+    };
+    // (undocumented)
+    readonly data: any;
+    // (undocumented)
+    readonly parent: ParseContext | null;
+    // (undocumented)
+    readonly parsedType: ZodParsedType;
+    // (undocumented)
+    readonly path: ParsePath;
+    // (undocumented)
+    readonly schemaErrorMap?: ZodErrorMap;
+}
+
+// @public (undocumented)
 interface ParsedIdentifier {
     	// (undocumented)
     directory: boolean;
@@ -4061,7 +4205,30 @@ interface ParsedIdentifier {
 }
 
 // @public (undocumented)
+type ParseInput = {
+    data: any;
+    path: (string | number)[];
+    parent: ParseContext;
+};
+
+// @public (undocumented)
+type ParseParams = {
+    path: (string | number)[];
+    errorMap: ZodErrorMap;
+    async: boolean;
+};
+
+// @public (undocumented)
+type ParsePath = ParsePathComponent[];
+
+// @public (undocumented)
+type ParsePathComponent = string | number;
+
+// @public (undocumented)
 type ParserConfig = TsParserConfig | EsParserConfig;
+
+// @public (undocumented)
+type ParseReturnType<T> = SyncParseReturnType<T> | AsyncParseReturnType<T>;
 
 // @public
 export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown | ParserOptionsByModuleTypeUnknown;
@@ -4082,6 +4249,29 @@ export type ParserOptionsByModuleTypeKnown = {
 export type ParserOptionsByModuleTypeUnknown = {
     [x: string]: Record<string, any>;
 };
+
+// @public (undocumented)
+class ParseStatus {
+    // (undocumented)
+    abort(): void;
+    // (undocumented)
+    dirty(): void;
+    // (undocumented)
+    static mergeArray(status: ParseStatus, results: SyncParseReturnType<any>[]): SyncParseReturnType;
+    // (undocumented)
+    static mergeObjectAsync(status: ParseStatus, pairs: {
+        key: ParseReturnType<any>;
+        value: ParseReturnType<any>;
+    }[]): Promise<SyncParseReturnType<any>>;
+    // (undocumented)
+    static mergeObjectSync(status: ParseStatus, pairs: {
+        key: SyncParseReturnType<any>;
+        value: SyncParseReturnType<any>;
+        alwaysSet?: boolean;
+    }[]): SyncParseReturnType;
+    // (undocumented)
+    value: "aborted" | "dirty" | "valid";
+}
 
 // @public
 export type Path = string;
@@ -4135,6 +4325,15 @@ type PluginImportOptions = PluginImportConfig[] | undefined;
 
 // @public (undocumented)
 export type Plugins = Plugin_2[];
+
+// @public (undocumented)
+type PreprocessEffect<T> = {
+    type: "preprocess";
+    transform: (arg: T, ctx: RefinementCtx) => any;
+};
+
+// @public (undocumented)
+type Primitive = string | number | symbol | bigint | boolean | null | undefined;
 
 // @public (undocumented)
 type PrintedElement = {
@@ -4244,6 +4443,15 @@ export type PublicPath = "auto" | Filename;
 
 // @public (undocumented)
 type Purge = (files?: string | string[] | Set<string>) => void;
+
+// @public (undocumented)
+type RawCreateParams = {
+    errorMap?: ZodErrorMap;
+    invalid_type_error?: string;
+    required_error?: string;
+    message?: string;
+    description?: string;
+} | undefined;
 
 // @public (undocumented)
 type RawSourceMap = {
@@ -4400,6 +4608,29 @@ type RealPathSync = {
 type RecursiveArrayOrRecord<T> = {
     [index: string]: RecursiveArrayOrRecord<T>;
 } | Array<RecursiveArrayOrRecord<T>> | T;
+
+// @public (undocumented)
+type recursiveZodFormattedError<T> = T extends [any, ...any[]] ? {
+    [K in keyof T]?: ZodFormattedError<T[K]>;
+} : T extends any[] ? {
+    [k: number]: ZodFormattedError<T[number]>;
+} : T extends object ? {
+    [K in keyof T]?: ZodFormattedError<T[K]>;
+} : unknown;
+
+// @public (undocumented)
+interface RefinementCtx {
+    // (undocumented)
+    addIssue: (arg: IssueData) => void;
+    // (undocumented)
+    path: (string | number)[];
+}
+
+// @public (undocumented)
+type RefinementEffect<T> = {
+    type: "refinement";
+    refinement: (arg: T, ctx: RefinementCtx) => any;
+};
 
 // @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -4850,6 +5081,8 @@ declare namespace rspackExports {
         ModuleOptions,
         Target,
         ExternalsType,
+        ExternalItemUmdValue,
+        ExternalItemObjectValue,
         ExternalItemValue,
         ExternalItemObjectUnknown,
         ExternalItemFunctionData,
@@ -5026,6 +5259,9 @@ export const rspackOptions: z.ZodObject<{
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5043,17 +5279,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5071,11 +5307,8 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -5160,6 +5393,9 @@ export const rspackOptions: z.ZodObject<{
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5177,17 +5413,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5205,11 +5441,8 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -5294,6 +5527,9 @@ export const rspackOptions: z.ZodObject<{
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5311,17 +5547,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }, {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5339,11 +5575,8 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>>]>>]>>;
     output: z.ZodOptional<z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
@@ -5565,6 +5798,8 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         path?: string | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
         library?: string | string[] | {
             root?: string | string[] | undefined;
             commonjs?: string | undefined;
@@ -5586,6 +5821,7 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
+        wasmLoading?: string | false | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -5594,8 +5830,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
@@ -5612,7 +5846,6 @@ export const rspackOptions: z.ZodObject<{
         importFunctionName?: string | undefined;
         importMetaName?: string | undefined;
         iife?: boolean | undefined;
-        wasmLoading?: string | false | undefined;
         enabledWasmLoadingTypes?: string[] | undefined;
         webassemblyModuleFilename?: string | undefined;
         chunkFormat?: string | false | undefined;
@@ -5661,6 +5894,8 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         path?: string | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
         library?: string | string[] | {
             root?: string | string[] | undefined;
             commonjs?: string | undefined;
@@ -5682,6 +5917,7 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
+        wasmLoading?: string | false | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -5690,8 +5926,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
@@ -5708,7 +5942,6 @@ export const rspackOptions: z.ZodObject<{
         importFunctionName?: string | undefined;
         importMetaName?: string | undefined;
         iife?: boolean | undefined;
-        wasmLoading?: string | false | undefined;
         enabledWasmLoadingTypes?: string[] | undefined;
         webassemblyModuleFilename?: string | undefined;
         chunkFormat?: string | false | undefined;
@@ -5991,22 +6224,7 @@ export const rspackOptions: z.ZodObject<{
             } | undefined;
         } | undefined;
     }>>;
-    externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    externals: z.ZodOptional<z.ZodUnion<[z.ZodArray<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6031,22 +6249,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6071,37 +6274,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>>]>, "many">, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6126,22 +6299,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+    }>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Error, z.ZodTypeDef, Error>>, z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>, z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUnknown>]>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
         context: z.ZodOptional<z.ZodString>;
         dependencyType: z.ZodOptional<z.ZodString>;
         request: z.ZodOptional<z.ZodString>;
@@ -6166,22 +6324,7 @@ export const rspackOptions: z.ZodObject<{
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
-        root: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        commonjs2: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
-        amd: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
-    }, "strict", z.ZodTypeAny, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }, {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>]>>>]>]>>;
+    }>], z.ZodUnknown>, z.ZodPromise<z.ZodUnion<[z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodBoolean]>, z.ZodArray<z.ZodString, "many">]>, ZodRspackCrossChecker<t.ExternalItemUmdValue | t.ExternalItemObjectValue>]>>>]>]>>;
     externalsType: z.ZodOptional<z.ZodEnum<["var", "module", "assign", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system", "promise", "import", "module-import", "script", "node-commonjs"]>>;
     externalsPresets: z.ZodOptional<z.ZodObject<{
         node: z.ZodOptional<z.ZodBoolean>;
@@ -6350,7 +6493,6 @@ export const rspackOptions: z.ZodObject<{
         warningsSpace: z.ZodOptional<z.ZodNumber>;
     }, "strict", z.ZodTypeAny, {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -6374,6 +6516,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -6427,7 +6570,6 @@ export const rspackOptions: z.ZodObject<{
         warningsSpace?: number | undefined;
     }, {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -6451,6 +6593,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -8052,6 +8195,9 @@ export const rspackOptions: z.ZodObject<{
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8069,17 +8215,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8097,17 +8243,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8125,11 +8271,8 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }>>) | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
@@ -8209,6 +8352,8 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         path?: string | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
         library?: string | string[] | {
             root?: string | string[] | undefined;
             commonjs?: string | undefined;
@@ -8230,6 +8375,7 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
+        wasmLoading?: string | false | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -8238,8 +8384,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
@@ -8256,7 +8400,6 @@ export const rspackOptions: z.ZodObject<{
         importFunctionName?: string | undefined;
         importMetaName?: string | undefined;
         iife?: boolean | undefined;
-        wasmLoading?: string | false | undefined;
         enabledWasmLoadingTypes?: string[] | undefined;
         webassemblyModuleFilename?: string | undefined;
         chunkFormat?: string | false | undefined;
@@ -8354,7 +8497,6 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -8378,6 +8520,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -8432,65 +8575,35 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     loader?: Record<string, any> | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }> | ((args_0: {
+    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>) | (string | RegExp | Record<string, string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }> | ((args_0: {
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>))[] | undefined;
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
@@ -8687,6 +8800,9 @@ export const rspackOptions: z.ZodObject<{
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8704,17 +8820,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8732,17 +8848,17 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }> | Promise<string | string[] | Record<string, string | string[] | {
         import: string | string[];
         layer?: string | null | undefined;
         filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        baseUri?: string | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8760,11 +8876,8 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
-        dependOn?: string | string[] | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        baseUri?: string | undefined;
         wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
     }>>) | undefined;
     node?: false | {
         global?: boolean | "warn" | undefined;
@@ -8844,6 +8957,8 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         path?: string | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
         library?: string | string[] | {
             root?: string | string[] | undefined;
             commonjs?: string | undefined;
@@ -8865,6 +8980,7 @@ export const rspackOptions: z.ZodObject<{
             export?: string | string[] | undefined;
             umdNamedDefine?: boolean | undefined;
         } | undefined;
+        wasmLoading?: string | false | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -8873,8 +8989,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         umdNamedDefine?: boolean | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | undefined;
@@ -8891,7 +9005,6 @@ export const rspackOptions: z.ZodObject<{
         importFunctionName?: string | undefined;
         importMetaName?: string | undefined;
         iife?: boolean | undefined;
-        wasmLoading?: string | false | undefined;
         enabledWasmLoadingTypes?: string[] | undefined;
         webassemblyModuleFilename?: string | undefined;
         chunkFormat?: string | false | undefined;
@@ -8989,7 +9102,6 @@ export const rspackOptions: z.ZodObject<{
     snapshot?: {} | undefined;
     stats?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
-        source?: boolean | undefined;
         publicPath?: boolean | undefined;
         all?: boolean | undefined;
         preset?: boolean | "verbose" | "normal" | "none" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
@@ -9013,6 +9125,7 @@ export const rspackOptions: z.ZodObject<{
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
         nestedModules?: boolean | undefined;
+        source?: boolean | undefined;
         logging?: boolean | "log" | "info" | "verbose" | "none" | "error" | "warn" | undefined;
         loggingDebug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
         loggingTrace?: boolean | undefined;
@@ -9067,65 +9180,35 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     loader?: Record<string, any> | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }> | ((args_0: {
+    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>) | (string | RegExp | Record<string, string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }> | ((args_0: {
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    } | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
+    }, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: {
         request?: string | undefined;
         context?: string | undefined;
         dependencyType?: string | undefined;
         contextInfo?: {
             issuer: string;
         } | undefined;
-    }, ...args: unknown[]) => Promise<string | boolean | string[] | {
-        root: string | string[];
-        commonjs: string | string[];
-        commonjs2: string | string[];
-        amd?: string | string[] | undefined;
-    }>))[] | undefined;
+    }, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
     externalsType?: "module" | "global" | "system" | "script" | "commonjs" | "umd" | "amd" | "var" | "jsonp" | "import" | "assign" | "this" | "window" | "self" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd-require" | "umd2" | "promise" | "module-import" | "node-commonjs" | undefined;
     externalsPresets?: {
         node?: boolean | undefined;
@@ -9316,8 +9399,8 @@ export type RuleSetRule = {
     resolve?: ResolveOptions;
     sideEffects?: boolean;
     enforce?: "pre" | "post";
-    oneOf?: RuleSetRule[];
-    rules?: RuleSetRule[];
+    oneOf?: (RuleSetRule | Falsy)[];
+    rules?: (RuleSetRule | Falsy)[];
 };
 
 // @public
@@ -9467,6 +9550,23 @@ enum RuntimeModuleStage {
 
 // @public (undocumented)
 type RuntimePlugins = string[];
+
+// @public (undocumented)
+type SafeParseError<Input> = {
+    success: false;
+    error: ZodError<Input>;
+    data?: never;
+};
+
+// @public (undocumented)
+type SafeParseReturnType<Input, Output> = SafeParseSuccess<Output> | SafeParseError<Input>;
+
+// @public (undocumented)
+type SafeParseSuccess<Output> = {
+    success: true;
+    data: Output;
+    error?: never;
+};
 
 // @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
@@ -9906,6 +10006,19 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
+type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "base64" | {
+    includes: string;
+    position?: number;
+} | {
+    startsWith: string;
+} | {
+    endsWith: string;
+};
+
+// @public (undocumented)
+type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
+
+// @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
@@ -9959,6 +10072,9 @@ export type SwcLoaderTransformConfig = TransformConfig;
 
 // @public (undocumented)
 export type SwcLoaderTsParserConfig = TsParserConfig;
+
+// @public (undocumented)
+type SyncParseReturnType<T = any> = OK<T> | DIRTY<T> | INVALID;
 
 // @public (undocumented)
 interface SystemjsConfig {
@@ -10088,6 +10204,8 @@ declare namespace t {
         ModuleOptions,
         Target,
         ExternalsType,
+        ExternalItemUmdValue,
+        ExternalItemObjectValue,
         ExternalItemValue,
         ExternalItemObjectUnknown,
         ExternalItemFunctionData,
@@ -10518,6 +10636,12 @@ interface TransformConfig {
     useDefineForClassFields?: boolean;
 }
 
+// @public (undocumented)
+type TransformEffect<T> = {
+    type: "transform";
+    transform: (arg: T, ctx: RefinementCtx) => any;
+};
+
 // @public
 export type TrustedTypes = {
     policyName?: string;
@@ -10532,6 +10656,14 @@ interface TsParserConfig {
     syntax: "typescript";
     tsx?: boolean;
 }
+
+// @public (undocumented)
+type typeToFlattenedError<T, U = string> = {
+    formErrors: U[];
+    fieldErrors: {
+        [P in allKeys<T>]?: U[];
+    };
+};
 
 // @public (undocumented)
 interface UmdConfig extends BaseModuleConfig {
@@ -10554,6 +10686,51 @@ export const util: {
     createHash: (algorithm: "debug" | "xxhash64" | "md4" | "native-md4" | (string & {}) | (new () => default_2)) => default_2;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
+
+// @public (undocumented)
+namespace util_2 {
+    // (undocumented)
+    type AssertEqual<T, U> = (<V>() => V extends T ? 1 : 2) extends <V>() => V extends U ? 1 : 2 ? true : false;
+    // (undocumented)
+    function assertIs<T>(_arg: T): void;
+    const // (undocumented)
+    assertEqual: <A, B>(val: AssertEqual<A, B>) => AssertEqual<A, B>;
+    // (undocumented)
+    function assertNever(_x: never): never;
+    // (undocumented)
+    type Exactly<T, X> = T & Record<Exclude<keyof X, keyof T>, never>;
+    // (undocumented)
+    type flatten<T> = objectUtil.flatten<T>;
+    // (undocumented)
+    type identity<T> = objectUtil.identity<T>;
+    // (undocumented)
+    type isAny<T> = 0 extends 1 & T ? true : false;
+    // (undocumented)
+    function joinValues<T extends any[]>(array: T, separator?: string): string;
+    const // (undocumented)
+    arrayToEnum: <T extends string, U extends [T, ...T[]]>(items: U) => { [k in U[number]]: k; };
+    const // (undocumented)
+    getValidEnumValues: (obj: any) => any[];
+    const // (undocumented)
+    objectValues: (obj: any) => any[];
+    const // (undocumented)
+    objectKeys: ObjectConstructor["keys"];
+    const // (undocumented)
+    find: <T>(arr: T[], checker: (arg: T) => any) => T | undefined;
+    // (undocumented)
+    type MakePartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+    // (undocumented)
+    type noUndefined<T> = T extends undefined ? never : T;
+    // (undocumented)
+    type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+    const // (undocumented)
+    isInteger: NumberConstructor["isInteger"];
+    // (undocumented)
+    type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>;
+    const // (undocumented)
+    jsonStringifyReplacer: (_: string, value: any) => any;
+        {  };
+}
 
 // @public (undocumented)
 export class ValidationError extends Error {
@@ -10856,6 +11033,729 @@ export type WorkerPublicPath = string;
 // @public (undocumented)
 namespace z {
         { type z_AnyZodObject as AnyZodObject, type z_AnyZodTuple as AnyZodTuple, type z_ArrayCardinality as ArrayCardinality, type z_ArrayKeys as ArrayKeys, type z_AssertArray as AssertArray, type z_AsyncParseReturnType as AsyncParseReturnType, type z_BRAND as BRAND, type z_CatchallInput as CatchallInput, type z_CatchallOutput as CatchallOutput, type z_CustomErrorParams as CustomErrorParams, z_DIRTY as DIRTY, type z_DenormalizedError as DenormalizedError, z_EMPTY_PATH as EMPTY_PATH, type z_Effect as Effect, type z_EnumLike as EnumLike, type z_EnumValues as EnumValues, type z_ErrorMapCtx as ErrorMapCtx, type z_FilterEnum as FilterEnum, z_INVALID as INVALID, type z_Indices as Indices, type z_InnerTypeOfFunction as InnerTypeOfFunction, type z_InputTypeOfTuple as InputTypeOfTuple, type z_InputTypeOfTupleWithRest as InputTypeOfTupleWithRest, type z_IpVersion as IpVersion, type z_IssueData as IssueData, type z_KeySchema as KeySchema, z_NEVER as NEVER, z_OK as OK, type z_ObjectPair as ObjectPair, type z_OuterTypeOfFunction as OuterTypeOfFunction, type z_OutputTypeOfTuple as OutputTypeOfTuple, type z_OutputTypeOfTupleWithRest as OutputTypeOfTupleWithRest, type z_ParseContext as ParseContext, type z_ParseInput as ParseInput, type z_ParseParams as ParseParams, type z_ParsePath as ParsePath, type z_ParsePathComponent as ParsePathComponent, type z_ParseResult as ParseResult, type z_ParseReturnType as ParseReturnType, z_ParseStatus as ParseStatus, type z_PassthroughType as PassthroughType, type z_PreprocessEffect as PreprocessEffect, type z_Primitive as Primitive, type z_ProcessedCreateParams as ProcessedCreateParams, type z_RawCreateParams as RawCreateParams, type z_RecordType as RecordType, type z_Refinement as Refinement, type z_RefinementCtx as RefinementCtx, type z_RefinementEffect as RefinementEffect, type z_SafeParseError as SafeParseError, type z_SafeParseReturnType as SafeParseReturnType, type z_SafeParseSuccess as SafeParseSuccess, type z_Scalars as Scalars, ZodType as Schema, type z_SomeZodObject as SomeZodObject, type z_StringValidation as StringValidation, type z_SuperRefinement as SuperRefinement, type z_SyncParseReturnType as SyncParseReturnType, type z_TransformEffect as TransformEffect, type z_TypeOf as TypeOf, type z_UnknownKeysParam as UnknownKeysParam, type z_Values as Values, type z_Writeable as Writeable, z_ZodAny as ZodAny, type z_ZodAnyDef as ZodAnyDef, z_ZodArray as ZodArray, type z_ZodArrayDef as ZodArrayDef, z_ZodBigInt as ZodBigInt, type z_ZodBigIntCheck as ZodBigIntCheck, type z_ZodBigIntDef as ZodBigIntDef, z_ZodBoolean as ZodBoolean, type z_ZodBooleanDef as ZodBooleanDef, z_ZodBranded as ZodBranded, type z_ZodBrandedDef as ZodBrandedDef, z_ZodCatch as ZodCatch, type z_ZodCatchDef as ZodCatchDef, type z_ZodCustomIssue as ZodCustomIssue, z_ZodDate as ZodDate, type z_ZodDateCheck as ZodDateCheck, type z_ZodDateDef as ZodDateDef, z_ZodDefault as ZodDefault, type z_ZodDefaultDef as ZodDefaultDef, z_ZodDiscriminatedUnion as ZodDiscriminatedUnion, type z_ZodDiscriminatedUnionDef as ZodDiscriminatedUnionDef, type z_ZodDiscriminatedUnionOption as ZodDiscriminatedUnionOption, z_ZodEffects as ZodEffects, type z_ZodEffectsDef as ZodEffectsDef, z_ZodEnum as ZodEnum, type z_ZodEnumDef as ZodEnumDef, z_ZodError as ZodError, type z_ZodErrorMap as ZodErrorMap, type z_ZodFirstPartySchemaTypes as ZodFirstPartySchemaTypes, z_ZodFirstPartyTypeKind as ZodFirstPartyTypeKind, type z_ZodFormattedError as ZodFormattedError, z_ZodFunction as ZodFunction, type z_ZodFunctionDef as ZodFunctionDef, z_ZodIntersection as ZodIntersection, type z_ZodIntersectionDef as ZodIntersectionDef, type z_ZodInvalidArgumentsIssue as ZodInvalidArgumentsIssue, type z_ZodInvalidDateIssue as ZodInvalidDateIssue, type z_ZodInvalidEnumValueIssue as ZodInvalidEnumValueIssue, type z_ZodInvalidIntersectionTypesIssue as ZodInvalidIntersectionTypesIssue, type z_ZodInvalidLiteralIssue as ZodInvalidLiteralIssue, type z_ZodInvalidReturnTypeIssue as ZodInvalidReturnTypeIssue, type z_ZodInvalidStringIssue as ZodInvalidStringIssue, type z_ZodInvalidTypeIssue as ZodInvalidTypeIssue, type z_ZodInvalidUnionDiscriminatorIssue as ZodInvalidUnionDiscriminatorIssue, type z_ZodInvalidUnionIssue as ZodInvalidUnionIssue, type z_ZodIssue as ZodIssue, type z_ZodIssueBase as ZodIssueBase, type z_ZodIssueCode as ZodIssueCode, type z_ZodIssueOptionalMessage as ZodIssueOptionalMessage, z_ZodLazy as ZodLazy, type z_ZodLazyDef as ZodLazyDef, z_ZodLiteral as ZodLiteral, type z_ZodLiteralDef as ZodLiteralDef, z_ZodMap as ZodMap, type z_ZodMapDef as ZodMapDef, z_ZodNaN as ZodNaN, type z_ZodNaNDef as ZodNaNDef, z_ZodNativeEnum as ZodNativeEnum, type z_ZodNativeEnumDef as ZodNativeEnumDef, z_ZodNever as ZodNever, type z_ZodNeverDef as ZodNeverDef, type z_ZodNonEmptyArray as ZodNonEmptyArray, type z_ZodNotFiniteIssue as ZodNotFiniteIssue, type z_ZodNotMultipleOfIssue as ZodNotMultipleOfIssue, z_ZodNull as ZodNull, type z_ZodNullDef as ZodNullDef, z_ZodNullable as ZodNullable, type z_ZodNullableDef as ZodNullableDef, type z_ZodNullableType as ZodNullableType, z_ZodNumber as ZodNumber, type z_ZodNumberCheck as ZodNumberCheck, type z_ZodNumberDef as ZodNumberDef, z_ZodObject as ZodObject, type z_ZodObjectDef as ZodObjectDef, z_ZodOptional as ZodOptional, type z_ZodOptionalDef as ZodOptionalDef, type z_ZodOptionalType as ZodOptionalType, type z_ZodParsedType as ZodParsedType, z_ZodPipeline as ZodPipeline, type z_ZodPipelineDef as ZodPipelineDef, z_ZodPromise as ZodPromise, type z_ZodPromiseDef as ZodPromiseDef, type z_ZodRawShape as ZodRawShape, z_ZodReadonly as ZodReadonly, type z_ZodReadonlyDef as ZodReadonlyDef, z_ZodRecord as ZodRecord, type z_ZodRecordDef as ZodRecordDef, ZodType as ZodSchema, z_ZodSet as ZodSet, type z_ZodSetDef as ZodSetDef, z_ZodString as ZodString, type z_ZodStringCheck as ZodStringCheck, type z_ZodStringDef as ZodStringDef, z_ZodSymbol as ZodSymbol, type z_ZodSymbolDef as ZodSymbolDef, type z_ZodTooBigIssue as ZodTooBigIssue, type z_ZodTooSmallIssue as ZodTooSmallIssue, ZodEffects as ZodTransformer, z_ZodTuple as ZodTuple, type z_ZodTupleDef as ZodTupleDef, type z_ZodTupleItems as ZodTupleItems, z_ZodType as ZodType, type z_ZodTypeAny as ZodTypeAny, type z_ZodTypeDef as ZodTypeDef, z_ZodUndefined as ZodUndefined, type z_ZodUndefinedDef as ZodUndefinedDef, z_ZodUnion as ZodUnion, type z_ZodUnionDef as ZodUnionDef, type z_ZodUnionOptions as ZodUnionOptions, z_ZodUnknown as ZodUnknown, type z_ZodUnknownDef as ZodUnknownDef, type z_ZodUnrecognizedKeysIssue as ZodUnrecognizedKeysIssue, z_ZodVoid as ZodVoid, type z_ZodVoidDef as ZodVoidDef, z_addIssueToContext as addIssueToContext, anyType as any, arrayType as array, type z_arrayOutputType as arrayOutputType, type z_baseObjectInputType as baseObjectInputType, type z_baseObjectOutputType as baseObjectOutputType, bigIntType as bigint, booleanType as boolean, z_coerce as coerce, z_custom as custom, dateType as date, z_datetimeRegex as datetimeRegex, errorMap as defaultErrorMap, type z_deoptional as deoptional, discriminatedUnionType as discriminatedUnion, effectsType as effect, enumType as enum, functionType as function, z_getErrorMap as getErrorMap, z_getParsedType as getParsedType, type TypeOf as infer, type z_inferFlattenedErrors as inferFlattenedErrors, type z_inferFormattedError as inferFormattedError, type z_input as input, instanceOfType as instanceof, intersectionType as intersection, z_isAborted as isAborted, z_isAsync as isAsync, z_isDirty as isDirty, z_isValid as isValid, z_late as late, lazyType as lazy, literalType as literal, z_makeIssue as makeIssue, mapType as map, type z_mergeTypes as mergeTypes, nanType as nan, nativeEnumType as nativeEnum, neverType as never, type z_noUnrecognized as noUnrecognized, nullType as null, nullableType as nullable, numberType as number, objectType as object, type z_objectInputType as objectInputType, type z_objectOutputType as objectOutputType, z_objectUtil as objectUtil, z_oboolean as oboolean, z_onumber as onumber, optionalType as optional, z_ostring as ostring, type z_output as output, pipelineType as pipeline, preprocessType as preprocess, promiseType as promise, z_quotelessJson as quotelessJson, recordType as record, setType as set, z_setErrorMap as setErrorMap, strictObjectType as strictObject, stringType as string, symbolType as symbol, effectsType as transformer, tupleType as tuple, type z_typeToFlattenedError as typeToFlattenedError, type z_typecast as typecast, undefinedType as undefined, unionType as union, unknownType as unknown, z_util as util, voidType as void };
+}
+
+// @public (undocumented)
+class ZodArray<T extends ZodTypeAny, Cardinality extends ArrayCardinality = "many"> extends ZodType<arrayOutputType<T, Cardinality>, ZodArrayDef<T>, Cardinality extends "atleastone" ? [T["_input"], ...T["_input"][]] : T["_input"][]> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(schema: T_1, params?: RawCreateParams) => ZodArray<T_1, "many">;
+    // (undocumented)
+    get element(): T;
+    // (undocumented)
+    length(len: number, message?: errorUtil.ErrMessage): this;
+    // (undocumented)
+    max(maxLength: number, message?: errorUtil.ErrMessage): this;
+    // (undocumented)
+    min(minLength: number, message?: errorUtil.ErrMessage): this;
+    // (undocumented)
+    nonempty(message?: errorUtil.ErrMessage): ZodArray<T, "atleastone">;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+}
+
+// @public (undocumented)
+interface ZodArrayDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    exactLength: {
+        value: number;
+        message?: string;
+    } | null;
+    // (undocumented)
+    maxLength: {
+        value: number;
+        message?: string;
+    } | null;
+    // (undocumented)
+    minLength: {
+        value: number;
+        message?: string;
+    } | null;
+    // (undocumented)
+    type: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodArray;
+}
+
+// @public (undocumented)
+class ZodBranded<T extends ZodTypeAny, B extends string | number | symbol> extends ZodType<T["_output"] & BRAND<B>, ZodBrandedDef<T>, T["_input"]> {
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<any>;
+    // (undocumented)
+    unwrap(): T;
+}
+
+// @public (undocumented)
+interface ZodBrandedDef<T extends ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    type: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodBranded;
+}
+
+// @public (undocumented)
+class ZodCatch<T extends ZodTypeAny> extends ZodType<T["_output"], ZodCatchDef<T>, unknown> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(type: T_1, params: {
+        errorMap?: ZodErrorMap | undefined;
+        invalid_type_error?: string | undefined;
+        required_error?: string | undefined;
+        message?: string | undefined;
+        description?: string | undefined;
+    } & {
+        catch: T_1["_output"] | (() => T_1["_output"]);
+    }) => ZodCatch<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    removeCatch(): T;
+}
+
+// @public (undocumented)
+interface ZodCatchDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    catchValue: (ctx: {
+        error: ZodError;
+        input: unknown;
+    }) => T["_input"];
+    // (undocumented)
+    innerType: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodCatch;
+}
+
+// @public (undocumented)
+type ZodCrossFieldsOptions = ZodTypeDef & {
+    patterns: Array<{
+        test: (root: RspackOptions) => boolean;
+        type: ZodType;
+        issue?: (res: ParseReturnType<any>) => Array<IssueData>;
+    }>;
+    default: ZodType;
+};
+
+// @public (undocumented)
+interface ZodCustomIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.custom;
+    // (undocumented)
+    params?: {
+        [k: string]: any;
+    };
+}
+
+// @public (undocumented)
+class ZodDefault<T extends ZodTypeAny> extends ZodType<util_2.noUndefined<T["_output"]>, ZodDefaultDef<T>, T["_input"] | undefined> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(type: T_1, params: {
+        errorMap?: ZodErrorMap | undefined;
+        invalid_type_error?: string | undefined;
+        required_error?: string | undefined;
+        message?: string | undefined;
+        description?: string | undefined;
+    } & {
+        default: T_1["_input"] | (() => util_2.noUndefined<T_1["_input"]>);
+    }) => ZodDefault<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    removeDefault(): T;
+}
+
+// @public (undocumented)
+interface ZodDefaultDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    defaultValue: () => util_2.noUndefined<T["_input"]>;
+    // (undocumented)
+    innerType: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodDefault;
+}
+
+// @public (undocumented)
+class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<T>> extends ZodType<Output, ZodEffectsDef<T>, Input> {
+    // (undocumented)
+    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"], input<I>>;
+    // (undocumented)
+    static createWithPreprocess: <I extends ZodTypeAny>(preprocess: (arg: unknown, ctx: RefinementCtx) => unknown, schema: I, params?: RawCreateParams) => ZodEffects<I, I["_output"], unknown>;
+    // (undocumented)
+    innerType(): T;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    sourceType(): T;
+}
+
+// @public (undocumented)
+interface ZodEffectsDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    effect: Effect<any>;
+    // (undocumented)
+    schema: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodEffects;
+}
+
+// @public (undocumented)
+class ZodError<T = any> extends Error {
+    constructor(issues: ZodIssue[]);
+    // (undocumented)
+    addIssue: (sub: ZodIssue) => void;
+    // (undocumented)
+    addIssues: (subs?: ZodIssue[]) => void;
+    // (undocumented)
+    static assert(value: unknown): asserts value is ZodError;
+    // (undocumented)
+    static create: (issues: ZodIssue[]) => ZodError<any>;
+    // (undocumented)
+    get errors(): ZodIssue[];
+    // (undocumented)
+    flatten(): typeToFlattenedError<T>;
+    // (undocumented)
+    flatten<U>(mapper?: (issue: ZodIssue) => U): typeToFlattenedError<T, U>;
+    // (undocumented)
+    format(): ZodFormattedError<T>;
+    // (undocumented)
+    format<U>(mapper: (issue: ZodIssue) => U): ZodFormattedError<T, U>;
+    // (undocumented)
+    get formErrors(): typeToFlattenedError<T, string>;
+    // (undocumented)
+    get isEmpty(): boolean;
+    // (undocumented)
+    issues: ZodIssue[];
+    // (undocumented)
+    get message(): string;
+    // (undocumented)
+    toString(): string;
+}
+
+// @public (undocumented)
+type ZodErrorMap = (issue: ZodIssueOptionalMessage, _ctx: ErrorMapCtx) => {
+    message: string;
+};
+
+// @public (undocumented)
+enum ZodFirstPartyTypeKind {
+    // (undocumented)
+    ZodAny = "ZodAny",
+    // (undocumented)
+    ZodArray = "ZodArray",
+    // (undocumented)
+    ZodBigInt = "ZodBigInt",
+    // (undocumented)
+    ZodBoolean = "ZodBoolean",
+    // (undocumented)
+    ZodBranded = "ZodBranded",
+    // (undocumented)
+    ZodCatch = "ZodCatch",
+    // (undocumented)
+    ZodDate = "ZodDate",
+    // (undocumented)
+    ZodDefault = "ZodDefault",
+    // (undocumented)
+    ZodDiscriminatedUnion = "ZodDiscriminatedUnion",
+    // (undocumented)
+    ZodEffects = "ZodEffects",
+    // (undocumented)
+    ZodEnum = "ZodEnum",
+    // (undocumented)
+    ZodFunction = "ZodFunction",
+    // (undocumented)
+    ZodIntersection = "ZodIntersection",
+    // (undocumented)
+    ZodLazy = "ZodLazy",
+    // (undocumented)
+    ZodLiteral = "ZodLiteral",
+    // (undocumented)
+    ZodMap = "ZodMap",
+    // (undocumented)
+    ZodNaN = "ZodNaN",
+    // (undocumented)
+    ZodNativeEnum = "ZodNativeEnum",
+    // (undocumented)
+    ZodNever = "ZodNever",
+    // (undocumented)
+    ZodNull = "ZodNull",
+    // (undocumented)
+    ZodNullable = "ZodNullable",
+    // (undocumented)
+    ZodNumber = "ZodNumber",
+    // (undocumented)
+    ZodObject = "ZodObject",
+    // (undocumented)
+    ZodOptional = "ZodOptional",
+    // (undocumented)
+    ZodPipeline = "ZodPipeline",
+    // (undocumented)
+    ZodPromise = "ZodPromise",
+    // (undocumented)
+    ZodReadonly = "ZodReadonly",
+    // (undocumented)
+    ZodRecord = "ZodRecord",
+    // (undocumented)
+    ZodSet = "ZodSet",
+    // (undocumented)
+    ZodString = "ZodString",
+    // (undocumented)
+    ZodSymbol = "ZodSymbol",
+    // (undocumented)
+    ZodTuple = "ZodTuple",
+    // (undocumented)
+    ZodUndefined = "ZodUndefined",
+    // (undocumented)
+    ZodUnion = "ZodUnion",
+    // (undocumented)
+    ZodUnknown = "ZodUnknown",
+    // (undocumented)
+    ZodVoid = "ZodVoid"
+}
+
+// @public (undocumented)
+type ZodFormattedError<T, U = string> = {
+    _errors: U[];
+} & recursiveZodFormattedError<NonNullable<T>>;
+
+// @public (undocumented)
+class ZodIntersection<T extends ZodTypeAny, U extends ZodTypeAny> extends ZodType<T["_output"] & U["_output"], ZodIntersectionDef<T, U>, T["_input"] & U["_input"]> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny, U_1 extends ZodTypeAny>(left: T_1, right: U_1, params?: RawCreateParams) => ZodIntersection<T_1, U_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+}
+
+// @public (undocumented)
+interface ZodIntersectionDef<T extends ZodTypeAny = ZodTypeAny, U extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    left: T;
+    // (undocumented)
+    right: U;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodIntersection;
+}
+
+// @public (undocumented)
+interface ZodInvalidArgumentsIssue extends ZodIssueBase {
+    // (undocumented)
+    argumentsError: ZodError;
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_arguments;
+}
+
+// @public (undocumented)
+interface ZodInvalidDateIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_date;
+}
+
+// @public (undocumented)
+interface ZodInvalidEnumValueIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_enum_value;
+    // (undocumented)
+    options: (string | number)[];
+    // (undocumented)
+    received: string | number;
+}
+
+// @public (undocumented)
+interface ZodInvalidIntersectionTypesIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_intersection_types;
+}
+
+// @public (undocumented)
+interface ZodInvalidLiteralIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_literal;
+    // (undocumented)
+    expected: unknown;
+    // (undocumented)
+    received: unknown;
+}
+
+// @public (undocumented)
+interface ZodInvalidReturnTypeIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_return_type;
+    // (undocumented)
+    returnTypeError: ZodError;
+}
+
+// @public (undocumented)
+interface ZodInvalidStringIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_string;
+    // (undocumented)
+    validation: StringValidation;
+}
+
+// @public (undocumented)
+interface ZodInvalidTypeIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_type;
+    // (undocumented)
+    expected: ZodParsedType;
+    // (undocumented)
+    received: ZodParsedType;
+}
+
+// @public (undocumented)
+interface ZodInvalidUnionDiscriminatorIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_union_discriminator;
+    // (undocumented)
+    options: Primitive[];
+}
+
+// @public (undocumented)
+interface ZodInvalidUnionIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.invalid_union;
+    // (undocumented)
+    unionErrors: ZodError[];
+}
+
+// @public (undocumented)
+type ZodIssue = ZodIssueOptionalMessage & {
+    fatal?: boolean;
+    message: string;
+};
+
+// @public (undocumented)
+type ZodIssueBase = {
+    path: (string | number)[];
+    message?: string;
+};
+
+// @public (undocumented)
+const ZodIssueCode: {
+    invalid_type: "invalid_type";
+    invalid_literal: "invalid_literal";
+    custom: "custom";
+    invalid_union: "invalid_union";
+    invalid_union_discriminator: "invalid_union_discriminator";
+    invalid_enum_value: "invalid_enum_value";
+    unrecognized_keys: "unrecognized_keys";
+    invalid_arguments: "invalid_arguments";
+    invalid_return_type: "invalid_return_type";
+    invalid_date: "invalid_date";
+    invalid_string: "invalid_string";
+    too_small: "too_small";
+    too_big: "too_big";
+    invalid_intersection_types: "invalid_intersection_types";
+    not_multiple_of: "not_multiple_of";
+    not_finite: "not_finite";
+};
+
+// @public (undocumented)
+type ZodIssueCode = keyof typeof ZodIssueCode;
+
+// @public (undocumented)
+type ZodIssueOptionalMessage = ZodInvalidTypeIssue | ZodInvalidLiteralIssue | ZodUnrecognizedKeysIssue | ZodInvalidUnionIssue | ZodInvalidUnionDiscriminatorIssue | ZodInvalidEnumValueIssue | ZodInvalidArgumentsIssue | ZodInvalidReturnTypeIssue | ZodInvalidDateIssue | ZodInvalidStringIssue | ZodTooSmallIssue | ZodTooBigIssue | ZodInvalidIntersectionTypesIssue | ZodNotMultipleOfIssue | ZodNotFiniteIssue | ZodCustomIssue;
+
+// @public (undocumented)
+interface ZodNotFiniteIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.not_finite;
+}
+
+// @public (undocumented)
+interface ZodNotMultipleOfIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.not_multiple_of;
+    // (undocumented)
+    multipleOf: number | bigint;
+}
+
+// @public (undocumented)
+class ZodNullable<T extends ZodTypeAny> extends ZodType<T["_output"] | null, ZodNullableDef<T>, T["_input"] | null> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodNullable<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    unwrap(): T;
+}
+
+// @public (undocumented)
+interface ZodNullableDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    innerType: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodNullable;
+}
+
+// @public (undocumented)
+class ZodOptional<T extends ZodTypeAny> extends ZodType<T["_output"] | undefined, ZodOptionalDef<T>, T["_input"] | undefined> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodOptional<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    unwrap(): T;
+}
+
+// @public (undocumented)
+interface ZodOptionalDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    innerType: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodOptional;
+}
+
+// @public (undocumented)
+const ZodParsedType: {
+    function: "function";
+    number: "number";
+    string: "string";
+    nan: "nan";
+    integer: "integer";
+    float: "float";
+    boolean: "boolean";
+    date: "date";
+    bigint: "bigint";
+    symbol: "symbol";
+    undefined: "undefined";
+    null: "null";
+    array: "array";
+    object: "object";
+    unknown: "unknown";
+    promise: "promise";
+    void: "void";
+    never: "never";
+    map: "map";
+    set: "set";
+};
+
+// @public (undocumented)
+type ZodParsedType = keyof typeof ZodParsedType;
+
+// @public (undocumented)
+class ZodPipeline<A extends ZodTypeAny, B extends ZodTypeAny> extends ZodType<B["_output"], ZodPipelineDef<A, B>, A["_input"]> {
+    // (undocumented)
+    static create<A extends ZodTypeAny, B extends ZodTypeAny>(a: A, b: B): ZodPipeline<A, B>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<any>;
+}
+
+// @public (undocumented)
+interface ZodPipelineDef<A extends ZodTypeAny, B extends ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    in: A;
+    // (undocumented)
+    out: B;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodPipeline;
+}
+
+// @public (undocumented)
+class ZodPromise<T extends ZodTypeAny> extends ZodType<Promise<T["_output"]>, ZodPromiseDef<T>, Promise<T["_input"]>> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(schema: T_1, params?: RawCreateParams) => ZodPromise<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    unwrap(): T;
+}
+
+// @public (undocumented)
+interface ZodPromiseDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    type: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodPromise;
+}
+
+// @public (undocumented)
+class ZodReadonly<T extends ZodTypeAny> extends ZodType<MakeReadonly<T["_output"]>, ZodReadonlyDef<T>, MakeReadonly<T["_input"]>> {
+    // (undocumented)
+    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodReadonly<T_1>;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+    // (undocumented)
+    unwrap(): T;
+}
+
+// @public (undocumented)
+interface ZodReadonlyDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
+    // (undocumented)
+    innerType: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodReadonly;
+}
+
+// @public (undocumented)
+class ZodRspackCrossChecker<T> extends ZodType<T> {
+    constructor(params: ZodCrossFieldsOptions);
+    // (undocumented)
+    _getRootData(ctx: z.ParseContext): any;
+    // (undocumented)
+    _parse(input: z.ParseInput): z.ParseReturnType<T>;
+}
+
+// @public (undocumented)
+interface ZodTooBigIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.too_big;
+    // (undocumented)
+    exact?: boolean;
+    // (undocumented)
+    inclusive: boolean;
+    // (undocumented)
+    maximum: number | bigint;
+    // (undocumented)
+    type: "array" | "string" | "number" | "set" | "date" | "bigint";
+}
+
+// @public (undocumented)
+interface ZodTooSmallIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.too_small;
+    // (undocumented)
+    exact?: boolean;
+    // (undocumented)
+    inclusive: boolean;
+    // (undocumented)
+    minimum: number | bigint;
+    // (undocumented)
+    type: "array" | "string" | "number" | "set" | "date" | "bigint";
+}
+
+// @public (undocumented)
+abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input = Output> {
+    constructor(def: Def);
+    // (undocumented)
+    and<T extends ZodTypeAny>(incoming: T): ZodIntersection<this, T>;
+    // (undocumented)
+    array(): ZodArray<this>;
+    // (undocumented)
+    brand<B extends string | number | symbol>(brand?: B): ZodBranded<this, B>;
+    // (undocumented)
+    catch(def: Output): ZodCatch<this>;
+    // (undocumented)
+    catch(def: (ctx: {
+        error: ZodError;
+        input: Input;
+    }) => Output): ZodCatch<this>;
+    // (undocumented)
+    readonly _def: Def;
+    // (undocumented)
+    default(def: util_2.noUndefined<Input>): ZodDefault<this>;
+    // (undocumented)
+    default(def: () => util_2.noUndefined<Input>): ZodDefault<this>;
+    // (undocumented)
+    describe(description: string): this;
+    // (undocumented)
+    get description(): string | undefined;
+    // (undocumented)
+    _getOrReturnCtx(input: ParseInput, ctx?: ParseContext | undefined): ParseContext;
+    // (undocumented)
+    _getType(input: ParseInput): string;
+    // (undocumented)
+    readonly _input: Input;
+    // (undocumented)
+    isNullable(): boolean;
+    // (undocumented)
+    isOptional(): boolean;
+    // (undocumented)
+    nullable(): ZodNullable<this>;
+    // (undocumented)
+    nullish(): ZodOptional<ZodNullable<this>>;
+    // (undocumented)
+    optional(): ZodOptional<this>;
+    // (undocumented)
+    or<T extends ZodTypeAny>(option: T): ZodUnion<[this, T]>;
+    // (undocumented)
+    readonly _output: Output;
+    // (undocumented)
+    parse(data: unknown, params?: Partial<ParseParams>): Output;
+    // (undocumented)
+    abstract _parse(input: ParseInput): ParseReturnType<Output>;
+    // (undocumented)
+    parseAsync(data: unknown, params?: Partial<ParseParams>): Promise<Output>;
+    // (undocumented)
+    _parseAsync(input: ParseInput): AsyncParseReturnType<Output>;
+    // (undocumented)
+    _parseSync(input: ParseInput): SyncParseReturnType<Output>;
+    // (undocumented)
+    pipe<T extends ZodTypeAny>(target: T): ZodPipeline<this, T>;
+    // (undocumented)
+    _processInputParams(input: ParseInput): {
+        status: ParseStatus;
+        ctx: ParseContext;
+    };
+    // (undocumented)
+    promise(): ZodPromise<this>;
+    // (undocumented)
+    readonly(): ZodReadonly<this>;
+    // (undocumented)
+    refine<RefinedOutput extends Output>(check: (arg: Output) => arg is RefinedOutput, message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)): ZodEffects<this, RefinedOutput, Input>;
+    // (undocumented)
+    refine(check: (arg: Output) => unknown | Promise<unknown>, message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)): ZodEffects<this, Output, Input>;
+    // (undocumented)
+    refinement<RefinedOutput extends Output>(check: (arg: Output) => arg is RefinedOutput, refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)): ZodEffects<this, RefinedOutput, Input>;
+    // (undocumented)
+    refinement(check: (arg: Output) => boolean, refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)): ZodEffects<this, Output, Input>;
+    // (undocumented)
+    _refinement(refinement: RefinementEffect<Output>["refinement"]): ZodEffects<this, Output, Input>;
+    // (undocumented)
+    safeParse(data: unknown, params?: Partial<ParseParams>): SafeParseReturnType<Input, Output>;
+    // (undocumented)
+    safeParseAsync(data: unknown, params?: Partial<ParseParams>): Promise<SafeParseReturnType<Input, Output>>;
+    spa: (data: unknown, params?: Partial<ParseParams> | undefined) => Promise<SafeParseReturnType<Input, Output>>;
+    // (undocumented)
+    superRefine<RefinedOutput extends Output>(refinement: (arg: Output, ctx: RefinementCtx) => arg is RefinedOutput): ZodEffects<this, RefinedOutput, Input>;
+    // (undocumented)
+    superRefine(refinement: (arg: Output, ctx: RefinementCtx) => void): ZodEffects<this, Output, Input>;
+    // (undocumented)
+    superRefine(refinement: (arg: Output, ctx: RefinementCtx) => Promise<void>): ZodEffects<this, Output, Input>;
+    // (undocumented)
+    transform<NewOut>(transform: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>): ZodEffects<this, NewOut>;
+    // (undocumented)
+    readonly _type: Output;
+}
+
+// @public (undocumented)
+type ZodTypeAny = ZodType<any, any, any>;
+
+// @public (undocumented)
+interface ZodTypeDef {
+    // (undocumented)
+    description?: string;
+    // (undocumented)
+    errorMap?: ZodErrorMap;
+}
+
+// @public (undocumented)
+class ZodUnion<T extends ZodUnionOptions> extends ZodType<T[number]["_output"], ZodUnionDef<T>, T[number]["_input"]> {
+    // (undocumented)
+    static create: <T_1 extends readonly [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]>(types: T_1, params?: RawCreateParams) => ZodUnion<T_1>;
+    // (undocumented)
+    get options(): T;
+    // (undocumented)
+    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
+}
+
+// @public (undocumented)
+interface ZodUnionDef<T extends ZodUnionOptions = Readonly<[
+ZodTypeAny,
+ZodTypeAny,
+...ZodTypeAny[]
+]>> extends ZodTypeDef {
+    // (undocumented)
+    options: T;
+    // (undocumented)
+    typeName: ZodFirstPartyTypeKind.ZodUnion;
+}
+
+// @public (undocumented)
+type ZodUnionOptions = Readonly<[ZodTypeAny, ...ZodTypeAny[]]>;
+
+// @public (undocumented)
+interface ZodUnrecognizedKeysIssue extends ZodIssueBase {
+    // (undocumented)
+    code: typeof ZodIssueCode.unrecognized_keys;
+    // (undocumented)
+    keys: string[];
 }
 
 // (No @packageDocumentation comment for this package)

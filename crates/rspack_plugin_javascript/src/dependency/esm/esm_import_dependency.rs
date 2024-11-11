@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_collections::IdentifierSet;
 use rspack_core::Compilation;
 use rspack_core::DependencyConditionFn;
-use rspack_core::RealDependencyLocation;
+use rspack_core::DependencyRange;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -21,7 +21,7 @@ use swc_core::ecma::atoms::Atom;
 use super::create_resource_identifier_for_esm_dependency;
 
 // TODO: find a better way to implement this for performance
-// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/ESMImportDependency.js#L361-L365
+// Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
 // It can not be saved in TemplateContext because only dependencies of rebuild modules will be templated again.
 pub mod import_emitted_runtime {
@@ -61,8 +61,8 @@ pub struct ESMImportSideEffectDependency {
   pub request: Atom,
   pub source_order: i32,
   pub id: DependencyId,
-  pub range: RealDependencyLocation,
-  pub range_src: RealDependencyLocation,
+  pub range: DependencyRange,
+  pub range_src: DependencyRange,
   pub dependency_type: DependencyType,
   pub export_all: bool,
   attributes: Option<ImportAttributes>,
@@ -74,8 +74,8 @@ impl ESMImportSideEffectDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    range: RealDependencyLocation,
-    range_src: RealDependencyLocation,
+    range: DependencyRange,
+    range_src: DependencyRange,
     dependency_type: DependencyType,
     export_all: bool,
     attributes: Option<ImportAttributes>,
@@ -394,7 +394,7 @@ impl Dependency for ESMImportSideEffectDependency {
     Some(self.range.to_string())
   }
 
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

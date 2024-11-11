@@ -26,8 +26,6 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
-pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
 pub static PREFIX_UNDERSCORE_REGEX: LazyLock<Regex> =

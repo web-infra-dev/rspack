@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, ModuleDependency, ModuleGraph, RealDependencyLocation,
+  DependencyCategory, DependencyId, DependencyRange, ModuleDependency, ModuleGraph,
 };
 use rustc_hash::FxHashSet;
 
@@ -26,7 +26,7 @@ pub struct CssDependency {
   // determine module's postOrderIndex
   // @TODO(shulaoda) Does this have any additional side effects?
   // pub(crate) order_index: u32,
-  range: RealDependencyLocation,
+  range: DependencyRange,
   resource_identifier: String,
   pub(crate) cacheable: bool,
   pub(crate) file_dependencies: FxHashSet<PathBuf>,
@@ -46,7 +46,7 @@ impl CssDependency {
     supports: Option<String>,
     source_map: Option<String>,
     identifier_index: u32,
-    range: RealDependencyLocation,
+    range: DependencyRange,
     cacheable: bool,
     file_dependencies: FxHashSet<PathBuf>,
     context_dependencies: FxHashSet<PathBuf>,
@@ -108,7 +108,7 @@ impl Dependency for CssDependency {
   // it can keep the right order, but Rspack uses HashSet,
   // when determining the postOrderIndex, Rspack uses
   // dependency span to set correct order
-  fn range(&self) -> Option<&RealDependencyLocation> {
+  fn range(&self) -> Option<&DependencyRange> {
     Some(&self.range)
   }
 

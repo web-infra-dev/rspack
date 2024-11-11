@@ -4,11 +4,13 @@ use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  BoxDependency, BoxModule, CompilerOptions, Context, ModuleIdentifier, ModuleLayer, Resolve,
+  BoxDependency, BoxModule, CompilationId, CompilerOptions, Context, ModuleIdentifier, ModuleLayer,
+  Resolve,
 };
 
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
+  pub compilation_id: CompilationId,
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub context: Context,

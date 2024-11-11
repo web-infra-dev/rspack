@@ -13,7 +13,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## module.defaultRules
 
-- **类型：** `Rule[]`
+- **类型：** `(Rule | Falsy)[]`
 
 应用于模块的默认规则。
 
@@ -1221,7 +1221,7 @@ module.exports = {
 
 ### Rule.oneOf
 
-- **类型：** <code>[Rule](#rule)[]</code>
+- **类型：** <code>([Rule](#rule) | Falsy)[]</code>
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule

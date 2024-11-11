@@ -10,10 +10,8 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{
-  Identifiable, Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet,
-};
-use rspack_error::{error, Diagnostic, Result, Severity};
+use rspack_collections::{Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
+use rspack_error::{error, miette::diagnostic, Diagnostic, DiagnosticExt, Result, Severity};
 use rspack_fs::ReadableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -52,9 +50,9 @@ pub type BuildDependency = (
 );
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
-define_hook!(CompilationBuildModule: AsyncSeries(module: &mut BoxModule));
-define_hook!(CompilationStillValidModule: AsyncSeries(module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: AsyncSeries(module: &mut BoxModule));
+define_hook!(CompilationBuildModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
   SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
@@ -148,7 +146,8 @@ pub struct Compilation {
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
-  pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
+  pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
+  pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: ChunkByUkey,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
@@ -242,7 +241,8 @@ impl Compilation {
       other_module_graph: None,
       dependency_factories: Default::default(),
       runtime_modules: Default::default(),
-      runtime_module_code_generation_results: Default::default(),
+      runtime_modules_hash: Default::default(),
+      runtime_modules_code_generation_source: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entries: Default::default(),
@@ -745,7 +745,7 @@ impl Compilation {
     }
 
     let artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = make_module_graph(self, artifact)?;
+    self.make_artifact = make_module_graph(self, artifact).await?;
     Ok(())
   }
 
@@ -759,7 +759,8 @@ impl Compilation {
       self,
       artifact,
       vec![MakeParam::ForceBuildModules(module_identifiers.clone())],
-    )?;
+    )
+    .await?;
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -854,10 +855,8 @@ impl Compilation {
       .into_par_iter()
       .map(|job| {
         let module = job.module;
-        let runtimes = job.runtimes.clone();
         (
           module,
-          runtimes,
           self
             .old_cache
             .code_generate_occasion
@@ -865,22 +864,21 @@ impl Compilation {
               let module = module_graph
                 .module_by_identifier(&module)
                 .expect("should have module");
-              module.code_generation(self, Some(runtime), None)
+              module
+                .code_generation(self, Some(runtime), None)
+                .map(|mut codegen_res| {
+                  codegen_res.set_hash(
+                    &self.options.output.hash_function,
+                    &self.options.output.hash_digest,
+                    &self.options.output.hash_salt,
+                  );
+                  codegen_res
+                })
             }),
         )
       })
-      .map(|(module, runtime, result)| match result {
-        Ok((result, runtime, from_cache)) => (module, result, runtime, from_cache, None),
-        Err(err) => (
-          module,
-          CodeGenerationResult::default(),
-          runtime,
-          false,
-          Some(err),
-        ),
-      })
       .collect::<Vec<_>>();
-    for (module, codegen_res, runtimes, from_cache, err) in results {
+    for (module, (codegen_res, runtimes, from_cache)) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
           counter.hit();
@@ -888,22 +886,23 @@ impl Compilation {
           counter.miss();
         }
       }
-
-      let codegen_res_id = codegen_res.id;
+      let codegen_res = match codegen_res {
+        Ok(codegen_res) => codegen_res,
+        Err(err) => {
+          self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
+          let mut codegen_res = CodeGenerationResult::default();
+          codegen_res.set_hash(
+            &self.options.output.hash_function,
+            &self.options.output.hash_digest,
+            &self.options.output.hash_salt,
+          );
+          codegen_res
+        }
+      };
       self
         .code_generation_results
-        .module_generation_result_map
-        .insert(codegen_res_id, codegen_res);
-      for runtime in runtimes {
-        self
-          .code_generation_results
-          .add(module, runtime, codegen_res_id);
-      }
+        .insert(module, codegen_res, runtimes);
       self.code_generated_modules.insert(module);
-
-      if let Some(err) = err {
-        self.push_diagnostic(Diagnostic::from(err).with_module_identifier(Some(module)));
-      }
     }
     Ok(())
   }
@@ -1066,7 +1065,8 @@ impl Compilation {
           .copied()
           .collect(),
       )],
-    )?;
+    )
+    .await?;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
@@ -1281,7 +1281,7 @@ impl Compilation {
       });
       for revoked_module in revoked_modules {
         self
-          .runtime_module_code_generation_results
+          .cgm_runtime_requirements_results
           .remove(&revoked_module);
       }
       mutations.get_affected_modules_with_chunk_graph(self)
@@ -1305,6 +1305,7 @@ impl Compilation {
 
     let start = logger.time("hashing");
     self.create_hash(plugin_driver.clone()).await?;
+    self.runtime_modules_code_generation()?;
     logger.time_end(start);
 
     let start = logger.time("create module assets");
@@ -1568,8 +1569,6 @@ impl Compilation {
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
-    // TODO: runtimeChunk referencedBy for correct hashing AsyncEntrypoint
-    let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
     fn try_process_chunk_hash_results(
       compilation: &mut Compilation,
@@ -1590,38 +1589,170 @@ impl Compilation {
       Ok(())
     }
 
+    let unordered_runtime_chunks = self.get_chunk_graph_entries();
     let start = logger.time("hashing: hash chunks");
-    let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      self
-        .chunk_by_ukey
-        .keys()
-        .filter(|key| !runtime_chunk_ukeys.contains(key))
+    let other_chunks: Vec<_> = self
+      .chunk_by_ukey
+      .keys()
+      .filter(|key| !unordered_runtime_chunks.contains(key))
+      .collect();
+    // create hash for runtime modules in other chunks
+    for chunk in &other_chunks {
+      for runtime_module_identifier in self.chunk_graph.get_chunk_runtime_modules_iterable(chunk) {
+        let runtime_module = &self.runtime_modules[runtime_module_identifier];
+        let mut hasher = RspackHash::from(&self.options.output);
+        runtime_module.update_hash(&mut hasher, self, None)?;
+        let digest = hasher.digest(&self.options.output.hash_digest);
+        self
+          .runtime_modules_hash
+          .insert(*runtime_module_identifier, digest);
+      }
+    }
+    // create hash for other chunks
+    let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      other_chunks
+        .into_iter()
         .map(|chunk| async {
           let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
           Ok((*chunk, hash_result))
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-
-    try_process_chunk_hash_results(self, other_chunk_hash_results)?;
+    try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
-    // runtime chunks should be hashed after all other chunks
-    let start = logger.time("hashing: hash runtime chunks");
-    self.create_runtime_module_hash()?;
-
-    let runtime_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      runtime_chunk_ukeys
+    // collect references for runtime chunks
+    let mut runtime_chunks_map: HashMap<ChunkUkey, (Vec<ChunkUkey>, u32)> =
+      unordered_runtime_chunks
+        .into_iter()
+        .map(|runtime_chunk| (runtime_chunk, (Vec::new(), 0)))
+        .collect();
+    let mut remaining: u32 = 0;
+    for runtime_chunk_ukey in runtime_chunks_map.keys().copied().collect::<Vec<_>>() {
+      let runtime_chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+      let groups = runtime_chunk.get_all_referenced_async_entrypoints(&self.chunk_group_by_ukey);
+      for other in groups
+        .into_iter()
+        .map(|group| self.chunk_group_by_ukey.expect_get(&group))
+        .map(|group| group.get_runtime_chunk(&self.chunk_group_by_ukey))
+      {
+        let (other_referenced_by, _) = runtime_chunks_map
+          .get_mut(&other)
+          .expect("should in runtime_chunks_map");
+        other_referenced_by.push(runtime_chunk_ukey);
+        let info = runtime_chunks_map
+          .get_mut(&runtime_chunk_ukey)
+          .expect("should in runtime_chunks_map");
+        info.1 += 1;
+        remaining += 1;
+      }
+    }
+    // sort runtime chunks by its references
+    let mut runtime_chunks = Vec::with_capacity(runtime_chunks_map.len());
+    for (runtime_chunk, (_, remaining)) in &runtime_chunks_map {
+      if *remaining == 0 {
+        runtime_chunks.push(*runtime_chunk);
+      }
+    }
+    let mut ready_chunks = Vec::new();
+    let mut full_hash_chunks = UkeySet::default();
+    let mut i = 0;
+    while i < runtime_chunks.len() {
+      let chunk_ukey = runtime_chunks[i];
+      let has_full_hash_modules = full_hash_chunks.contains(&chunk_ukey)
+        || self
+          .chunk_graph
+          .has_chunk_full_hash_modules(&chunk_ukey, &self.runtime_modules);
+      if has_full_hash_modules {
+        full_hash_chunks.insert(chunk_ukey);
+      }
+      let referenced_by = runtime_chunks_map
+        .get(&chunk_ukey)
+        .expect("should in runtime_chunks_map")
+        .0
+        .clone();
+      for other in referenced_by {
+        if has_full_hash_modules {
+          for runtime_module in self.chunk_graph.get_chunk_runtime_modules_iterable(&other) {
+            let runtime_module = self
+              .runtime_modules
+              .get(runtime_module)
+              .expect("should have runtime_module");
+            if runtime_module.dependent_hash() {
+              full_hash_chunks.insert(other);
+              break;
+            }
+          }
+        }
+        remaining -= 1;
+        let (_, other_remaining) = runtime_chunks_map
+          .get_mut(&other)
+          .expect("should in runtime_chunks_map");
+        *other_remaining -= 1;
+        if *other_remaining == 0 {
+          ready_chunks.push(other);
+        }
+      }
+      if !ready_chunks.is_empty() {
+        runtime_chunks.append(&mut ready_chunks);
+      }
+      i += 1;
+    }
+    // create warning for remaining circular references
+    if remaining > 0 {
+      let mut circular: Vec<_> = runtime_chunks_map
         .iter()
-        .map(|chunk| async {
-          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-          Ok((*chunk, hash_result))
+        .filter(|(_, (_, remaining))| *remaining != 0)
+        .map(|(chunk_ukey, _)| self.chunk_by_ukey.expect_get(chunk_ukey))
+        .collect();
+      circular.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+      runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey));
+      let circular_names = circular
+        .iter()
+        .map(|chunk| {
+          chunk
+            .name
+            .as_deref()
+            .or(chunk.id.as_deref())
+            .unwrap_or("no id chunk")
         })
-        .collect::<FuturesResults<_>>()
-        .into_inner();
-    try_process_chunk_hash_results(self, runtime_chunk_hash_results)?;
+        .join(", ");
+      self.push_diagnostic(diagnostic!(severity = Severity::Warn, "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.", circular_names).boxed().into());
+    }
+
+    // create hash for runtime chunks and the runtime modules within them
+    // The subsequent runtime chunks and runtime modules will depend on
+    // the hash results of the previous runtime chunks and runtime modules.
+    // Therefore, create hashes one by one in sequence.
+    let start = logger.time("hashing: hash runtime chunks");
+    for runtime_chunk_ukey in runtime_chunks {
+      for runtime_module_identifier in self
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+      {
+        let runtime_module = &self.runtime_modules[runtime_module_identifier];
+        let mut hasher = RspackHash::from(&self.options.output);
+        runtime_module.update_hash(&mut hasher, self, None)?;
+        let digest = hasher.digest(&self.options.output.hash_digest);
+        self
+          .runtime_modules_hash
+          .insert(*runtime_module_identifier, digest);
+      }
+      let (chunk_hash, content_hash) = self
+        .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
+        .await?;
+      let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
+      chunk.rendered_hash = Some(
+        chunk_hash
+          .rendered(self.options.output.hash_digest_length)
+          .into(),
+      );
+      chunk.hash = Some(chunk_hash);
+      chunk.content_hash = content_hash;
+    }
     logger.time_end(start);
 
+    // create full hash
     self
       .chunk_by_ukey
       .values()
@@ -1633,30 +1764,58 @@ impl Compilation {
     self.hot_index.hash(&mut compilation_hasher);
     self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
 
-    // here omit re-create full hash runtime module hash, only update compilation hash to runtime chunk content hash
+    // re-create runtime chunk hash that depend on full hash
     let start = logger.time("hashing: process full hash chunks");
-    self.chunk_by_ukey.values_mut().for_each(|chunk| {
-      if runtime_chunk_ukeys.contains(&chunk.ukey) {
-        if let Some(chunk_hash) = &mut chunk.hash {
+    for runtime_chunk_ukey in full_hash_chunks {
+      for runtime_module_identifier in self
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+      {
+        let runtime_module = &self.runtime_modules[runtime_module_identifier];
+        if runtime_module.full_hash() || runtime_module.dependent_hash() {
           let mut hasher = RspackHash::from(&self.options.output);
-          chunk_hash.hash(&mut hasher);
-          self.hash.hash(&mut hasher);
-          *chunk_hash = hasher.digest(&self.options.output.hash_digest);
-          chunk.rendered_hash = Some(
-            chunk_hash
-              .rendered(self.options.output.hash_digest_length)
-              .into(),
-          );
-        }
-        if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
-          let mut hasher = RspackHash::from(&self.options.output);
-          content_hash.hash(&mut hasher);
-          self.hash.hash(&mut hasher);
-          *content_hash = hasher.digest(&self.options.output.hash_digest);
+          runtime_module.update_hash(&mut hasher, self, None)?;
+          let digest = hasher.digest(&self.options.output.hash_digest);
+          self
+            .runtime_modules_hash
+            .insert(*runtime_module_identifier, digest);
         }
       }
-    });
+      let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
+      if let Some(chunk_hash) = &mut chunk.hash {
+        let mut hasher = RspackHash::from(&self.options.output);
+        chunk_hash.hash(&mut hasher);
+        self.hash.hash(&mut hasher);
+        *chunk_hash = hasher.digest(&self.options.output.hash_digest);
+        chunk.rendered_hash = Some(
+          chunk_hash
+            .rendered(self.options.output.hash_digest_length)
+            .into(),
+        );
+      }
+      if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
+        let mut hasher = RspackHash::from(&self.options.output);
+        content_hash.hash(&mut hasher);
+        self.hash.hash(&mut hasher);
+        *content_hash = hasher.digest(&self.options.output.hash_digest);
+      }
+    }
     logger.time_end(start);
+    Ok(())
+  }
+
+  pub fn runtime_modules_code_generation(&mut self) -> Result<()> {
+    self.runtime_modules_code_generation_source = self
+      .runtime_modules
+      .par_iter()
+      .map(|(runtime_module_identifier, runtime_module)| -> Result<_> {
+        let result = runtime_module.code_generation(self, None, None)?;
+        let source = result
+          .get(&SourceType::Runtime)
+          .expect("should have source");
+        Ok((*runtime_module_identifier, source.clone()))
+      })
+      .collect::<Result<_>>()?;
     Ok(())
   }
 
@@ -1722,37 +1881,6 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
-  pub fn create_runtime_module_hash(&mut self) -> Result<()> {
-    self.runtime_module_code_generation_results = self
-      .runtime_modules
-      .par_iter()
-      .filter_map(
-        |(identifier, module)| -> Option<Result<(Identifier, (RspackHashDigest, BoxSource))>> {
-          match module.code_generation(self, None, None) {
-            Ok(result) => {
-              let source = result.get(&SourceType::Runtime);
-              source.map(|source| {
-                let mut hasher = RspackHash::from(&self.options.output);
-                module.identifier().hash(&mut hasher);
-                source.source().hash(&mut hasher);
-                Ok((
-                  *identifier,
-                  (
-                    hasher.digest(&self.options.output.hash_digest),
-                    source.clone(),
-                  ),
-                ))
-              })
-            }
-            Err(r) => Some(Err(r)),
-          }
-        },
-      )
-      .collect::<Result<IdentifierMap<(RspackHashDigest, BoxSource)>>>()?;
-    Ok(())
-  }
-
   pub fn add_runtime_module(
     &mut self,
     chunk_ukey: &ChunkUkey,
@@ -1761,7 +1889,7 @@ impl Compilation {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
     let runtime_module_identifier =
-      ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
+      ModuleIdentifier::from(format!("{}/{}", &chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
     self.chunk_graph.add_module(runtime_module_identifier);
     self
