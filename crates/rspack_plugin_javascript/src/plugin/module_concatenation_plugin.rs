@@ -304,22 +304,6 @@ impl ModuleConcatenationPlugin {
       }
     }
 
-    // Every module_graph_module that tags concatenation_bail should be return a warning problem to avoid this module concate.
-    if let Some(concatenation_bail) = module_graph
-      .module_graph_module_by_identifier(module_id)
-      .map(|mgm| &mgm.concatenation_bail)
-    {
-      if !concatenation_bail.is_empty() {
-        let problem = Warning::Problem(format!(
-          "Module {} is bail by: {}",
-          module_readable_identifier, concatenation_bail,
-        ));
-        statistics.incorrect_dependency += 1;
-        failure_cache.insert(*module_id, problem.clone());
-        return Some(problem);
-      }
-    };
-
     let mut incoming_connections_from_modules = HashMap::default();
     for (origin_module, connections) in incoming_connections.iter() {
       if let Some(origin_module) = origin_module {

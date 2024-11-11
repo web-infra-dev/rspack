@@ -22,9 +22,6 @@ pub struct ModuleGraphModule {
   pub profile: Option<Box<ModuleProfile>>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
-
-  // reason why this module can't be concatenated, empty string means it can be concatenated
-  pub concatenation_bail: String,
 }
 
 impl ModuleGraphModule {
@@ -42,7 +39,6 @@ impl ModuleGraphModule {
       profile: None,
       depth: None,
       optimization_bailout: vec![],
-      concatenation_bail: Default::default(),
     }
   }
 
@@ -81,10 +77,6 @@ impl ModuleGraphModule {
 
   pub fn profile(&self) -> Option<&ModuleProfile> {
     self.profile.as_deref()
-  }
-
-  pub fn add_concatenation_bail_reason(&mut self, reason: &str) {
-    self.concatenation_bail += &format!(", {}", reason);
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

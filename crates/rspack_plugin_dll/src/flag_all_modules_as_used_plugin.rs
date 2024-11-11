@@ -1,8 +1,8 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation,
-  CompilationOptimizeDependencies, CompilerOptions, FactoryMeta, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext, RuntimeSpec,
+  CompilationOptimizeDependencies, CompilationSucceedModule, CompilerOptions, FactoryMeta, Plugin,
+  PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -33,9 +33,9 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
 
     ctx
       .context
-      .normal_module_factory_hooks
-      .module
-      .tap(nmf_module::new(self));
+      .compilation_hooks
+      .succeed_module
+      .tap(succeed_module::new(self));
 
     Ok(())
   }
@@ -58,30 +58,37 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
   for module_id in module_id_list {
     let exports_info = mg.get_exports_info(&module_id);
     exports_info.set_used_in_unknown_way(&mut mg, Some(&runtime));
-    // webpack avoid those modules be concatenated using add a virtual module_graph_connection.
-    // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L42
-    // Rspack need incremental build, so we should not add virtual connection to module.
-    // We can add a bail reason to avoid those modules be concatenated.
-    if let Some(mgm) = mg.module_graph_module_by_identifier_mut(&module_id) {
-      mgm.add_concatenation_bail_reason(&self.explanation);
-    };
   }
 
   Ok(None)
 }
 
-#[plugin_hook(NormalModuleFactoryModule for FlagAllModulesAsUsedPlugin)]
-async fn nmf_module(
-  &self,
-  _data: &mut ModuleFactoryCreateData,
-  _create_date: &mut NormalModuleCreateData,
-  module: &mut BoxModule,
-) -> Result<()> {
+#[plugin_hook(CompilationSucceedModule for FlagAllModulesAsUsedPlugin)]
+async fn succeed_module(&self, module: &mut BoxModule) -> Result<()> {
   // set all modules have effects. To avoid any module remove by tree shaking.
   // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L43-L47
   module.set_factory_meta(FactoryMeta {
     side_effect_free: Some(false),
   });
+
+  let module_concatenation_bailout = module
+    .build_info()
+    .and_then(|info| info.module_concatenation_bailout.as_ref());
+
+  if module_concatenation_bailout.is_none() {
+    // webpack avoid those modules be concatenated using add a virtual module_graph_connection.
+    // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L42
+    // Rspack need incremental build, so we should not add virtual connection to module.
+    // We can add a bail reason to avoid those modules be concatenated.
+    let mut build_info = module.build_info().cloned().unwrap_or_default();
+    build_info.module_concatenation_bailout = Some(format!(
+      "Module {} is referenced by {}",
+      module.identifier(),
+      &self.explanation
+    ));
+
+    module.set_build_info(build_info);
+  }
 
   Ok(())
 }
