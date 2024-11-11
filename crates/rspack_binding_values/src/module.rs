@@ -11,7 +11,7 @@ use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults, JsDependenciesBlock};
+use crate::{JsChunk, JsCodegenerationResults, JsDependenciesBlockWrapper, JsDependencyWrapper};
 
 #[derive(Default)]
 #[napi(object)]
@@ -195,17 +195,22 @@ impl JsModule {
     })
   }
 
-  #[napi(getter)]
-  pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlock>> {
+  #[napi(getter, ts_return_type = "JsDependenciesBlock")]
+  pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlockWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
+        let compilation = unsafe { compilation.as_ref() };
+        let module_graph = compilation.get_module_graph();
         let module = self.as_ref()?;
 
         let blocks = module.get_blocks();
         blocks
           .iter()
-          .cloned()
-          .map(|block_id| JsDependenciesBlock::new(block_id, compilation.as_ptr()))
+          .filter_map(|block_id| {
+            module_graph
+              .block_by_id(block_id)
+              .map(|block| JsDependenciesBlockWrapper::new(block, compilation))
+          })
           .collect::<Vec<_>>()
       }
       None => {
@@ -214,8 +219,8 @@ impl JsModule {
     })
   }
 
-  #[napi(getter)]
-  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependency>> {
+  #[napi(getter, ts_return_type = "JsDependency")]
+  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
         let compilation = unsafe { compilation.as_ref() };
@@ -225,9 +230,10 @@ impl JsModule {
         dependencies
           .iter()
           .filter_map(|dependency_id| {
-            module_graph
-              .dependency_by_id(dependency_id)
-              .map(JsDependency::new)
+            module_graph.dependency_by_id(dependency_id).map(|dep| {
+              let compilation = unsafe { self.compilation.map(|c| c.as_ref()) };
+              JsDependencyWrapper::new(dep.as_ref(), self.compilation_id, compilation)
+            })
           })
           .collect::<Vec<_>>()
       }

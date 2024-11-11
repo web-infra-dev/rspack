@@ -1,38 +1,41 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{
-  bindgen_prelude::{ClassInstance, ToNapiValue},
-  Env,
-};
+use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::JsCompilationWrapper;
-
 // JsDependency allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]
 pub struct JsDependency {
-  pub(crate) compilation_id: CompilationId,
+  pub(crate) compilation: Option<NonNull<Compilation>>,
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: NonNull<dyn Dependency>,
 }
 
 impl JsDependency {
+  fn attach(&mut self, compilation: NonNull<Compilation>) {
+    if self.compilation.is_none() {
+      self.compilation = Some(compilation);
+    }
+  }
+
   fn as_ref(&mut self) -> napi::Result<&dyn Dependency> {
     let dependency = unsafe { self.dependency.as_ref() };
     if *dependency.id() == self.dependency_id {
       return Ok(dependency);
     }
 
-    if let Some(compilation) = JsCompilationWrapper::compilation_by_id(&self.compilation_id) {
+    if let Some(compilation) = self.compilation {
+      let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
       if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
-        self.dependency =
-          NonNull::new(dependency.as_ref() as *const dyn Dependency as *mut dyn Dependency)
-            .unwrap();
+        self.dependency = {
+          #[allow(clippy::unwrap_used)]
+          NonNull::new(dependency.as_ref() as *const dyn Dependency as *mut dyn Dependency).unwrap()
+        };
         return Ok(unsafe { self.dependency.as_ref() });
       }
     }
@@ -106,7 +109,7 @@ impl JsDependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotRef<ClassInstance<JsDependency>>>;
+type DependencyInstanceRefs = HashMap<DependencyId, OneShotRef<JsDependency>>;
 
 type DependencyInstanceRefsByCompilationId =
   RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
@@ -118,17 +121,23 @@ thread_local! {
 pub struct JsDependencyWrapper {
   dependency_id: DependencyId,
   dependency: NonNull<dyn Dependency>,
+  compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
 
 impl JsDependencyWrapper {
-  pub fn new(dependency: &dyn Dependency, compilation: Option<&Compilation>) -> Self {
+  pub fn new(
+    dependency: &dyn Dependency,
+    compilation_id: CompilationId,
+    compilation: Option<&Compilation>,
+  ) -> Self {
     let dependency_id = *dependency.id();
 
     #[allow(clippy::unwrap_used)]
     Self {
       dependency_id,
       dependency: NonNull::new(dependency as *const dyn Dependency as *mut dyn Dependency).unwrap(),
+      compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
     }
@@ -148,8 +157,6 @@ impl ToNapiValue for JsDependencyWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     DEPENDENCY_INSTANCE_REFS.with(|refs| {
-      let compilation = unsafe { val.compilation.as_ref() };
-
       let mut refs_by_compilation_id = refs.borrow_mut();
       let entry = refs_by_compilation_id.entry(val.compilation_id);
       let refs = match entry {
@@ -163,16 +170,21 @@ impl ToNapiValue for JsDependencyWrapper {
       match refs.entry(val.dependency_id) {
         std::collections::hash_map::Entry::Occupied(occupied_entry) => {
           let r = occupied_entry.get();
+          let instance = r.from_napi_mut_ref()?;
+          if let Some(compilation) = val.compilation {
+            instance.attach(compilation);
+          } else {
+            instance.dependency = val.dependency;
+          }
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let instance: ClassInstance<JsDependency> = JsDependency {
-            compilation_id: val.compilation_id,
+          let js_dependency = JsDependency {
+            compilation: val.compilation,
             dependency_id: val.dependency_id,
             dependency: val.dependency,
-          }
-          .into_instance(Env::from_raw(env))?;
-          let r = vacant_entry.insert(OneShotRef::new(env, instance)?);
+          };
+          let r = vacant_entry.insert(OneShotRef::new(env, js_dependency)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }

@@ -10,12 +10,6 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::JsDependencyWrapper;
 
-#[derive(Default)]
-#[napi(object)]
-pub struct JsFactoryMeta {
-  pub side_effect_free: Option<bool>,
-}
-
 #[napi]
 pub struct JsDependenciesBlock {
   block_id: AsyncDependenciesBlockIdentifier,
@@ -34,9 +28,10 @@ impl JsDependenciesBlock {
     }
 
     if let Some(block) = module_graph.block_by_id(&self.block_id) {
-      self.block =
-        NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock)
-          .unwrap();
+      self.block = {
+        #[allow(clippy::unwrap_used)]
+        NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock).unwrap()
+      };
       return Ok((unsafe { self.block.as_ref() }, compilation, module_graph));
     }
 
@@ -60,7 +55,7 @@ impl JsDependenciesBlock {
         .filter_map(|dependency_id| {
           module_graph
             .dependency_by_id(dependency_id)
-            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation))
+            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
         })
         .collect::<Vec<_>>(),
     )
@@ -84,8 +79,7 @@ impl JsDependenciesBlock {
   }
 }
 
-type BlockInstanceRefs =
-  HashMap<AsyncDependenciesBlockIdentifier, OneShotRef<ClassInstance<JsDependenciesBlock>>>;
+type BlockInstanceRefs = HashMap<AsyncDependenciesBlockIdentifier, OneShotRef<JsDependenciesBlock>>;
 
 type BlockInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, BlockInstanceRefs>>;
 
@@ -143,13 +137,12 @@ impl ToNapiValue for JsDependenciesBlockWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let instance: ClassInstance<JsDependenciesBlock> = JsDependenciesBlock {
+          let js_block = JsDependenciesBlock {
             block_id: val.block_id,
             block: val.block,
             compilation: val.compilation,
-          }
-          .into_instance(Env::from_raw(env))?;
-          let r = vacant_entry.insert(OneShotRef::new(env, instance)?);
+          };
+          let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }
