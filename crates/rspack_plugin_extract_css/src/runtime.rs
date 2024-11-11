@@ -3,10 +3,12 @@ use std::sync::Arc;
 use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  impl_runtime_module, rspack_sources::RawSource, ChunkUkey, Compilation, CrossOriginLoading,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
+  impl_runtime_module,
+  rspack_sources::{RawSource, SourceExt},
+  ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
+use rspack_plugin_runtime::get_chunk_runtime_requirements;
 use rustc_hash::FxHashMap;
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
@@ -22,9 +24,6 @@ pub(crate) struct CssLoadingRuntimeModule {
   attributes: FxHashMap<String, String>,
   link_type: Option<String>,
   insert: InsertType,
-
-  loading: bool,
-  hmr: bool,
 }
 
 impl CssLoadingRuntimeModule {
@@ -33,10 +32,8 @@ impl CssLoadingRuntimeModule {
     attributes: FxHashMap<String, String>,
     link_type: Option<String>,
     insert: InsertType,
-    loading: bool,
-    hmr: bool,
   ) -> Self {
-    Self::with_default(chunk, attributes, link_type, insert, loading, hmr)
+    Self::with_default(chunk, attributes, link_type, insert)
   }
 
   fn get_css_chunks(&self, compilation: &Compilation) -> UkeySet<ChunkUkey> {
@@ -73,9 +70,34 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::rspack_sources::BoxSource> {
     let runtime = RUNTIME_CODE;
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk);
+
+    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
+      let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
+
+      chunk
+        .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+        .iter()
+        .any(|chunk| {
+          !compilation
+            .chunk_graph
+            .get_chunk_modules_by_source_type(
+              chunk,
+              SOURCE_TYPE[0],
+              &compilation.get_module_graph(),
+            )
+            .is_empty()
+        })
+    };
+
+    let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    if !with_hmr && !with_loading {
+      return Ok(RawSource::from("").boxed());
+    }
 
     let mut attr = String::default();
-    let mut attributes = self.attributes.iter().collect::<Vec<_>>();
+    let mut attributes: Vec<(&String, &String)> = self.attributes.iter().collect::<Vec<_>>();
     attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
 
     for (attr_key, attr_value) in attributes {
@@ -121,7 +143,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       ),
     };
 
-    let runtime = if self.loading {
+    let runtime = if with_loading {
       let chunks = self.get_css_chunks(compilation);
       if chunks.is_empty() {
         runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
@@ -171,7 +193,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.cow_replace("__WITH_LOADING__", "// no chunk loading")
     };
 
-    let runtime = if self.hmr {
+    let runtime = if with_hmr {
       runtime.cow_replace(
         "__WITH_HMT__",
         &WITH_HMR.cow_replace(
