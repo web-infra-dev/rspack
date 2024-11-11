@@ -3,7 +3,7 @@ use std::{cell::RefCell, ptr::NonNull};
 use napi_derive::napi;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, CompilationId,
-  DependenciesBlock, ModuleGraph,
+  DependenciesBlock,
 };
 use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rustc_hash::FxHashMap as HashMap;
@@ -13,42 +13,16 @@ use crate::JsDependencyWrapper;
 #[napi]
 pub struct JsDependenciesBlock {
   block_id: AsyncDependenciesBlockIdentifier,
-  block: NonNull<AsyncDependenciesBlock>,
   compilation: NonNull<Compilation>,
-}
-
-impl JsDependenciesBlock {
-  fn as_ref(&mut self) -> napi::Result<(&AsyncDependenciesBlock, &Compilation, ModuleGraph)> {
-    let compilation = unsafe { self.compilation.as_ref() };
-    let module_graph = compilation.get_module_graph();
-
-    let block = unsafe { self.block.as_ref() };
-    if block.identifier() == self.block_id {
-      return Ok((block, compilation, module_graph));
-    }
-
-    if let Some(block) = module_graph.block_by_id(&self.block_id) {
-      self.block = {
-        #[allow(clippy::unwrap_used)]
-        NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock).unwrap()
-      };
-      return Ok((unsafe { self.block.as_ref() }, compilation, module_graph));
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access block with id = {:?} now. The block have been removed on the Rust side.",
-      self.block_id
-    )))
-  }
 }
 
 #[napi]
 impl JsDependenciesBlock {
-  #[napi(getter, ts_return_type = "JsDependency")]
-  pub fn dependencies(&mut self) -> Result<Vec<JsDependencyWrapper>> {
-    let (block, compilation, module_graph) = self.as_ref()?;
-
-    Ok(
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn dependencies(&mut self) -> Vec<JsDependencyWrapper> {
+    let compilation = unsafe { self.compilation.as_ref() };
+    let module_graph = compilation.get_module_graph();
+    if let Some(block) = module_graph.block_by_id(&self.block_id) {
       block
         .get_dependencies()
         .iter()
@@ -57,15 +31,17 @@ impl JsDependenciesBlock {
             .dependency_by_id(dependency_id)
             .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
         })
-        .collect::<Vec<_>>(),
-    )
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    }
   }
 
-  #[napi(getter, ts_return_type = "JsDependenciesBlock")]
-  pub fn blocks(&mut self) -> Result<Vec<JsDependenciesBlockWrapper>> {
-    let (block, compilation, module_graph) = self.as_ref()?;
-
-    Ok(
+  #[napi(getter, ts_return_type = "JsDependenciesBlock[]")]
+  pub fn blocks(&mut self) -> Vec<JsDependenciesBlockWrapper> {
+    let compilation = unsafe { self.compilation.as_ref() };
+    let module_graph = compilation.get_module_graph();
+    if let Some(block) = module_graph.block_by_id(&self.block_id) {
       block
         .get_blocks()
         .iter()
@@ -74,8 +50,10 @@ impl JsDependenciesBlock {
             .block_by_id(block_id)
             .map(|block| JsDependenciesBlockWrapper::new(block, compilation))
         })
-        .collect::<Vec<_>>(),
-    )
+        .collect::<Vec<_>>()
+    } else {
+      vec![]
+    }
   }
 }
 
@@ -89,7 +67,6 @@ thread_local! {
 
 pub struct JsDependenciesBlockWrapper {
   block_id: AsyncDependenciesBlockIdentifier,
-  block: NonNull<AsyncDependenciesBlock>,
   compilation: NonNull<Compilation>,
 }
 
@@ -100,8 +77,6 @@ impl JsDependenciesBlockWrapper {
     #[allow(clippy::unwrap_used)]
     Self {
       block_id,
-      block: NonNull::new(block as *const AsyncDependenciesBlock as *mut AsyncDependenciesBlock)
-        .unwrap(),
       compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
     }
   }
@@ -139,7 +114,6 @@ impl ToNapiValue for JsDependenciesBlockWrapper {
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
           let js_block = JsDependenciesBlock {
             block_id: val.block_id,
-            block: val.block,
             compilation: val.compilation,
           };
           let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);

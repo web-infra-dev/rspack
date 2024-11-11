@@ -36,11 +36,6 @@ impl JsModule {
   }
 
   fn as_ref(&mut self) -> napi::Result<&'static dyn Module> {
-    let module = unsafe { self.module.as_ref() };
-    if module.identifier() == self.identifier {
-      return Ok(module);
-    }
-
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
@@ -49,26 +44,26 @@ impl JsModule {
           #[allow(clippy::unwrap_used)]
           NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap()
         };
-        return Ok(module);
+        Ok(module)
+      } else {
+        Err(napi::Error::from_reason(format!(
+          "Unable to access module with id = {} now. The module have been removed on the Rust side.",
+          self.identifier
+        )))
       }
+    } else {
+      // SAFETY:
+      // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+      // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+      Ok(unsafe { self.module.as_ref() })
     }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
-      self.identifier
-    )))
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut dyn Module> {
-    let module = unsafe { self.module.as_mut() };
-    if module.identifier() == self.identifier {
-      return Ok(module);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
-      self.identifier
-    )))
+    // SAFETY:
+    // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+    // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+    Ok(unsafe { self.module.as_mut() })
   }
 }
 

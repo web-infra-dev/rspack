@@ -23,11 +23,6 @@ impl JsDependency {
   }
 
   fn as_ref(&mut self) -> napi::Result<&dyn Dependency> {
-    let dependency = unsafe { self.dependency.as_ref() };
-    if *dependency.id() == self.dependency_id {
-      return Ok(dependency);
-    }
-
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
@@ -36,26 +31,26 @@ impl JsDependency {
           #[allow(clippy::unwrap_used)]
           NonNull::new(dependency.as_ref() as *const dyn Dependency as *mut dyn Dependency).unwrap()
         };
-        return Ok(unsafe { self.dependency.as_ref() });
+        Ok(unsafe { self.dependency.as_ref() })
+      } else {
+        Err(napi::Error::from_reason(format!(
+          "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
+          self.dependency_id
+        )))
       }
+    } else {
+      // SAFETY:
+      // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+      // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+      Ok(unsafe { self.dependency.as_ref() })
     }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
-      self.dependency_id
-    )))
   }
 
   fn as_mut(&mut self) -> napi::Result<&mut dyn Dependency> {
-    let dependency = unsafe { self.dependency.as_mut() };
-    if *dependency.id() == self.dependency_id {
-      return Ok(dependency);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
-      self.dependency_id
-    )))
+    // SAFETY:
+    // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+    // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+    Ok(unsafe { self.dependency.as_mut() })
   }
 }
 
