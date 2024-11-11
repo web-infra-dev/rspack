@@ -204,7 +204,9 @@ enum TraceState {
 #[ctor]
 fn init() {
   panic::install_panic_handler();
-  let rt = Builder::new_multi_thread().build().unwrap();
+  let rt = Builder::new_multi_thread()
+    .build()
+    .expect("start tokio runtime failed");
   create_custom_tokio_runtime(rt);
 }
 
