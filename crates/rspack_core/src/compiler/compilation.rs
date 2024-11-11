@@ -1408,6 +1408,9 @@ impl Compilation {
       let mut runtime_requirements;
 
       loop {
+        // runtime_requirements: rt_requirements of last time
+        // runtime_requirements_mut: changed rt_requirements
+        // requirements: all rt_requirements
         runtime_requirements = runtime_requirements_mut;
         runtime_requirements_mut = RuntimeGlobals::default();
         call_hook(
@@ -1415,6 +1418,8 @@ impl Compilation {
           &runtime_requirements,
           &mut runtime_requirements_mut,
         )?;
+
+        // check if we have changes to runtime_requirements
         runtime_requirements_mut =
           runtime_requirements_mut.difference(requirements.intersection(runtime_requirements_mut));
         if runtime_requirements_mut.is_empty() {
@@ -1891,6 +1896,7 @@ impl Compilation {
     let runtime_module_identifier =
       ModuleIdentifier::from(format!("{}/{}", &chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
+
     self.chunk_graph.add_module(runtime_module_identifier);
     self
       .chunk_graph

@@ -432,7 +432,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
-fn runtime_requirements_in_tree(
+fn runtime_requirement_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -440,27 +440,21 @@ fn runtime_requirements_in_tree(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
+  // different from webpack, Rspack can invoke this multiple times,
+  // each time with current runtime_globals, and records every mutation
+  // by `runtime_requirements_mut`, but this RuntimeModule depends on
+  // 2 runtimeGlobals, if check current runtime_requirements, we might
+  // insert CssLoadingRuntimeModule with with_loading: true but with_hmr: false
+  // for the first time, and with_loading: false but with_hmr: true for the
+  // second time
+  // For plugin that depends on 2 runtime_globals, should check all_runtime_requirements
   if !self.options.runtime {
     return Ok(None);
   }
 
-  let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    chunk
-      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-      .iter()
-      .any(|chunk| {
-        !compilation
-          .chunk_graph
-          .get_chunk_modules_by_source_type(chunk, SOURCE_TYPE[0], &compilation.get_module_graph())
-          .is_empty()
-      })
-  };
-
-  let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-
-  if with_loading || with_hmr {
+  if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+  {
     if let Some(chunk_filename) = self.options.chunk_filename.template()
       && chunk_filename.contains("hash")
     {
@@ -499,8 +493,6 @@ fn runtime_requirements_in_tree(
         self.options.attributes.clone(),
         self.options.link_type.clone(),
         self.options.insert.clone(),
-        with_loading,
-        with_hmr,
       )),
     )?;
   }
@@ -668,7 +660,7 @@ impl Plugin for PluginCssExtract {
       .context
       .compilation_hooks
       .runtime_requirement_in_tree
-      .tap(runtime_requirements_in_tree::new(self));
+      .tap(runtime_requirement_in_tree::new(self));
     ctx
       .context
       .compilation_hooks

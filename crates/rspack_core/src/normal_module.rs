@@ -638,6 +638,7 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
+        code_generation_result.concatenation_scope = concatenation_scope;
       }
       Ok(code_generation_result)
     } else {
