@@ -2449,7 +2449,7 @@ export type Incremental = {
 	chunksRuntimeRequirements?: boolean;
 
 	/**
-	 * Enable incremental chunk hases.
+	 * Enable incremental chunk hashes.
 	 */
 	chunksHashes?: boolean;
 
