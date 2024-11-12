@@ -86,7 +86,7 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
           tokio::spawn(async move {
             let r = task.async_run().await;
             if !is_expected_shutdown.load(Ordering::Relaxed) {
-              tx.send(r).expect("failed to send error message");
+              tx.send(r).expect("failed to send task result");
             }
           });
         }
