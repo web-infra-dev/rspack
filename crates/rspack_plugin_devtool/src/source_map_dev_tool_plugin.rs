@@ -8,6 +8,7 @@ use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -407,8 +408,17 @@ impl SourceMapDevToolPlugin {
             let data = PathData::default().filename(&filename);
             let data = match chunk {
               Some(chunk) => data
-                .chunk(chunk)
-                .content_hash_optional(chunk.content_hash().get(source_type).map(|i| i.encoded())),
+                .chunk_id_optional(chunk.id())
+                .chunk_hash_optional(chunk.rendered_hash(
+                  &compilation.chunk_hashes_results,
+                  compilation.options.output.hash_digest_length,
+                ))
+                .chunk_name_optional(chunk.name_for_filename_template())
+                .content_hash_optional(
+                  chunk
+                    .content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
+                    .map(|hash| hash.encoded()),
+                ),
               None => data,
             };
             let source_map_filename = compilation
@@ -443,7 +453,7 @@ impl SourceMapDevToolPlugin {
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
                   FilenameTemplate::from(comment)
-                    .render(data, None, output_options.hash_digest_length)
+                    .render(data, None)
                     .always_ok()
                 }
               };

@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::sync::LazyLock;
 
 use async_trait::async_trait;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationParams,

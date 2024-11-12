@@ -26,6 +26,10 @@ pub enum Mutation {
   ModuleBuild { module: ModuleIdentifier },
   ModuleRevoke { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
+  ChunkAdd { chunk: ChunkUkey },
+  ChunkSplit { from: ChunkUkey, to: ChunkUkey },
+  ChunksIntegrate { to: ChunkUkey },
+  ChunkRemove { chunk: ChunkUkey },
 }
 
 impl Mutations {
@@ -115,15 +119,34 @@ impl Mutations {
     &self,
     compilation: &Compilation,
   ) -> UkeySet<ChunkUkey> {
-    dbg!(self
+    self
       .affected_chunks_with_chunk_graph
       .get_or_init(|| {
         compute_affected_chunks_with_chunk_graph(
           self.get_affected_modules_with_chunk_graph(compilation),
+          self.iter().fold(UkeySet::default(), |mut acc, mutation| {
+            match mutation {
+              Mutation::ChunkAdd { chunk } => {
+                acc.insert(*chunk);
+              }
+              Mutation::ChunkSplit { from, to } => {
+                acc.insert(*from);
+                acc.insert(*to);
+              }
+              Mutation::ChunksIntegrate { to } => {
+                acc.insert(*to);
+              }
+              Mutation::ChunkRemove { chunk } => {
+                acc.remove(chunk);
+              }
+              _ => {}
+            };
+            acc
+          }),
           &compilation.chunk_graph,
         )
       })
-      .clone())
+      .clone()
   }
 }
 
@@ -301,11 +324,13 @@ fn compute_affected_modules_with_chunk_graph(
 
 fn compute_affected_chunks_with_chunk_graph(
   updated_modules: IdentifierSet,
+  mut updated_chunks: UkeySet<ChunkUkey>,
   chunk_graph: &ChunkGraph,
 ) -> UkeySet<ChunkUkey> {
-  dbg!(&updated_modules);
-  updated_modules
-    .into_iter()
-    .flat_map(|m| chunk_graph.get_module_chunks(m).iter().copied())
-    .collect()
+  updated_chunks.extend(
+    updated_modules
+      .into_iter()
+      .flat_map(|m| chunk_graph.get_module_chunks(m).iter().copied()),
+  );
+  updated_chunks
 }

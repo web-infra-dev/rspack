@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind, ChunkLoading, ChunkUkey,
-  Compilation, PathData, SourceType,
+  get_js_chunk_filename_template, stringify_map, Chunk, ChunkLoading, ChunkUkey, Compilation,
+  PathData, SourceType,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -130,8 +130,17 @@ pub fn get_output_dir(
   let output_dir = compilation.get_path(
     filename,
     PathData::default()
-      .chunk(chunk)
-      .content_hash_type(SourceType::JavaScript),
+      .chunk_id_optional(chunk.id())
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      )),
   )?;
   Ok(get_undo_path(
     output_dir.as_str(),
@@ -243,18 +252,6 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
     format!("{{ {} }}[chunkId]", content)
   };
   format!("if ({}) return {};", condition, filename)
-}
-
-pub fn create_fake_chunk(
-  id: Option<String>,
-  name: Option<String>,
-  rendered_hash: Option<String>,
-) -> Chunk {
-  let mut fake_chunk = Chunk::new(None, ChunkKind::Normal);
-  fake_chunk.set_name(name);
-  fake_chunk.set_rendered_hash(rendered_hash.map(|h| h.into()));
-  fake_chunk.set_id(id);
-  fake_chunk
 }
 
 #[test]

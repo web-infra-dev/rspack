@@ -17,7 +17,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
 use crate::dependencies_block::AsyncDependenciesToInitialChunkError;
-use crate::incremental::IncrementalPasses;
+use crate::incremental::{IncrementalPasses, Mutation};
 use crate::{
   assign_depths, get_entry_runtime, merge_runtime, AsyncDependenciesBlockIdentifier, ChunkGroup,
   ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
@@ -384,11 +384,14 @@ impl CodeSplitter {
       })
       .collect::<Vec<_>>();
 
-    let chunk_ukey = Compilation::add_named_chunk(
+    let (chunk_ukey, created) = Compilation::add_named_chunk(
       name.to_string(),
       &mut compilation.chunk_by_ukey,
       &mut compilation.named_chunks,
     );
+    if created && let Some(mutations) = compilation.incremental.mutations_write() {
+      mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+    }
     self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
     let runtime = get_entry_runtime(name, options, &compilation.entries);
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
@@ -614,11 +617,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           compilation.chunk_by_ukey.expect_get_mut(ukey)
         }
         None => {
-          let chunk_ukey = Compilation::add_named_chunk(
+          let (chunk_ukey, created) = Compilation::add_named_chunk(
             runtime.to_string(),
             &mut compilation.chunk_by_ukey,
             &mut compilation.named_chunks,
           );
+          if created && let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+          }
           self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));
           let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
           chunk.set_prevent_integration(true);
@@ -784,12 +790,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group);
       let cgi = self.chunk_group_infos.expect_get(cgi);
       for chunk_ukey in chunk_group.chunks.iter() {
-        compilation
-          .chunk_by_ukey
-          .entry(*chunk_ukey)
-          .and_modify(|chunk| {
-            chunk.set_runtime(merge_runtime(chunk.runtime(), &cgi.runtime));
-          });
+        if let Some(chunk) = compilation.chunk_by_ukey.get_mut(chunk_ukey) {
+          chunk.set_runtime(merge_runtime(chunk.runtime(), &cgi.runtime));
+        }
       }
     }
     logger.time_end(start);
@@ -1298,13 +1301,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_group_options()
         .and_then(|x| x.name())
       {
-        Compilation::add_named_chunk(
+        let (chunk_ukey, created) = Compilation::add_named_chunk(
           chunk_name.to_string(),
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
-        )
+        );
+        if created && let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+        }
+        chunk_ukey
       } else {
-        Compilation::add_chunk(&mut compilation.chunk_by_ukey)
+        let chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+        if let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkAdd { chunk: chunk_ukey });
+        }
+        chunk_ukey
       };
       compilation.chunk_graph.add_chunk(chunk_ukey);
       self.mask_by_chunk.insert(chunk_ukey, BigUint::from(0u32));

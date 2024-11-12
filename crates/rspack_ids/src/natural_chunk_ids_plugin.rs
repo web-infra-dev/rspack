@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
 };

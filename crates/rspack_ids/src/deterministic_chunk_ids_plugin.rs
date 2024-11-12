@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rspack_collections::DatabaseItem;
 use rspack_core::{ApplyContext, CompilationChunkIds, CompilerOptions, Plugin, PluginContext};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

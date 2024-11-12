@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::sync::LazyLock;
 
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
@@ -157,8 +158,17 @@ impl AssignLibraryPlugin {
           .get_path(
             &FilenameTemplate::from(v.to_owned()),
             PathData::default()
-              .chunk(chunk)
-              .content_hash_type(SourceType::JavaScript),
+              .chunk_id_optional(chunk.id())
+              .chunk_hash_optional(chunk.rendered_hash(
+                &compilation.chunk_hashes_results,
+                compilation.options.output.hash_digest_length,
+              ))
+              .chunk_name_optional(chunk.name_for_filename_template())
+              .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+                &compilation.chunk_hashes_results,
+                &SourceType::JavaScript,
+                compilation.options.output.hash_digest_length,
+              )),
           )
           .always_ok()
       };

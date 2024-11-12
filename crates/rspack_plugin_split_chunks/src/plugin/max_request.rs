@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rspack_collections::UkeySet;
+use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_core::{ChunkUkey, Compilation};
 
 use crate::{CacheGroup, SplitChunksPlugin};

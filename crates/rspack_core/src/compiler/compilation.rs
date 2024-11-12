@@ -11,7 +11,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{error, miette::diagnostic, Diagnostic, DiagnosticExt, Result, Severity};
 use rspack_fs::ReadableFileSystem;
@@ -32,12 +32,13 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
+  get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
-  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkKind, ChunkUkey,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
+  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
   EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn,
   Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
@@ -75,7 +76,7 @@ define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Com
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
-define_hook!(CompilationChunkAsset: AsyncSeries(chunk: &mut Chunk, filename: &str));
+define_hook!(CompilationChunkAsset: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
@@ -172,6 +173,7 @@ pub struct Compilation {
   pub cgm_hash_results: CgmHashResults,
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
+  pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
   pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -270,6 +272,7 @@ impl Compilation {
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
       cgc_runtime_requirements_results: Default::default(),
+      chunk_hashes_results: Default::default(),
       built_modules: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
@@ -715,17 +718,17 @@ impl Compilation {
     name: String,
     chunk_by_ukey: &mut ChunkByUkey,
     named_chunks: &mut HashMap<String, ChunkUkey>,
-  ) -> ChunkUkey {
+  ) -> (ChunkUkey, bool) {
     let existed_chunk_ukey = named_chunks.get(&name);
     if let Some(chunk_ukey) = existed_chunk_ukey {
       assert!(chunk_by_ukey.contains(chunk_ukey));
-      *chunk_ukey
+      (*chunk_ukey, false)
     } else {
       let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey();
       named_chunks.insert(name, ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
-      ukey
+      (ukey, true)
     }
   }
 
@@ -1013,16 +1016,15 @@ impl Compilation {
     skip(self, plugin_driver, chunk_ukey)
   )]
   async fn chunk_asset(
-    &mut self,
+    &self,
     chunk_ukey: ChunkUkey,
     filename: &str,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
     plugin_driver
       .compilation_hooks
       .chunk_asset
-      .call(current_chunk, filename)
+      .call(self, &chunk_ukey, filename)
       .await?;
     Ok(())
   }
@@ -1301,6 +1303,13 @@ impl Compilation {
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
     {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.cgc_runtime_requirements_results.remove(&removed_chunk);
+      }
       mutations.get_affected_chunks_with_chunk_graph(self)
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1320,7 +1329,24 @@ impl Compilation {
     logger.time_end(start);
 
     let start = logger.time("hashing");
-    self.create_hash(plugin_driver.clone()).await?;
+    let create_hash_chunks = if let Some(mutations) = self
+      .incremental
+      .mutations_read(IncrementalPasses::CHUNKS_HASHES)
+    {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.chunk_hashes_results.remove(&removed_chunk);
+      }
+      mutations.get_affected_chunks_with_chunk_graph(self)
+    } else {
+      self.chunk_by_ukey.keys().copied().collect()
+    };
+    self
+      .create_hash(create_hash_chunks, plugin_driver.clone())
+      .await?;
     self.runtime_modules_code_generation()?;
     logger.time_end(start);
 
@@ -1482,13 +1508,13 @@ impl Compilation {
       }
       chunk_requirements.insert(chunk_ukey, set);
     }
-    for (chunk_ukey, set) in chunk_requirements.iter_mut() {
+    for (chunk_ukey, mut set) in chunk_requirements {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, chunk_ukey, set)?;
+        .call(self, &chunk_ukey, &mut set)?;
 
-      ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, std::mem::take(set));
+      ChunkGraph::set_chunk_runtime_requirements(self, chunk_ukey, set);
     }
     logger.time_end(start);
     Ok(())
@@ -1564,7 +1590,11 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:create_hash", skip_all)]
-  pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+  pub async fn create_hash(
+    &mut self,
+    create_hash_chunks: UkeySet<ChunkUkey>,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
 
@@ -1574,19 +1604,20 @@ impl Compilation {
     ) -> Result<()> {
       for hash_result in chunk_hash_results {
         let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-        if let Some(chunk) = compilation.chunk_by_ukey.get_mut(&chunk_ukey) {
-          chunk.set_hash(chunk_hash, compilation.options.output.hash_digest_length);
-          *chunk.content_hash_mut() = content_hash;
-        }
+        let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+        chunk.set_hashes(
+          &mut compilation.chunk_hashes_results,
+          chunk_hash,
+          content_hash,
+        );
       }
       Ok(())
     }
 
     let unordered_runtime_chunks = self.get_chunk_graph_entries();
     let start = logger.time("hashing: hash chunks");
-    let other_chunks: Vec<_> = self
-      .chunk_by_ukey
-      .keys()
+    let other_chunks: Vec<_> = create_hash_chunks
+      .iter()
       .filter(|key| !unordered_runtime_chunks.contains(key))
       .collect();
     // create hash for runtime modules in other chunks
@@ -1728,9 +1759,8 @@ impl Compilation {
       let (chunk_hash, content_hash) = self
         .process_chunk_hash(runtime_chunk_ukey, &plugin_driver)
         .await?;
-      let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
-      chunk.set_hash(chunk_hash, self.options.output.hash_digest_length);
-      *chunk.content_hash_mut() = content_hash;
+      let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+      chunk.set_hashes(&mut self.chunk_hashes_results, chunk_hash, content_hash);
     }
     logger.time_end(start);
 
@@ -1739,7 +1769,7 @@ impl Compilation {
       .chunk_by_ukey
       .values()
       .sorted_unstable_by_key(|chunk| chunk.ukey())
-      .filter_map(|chunk| chunk.hash())
+      .filter_map(|chunk| chunk.hash(&self.chunk_hashes_results))
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
@@ -1763,22 +1793,38 @@ impl Compilation {
             .insert(*runtime_module_identifier, digest);
         }
       }
-      let chunk = self.chunk_by_ukey.expect_get_mut(&runtime_chunk_ukey);
-      if let Some(chunk_hash) = chunk.hash() {
+      let chunk = self.chunk_by_ukey.expect_get(&runtime_chunk_ukey);
+      let new_chunk_hash = {
+        let chunk_hash = chunk
+          .hash(&self.chunk_hashes_results)
+          .expect("should have chunk hash");
         let mut hasher = RspackHash::from(&self.options.output);
         chunk_hash.hash(&mut hasher);
         self.hash.hash(&mut hasher);
-        chunk.set_hash(
-          hasher.digest(&self.options.output.hash_digest),
-          self.options.output.hash_digest_length,
-        );
-      }
-      if let Some(content_hash) = chunk.content_hash_mut().get_mut(&SourceType::JavaScript) {
-        let mut hasher = RspackHash::from(&self.options.output);
-        content_hash.hash(&mut hasher);
-        self.hash.hash(&mut hasher);
-        *content_hash = hasher.digest(&self.options.output.hash_digest);
-      }
+        hasher.digest(&self.options.output.hash_digest)
+      };
+      let new_content_hash = {
+        let content_hash = chunk
+          .content_hash(&self.chunk_hashes_results)
+          .expect("should have content hash");
+        content_hash
+          .iter()
+          .map(|(source_type, content_hash)| {
+            let mut hasher = RspackHash::from(&self.options.output);
+            content_hash.hash(&mut hasher);
+            self.hash.hash(&mut hasher);
+            (
+              *source_type,
+              hasher.digest(&self.options.output.hash_digest),
+            )
+          })
+          .collect()
+      };
+      chunk.set_hashes(
+        &mut self.chunk_hashes_results,
+        new_chunk_hash,
+        new_content_hash,
+      );
     }
     logger.time_end(start);
     Ok(())
@@ -1868,8 +1914,11 @@ impl Compilation {
   ) -> Result<()> {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
-    let runtime_module_identifier =
-      ModuleIdentifier::from(format!("{}/{}", chunk.runtime(), module.identifier()));
+    let runtime_module_identifier = ModuleIdentifier::from(format!(
+      "{}/{}",
+      get_runtime_key(chunk.runtime()),
+      module.identifier()
+    ));
     module.attach(*chunk_ukey);
 
     self.chunk_graph.add_module(runtime_module_identifier);
@@ -1902,7 +1951,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None, self.options.output.hash_digest_length)
+    filename.render(data, None)
   }
 
   pub fn get_path_with_info<'b, 'a: 'b, F: LocalFilenameFn>(
@@ -1914,11 +1963,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(
-      data,
-      Some(&mut info),
-      self.options.output.hash_digest_length,
-    )?;
+    let path = filename.render(data, Some(&mut info))?;
     Ok((path, info))
   }
 
@@ -1927,7 +1972,7 @@ impl Compilation {
     filename: &Filename<F>,
     data: PathData,
   ) -> Result<String, F::Error> {
-    filename.render(data, None, self.options.output.hash_digest_length)
+    filename.render(data, None)
   }
 
   pub fn get_asset_path_with_info<F: LocalFilenameFn>(
@@ -1936,11 +1981,7 @@ impl Compilation {
     data: PathData,
   ) -> Result<(String, AssetInfo), F::Error> {
     let mut info = AssetInfo::default();
-    let path = filename.render(
-      data,
-      Some(&mut info),
-      self.options.output.hash_digest_length,
-    )?;
+    let path = filename.render(data, Some(&mut info))?;
     Ok((path, info))
   }
 

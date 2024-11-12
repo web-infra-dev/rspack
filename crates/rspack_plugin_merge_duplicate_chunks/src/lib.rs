@@ -3,7 +3,8 @@
 
 use rspack_collections::UkeySet;
 use rspack_core::{
-  is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin, PluginContext,
+  incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -120,6 +121,12 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
             &compilation.get_module_graph(),
           );
           chunk_by_ukey.remove(&other_chunk_ukey);
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunksIntegrate { to: chunk_ukey });
+            mutations.add(Mutation::ChunkRemove {
+              chunk: other_chunk_ukey,
+            });
+          }
           compilation.chunk_graph = chunk_graph;
           compilation.chunk_by_ukey = chunk_by_ukey;
           compilation.chunk_group_by_ukey = chunk_group_by_ukey;

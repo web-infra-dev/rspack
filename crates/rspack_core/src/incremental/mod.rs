@@ -15,7 +15,9 @@ bitflags! {
     const MODULES_CODEGEN = 1 << 6;
     const MODULES_RUNTIME_REQUIREMENTS = 1 << 7;
     const CHUNKS_RUNTIME_REQUIREMENTS = 1 << 8;
-    const EMIT_ASSETS = 1 << 9;
+    const CHUNKS_HASHES = 1 << 9;
+    const CHUNKS_RENDER = 1 << 10;
+    const EMIT_ASSETS = 1 << 11;
   }
 }
 

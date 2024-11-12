@@ -3,7 +3,8 @@ use std::{borrow::Cow, hash::Hash};
 
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_collections::UkeyMap;
+use rspack_collections::{DatabaseItem, UkeyMap};
+use rspack_core::incremental::Mutation;
 use rspack_core::{
   ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
@@ -222,7 +223,7 @@ impl SplitChunksPlugin {
       tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey());
 
       if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
+        && !(fallback_cache_group.chunks_filter)(chunk, compilation)?
       {
         tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
         return Ok(None);
@@ -346,13 +347,25 @@ impl SplitChunksPlugin {
         if index != last_index {
           let old_chunk = chunk.ukey();
           let new_chunk_ukey = if let Some(name) = name {
-            Compilation::add_named_chunk(
+            let (new_chunk_ukey, created) = Compilation::add_named_chunk(
               name,
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
-            )
+            );
+            if created && let Some(mutations) = compilation.incremental.mutations_write() {
+              mutations.add(Mutation::ChunkAdd {
+                chunk: new_chunk_ukey,
+              });
+            }
+            new_chunk_ukey
           } else {
-            Compilation::add_chunk(&mut compilation.chunk_by_ukey)
+            let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+            if let Some(mutations) = compilation.incremental.mutations_write() {
+              mutations.add(Mutation::ChunkAdd {
+                chunk: new_chunk_ukey,
+              });
+            }
+            new_chunk_ukey
           };
 
           let [new_part, chunk] = compilation
@@ -360,6 +373,12 @@ impl SplitChunksPlugin {
             .get_many_mut([&new_chunk_ukey, &old_chunk])
             .expect("split_from_original_chunks failed");
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkSplit {
+              from: old_chunk,
+              to: new_chunk_ukey,
+            });
+          }
 
           group.nodes.iter().for_each(|module| {
             compilation.chunk_graph.add_chunk(new_part.ukey());

@@ -4,7 +4,7 @@ use rayon::iter::{
   IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
   ParallelIterator,
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_error::emitter::{
   DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
 };
@@ -385,7 +385,12 @@ impl Stats<'_> {
           reason: c.chunk_reason().map(ToOwned::to_owned),
           rendered: c.rendered(),
           origins,
-          hash: c.rendered_hash().map(|i| i.to_string()),
+          hash: c
+            .rendered_hash(
+              &self.compilation.chunk_hashes_results,
+              self.compilation.options.output.hash_digest_length,
+            )
+            .map(ToOwned::to_owned),
         })
       })
       .collect::<Result<_>>()?;

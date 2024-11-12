@@ -2,8 +2,7 @@ use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierSet, UkeySet};
-use rspack_error::Result;
+use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;

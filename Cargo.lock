@@ -3760,6 +3760,7 @@ dependencies = [
  "itertools 0.13.0",
  "rayon",
  "regex",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4410,6 +4411,7 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.1.0"
 dependencies = [
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",

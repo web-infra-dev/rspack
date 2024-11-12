@@ -518,13 +518,6 @@ export interface JsChunkGroupOrigin {
   request?: string
 }
 
-export interface JsChunkPathData {
-  id?: string
-  name?: string
-  hash?: string
-  contentHash?: string | Record<string, string>
-}
-
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -732,8 +725,13 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: JsChunkPathData
-  contentHashType?: string
+  chunk?: JsPathDataChunkLike
+}
+
+export interface JsPathDataChunkLike {
+  name?: string
+  hash?: string
+  id?: string
 }
 
 export interface JsResolveArgs {
@@ -1471,6 +1469,8 @@ export interface RawIncremental {
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
   chunksRuntimeRequirements: boolean
+  chunksHashes: boolean
+  chunksRender: boolean
   emitAssets: boolean
 }
 

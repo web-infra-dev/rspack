@@ -119,7 +119,7 @@ pub fn get_chunk_relations(
         if let Some(pg) = chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = chunk_by_ukey.get(c)
-              && let Some(id) = &c.id()
+              && let Some(id) = c.id()
             {
               children.insert(id.to_string());
             }

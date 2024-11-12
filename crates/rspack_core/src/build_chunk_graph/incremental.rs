@@ -7,8 +7,9 @@ use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  incremental::IncrementalPasses, is_runtime_equal, AsyncDependenciesBlockIdentifier,
-  ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions, ModuleIdentifier, RuntimeSpec,
+  incremental::{IncrementalPasses, Mutation},
+  is_runtime_equal, AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, Compilation,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 #[derive(Debug, Clone)]
@@ -165,6 +166,9 @@ impl CodeSplitter {
           compilation.named_chunks.remove(name);
         }
         compilation.chunk_by_ukey.remove(chunk_ukey);
+        if let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkRemove { chunk: *chunk_ukey });
+        }
       }
     }
 

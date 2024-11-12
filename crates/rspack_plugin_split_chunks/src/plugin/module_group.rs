@@ -4,7 +4,7 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier,
   UsageKey,
@@ -282,7 +282,6 @@ impl SplitChunksPlugin {
     compilation: &Compilation,
   ) -> Result<ModuleGroupMap> {
     let chunk_db = &compilation.chunk_by_ukey;
-    let chunk_group_db = &compilation.chunk_group_by_ukey;
     let module_graph = compilation.get_module_graph();
 
     /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
@@ -392,7 +391,7 @@ impl SplitChunksPlugin {
               .map(|c| {
                 let c = chunk_db.expect_get(c);
                 // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                (cache_group.chunk_filter)(c, chunk_group_db).map(|filtered|  (c, filtered))
+                (cache_group.chunk_filter)(c, compilation).map(|filtered|  (c, filtered))
               })
               .collect::<Result<Vec<_>>>()?
               .into_iter().filter_map(

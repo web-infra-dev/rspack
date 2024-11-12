@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod chunk_combination;
 
 use std::collections::HashSet;
@@ -5,8 +7,8 @@ use std::collections::HashSet;
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
 use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
-  compare_chunks_with_graph, ChunkSizeOptions, ChunkUkey, Compilation, CompilationOptimizeChunks,
-  Plugin,
+  compare_chunks_with_graph, incremental::Mutation, ChunkSizeOptions, ChunkUkey, Compilation,
+  CompilationOptimizeChunks, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -152,6 +154,8 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     }
   }
 
+  let mut removed_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+  let mut integrated_chunks: UkeySet<ChunkUkey> = UkeySet::default();
   // list of modified chunks during this run
   // combinations affected by this change are skipped to allow
   // further optimizations
@@ -206,7 +210,9 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         &mut new_chunk_group_by_ukey,
         &module_graph,
       );
+      integrated_chunks.insert(a);
       new_chunk_by_ukey.remove(&b);
+      removed_chunks.insert(b);
 
       // flag chunk a as modified as further optimization are possible for all children here
       modified_chunks.insert(a);
@@ -295,6 +301,15 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   compilation.chunk_by_ukey = new_chunk_by_ukey;
   compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
   compilation.chunk_graph = new_chunk_graph;
+
+  if let Some(mutations) = compilation.incremental.mutations_write() {
+    for chunk in removed_chunks {
+      mutations.add(Mutation::ChunkRemove { chunk });
+    }
+    for chunk in integrated_chunks {
+      mutations.add(Mutation::ChunksIntegrate { to: chunk });
+    }
+  }
 
   Ok(None)
 }

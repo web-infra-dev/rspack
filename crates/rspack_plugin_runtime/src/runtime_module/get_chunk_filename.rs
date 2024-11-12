@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rspack_collections::{Identifier, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -12,7 +12,6 @@ use rspack_core::{
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
 
-use super::create_fake_chunk;
 use super::stringify_dynamic_chunk_map;
 use super::stringify_static_chunk_map;
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
@@ -173,45 +172,47 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .collect::<UkeyIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&FilenameTemplate::from(dynamic_filename.to_string()));
-      let fake_chunk = create_fake_chunk(
-        Some("\" + chunkId + \"".to_string()),
-        Some(stringify_dynamic_chunk_map(
-          |c| match c.name() {
-            Some(name) => Some(name.to_string()),
-            None => c.id().map(|id| id.to_string()),
-          },
-          &chunks,
-          &chunk_map,
-        )),
-        Some(stringify_dynamic_chunk_map(
-          |c| {
-            let hash = c.rendered_hash().map(|hash| hash.to_string());
-            match hash_len_map.get("[chunkhash]") {
-              Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
-              None => hash,
-            }
-          },
-          &chunks,
-          &chunk_map,
-        )),
-      );
 
-      let content_hash = Some(stringify_dynamic_chunk_map(
+      let chunk_id = "\" + chunkId + \"";
+      let chunk_name = stringify_dynamic_chunk_map(
+        |c| match c.name() {
+          Some(name) => Some(name.to_string()),
+          None => c.id().map(|id| id.to_string()),
+        },
+        &chunks,
+        &chunk_map,
+      );
+      let chunk_hash = stringify_dynamic_chunk_map(
         |c| {
-          c.content_hash().get(&self.source_type).map(|i| {
-            let hash = i
-              .rendered(compilation.options.output.hash_digest_length)
-              .to_string();
-            match hash_len_map.get("[contenthash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
-              None => hash,
-            }
+          let hash = c
+            .rendered_hash(
+              &compilation.chunk_hashes_results,
+              compilation.options.output.hash_digest_length,
+            )
+            .map(|hash| hash.to_string());
+          match hash_len_map.get("[chunkhash]") {
+            Some(hash_len) => hash.map(|s| s[..*hash_len].to_string()),
+            None => hash,
+          }
+        },
+        &chunks,
+        &chunk_map,
+      );
+      let content_hash = stringify_dynamic_chunk_map(
+        |c| {
+          c.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_results,
+            &self.source_type,
+            compilation.options.output.hash_digest_length,
+          )
+          .map(|hash| match hash_len_map.get("[contenthash]") {
+            Some(hash_len) => hash[..*hash_len].to_string(),
+            None => hash.to_string(),
           })
         },
         &chunks,
         &chunk_map,
-      ));
-
+      );
       let full_hash = match hash_len_map
         .get("[fullhash]")
         .or(hash_len_map.get("[hash]"))
@@ -230,9 +231,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           .get_path(
             &fake_filename,
             PathData::default()
-              .chunk(&fake_chunk)
-              .hash_optional(Some(full_hash.as_str()))
-              .content_hash_optional(content_hash.as_deref())
+              .chunk_id(chunk_id)
+              .chunk_hash(&chunk_hash)
+              .chunk_name(&chunk_name)
+              .hash(&full_hash)
+              .content_hash(&content_hash)
           )
           .always_ok()
       )
@@ -250,37 +253,40 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
         let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
 
-        let fake_chunk = create_fake_chunk(
-          chunk
+        let chunk_id = chunk
+          .id()
+          .map(|chunk_id| unquoted_stringify(chunk, chunk_id));
+        let chunk_name = match chunk.name() {
+          Some(chunk_name) => Some(unquoted_stringify(chunk, chunk_name)),
+          None => chunk
             .id()
             .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
-          match chunk.name() {
-            Some(chunk_name) => Some(unquoted_stringify(chunk, chunk_name)),
-            None => chunk
-              .id()
-              .map(|chunk_id| unquoted_stringify(chunk, chunk_id)),
-          },
-          chunk.rendered_hash().map(|chunk_hash| {
+        };
+        let chunk_hash = chunk
+          .rendered_hash(
+            &compilation.chunk_hashes_results,
+            compilation.options.output.hash_digest_length,
+          )
+          .map(|chunk_hash| {
             let hash = unquoted_stringify(chunk, chunk_hash);
             match hash_len_map.get("[chunkhash]") {
               Some(hash_len) => hash[..*hash_len].to_string(),
               None => hash,
             }
-          }),
-        );
-
-        let content_hash = chunk.content_hash().get(&self.source_type).map(|i| {
-          let hash = unquoted_stringify(
-            chunk,
-            &i.rendered(compilation.options.output.hash_digest_length)
-              .to_string(),
-          );
-          match hash_len_map.get("[contenthash]") {
-            Some(hash_len) => hash[..*hash_len].to_string(),
-            None => hash,
-          }
-        });
-
+          });
+        let content_hash = chunk
+          .content_hash(&compilation.chunk_hashes_results)
+          .and_then(|content_hash| content_hash.get(&self.source_type))
+          .map(|i| {
+            let hash = unquoted_stringify(
+              chunk,
+              i.rendered(compilation.options.output.hash_digest_length),
+            );
+            match hash_len_map.get("[contenthash]") {
+              Some(hash_len) => hash[..*hash_len].to_string(),
+              None => hash,
+            }
+          });
         let full_hash = match hash_len_map
           .get("[fullhash]")
           .or(hash_len_map.get("[hash]"))
@@ -298,10 +304,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           compilation.get_path(
             &fake_filename,
             PathData::default()
-              .chunk(&fake_chunk)
-              .hash_optional(Some(full_hash.as_str()))
-              .content_hash_optional(content_hash.as_deref())
-              .content_hash_type(self.source_type),
+              .chunk_id_optional(chunk_id.as_deref())
+              .chunk_hash_optional(chunk_hash.as_deref())
+              .chunk_name_optional(chunk_name.as_deref())
+              .hash(&full_hash)
+              .content_hash_optional(content_hash.as_deref()),
           )?,
         );
 

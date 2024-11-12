@@ -9,10 +9,7 @@ use rspack_macros::MergeFrom;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
-use crate::{
-  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate, Module,
-  RuntimeSpec, SourceType,
-};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -203,18 +200,15 @@ impl std::fmt::Display for CrossOriginLoading {
 #[derivative(Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
-  #[derivative(Debug = "ignore")]
-  pub chunk: Option<&'a Chunk>,
-  #[derivative(Debug = "ignore")]
-  pub module: Option<&'a dyn Module>,
+  pub chunk_name: Option<&'a str>,
+  pub chunk_hash: Option<&'a str>,
+  pub chunk_id: Option<&'a str>,
+  pub module_id: Option<&'a str>,
   pub hash: Option<&'a str>,
   pub content_hash: Option<&'a str>,
-  #[derivative(Debug = "ignore")]
-  pub chunk_graph: Option<&'a ChunkGraph>,
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
-  pub content_hash_type: Option<SourceType>,
 }
 
 static PREPARE_ID_REGEX: LazyLock<Regex> =
@@ -230,13 +224,38 @@ impl<'a> PathData<'a> {
     self
   }
 
-  pub fn chunk(mut self, v: &'a Chunk) -> Self {
-    self.chunk = Some(v);
+  pub fn chunk_hash(mut self, v: &'a str) -> Self {
+    self.chunk_hash = Some(v);
     self
   }
 
-  pub fn module(mut self, v: &'a dyn Module) -> Self {
-    self.module = Some(v);
+  pub fn chunk_hash_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_hash = v;
+    self
+  }
+
+  pub fn chunk_name(mut self, v: &'a str) -> Self {
+    self.chunk_name = Some(v);
+    self
+  }
+
+  pub fn chunk_name_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_name = v;
+    self
+  }
+
+  pub fn chunk_id(mut self, v: &'a str) -> Self {
+    self.chunk_id = Some(v);
+    self
+  }
+
+  pub fn chunk_id_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_id = v;
+    self
+  }
+
+  pub fn module_id_optional(mut self, v: Option<&'a str>) -> Self {
+    self.module_id = v;
     self
   }
 
@@ -260,22 +279,8 @@ impl<'a> PathData<'a> {
     self
   }
 
-  pub fn content_hash_type(mut self, v: SourceType) -> Self {
-    self.content_hash_type = Some(v);
-    self
-  }
-
-  pub fn chunk_graph(mut self, v: &'a ChunkGraph) -> Self {
-    self.chunk_graph = Some(v);
-    self
-  }
-
-  pub fn runtime(mut self, v: &'a RuntimeSpec) -> Self {
-    self.runtime = if v.len() == 1 {
-      v.iter().next().map(|v| v.as_ref())
-    } else {
-      None
-    };
+  pub fn runtime(mut self, v: &'a str) -> Self {
+    self.runtime = Some(v);
     self
   }
 

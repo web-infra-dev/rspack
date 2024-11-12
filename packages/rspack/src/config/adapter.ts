@@ -915,6 +915,8 @@ function getRawIncremental(
 		modulesCodegen: incremental.modulesCodegen!,
 		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
 		chunksRuntimeRequirements: incremental.chunksRuntimeRequirements!,
+		chunksHashes: incremental.chunksHashes!,
+		chunksRender: incremental.chunksRender!,
 		emitAssets: incremental.emitAssets!
 	};
 }

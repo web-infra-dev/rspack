@@ -15,15 +15,7 @@ pub struct RuntimeSpec {
 
 impl std::fmt::Display for RuntimeSpec {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let mut iter = self.iter();
-    if let Some(first) = iter.next() {
-      write!(f, "{first}")?;
-    }
-    for r in iter {
-      write!(f, ",")?;
-      write!(f, "{r}")?;
-    }
-    Ok(())
+    write!(f, "{}", self.key)
   }
 }
 
@@ -112,7 +104,11 @@ impl RuntimeSpec {
     }
     let mut ordered = self.inner.iter().cloned().collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("\n")
+    self.key = ordered.join("+")
+  }
+
+  pub fn as_str(&self) -> &str {
+    &self.key
   }
 }
 

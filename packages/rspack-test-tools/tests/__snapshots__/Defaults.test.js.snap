@@ -21,6 +21,8 @@ Object {
     futureDefaults: false,
     incremental: Object {
       buildChunkGraph: false,
+      chunksHashes: false,
+      chunksRender: false,
       chunksRuntimeRequirements: false,
       dependenciesDiagnostics: false,
       emitAssets: true,

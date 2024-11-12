@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 use std::hash::BuildHasherDefault;
-use std::{fmt::Debug, hash::Hash, sync::Arc};
+use std::{fmt::Debug, hash::Hash};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
-use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeySet};
+use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
@@ -21,6 +21,26 @@ pub enum ChunkKind {
 }
 
 pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
+
+#[derive(Debug)]
+pub struct ChunkHashesResult {
+  hash: RspackHashDigest,
+  content_hash: ChunkContentHash,
+}
+
+impl ChunkHashesResult {
+  pub fn new(hash: RspackHashDigest, content_hash: ChunkContentHash) -> Self {
+    Self { hash, content_hash }
+  }
+
+  pub fn hash(&self) -> &RspackHashDigest {
+    &self.hash
+  }
+
+  pub fn content_hash(&self) -> &ChunkContentHash {
+    &self.content_hash
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct Chunk {
@@ -39,9 +59,6 @@ pub struct Chunk {
   runtime: RuntimeSpec,
   files: HashSet<String>,
   auxiliary_files: HashSet<String>,
-  hash: Option<RspackHashDigest>,
-  rendered_hash: Option<Arc<str>>,
-  content_hash: ChunkContentHash,
   chunk_reason: Option<String>,
   rendered: bool,
 }
@@ -55,10 +72,6 @@ impl DatabaseItem for Chunk {
 }
 
 impl Chunk {
-  pub fn ukey(&self) -> ChunkUkey {
-    self.ukey
-  }
-
   pub fn kind(&self) -> ChunkKind {
     self.kind
   }
@@ -167,33 +180,63 @@ impl Chunk {
     &mut self.chunk_reason
   }
 
-  pub fn hash(&self) -> Option<&RspackHashDigest> {
-    self.hash.as_ref()
+  pub fn hash<'a>(
+    &self,
+    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+  ) -> Option<&'a RspackHashDigest> {
+    chunk_hashes_results
+      .get(&self.ukey)
+      .map(|result| result.hash())
   }
 
-  pub fn rendered_hash(&self) -> Option<&str> {
-    self.rendered_hash.as_deref()
+  pub fn rendered_hash<'a>(
+    &self,
+    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    len: usize,
+  ) -> Option<&'a str> {
+    chunk_hashes_results
+      .get(&self.ukey)
+      .map(|result| result.hash().rendered(len))
   }
 
-  pub fn set_hash(&mut self, hash: RspackHashDigest, len: usize) {
-    self.set_rendered_hash(Some(hash.rendered(len).into()));
-    self.hash = Some(hash);
+  pub fn content_hash<'a>(
+    &self,
+    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+  ) -> Option<&'a ChunkContentHash> {
+    chunk_hashes_results
+      .get(&self.ukey)
+      .map(|result| result.content_hash())
   }
 
-  pub fn set_rendered_hash(&mut self, rendered_hash: Option<Arc<str>>) {
-    self.rendered_hash = rendered_hash;
+  pub fn content_hash_by_source_type<'a>(
+    &self,
+    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    source_type: &SourceType,
+  ) -> Option<&'a RspackHashDigest> {
+    self
+      .content_hash(chunk_hashes_results)
+      .and_then(|content_hash| content_hash.get(source_type))
   }
 
-  pub fn content_hash(&self) -> &ChunkContentHash {
-    &self.content_hash
+  pub fn rendered_content_hash_by_source_type<'a>(
+    &self,
+    chunk_hashes_results: &'a UkeyMap<ChunkUkey, ChunkHashesResult>,
+    source_type: &SourceType,
+    len: usize,
+  ) -> Option<&'a str> {
+    self
+      .content_hash(chunk_hashes_results)
+      .and_then(|content_hash| content_hash.get(source_type))
+      .map(|hash| hash.rendered(len))
   }
 
-  pub fn content_hash_mut(&mut self) -> &mut ChunkContentHash {
-    &mut self.content_hash
-  }
-
-  pub fn insert_content_hash(&mut self, source_type: SourceType, hash: RspackHashDigest) {
-    self.content_hash.insert(source_type, hash);
+  pub fn set_hashes(
+    &self,
+    chunk_hashes_results: &mut UkeyMap<ChunkUkey, ChunkHashesResult>,
+    chunk_hash: RspackHashDigest,
+    content_hash: ChunkContentHash,
+  ) {
+    chunk_hashes_results.insert(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash));
   }
 
   pub fn rendered(&self) -> bool {
@@ -220,9 +263,6 @@ impl Chunk {
       groups: Default::default(),
       runtime: RuntimeSpec::default(),
       kind,
-      hash: None,
-      rendered_hash: None,
-      content_hash: HashMap::default(),
       chunk_reason: Default::default(),
       rendered: false,
     }
@@ -528,12 +568,6 @@ impl Chunk {
     }
 
     chunks
-  }
-
-  // pub fn get_all_referenced_async_entry_points() -> HashSet<ChunkUkey> {}
-
-  pub fn get_render_hash(&self, length: usize) -> Option<&str> {
-    self.hash.as_ref().map(|hash| hash.rendered(length))
   }
 
   pub fn expect_id(&self) -> &str {

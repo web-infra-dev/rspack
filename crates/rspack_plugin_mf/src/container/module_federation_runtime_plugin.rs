@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_collections::Identifier;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},

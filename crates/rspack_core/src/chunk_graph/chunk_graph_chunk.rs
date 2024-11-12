@@ -3,7 +3,7 @@
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use rspack_collections::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
@@ -817,12 +817,10 @@ impl ChunkGraph {
           } else {
             chunk_b_name
           }
+        } else if chunk_a_name < chunk_b_name {
+          chunk_a_name
         } else {
-          if chunk_a_name < chunk_b_name {
-            chunk_a_name
-          } else {
-            chunk_b_name
-          }
+          chunk_b_name
         };
         chunk_a.set_name(Some(new_name.to_string()));
       } else if self.get_number_of_entry_modules(b) > 0 {

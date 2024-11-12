@@ -250,7 +250,10 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 }
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
-  let hash = chunk.get_render_hash(compilation.options.output.hash_digest_length);
+  let hash = chunk.rendered_hash(
+    &compilation.chunk_hashes_results,
+    compilation.options.output.hash_digest_length,
+  );
   let filename = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -259,9 +262,17 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
   compilation.get_path(
     filename,
     PathData::default()
-      .chunk(chunk)
-      .hash_optional(hash)
-      .content_hash_type(SourceType::JavaScript)
+      .chunk_id_optional(chunk.id())
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      ))
       .hash_optional(hash),
   )
 }

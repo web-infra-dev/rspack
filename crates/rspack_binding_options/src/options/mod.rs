@@ -101,6 +101,12 @@ impl TryFrom<RawOptions> for CompilerOptions {
           if value.chunks_runtime_requirements {
             passes.insert(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS);
           }
+          if value.chunks_hashes {
+            passes.insert(IncrementalPasses::CHUNKS_HASHES);
+          }
+          if value.chunks_render {
+            passes.insert(IncrementalPasses::CHUNKS_RENDER);
+          }
           if value.emit_assets {
             passes.insert(IncrementalPasses::EMIT_ASSETS);
           }

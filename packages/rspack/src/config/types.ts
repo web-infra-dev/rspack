@@ -2444,9 +2444,19 @@ export type Incremental = {
 	modulesRuntimeRequirements?: boolean;
 
 	/**
-	 * Enable incremental module runtime requirements.
+	 * Enable incremental chunk runtime requirements.
 	 */
 	chunksRuntimeRequirements?: boolean;
+
+	/**
+	 * Enable incremental chunk hases.
+	 */
+	chunksHashes?: boolean;
+
+	/**
+	 * Enable incremental chunk render.
+	 */
+	chunksRender?: boolean;
 
 	/**
 	 * Enable incremental asset emission.

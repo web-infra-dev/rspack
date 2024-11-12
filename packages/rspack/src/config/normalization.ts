@@ -320,6 +320,8 @@ export const getNormalizedRspackOptions = (
 							modulesCodegen: true,
 							modulesRuntimeRequirements: true,
 							chunksRuntimeRequirements: true,
+							chunksHashes: true,
+							chunksRender: true,
 							emitAssets: true
 						} satisfies Incremental)
 					: options

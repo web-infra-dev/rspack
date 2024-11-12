@@ -22,6 +22,8 @@ pub struct RawIncremental {
   pub modules_codegen: bool,
   pub modules_runtime_requirements: bool,
   pub chunks_runtime_requirements: bool,
+  pub chunks_hashes: bool,
+  pub chunks_render: bool,
   pub emit_assets: bool,
 }
 

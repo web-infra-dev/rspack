@@ -3,7 +3,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use regex::Regex;
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
@@ -475,13 +475,17 @@ fn runtime_requirement_in_tree(
         "__webpack_require__.miniCssF".into(),
         |_| false,
         move |chunk, compilation| {
-          chunk.content_hash().contains_key(&SOURCE_TYPE[0]).then(|| {
-            if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-              filename.clone()
-            } else {
-              chunk_filename.clone()
-            }
-          })
+          chunk
+            .content_hash(&compilation.chunk_hashes_results)
+            .expect("should have content hash")
+            .contains_key(&SOURCE_TYPE[0])
+            .then(|| {
+              if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+                filename.clone()
+              } else {
+                chunk_filename.clone()
+              }
+            })
         },
       )),
     )?;
@@ -572,8 +576,17 @@ async fn render_manifest(
       filename_template,
       compilation,
       PathData::default()
-        .chunk(chunk)
-        .content_hash_type(SOURCE_TYPE[0]),
+        .chunk_id_optional(chunk.id())
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_results,
+          &SOURCE_TYPE[0],
+          compilation.options.output.hash_digest_length,
+        )),
     )
     .await?;
 

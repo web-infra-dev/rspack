@@ -137,6 +137,13 @@ impl Compiler {
         new_compilation.cgc_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgc_runtime_requirements_results);
       }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::CHUNKS_HASHES)
+      {
+        new_compilation.chunk_hashes_results =
+          std::mem::take(&mut self.compilation.chunk_hashes_results);
+      }
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.

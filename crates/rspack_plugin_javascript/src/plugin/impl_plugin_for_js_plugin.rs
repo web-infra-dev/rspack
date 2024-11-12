@@ -258,9 +258,18 @@ async fn render_manifest(
   let (output_path, mut asset_info) = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk(chunk)
-      .content_hash_type(SourceType::JavaScript)
-      .runtime(chunk.runtime()),
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_id_optional(chunk.id())
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      ))
+      .runtime(chunk.runtime().as_str()),
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);
   manifest.push(RenderManifestEntry::new(

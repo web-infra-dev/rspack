@@ -2,7 +2,7 @@
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
-use rspack_collections::IdentifierSet;
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
 use rspack_core::{ChunkUkey, ModuleIdentifier};
 use rspack_hook::plugin;

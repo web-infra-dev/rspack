@@ -4,7 +4,7 @@ mod hot_module_replacement;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
-use rspack_collections::{IdentifierSet, UkeyMap};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
@@ -161,7 +161,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_modules = compilation
         .chunk_graph
         .get_chunk_modules_identifier(&current_chunk.ukey())
-        .into_iter()
+        .iter()
         .filter_map(|module| updated_modules.contains(module).then_some(*module))
         .collect::<Vec<_>>();
 
@@ -263,11 +263,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           compilation
             .get_path(
               &compilation.options.output.hot_update_chunk_filename,
-              PathData::default().chunk(&hot_update_chunk).hash_optional(
-                old_hash
-                  .as_ref()
-                  .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-              ),
+              PathData::default()
+                .chunk_id_optional(hot_update_chunk.id())
+                .chunk_name_optional(hot_update_chunk.name_for_filename_template())
+                .hash_optional(
+                  old_hash
+                    .as_ref()
+                    .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+                ),
             )
             .always_ok()
         };
@@ -317,11 +320,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let filename = compilation
       .get_path(
         &compilation.options.output.hot_update_main_filename,
-        PathData::default().runtime(&content.runtime).hash_optional(
-          old_hash
-            .as_ref()
-            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-        ),
+        PathData::default()
+          .runtime(content.runtime.as_str())
+          .hash_optional(
+            old_hash
+              .as_ref()
+              .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+          ),
       )
       .always_ok();
     compilation.emit_asset(
