@@ -97,13 +97,23 @@ impl DependencyTemplate for ModernModuleImportDependency {
     };
 
     if let Some(request_and_external_type) = request_and_external_type.0 {
+      let attributes_str = if let Some(attributes) = &self.attributes {
+        format!(
+          ", {{ with: {} }}",
+          serde_json::to_string(attributes).expect("invalid json to_string")
+        )
+      } else {
+        String::new()
+      };
+
       source.replace(
         self.range.start,
         self.range.end,
         format!(
-          "import({})",
+          "import({}{})",
           serde_json::to_string(request_and_external_type.primary())
-            .expect("invalid json to_string")
+            .expect("invalid json to_string"),
+          attributes_str
         )
         .as_str(),
         None,

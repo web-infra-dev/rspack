@@ -249,7 +249,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
                   external_module.request.clone(),
                   external_module.external_type.clone(),
                   import_dependency.range.clone(),
-                  None,
+                  import_dependency.get_attributes().cloned(),
                 );
 
                 deps_to_replace.push((
