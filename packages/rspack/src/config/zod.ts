@@ -791,7 +791,8 @@ export const externalsType = z.enum([
 	"import",
 	"module-import",
 	"script",
-	"node-commonjs"
+	"node-commonjs",
+	"commonjs-import"
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 

@@ -129,6 +129,13 @@ fn resolve_external_type<'a>(
   dependency_meta: &'a DependencyMeta,
 ) -> &'a str {
   match external_type {
+    "commonjs-import" => {
+      if let Some(ExternalTypeEnum::Import) = dependency_meta.external_type.as_ref() {
+        "import"
+      } else {
+        "commonjs"
+      }
+    }
     "module-import" => {
       if let Some(external_type) = dependency_meta.external_type.as_ref() {
         match external_type {

@@ -1315,7 +1315,8 @@ export type ExternalsType =
 	| "import"
 	| "module-import"
 	| "script"
-	| "node-commonjs";
+	| "node-commonjs"
+	| "commonjs-import";
 //#endregion
 
 //#region Externals
