@@ -248,7 +248,7 @@ class Compiler {
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
 
-		this.hooks.shutdown.tap("Compiler", () => {
+		this.hooks.shutdown.tap("rspack:cleanup", () => {
 			this.#instance = undefined;
 		});
 	}
