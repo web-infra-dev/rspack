@@ -36,9 +36,7 @@ fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     |m| get_full_module_name(m, context),
     |a, b| compare_modules_by_pre_order_index_or_identifier(&module_graph, a, b),
     |module, id| {
-      let size = used_ids.len();
-      used_ids.insert(id.to_string());
-      if used_ids.len() == size {
+      if !used_ids.insert(id.to_string()) {
         conflicts += 1;
         return false;
       }
