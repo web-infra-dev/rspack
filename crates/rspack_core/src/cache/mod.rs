@@ -19,6 +19,7 @@ use crate::{Compilation, CompilerOptions, ExperimentCacheOptions};
 /// * The design of cache is different from webpack.
 /// * Hook is relatively complex.
 /// * This API does not need to cooperate with the js side.
+///
 /// We can consider change to Hook when we need to open the API to js side.
 pub trait Cache: Debug + Send + Sync {
   fn before_compile(&self, _compilation: &mut Compilation) {}
@@ -30,14 +31,8 @@ pub fn new_cache(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Arc<dyn Cache> {
   match &compiler_option.experiments.cache {
-    ExperimentCacheOptions::Disabled => {
-      return Arc::new(DisableCache);
-    }
-    ExperimentCacheOptions::Memory => {
-      return Arc::new(MemoryCache);
-    }
-    ExperimentCacheOptions::Persistent(option) => {
-      return Arc::new(PersistentCache::new(option, fs));
-    }
+    ExperimentCacheOptions::Disabled => Arc::new(DisableCache),
+    ExperimentCacheOptions::Memory => Arc::new(MemoryCache),
+    ExperimentCacheOptions::Persistent(option) => Arc::new(PersistentCache::new(option, fs)),
   }
 }

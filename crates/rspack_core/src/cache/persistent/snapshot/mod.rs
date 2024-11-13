@@ -54,7 +54,7 @@ impl Snapshot {
         continue;
       }
       if self.options.is_managed_path(path_str) {
-        if let Some(v) = helper.lib_version(&path) {
+        if let Some(v) = helper.lib_version(path) {
           self.storage.set(
             SCOPE,
             path_str.as_bytes().to_vec(),
@@ -87,7 +87,7 @@ impl Snapshot {
     for (key, value) in self.storage.get_all(SCOPE) {
       let path = Utf8PathBuf::from(String::from_utf8(key).expect("should have utf8 key"));
       let strategy: Strategy =
-        from_bytes::<Strategy, ()>(&value, &mut ()).expect("should from bytes success");
+        from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
       match helper.validate(&path, &strategy) {
         ValidateResult::Modified => {
           modified_path.insert(path);
@@ -143,7 +143,7 @@ mod tests {
 
     let snapshot = Snapshot::new(options, fs.clone(), storage);
     snapshot.add(
-      vec![
+      [
         "/file1".into(),
         "/constant".into(),
         "/node_modules/project/file1".into(),
@@ -171,7 +171,7 @@ mod tests {
       r#"{"version":"1.3.0"}"#.as_bytes(),
     )
     .unwrap();
-    snapshot.add(vec!["/file1".into()].iter());
+    snapshot.add(["/file1".into()].iter());
     let (modified_paths, deleted_paths) = snapshot.calc_modified_paths();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&Utf8PathBuf::from("/constant")));

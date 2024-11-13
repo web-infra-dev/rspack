@@ -10,24 +10,25 @@ use super::Storage;
 /// Rspack will reuse previous compilation as memory cache.
 #[derive(Debug, Default)]
 pub struct MemoryStorage {
+  #[allow(clippy::type_complexity)]
   inner: Mutex<HashMap<String, HashMap<Vec<u8>, Vec<u8>>>>,
 }
 
 impl Storage for MemoryStorage {
   fn get_all(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)> {
-    if let Some(value) = self.inner.lock().unwrap().get(scope) {
+    if let Some(value) = self.inner.lock().expect("should get lock").get(scope) {
       value.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     } else {
       vec![]
     }
   }
   fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>) {
-    let mut map = self.inner.lock().unwrap();
+    let mut map = self.inner.lock().expect("should get lock");
     let inner = map.entry(String::from(scope)).or_default();
     inner.insert(key, value);
   }
   fn remove(&self, scope: &str, key: &[u8]) {
-    let mut map = self.inner.lock().unwrap();
+    let mut map = self.inner.lock().expect("should get lock");
     map.get_mut(scope).map(|map| map.remove(key));
   }
   fn idle(&self) {}
@@ -48,7 +49,7 @@ mod tests {
     let arr = storage.get_all(scope);
     assert_eq!(arr.len(), 2);
     for (key, value) in arr {
-      if &key == "a".as_bytes() {
+      if key == "a".as_bytes() {
         assert_eq!(&value, "abc".as_bytes());
       } else {
         assert_eq!(&value, "bcd".as_bytes());
