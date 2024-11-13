@@ -143,9 +143,7 @@ impl JsPlugin {
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_chunk_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
     let mut sources: Vec<Cow<str>> = Vec::new();
@@ -224,9 +222,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
   ) -> Result<RenderBootstrapResult> {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_chunk_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
@@ -342,12 +338,12 @@ impl JsPlugin {
                 if let Some(origin_module) = origin_module {
                   connections
                     .iter()
-                    .any(|c| c.is_target_active(&module_graph, Some(&chunk.runtime)))
+                    .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
                     && compilation
                       .chunk_graph
                       .get_module_runtimes(*origin_module, &compilation.chunk_by_ukey)
                       .into_values()
-                      .any(|runtime| runtime.intersection(&chunk.runtime).count() > 0)
+                      .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
                 } else {
                   false
                 }
@@ -361,7 +357,7 @@ impl JsPlugin {
           if allow_inline_startup && {
             let codegen = compilation
               .code_generation_results
-              .get(module, Some(&chunk.runtime));
+              .get(module, Some(chunk.runtime()));
             let module_graph = compilation.get_module_graph();
             let top_level_decls = codegen
               .data
@@ -389,7 +385,7 @@ impl JsPlugin {
             allow_inline_startup = false;
           }
           let entry_runtime_requirements =
-            ChunkGraph::get_module_runtime_requirements(compilation, *module, &chunk.runtime);
+            ChunkGraph::get_module_runtime_requirements(compilation, *module, chunk.runtime());
           if allow_inline_startup
             && let Some(entry_runtime_requirements) = entry_runtime_requirements
             && entry_runtime_requirements.contains(RuntimeGlobals::MODULE)
@@ -549,9 +545,7 @@ impl JsPlugin {
       .output
       .environment
       .supports_arrow_function();
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_tree_runtime_requirements(chunk_ukey);
+    let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
@@ -694,7 +688,7 @@ impl JsPlugin {
         chunk_init_fragments.extend(additional_fragments);
         let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
         let module_runtime_requirements =
-          ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, &chunk.runtime);
+          ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());
         let exports = module_runtime_requirements
           .map(|r| r.contains(RuntimeGlobals::EXPORTS))
           .unwrap_or_default();

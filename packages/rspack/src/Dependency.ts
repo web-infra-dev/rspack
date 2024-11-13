@@ -1,4 +1,4 @@
-import { type JsDependency, JsDependencyMut } from "@rspack/binding";
+import type { JsDependency } from "@rspack/binding";
 
 export class Dependency {
 	declare readonly type: string;
@@ -6,11 +6,11 @@ export class Dependency {
 	declare readonly request: string | undefined;
 	declare critical: boolean;
 
-	static __from_binding(binding: JsDependencyMut | JsDependency): Dependency {
+	static __from_binding(binding: JsDependency): Dependency {
 		return new Dependency(binding);
 	}
 
-	private constructor(binding: JsDependencyMut | JsDependency) {
+	private constructor(binding: JsDependency) {
 		Object.defineProperties(this, {
 			type: {
 				enumerable: true,
@@ -36,9 +36,7 @@ export class Dependency {
 					return binding.critical;
 				},
 				set(val: boolean) {
-					if (binding instanceof JsDependencyMut) {
-						binding.critical = val;
-					}
+					binding.critical = val;
 				}
 			}
 		});

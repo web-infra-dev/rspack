@@ -2,12 +2,13 @@ use std::hash::{Hash, Hasher};
 
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHasher;
 
 use crate::{
-  AffectType, ChunkGraph, Compilation, Module, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  AffectType, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -17,6 +18,7 @@ pub struct Mutations {
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
   affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
   modules_with_chunk_graph_cache: IdentifierDashMap<Option<u64>>,
+  affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
 #[derive(Debug)]
@@ -24,6 +26,10 @@ pub enum Mutation {
   ModuleBuild { module: ModuleIdentifier },
   ModuleRevoke { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
+  ChunkAdd { chunk: ChunkUkey },
+  ChunkSplit { from: ChunkUkey, to: ChunkUkey },
+  ChunksIntegrate { to: ChunkUkey },
+  ChunkRemove { chunk: ChunkUkey },
 }
 
 impl Mutations {
@@ -104,6 +110,40 @@ impl Mutations {
             .collect(),
           &self.modules_with_chunk_graph_cache,
           compilation,
+        )
+      })
+      .clone()
+  }
+
+  pub fn get_affected_chunks_with_chunk_graph(
+    &self,
+    compilation: &Compilation,
+  ) -> UkeySet<ChunkUkey> {
+    self
+      .affected_chunks_with_chunk_graph
+      .get_or_init(|| {
+        compute_affected_chunks_with_chunk_graph(
+          self.get_affected_modules_with_chunk_graph(compilation),
+          self.iter().fold(UkeySet::default(), |mut acc, mutation| {
+            match mutation {
+              Mutation::ChunkAdd { chunk } => {
+                acc.insert(*chunk);
+              }
+              Mutation::ChunkSplit { from, to } => {
+                acc.insert(*from);
+                acc.insert(*to);
+              }
+              Mutation::ChunksIntegrate { to } => {
+                acc.insert(*to);
+              }
+              Mutation::ChunkRemove { chunk } => {
+                acc.remove(chunk);
+              }
+              _ => {}
+            };
+            acc
+          }),
+          &compilation.chunk_graph,
         )
       })
       .clone()
@@ -240,7 +280,7 @@ fn compute_affected_modules_with_chunk_graph(
       };
       for chunk in &chunk_group.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.id.as_ref().hash(&mut hasher);
+        chunk.id().hash(&mut hasher);
       }
     }
     hasher.finish()
@@ -280,4 +320,17 @@ fn compute_affected_modules_with_chunk_graph(
     cache.insert(module_identifier, Some(invalidate_key));
   }
   affected_modules.keys().copied().collect()
+}
+
+fn compute_affected_chunks_with_chunk_graph(
+  updated_modules: IdentifierSet,
+  mut updated_chunks: UkeySet<ChunkUkey>,
+  chunk_graph: &ChunkGraph,
+) -> UkeySet<ChunkUkey> {
+  updated_chunks.extend(
+    updated_modules
+      .into_iter()
+      .flat_map(|m| chunk_graph.get_module_chunks(m).iter().copied()),
+  );
+  updated_chunks
 }

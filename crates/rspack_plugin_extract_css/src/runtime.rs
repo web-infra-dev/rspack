@@ -151,15 +151,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let chunk = compilation.chunk_by_ukey.expect_get(&self.chunk);
         let with_loading = WITH_LOADING.cow_replace(
           "__INSTALLED_CHUNKS__",
-          &chunk
-            .ids
-            .iter()
-            .fold(String::default(), |output, id: &String| {
-              format!(
-                "{output}{}: 0,\n",
-                serde_json::to_string(id).expect("json stringify failed")
-              )
-            }),
+          &format!(
+            "{}: 0,\n",
+            serde_json::to_string(chunk.expect_id()).expect("json stringify failed")
+          ),
         );
 
         let with_loading = with_loading.cow_replace(
@@ -176,7 +171,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               .filter_map(|id| {
                 let chunk = compilation.chunk_by_ukey.expect_get(id);
 
-                chunk.id.as_ref().map(|id| {
+                chunk.id().map(|id| {
                   format!(
                     "{}: 1,\n",
                     serde_json::to_string(id).expect("json stringify failed")

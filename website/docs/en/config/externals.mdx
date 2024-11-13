@@ -29,7 +29,7 @@ For example, to include [jQuery](https://jquery.com/) from a CDN instead of bund
 module.exports = {
   //...
   externals: {
-    jquery: 'jQuery',
+    jquery: 'jquery',
   },
 };
 ```
@@ -292,6 +292,7 @@ Supported types:
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - uses `import()` to load a native EcmaScript module (async module)
 - [`'module-import'`](#externalstypemodule-import)
+- [`'commonjs-import'`](#externalstypecommonjs-import)
 - `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
 - [`'promise'`](#externalstypepromise) - same as `'var'` but awaits the result (async module)
@@ -414,7 +415,7 @@ Specify the default type of externals as `'import'`. Rspack will generate code l
 
 ```javascript
 async function foo() {
-  const jq = await import('jQuery');
+  const jq = await import('jquery');
   jq('.my-element').animate(/* ... */);
 }
 ```
@@ -432,8 +433,8 @@ Will generate into something like
 
 ```javascript
 var __webpack_modules__ = {
-  jQuery: module => {
-    module.exports = import('jQuery');
+  jquery: module => {
+    module.exports = import('jquery');
   },
 };
 
@@ -441,7 +442,7 @@ var __webpack_modules__ = {
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
   jq('.my-element').animate(/* ... */);
 }
@@ -461,15 +462,16 @@ Make sure to enable [`experiments.outputModule`](/config/#experimentsoutputmodul
 import { attempt } from 'lodash';
 
 async function foo() {
-  const jq = await import('jQuery');
+  const jq = await import('jquery');
   attempt(() => jq('.my-element').animate(/* ... */));
 }
 ```
 
 ```js title="rspack.config.js"
 module.exports = {
-  externalsType: 'import',
+  externalsType: 'module-import',
   externals: {
+    lodash: 'lodash',
     jquery: 'jquery',
   },
 };
@@ -482,8 +484,8 @@ import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
 const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
 
 var __webpack_modules__ = {
-  jQuery: module => {
-    module.exports = import('jQuery');
+  jquery: module => {
+    module.exports = import('jquery');
   },
 };
 
@@ -491,7 +493,7 @@ var __webpack_modules__ = {
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
   (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
 }
@@ -516,6 +518,63 @@ module.exports = {
     },
   ]
 ```
+
+### externalsType['commonjs-import']
+
+Specify the default type of externals as `'commonjs-import'`. This combines [`'commonjs'`](#externalstypecommonjs) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting dynamic import to `'import'` and leaving others to `'commonjs'`.
+
+This is useful when building a Node.js application that target Node.js version higher than `13.2.0`, which supports both [`import()` expressions](https://nodejs.org/api/esm.html#import-expressions) and `require()`.
+
+:::note
+`commonjs-import` type is only available of Rspack, and not applicable for webpack.
+:::
+
+**Example**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jquery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'commonjs-import',
+  externals: {
+    lodash: 'lodash',
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+var __webpack_modules__ = {
+  lodash: function (module) {
+    module.exports = require('lodash');
+  },
+  jquery: function (module) {
+    module.exports = import('jquery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
+  );
+  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+    jq('.my-element').animate(/* ... */),
+  );
+}
+```
+
+Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['node-commonjs']
 

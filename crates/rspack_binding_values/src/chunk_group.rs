@@ -32,7 +32,7 @@ impl JsChunkGroup {
       chunks: cg
         .chunks
         .iter()
-        .map(|k| JsChunk::from(compilation.chunk_by_ukey.expect_get(k)))
+        .map(|k| JsChunk::from(compilation.chunk_by_ukey.expect_get(k), compilation))
         .collect(),
       index: cg.index,
       inner_parents: cg.parents.iter().map(|ukey| ukey.as_u32()).collect(),
@@ -76,5 +76,5 @@ pub fn get_runtime_chunk(ukey: u32, js_compilation: &JsCompilation) -> JsChunk {
   let entrypoint = chunk_group(ukey, compilation);
   let chunk_ukey = entrypoint.get_runtime_chunk(&compilation.chunk_group_by_ukey);
   let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-  JsChunk::from(chunk)
+  JsChunk::from(chunk, compilation)
 }

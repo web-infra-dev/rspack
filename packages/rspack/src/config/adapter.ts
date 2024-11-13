@@ -907,14 +907,17 @@ function getRawIncremental(
 	}
 	return {
 		make: incremental.make!,
-		emitAssets: incremental.emitAssets!,
 		inferAsyncModules: incremental.inferAsyncModules!,
 		providedExports: incremental.providedExports!,
 		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
+		buildChunkGraph: incremental.buildChunkGraph!,
 		modulesHashes: incremental.modulesHashes!,
 		modulesCodegen: incremental.modulesCodegen!,
 		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
-		buildChunkGraph: incremental.buildChunkGraph!
+		chunksRuntimeRequirements: incremental.chunksRuntimeRequirements!,
+		chunksHashes: incremental.chunksHashes!,
+		chunksRender: incremental.chunksRender!,
+		emitAssets: incremental.emitAssets!
 	};
 }
 

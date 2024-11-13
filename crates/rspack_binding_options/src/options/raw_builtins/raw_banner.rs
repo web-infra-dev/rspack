@@ -17,7 +17,7 @@ impl<'a> From<BannerContentFnCtx<'a>> for RawBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
-      chunk: JsChunk::from(value.chunk),
+      chunk: JsChunk::from(value.chunk, value.compilation),
       filename: value.filename.to_string(),
     }
   }

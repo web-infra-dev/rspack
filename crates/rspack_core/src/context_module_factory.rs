@@ -10,11 +10,11 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  resolve, BoxDependency, ContextElementDependency, ContextModule, ContextModuleOptions,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, BoxDependency, CompilationId, ContextElementDependency, ContextModule,
+  ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -50,6 +50,7 @@ pub enum AfterResolveResult {
 #[derive(Derivative)]
 #[derivative(Debug, Clone)]
 pub struct AfterResolveData {
+  pub compilation_id: CompilationId,
   pub resource: Utf8PathBuf,
   pub context: String,
   pub dependencies: Vec<BoxDependency>,
@@ -339,6 +340,7 @@ impl ContextModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
+      compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
       context: context_options.context.clone(),
       dependencies: data.dependencies.clone(),

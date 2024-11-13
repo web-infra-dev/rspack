@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::sync::LazyLock;
 
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
@@ -128,7 +129,7 @@ impl AssignLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: &ChunkUkey,
   ) -> Result<Option<AssignLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.options.library_type)
@@ -157,8 +158,17 @@ impl AssignLibraryPlugin {
           .get_path(
             &FilenameTemplate::from(v.to_owned()),
             PathData::default()
-              .chunk(chunk)
-              .content_hash_type(SourceType::JavaScript),
+              .chunk_id_optional(chunk.id())
+              .chunk_hash_optional(chunk.rendered_hash(
+                &compilation.chunk_hashes_results,
+                compilation.options.output.hash_digest_length,
+              ))
+              .chunk_name_optional(chunk.name_for_filename_template())
+              .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+                &compilation.chunk_hashes_results,
+                &SourceType::JavaScript,
+                compilation.options.output.hash_digest_length,
+              )),
           )
           .always_ok()
       };
@@ -306,12 +316,12 @@ fn embed_in_runtime_bailout(
   module: &BoxModule,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
-  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {
     return Ok(None);
   };
   let codegen = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(&chunk.runtime));
+    .get(&module.identifier(), Some(chunk.runtime()));
   let top_level_decls = codegen
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()
