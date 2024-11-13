@@ -4,7 +4,6 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
-#![feature(option_get_or_insert_default)]
 
 use std::{fmt, sync::Arc};
 mod cgm_hash_results;
@@ -311,7 +310,7 @@ impl ChunkByUkey {
   pub fn get_many_mut<const N: usize>(
     &mut self,
     ukeys: [&ChunkUkey; N],
-  ) -> Option<[&mut Chunk; N]> {
+  ) -> [Option<&mut Chunk>; N] {
     self.inner.get_many_mut(ukeys)
   }
 
@@ -381,7 +380,7 @@ impl ChunkGroupByUkey {
   pub fn get_many_mut<const N: usize>(
     &mut self,
     ukeys: [&ChunkGroupUkey; N],
-  ) -> Option<[&mut ChunkGroup; N]> {
+  ) -> [Option<&mut ChunkGroup>; N] {
     self.inner.get_many_mut(ukeys)
   }
 

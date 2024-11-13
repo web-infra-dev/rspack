@@ -200,8 +200,9 @@ impl SplitChunksPlugin {
       debug_assert!(&new_chunk_ukey != original_chunk_ukey);
       let [new_chunk, original_chunk] = compilation
         .chunk_by_ukey
-        .get_many_mut([&new_chunk_ukey, original_chunk_ukey])
-        .expect("split_from_original_chunks failed");
+        .get_many_mut([&new_chunk_ukey, original_chunk_ukey]);
+      let new_chunk = new_chunk.expect("new chunk must exist");
+      let original_chunk = original_chunk.expect("origin chunk must exist");
       original_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
       if let Some(mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {

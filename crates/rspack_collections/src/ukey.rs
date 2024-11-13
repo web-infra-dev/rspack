@@ -151,7 +151,7 @@ where
   pub fn get_many_mut<const N: usize>(
     &mut self,
     ids: [&<Item as DatabaseItem>::ItemUkey; N],
-  ) -> Option<[&mut Item; N]> {
+  ) -> [Option<&mut Item>; N] {
     self.inner.get_many_mut(ids)
   }
 

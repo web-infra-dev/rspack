@@ -1,4 +1,7 @@
-use std::{any::Any, ptr::NonNull};
+use std::{
+  any::Any,
+  ptr::{self, NonNull},
+};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -33,7 +36,8 @@ impl<'a> ContextGuard<'a> {
   ) -> Result<&'a dyn Any, SerializeError> {
     match sharing.start_sharing(CONTEXT_ADDR) {
       SharingState::Finished(addr) => {
-        let guard: &Self = unsafe { &*(addr as *const Self) };
+        let ptr = ptr::null::<Self>().with_addr(addr);
+        let guard = unsafe { &*ptr };
         Ok(guard.context)
       }
       _ => Err(SerializeError::NoContext),

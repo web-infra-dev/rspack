@@ -348,6 +348,8 @@ jobs:
       - name: Run test
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
         run: cargo miri test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
+        env:
+          MIRIFLAGS: -Zmiri-strict-provenance
 
   run_benchmark:
     name: Run benchmark

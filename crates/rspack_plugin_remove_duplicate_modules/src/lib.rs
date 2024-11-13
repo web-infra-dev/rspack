@@ -56,8 +56,9 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     for chunk_ukey in &chunks {
       let [new_chunk, origin] = compilation
         .chunk_by_ukey
-        .get_many_mut([&new_chunk_ukey, chunk_ukey])
-        .expect("should have both chunks");
+        .get_many_mut([&new_chunk_ukey, chunk_ukey]);
+      let new_chunk = new_chunk.expect("new chunk must exist");
+      let origin = origin.expect("origin chunk must exist");
       origin.split(new_chunk, &mut compilation.chunk_group_by_ukey);
       if let Some(mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
