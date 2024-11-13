@@ -292,39 +292,147 @@ impl From<&str> for ModuleType {
 
 pub type ModuleLayer = String;
 
-pub type ChunkByUkey = Database<Chunk>;
-pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
 
-pub fn get_chunk_group_from_ukey<'a>(
-  ukey: &ChunkGroupUkey,
-  chunk_group_by_ukey: &'a ChunkGroupByUkey,
-) -> Option<&'a ChunkGroup> {
-  if chunk_group_by_ukey.contains(ukey) {
-    Some(chunk_group_by_ukey.expect_get(ukey))
-  } else {
-    None
+#[derive(Debug, Default, Clone)]
+pub struct ChunkByUkey {
+  inner: Database<Chunk>,
+}
+
+impl ChunkByUkey {
+  pub fn get(&self, ukey: &ChunkUkey) -> Option<&Chunk> {
+    self.inner.get(ukey)
+  }
+
+  pub fn get_mut(&mut self, ukey: &ChunkUkey) -> Option<&mut Chunk> {
+    self.inner.get_mut(ukey)
+  }
+
+  pub fn get_many_mut<const N: usize>(
+    &mut self,
+    ukeys: [&ChunkUkey; N],
+  ) -> Option<[&mut Chunk; N]> {
+    self.inner.get_many_mut(ukeys)
+  }
+
+  pub fn expect_get(&self, ukey: &ChunkUkey) -> &Chunk {
+    self
+      .get(ukey)
+      .unwrap_or_else(|| panic!("Chunk({ukey:?}) not found in ChunkByUkey"))
+  }
+
+  pub fn expect_get_mut(&mut self, ukey: &ChunkUkey) -> &mut Chunk {
+    self
+      .get_mut(ukey)
+      .unwrap_or_else(|| panic!("Chunk({ukey:?}) not found in ChunkByUkey"))
+  }
+
+  pub fn add(&mut self, chunk: Chunk) -> &mut Chunk {
+    self.inner.add(chunk)
+  }
+
+  pub fn remove(&mut self, ukey: &ChunkUkey) -> Option<Chunk> {
+    self.inner.remove(ukey)
+  }
+
+  pub fn entry(&mut self, ukey: ChunkUkey) -> std::collections::hash_map::Entry<ChunkUkey, Chunk> {
+    self.inner.entry(ukey)
+  }
+
+  pub fn contains(&self, ukey: &ChunkUkey) -> bool {
+    self.inner.contains(ukey)
+  }
+
+  pub fn keys(&self) -> impl Iterator<Item = &ChunkUkey> {
+    self.inner.keys()
+  }
+
+  pub fn values(&self) -> impl Iterator<Item = &Chunk> {
+    self.inner.values()
+  }
+
+  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Chunk> {
+    self.inner.values_mut()
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&ChunkUkey, &Chunk)> {
+    self.inner.iter()
+  }
+
+  pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkUkey, &mut Chunk)> {
+    self.inner.iter_mut()
   }
 }
 
-pub fn get_chunk_from_ukey<'a>(
-  ukey: &ChunkUkey,
-  chunk_by_ukey: &'a ChunkByUkey,
-) -> Option<&'a Chunk> {
-  if chunk_by_ukey.contains(ukey) {
-    Some(chunk_by_ukey.expect_get(ukey))
-  } else {
-    None
-  }
+#[derive(Debug, Default, Clone)]
+pub struct ChunkGroupByUkey {
+  inner: Database<ChunkGroup>,
 }
 
-pub fn get_mut_chunk_from_ukey<'a>(
-  ukey: &ChunkUkey,
-  chunk_by_ukey: &'a mut ChunkByUkey,
-) -> Option<&'a mut Chunk> {
-  if chunk_by_ukey.contains(ukey) {
-    Some(chunk_by_ukey.expect_get_mut(ukey))
-  } else {
-    None
+impl ChunkGroupByUkey {
+  pub fn get(&self, ukey: &ChunkGroupUkey) -> Option<&ChunkGroup> {
+    self.inner.get(ukey)
+  }
+
+  pub fn get_mut(&mut self, ukey: &ChunkGroupUkey) -> Option<&mut ChunkGroup> {
+    self.inner.get_mut(ukey)
+  }
+
+  pub fn get_many_mut<const N: usize>(
+    &mut self,
+    ukeys: [&ChunkGroupUkey; N],
+  ) -> Option<[&mut ChunkGroup; N]> {
+    self.inner.get_many_mut(ukeys)
+  }
+
+  pub fn expect_get(&self, ukey: &ChunkGroupUkey) -> &ChunkGroup {
+    self
+      .get(ukey)
+      .unwrap_or_else(|| panic!("ChunkGroup({ukey:?}) not found in ChunkGroupByUkey"))
+  }
+
+  pub fn expect_get_mut(&mut self, ukey: &ChunkGroupUkey) -> &mut ChunkGroup {
+    self
+      .get_mut(ukey)
+      .unwrap_or_else(|| panic!("ChunkGroup({ukey:?}) not found in ChunkGroupByUkey"))
+  }
+
+  pub fn add(&mut self, chunk: ChunkGroup) -> &mut ChunkGroup {
+    self.inner.add(chunk)
+  }
+
+  pub fn remove(&mut self, ukey: &ChunkGroupUkey) -> Option<ChunkGroup> {
+    self.inner.remove(ukey)
+  }
+
+  pub fn entry(
+    &mut self,
+    ukey: ChunkGroupUkey,
+  ) -> std::collections::hash_map::Entry<ChunkGroupUkey, ChunkGroup> {
+    self.inner.entry(ukey)
+  }
+
+  pub fn contains(&self, ukey: &ChunkGroupUkey) -> bool {
+    self.inner.contains(ukey)
+  }
+
+  pub fn keys(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.inner.keys()
+  }
+
+  pub fn values(&self) -> impl Iterator<Item = &ChunkGroup> {
+    self.inner.values()
+  }
+
+  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
+    self.inner.values_mut()
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {
+    self.inner.iter()
+  }
+
+  pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkGroupUkey, &mut ChunkGroup)> {
+    self.inner.iter_mut()
   }
 }

@@ -2,8 +2,9 @@ use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
@@ -106,7 +107,7 @@ fn render_chunk(
   let hot_update_global = &compilation.options.output.hot_update_global;
   let mut source = ConcatSource::default();
 
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     source.add(RawSource::from(format!(
       "{}[{}]('{}', ",
       global_object,
@@ -160,9 +161,8 @@ fn render_chunk(
           &mut render_source,
         )?;
         source.add(render_source.source);
-        let runtime_requirements = compilation
-          .chunk_graph
-          .get_tree_runtime_requirements(chunk_ukey);
+        let runtime_requirements =
+          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
           source.add(RawSource::from("return __webpack_exports__;\n"));
         }

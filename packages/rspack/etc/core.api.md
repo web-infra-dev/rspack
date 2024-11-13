@@ -36,7 +36,6 @@ import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import { JsChunkGroup } from '@rspack/binding';
 import { JsChunkGroupOrigin } from '@rspack/binding';
-import { JsChunkPathData } from '@rspack/binding';
 import type { JsCodegenerationResult } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
 import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
@@ -50,7 +49,6 @@ import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
-import { JsPathData } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -420,8 +418,6 @@ export class Chunk {
     static __from_binding(chunk: JsChunk, compilation: JsCompilation): Chunk;
     // @internal
     __internal__innerUkey(): number;
-    // (undocumented)
-    __internal_to_path_data_chunk(): JsChunkPathData;
     // (undocumented)
     auxiliaryFiles: ReadonlySet<string>;
     // (undocumented)
@@ -2334,14 +2330,17 @@ export type ImportMetaName = string;
 // @public
 export type Incremental = {
     make?: boolean;
-    emitAssets?: boolean;
     inferAsyncModules?: boolean;
     providedExports?: boolean;
     dependenciesDiagnostics?: boolean;
+    buildChunkGraph?: boolean;
     modulesHashes?: boolean;
     modulesCodegen?: boolean;
     modulesRuntimeRequirements?: boolean;
-    buildChunkGraph?: boolean;
+    chunksRuntimeRequirements?: boolean;
+    chunksHashes?: boolean;
+    chunksRender?: boolean;
+    emitAssets?: boolean;
 };
 
 // @public
@@ -4340,8 +4339,23 @@ class ParseStatus {
 export type Path = string;
 
 // @public (undocumented)
-type PathData = Omit<JsPathData, "chunk"> & {
-    chunk?: Chunk | binding.JsChunkPathData;
+type PathData = {
+    filename?: string;
+    hash?: string;
+    contentHash?: string;
+    runtime?: string;
+    url?: string;
+    id?: string;
+    chunk?: Chunk | PathDataChunkLike;
+    contentHashType?: string;
+};
+
+// @public (undocumented)
+type PathDataChunkLike = {
+    id?: string;
+    name?: string;
+    hash?: string;
+    contentHash?: Record<string, string>;
 };
 
 // @public
@@ -6148,34 +6162,43 @@ export const rspackOptions: z.ZodObject<{
         layers: z.ZodOptional<z.ZodBoolean>;
         incremental: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
             make: z.ZodOptional<z.ZodBoolean>;
-            emitAssets: z.ZodOptional<z.ZodBoolean>;
             inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
             providedExports: z.ZodOptional<z.ZodBoolean>;
             dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
             modulesHashes: z.ZodOptional<z.ZodBoolean>;
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
-            buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
+            chunksRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            chunksHashes: z.ZodOptional<z.ZodBoolean>;
+            chunksRender: z.ZodOptional<z.ZodBoolean>;
+            emitAssets: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         }, {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
         rspackFuture: z.ZodOptional<z.ZodObject<{
@@ -6212,13 +6235,16 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -6256,13 +6282,16 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -7135,12 +7164,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve: z.ZodOptional<z.ZodBoolean>;
                 importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7155,12 +7184,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve?: boolean | undefined;
                 importDynamic?: boolean | undefined;
             }, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7196,12 +7225,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve: z.ZodOptional<z.ZodBoolean>;
                 importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7216,12 +7245,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve?: boolean | undefined;
                 importDynamic?: boolean | undefined;
             }, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7257,12 +7286,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve: z.ZodOptional<z.ZodBoolean>;
                 importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7277,12 +7306,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve?: boolean | undefined;
                 importDynamic?: boolean | undefined;
             }, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7318,12 +7347,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve: z.ZodOptional<z.ZodBoolean>;
                 importDynamic: z.ZodOptional<z.ZodBoolean>;
             }, "strict", z.ZodTypeAny, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7338,12 +7367,12 @@ export const rspackOptions: z.ZodObject<{
                 requireResolve?: boolean | undefined;
                 importDynamic?: boolean | undefined;
             }, {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7360,12 +7389,12 @@ export const rspackOptions: z.ZodObject<{
             }>>;
         }, "strict", z.ZodTypeAny, {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7395,12 +7424,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7416,12 +7445,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7437,12 +7466,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7459,12 +7488,12 @@ export const rspackOptions: z.ZodObject<{
             } | undefined;
         }, {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7494,12 +7523,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7515,12 +7544,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7536,12 +7565,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7834,12 +7863,12 @@ export const rspackOptions: z.ZodObject<{
         rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7869,12 +7898,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7890,12 +7919,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7911,12 +7940,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -7982,12 +8011,12 @@ export const rspackOptions: z.ZodObject<{
         rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8017,12 +8046,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8038,12 +8067,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8059,12 +8088,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8152,12 +8181,12 @@ export const rspackOptions: z.ZodObject<{
         rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8187,12 +8216,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8208,12 +8237,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8229,12 +8258,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8360,13 +8389,16 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {
@@ -8757,12 +8789,12 @@ export const rspackOptions: z.ZodObject<{
         rules?: (false | "" | 0 | "..." | t.RuleSetRule | null | undefined)[] | undefined;
         parser?: {
             javascript?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8792,12 +8824,12 @@ export const rspackOptions: z.ZodObject<{
                 } | undefined;
             } | undefined;
             "javascript/auto"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8813,12 +8845,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/dynamic"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8834,12 +8866,12 @@ export const rspackOptions: z.ZodObject<{
                 importDynamic?: boolean | undefined;
             } | undefined;
             "javascript/esm"?: {
-                url?: boolean | "relative" | undefined;
                 dynamicImportMode?: "eager" | "lazy" | "weak" | "lazy-once" | undefined;
                 dynamicImportPreload?: number | boolean | undefined;
                 dynamicImportPrefetch?: number | boolean | undefined;
                 dynamicImportFetchPriority?: "auto" | "low" | "high" | undefined;
                 importMeta?: boolean | undefined;
+                url?: boolean | "relative" | undefined;
                 exprContextCritical?: boolean | undefined;
                 wrappedContextCritical?: boolean | undefined;
                 wrappedContextRegExp?: RegExp | undefined;
@@ -8965,13 +8997,16 @@ export const rspackOptions: z.ZodObject<{
         incremental?: boolean | {
             make?: boolean | undefined;
             providedExports?: boolean | undefined;
-            emitAssets?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            buildChunkGraph?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
-            buildChunkGraph?: boolean | undefined;
+            chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
+            emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
             bundlerInfo?: {

@@ -101,7 +101,7 @@ fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation);
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     unreachable!("HMR is not implemented for module chunk format yet");
   }
 

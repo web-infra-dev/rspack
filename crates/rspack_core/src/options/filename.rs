@@ -102,6 +102,7 @@ impl FilenameTemplate {
     }
   }
 }
+
 impl LocalFilenameFn for NoFilenameFn {
   type Error = Infallible;
 
@@ -109,9 +110,8 @@ impl LocalFilenameFn for NoFilenameFn {
     &self,
     _path_data: &PathData,
     _asset_info: Option<&AssetInfo>,
-    _hash_digest_length: usize,
   ) -> Result<String, Self::Error> {
-    match self.0 {}
+    unreachable!()
   }
 }
 
@@ -130,7 +130,6 @@ pub trait LocalFilenameFn {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-    hash_digest_length: usize,
   ) -> Result<String, Self::Error>;
 }
 
@@ -143,17 +142,13 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-    hash_digest_length: usize,
   ) -> Result<String, Self::Error> {
-    self
-      .deref()
-      .call(path_data, asset_info, hash_digest_length)
-      .map_err(|err| {
-        error!(
-          "Failed to render filename function: {}. Did you return the correct filename?",
-          err.to_string()
-        )
-      })
+    self.deref().call(path_data, asset_info).map_err(|err| {
+      error!(
+        "Failed to render filename function: {}. Did you return the correct filename?",
+        err.to_string()
+      )
+    })
   }
 }
 
@@ -202,20 +197,14 @@ impl<F: LocalFilenameFn> Filename<F> {
     &self,
     options: PathData,
     asset_info: Option<&mut AssetInfo>,
-    hash_digest_length: usize,
   ) -> Result<String, F::Error> {
     let template = match &self.0 {
       FilenameKind::Template(template) => Cow::Borrowed(template.as_str()),
       FilenameKind::Fn(filename_fn) => {
-        Cow::Owned(filename_fn.call(&options, asset_info.as_deref(), hash_digest_length)?)
+        Cow::Owned(filename_fn.call(&options, asset_info.as_deref())?)
       }
     };
-    Ok(render_template(
-      template,
-      options,
-      asset_info,
-      hash_digest_length,
-    ))
+    Ok(render_template(template, options, asset_info))
   }
 }
 
@@ -223,9 +212,9 @@ fn render_template(
   template: Cow<str>,
   options: PathData,
   mut asset_info: Option<&mut AssetInfo>,
-  hash_digest_length: usize,
 ) -> String {
   let mut t = template;
+  // file-level
   if let Some(filename) = options.filename {
     if let Some(caps) = DATA_URI_REGEX.captures(filename) {
       let ext = mime_guess::get_mime_extensions_str(
@@ -298,14 +287,30 @@ fn render_template(
         .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default()));
     }
   }
-  if let Some(content_hash) = options.content_hash.or_else(|| {
-    let chunk = options.chunk?;
-    let content_hash_type = options.content_hash_type?;
-    chunk
-      .content_hash
-      .get(&content_hash_type)
-      .map(|h| h.rendered(hash_digest_length))
-  }) {
+  // compilation-level
+  if let Some(hash) = options.hash {
+    for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
+      t = t.map(|t| {
+        replace_all_placeholder(t, key, |len| {
+          let hash = &hash[..hash_len(hash, len)];
+          if let Some(asset_info) = asset_info.as_mut() {
+            asset_info.set_immutable(Some(true));
+            asset_info.set_full_hash(hash.to_owned());
+          }
+          hash
+        })
+      });
+    }
+  }
+  // shared by chunk-level and module-level
+  if let Some(id) = options.id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
+  } else if let Some(chunk_id) = options.chunk_id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, chunk_id));
+  } else if let Some(module_id) = options.module_id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, module_id));
+  }
+  if let Some(content_hash) = options.content_hash {
     if let Some(asset_info) = asset_info.as_mut() {
       // set version as content hash
       asset_info.version = content_hash.to_string();
@@ -321,51 +326,23 @@ fn render_template(
       })
     });
   }
-  if let Some(hash) = options.hash {
-    for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
-      t = t.map(|t| {
-        replace_all_placeholder(t, key, |len| {
-          let hash = &hash[..hash_len(hash, len)];
-          if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(Some(true));
-            asset_info.set_full_hash(hash.to_owned());
-          }
-          hash
-        })
-      });
-    }
+  // chunk-level
+  if let Some(name) = options.chunk_name {
+    t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
   }
-  if let Some(chunk) = options.chunk {
-    if let Some(id) = options.id.or(chunk.id.as_deref()) {
-      t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
-    }
-    if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
-    }
-    if let Some(d) = chunk.rendered_hash.as_ref() {
-      t = t.map(|t| {
-        let hash = &**d;
-        replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
-          let hash: &str = &hash[..hash_len(hash, len)];
-          if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(Some(true));
-            asset_info.set_chunk_hash(hash.to_owned());
-          }
-          hash
-        })
-      });
-    }
+  if let Some(hash) = options.chunk_hash {
+    t = t.map(|t| {
+      replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
+        let hash: &str = &hash[..hash_len(hash, len)];
+        if let Some(asset_info) = asset_info.as_mut() {
+          asset_info.set_immutable(Some(true));
+          asset_info.set_chunk_hash(hash.to_owned());
+        }
+        hash
+      })
+    });
   }
-
-  if let Some(id) = options.id {
-    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
-  } else if let Some(module) = options.module {
-    if let Some(chunk_graph) = options.chunk_graph {
-      if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
-      }
-    }
-  }
+  // other things
   t = t.map(|t| replace_all_placeholder(t, RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
     t = t.map(|t| replace_all_placeholder(t, URL_PLACEHOLDER, url));

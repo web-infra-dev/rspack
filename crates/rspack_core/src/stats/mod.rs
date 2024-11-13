@@ -4,7 +4,7 @@ use rayon::iter::{
   IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
   ParallelIterator,
 };
-use rspack_collections::IdentifierSet;
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_error::emitter::{
   DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
 };
@@ -52,12 +52,12 @@ impl Stats<'_> {
     let mut compilation_file_to_auxiliary_chunks: HashMap<&String, Vec<&Chunk>> =
       HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
-      for file in &chunk.files {
+      for file in chunk.files() {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }
 
-      for file in &chunk.auxiliary_files {
+      for file in chunk.auxiliary_files() {
         let auxiliary_chunks = compilation_file_to_auxiliary_chunks
           .entry(file)
           .or_default();
@@ -117,16 +117,19 @@ impl Stats<'_> {
     }
     assets.par_iter_mut().for_each(|(name, asset)| {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
-        asset.chunks = chunks.par_iter().map(|chunk| chunk.id.clone()).collect();
+        asset.chunks = chunks
+          .par_iter()
+          .map(|chunk| chunk.id().map(ToOwned::to_owned))
+          .collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
           .par_iter()
-          .filter_map(|chunk| chunk.name.clone())
+          .filter_map(|chunk| chunk.name().map(ToOwned::to_owned))
           .collect::<Vec<_>>();
         asset.chunk_names.sort_unstable();
         asset.chunk_id_hints = chunks
           .par_iter()
-          .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
+          .flat_map(|chunk| chunk.id_name_hints().iter().cloned().collect_vec())
           .collect::<Vec<_>>();
         asset.chunk_id_hints.sort_unstable();
       }
@@ -134,17 +137,17 @@ impl Stats<'_> {
       if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
         asset.auxiliary_chunks = auxiliary_chunks
           .par_iter()
-          .map(|chunk| chunk.id.clone())
+          .map(|chunk| chunk.id().map(ToOwned::to_owned))
           .collect();
         asset.auxiliary_chunks.sort_unstable();
         asset.auxiliary_chunk_names = auxiliary_chunks
           .par_iter()
-          .filter_map(|chunk| chunk.name.clone())
+          .filter_map(|chunk| chunk.name().map(ToOwned::to_owned))
           .collect::<Vec<_>>();
         asset.auxiliary_chunk_names.sort_unstable();
         asset.auxiliary_chunk_id_hints = auxiliary_chunks
           .par_iter()
-          .flat_map(|chunk| chunk.id_name_hints.iter().cloned().collect_vec())
+          .flat_map(|chunk| chunk.id_name_hints().iter().cloned().collect_vec())
           .collect::<Vec<_>>();
         asset.auxiliary_chunk_id_hints.sort_unstable();
       }
@@ -163,7 +166,7 @@ impl Stats<'_> {
     let mut assets_by_chunk_name: HashMap<String, Vec<String>> = HashMap::default();
     for (file, chunks) in compilation_file_to_chunks {
       for chunk in chunks {
-        if let Some(name) = &chunk.name {
+        if let Some(name) = chunk.name() {
           if let Some(assets) = assets_by_chunk_name.get_mut(name) {
             assets.push(file.to_string());
           } else {
@@ -264,24 +267,24 @@ impl Stats<'_> {
       .par_bridge()
       .map(|c| -> Result<_> {
         let files: Vec<_> = {
-          let mut vec = c.files.iter().cloned().collect::<Vec<_>>();
+          let mut vec = c.files().iter().cloned().collect::<Vec<_>>();
           vec.sort_unstable();
           vec
         };
 
         let root_modules = chunk_graph
-          .get_chunk_root_modules(&c.ukey, &module_graph)
+          .get_chunk_root_modules(&c.ukey(), &module_graph)
           .into_iter()
           .collect::<IdentifierSet>();
 
-        let mut auxiliary_files = c.auxiliary_files.iter().cloned().collect::<Vec<_>>();
+        let mut auxiliary_files = c.auxiliary_files().iter().cloned().collect::<Vec<_>>();
         auxiliary_files.sort_unstable();
 
         let chunk_modules = if options.chunk_modules {
           let chunk_modules = self
             .compilation
             .chunk_graph
-            .get_chunk_modules(&c.ukey, &module_graph);
+            .get_chunk_modules(&c.ukey(), &module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| self.get_module(&module_graph, m, false, Some(&root_modules), options))
@@ -313,7 +316,7 @@ impl Stats<'_> {
         }
 
         let origins = c
-          .groups
+          .groups()
           .iter()
           .sorted()
           .flat_map(|ukey| {
@@ -359,30 +362,35 @@ impl Stats<'_> {
           })
           .collect::<Vec<_>>();
 
-        let mut id_hints = c.id_name_hints.iter().cloned().collect_vec();
+        let mut id_hints = c.id_name_hints().iter().cloned().collect_vec();
         id_hints.sort_unstable();
 
         Ok(StatsChunk {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c.id.clone(),
+          id: c.id().map(ToOwned::to_owned),
           id_hints,
-          names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
+          names: c.name().map(|n| vec![n.to_owned()]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-          size: chunk_graph.get_chunk_modules_size(&c.ukey, self.compilation),
+          size: chunk_graph.get_chunk_modules_size(&c.ukey(), self.compilation),
           modules: chunk_modules,
           parents,
           children,
           siblings,
           children_by_order,
-          runtime: c.runtime.clone(),
-          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey, self.compilation),
-          reason: c.chunk_reason.clone(),
-          rendered: c.rendered,
+          runtime: c.runtime().clone(),
+          sizes: chunk_graph.get_chunk_modules_sizes(&c.ukey(), self.compilation),
+          reason: c.chunk_reason().map(ToOwned::to_owned),
+          rendered: c.rendered(),
           origins,
-          hash: c.rendered_hash.as_ref().map(|i| i.to_string()),
+          hash: c
+            .rendered_hash(
+              &self.compilation.chunk_hashes_results,
+              self.compilation.options.output.hash_digest_length,
+            )
+            .map(ToOwned::to_owned),
         })
       })
       .collect::<Result<_>>()?;
@@ -411,7 +419,14 @@ impl Stats<'_> {
     let chunks: Vec<String> = cg
       .chunks
       .iter()
-      .filter_map(|c| self.compilation.chunk_by_ukey.expect_get(c).id.clone())
+      .filter_map(|c| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .expect_get(c)
+          .id()
+          .map(ToOwned::to_owned)
+      })
       .collect();
 
     let assets = cg
@@ -419,7 +434,7 @@ impl Stats<'_> {
       .par_iter()
       .map(|c| {
         let chunk = self.compilation.chunk_by_ukey.expect_get(c);
-        chunk.files.par_iter().map(|file| StatsChunkGroupAsset {
+        chunk.files().par_iter().map(|file| StatsChunkGroupAsset {
           name: file.clone(),
           size: get_asset_size(file, self.compilation),
         })
@@ -433,7 +448,7 @@ impl Stats<'_> {
         .map(|c| {
           let chunk = self.compilation.chunk_by_ukey.expect_get(c);
           chunk
-            .auxiliary_files
+            .auxiliary_files()
             .par_iter()
             .map(|file| StatsChunkGroupAsset {
               name: file.clone(),
@@ -571,10 +586,10 @@ impl Stats<'_> {
           loc: d.loc(),
           file: d.file().map(ToOwned::to_owned),
 
-          chunk_name: chunk.and_then(|c| c.name.clone()),
+          chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id.clone()),
+          chunk_id: chunk.and_then(|c| c.id().map(ToOwned::to_owned)),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -622,10 +637,10 @@ impl Stats<'_> {
           loc: d.loc(),
           file: d.file().map(ToOwned::to_owned),
 
-          chunk_name: chunk.and_then(|c| c.name.clone()),
+          chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id.clone()),
+          chunk_id: chunk.and_then(|c| c.id().map(ToOwned::to_owned)),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -834,7 +849,14 @@ impl Stats<'_> {
           .expect_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
-          .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+          .filter_map(|k| {
+            self
+              .compilation
+              .chunk_by_ukey
+              .expect_get(k)
+              .id()
+              .map(ToOwned::to_owned)
+          })
           .collect()
       };
       chunks.sort_unstable();
@@ -1098,10 +1120,16 @@ impl Stats<'_> {
     let mut chunks: Vec<String> = self
       .compilation
       .chunk_graph
-      .expect_chunk_graph_module(*identifier)
-      .chunks
+      .get_module_chunks(*identifier)
       .iter()
-      .filter_map(|k| self.compilation.chunk_by_ukey.expect_get(k).id.clone())
+      .filter_map(|k| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .expect_get(k)
+          .id()
+          .map(ToOwned::to_owned)
+      })
       .collect();
     chunks.sort_unstable();
 

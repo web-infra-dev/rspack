@@ -10,6 +10,9 @@ module.exports = {
 		@@ ... @@
 		-     "incremental": Object {
 		-       "buildChunkGraph": false,
+		-       "chunksHashes": false,
+		-       "chunksRender": false,
+		-       "chunksRuntimeRequirements": false,
 		-       "dependenciesDiagnostics": false,
 		-       "emitAssets": true,
 		-       "inferAsyncModules": false,
@@ -64,12 +67,11 @@ module.exports = {
 		-     "usedExports": false,
 		+     "usedExports": true,
 		@@ ... @@
-		+   },
+		-   "performance": false,
 		+   "performance": Object {
 		+     "hints": "warning",
 		+     "maxAssetSize": 250000,
 		+     "maxEntrypointSize": 250000,
-		@@ ... @@
-		-   "performance": false,
+		+   },
 	`)
 };

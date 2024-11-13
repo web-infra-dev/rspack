@@ -1,5 +1,5 @@
 use cow_utils::CowUtils;
-use rspack_collections::Identifier;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -69,7 +69,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
 
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
@@ -82,7 +82,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let condition_map =
       compilation
         .chunk_graph
-        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+        .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let root_output_dir = get_output_dir(chunk, compilation, true)?;

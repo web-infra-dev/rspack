@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierSet};
+use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;
@@ -100,11 +100,10 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
 
-    chunk.id = chunk.name.clone();
-    chunk.ids = vec![chunk.id.clone().expect("id is set")];
+    chunk.set_id(chunk.name().map(ToOwned::to_owned));
     let runtime: RuntimeSpec = once("build time".into()).collect();
 
-    chunk.runtime = runtime.clone();
+    chunk.set_runtime(runtime.clone());
 
     let mut entrypoint = Entrypoint::new(crate::ChunkGroupKind::Entrypoint {
       initial: true,
@@ -124,16 +123,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     // add chunk to this compilation
     let chunk = compilation.chunk_by_ukey.add(chunk);
-    let chunk_ukey = chunk.ukey;
+    let chunk_ukey = chunk.ukey();
 
     chunk_graph.connect_chunk_and_entry_module(
-      chunk.ukey,
+      chunk.ukey(),
       entry_module_identifier,
       entrypoint.ukey,
     );
     entrypoint.connect_chunk(chunk);
-    entrypoint.set_runtime_chunk(chunk.ukey);
-    entrypoint.set_entry_point_chunk(chunk.ukey);
+    entrypoint.set_runtime_chunk(chunk.ukey());
+    entrypoint.set_entry_point_chunk(chunk.ukey());
 
     compilation.chunk_group_by_ukey.add(entrypoint);
 
@@ -163,12 +162,16 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.code_generation_modules(&mut None, modules.clone())?;
     compilation
-      .process_runtime_requirements(
-        modules.clone(),
-        once(chunk_ukey),
-        once(chunk_ukey),
+      .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
+      .await?;
+    compilation
+      .process_chunks_runtime_requirements(
+        UkeySet::from_iter([chunk_ukey]),
         compilation.plugin_driver.clone(),
       )
+      .await?;
+    compilation
+      .process_entries_runtime_requirements(once(chunk_ukey), compilation.plugin_driver.clone())
       .await?;
     let runtime_modules = compilation
       .chunk_graph

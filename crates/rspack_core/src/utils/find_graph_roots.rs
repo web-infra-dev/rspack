@@ -212,7 +212,12 @@ pub fn find_graph_roots<
               // It's a in-progress cycle
               let cycle = &db.expect_get(&dependency).cycle;
               if cycle.is_none() {
-                let cycle = cycle_db.create_default_item();
+                let cycle = {
+                  let item = Cycle::<NodeUkey<Item>>::default();
+                  let ukey = item.ukey();
+                  cycle_db.add(item);
+                  cycle_db.get_mut(&ukey).expect("should have item")
+                };
                 cycle.nodes.insert(dependency);
                 db.expect_get_mut(&dependency).cycle = Some(cycle.ukey);
               }

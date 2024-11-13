@@ -14,14 +14,17 @@ pub struct RawExperiments {
 #[napi(object)]
 pub struct RawIncremental {
   pub make: bool,
-  pub emit_assets: bool,
   pub infer_async_modules: bool,
   pub provided_exports: bool,
   pub dependencies_diagnostics: bool,
+  pub build_chunk_graph: bool,
   pub modules_hashes: bool,
   pub modules_codegen: bool,
   pub modules_runtime_requirements: bool,
-  pub build_chunk_graph: bool,
+  pub chunks_runtime_requirements: bool,
+  pub chunks_hashes: bool,
+  pub chunks_render: bool,
+  pub emit_assets: bool,
 }
 
 #[allow(clippy::empty_structs_with_brackets)]

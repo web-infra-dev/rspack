@@ -9,8 +9,6 @@ use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
-use rspack_core::get_chunk_from_ukey;
-use rspack_core::get_chunk_group_from_ukey;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ChunkUkey;
@@ -216,7 +214,7 @@ impl JsCompilation {
       compilation
         .chunk_by_ukey
         .values()
-        .map(JsChunk::from)
+        .map(|c| JsChunk::from(c, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -232,12 +230,12 @@ impl JsCompilation {
   pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunk>> {
     let compilation = self.as_ref()?;
 
-    Ok(
+    Ok(compilation.named_chunks.get(&name).and_then(|c| {
       compilation
-        .named_chunks
-        .get(&name)
-        .and_then(|c| get_chunk_from_ukey(c, &compilation.chunk_by_ukey).map(JsChunk::from)),
-    )
+        .chunk_by_ukey
+        .get(c)
+        .map(|c| JsChunk::from(c, compilation))
+    }))
   }
 
   #[napi]
@@ -256,9 +254,10 @@ impl JsCompilation {
   #[napi]
   pub fn get_named_chunk_group(&self, name: String) -> Result<Option<JsChunkGroup>> {
     let compilation = self.as_ref()?;
-
     Ok(compilation.named_chunk_groups.get(&name).and_then(|c| {
-      get_chunk_group_from_ukey(c, &compilation.chunk_group_by_ukey)
+      compilation
+        .chunk_group_by_ukey
+        .get(c)
         .map(|cg| JsChunkGroup::from_chunk_group(cg, compilation))
     }))
   }
@@ -502,8 +501,7 @@ impl JsCompilation {
   ) -> napi::Result<String> {
     let compilation = self.as_ref()?;
 
-    let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
-    compilation.get_asset_path(&filename.into(), data.to_path_data(chunk.as_ref()))
+    compilation.get_asset_path(&filename.into(), data.to_path_data())
   }
 
   #[napi]
@@ -514,9 +512,8 @@ impl JsCompilation {
   ) -> napi::Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     let path_and_asset_info =
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data(chunk.as_ref()))?;
+      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data())?;
     Ok(path_and_asset_info.into())
   }
 
@@ -524,8 +521,7 @@ impl JsCompilation {
   pub fn get_path(&self, filename: LocalJsFilename, data: JsPathData) -> napi::Result<String> {
     let compilation = self.as_ref()?;
 
-    let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
-    compilation.get_path(&filename.into(), data.to_path_data(chunk.as_ref()))
+    compilation.get_path(&filename.into(), data.to_path_data())
   }
 
   #[napi]
@@ -536,9 +532,8 @@ impl JsCompilation {
   ) -> napi::Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let chunk = data.chunk.as_ref().map(|c| c.to_chunk(compilation));
     let path_and_asset_info =
-      compilation.get_path_with_info(&filename.into(), data.to_path_data(chunk.as_ref()))?;
+      compilation.get_path_with_info(&filename.into(), data.to_path_data())?;
     Ok(path_and_asset_info.into())
   }
 
