@@ -25,7 +25,7 @@ jobs:
     runs-on: [self-hosted, Linux, ci]
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
-      LINUX_RUNNER_EPHEMERAL: ${{ steps.run.outputs.LINU_RUNNERX_EPHEMERAL }}
+      LINUX_RUNNER_EPHEMERAL: ${{ steps.run.outputs.LINUX_RUNNERX_EPHEMERAL }}
 
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
       MACOS_RUNNER_EPHEMERAL: ${{ steps.run.outputs.MACOS_RUNNER_EPHEMERAL }}
