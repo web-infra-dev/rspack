@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{AfterResolveData, BeforeResolveData};
 use rspack_regex::RspackRegex;
 
-use crate::JsDependencyMut;
+use crate::JsDependencyWrapper;
 
 #[napi]
 pub struct JsContextModuleFactoryBeforeResolveData(Box<BeforeResolveData>);
@@ -169,13 +169,13 @@ impl JsContextModuleFactoryAfterResolveData {
     self.0.recursive = recursive;
   }
 
-  #[napi(getter)]
-  pub fn dependencies(&mut self) -> Vec<JsDependencyMut> {
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn dependencies(&self) -> Vec<JsDependencyWrapper> {
     self
       .0
       .dependencies
-      .iter_mut()
-      .map(JsDependencyMut::new)
+      .iter()
+      .map(|dep| JsDependencyWrapper::new(dep.as_ref(), self.0.compilation_id, None))
       .collect::<Vec<_>>()
   }
 }

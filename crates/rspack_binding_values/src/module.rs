@@ -3,9 +3,8 @@ use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, Compilation, CompilationId, DependenciesBlock, ExportsArgument, Module,
-  ModuleArgument, ModuleGraph, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
+  ExportsArgument, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -13,71 +12,12 @@ use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults, JsDependency};
+use crate::{JsChunk, JsCodegenerationResults, JsDependenciesBlockWrapper, JsDependencyWrapper};
 
 #[derive(Default)]
 #[napi(object)]
 pub struct JsFactoryMeta {
   pub side_effect_free: Option<bool>,
-}
-
-#[napi]
-pub struct JsDependenciesBlock {
-  block_id: AsyncDependenciesBlockIdentifier,
-  compilation: NonNull<Compilation>,
-}
-
-impl JsDependenciesBlock {
-  pub fn new(block_id: AsyncDependenciesBlockIdentifier, compilation: *const Compilation) -> Self {
-    #[allow(clippy::unwrap_used)]
-    Self {
-      block_id,
-      compilation: NonNull::new(compilation as *mut Compilation).unwrap(),
-    }
-  }
-
-  fn block<'a>(&self, module_graph: &'a ModuleGraph) -> &'a AsyncDependenciesBlock {
-    module_graph.block_by_id(&self.block_id).unwrap_or_else(|| {
-      panic!(
-        "Cannot find block with id = {:?}. It might have been removed on the Rust side.",
-        self.block_id
-      )
-    })
-  }
-}
-
-#[napi]
-impl JsDependenciesBlock {
-  #[napi(getter)]
-  pub fn dependencies(&self) -> Vec<JsDependency> {
-    let compilation = unsafe { self.compilation.as_ref() };
-
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    block
-      .get_dependencies()
-      .iter()
-      .filter_map(|dependency_id| {
-        module_graph
-          .dependency_by_id(dependency_id)
-          .map(JsDependency::new)
-      })
-      .collect::<Vec<_>>()
-  }
-
-  #[napi(getter)]
-  pub fn blocks(&self) -> Vec<JsDependenciesBlock> {
-    let compilation = unsafe { self.compilation.as_ref() };
-
-    let module_graph = compilation.get_module_graph();
-    let block = self.block(&module_graph);
-    let blocks = block.get_blocks();
-    blocks
-      .iter()
-      .cloned()
-      .map(|block_id| JsDependenciesBlock::new(block_id, self.compilation.as_ptr()))
-      .collect::<Vec<_>>()
-  }
 }
 
 #[napi]
@@ -89,18 +29,7 @@ pub struct JsModule {
 }
 
 impl JsModule {
-  fn attach(&mut self, compilation: NonNull<Compilation>) {
-    if self.compilation.is_none() {
-      self.compilation = Some(compilation);
-    }
-  }
-
   fn as_ref(&mut self) -> napi::Result<&'static dyn Module> {
-    let module = unsafe { self.module.as_ref() };
-    if module.identifier() == self.identifier {
-      return Ok(module);
-    }
-
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
@@ -109,26 +38,26 @@ impl JsModule {
           #[allow(clippy::unwrap_used)]
           NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap()
         };
-        return Ok(module);
+        Ok(module)
+      } else {
+        Err(napi::Error::from_reason(format!(
+          "Unable to access module with id = {} now. The module have been removed on the Rust side.",
+          self.identifier
+        )))
       }
+    } else {
+      // SAFETY:
+      // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+      // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+      Ok(unsafe { self.module.as_ref() })
     }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
-      self.identifier
-    )))
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut dyn Module> {
-    let module = unsafe { self.module.as_mut() };
-    if module.identifier() == self.identifier {
-      return Ok(module);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access module with id = {} now. The module have been removed on the Rust side.",
-      self.identifier
-    )))
+    // SAFETY:
+    // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
+    // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
+    Ok(unsafe { self.module.as_mut() })
   }
 }
 
@@ -256,17 +185,22 @@ impl JsModule {
     })
   }
 
-  #[napi(getter)]
-  pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlock>> {
+  #[napi(getter, ts_return_type = "JsDependenciesBlock[]")]
+  pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlockWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
+        let compilation = unsafe { compilation.as_ref() };
+        let module_graph = compilation.get_module_graph();
         let module = self.as_ref()?;
 
         let blocks = module.get_blocks();
         blocks
           .iter()
-          .cloned()
-          .map(|block_id| JsDependenciesBlock::new(block_id, compilation.as_ptr()))
+          .filter_map(|block_id| {
+            module_graph
+              .block_by_id(block_id)
+              .map(|block| JsDependenciesBlockWrapper::new(block, compilation))
+          })
           .collect::<Vec<_>>()
       }
       None => {
@@ -275,8 +209,8 @@ impl JsModule {
     })
   }
 
-  #[napi(getter)]
-  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependency>> {
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
     Ok(match self.compilation {
       Some(compilation) => {
         let compilation = unsafe { compilation.as_ref() };
@@ -286,9 +220,10 @@ impl JsModule {
         dependencies
           .iter()
           .filter_map(|dependency_id| {
-            module_graph
-              .dependency_by_id(dependency_id)
-              .map(JsDependency::new)
+            module_graph.dependency_by_id(dependency_id).map(|dep| {
+              let compilation = unsafe { self.compilation.map(|c| c.as_ref()) };
+              JsDependencyWrapper::new(dep.as_ref(), self.compilation_id, compilation)
+            })
           })
           .collect::<Vec<_>>()
       }
@@ -418,11 +353,8 @@ impl ToNapiValue for JsModuleWrapper {
         std::collections::hash_map::Entry::Occupied(entry) => {
           let r = entry.get();
           let instance = r.from_napi_mut_ref()?;
-          if let Some(compilation) = val.compilation {
-            instance.attach(compilation);
-          } else {
-            instance.module = val.module;
-          }
+          instance.compilation = val.compilation;
+          instance.module = val.module;
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(entry) => {

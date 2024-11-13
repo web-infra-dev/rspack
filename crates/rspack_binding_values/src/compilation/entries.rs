@@ -2,7 +2,9 @@ use napi_derive::napi;
 use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime};
 use rspack_napi::napi::bindgen_prelude::*;
 
-use crate::{dependency::JsDependency, entry::JsEntryOptions, library::JsLibraryOptions};
+use crate::{
+  dependency::JsDependency, entry::JsEntryOptions, library::JsLibraryOptions, JsDependencyWrapper,
+};
 
 #[napi]
 pub struct EntryOptionsDTO(EntryOptions);
@@ -163,12 +165,12 @@ impl From<JsEntryData> for EntryData {
       dependencies: value
         .dependencies
         .into_iter()
-        .map(|dep| *dep.id())
+        .map(|dep| dep.dependency_id)
         .collect::<Vec<_>>(),
       include_dependencies: value
         .include_dependencies
         .into_iter()
-        .map(|dep| *dep.id())
+        .map(|dep| dep.dependency_id)
         .collect::<Vec<_>>(),
       options: value.options.into(),
     }
@@ -183,8 +185,8 @@ pub struct EntryDataDTO {
 
 #[napi]
 impl EntryDataDTO {
-  #[napi(getter)]
-  pub fn dependencies(&'static self) -> Vec<JsDependency> {
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
@@ -193,13 +195,13 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependency::new(dep)
+        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }
 
-  #[napi(getter)]
-  pub fn include_dependencies(&'static self) -> Vec<JsDependency> {
+  #[napi(getter, ts_return_type = "JsDependency[]")]
+  pub fn include_dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
@@ -208,7 +210,7 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependency::new(dep)
+        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }
