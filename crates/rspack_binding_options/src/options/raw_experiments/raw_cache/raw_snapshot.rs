@@ -6,8 +6,11 @@ use rspack_regex::RspackRegex;
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawExperimentSnapshotOptions {
+  #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub immutable_paths: Vec<RawPathMatcher>,
+  #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub unmanaged_paths: Vec<RawPathMatcher>,
+  #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub managed_paths: Vec<RawPathMatcher>,
 }
 

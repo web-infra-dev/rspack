@@ -4,7 +4,7 @@ mod raw_storage;
 use napi::Either;
 use napi_derive::napi;
 use raw_snapshot::RawExperimentSnapshotOptions;
-use raw_storage::RawStorageOption;
+use raw_storage::RawStorageOptions;
 use rspack_core::{cache::persistent::PersistentCacheOptions, ExperimentCacheOptions};
 
 pub type RawExperimentCacheOptions =
@@ -25,7 +25,7 @@ pub struct RawExperimentCacheOptionsPersistent {
   //  pub build_dependencies: Vec<String>,
   //  pub version: String,
   pub snapshot: RawExperimentSnapshotOptions,
-  pub storage: Vec<RawStorageOption>,
+  pub storage: Vec<RawStorageOptions>,
 }
 
 pub fn normalize_raw_experiment_cache_options(

@@ -1872,7 +1872,10 @@ export type ExperimentCacheOptions = boolean | {
         unmanagedPaths: Array<string | RegExp>;
         managedPaths: Array<string | RegExp>;
     };
-    storage: Array<{}>;
+    storage: {
+        type: "filesystem";
+        directory: string;
+    };
 };
 
 // @public
@@ -1908,7 +1911,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     asyncWebAssembly?: boolean;
     // (undocumented)
-    cache: ExperimentCacheOptions;
+    cache?: ExperimentCacheOptions;
     // (undocumented)
     css?: boolean;
     // (undocumented)
@@ -6074,6 +6077,60 @@ export const rspackOptions: z.ZodObject<{
     target: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022"]>, z.ZodLiteral<"node">, z.ZodLiteral<"async-node">, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>, z.ZodLiteral<"electron-main">, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>, z.ZodLiteral<"electron-renderer">, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>, z.ZodLiteral<"electron-preload">, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>, z.ZodLiteral<"nwjs">, z.ZodType<`nwjs${number}`, z.ZodTypeDef, `nwjs${number}`>, z.ZodType<`nwjs${number}.${number}`, z.ZodTypeDef, `nwjs${number}.${number}`>, z.ZodLiteral<"node-webkit">, z.ZodType<`node-webkit${number}`, z.ZodTypeDef, `node-webkit${number}`>, z.ZodType<`node-webkit${number}.${number}`, z.ZodTypeDef, `node-webkit${number}.${number}`>, z.ZodLiteral<"browserslist">, z.ZodType<`browserslist:${string}`, z.ZodTypeDef, `browserslist:${string}`>]>, z.ZodArray<z.ZodUnion<[z.ZodEnum<["web", "webworker", "es3", "es5", "es2015", "es2016", "es2017", "es2018", "es2019", "es2020", "es2021", "es2022"]>, z.ZodLiteral<"node">, z.ZodLiteral<"async-node">, z.ZodType<`node${number}`, z.ZodTypeDef, `node${number}`>, z.ZodType<`async-node${number}`, z.ZodTypeDef, `async-node${number}`>, z.ZodType<`node${number}.${number}`, z.ZodTypeDef, `node${number}.${number}`>, z.ZodType<`async-node${number}.${number}`, z.ZodTypeDef, `async-node${number}.${number}`>, z.ZodLiteral<"electron-main">, z.ZodType<`electron${number}-main`, z.ZodTypeDef, `electron${number}-main`>, z.ZodType<`electron${number}.${number}-main`, z.ZodTypeDef, `electron${number}.${number}-main`>, z.ZodLiteral<"electron-renderer">, z.ZodType<`electron${number}-renderer`, z.ZodTypeDef, `electron${number}-renderer`>, z.ZodType<`electron${number}.${number}-renderer`, z.ZodTypeDef, `electron${number}.${number}-renderer`>, z.ZodLiteral<"electron-preload">, z.ZodType<`electron${number}-preload`, z.ZodTypeDef, `electron${number}-preload`>, z.ZodType<`electron${number}.${number}-preload`, z.ZodTypeDef, `electron${number}.${number}-preload`>, z.ZodLiteral<"nwjs">, z.ZodType<`nwjs${number}`, z.ZodTypeDef, `nwjs${number}`>, z.ZodType<`nwjs${number}.${number}`, z.ZodTypeDef, `nwjs${number}.${number}`>, z.ZodLiteral<"node-webkit">, z.ZodType<`node-webkit${number}`, z.ZodTypeDef, `node-webkit${number}`>, z.ZodType<`node-webkit${number}.${number}`, z.ZodTypeDef, `node-webkit${number}.${number}`>, z.ZodLiteral<"browserslist">, z.ZodType<`browserslist:${string}`, z.ZodTypeDef, `browserslist:${string}`>]>, "many">]>>;
     mode: z.ZodOptional<z.ZodEnum<["development", "production", "none"]>>;
     experiments: z.ZodOptional<z.ZodObject<{
+        cache: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodUnion<[z.ZodObject<{
+            type: z.ZodEnum<["disable", "memory"]>;
+        }, "strip", z.ZodTypeAny, {
+            type: "disable" | "memory";
+        }, {
+            type: "disable" | "memory";
+        }>, z.ZodObject<{
+            type: z.ZodEnum<["persistent"]>;
+            snapshot: z.ZodObject<{
+                immutablePaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
+                unmanagedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
+                managedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
+            }, "strict", z.ZodTypeAny, {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            }, {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            }>;
+            storage: z.ZodObject<{
+                type: z.ZodEnum<["filesystem"]>;
+                directory: z.ZodString;
+            }, "strict", z.ZodTypeAny, {
+                type: "filesystem";
+                directory: string;
+            }, {
+                type: "filesystem";
+                directory: string;
+            }>;
+        }, "strip", z.ZodTypeAny, {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        }, {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        }>]>]>;
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
                 client: z.ZodOptional<z.ZodString>;
@@ -6248,6 +6305,20 @@ export const rspackOptions: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         css?: boolean | undefined;
+        cache?: boolean | {
+            type: "disable" | "memory";
+        } | {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
         incremental?: boolean | {
@@ -6295,6 +6366,20 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
     }, {
         css?: boolean | undefined;
+        cache?: boolean | {
+            type: "disable" | "memory";
+        } | {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
         incremental?: boolean | {
@@ -8402,6 +8487,20 @@ export const rspackOptions: z.ZodObject<{
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         css?: boolean | undefined;
+        cache?: boolean | {
+            type: "disable" | "memory";
+        } | {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
         incremental?: boolean | {
@@ -9010,6 +9109,20 @@ export const rspackOptions: z.ZodObject<{
     mode?: "none" | "development" | "production" | undefined;
     experiments?: {
         css?: boolean | undefined;
+        cache?: boolean | {
+            type: "disable" | "memory";
+        } | {
+            type: "persistent";
+            snapshot: {
+                immutablePaths: (string | RegExp)[];
+                unmanagedPaths: (string | RegExp)[];
+                managedPaths: (string | RegExp)[];
+            };
+            storage: {
+                type: "filesystem";
+                directory: string;
+            };
+        } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
         incremental?: boolean | {

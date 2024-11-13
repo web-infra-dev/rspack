@@ -2327,7 +2327,10 @@ export type ExperimentCacheOptions =
 				unmanagedPaths: Array<string | RegExp>;
 				managedPaths: Array<string | RegExp>;
 			};
-			storage: Array<{}>;
+			storage: {
+				type: "filesystem";
+				directory: string;
+			};
 	  };
 
 /**

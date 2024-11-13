@@ -46,9 +46,10 @@ impl Snapshot {
     let default_strategy = StrategyHelper::compile_time();
     let mut helper = StrategyHelper::new(self.fs.clone());
     // TODO use multi thread
+    // TODO merge lib version file
     for path in paths {
       // TODO check path exists
-      // TODO check directory
+      // TODO directory check all sub file
       let path_str = path.as_str();
       if self.options.is_immutable_path(path_str) {
         continue;

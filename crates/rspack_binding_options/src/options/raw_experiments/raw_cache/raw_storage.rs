@@ -3,17 +3,14 @@ use rspack_core::cache::persistent::storage::StorageOptions;
 
 #[derive(Debug, Default)]
 #[napi(object)]
-pub struct RawFileSystemOption {
+pub struct RawStorageOptions {
   #[napi(ts_type = r#""filesystem""#)]
   pub r#type: String,
   pub directory: String,
 }
 
-// If we have multiple `Storage`, change to `napi::Either`
-pub type RawStorageOption = RawFileSystemOption;
-
-impl From<RawStorageOption> for StorageOptions {
-  fn from(_value: RawStorageOption) -> Self {
+impl From<RawStorageOptions> for StorageOptions {
+  fn from(_value: RawStorageOptions) -> Self {
     StorageOptions::FileSystem
   }
 }

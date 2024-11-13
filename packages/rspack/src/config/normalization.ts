@@ -305,10 +305,7 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
-			cache:
-				experiments.cache === undefined
-					? config.mode === "development"
-					: experiments.cache,
+			cache: experiments.cache,
 			lazyCompilation: optionalNestedConfig(
 				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
@@ -539,7 +536,7 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
-	cache: ExperimentCacheOptions;
+	cache?: ExperimentCacheOptions;
 	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;

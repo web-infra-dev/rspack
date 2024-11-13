@@ -1343,7 +1343,7 @@ export interface RawExperimentCacheOptionsCommon {
 export interface RawExperimentCacheOptionsPersistent {
   type: "persistent"
   snapshot: RawExperimentSnapshotOptions
-  storage: Array<RawStorageOption>
+  storage: Array<RawStorageOptions>
 }
 
 export interface RawExperiments {
@@ -1355,9 +1355,9 @@ export interface RawExperiments {
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<RawPathMatcher>
-  unmanagedPaths: Array<RawPathMatcher>
-  managedPaths: Array<RawPathMatcher>
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1404,11 +1404,6 @@ export interface RawFallbackCacheGroupOptions {
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
   automaticNameDelimiter?: string
-}
-
-export interface RawFileSystemOption {
-  type: "filesystem"
-  directory: string
 }
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
@@ -1960,6 +1955,11 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawStorageOptions {
+  type: "filesystem"
+  directory: string
 }
 
 export interface RawSwcJsMinimizerOptions {
