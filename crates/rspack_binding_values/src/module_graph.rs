@@ -13,6 +13,13 @@ pub struct JsModuleGraph {
 }
 
 impl JsModuleGraph {
+  pub fn new(compilation: &Compilation) -> Self {
+    #[allow(clippy::unwrap_used)]
+    JsModuleGraph {
+      compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+    }
+  }
+
   fn as_ref(&self) -> napi::Result<(&'static Compilation, ModuleGraph<'static>)> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
@@ -26,7 +33,7 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModule | null")]
   pub fn get_module(&self, js_dependency: &JsDependency) -> napi::Result<Option<JsModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
-    let module = module_graph.get_module_by_dependency_id(&js_dependency.id());
+    let module = module_graph.get_module_by_dependency_id(&js_dependency.dependency_id);
     let js_module = module
       .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(&compilation)));
     Ok(js_module)

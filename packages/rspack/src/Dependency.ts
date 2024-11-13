@@ -1,6 +1,8 @@
 import type { JsDependency } from "@rspack/binding";
 
 export class Dependency {
+	#inner: JsDependency;
+
 	declare readonly type: string;
 	declare readonly category: string;
 	declare readonly request: string | undefined;
@@ -10,7 +12,13 @@ export class Dependency {
 		return new Dependency(binding);
 	}
 
+	static __to_binding(data: Dependency): JsDependency {
+		return data.#inner;
+	}
+
 	private constructor(binding: JsDependency) {
+		this.#inner = binding;
+
 		Object.defineProperties(this, {
 			type: {
 				enumerable: true,
