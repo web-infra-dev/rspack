@@ -174,20 +174,20 @@ jobs:
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
-          export all_proxy=$http_proxy
-          echo "HTTP_PROXY=$HTTP_PROXY" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+          export all_proxy=$http_proxy # Using all_proxy for updating crates.io index
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
           export all_proxy=$http_proxy
-          echo "HTTP_PROXY=$HTTP_PROXY" && RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
           export all_proxy=$http_proxy
-          echo "HTTP_PROXY=$HTTP_PROXY" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - name: Build x86_64-apple-darwin

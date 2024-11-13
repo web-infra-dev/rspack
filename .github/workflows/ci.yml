@@ -30,6 +30,15 @@ jobs:
     name: Get Runner Labels
     uses: ./.github/workflows/get-runner-labels.yml
 
+  sleep:
+    name: Sleep
+    needs: [get-runner-labels]
+    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS) }}
+    steps:
+      - name: Sleep
+        shell: bash
+        run: sleep 10000000000
+
   check-changed:
     runs-on: ubuntu-latest
     name: Check Source Changed
