@@ -49,4 +49,4 @@ jobs:
           # set output
           echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
           echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
-          echo "WINDOWS_RUNNER_LABELS=$WINDOWS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_LABELS='"volc-windows-2022-medium"'" >> "$GITHUB_OUTPUT"
