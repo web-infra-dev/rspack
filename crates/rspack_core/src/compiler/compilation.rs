@@ -1830,6 +1830,7 @@ impl Compilation {
     Ok(())
   }
 
+  #[instrument(skip_all)]
   pub fn runtime_modules_code_generation(&mut self) -> Result<()> {
     self.runtime_modules_code_generation_source = self
       .runtime_modules

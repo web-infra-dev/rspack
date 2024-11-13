@@ -6170,6 +6170,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
             chunksRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
+            chunksHashes: z.ZodOptional<z.ZodBoolean>;
+            chunksRender: z.ZodOptional<z.ZodBoolean>;
             emitAssets: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             make?: boolean | undefined;
@@ -6181,6 +6183,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         }, {
             make?: boolean | undefined;
@@ -6192,6 +6196,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         }>]>>;
         futureDefaults: z.ZodOptional<z.ZodBoolean>;
@@ -6236,6 +6242,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
@@ -6281,6 +6289,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
@@ -8386,6 +8396,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {
@@ -8992,6 +9004,8 @@ export const rspackOptions: z.ZodObject<{
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
             chunksRuntimeRequirements?: boolean | undefined;
+            chunksHashes?: boolean | undefined;
+            chunksRender?: boolean | undefined;
             emitAssets?: boolean | undefined;
         } | undefined;
         rspackFuture?: {

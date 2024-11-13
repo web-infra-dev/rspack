@@ -1286,6 +1286,8 @@ const incremental = z.strictObject({
 	modulesCodegen: z.boolean().optional(),
 	modulesRuntimeRequirements: z.boolean().optional(),
 	chunksRuntimeRequirements: z.boolean().optional(),
+	chunksHashes: z.boolean().optional(),
+	chunksRender: z.boolean().optional(),
 	emitAssets: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
