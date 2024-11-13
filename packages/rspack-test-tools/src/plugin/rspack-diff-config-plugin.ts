@@ -46,7 +46,9 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 		options.output.environment.optionalChaining ??= false;
 		options.output.environment.templateLiteral ??= false;
 
-		options.experiments ??= {};
+		options.experiments ??= {
+			cache: false
+		};
 		options.experiments.rspackFuture ??= {};
 
 		if (typeof this.modifier === "function") {

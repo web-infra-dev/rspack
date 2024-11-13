@@ -3,18 +3,19 @@ mod raw_incremental;
 mod raw_rspack_future;
 
 use napi_derive::napi;
-use raw_cache::RawExperimentCacheOptions;
+use raw_cache::{normalize_raw_experiment_cache_options, RawExperimentCacheOptions};
 use raw_incremental::RawIncremental;
 use raw_rspack_future::RawRspackFuture;
 use rspack_core::{incremental::IncrementalPasses, Experiments};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 #[napi(object)]
 pub struct RawExperiments {
   pub layers: bool,
   pub top_level_await: bool,
   pub incremental: Option<RawIncremental>,
   pub rspack_future: RawRspackFuture,
+  #[napi(ts_type = r#"RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon"#)]
   pub cache: RawExperimentCacheOptions,
 }
 
@@ -28,7 +29,7 @@ impl From<RawExperiments> for Experiments {
       layers: value.layers,
       top_level_await: value.top_level_await,
       rspack_future: value.rspack_future.into(),
-      cache: value.cache.into(),
+      cache: normalize_raw_experiment_cache_options(value.cache),
     }
   }
 }

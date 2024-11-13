@@ -13,6 +13,7 @@ import {
 	type RawCssModuleGeneratorOptions,
 	type RawCssModuleParserOptions,
 	type RawCssParserOptions,
+	type RawExperiments,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawIncremental,
@@ -56,6 +57,7 @@ import type {
 	CssAutoGeneratorOptions,
 	CssGeneratorOptions,
 	CssParserOptions,
+	ExperimentCacheOptions,
 	GeneratorOptionsByModuleType,
 	Incremental,
 	JavascriptParserOptions,
@@ -883,7 +885,8 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, layers, incremental, rspackFuture } = experiments;
+	const { topLevelAwait, layers, incremental, rspackFuture, cache } =
+		experiments;
 	assert(
 		!isNil(topLevelAwait) &&
 			!isNil(rspackFuture) &&
@@ -894,9 +897,21 @@ function getRawExperiments(
 	return {
 		layers,
 		topLevelAwait,
+		cache: getRawExperimentCache(cache),
 		incremental: getRawIncremental(incremental),
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
+}
+
+function getRawExperimentCache(
+	cache: ExperimentCacheOptions
+): RawExperiments["cache"] {
+	if (typeof cache === "boolean") {
+		return {
+			type: cache ? "memory" : "disable"
+		};
+	}
+	return cache;
 }
 
 function getRawIncremental(

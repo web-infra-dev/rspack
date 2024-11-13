@@ -5,7 +5,7 @@ use rspack_regex::RspackRegex;
 
 #[derive(Debug, Default)]
 #[napi(object)]
-pub struct RawSnapshotOptions {
+pub struct RawExperimentSnapshotOptions {
   pub immutable_paths: Vec<RawPathMatcher>,
   pub unmanaged_paths: Vec<RawPathMatcher>,
   pub managed_paths: Vec<RawPathMatcher>,
@@ -13,8 +13,8 @@ pub struct RawSnapshotOptions {
 
 type RawPathMatcher = Either<String, RspackRegex>;
 
-impl From<RawSnapshotOptions> for SnapshotOptions {
-  fn from(value: RawSnapshotOptions) -> Self {
+impl From<RawExperimentSnapshotOptions> for SnapshotOptions {
+  fn from(value: RawExperimentSnapshotOptions) -> Self {
     SnapshotOptions::new(
       value
         .immutable_paths

@@ -1336,9 +1336,13 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptions {
-  type: "disable"|"memory"|"persistent"
-  snapshot: RawSnapshotOptions
+export interface RawExperimentCacheOptionsCommon {
+  type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsPersistent {
+  type: "persistent"
+  snapshot: RawExperimentSnapshotOptions
   storage: Array<RawStorageOption>
 }
 
@@ -1347,7 +1351,13 @@ export interface RawExperiments {
   topLevelAwait: boolean
   incremental?: RawIncremental
   rspackFuture: RawRspackFuture
-  cache: RawExperimentCacheOptions
+  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+}
+
+export interface RawExperimentSnapshotOptions {
+  immutablePaths: Array<RawPathMatcher>
+  unmanagedPaths: Array<RawPathMatcher>
+  managedPaths: Array<RawPathMatcher>
 }
 
 export interface RawExposeOptions {
@@ -1902,12 +1912,6 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
-}
-
-export interface RawSnapshotOptions {
-  immutablePaths: Array<RawPathMatcher>
-  unmanagedPaths: Array<RawPathMatcher>
-  managedPaths: Array<RawPathMatcher>
 }
 
 export interface RawSnapshotOptions {

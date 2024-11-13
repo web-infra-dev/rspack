@@ -2305,6 +2305,32 @@ export type Optimization = {
 
 //#region Experiments
 /**
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
+ */
+export type ExperimentCacheOptions =
+	| boolean
+	| {
+			type: "disable" | "memory";
+	  }
+	| {
+			type: "persistent";
+			snapshot: {
+				immutablePaths: Array<string | RegExp>;
+				unmanagedPaths: Array<string | RegExp>;
+				managedPaths: Array<string | RegExp>;
+			};
+			storage: Array<{}>;
+	  };
+
+/**
  * Options for future Rspack features.
  */
 export type RspackFutureOptions = {
@@ -2469,6 +2495,10 @@ export type Incremental = {
  * Experimental features configuration.
  */
 export type Experiments = {
+	/**
+	 * Enable new cache.
+	 */
+	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
 	 */
