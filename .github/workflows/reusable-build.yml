@@ -53,6 +53,9 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      ephemeral: # if the runner will automate clean up after a build
+        required: true
+        type: boolean
 
 jobs:
   build:
@@ -69,10 +72,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.ephemeral }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && !inputs.ephemeral }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -106,7 +109,7 @@ jobs:
 
       - name: Check local cache
         id: check_cache
-        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
+        if: ${{ inputs.profile == 'debug' && !inputs.ephemeral && !inputs.skipable }}
         shell: bash
         run: |
           set -e
@@ -189,7 +192,7 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
-          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+          if [[ "${{ inputs.ephemeral }}" == "true" ]]; then
             # Github runner
             sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
           fi
@@ -218,10 +221,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.ephemeral }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.ephemeral }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -270,10 +273,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.ephemeral }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && !inputs.ephemeral }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}

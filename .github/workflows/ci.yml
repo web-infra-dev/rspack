@@ -64,6 +64,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_EPHEMERAL }}
 
   test-release-linux:
     name: Test Release Linux
@@ -81,6 +82,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_EPHEMERAL }}
 
   test-windows:
     name: Test Windows
@@ -91,6 +93,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_EPHEMERAL }}
 
   test-release-windows:
     name: Test Release Windows
@@ -107,6 +110,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_EPHEMERAL }}
 
   test-mac:
     name: Test Mac
@@ -118,6 +122,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_EPHEMERAL }}
 
   test-release-mac:
     name: Test Release Mac
@@ -133,6 +138,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      ephemeral: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_EPHEMERAL }}
 
   cargo-deny:
     name: Check license of dependencies

@@ -25,8 +25,13 @@ jobs:
     runs-on: [self-hosted, Linux, ci]
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
+      LINUX_RUNNER_EPHEMERAL: ${{ steps.run.outputs.LINU_RUNNERX_EPHEMERAL }}
+
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
+      MACOS_RUNNER_EPHEMERAL: ${{ steps.run.outputs.MACOS_RUNNER_EPHEMERAL }}
+
       WINDOWS_RUNNER_LABELS: ${{ steps.run.outputs.WINDOWS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_EPHEMERAL: ${{ steps.run.outputs.WINDOWS_RUNNER_EPHEMERAL }}
     steps:
       - id: run
         shell: bash
@@ -46,7 +51,24 @@ jobs:
           if [[ -z "$WINDOWS_RUNNER_LABELS" ]]; then
             WINDOWS_RUNNER_LABELS='"windows-latest"';
           fi
+
+          if [[ "$LINUX_RUNNER_LABELS" == rspack-* ]]; then
+            LINUX_RUNNER_EPHEMERAL="false"
+          else
+            LINUX_RUNNER_EPHEMERAL="true"
+          fi
+          if [[ "$LINUX_RUNNER_LABELS" == rspack-* ]]; then
+            MACOS_RUNNER_EPHEMERAL="false"
+          else
+            MACOS_RUNNER_EPHEMERAL="true"
+          fi
+
           # set output
           echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "LINUX_RUNNER_EPHEMERAL=$LINUX_RUNNER_EPHEMERAL" >> "$GITHUB_OUTPUT"
+
           echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "MACOS_RUNNER_EPHEMERAL=$MACOS_RUNNER_EPHEMERAL" >> "$GITHUB_OUTPUT"
+
           echo "WINDOWS_RUNNER_LABELS='"volc-windows-2022-medium"'" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_EPHEMERAL='true'" >> "$GITHUB_OUTPUT"
