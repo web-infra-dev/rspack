@@ -20,8 +20,8 @@ export declare class ExternalObject<T> {
   }
 }
 export declare class EntryDataDto {
-  get dependencies(): Array<JsDependency>
-  get includeDependencies(): Array<JsDependency>
+  get dependencies(): JsDependency[]
+  get includeDependencies(): JsDependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -108,7 +108,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): Array<JsDependencyMut>
+  get dependencies(): JsDependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -138,18 +138,11 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): Array<JsDependency>
-  get blocks(): Array<JsDependenciesBlock>
+  get dependencies(): JsDependency[]
+  get blocks(): JsDependenciesBlock[]
 }
 
 export declare class JsDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-}
-
-export declare class JsDependencyMut {
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -181,8 +174,8 @@ export declare class JsModule {
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
-  get blocks(): Array<JsDependenciesBlock>
-  get dependencies(): Array<JsDependency>
+  get blocks(): JsDependenciesBlock[]
+  get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean

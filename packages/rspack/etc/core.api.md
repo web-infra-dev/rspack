@@ -42,8 +42,7 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import { JsDependency } from '@rspack/binding';
-import { JsDependencyMut } from '@rspack/binding';
+import type { JsDependency } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -1315,7 +1314,7 @@ class DependenciesBlock {
 // @public (undocumented)
 class Dependency {
     // (undocumented)
-    static __from_binding(binding: JsDependencyMut | JsDependency): Dependency;
+    static __from_binding(binding: JsDependency): Dependency;
     // (undocumented)
     readonly category: string;
     // (undocumented)

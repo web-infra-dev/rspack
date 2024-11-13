@@ -19,6 +19,7 @@ use crate::{
 };
 
 pub struct MakeTaskContext {
+  // compilation info
   pub compilation_id: CompilationId,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
