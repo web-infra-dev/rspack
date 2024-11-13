@@ -9,11 +9,14 @@ inputs:
   path:
     description: "A file, directory or wildcard pattern that describes what to upload"
     required: true
-  try-local-cache:
-    description: "Try use local cache to save artifact"
-    default: false
-    required: false
-    type: boolean
+  type:
+    description: "Use github or local or lynx cache"
+    required: true
+    type: string
+    choices:
+      - github
+      - local
+      - lynx
   mv-when-local:
     description: "Move file instead of copy file"
     default: false
@@ -30,15 +33,23 @@ runs:
   steps:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
+      if: ${{ inputs.type == 'github' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: error
         overwrite: true
+
+    - name: Upload artifact
+      uses: lynx-infra/cache
+      if: ${{ inputs.type == 'lynx' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+
     - name: Upload local
       id: upload-local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
+      if: ${{ inputs.type == 'local' }}
       shell: bash
       run: |
         set -e
