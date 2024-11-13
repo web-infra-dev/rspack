@@ -41,7 +41,7 @@ runs:
         overwrite: true
 
     - name: Upload artifact
-      uses: lynx-infra/cache
+      uses: lynx-infra/cache@main
       if: ${{ inputs.type == 'lynx' }}
       with:
         name: ${{ inputs.name }}
