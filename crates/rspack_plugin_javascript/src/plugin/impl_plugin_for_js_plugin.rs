@@ -274,7 +274,7 @@ async fn render_manifest(
   asset_info.set_javascript_module(compilation.options.output.module);
   manifest.push(RenderManifestEntry::new(
     source,
-    output_path,
+    output_path.into(),
     asset_info,
     false,
     false,

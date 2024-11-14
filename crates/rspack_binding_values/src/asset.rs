@@ -8,7 +8,7 @@ pub struct JsAssetInfoRelated {
 impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
   fn from(i: JsAssetInfoRelated) -> Self {
     Self {
-      source_map: i.source_map,
+      source_map: i.source_map.map(Into::into),
     }
   }
 }
@@ -83,7 +83,7 @@ pub struct JsAsset {
 impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
   fn from(related: rspack_core::AssetInfoRelated) -> Self {
     Self {
-      source_map: related.source_map,
+      source_map: related.source_map.map(|f| f.to_string()),
     }
   }
 }

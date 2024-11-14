@@ -285,7 +285,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .into_iter()
     .for_each(|(_, comments)| {
       compilation.emit_asset(
-        comments.comments_file_name,
+        comments.comments_file_name.into(),
         CompilationAsset {
           source: Some(comments.source),
           info: AssetInfo {

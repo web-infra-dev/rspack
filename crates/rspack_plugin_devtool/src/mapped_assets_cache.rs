@@ -1,12 +1,12 @@
 use dashmap::DashMap;
 use futures::Future;
-use rspack_core::CompilationAsset;
+use rspack_core::{AssetFilename, CompilationAsset};
 use rspack_error::{Error, Result};
 
 use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
-pub struct MappedAssetsCache(DashMap<String, MappedAsset>);
+pub struct MappedAssetsCache(DashMap<AssetFilename, MappedAsset>);
 
 impl MappedAssetsCache {
   pub fn new() -> Self {
@@ -15,17 +15,17 @@ impl MappedAssetsCache {
 
   pub async fn use_cache<'a, F, R>(
     &self,
-    assets: Vec<(&'a String, &'a CompilationAsset)>,
+    assets: Vec<(&'a AssetFilename, &'a CompilationAsset)>,
     map_assets: F,
   ) -> Result<Vec<MappedAsset>>
   where
-    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
+    F: FnOnce(Vec<(AssetFilename, &'a CompilationAsset)>) -> R,
     R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
   {
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
     let mut vanilla_assets = Vec::with_capacity(assets.len());
     for (filename, vanilla_asset) in assets {
-      if let Some((_, mapped_asset)) = self.0.remove(filename) {
+      if let Some((_, mapped_asset)) = self.0.remove(filename.as_str()) {
         if !vanilla_asset.info.version.is_empty()
           && vanilla_asset.info.version == mapped_asset.asset.1.info.version
         {
@@ -33,7 +33,7 @@ impl MappedAssetsCache {
           continue;
         }
       }
-      vanilla_assets.push((filename.to_owned(), vanilla_asset));
+      vanilla_assets.push((filename.clone(), vanilla_asset));
     }
 
     mapped_asstes.extend(map_assets(vanilla_assets).await?);
@@ -45,7 +45,7 @@ impl MappedAssetsCache {
         ..
       } = mapped_asset;
       if !asset.info.version.is_empty() {
-        self.0.insert(filename.to_owned(), mapped_asset.clone());
+        self.0.insert(filename.clone(), mapped_asset.clone());
       }
     }
 

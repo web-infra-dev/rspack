@@ -397,7 +397,7 @@ async fn render_manifest(
   }
   manifest.push(RenderManifestEntry::new(
     source.boxed(),
-    output_path,
+    output_path.into(),
     asset_info,
     false,
     false,

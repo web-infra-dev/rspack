@@ -10,10 +10,10 @@ use rspack_core::concatenated_module::{
   is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
 };
 use rspack_core::{
-  filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
-  CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
-  ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,
-  ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  filter_runtime, merge_runtime, ApplyContext, AssetFilename, Compilation,
+  CompilationOptimizeChunkModules, CompilerOptions, ExportInfoProvided, ExtendedReferencedExport,
+  LibIdentOptions, Logger, Module, ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  Plugin, PluginContext, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -618,7 +618,7 @@ impl ModuleConcatenationPlugin {
       config.runtime.clone(),
       compilation,
     );
-    let new_module_assets: HashSet<String> =
+    let new_module_assets: HashSet<AssetFilename> =
       modules_set.iter().fold(HashSet::default(), |mut acc, id| {
         acc.extend(
           compilation

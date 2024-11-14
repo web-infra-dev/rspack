@@ -19,6 +19,7 @@ use self::{
   overwrite::OverwriteTask,
 };
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
+use super::AssetFilename;
 use crate::incremental::Mutation;
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
@@ -32,8 +33,8 @@ pub struct ModuleExecutor {
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
-  assets: DashMap<String, CompilationAsset>,
-  module_assets: IdentifierDashMap<DashSet<String>>,
+  assets: DashMap<AssetFilename, CompilationAsset>,
+  module_assets: IdentifierDashMap<DashSet<AssetFilename>>,
   code_generated_modules: IdentifierDashSet,
   module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,

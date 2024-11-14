@@ -10,6 +10,7 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::rspack_sources::BoxSource;
+use rspack_core::AssetFilename;
 use rspack_core::AssetInfo;
 use rspack_core::ChunkUkey;
 use rspack_core::Compilation;
@@ -124,7 +125,7 @@ impl JsCompilation {
 
     for (filename, asset) in compilation.assets() {
       assets.push(JsAsset {
-        name: filename.clone(),
+        name: filename.to_string(),
         info: asset.info.clone().into(),
       });
     }
@@ -136,7 +137,7 @@ impl JsCompilation {
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
-    match compilation.assets().get(&name) {
+    match compilation.assets().get(name.as_str()) {
       Some(asset) => Ok(Some(JsAsset {
         name,
         info: asset.info.clone().into(),
@@ -151,7 +152,7 @@ impl JsCompilation {
 
     compilation
       .assets()
-      .get(&name)
+      .get(name.as_str())
       .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
       .transpose()
   }
@@ -267,7 +268,7 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     let source: BoxSource = source.into();
-    match compilation.assets_mut().entry(name) {
+    match compilation.assets_mut().entry(name.into()) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::from(source));
@@ -282,7 +283,7 @@ impl JsCompilation {
 
     compilation
       .assets_mut()
-      .entry(name)
+      .entry(name.into())
       .and_modify(|a| a.set_source(None));
     Ok(())
   }
@@ -296,8 +297,7 @@ impl JsCompilation {
         .assets()
         .iter()
         .filter(|(_, asset)| asset.get_source().is_some())
-        .map(|(filename, _)| filename)
-        .cloned()
+        .map(|(filename, _)| filename.to_string())
         .collect(),
     )
   }
@@ -306,7 +306,7 @@ impl JsCompilation {
   pub fn has_asset(&self, name: String) -> Result<bool> {
     let compilation = self.as_ref()?;
 
-    Ok(compilation.assets().contains_key(&name))
+    Ok(compilation.assets().contains_key(name.as_str()))
   }
 
   #[napi]
@@ -318,6 +318,7 @@ impl JsCompilation {
     module: String,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
+    let filename: AssetFilename = filename.into();
 
     compilation.emit_asset(
       filename.clone(),
@@ -342,7 +343,7 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     compilation.emit_asset(
-      filename,
+      filename.into(),
       rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
     );
     Ok(())
@@ -360,7 +361,7 @@ impl JsCompilation {
   pub fn rename_asset(&mut self, filename: String, new_name: String) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    compilation.rename_asset(&filename, new_name);
+    compilation.rename_asset(&filename, new_name.into());
     Ok(())
   }
 
@@ -665,7 +666,11 @@ impl JsCompilation {
           .into_iter()
           .map(|d| d.to_string_lossy().to_string())
           .collect(),
-        assets: res.assets.into_iter().collect(),
+        assets: res
+          .assets
+          .into_iter()
+          .map(|file| file.to_string())
+          .collect(),
         id: res.id,
       };
       Ok(js_result)

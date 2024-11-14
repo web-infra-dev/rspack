@@ -9,7 +9,8 @@ use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
-  compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph, ChunkGroupOrderKey,
+  compare_chunk_group, merge_runtime, sort_group_by_index, AssetFilename, ChunkGraph,
+  ChunkGroupOrderKey,
 };
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
@@ -57,8 +58,8 @@ pub struct Chunk {
   prevent_integration: bool,
   groups: UkeySet<ChunkGroupUkey>,
   runtime: RuntimeSpec,
-  files: HashSet<String>,
-  auxiliary_files: HashSet<String>,
+  files: HashSet<AssetFilename>,
+  auxiliary_files: HashSet<AssetFilename>,
   chunk_reason: Option<String>,
   rendered: bool,
 }
@@ -148,11 +149,11 @@ impl Chunk {
     self.runtime = runtime;
   }
 
-  pub fn files(&self) -> &HashSet<String> {
+  pub fn files(&self) -> &HashSet<AssetFilename> {
     &self.files
   }
 
-  pub fn add_file(&mut self, file: String) {
+  pub fn add_file(&mut self, file: AssetFilename) {
     self.files.insert(file);
   }
 
@@ -160,11 +161,11 @@ impl Chunk {
     self.files.remove(file)
   }
 
-  pub fn auxiliary_files(&self) -> &HashSet<String> {
+  pub fn auxiliary_files(&self) -> &HashSet<AssetFilename> {
     &self.auxiliary_files
   }
 
-  pub fn add_auxiliary_file(&mut self, auxiliary_file: String) {
+  pub fn add_auxiliary_file(&mut self, auxiliary_file: AssetFilename) {
     self.auxiliary_files.insert(auxiliary_file);
   }
 

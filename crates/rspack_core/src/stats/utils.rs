@@ -86,6 +86,7 @@ pub fn get_chunk_group_oreded_child_assets(
         .chunks
         .iter()
         .flat_map(|c| chunk_by_ukey.expect_get(c).files().clone())
+        .map(|file| file.to_string())
         .collect::<Vec<_>>()
     })
     .unique()

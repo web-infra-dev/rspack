@@ -7,6 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;
 
+use crate::AssetFilename;
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -37,7 +38,7 @@ pub struct ExecuteModuleResult {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
   pub code_generated_modules: IdentifierSet,
-  pub assets: HashSet<String>,
+  pub assets: HashSet<AssetFilename>,
   pub id: ExecuteModuleId,
 }
 
@@ -260,7 +261,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
           {
             let filename = filename.filename();
             compilation.emit_asset(
-              filename.to_owned(),
+              filename.into(),
               CompilationAsset::new(Some(source.clone()), asset_info.inner().clone()),
             );
           }
@@ -281,7 +282,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         module_assets
           .values()
           .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())
-          .collect::<HashSet<String>>(),
+          .collect::<HashSet<AssetFilename>>(),
       );
     }
     let executed_runtime_modules = runtime_modules

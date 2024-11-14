@@ -1,7 +1,9 @@
+mod assets;
 mod compilation;
-mod hmr;
 mod make;
 mod module_executor;
+mod rebuild;
+
 use std::sync::Arc;
 
 use rspack_error::Result;
@@ -13,9 +15,10 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
+pub use self::assets::*;
 pub use self::compilation::*;
-pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+pub use self::rebuild::{collect_changed_modules, CompilationRecords};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
@@ -62,7 +65,7 @@ pub struct Compiler {
   pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
-  pub emitted_asset_versions: HashMap<String, String>,
+  pub emitted_asset_versions: HashMap<AssetFilename, String>,
 }
 
 impl Compiler {
@@ -271,8 +274,8 @@ impl Compiler {
           .iter()
           .filter_map(|(filename, _version)| {
             if !assets.contains_key(filename) {
-              let filename = filename.to_owned();
               Some(async {
+                let filename = filename.as_str();
                 let filename = Utf8Path::new(&self.options.output.path).join(filename);
                 let _ = self.output_filesystem.remove_file(&filename).await;
               })
@@ -304,7 +307,7 @@ impl Compiler {
           .incremental
           .contains(IncrementalPasses::EMIT_ASSETS)
         {
-          new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+          new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
         }
 
         if let Some(old_version) = self.emitted_asset_versions.get(filename) {
@@ -396,7 +399,7 @@ impl Compiler {
 
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
-        self.compilation.emitted_assets.insert(filename.to_string());
+        self.compilation.emitted_assets.insert(filename.into());
       }
 
       let info = AssetEmittedInfo {
