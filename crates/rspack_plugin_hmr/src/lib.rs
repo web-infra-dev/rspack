@@ -4,7 +4,7 @@ mod hot_module_replacement;
 
 use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
-use rspack_collections::{IdentifierSet, UkeyMap};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   collect_changed_modules,
   rspack_sources::{RawSource, SourceExt},
@@ -142,14 +142,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .iter()
       .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
       .map(|(_, chunk)| chunk);
-    let current_chunk_ukey = current_chunk.map(|c| c.ukey);
+    let current_chunk_ukey = current_chunk.map(|c| c.ukey());
 
     if let Some(current_chunk) = current_chunk {
       chunk_id = current_chunk.expect_id().to_string();
       new_runtime = Default::default();
       // intersectRuntime
       for old_runtime in all_old_runtime.iter() {
-        if current_chunk.runtime.contains(old_runtime) {
+        if current_chunk.runtime().contains(old_runtime) {
           new_runtime.insert(old_runtime.clone());
         }
       }
@@ -160,15 +160,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       new_modules = compilation
         .chunk_graph
-        .expect_chunk_graph_chunk(&current_chunk.ukey)
-        .modules
+        .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
         .filter_map(|module| updated_modules.contains(module).then_some(*module))
         .collect::<Vec<_>>();
 
       new_runtime_modules = compilation
         .chunk_graph
-        .get_chunk_runtime_modules_in_order(&current_chunk.ukey, compilation)
+        .get_chunk_runtime_modules_in_order(&current_chunk.ukey(), compilation)
         .filter(|(module, _)| updated_runtime_modules.contains(module))
         .map(|(&module, _)| module)
         .collect::<Vec<_>>();
@@ -190,17 +189,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
-      hot_update_chunk.id = Some(chunk_id.to_string());
-      hot_update_chunk.runtime = if let Some(current_chunk) = current_chunk {
-        current_chunk.runtime.clone()
+      hot_update_chunk.set_id(Some(chunk_id.to_string()));
+      hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
+        current_chunk.runtime().clone()
       } else {
         new_runtime.clone()
-      };
-      let ukey = hot_update_chunk.ukey;
+      });
+      let ukey = hot_update_chunk.ukey();
 
       if let Some(current_chunk) = current_chunk {
         current_chunk
-          .groups
+          .groups()
           .iter()
           .for_each(|group| hot_update_chunk.add_group(*group))
       }
@@ -264,11 +263,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           compilation
             .get_path(
               &compilation.options.output.hot_update_chunk_filename,
-              PathData::default().chunk(&hot_update_chunk).hash_optional(
-                old_hash
-                  .as_ref()
-                  .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-              ),
+              PathData::default()
+                .chunk_id_optional(hot_update_chunk.id())
+                .chunk_name_optional(hot_update_chunk.name_for_filename_template())
+                .hash_optional(
+                  old_hash
+                    .as_ref()
+                    .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+                ),
             )
             .always_ok()
         };
@@ -299,11 +301,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // update chunk files
   for (chunk_ukey, files) in updated_chunks {
-    compilation
-      .chunk_by_ukey
-      .expect_get_mut(&chunk_ukey)
-      .files
-      .extend(files);
+    let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
+    for file in files {
+      chunk.add_file(file);
+    }
   }
 
   let completely_removed_modules_array: Vec<String> =
@@ -319,11 +320,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let filename = compilation
       .get_path(
         &compilation.options.output.hot_update_main_filename,
-        PathData::default().runtime(&content.runtime).hash_optional(
-          old_hash
-            .as_ref()
-            .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-        ),
+        PathData::default()
+          .runtime(content.runtime.as_str())
+          .hash_optional(
+            old_hash
+              .as_ref()
+              .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+          ),
       )
       .always_ok();
     compilation.emit_asset(

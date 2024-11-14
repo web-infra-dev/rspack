@@ -3,7 +3,8 @@
 
 use rspack_collections::UkeySet;
 use rspack_core::{
-  is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin, PluginContext,
+  incremental::Mutation, is_runtime_equal, ChunkUkey, Compilation, CompilationOptimizeChunks,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -23,7 +24,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     .copied()
     .collect::<Vec<_>>();
 
-  chunk_ukeys.sort_by_key(|ukey| compilation.chunk_by_ukey.expect_get(ukey).name.as_ref());
+  chunk_ukeys.sort_by_key(|ukey| compilation.chunk_by_ukey.expect_get(ukey).name());
 
   for chunk_ukey in chunk_ukeys {
     if !compilation.chunk_by_ukey.contains(&chunk_ukey) {
@@ -90,14 +91,15 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         {
           continue;
         }
-        if !is_runtime_equal(&chunk.runtime, &other_chunk.runtime) {
+        if !is_runtime_equal(chunk.runtime(), other_chunk.runtime()) {
           let module_graph = compilation.get_module_graph();
           for module in compilation
             .chunk_graph
             .get_chunk_modules(&chunk_ukey, &compilation.get_module_graph())
           {
             let exports_info = module_graph.get_exports_info(&module.identifier());
-            if !exports_info.is_equally_used(&module_graph, &chunk.runtime, &other_chunk.runtime) {
+            if !exports_info.is_equally_used(&module_graph, chunk.runtime(), other_chunk.runtime())
+            {
               continue 'outer;
             }
           }
@@ -119,6 +121,12 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
             &compilation.get_module_graph(),
           );
           chunk_by_ukey.remove(&other_chunk_ukey);
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunksIntegrate { to: chunk_ukey });
+            mutations.add(Mutation::ChunkRemove {
+              chunk: other_chunk_ukey,
+            });
+          }
           compilation.chunk_graph = chunk_graph;
           compilation.chunk_by_ukey = chunk_by_ukey;
           compilation.chunk_group_by_ukey = chunk_group_by_ukey;

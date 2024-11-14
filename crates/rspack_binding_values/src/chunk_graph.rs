@@ -63,7 +63,7 @@ pub fn get_chunk_entry_dependent_chunks_iterable(
 
   return chunks
     .into_iter()
-    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c), compilation))
     .collect::<Vec<_>>();
 }
 

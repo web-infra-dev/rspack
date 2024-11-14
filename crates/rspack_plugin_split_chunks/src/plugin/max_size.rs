@@ -3,9 +3,11 @@ use std::{borrow::Cow, hash::Hash};
 
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_collections::UkeyMap;
+use rspack_collections::{DatabaseItem, UkeyMap};
+use rspack_core::incremental::Mutation;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
+  compare_modules_by_identifier, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
+  DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -82,9 +84,11 @@ fn deterministic_grouping_for_modules(
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
   let module_graph = compilation.get_module_graph();
-  let items = compilation
+  let mut items = compilation
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
+
+  items.sort_unstable_by(|a, b| compare_modules_by_identifier(a, b));
 
   let context = compilation.options.context.as_ref();
 
@@ -182,6 +186,7 @@ fn deterministic_grouping_for_modules(
       if left <= right {
         let right_nodes = group.nodes.split_off(left);
         let left_nodes = group.nodes;
+
         queue.push(Group::new(right_nodes, None));
         queue.push(Group::new(left_nodes, None));
       }
@@ -218,13 +223,13 @@ impl SplitChunksPlugin {
     .values()
     .par_bridge()
     .map(|chunk| {
-      let max_size_setting = max_size_setting_map.get(&chunk.ukey);
-      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey);
+      let max_size_setting = max_size_setting_map.get(&chunk.ukey());
+      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey());
 
       if max_size_setting.is_none()
-        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)?
+        && !(fallback_cache_group.chunks_filter)(chunk, compilation)?
       {
-        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason);
+        tracing::debug!("Chunk({:?}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reason());
         return Ok(None);
       }
 
@@ -254,7 +259,7 @@ impl SplitChunksPlugin {
       if allow_max_size.is_empty() {
         tracing::debug!(
           "Chunk({:?}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-          chunk.chunk_reason
+          chunk.chunk_reason()
         );
         return Ok(None);
       }
@@ -279,7 +284,7 @@ impl SplitChunksPlugin {
       Ok(Some(ChunkWithSizeInfo {
         allow_max_size,
         min_size,
-        chunk: chunk.ukey,
+        chunk: chunk.ukey(),
         automatic_name_delimiter,
       }))
     }).collect::<Result<Vec<_>>>()?
@@ -328,12 +333,11 @@ impl SplitChunksPlugin {
         };
         let chunk = compilation.chunk_by_ukey.expect_get_mut(&info.chunk);
         let delimiter = max_size_setting_map
-          .get(&chunk.ukey)
+          .get(&chunk.ukey())
           .map(|s| s.automatic_name_delimiter.as_str())
           .unwrap_or(DEFAULT_DELIMITER);
         let mut name = chunk
-          .name
-          .as_ref()
+          .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));
 
         if let Some(n) = name.clone() {
@@ -345,38 +349,55 @@ impl SplitChunksPlugin {
         }
 
         if index != last_index {
-          let old_chunk = chunk.ukey;
+          let old_chunk = chunk.ukey();
           let new_chunk_ukey = if let Some(name) = name {
-            Compilation::add_named_chunk(
+            let (new_chunk_ukey, created) = Compilation::add_named_chunk(
               name,
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
-            )
+            );
+            if created && let Some(mutations) = compilation.incremental.mutations_write() {
+              mutations.add(Mutation::ChunkAdd {
+                chunk: new_chunk_ukey,
+              });
+            }
+            new_chunk_ukey
           } else {
-            Compilation::add_chunk(&mut compilation.chunk_by_ukey)
+            let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+            if let Some(mutations) = compilation.incremental.mutations_write() {
+              mutations.add(Mutation::ChunkAdd {
+                chunk: new_chunk_ukey,
+              });
+            }
+            new_chunk_ukey
           };
 
           let [new_part, chunk] = compilation
             .chunk_by_ukey
-            ._todo_should_remove_this_method_inner_mut()
             .get_many_mut([&new_chunk_ukey, &old_chunk])
             .expect("split_from_original_chunks failed");
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
+          if let Some(mutations) = compilation.incremental.mutations_write() {
+            mutations.add(Mutation::ChunkSplit {
+              from: old_chunk,
+              to: new_chunk_ukey,
+            });
+          }
 
           group.nodes.iter().for_each(|module| {
-            compilation.chunk_graph.add_chunk(new_part.ukey);
+            compilation.chunk_graph.add_chunk(new_part.ukey());
 
             // Add module to new chunk
             compilation
               .chunk_graph
-              .connect_chunk_and_module(new_part.ukey, module.module);
+              .connect_chunk_and_module(new_part.ukey(), module.module);
             // Remove module from used chunks
             compilation
               .chunk_graph
               .disconnect_chunk_and_module(&old_chunk, module.module)
           })
         } else {
-          chunk.name = name;
+          chunk.set_name(name);
         }
       })
     });

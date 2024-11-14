@@ -104,7 +104,7 @@ impl Task<MakeTaskContext> for CtrlTask {
     TaskType::Async
   }
 
-  async fn async_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
     while let Some(event) = self.event_receiver.recv().await {
       tracing::info!("CtrlTask async receive {:?}", event);
       match event {
@@ -202,7 +202,7 @@ impl Task<MakeTaskContext> for FinishModuleTask {
     TaskType::Sync
   }
 
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       mut ctrl_task,
       module_identifier,

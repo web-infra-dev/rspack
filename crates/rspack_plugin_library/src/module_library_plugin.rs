@@ -79,7 +79,7 @@ fn render_startup(
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let info_name = export_info.name(&module_graph).expect("should have name");
     let used_name = export_info
-      .get_used_name(&module_graph, Some(info_name), Some(&chunk.runtime))
+      .get_used_name(&module_graph, Some(info_name), Some(chunk.runtime()))
       .expect("name can't be empty");
     let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
     source.add(RawSource::from(format!(

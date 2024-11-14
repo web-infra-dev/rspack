@@ -32,7 +32,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
 
-      let runtime = &chunk.runtime;
+      let runtime = chunk.runtime();
 
       if runtime.len() > 1 {
         panic!("RuntimeIdRuntimeModule must be in a single runtime");

@@ -37,7 +37,7 @@ impl ExposeRuntimeModule {
       for m in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime));
+          .get(&m.identifier(), Some(chunk.runtime()));
         if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
           return Some(data);
         };

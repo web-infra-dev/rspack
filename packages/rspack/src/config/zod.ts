@@ -791,7 +791,8 @@ export const externalsType = z.enum([
 	"import",
 	"module-import",
 	"script",
-	"node-commonjs"
+	"node-commonjs",
+	"commonjs-import"
 ]) satisfies z.ZodType<t.ExternalsType>;
 //#endregion
 
@@ -1278,14 +1279,17 @@ const lazyCompilationOptions = z.object({
 
 const incremental = z.strictObject({
 	make: z.boolean().optional(),
-	emitAssets: z.boolean().optional(),
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	dependenciesDiagnostics: z.boolean().optional(),
+	buildChunkGraph: z.boolean().optional(),
 	modulesHashes: z.boolean().optional(),
 	modulesCodegen: z.boolean().optional(),
 	modulesRuntimeRequirements: z.boolean().optional(),
-	buildChunkGraph: z.boolean().optional()
+	chunksRuntimeRequirements: z.boolean().optional(),
+	chunksHashes: z.boolean().optional(),
+	chunksRender: z.boolean().optional(),
+	emitAssets: z.boolean().optional()
 }) satisfies z.ZodType<t.Incremental>;
 
 const experiments = z.strictObject({

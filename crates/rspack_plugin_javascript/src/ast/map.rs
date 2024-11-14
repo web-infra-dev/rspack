@@ -22,7 +22,7 @@ impl DecodableSourceMap for RspackSourceMap {
   }
 
   fn decoded_mappings<'a>(&'a self) -> Box<dyn Iterator<Item = Mapping> + 'a> {
-    let iter = self.inner.tokens().into_iter().map(|token| Mapping {
+    let iter = self.inner.tokens().map(|token| Mapping {
       generated_line: token.get_dst_line(),
       generated_column: token.get_dst_col(),
       original: if token.has_source() {
@@ -48,7 +48,7 @@ impl DecodableSourceMap for RspackSourceMap {
   }
 
   fn sources_content<'a>(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
-    Box::new(self.inner.source_contents().filter_map(|content| content))
+    Box::new(self.inner.source_contents().flatten())
   }
 
   fn names<'a>(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {

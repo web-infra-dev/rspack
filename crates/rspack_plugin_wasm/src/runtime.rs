@@ -57,7 +57,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
           .hash(&hash)
           .content_hash(&hash)
           .id("\" + wasmModuleId + \"")
-          .runtime(&chunk.runtime),
+          .runtime(chunk.runtime().as_str()),
       )
       .always_ok();
     Ok(

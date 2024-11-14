@@ -51,7 +51,7 @@ pub fn external_module_names(
 
 pub fn get_options_for_chunk<'a>(
   compilation: &'a Compilation,
-  chunk_ukey: &'a ChunkUkey,
+  chunk_ukey: &ChunkUkey,
 ) -> Option<&'a LibraryOptions> {
   if compilation
     .chunk_graph
