@@ -279,6 +279,15 @@ if its extension was not listed in the `resolve.extensions`. Here're some possib
 }
 
 /// Main entry point for module resolution.
+// #[tracing::instrument(err, "resolve", skip_all, fields(
+//     resolve.specifier = args.specifier,
+//     resolve.importer = ?args.importer,
+//     resolve.context = ?args.context,
+//     resolve.dependency_type = ?args.dependency_type,
+//     resolve.dependency_category = ?args.dependency_category
+//   ),
+//   level = "trace"
+// )]
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
@@ -294,6 +303,18 @@ pub async fn resolve(
   let mut result = resolver
     .resolve_with_context(args.context.as_ref(), args.specifier, &mut context)
     .map_err(|error| error.into_resolve_error(&args));
+
+  if let Err(ref err) = result {
+    tracing::error!(
+      specifier = args.specifier,
+      importer = ?args.importer,
+      context = %args.context,
+      dependency_type = %args.dependency_type,
+      dependency_category = %args.dependency_category,
+      "Resolve error: {}",
+      err.to_string()
+    );
+  }
 
   args.file_dependencies.extend(context.file_dependencies);
   args

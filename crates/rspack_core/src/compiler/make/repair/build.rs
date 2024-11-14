@@ -26,6 +26,7 @@ impl Task<MakeTaskContext> for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
+
   async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
       compilation_id,

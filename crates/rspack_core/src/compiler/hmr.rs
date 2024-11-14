@@ -13,6 +13,10 @@ use crate::{
 };
 
 impl Compiler {
+  #[tracing::instrument("Compiler:rebuild", skip_all, fields(
+    compiler.changed_files = ?changed_files.iter().cloned().collect::<Vec<_>>(),
+    compiler.deleted_files = ?deleted_files.iter().cloned().collect::<Vec<_>>()
+  ))]
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,

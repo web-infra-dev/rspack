@@ -344,6 +344,17 @@ export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
+	const {
+		trace,
+		propagation,
+		context: tracingContext
+	} = await import("@rspack/tracing");
+	const tracer = trace.getTracer("rspack-loader-runner");
+	const activeContext = propagation.extract(
+		tracingContext.active(),
+		context.__internal__tracingCarrier
+	);
+
 	const loaderState = context.loaderState;
 
 	//
@@ -831,12 +842,22 @@ export async function runLoaders(
 					currentLoaderObject.pitchExecuted = true;
 					if (!fn) continue;
 
+					const span = tracer.startSpan(
+						"LoaderRunner:pitch",
+						{
+							attributes: {
+								"loader.identifier": getCurrentLoader(loaderContext)?.request
+							}
+						},
+						activeContext
+					);
 					const args =
 						(await runSyncOrAsync(fn, loaderContext, [
 							loaderContext.remainingRequest,
 							loaderContext.previousRequest,
 							currentLoaderObject.data
 						])) || [];
+					span.end();
 
 					const hasArg = args.some(value => value !== undefined);
 
@@ -872,8 +893,19 @@ export async function runLoaders(
 					if (!fn) continue;
 					const args = [content, sourceMap, additionalData];
 					convertArgs(args, !!currentLoaderObject.raw);
+
+					const span = tracer.startSpan(
+						"LoaderRunner:normal",
+						{
+							attributes: {
+								"loader.identifier": getCurrentLoader(loaderContext)?.request
+							}
+						},
+						activeContext
+					);
 					[content, sourceMap, additionalData] =
 						(await runSyncOrAsync(fn, loaderContext, args)) || [];
+					span.end();
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);

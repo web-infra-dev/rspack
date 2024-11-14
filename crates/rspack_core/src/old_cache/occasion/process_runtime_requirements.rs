@@ -18,7 +18,7 @@ impl ProcessRuntimeRequirementsOccasion {
     Self { storage }
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?module))]
+  // #[tracing::instrument(skip_all, fields(module = ?module))]
   pub fn use_cache(
     &self,
     module: ModuleIdentifier,

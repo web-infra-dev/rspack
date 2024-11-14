@@ -93,6 +93,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
+  #[tracing::instrument("JavaScriptParser:parse", skip_all)]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,

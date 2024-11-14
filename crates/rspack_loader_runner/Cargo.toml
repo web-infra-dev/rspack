@@ -21,3 +21,4 @@ rspack_paths       = { version = "0.1.0", path = "../rspack_paths" }
 rspack_sources     = { workspace = true }
 rspack_util        = { version = "0.1.0", path = "../rspack_util" }
 serde_json         = { workspace = true }
+tracing            = { workspace = true }

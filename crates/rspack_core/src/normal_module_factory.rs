@@ -509,7 +509,6 @@ impl NormalModuleFactory {
     } else {
       resource_data.resource.clone()
     };
-    tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();
 

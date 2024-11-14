@@ -14,6 +14,7 @@ default = []
 plugin  = ["rspack_binding_options/plugin"]
 
 [dependencies]
+anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { version = "0.1.0", path = "../rspack_allocator" }
 rspack_binding_options   = { version = "0.1.0", path = "../rspack_binding_options" }
@@ -33,9 +34,10 @@ rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 
 rspack_tracing = { version = "0.1.0", path = "../rspack_tracing" }
 
-async-trait = { workspace = true }
-cow-utils   = { workspace = true }
-tracing     = { workspace = true }
+async-trait        = { workspace = true }
+cow-utils          = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 napi        = { workspace = true }
 napi-derive = { workspace = true }

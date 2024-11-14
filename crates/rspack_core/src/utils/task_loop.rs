@@ -11,6 +11,7 @@ use std::{
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
 use tokio::sync::mpsc::{self, error::TryRecvError};
+use tracing::Instrument;
 
 /// Result returned by task
 ///
@@ -83,12 +84,15 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
           let tx = tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
-          tokio::spawn(async move {
-            let r = task.async_run().await;
-            if !is_expected_shutdown.load(Ordering::Relaxed) {
-              tx.send(r).expect("failed to send error message");
+          tokio::spawn(
+            async move {
+              let r = task.async_run().await;
+              if !is_expected_shutdown.load(Ordering::Relaxed) {
+                tx.send(r).expect("failed to send error message");
+              }
             }
-          });
+            .in_current_span(),
+          );
         }
         TaskType::Sync => {
           // merge sync task result directly

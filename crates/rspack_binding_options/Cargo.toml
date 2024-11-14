@@ -74,6 +74,7 @@ rspack_plugin_wasm                     = { version = "0.1.0", path = "../rspack_
 rspack_plugin_web_worker_template      = { version = "0.1.0", path = "../rspack_plugin_web_worker_template" }
 rspack_plugin_worker                   = { version = "0.1.0", path = "../rspack_plugin_worker" }
 rspack_regex                           = { version = "0.1.0", path = "../rspack_regex" }
+rspack_tracing                         = { version = "0.1.0", path = "../rspack_tracing" }
 rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true, features = ["derive"] }
 serde_json                             = { workspace = true }

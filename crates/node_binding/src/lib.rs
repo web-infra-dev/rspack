@@ -5,8 +5,8 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::pin::Pin;
 use std::sync::Mutex;
+use std::{pin::Pin, str::FromStr as _};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
@@ -14,6 +14,7 @@ use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
+use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
 
 mod compiler;
 mod diagnostic;
@@ -26,7 +27,10 @@ use plugins::*;
 use resolver_factory::*;
 use rspack_binding_options::*;
 use rspack_binding_values::*;
-use rspack_tracing::chrome::FlushGuard;
+use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, TokioConsoleTracer, Tracer};
+use tracing::Level;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt as _, Layer, Registry};
 
 #[napi]
 pub struct Rspack {
@@ -196,7 +200,7 @@ fn concurrent_compiler_error() -> Error {
 
 #[derive(Default)]
 enum TraceState {
-  On(Option<FlushGuard>),
+  On(Box<dyn Tracer>),
   #[default]
   Off,
 }
@@ -212,7 +216,9 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
     .expect("should print diagnostics")
 }
 
-static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
+thread_local! {
+  static GLOBAL_TRACE_STATE: Mutex<TraceState> = const { Mutex::new(TraceState::Off) };
+}
 
 /**
  * Some code is modified based on
@@ -224,41 +230,61 @@ static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\" | \"otel\"")] layer: String,
   output: String,
-) {
-  let mut state = GLOBAL_TRACE_STATE
-    .lock()
-    .expect("Failed to lock GLOBAL_TRACE_STATE");
-  if matches!(&*state, TraceState::Off) {
-    let guard = match layer.as_str() {
-      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
-      "console" => {
-        rspack_tracing::enable_tracing_by_env_with_tokio_console();
-        None
+) -> anyhow::Result<()> {
+  GLOBAL_TRACE_STATE.with(|state| {
+    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    if let TraceState::Off = *state {
+      let mut tracer: Box<dyn Tracer> = match layer.as_str() {
+        "chrome" => Box::new(ChromeTracer::default()),
+        "otel" => Box::new(within_runtime_if_available(OtelTracer::default)),
+        "console" => Box::new(TokioConsoleTracer),
+        "logger" => Box::new(StdoutTracer),
+        _ => anyhow::bail!(
+          "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' and 'otel' ",
+          layer
+        ),
+      };
+      if let Some(layer) = tracer.setup(&output) {
+        if let Ok(default_level) = Level::from_str(&filter) {
+          let filter = tracing_subscriber::filter::Targets::new()
+            .with_target("rspack_core", default_level)
+            .with_target("node_binding", default_level)
+            .with_target("rspack_loader_swc", default_level)
+            .with_target("rspack_loader_runner", default_level)
+            .with_target("rspack_plugin_javascript", default_level)
+            .with_target("rspack_resolver", Level::WARN);
+          tracing_subscriber::registry()
+            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
+            .init();
+        } else {
+          // SAFETY: we know that trace_var is `Ok(String)` now,
+          // for the second unwrap, if we can't parse the directive, then the tracing result would be
+          // unexpected, then panic is reasonable
+          let filter = EnvFilter::builder()
+            .with_regex(true)
+            .parse(filter)
+            .expect("Parse tracing directive syntax failed, for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
+          tracing_subscriber::registry()
+            .with(<_ as Layer<Registry>>::with_filter(layer, filter))
+            .init();
+        }
       }
-      "logger" => {
-        rspack_tracing::enable_tracing_by_env(&filter, &output);
-        None
-      }
-      _ => panic!("not supported layer type:{layer}"),
-    };
-    let new_state = TraceState::On(guard);
-    *state = new_state;
-  }
+      let new_state = TraceState::On(tracer);
+      *state = new_state;
+    }
+    Ok(())
+  })
 }
 
 #[napi]
 pub fn cleanup_global_trace() {
-  let mut state = GLOBAL_TRACE_STATE
-    .lock()
-    .expect("Failed to lock GLOBAL_TRACE_STATE");
-  if let TraceState::On(guard) = &mut *state
-    && let Some(g) = guard.take()
-  {
-    g.flush();
-    drop(g);
-    let new_state = TraceState::Off;
-    *state = new_state;
-  }
+  GLOBAL_TRACE_STATE.with(|state| {
+    let mut state = state.lock().expect("Failed to lock GLOBAL_TRACE_STATE");
+    if let TraceState::On(ref mut tracer) = *state {
+      tracer.teardown();
+    }
+    *state = TraceState::Off;
+  });
 }
