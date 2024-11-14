@@ -181,9 +181,7 @@ fn deterministic_grouping_for_modules(
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
         continue;
-      }
-
-      if left <= right {
+      } else {
         let right_nodes = group.nodes.split_off(left);
         let left_nodes = group.nodes;
 
