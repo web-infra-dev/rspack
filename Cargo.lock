@@ -4616,7 +4616,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.3.3"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=1978c0ae3b1ea2e9df24fcdc75e674b4651ab020#1978c0ae3b1ea2e9df24fcdc75e674b4651ab020"
+source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=4d3cb3df3fe121f73731dadfe687690b2ea9a7f3#4d3cb3df3fe121f73731dadfe687690b2ea9a7f3"
 dependencies = [
  "dashmap 5.5.3",
  "dyn-clone",

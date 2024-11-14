@@ -1,17 +1,19 @@
 use once_cell::sync::OnceCell;
 use parcel_sourcemap::SourceMap;
-use rspack_sources::{DecodableSourceMap, Mapping, OriginalLocation};
+use rspack_sources::{encode_mappings, DecodableSourceMap, Mapping, OriginalLocation};
 
 #[derive(Debug)]
 pub(crate) struct RspackSourceMap {
   inner: SourceMap,
-  mappings: OnceCell<Vec<Mapping>>,
+  decoded_mappings: OnceCell<Vec<Mapping>>,
+  mappings: OnceCell<String>,
 }
 
 impl RspackSourceMap {
   pub fn new(map: SourceMap) -> Self {
     Self {
       inner: map,
+      decoded_mappings: Default::default(),
       mappings: Default::default(),
     }
   }
@@ -23,13 +25,15 @@ impl DecodableSourceMap for RspackSourceMap {
   }
 
   fn mappings(&self) -> &str {
-    unimplemented!()
+    &self
+      .mappings
+      .get_or_init(|| encode_mappings(self.decoded_mappings()))
   }
 
   fn decoded_mappings<'a>(&'a self) -> Box<dyn Iterator<Item = Mapping> + 'a> {
     Box::new(
       self
-        .mappings
+        .decoded_mappings
         .get_or_init(|| {
           self
             .inner

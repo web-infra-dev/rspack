@@ -1,14 +1,19 @@
-use rspack_sources::{DecodableSourceMap, Mapping, OriginalLocation};
+use once_cell::sync::OnceCell;
+use rspack_sources::{encode_mappings, DecodableSourceMap, Mapping, OriginalLocation};
 use sourcemap::SourceMap;
 
 #[derive(Debug)]
 pub(crate) struct RspackSourceMap {
   inner: SourceMap,
+  mappings: OnceCell<String>,
 }
 
 impl RspackSourceMap {
   pub fn new(map: SourceMap) -> Self {
-    Self { inner: map }
+    Self {
+      inner: map,
+      mappings: Default::default(),
+    }
   }
 }
 
@@ -18,17 +23,19 @@ impl DecodableSourceMap for RspackSourceMap {
   }
 
   fn mappings(&self) -> &str {
-    unimplemented!()
+    &self
+      .mappings
+      .get_or_init(|| encode_mappings(self.decoded_mappings()))
   }
 
   fn decoded_mappings<'a>(&'a self) -> Box<dyn Iterator<Item = Mapping> + 'a> {
-    let iter = self.inner.tokens().map(|token| Mapping {
-      generated_line: token.get_dst_line(),
+    Box::new(self.inner.tokens().map(|token| Mapping {
+      generated_line: token.get_dst_line() + 1,
       generated_column: token.get_dst_col(),
       original: if token.has_source() {
         Some(OriginalLocation {
           source_index: token.get_src_id(),
-          original_line: token.get_src_line(),
+          original_line: token.get_src_line() + 1,
           original_column: token.get_src_col(),
           name_index: if token.has_name() {
             Some(token.get_name_id())
@@ -39,8 +46,7 @@ impl DecodableSourceMap for RspackSourceMap {
       } else {
         None
       },
-    });
-    Box::new(iter)
+    }))
   }
 
   fn sources<'a>(&'a self) -> Box<dyn Iterator<Item = &'a str> + 'a> {
