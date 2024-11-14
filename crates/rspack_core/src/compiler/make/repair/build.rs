@@ -26,7 +26,7 @@ impl Task<MakeTaskContext> for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
       compilation_id,
       compiler_options,
@@ -100,7 +100,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,
       build_result,

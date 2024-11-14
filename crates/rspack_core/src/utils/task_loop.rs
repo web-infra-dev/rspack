@@ -36,15 +36,13 @@ pub trait Task<Ctx>: Debug + Send + Any + AsAny {
   /// Return `TaskType::Async` will run `self::async_run`
   fn get_task_type(&self) -> TaskType;
 
-  /// Sync task process
-  ///
-  /// The context is shared with all tasks
-  async fn sync_run(self: Box<Self>, _context: &mut Ctx) -> TaskResult<Ctx> {
+  /// can be running in main thread
+  async fn main_run(self: Box<Self>, _context: &mut Ctx) -> TaskResult<Ctx> {
     unreachable!();
   }
 
-  /// Async task process
-  async fn async_run(self: Box<Self>) -> TaskResult<Ctx> {
+  /// can be running in background thread
+  async fn background_run(self: Box<Self>) -> TaskResult<Ctx> {
     unreachable!();
   }
 }
@@ -84,7 +82,7 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
           tokio::spawn(async move {
-            let r = task.async_run().await;
+            let r = task.background_run().await;
             if !is_expected_shutdown.load(Ordering::Relaxed) {
               tx.send(r).expect("failed to send error message");
             }
@@ -92,7 +90,7 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
         }
         TaskType::Sync => {
           // merge sync task result directly
-          match task.sync_run(ctx).await {
+          match task.main_run(ctx).await {
             Ok(r) => queue.extend(r),
             Err(e) => {
               is_expected_shutdown.store(true, Ordering::Relaxed);
@@ -151,7 +149,7 @@ mod test {
     fn get_task_type(&self) -> TaskType {
       TaskType::Sync
     }
-    async fn sync_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
+    async fn main_run(self: Box<Self>, context: &mut Context) -> TaskResult<Context> {
       if context.sync_return_error {
         return Err(miette!("throw sync error"));
       }
@@ -177,7 +175,7 @@ mod test {
     fn get_task_type(&self) -> TaskType {
       TaskType::Async
     }
-    async fn async_run(self: Box<Self>) -> TaskResult<Context> {
+    async fn background_run(self: Box<Self>) -> TaskResult<Context> {
       tokio::time::sleep(std::time::Duration::from_millis(10)).await;
       if self.async_return_error {
         Err(miette!("throw async error"))
