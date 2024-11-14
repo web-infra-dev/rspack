@@ -73,7 +73,8 @@ impl ModuleExecutor {
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());
     self.stop_receiver = Some(stop_receiver);
-
+    // avoid coop budget consumed to zero cause hang risk
+    // related to https://tokio.rs/blog/2020-04-preemption
     tokio::spawn(task::unconstrained(async move {
       let _ = run_task_loop_with_event(
         &mut ctx,
