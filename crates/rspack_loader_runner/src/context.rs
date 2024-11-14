@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use derivative::Derivative;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
-use rspack_sources::SourceMap;
+use rspack_sources::BoxDecodableSourceMap;
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -42,7 +42,7 @@ pub struct LoaderContext<Context> {
   pub parse_meta: FxHashMap<String, String>,
 
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
+  pub(crate) source_map: Option<BoxDecodableSourceMap>,
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
@@ -123,7 +123,7 @@ impl<Context> LoaderContext<Context> {
     self.content.as_ref()
   }
 
-  pub fn source_map(&self) -> Option<&SourceMap> {
+  pub fn source_map(&self) -> Option<&BoxDecodableSourceMap> {
     self.source_map.as_ref()
   }
 
@@ -135,7 +135,7 @@ impl<Context> LoaderContext<Context> {
     self.content.take()
   }
 
-  pub fn take_source_map(&mut self) -> Option<SourceMap> {
+  pub fn take_source_map(&mut self) -> Option<BoxDecodableSourceMap> {
     self.source_map.take()
   }
 
@@ -143,7 +143,13 @@ impl<Context> LoaderContext<Context> {
     self.additional_data.take()
   }
 
-  pub fn take_all(&mut self) -> (Option<Content>, Option<SourceMap>, Option<AdditionalData>) {
+  pub fn take_all(
+    &mut self,
+  ) -> (
+    Option<Content>,
+    Option<BoxDecodableSourceMap>,
+    Option<AdditionalData>,
+  ) {
     (
       self.content.take(),
       self.source_map.take(),
@@ -179,7 +185,7 @@ impl<Context> LoaderContext<Context> {
 
 pub struct LoaderPatch {
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
+  pub(crate) source_map: Option<BoxDecodableSourceMap>,
   pub(crate) additional_data: Option<AdditionalData>,
 }
 
@@ -196,11 +202,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap)> for LoaderPatch
+impl<T> From<(T, BoxDecodableSourceMap)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap)) -> Self {
+  fn from(value: (T, BoxDecodableSourceMap)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -209,11 +215,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap>)> for LoaderPatch
+impl<T> From<(T, Option<BoxDecodableSourceMap>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap>)) -> Self {
+  fn from(value: (T, Option<BoxDecodableSourceMap>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -222,11 +228,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap, AdditionalData)> for LoaderPatch
+impl<T> From<(T, BoxDecodableSourceMap, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap, AdditionalData)) -> Self {
+  fn from(value: (T, BoxDecodableSourceMap, AdditionalData)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -235,11 +241,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
+impl<T> From<(T, Option<BoxDecodableSourceMap>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap>, Option<AdditionalData>)) -> Self {
+  fn from(value: (T, Option<BoxDecodableSourceMap>, Option<AdditionalData>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -261,11 +267,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap)> for LoaderPatch
+impl<T> From<(Option<T>, BoxDecodableSourceMap)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap)) -> Self {
+  fn from(value: (Option<T>, BoxDecodableSourceMap)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -274,11 +280,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, Option<SourceMap>)> for LoaderPatch
+impl<T> From<(Option<T>, Option<BoxDecodableSourceMap>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, Option<SourceMap>)) -> Self {
+  fn from(value: (Option<T>, Option<BoxDecodableSourceMap>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,
@@ -287,11 +293,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap, AdditionalData)> for LoaderPatch
+impl<T> From<(Option<T>, BoxDecodableSourceMap, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap, AdditionalData)) -> Self {
+  fn from(value: (Option<T>, BoxDecodableSourceMap, AdditionalData)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -300,11 +306,22 @@ where
   }
 }
 
-impl<T> From<(Option<T>, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
+impl<T>
+  From<(
+    Option<T>,
+    Option<BoxDecodableSourceMap>,
+    Option<AdditionalData>,
+  )> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, Option<SourceMap>, Option<AdditionalData>)) -> Self {
+  fn from(
+    value: (
+      Option<T>,
+      Option<BoxDecodableSourceMap>,
+      Option<AdditionalData>,
+    ),
+  ) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,

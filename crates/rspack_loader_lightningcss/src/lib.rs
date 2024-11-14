@@ -9,12 +9,15 @@ use lightningcss::{
   targets::{Features, Targets},
   traits::IntoOwned,
 };
-use rspack_core::{rspack_sources::SourceMap, Loader, LoaderContext, RunnerContext};
+use map::RspackSourceMap;
+use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
+use rspack_sources::DecodableSourceMapExt;
 use tokio::sync::Mutex;
 
 pub mod config;
+mod map;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
@@ -180,14 +183,7 @@ impl LightningCssLoader {
       .map_err(|_| rspack_error::error!("failed to generate css"))?;
 
     if enable_sourcemap {
-      let source_map = source_map
-        .to_json(None)
-        .map_err(|e| rspack_error::error!(e.to_string()))?;
-
-      loader_context.finish_with((
-        content.code,
-        SourceMap::from_json(&source_map).expect("should be able to generate source-map"),
-      ));
+      loader_context.finish_with((content.code, RspackSourceMap::new(source_map).boxed()));
     } else {
       loader_context.finish_with(content.code);
     }

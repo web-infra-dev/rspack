@@ -1,3 +1,4 @@
+mod map;
 mod parse;
 mod stringify;
 

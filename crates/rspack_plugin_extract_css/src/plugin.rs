@@ -4,6 +4,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_core::rspack_sources::DecodableSourceMapExt;
 use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
@@ -385,7 +386,9 @@ impl PluginCssExtract {
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
+            source_map: SourceMap::from_json(source_map)
+              .expect("invalid sourcemap")
+              .boxed(),
           }))
         } else {
           source.add(RawSource::from(content.to_string()));

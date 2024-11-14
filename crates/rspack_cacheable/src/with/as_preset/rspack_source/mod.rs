@@ -7,9 +7,7 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
   Place,
 };
-use rspack_sources::{
-  OriginalSource, RawSource, Source, SourceMap, SourceMapSource, SourceMapSourceOptions,
-};
+use rspack_sources::{OriginalSource, RawSource, Source, SourceMapSource};
 
 use super::AsPreset;
 use crate::{
@@ -89,14 +87,14 @@ where
         "a",
         String::from_utf8(bytes).expect("unexpected bytes"),
       ))),
-      "SourceMapSource" => Ok(Arc::new(SourceMapSource::new(SourceMapSourceOptions {
-        value: String::from_utf8(bytes).expect("unexpected bytes"),
-        name: String::from("a"),
-        source_map: SourceMap::default(),
-        original_source: None,
-        inner_source_map: None,
-        remove_original_source: true,
-      }))),
+      // "SourceMapSource" => Ok(Arc::new(SourceMapSource::new(SourceMapSourceOptions {
+      //   value: String::from_utf8(bytes).expect("unexpected bytes"),
+      //   name: String::from("a"),
+      //   source_map: SourceMap::default(),
+      //   original_source: None,
+      //   inner_source_map: None,
+      //   remove_original_source: true,
+      // }))),
       _ => Err(DeserializeError::MessageError("unsupported box source")),
     }
   }

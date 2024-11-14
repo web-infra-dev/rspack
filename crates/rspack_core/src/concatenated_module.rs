@@ -169,7 +169,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
   pub ast: Option<Ast>,
-  pub source: Option<ReplaceSource<Arc<dyn Source>>>,
+  pub source: Option<ReplaceSource>,
   pub internal_source: Option<Arc<dyn Source>>,
   pub internal_names: HashMap<Atom, Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
@@ -1276,7 +1276,10 @@ impl Module for ConcatenatedModule {
     }
 
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
+    code_generation_result.add(
+      SourceType::JavaScript,
+      CachedSource::new(result.boxed()).boxed(),
+    );
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
     code_generation_result

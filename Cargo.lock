@@ -3774,10 +3774,12 @@ dependencies = [
  "async-trait",
  "derivative",
  "lightningcss",
+ "once_cell",
  "parcel_sourcemap",
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_sources",
  "serde",
  "tokio",
 ]
@@ -4234,9 +4236,11 @@ dependencies = [
  "rspack_ids",
  "rspack_paths",
  "rspack_regex",
+ "rspack_sources",
  "rspack_util",
  "rustc-hash 1.1.0",
  "serde_json",
+ "sourcemap",
  "stacker",
  "sugar_path",
  "swc_core",
@@ -4611,8 +4615,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b603e464255d9f8032775b48e98266e01feb2702487a69790723a78dd837da53"
+source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=1978c0ae3b1ea2e9df24fcdc75e674b4651ab020#1978c0ae3b1ea2e9df24fcdc75e674b4651ab020"
 dependencies = [
  "dashmap 5.5.3",
  "dyn-clone",

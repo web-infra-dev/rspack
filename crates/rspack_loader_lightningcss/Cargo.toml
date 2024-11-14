@@ -17,3 +17,5 @@ rspack_error         = { version = "0.1.0", path = "../rspack_error" }
 rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }
 serde                = { workspace = true, features = ["derive"] }
 tokio                = { workspace = true }
+rspack_sources       = { workspace = true }
+once_cell            = { workspace = true }

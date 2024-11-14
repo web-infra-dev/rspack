@@ -1,9 +1,9 @@
-use std::{hash::Hash, sync::Arc};
+use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawSource, ReplaceSource,
-  Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, ConcatSource, DecodableSourceMapExt, MapOptions, OriginalSource,
+  RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -23,7 +23,7 @@ impl From<JsCompatSource> for BoxSource {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",
-              source_map,
+              source_map: source_map.boxed(),
             })
             .boxed(),
             None => RawSource::from(string).boxed(),
@@ -54,7 +54,7 @@ impl ToJsCompatSource for RawSource {
   }
 }
 
-impl<T: Source + Hash + PartialEq + Eq + 'static> ToJsCompatSource for ReplaceSource<T> {
+impl ToJsCompatSource for ReplaceSource {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     Ok(JsCompatSource {
       source: Either::A(self.source().to_string()),
@@ -63,7 +63,7 @@ impl<T: Source + Hash + PartialEq + Eq + 'static> ToJsCompatSource for ReplaceSo
   }
 }
 
-impl<T: ToJsCompatSource> ToJsCompatSource for CachedSource<T> {
+impl ToJsCompatSource for CachedSource {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     self.original().to_js_compat_source()
   }
@@ -111,17 +111,7 @@ impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
       raw_source.to_js_compat_source()
-    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
-      cached_source.to_js_compat_source()
-    } else if let Some(cached_source) = self
-      .as_any()
-      .downcast_ref::<CachedSource<Box<dyn Source>>>()
-    {
-      cached_source.to_js_compat_source()
-    } else if let Some(cached_source) = self
-      .as_any()
-      .downcast_ref::<CachedSource<Arc<dyn Source>>>()
-    {
+    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource>() {
       cached_source.to_js_compat_source()
     } else if let Some(source) = self.as_any().downcast_ref::<Box<dyn Source>>() {
       source.to_js_compat_source()

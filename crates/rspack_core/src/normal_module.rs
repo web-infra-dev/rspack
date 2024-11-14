@@ -18,7 +18,7 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
+  BoxDecodableSourceMap, BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt,
   SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::{
@@ -802,7 +802,11 @@ impl Diagnosable for NormalModule {
 }
 
 impl NormalModule {
-  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+  fn create_source(
+    &self,
+    content: Content,
+    source_map: Option<BoxDecodableSourceMap>,
+  ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawSource::from(content.into_bytes()).boxed());
     }

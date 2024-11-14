@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_error::{miette::IntoDiagnostic, Result};
+use rspack_sources::DecodableSourceMapExt;
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::base::sourcemap;
 use swc_core::{
@@ -20,6 +21,7 @@ use swc_core::{
   },
 };
 
+use super::map::RspackSourceMap;
 use crate::TransformOutput;
 
 #[derive(Default, Clone, Debug)]
@@ -105,14 +107,14 @@ pub fn print(
   };
 
   let map = if source_map_config.enable {
-    let mut buf = vec![];
-
-    source_map
-      .build_source_map_with_config(&src_map_buf, input_source_map, source_map_config)
-      .to_writer(&mut buf)
-      .unwrap_or_else(|e| panic!("{}", e.to_string()));
-    // SAFETY: This buffer is already sanitized
-    Some(unsafe { String::from_utf8_unchecked(buf) })
+    Some(
+      RspackSourceMap::new(source_map.build_source_map_with_config(
+        &src_map_buf,
+        input_source_map,
+        source_map_config,
+      ))
+      .boxed(),
+    )
   } else {
     None
   };
