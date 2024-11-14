@@ -12,6 +12,7 @@ use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
 };
+use tokio::task;
 
 use self::{
   ctrl::{CtrlTask, Event, ExecuteParam},
@@ -73,7 +74,7 @@ impl ModuleExecutor {
     self.event_sender = Some(event_sender.clone());
     self.stop_receiver = Some(stop_receiver);
 
-    tokio::spawn(async move {
+    tokio::spawn(task::unconstrained(async move {
       let _ = run_task_loop_with_event(
         &mut ctx,
         vec![Box::new(CtrlTask::new(event_receiver))],
@@ -89,7 +90,7 @@ impl ModuleExecutor {
       stop_sender
         .send(ctx.transform_to_make_artifact())
         .expect("should success");
-    });
+    }));
   }
 
   pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {

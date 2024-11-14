@@ -10,7 +10,10 @@ use std::{
 
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
-use tokio::sync::mpsc::{self, error::TryRecvError};
+use tokio::{
+  sync::mpsc::{self, error::TryRecvError},
+  task,
+};
 
 /// Result returned by task
 ///
@@ -81,12 +84,12 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
           let tx = tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
-          tokio::spawn(async move {
+          tokio::spawn(task::unconstrained(async move {
             let r = task.background_run().await;
             if !is_expected_shutdown.load(Ordering::Relaxed) {
               tx.send(r).expect("failed to send error message");
             }
-          });
+          }));
         }
         TaskType::Sync => {
           // merge sync task result directly
