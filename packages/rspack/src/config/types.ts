@@ -2318,7 +2318,7 @@ export type Optimization = {
 export type ExperimentCacheOptions =
 	| boolean
 	| {
-			type: "disable" | "memory";
+			type: "memory";
 	  }
 	| {
 			type: "persistent";

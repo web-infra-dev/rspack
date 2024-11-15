@@ -1263,7 +1263,7 @@ const listenOptions = z.object({
 
 const experimentCacheOptions = z
 	.object({
-		type: z.enum(["disable", "memory"])
+		type: z.enum(["memory"])
 	})
 	.or(
 		z.object({

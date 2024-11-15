@@ -1864,7 +1864,7 @@ interface ExecuteModuleContext {
 
 // @public
 export type ExperimentCacheOptions = boolean | {
-    type: "disable" | "memory";
+    type: "memory";
 } | {
     type: "persistent";
     snapshot: {
@@ -6078,11 +6078,11 @@ export const rspackOptions: z.ZodObject<{
     mode: z.ZodOptional<z.ZodEnum<["development", "production", "none"]>>;
     experiments: z.ZodOptional<z.ZodObject<{
         cache: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodUnion<[z.ZodObject<{
-            type: z.ZodEnum<["disable", "memory"]>;
+            type: z.ZodEnum<["memory"]>;
         }, "strip", z.ZodTypeAny, {
-            type: "disable" | "memory";
+            type: "memory";
         }, {
-            type: "disable" | "memory";
+            type: "memory";
         }>, z.ZodObject<{
             type: z.ZodEnum<["persistent"]>;
             snapshot: z.ZodObject<{
@@ -6306,7 +6306,7 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         css?: boolean | undefined;
         cache?: boolean | {
-            type: "disable" | "memory";
+            type: "memory";
         } | {
             type: "persistent";
             snapshot: {
@@ -6367,7 +6367,7 @@ export const rspackOptions: z.ZodObject<{
     }, {
         css?: boolean | undefined;
         cache?: boolean | {
-            type: "disable" | "memory";
+            type: "memory";
         } | {
             type: "persistent";
             snapshot: {
@@ -8488,7 +8488,7 @@ export const rspackOptions: z.ZodObject<{
     experiments?: {
         css?: boolean | undefined;
         cache?: boolean | {
-            type: "disable" | "memory";
+            type: "memory";
         } | {
             type: "persistent";
             snapshot: {
@@ -9110,7 +9110,7 @@ export const rspackOptions: z.ZodObject<{
     experiments?: {
         css?: boolean | undefined;
         cache?: boolean | {
-            type: "disable" | "memory";
+            type: "memory";
         } | {
             type: "persistent";
             snapshot: {
