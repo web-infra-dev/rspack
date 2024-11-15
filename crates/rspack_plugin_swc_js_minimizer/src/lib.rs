@@ -11,9 +11,7 @@ use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{
-  ConcatSource, DecodableMapExt, MapOptions, RawSource, SourceExt,
-};
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
@@ -188,7 +186,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().to_string();
-        let input_source_map = original_source.map(&MapOptions::default()).map(|map| map.boxed());
+        let input_source_map = original_source.map(&MapOptions::default());
 
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)

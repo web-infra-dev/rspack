@@ -359,7 +359,7 @@ async fn render_manifest(
     .map(|(index, _)| (index, index + len))
     .collect();
   let source = if !auto_public_path_matches.is_empty() {
-    let mut replace = ReplaceSource::new(source.boxed());
+    let mut replace = ReplaceSource::new(source);
     for (start, end) in auto_public_path_matches {
       let relative = PublicPath::render_auto_public_path(compilation, &output_path);
       replace.replace(start as u32, end as u32, &relative, None);

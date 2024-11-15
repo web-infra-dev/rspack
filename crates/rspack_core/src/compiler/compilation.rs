@@ -569,7 +569,9 @@ impl Compilation {
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
     {
+      println!("is_source_equal start");
       let is_source_equal = is_source_equal(original_source, asset_source);
+      println!("is_source_equal end");
       if !is_source_equal {
         tracing::error!(
           "Emit Duplicate Filename({}), is_source_equal: {:?}",

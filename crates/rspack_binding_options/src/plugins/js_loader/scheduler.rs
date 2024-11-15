@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{
-  diagnostics::CapturedLoaderError, rspack_sources::DecodableMapExt, AdditionalData,
-  LoaderContext, NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding, RunnerContext,
+  diagnostics::CapturedLoaderError, rspack_sources::DecodableMapExt, AdditionalData, LoaderContext,
+  NormalModuleLoaderShouldYield, NormalModuleLoaderStartYielding, RunnerContext,
   BUILTIN_LOADER_PREFIX,
 };
 use rspack_error::{error, Result};

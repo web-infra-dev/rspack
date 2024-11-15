@@ -306,22 +306,11 @@ where
   }
 }
 
-impl<T>
-  From<(
-    Option<T>,
-    Option<BoxDecodableMap>,
-    Option<AdditionalData>,
-  )> for LoaderPatch
+impl<T> From<(Option<T>, Option<BoxDecodableMap>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(
-    value: (
-      Option<T>,
-      Option<BoxDecodableMap>,
-      Option<AdditionalData>,
-    ),
-  ) -> Self {
+  fn from(value: (Option<T>, Option<BoxDecodableMap>, Option<AdditionalData>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,

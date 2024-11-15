@@ -16,7 +16,6 @@ use lightningcss::{
 };
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::DecodableMapExt;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
@@ -268,9 +267,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .to_json(None)
                 .map_err(|e| error!(e.to_string()))?,
             )
-            .expect("should be able to generate source-map").boxed(),
+            .expect("should be able to generate source-map"),
             original_source: Some(input),
-            inner_source_map: input_source_map.map(|map| map.boxed()),
+            inner_source_map: input_source_map,
             remove_original_source: true,
           })
           .boxed()

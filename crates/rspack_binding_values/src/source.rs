@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, DecodableMapExt, MapOptions, OriginalSource, RawSource,
-  ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawSource, ReplaceSource,
+  Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -23,7 +23,7 @@ impl From<JsCompatSource> for BoxSource {
             Some(source_map) => SourceMapSource::new(WithoutOriginalOptions {
               value: string,
               name: "inmemory://from js",
-              source_map: source_map.boxed(),
+              source_map,
             })
             .boxed(),
             None => RawSource::from(string).boxed(),
