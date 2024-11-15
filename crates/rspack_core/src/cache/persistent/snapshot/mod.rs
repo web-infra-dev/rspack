@@ -24,7 +24,7 @@ pub struct Snapshot {
   // TODO
   // 1. update compiler.input_file_system to async file system
   // 2. update this fs to AsyncReadableFileSystem
-  // 3. update add/remove/calc_modified_files to async fn
+  // 3. update add/calc_modified_files to async fn
   fs: Arc<dyn ReadableFileSystem>,
   storage: Arc<dyn Storage>,
 }
@@ -46,7 +46,7 @@ impl Snapshot {
     let default_strategy = StrategyHelper::compile_time();
     let mut helper = StrategyHelper::new(self.fs.clone());
     // TODO use multi thread
-    // TODO merge lib version file
+    // TODO merge package version file
     for path in paths {
       // TODO check path exists
       // TODO directory check all sub file
@@ -55,7 +55,7 @@ impl Snapshot {
         continue;
       }
       if self.options.is_managed_path(path_str) {
-        if let Some(v) = helper.lib_version(path) {
+        if let Some(v) = helper.package_version(path) {
           self.storage.set(
             SCOPE,
             path_str.as_bytes().to_vec(),

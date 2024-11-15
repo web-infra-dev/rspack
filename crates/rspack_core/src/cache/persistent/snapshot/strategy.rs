@@ -12,11 +12,11 @@ use rustc_hash::FxHashMap as HashMap;
 #[cacheable]
 #[derive(Debug, PartialEq)]
 pub enum Strategy {
-  /// Check by lib version
+  /// Check by package version
   ///
   /// This strategy will find the package.json in the parent directory, and
   /// compares the version field.
-  LibVersion(String),
+  PackageVersion(String),
 
   /// Check by compile time
   ///
@@ -37,14 +37,14 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  lib_version_cache: HashMap<Utf8PathBuf, Option<String>>,
+  package_version_cache: HashMap<Utf8PathBuf, Option<String>>,
 }
 
 impl StrategyHelper {
   pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
       fs,
-      lib_version_cache: Default::default(),
+      package_version_cache: Default::default(),
     }
   }
 
@@ -58,8 +58,8 @@ impl StrategyHelper {
   }
 
   /// get path file version in package.json
-  fn package_json_version(&mut self, path: &Utf8PathBuf) -> Option<String> {
-    if let Some(version) = self.lib_version_cache.get(path) {
+  fn package_version_with_cache(&mut self, path: &Utf8PathBuf) -> Option<String> {
+    if let Some(version) = self.package_version_cache.get(path) {
       return version.clone();
     }
 
@@ -75,12 +75,12 @@ impl StrategyHelper {
     }
 
     if res.is_none() {
-      res = path
-        .parent()
-        .and_then(|p| self.package_json_version(&p.to_path_buf()));
+      if let Some(p) = path.parent() {
+        res = self.package_version_with_cache(&p.to_path_buf());
+      }
     }
 
-    self.lib_version_cache.insert(path.clone(), res.clone());
+    self.package_version_cache.insert(path.clone(), res.clone());
     res
   }
 
@@ -92,16 +92,18 @@ impl StrategyHelper {
       .as_millis() as u64;
     Strategy::CompileTime(now)
   }
-  /// get path file lib version strategy
-  pub fn lib_version(&mut self, path: &Utf8PathBuf) -> Option<Strategy> {
-    self.package_json_version(path).map(Strategy::LibVersion)
+  /// get path file package version strategy
+  pub fn package_version(&mut self, path: &Utf8PathBuf) -> Option<Strategy> {
+    self
+      .package_version_with_cache(path)
+      .map(Strategy::PackageVersion)
   }
 
   /// validate path file by target strategy
   pub fn validate(&mut self, path: &Utf8PathBuf, strategy: &Strategy) -> ValidateResult {
     match strategy {
-      Strategy::LibVersion(version) => {
-        if let Some(ref cur_version) = self.package_json_version(path) {
+      Strategy::PackageVersion(version) => {
+        if let Some(ref cur_version) = self.package_version_with_cache(path) {
           if cur_version == version {
             ValidateResult::NoChanged
           } else {
@@ -169,45 +171,49 @@ mod tests {
     );
     assert!(helper.modified_time(&"/file2".into()).is_none());
 
-    // package_json_version
+    // package_version_with_cache
     assert_eq!(
       helper
-        .package_json_version(&"/packages/p1/file".into())
+        .package_version_with_cache(&"/packages/p1/file".into())
         .unwrap(),
       "1.0.0"
     );
     assert_eq!(
       helper
-        .package_json_version(&"/packages/p2/file".into())
+        .package_version_with_cache(&"/packages/p2/file".into())
         .unwrap(),
       "1.1.0"
     );
     assert_eq!(
       helper
-        .package_json_version(&"/packages/p2/dir1/dir2/dir3/file".into())
+        .package_version_with_cache(&"/packages/p2/dir1/dir2/dir3/file".into())
         .unwrap(),
       "1.1.0"
     );
-    assert!(helper.package_json_version(&"/file1".into()).is_none());
-    assert!(helper.package_json_version(&"/file2".into()).is_none());
+    assert!(helper
+      .package_version_with_cache(&"/file1".into())
+      .is_none());
+    assert!(helper
+      .package_version_with_cache(&"/file2".into())
+      .is_none());
 
-    // lib_version
+    // package_version
     assert_eq!(
-      helper.lib_version(&"/packages/p1/file".into()).unwrap(),
-      Strategy::LibVersion("1.0.0".into())
+      helper.package_version(&"/packages/p1/file".into()).unwrap(),
+      Strategy::PackageVersion("1.0.0".into())
     );
     assert_eq!(
-      helper.lib_version(&"/packages/p2/file".into()).unwrap(),
-      Strategy::LibVersion("1.1.0".into())
+      helper.package_version(&"/packages/p2/file".into()).unwrap(),
+      Strategy::PackageVersion("1.1.0".into())
     );
     assert_eq!(
       helper
-        .lib_version(&"/packages/p2/dir1/dir2/dir3/file".into())
+        .package_version(&"/packages/p2/dir1/dir2/dir3/file".into())
         .unwrap(),
-      Strategy::LibVersion("1.1.0".into())
+      Strategy::PackageVersion("1.1.0".into())
     );
-    assert!(helper.lib_version(&"/file1".into()).is_none());
-    assert!(helper.lib_version(&"/file2".into()).is_none());
+    assert!(helper.package_version(&"/file1".into()).is_none());
+    assert!(helper.package_version(&"/file2".into()).is_none());
 
     // validate
     let now = StrategyHelper::compile_time();
@@ -226,7 +232,7 @@ mod tests {
       ValidateResult::Deleted
     ));
 
-    let version = Strategy::LibVersion("1.0.0".into());
+    let version = Strategy::PackageVersion("1.0.0".into());
     assert!(matches!(
       helper.validate(&"/packages/p1/file1".into(), &version),
       ValidateResult::NoChanged
