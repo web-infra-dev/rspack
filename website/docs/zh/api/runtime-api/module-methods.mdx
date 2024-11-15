@@ -5,24 +5,24 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # 模块方法
 
-当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 ES6、CommonJS。
+当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)。
 
 尽管 Rspack 支持多种模块语法，但我们还是建议尽量使用一致的语法，以此避免一些奇怪的行为和 bug。
 
-事实上，当距离最近的 `package.json` 文件中 `"type"` 字段值为 `"module"` 或 `"commonjs"` 时，Rspack 会对 `.mjs` 文件、`.cjs` 文件或`.js` 文件进行对应的处理：
+事实上，当距离最近的 `package.json` 文件中 ["type"](https://nodejs.org/api/packages.html#type) 字段值为 `"module"` 或 `"commonjs"` 时，Rspack 会对 `.mjs` 文件、`.cjs` 文件或`.js` 文件进行对应的处理：
 
-- 后缀为 `.mjs` 或者 `package.json` 中 `"type": "module"` 且后缀为 `.js` 时：
+- 文件后缀为 `.mjs`，或者 `package.json` 中 `"type": "module"` 且后缀为 `.js` 时：
   - 不允许使用 CommonJS，如 `require`，`module.exports` 或 `exports`
   - 引入文件时需指定扩展名，例如，应使用 `import './src/App.mjs'`，而非 `import './src/App'`
-- 后缀为 `.cjs` 或者 `package.json` 中 `"type": "commonjs"` 且后缀为 `.js` 时：
+- 文件后缀为 `.cjs`，或者 `package.json` 中 `"type": "commonjs"` 且后缀为 `.js` 时：
   - 不允许使用 ESM，如 `import` 和 `export`
 
-## ES6 (推荐)
+## ES modules (推荐)
 
-Rspack 原生支持 ES6 模块语法，可以使用静态的 `import`、`export` 和 `import()` 语法。
+Rspack 原生支持 ES modules 语法，可以使用静态的 `import`、`export` 和 `import()` 语法。
 
 :::warning
-如果使用其他的 ES6+ 特性，仍然需要引入 SWC / Babel 进行转换。
+如果使用其他的 ES6+ 特性，你仍然需要引入 SWC 或 Babel 进行转换。
 :::
 
 ### import
@@ -61,13 +61,15 @@ export default {
 };
 ```
 
-### 动态 import()
+### Dynamic import()
 
 ```ts
 function import(path: string): Promise;
 ```
 
-动态加载模块。对 `import()` 的调用被视为分割点，这意味着请求的模块及其子模块被拆分成单独的 chunk。
+动态加载模块，参考 [Dynamic import](guide/optimization/code-splitting#动态导入dynamic-import) 了解更多。
+
+对 `import()` 的调用被视为分割点，这意味着请求的模块及其子模块被拆分成单独的 chunk。
 
 ```js
 if (module.hot) {
@@ -77,15 +79,16 @@ if (module.hot) {
 }
 ```
 
-:::warning 警告
-此功能内部依赖于 `Promise`。如果你在旧版浏览器中使用 `import()`，请记得使用类似于 [`es6-promise`](https://github.com/stefanpenner/es6-promise) 或 [`promise-polyfill`](https://github.com/taylorhakes/promise-polyfill) 的 polyfill 来模拟 `Promise`。
+:::warning
+此功能内部依赖于 `Promise`。如果你在旧版浏览器中使用 `import()`，请记得使用类似于 [core-js](https://github.com/zloirock/core-js)， [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill) 的 polyfill 来模拟 `Promise`。
 :::
 
 #### import() 中的动态表达式
 
-无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
+`import()` 无法使用完全动态的导入语句，例如 `import(foo)`。因为 `foo` 可能是系统或项目中任何文件的任何路径。
 
-`import()` 必须至少包含一些关于模块所在位置的信息。可以将打包限制在特定目录或一组文件中，这样当你使用动态表达式时 - 在 `import()` 调用中可能被请求的每个模块都会被包括进来。
+`import()` 必须至少包含一些关于模块所在位置的信息。可以将打包限制在特定目录或一组文件中，这样当你使用动态表达式时，在 `import()` 调用中可能被请求的每个模块都会被包括进来。
+
 例如，`import(./locale/${language}.json)` 会将 `./locale` 目录中的每个 `.json` 文件都被打包进新的代码块。在运行时，一旦变量 `language` 被计算出来，任何像 `english.json` 或 `german.json` 这样的文件都将可供使用。
 
 ```js
@@ -100,7 +103,7 @@ import(`./locale/${language}.json`).then(module => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-通过向 import 语句添加注释，我们可以执行诸如命名 chunk 或选择不同模式等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
+通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
 
 ```js
 // 单个模块
@@ -136,6 +139,7 @@ import(
 ##### webpackMode
 
 - **类型：** `"eager" | "lazy" | "weak" | "lazy-once"`
+- **默认值：** `'lazy'`
 
 可以指定以不同的模式解析动态导入。支持以下选项：
 
