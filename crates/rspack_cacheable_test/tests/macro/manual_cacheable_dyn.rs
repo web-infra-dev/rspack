@@ -1,6 +1,7 @@
 use rspack_cacheable::{cacheable, from_bytes, to_bytes};
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_manual_cacheable_dyn_macro() {
   struct Context;
 
