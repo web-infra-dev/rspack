@@ -23,7 +23,7 @@ impl DecodableMap for RspackSourceMap {
   }
 
   fn mappings(&self) -> &str {
-    &self
+    self
       .mappings
       .get_or_init(|| encode_mappings(self.decoded_mappings()))
   }

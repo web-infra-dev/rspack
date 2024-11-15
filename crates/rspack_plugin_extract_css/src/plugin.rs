@@ -5,9 +5,7 @@ use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
-  rspack_sources::{
-    ConcatSource, DecodableMapExt, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
-  },
+  rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
@@ -386,9 +384,7 @@ impl PluginCssExtract {
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(source_map)
-              .expect("invalid sourcemap")
-              .boxed(),
+            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
           }))
         } else {
           source.add(RawSource::from(content.to_string()));
