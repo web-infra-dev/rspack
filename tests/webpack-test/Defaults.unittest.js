@@ -3,7 +3,7 @@ require("./helpers/warmup-webpack");
 
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 
 /**
  * Escapes regular expression metacharacters
