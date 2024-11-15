@@ -12,10 +12,6 @@ Here we introduce a concept called Chunk, representing a resource that a browser
 
 Rspack use the [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) syntax that conforms to the ECMAScript proposal for dynamic imports.
 
-:::tip Inconsistent behaviors with webpack
-Rspack doesn't support `require.ensure`.
-:::
-
 In `index.js`, we dynamically import two modules through `import()`, thereby separating into a new chunk.
 
 ```js title=index.js
@@ -34,6 +30,10 @@ console.log('bar.js');
 ```
 
 Now we build this project, we get 3 chunks, `src_bar_js.js`, `src_foo_js.js` and `main.js`, if you see them, you will find `shared.js` exist in both `src_bar_js.js` and `src_foo_js.js`, we will remove duplicated modules in later chapters.
+
+:::tip
+Refer to [Module Methods - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) for the detailed dynamic import API, as well as how to use dynamic expressions and magic comments in dynamic import.
+:::
 
 :::info
 Though `shared.js` exist in 2 chunks, but it is executed only once, you don't have to worry about issue of multiple instance.
