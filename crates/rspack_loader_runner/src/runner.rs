@@ -2,7 +2,7 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
-use rspack_sources::BoxDecodableSourceMap;
+use rspack_sources::BoxDecodableMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::spawn_blocking;
 
@@ -200,7 +200,7 @@ pub struct LoaderResult {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
   pub content: Content,
-  pub source_map: Option<BoxDecodableSourceMap>,
+  pub source_map: Option<BoxDecodableMap>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: HashMap<String, String>,
 }

@@ -1,6 +1,6 @@
 use once_cell::sync::OnceCell;
 use parcel_sourcemap::SourceMap;
-use rspack_sources::{encode_mappings, DecodableSourceMap, Mapping, OriginalLocation};
+use rspack_sources::{encode_mappings, DecodableMap, Mapping, OriginalLocation};
 
 #[derive(Debug)]
 pub(crate) struct RspackSourceMap {
@@ -19,7 +19,7 @@ impl RspackSourceMap {
   }
 }
 
-impl DecodableSourceMap for RspackSourceMap {
+impl DecodableMap for RspackSourceMap {
   fn file(&self) -> Option<&str> {
     None
   }
@@ -91,5 +91,17 @@ impl DecodableSourceMap for RspackSourceMap {
         .to_json(None)
         .unwrap_or_else(|e| panic!("{}", e.to_string())),
     )
+  }
+
+  fn source(&self, index: usize) -> Option<&str> {
+    self.inner.get_source(index as u32).ok()
+  }
+
+  fn source_content(&self, index: usize) -> Option<&str> {
+    self.inner.get_source_content(index as u32).ok()
+  }
+
+  fn name(&self, index: usize) -> Option<&str> {
+    self.inner.get_name(index as u32).ok()
   }
 }

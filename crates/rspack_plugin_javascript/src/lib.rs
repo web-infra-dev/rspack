@@ -15,7 +15,7 @@ pub mod utils;
 pub mod visitors;
 mod webpack_comment;
 pub use parser_plugin::*;
-use rspack_sources::BoxDecodableSourceMap;
+use rspack_sources::BoxDecodableMap;
 
 pub use crate::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin;
 pub use crate::plugin::*;
@@ -23,7 +23,7 @@ pub use crate::plugin::*;
 #[derive(Debug)]
 pub struct TransformOutput {
   pub code: String,
-  pub map: Option<BoxDecodableSourceMap>,
+  pub map: Option<BoxDecodableMap>,
 }
 
 #[derive(Debug)]

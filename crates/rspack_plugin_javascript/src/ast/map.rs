@@ -1,5 +1,5 @@
 use once_cell::sync::OnceCell;
-use rspack_sources::{encode_mappings, DecodableSourceMap, Mapping, OriginalLocation};
+use rspack_sources::{encode_mappings, DecodableMap, Mapping, OriginalLocation};
 use sourcemap::SourceMap;
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ impl RspackSourceMap {
   }
 }
 
-impl DecodableSourceMap for RspackSourceMap {
+impl DecodableMap for RspackSourceMap {
   fn file(&self) -> Option<&str> {
     self.inner.get_file()
   }
@@ -72,5 +72,17 @@ impl DecodableSourceMap for RspackSourceMap {
       .to_writer(&mut buf)
       .unwrap_or_else(|e| panic!("{}", e.to_string()));
     Ok(unsafe { String::from_utf8_unchecked(buf) })
+  }
+
+  fn source(&self, index: usize) -> Option<&str> {
+    self.inner.get_source(index as u32)
+  }
+
+  fn source_content(&self, index: usize) -> Option<&str> {
+    self.inner.get_source_contents(index as u32)
+  }
+
+  fn name(&self, index: usize) -> Option<&str> {
+    self.inner.get_name(index as u32)
   }
 }

@@ -12,7 +12,7 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::rspack_sources::{
-  ConcatSource, DecodableSourceMapExt, MapOptions, RawSource, SourceExt,
+  ConcatSource, DecodableMapExt, MapOptions, RawSource, SourceExt,
 };
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{

@@ -6,8 +6,7 @@ use regex::Regex;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::{
   rspack_sources::{
-    ConcatSource, DecodableSourceMapExt, RawSource, SourceMap, SourceMapSource,
-    WithoutOriginalOptions,
+    ConcatSource, DecodableMapExt, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
   },
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,

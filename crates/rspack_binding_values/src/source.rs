@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, DecodableSourceMapExt, MapOptions, OriginalSource,
-  RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, ConcatSource, DecodableMapExt, MapOptions, OriginalSource, RawSource,
+  ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 

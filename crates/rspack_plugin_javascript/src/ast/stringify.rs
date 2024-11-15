@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
 use rspack_error::{miette::IntoDiagnostic, Result};
-use rspack_sources::DecodableSourceMapExt;
+use rspack_sources::DecodableMapExt;
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::base::sourcemap;
 use swc_core::{

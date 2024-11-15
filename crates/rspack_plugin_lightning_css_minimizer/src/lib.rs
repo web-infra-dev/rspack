@@ -16,7 +16,7 @@ use lightningcss::{
 };
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::DecodableSourceMapExt;
+use rspack_core::rspack_sources::DecodableMapExt;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,

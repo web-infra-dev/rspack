@@ -13,7 +13,7 @@ use map::RspackSourceMap;
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
-use rspack_sources::DecodableSourceMapExt;
+use rspack_sources::DecodableMapExt;
 use tokio::sync::Mutex;
 
 pub mod config;
