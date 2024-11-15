@@ -21,6 +21,7 @@ module.exports = [{
 		svelte: 'svelte-alias',
 		lit: 'lit-alias',
 		solid: 'solid-alias',
+		jquery: 'jquery-alias',
 	},
 	externalsType: 'module-import',
 	experiments: {
