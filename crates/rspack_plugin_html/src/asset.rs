@@ -111,21 +111,17 @@ impl HtmlPluginAssets {
         favicon_relative_path.to_string_lossy().to_string().as_str(),
       ));
 
-      let fake_html_file_name = compilation
-        .get_path(
-          html_file_name,
-          PathData::default().filename(output_path.as_str()),
-        )
-        .always_ok();
-
       if favicon_path.to_str().unwrap_or_default().is_empty() {
-        favicon_path = compilation
-          .options
-          .output
-          .path
-          .as_std_path()
-          .join(favicon_relative_path)
-          .relative(PathBuf::from(fake_html_file_name).join(".."));
+        let fake_html_file_name = compilation
+          .get_path(
+            html_file_name,
+            PathData::default().filename(output_path.as_str()),
+          )
+          .always_ok();
+        let output_path = compilation.options.output.path.as_std_path();
+        favicon_path = output_path
+          .relative(output_path.join(fake_html_file_name).join(".."))
+          .join(favicon_relative_path);
       } else {
         favicon_path.push(favicon_relative_path);
       }
