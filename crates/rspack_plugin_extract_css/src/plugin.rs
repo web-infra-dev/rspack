@@ -7,11 +7,11 @@ use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
-  ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
+  ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
+  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, CompilerOptions, Filename, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -315,7 +315,7 @@ impl PluginCssExtract {
     let mut source = ConcatSource::default();
     let mut external_source = ConcatSource::default();
 
-    let (filename, _) = compilation.get_path_with_info(filename_template, path_data)?;
+    let (filename, asset_info) = compilation.get_path_with_info(filename_template, path_data)?;
 
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
@@ -412,7 +412,7 @@ impl PluginCssExtract {
       RenderManifestEntry::new(
         Arc::new(external_source),
         filename,
-        AssetInfo::default(),
+        asset_info,
         false,
         false,
       ),
