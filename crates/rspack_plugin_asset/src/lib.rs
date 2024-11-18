@@ -595,7 +595,7 @@ async fn render_manifest(
           .inner();
         RenderManifestEntry::new(
           source.clone(),
-          asset_filename.to_owned(),
+          asset_filename.into(),
           asset_info.to_owned(),
           true,
           true,

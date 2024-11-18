@@ -8,8 +8,8 @@ use rspack_error::{error, Result};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
-  DynamicImportFetchPriority, Filename, ModuleLayer,
+  compare_chunk_group, AssetFilename, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey,
+  DependencyLocation, DynamicImportFetchPriority, Filename, ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -83,18 +83,17 @@ impl ChunkGroup {
       .copied()
   }
 
-  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> Vec<String> {
-    self
-      .chunks
-      .iter()
-      .flat_map(|chunk_ukey| {
-        chunk_by_ukey
-          .expect_get(chunk_ukey)
-          .files()
-          .iter()
-          .map(|file| file.to_string())
-      })
-      .collect()
+  pub fn get_files<'a>(
+    &self,
+    chunk_by_ukey: &'a ChunkByUkey,
+  ) -> impl Iterator<Item = &'a AssetFilename> + use<'a, '_> {
+    self.chunks.iter().flat_map(|chunk_ukey| {
+      chunk_by_ukey
+        .expect_get(chunk_ukey)
+        .files()
+        .iter()
+        .map(|file| file)
+    })
   }
 
   pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {

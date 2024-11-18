@@ -66,7 +66,7 @@ async fn render_manifest(
           .get(&m.identifier())
           .map(|s| s.clone())
           .expect("should have wasm_filename");
-        RenderManifestEntry::new(source.clone(), output_path, asset_info, false, false)
+        RenderManifestEntry::new(source.clone(), output_path.into(), asset_info, false, false)
       });
 
       Ok(result)

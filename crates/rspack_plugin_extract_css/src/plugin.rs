@@ -411,7 +411,7 @@ impl PluginCssExtract {
     Ok((
       RenderManifestEntry::new(
         Arc::new(external_source),
-        filename,
+        filename.into(),
         AssetInfo::default(),
         false,
         false,
@@ -632,7 +632,7 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
             .join("\n")
         ),
       )
-      .with_file(Some(render_result.filename().to_owned().into()))
+      .with_file(Some(render_result.filename.to_string().into()))
       .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }

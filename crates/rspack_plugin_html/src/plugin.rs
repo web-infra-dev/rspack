@@ -2,8 +2,8 @@ use std::{path::PathBuf, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate, NoFilenameFn,
-  Plugin,
+  AssetFilename, Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate,
+  NoFilenameFn, Plugin,
 };
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -210,7 +210,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if let Some(favicon) = &config.favicon {
       match create_favicon_asset(favicon, config, compilation) {
-        Ok(favicon) => compilation.emit_asset(favicon.0, favicon.1),
+        Ok(favicon) => compilation.emit_asset(favicon.0.into(), favicon.1),
         Err(err) => {
           let error_msg = err.to_string();
           compilation.push_diagnostic(Diagnostic::from(err));
@@ -226,7 +226,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       compilation,
     );
 
-    compilation.emit_asset(html_asset.0.clone(), html_asset.1);
+    compilation.emit_asset(html_asset.0.as_str().into(), html_asset.1);
 
     let _ = hooks
       .after_emit

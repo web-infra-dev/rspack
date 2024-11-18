@@ -623,7 +623,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
   copied_result.into_iter().for_each(|(_priority, result)| {
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+    if let Some(exist_asset) = compilation.assets_mut().get_mut(result.filename.as_str()) {
       if !result.force {
         return;
       }
@@ -645,7 +645,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       compilation.emit_asset(
-        result.filename,
+        result.filename.into(),
         CompilationAsset {
           source: Some(Arc::new(result.source)),
           info: asset_info,
@@ -722,7 +722,7 @@ fn set_info(target: &mut AssetInfo, info: Info) {
 
   if let Some(related) = info.related {
     target.related = AssetInfoRelated {
-      source_map: related.source_map,
+      source_map: related.source_map.map(Into::into),
     };
   }
 

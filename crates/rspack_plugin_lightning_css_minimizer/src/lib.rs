@@ -261,7 +261,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let minimized_source = if let Some(mut source_map) = source_map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
-            name: filename,
+            name: filename.to_string(),
             source_map: SourceMap::from_json(
               &source_map
                 .to_json(None)

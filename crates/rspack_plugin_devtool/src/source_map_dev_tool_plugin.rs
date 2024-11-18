@@ -9,6 +9,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
+use rspack_core::AssetFilename;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -94,8 +95,8 @@ enum SourceMappingUrlCommentRef<'a> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct MappedAsset {
-  pub(crate) asset: (String, CompilationAsset),
-  pub(crate) source_map: Option<(String, CompilationAsset)>,
+  pub(crate) asset: (AssetFilename, CompilationAsset),
+  pub(crate) source_map: Option<(AssetFilename, CompilationAsset)>,
 }
 
 #[plugin]
@@ -168,14 +169,14 @@ impl SourceMapDevToolPlugin {
   async fn map_assets(
     &self,
     compilation: &Compilation,
-    file_to_chunk: &HashMap<&String, &Chunk>,
-    raw_assets: Vec<(String, &CompilationAsset)>,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    raw_assets: Vec<(AssetFilename, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
 
     let matches = if let Some(test) = &self.test {
-      let features = raw_assets.iter().map(|(file, _)| test(file.to_owned()));
+      let features = raw_assets.iter().map(|(file, _)| test(file.to_string()));
       join_all(features)
         .await
         .into_iter()
@@ -327,7 +328,7 @@ impl SourceMapDevToolPlugin {
 
     for (filename, _asset, source_map) in mapped_sources.iter_mut() {
       if let Some(source_map) = source_map {
-        source_map.set_file(Some(filename.clone()));
+        source_map.set_file(Some(filename.to_string()));
 
         let sources = source_map.sources_mut();
         for source in sources {
@@ -391,19 +392,17 @@ impl SourceMapDevToolPlugin {
           };
 
           if let Some(source_map_filename_config) = &self.source_map_filename {
-            let chunk = file_to_chunk.get(&filename);
+            let chunk = file_to_chunk.get(filename.as_str());
             let source_type = if css_extension_detected {
               &SourceType::Css
             } else {
               &SourceType::JavaScript
             };
             let filename = match &self.file_context {
-              Some(file_context) => Cow::Owned(
-                relative(Path::new(file_context), Path::new(&filename))
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              None => Cow::Borrowed(&filename),
+              Some(file_context) => relative(Path::new(file_context), Path::new(filename.as_str()))
+                .to_string_lossy()
+                .into(),
+              None => filename,
             };
             let data = PathData::default().filename(&filename);
             let data = match chunk {
@@ -421,9 +420,10 @@ impl SourceMapDevToolPlugin {
                 ),
               None => data,
             };
-            let source_map_filename = compilation
+            let source_map_filename: AssetFilename = compilation
               .get_asset_path(source_map_filename_config, data)
-              .always_ok();
+              .always_ok()
+              .into();
 
             if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
               let source_map_url = if let Some(public_path) = &self.public_path {
@@ -431,11 +431,11 @@ impl SourceMapDevToolPlugin {
               } else {
                 let mut file_path = PathBuf::new();
                 file_path.push(Component::RootDir);
-                file_path.extend(Path::new(filename.as_ref()).components());
+                file_path.extend(Path::new(filename.as_str()).components());
 
                 let mut source_map_path = PathBuf::new();
                 source_map_path.push(Component::RootDir);
-                source_map_path.extend(Path::new(&source_map_filename).components());
+                source_map_path.extend(Path::new(source_map_filename.as_str()).components());
 
                 relative(
                   #[allow(clippy::unwrap_used)]
@@ -474,7 +474,7 @@ impl SourceMapDevToolPlugin {
               asset.source = Some(source.clone());
             }
             let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-            if let Some(asset) = compilation.assets().get(filename.as_ref()) {
+            if let Some(asset) = compilation.assets().get(filename.as_str()) {
               // set source map asset version to be the same as the target asset
               source_map_asset_info.version = asset.info.version.clone();
             }
@@ -483,7 +483,7 @@ impl SourceMapDevToolPlugin {
               source_map_asset_info,
             );
             Ok(MappedAsset {
-              asset: (filename.to_string(), asset),
+              asset: (filename, asset),
               source_map: Some((source_map_filename, source_map_asset)),
             })
           } else {
@@ -530,7 +530,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
-  let mut file_to_chunk: HashMap<&String, &Chunk> = HashMap::default();
+  let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
@@ -571,7 +571,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
+    let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_str());
     compilation.emit_asset(source_filename, source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset);

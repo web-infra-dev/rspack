@@ -3,8 +3,8 @@ use std::{collections::HashMap, fmt::Debug};
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ApplyContext, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit,
-  CompilerOptions, Plugin, PluginContext,
+  ApplyContext, AssetFilename, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset,
+  CompilerAfterEmit, CompilerOptions, Plugin, PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -49,7 +49,7 @@ impl SizeLimitsPlugin {
     let mut size = 0.0;
 
     for filename in entrypoint.get_files(&compilation.chunk_by_ukey) {
-      let asset = compilation.assets().get(&filename);
+      let asset = compilation.assets().get(filename);
 
       if let Some(asset) = asset {
         if !self.asset_filter(&filename, asset).await {
@@ -82,7 +82,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_assets_over_size_limit_warning(
-    detail: &[(&String, f64)],
+    detail: &[(&AssetFilename, f64)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -99,7 +99,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_entrypoints_over_size_limit_warning(
-    detail: &[(&String, f64, Vec<String>)],
+    detail: &[(&String, f64, Vec<&AssetFilename>)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -136,7 +136,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
   let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
   let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);
-  let mut checked_assets: HashMap<String, bool> = HashMap::default();
+  let mut checked_assets: HashMap<AssetFilename, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 
   let mut assets_over_size_limit = vec![];
@@ -152,7 +152,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       let size = source.size() as f64;
       let is_over_size_limit = size > max_asset_size;
 
-      checked_assets.insert(name.to_owned(), is_over_size_limit);
+      checked_assets.insert(name.clone(), is_over_size_limit);
       if is_over_size_limit {
         assets_over_size_limit.push((name, size));
       }
@@ -171,7 +171,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       let mut files = vec![];
 
       for filename in entry.get_files(&compilation.chunk_by_ukey) {
-        let asset = compilation.assets().get(&filename);
+        let asset = compilation.assets().get(filename);
 
         if let Some(asset) = asset {
           if self.asset_filter(&filename, asset).await {
@@ -223,7 +223,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (name, asset) in compilation.assets_mut() {
-    if let Some(checked) = checked_assets.get(name) {
+    if let Some(checked) = checked_assets.get(name.as_str()) {
       asset.info.set_is_over_size_limit(*checked)
     }
   }

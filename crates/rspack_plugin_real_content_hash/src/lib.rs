@@ -148,7 +148,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
             .expect("RealContentHashPlugin: should have new hash")
         })
         .into_owned();
-      let new_name = (name != new_name).then_some(new_name);
+      let new_name = (name != new_name).then(|| new_name.into());
       Some((name.to_owned(), new_source.clone(), new_name))
     })
     .collect();
