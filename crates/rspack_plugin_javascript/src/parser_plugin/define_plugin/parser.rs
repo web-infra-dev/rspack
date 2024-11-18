@@ -207,7 +207,10 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
       define_record = define_record
         .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
           let evaluated = parser
-            .evaluate(to_code(&record.code, None).into_owned(), "DefinePlugin")
+            .evaluate(
+              to_code(&record.code, None, None).into_owned(),
+              "DefinePlugin",
+            )
             .map(|mut evaluated| {
               evaluated.set_range(start, end);
               evaluated
@@ -216,7 +219,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
         }))
         .with_on_expression(Box::new(
           move |record, parser, span, start, end, for_name| {
-            let code = to_code(&record.code, Some(!parser.is_asi_position(span.lo)));
+            let code = to_code(&record.code, Some(!parser.is_asi_position(span.lo)), None);
             parser
               .presentational_dependencies
               .push(Box::new(dep(parser, code, for_name, start, end)));
@@ -227,7 +230,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
 
     define_record = define_record
       .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
-        let code = to_code(&record.code, None);
+        let code = to_code(&record.code, None, None);
         let typeof_code = if is_typeof {
           code
         } else {
@@ -241,7 +244,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
           })
       }))
       .with_on_typeof(Box::new(move |record, parser, start, end| {
-        let code = to_code(&record.code, None);
+        let code = to_code(&record.code, None, None);
         let typeof_code = if is_typeof {
           code
         } else {
@@ -285,7 +288,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
       }))
       .with_on_expression(Box::new(
         move |record, parser, span, start, end, for_name| {
-          let code = to_code(&record.object, Some(!parser.is_asi_position(span.lo)));
+          let code = to_code(&record.object, Some(!parser.is_asi_position(span.lo)), None);
           parser
             .presentational_dependencies
             .push(Box::new(dep(parser, code, for_name, start, end)));
@@ -304,7 +307,11 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
       }))
       .with_on_expression(Box::new(
         move |record, parser, span, start, end, for_name| {
-          let code = to_code(&record.object, Some(!parser.is_asi_position(span.lo)));
+          let code = to_code(
+            &record.object,
+            Some(!parser.is_asi_position(span.lo)),
+            parser.destructuring_assignment_properties_for(&span),
+          );
           parser
             .presentational_dependencies
             .push(Box::new(dep(parser, code, for_name, start, end)));
@@ -551,7 +558,7 @@ fn dep(
   }
 }
 
-fn to_code(code: &Value, asi_safe: Option<bool>) -> Cow<str> {
+fn to_code(code: &Value, asi_safe: Option<bool>, obj_keys: Option<FxHashSet<String>>) -> Cow<str> {
   fn wrap_ansi(code: Cow<str>, is_arr: bool, asi_safe: Option<bool>) -> Cow<str> {
     match asi_safe {
       Some(true) if is_arr => code,
@@ -568,13 +575,19 @@ fn to_code(code: &Value, asi_safe: Option<bool>) -> Cow<str> {
     Value::Bool(b) => Cow::Borrowed(if *b { "true" } else { "false" }),
     Value::Number(n) => Cow::Owned(n.to_string()),
     Value::Array(arr) => {
-      let elements = arr.iter().map(|code| to_code(code, None)).join(",");
+      let elements = arr.iter().map(|code| to_code(code, None, None)).join(",");
       wrap_ansi(Cow::Owned(format!("[{elements}]")), true, asi_safe)
     }
     Value::Object(obj) => {
       let elements = obj
         .iter()
-        .map(|(key, value)| format!("{}:{}", json!(key), to_code(value, None)))
+        .filter_map(|(key, value)| {
+          if obj_keys.as_ref().map_or(true, |keys| keys.contains(key)) {
+            Some(format!("{}:{}", json!(key), to_code(value, None, None)))
+          } else {
+            None
+          }
+        })
         .join(",");
       wrap_ansi(Cow::Owned(format!("{{ {elements} }}")), false, asi_safe)
     }
