@@ -10,12 +10,12 @@ import StatsType from '../../types/stats.mdx';
 
 # JavaScript API
 
-Rspack provides a set of JavaScript APIs to be used in JavaScript runtimes like Node.js or Bun.
+Rspack provides a set of JavaScript APIs to be used in JavaScript runtimes like Node.js, Deno, or Bun.
 
 The JavaScript API is useful in scenarios in which you need to customize the build or development process since all the reporting and error handling must be done manually and webpack only does the compiling part. For this reason the [`stats`](/config/stats) configuration options will not have any effect in the `rspack()` call.
 
 :::tip
-`@rspack/core` is designed based on webpack's JavaScript API to ensure functional consistency and a similar user experience.
+`@rspack/core` is designed to align with webpack's JavaScript API to ensure functional consistency and a similar user experience.
 :::
 
 ## Installation
