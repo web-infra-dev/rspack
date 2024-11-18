@@ -38,3 +38,22 @@ window.lib = {
   fiftyK_7,
   fiftyK_8,
 };
+
+it('should ensure max size fit', () => {
+	const stats = __non_webpack_require__('./stats.json');
+
+	const chunks = new Map();
+
+	for (const c of stats.children[0].chunks) {
+		chunks.set(c.id, c)
+	}
+
+	expect(chunks.size).toBe(4)
+
+	expect(chunks.get('main~1')).toBeDefined()
+	expect(chunks.get('main~1').modules.length).toBe(3)
+	expect(chunks.get('main~2')).toBeDefined()
+	expect(chunks.get('main~2').modules.length).toBe(3)
+	expect(chunks.get('main~3')).toBeDefined()
+	expect(chunks.get('main~3').modules.length).toBe(1)
+})
