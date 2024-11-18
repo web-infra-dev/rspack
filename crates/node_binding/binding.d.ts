@@ -1551,6 +1551,7 @@ export interface RawLightningCssMinimizerOptions {
   include?: number
   exclude?: number
   draft?: RawDraft
+  drafts?: RawDraft
   nonStandard?: RawNonStandard
   pseudoClasses?: RawLightningCssPseudoClasses
   unusedSymbols: Array<string>
