@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash};
 
 use dashmap::DashMap;
 use derivative::Derivative;
@@ -154,18 +154,18 @@ fn eval_source_map_devtool_plugin_render_module_content(
           .collect::<Vec<Option<_>>>();
         for (i, source) in sources.iter_mut().enumerate() {
           if let Some(filename) = module_filenames[i].take() {
-            *source = Arc::from(filename);
+            *source = Cow::from(filename);
           }
         }
       }
 
       if self.no_sources {
         for content in map.sources_content_mut() {
-          *content = Arc::from(String::default());
+          *content = Cow::from(String::default());
         }
       }
-      *map.source_root_mut() = self.source_root.clone().map(Arc::from);
-      *map.file_mut() = Some(Arc::from(module.identifier().as_str()));
+      map.set_source_root(self.source_root.clone());
+      map.set_file(Some(module.identifier().to_string()));
 
       let mut map_buffer = Vec::new();
       map

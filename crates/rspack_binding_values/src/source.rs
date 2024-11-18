@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
@@ -54,7 +54,7 @@ impl ToJsCompatSource for RawSource {
   }
 }
 
-impl ToJsCompatSource for ReplaceSource {
+impl<T: Source + Hash + PartialEq + Eq + 'static> ToJsCompatSource for ReplaceSource<T> {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     Ok(JsCompatSource {
       source: Either::A(self.source().to_string()),
@@ -63,7 +63,7 @@ impl ToJsCompatSource for ReplaceSource {
   }
 }
 
-impl ToJsCompatSource for CachedSource {
+impl<T: ToJsCompatSource> ToJsCompatSource for CachedSource<T> {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     self.original().to_js_compat_source()
   }
@@ -111,7 +111,17 @@ impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
       raw_source.to_js_compat_source()
-    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource>() {
+    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
+      cached_source.to_js_compat_source()
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<Box<dyn Source>>>()
+    {
+      cached_source.to_js_compat_source()
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<Arc<dyn Source>>>()
+    {
       cached_source.to_js_compat_source()
     } else if let Some(source) = self.as_any().downcast_ref::<Box<dyn Source>>() {
       source.to_js_compat_source()

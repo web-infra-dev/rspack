@@ -1,5 +1,5 @@
 use std::path::{Component, PathBuf};
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
@@ -327,7 +327,7 @@ impl SourceMapDevToolPlugin {
 
     for (filename, _asset, source_map) in mapped_sources.iter_mut() {
       if let Some(source_map) = source_map {
-        *source_map.file_mut() = Some(Arc::from(filename.clone()));
+        source_map.set_file(Some(filename.clone()));
 
         let sources = source_map.sources_mut();
         for source in sources {
@@ -338,15 +338,15 @@ impl SourceMapDevToolPlugin {
             .get(module_or_source)
             .expect("expected a filename at the given index but found None")
             .clone();
-          *source = Arc::from(source_name);
+          *source = Cow::from(source_name);
         }
         if self.no_sources {
           for content in source_map.sources_content_mut() {
-            *content = Arc::from("");
+            *content = Default::default();
           }
         }
         if let Some(source_root) = &self.source_root {
-          *source_map.source_root_mut() = Some(Arc::from(source_root.clone()));
+          source_map.set_source_root(Some(source_root.clone()));
         }
       }
     }

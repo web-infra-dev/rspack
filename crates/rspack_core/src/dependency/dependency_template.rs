@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use dyn_clone::{clone_trait_object, DynClone};
-use rspack_sources::ReplaceSource;
+use rspack_sources::{BoxSource, ReplaceSource};
 use rspack_util::ext::AsAny;
 
 use crate::{
@@ -37,7 +37,7 @@ impl TemplateContext<'_, '_, '_> {
   }
 }
 
-pub type TemplateReplaceSource = ReplaceSource;
+pub type TemplateReplaceSource = ReplaceSource<BoxSource>;
 
 clone_trait_object!(DependencyTemplate);
 
