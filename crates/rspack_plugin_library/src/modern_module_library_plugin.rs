@@ -1,13 +1,13 @@
-use std::collections::HashMap;
 use std::hash::Hash;
 
+use rspack_collections::IdentifierMap;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
   CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -293,13 +293,10 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let connections = mg.get_outgoing_connections(module_id);
     let dep_ids = module.get_dependencies();
 
-    let mut module_id_to_connections: HashMap<
-      &rspack_collections::Identifier,
-      Vec<rspack_core::DependencyId>,
-    > = HashMap::default();
+    let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
     connections.iter().for_each(|connection| {
       module_id_to_connections
-        .entry(connection.module_identifier())
+        .entry(*connection.module_identifier())
         .or_default()
         .push(connection.dependency_id);
     });
