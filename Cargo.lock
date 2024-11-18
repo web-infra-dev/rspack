@@ -3912,6 +3912,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "once_cell",
  "ropey",
  "rspack_allocator",
  "rspack_binding_options",
@@ -3929,6 +3930,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_tracing",
  "rspack_util",
+ "tokio",
  "tracing",
 ]
 

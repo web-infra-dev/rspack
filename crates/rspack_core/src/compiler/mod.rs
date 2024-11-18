@@ -143,7 +143,7 @@ impl Compiler {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.clear_cache();
+    self.plugin_driver.resolver_factory.clear_cache();
 
     let module_executor = ModuleExecutor::default();
     fast_set(

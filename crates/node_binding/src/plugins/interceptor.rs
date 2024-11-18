@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   hash::Hash,
   sync::{Arc, RwLock},
 };
@@ -134,7 +135,8 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
 
 enum RegisterJsTapsCache<T: 'static + JsValuesTupleIntoVec, R> {
   NoCache,
-  Cache(Arc<RwLock<Option<RegisterFunctionOutput<T, R>>>>),
+  Cache(Arc<tokio::sync::OnceCell<RegisterFunctionOutput<T, R>>>),
+  SyncCache(Arc<once_cell::sync::OnceCell<RegisterFunctionOutput<T, R>>>),
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsCache<T, R> {
@@ -142,14 +144,19 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsCache<T, R> {
     match self {
       Self::NoCache => Self::NoCache,
       Self::Cache(c) => Self::Cache(c.clone()),
+      Self::SyncCache(c) => Self::SyncCache(c.clone()),
     }
   }
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> RegisterJsTapsCache<T, R> {
-  pub fn new(cache: bool, _sync: bool) -> Self {
+  pub fn new(cache: bool, sync: bool) -> Self {
     if cache {
-      Self::Cache(Default::default())
+      if sync {
+        Self::SyncCache(Default::default())
+      } else {
+        Self::Cache(Default::default())
+      }
     } else {
       Self::NoCache
     }
@@ -173,27 +180,15 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
   pub async fn call_register(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
-    if let RegisterJsTapsCache::Cache(rw) = &self.cache {
-      let cache = {
-        #[allow(clippy::unwrap_used)]
-        rw.read().unwrap().clone()
-      };
-      Ok(match cache {
-        Some(js_taps) => js_taps,
-        None => {
-          let js_taps = self.call_register_impl(hook).await?;
-          {
-            #[allow(clippy::unwrap_used)]
-            let mut cache = rw.write().unwrap();
-            *cache = Some(js_taps.clone());
-          }
-          js_taps
-        }
-      })
+  ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
+    if let RegisterJsTapsCache::Cache(cache) = &self.cache {
+      let js_taps = cache
+        .get_or_try_init(|| self.call_register_impl(hook))
+        .await?;
+      Ok(Cow::Borrowed(js_taps))
     } else {
       let js_taps = self.call_register_impl(hook).await?;
-      Ok(js_taps)
+      Ok(Cow::Owned(js_taps))
     }
   }
 
@@ -209,27 +204,13 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
   pub fn call_register_blocking(
     &self,
     hook: &impl Hook,
-  ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
-    if let RegisterJsTapsCache::Cache(rw) = &self.cache {
-      let cache = {
-        #[allow(clippy::unwrap_used)]
-        rw.read().unwrap().clone()
-      };
-      Ok(match cache {
-        Some(js_taps) => js_taps,
-        None => {
-          let js_taps = self.call_register_blocking_impl(hook)?;
-          {
-            #[allow(clippy::unwrap_used)]
-            let mut cache = rw.write().unwrap();
-            *cache = Some(js_taps.clone());
-          }
-          js_taps
-        }
-      })
+  ) -> rspack_error::Result<Cow<RegisterFunctionOutput<T, R>>> {
+    if let RegisterJsTapsCache::SyncCache(cache) = &self.cache {
+      let js_taps = cache.get_or_try_init(|| self.call_register_blocking_impl(hook))?;
+      Ok(Cow::Borrowed(js_taps))
     } else {
       let js_taps = self.call_register_blocking_impl(hook)?;
-      Ok(js_taps)
+      Ok(Cow::Owned(js_taps))
     }
   }
 
@@ -240,17 +221,6 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort();
     self.register.blocking_call_with_sync(used_stages)
-  }
-
-  fn clear_cache(&self) {
-    match &self.cache {
-      RegisterJsTapsCache::NoCache => {}
-      RegisterJsTapsCache::Cache(cache) => {
-        #[allow(clippy::unwrap_used)]
-        let mut cache = cache.write().unwrap();
-        *cache = None;
-      }
-    }
   }
 }
 
@@ -271,12 +241,6 @@ macro_rules! define_register {
     #[derive(Clone)]
     pub struct $name {
       inner: RegisterJsTapsInner<$arg, $ret>,
-    }
-
-    impl $name {
-      pub fn clear_cache(&self) {
-        self.inner.clear_cache();
-      }
     }
 
     #[derive(Clone)]

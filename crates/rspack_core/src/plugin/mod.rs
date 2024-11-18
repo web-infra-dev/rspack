@@ -22,8 +22,6 @@ pub trait Plugin: fmt::Debug + Send + Sync {
   ) -> Result<()> {
     Ok(())
   }
-
-  fn clear_cache(&self) {}
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

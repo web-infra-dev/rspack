@@ -32,9 +32,11 @@ rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascr
 rspack_util              = { version = "0.1.0", path = "../rspack_util" }
 
 rspack_tracing = { version = "0.1.0", path = "../rspack_tracing" }
+tokio          = { workspace = true, features = ["rt", "rt-multi-thread", "tracing"] }
 
 async-trait = { workspace = true }
 cow-utils   = { workspace = true }
+once_cell   = { workspace = true }
 tracing     = { workspace = true }
 
 napi        = { workspace = true }

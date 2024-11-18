@@ -76,11 +76,4 @@ impl PluginDriver {
     let mut diagnostic = self.diagnostics.lock().expect("TODO:");
     std::mem::take(&mut diagnostic)
   }
-
-  pub fn clear_cache(&self) {
-    self.resolver_factory.clear_cache();
-    for plugin in &self.plugins {
-      plugin.clear_cache();
-    }
-  }
 }
