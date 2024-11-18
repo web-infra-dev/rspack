@@ -174,6 +174,7 @@ pub struct Compilation {
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
+  pub chunk_render_results: UkeyMap<ChunkUkey, (Vec<RenderManifestEntry>, Vec<Diagnostic>)>,
   pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -273,6 +274,7 @@ impl Compilation {
       cgm_runtime_requirements_results: Default::default(),
       cgc_runtime_requirements_results: Default::default(),
       chunk_hashes_results: Default::default(),
+      chunk_render_results: Default::default(),
       built_modules: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
@@ -943,26 +945,48 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let results = self
-      .chunk_by_ukey
-      .values()
+    let mutations = self
+      .incremental
+      .mutations_read(IncrementalPasses::CHUNKS_RENDER);
+    let chunks = if let Some(mutations) = mutations {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.chunk_render_results.remove(&removed_chunk);
+      }
+      mutations.get_affected_chunks_with_chunk_graph(self)
+    } else {
+      self.chunk_by_ukey.keys().copied().collect()
+    };
+    let chunk_render_results = chunks
+      .iter()
       .map(|chunk| async {
         let mut manifest = Vec::new();
         let mut diagnostics = Vec::new();
         plugin_driver
           .compilation_hooks
           .render_manifest
-          .call(self, &chunk.ukey(), &mut manifest, &mut diagnostics)
+          .call(self, chunk, &mut manifest, &mut diagnostics)
           .await?;
 
-        Ok((chunk.ukey(), manifest, diagnostics))
+        Ok((*chunk, (manifest, diagnostics)))
       })
       .collect::<FuturesResults<Result<_>>>();
+    let chunk_render_results = chunk_render_results
+      .into_inner()
+      .into_iter()
+      .collect::<Result<UkeyMap<_, _>>>()?;
 
-    let chunk_ukey_and_manifest = results.into_inner();
+    let chunk_ukey_and_manifest = if mutations.is_some() {
+      self.chunk_render_results.extend(chunk_render_results);
+      self.chunk_render_results.clone()
+    } else {
+      chunk_render_results
+    };
 
-    for result in chunk_ukey_and_manifest {
-      let (chunk_ukey, manifest, diagnostics) = result?;
+    for (chunk_ukey, (manifest, diagnostics)) in chunk_ukey_and_manifest {
       self.extend_diagnostics(diagnostics);
 
       for file_manifest in manifest {
@@ -990,10 +1014,6 @@ impl Compilation {
       }
     }
 
-    // TODO: add code_generated_modules in render_runtime_modules
-    for (identifier, _) in self.runtime_modules.iter() {
-      self.code_generated_modules.insert(*identifier);
-    }
     Ok(())
   }
 
@@ -1843,6 +1863,9 @@ impl Compilation {
         Ok((*runtime_module_identifier, source.clone()))
       })
       .collect::<Result<_>>()?;
+    self
+      .code_generated_modules
+      .extend(self.runtime_modules.keys().copied());
     Ok(())
   }
 
