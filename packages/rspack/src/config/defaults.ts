@@ -196,6 +196,9 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ production }: { production: boolean }
 ) => {
+	// IGNORE(experiments.cache): In webpack, cache is undefined by default
+	F(experiments, "cache", () => !production);
+
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);

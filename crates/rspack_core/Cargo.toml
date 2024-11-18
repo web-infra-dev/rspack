@@ -29,6 +29,7 @@ paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
+rspack_cacheable = { path = "../rspack_cacheable" }
 rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
 rspack_error = { version = "0.1.0", path = "../rspack_error" }
 rspack_fs = { version = "0.1.0", path = "../rspack_fs" }
