@@ -254,7 +254,12 @@ export type LoaderOptions = {
 	targets?: Targets | string[] | string;
 	include?: FeatureOptions;
 	exclude?: FeatureOptions;
+	/**
+	 * @deprecated Use `drafts` instead.
+	 * This will be removed in the next major version.
+	 */
 	draft?: Drafts;
+	drafts?: Drafts;
 	nonStandard?: NonStandard;
 	pseudoClasses?: PseudoClasses;
 	unusedSymbols?: string[];
