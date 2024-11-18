@@ -6,6 +6,7 @@ use rkyv::{
   bytecheck::CheckBytes,
   de::Pool,
   rancor::{BoxedError, Source, Strategy, Trace},
+  util::AlignedVec,
   Archive, Deserialize,
 };
 
@@ -79,8 +80,13 @@ where
   let guard = ContextGuard::new(context);
   let mut deserializer = Pool::default();
   guard.add_to_pooling(&mut deserializer)?;
+  // The `bytes` ptr address in miri will throw UnalignedPointer error in rkyv.
+  // AlignedVec will force aligned the ptr address.
+  // Refer code: https://github.com/rkyv/rkyv/blob/dabbc1fcf5052f141403b84493bddb74c44f9ba9/rkyv/src/validation/archive/validator.rs#L135
+  let mut aligned_vec = AlignedVec::<16>::new();
+  aligned_vec.extend_from_slice(bytes);
   deserialize_using(
-    access::<T::Archived, DeserializeError>(bytes)?,
+    access::<T::Archived, DeserializeError>(&aligned_vec)?,
     &mut deserializer,
   )
 }

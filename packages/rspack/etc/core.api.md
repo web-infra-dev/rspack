@@ -3112,6 +3112,7 @@ export type LightningcssLoaderOptions = {
     include?: LightningcssFeatureOptions;
     exclude?: LightningcssFeatureOptions;
     draft?: Drafts;
+    drafts?: Drafts;
     nonStandard?: NonStandard;
     pseudoClasses?: PseudoClasses;
     unusedSymbols?: string[];
@@ -3140,6 +3141,7 @@ export type LightningCssMinimizerRspackPluginOptions = {
         include?: LightningcssFeatureOptions;
         exclude?: LightningcssFeatureOptions;
         draft?: Drafts;
+        drafts?: Drafts;
         nonStandard?: NonStandard;
         pseudoClasses?: PseudoClasses;
         unusedSymbols?: string[];

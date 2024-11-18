@@ -103,6 +103,7 @@ impl ExternalsPlugin {
     }
 
     let dependency_meta: DependencyMeta = DependencyMeta {
+      attributes: dependency.get_attributes().cloned(),
       external_type: {
         if dependency
           .as_any()

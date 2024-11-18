@@ -1659,6 +1659,8 @@ Object {
   modules: Array [
     Object {
       children: Array [],
+      issuer: ,
+      issuerName: ,
       layer: test,
       size: 304,
       sizes: Object {
@@ -1668,6 +1670,8 @@ Object {
     },
     Object {
       children: Array [],
+      issuer: ,
+      issuerName: ,
       layer: legacy,
       size: 304,
       sizes: Object {
