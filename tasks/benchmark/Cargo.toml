@@ -10,3 +10,7 @@ publish = false
 [dependencies]
 criterion = { package = "codspeed-criterion-compat", version = "2.7.2" }
 
+
+[[bench]]
+name    = "basic"
+harness = false
