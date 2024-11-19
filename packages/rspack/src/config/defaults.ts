@@ -196,6 +196,9 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ production }: { production: boolean }
 ) => {
+	// IGNORE(experiments.cache): In webpack, cache is undefined by default
+	F(experiments, "cache", () => !production);
+
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
@@ -215,6 +218,9 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "modulesHashes", false);
 		D(experiments.incremental, "modulesCodegen", false);
 		D(experiments.incremental, "modulesRuntimeRequirements", false);
+		D(experiments.incremental, "chunksRuntimeRequirements", false);
+		D(experiments.incremental, "chunksHashes", false);
+		D(experiments.incremental, "chunksRender", false);
 		D(experiments.incremental, "emitAssets", true);
 	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration

@@ -6,4 +6,5 @@ it("reexport star from external module", function () {
 	expect(readCase("case1")).toMatchSnapshot();
 	expect(readCase("case2")).toMatchSnapshot();
 	expect(readCase("case3")).toMatchSnapshot();
+	expect(readCase("case4")).toMatchSnapshot();
 });

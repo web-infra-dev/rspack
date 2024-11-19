@@ -43,10 +43,17 @@ rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains"]
 rustflags = ["-C", "link-args=-Wl,--warn-unresolved-symbols"]
 
 # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
+# Use Hybrid CRT to reduce the size of the binary (Coming by default with Windows 10 and later versions).
 [target.'cfg(target_os = "windows")']
-rustflags = ["-C", "link-args=/FORCE"]
+rustflags = [
+  "-C", "link-args=/FORCE", 
+  "-C", "link-args=/NODEFAULTLIB:libucrt.lib", 
+  "-C", "link-args=/DEFAULTLIB:ucrt.lib"
+]
 
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+[target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]

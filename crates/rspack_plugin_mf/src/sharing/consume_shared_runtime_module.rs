@@ -2,7 +2,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
@@ -55,7 +55,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       ids.push(id.clone());
       let code_gen = compilation
         .code_generation_results
-        .get(&module, Some(&chunk.runtime));
+        .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
@@ -88,8 +88,8 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
       chunk_to_module_mapping.insert(
         chunk
-          .id
-          .clone()
+          .id()
+          .map(ToOwned::to_owned)
           .expect("should have chunkId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate"),
         ids,
       );
@@ -124,10 +124,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       initial_consumes = json_stringify(&initial_consumes),
     );
     if self.enhanced {
-      if compilation
-        .chunk_graph
-        .expect_chunk_graph_chunk(&chunk_ukey)
-        .runtime_requirements
+      if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
         .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
         source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
@@ -138,10 +135,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     if !initial_consumes.is_empty() {
       source += include_str!("./consumesInitial.js");
     }
-    if compilation
-      .chunk_graph
-      .expect_chunk_graph_chunk(&chunk_ukey)
-      .runtime_requirements
+    if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
       source += include_str!("./consumesLoading.js");

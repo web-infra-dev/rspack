@@ -1,4 +1,3 @@
-use mimalloc::MiMalloc;
-
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+#[cfg(not(miri))]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;

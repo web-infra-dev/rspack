@@ -63,6 +63,7 @@ incrementality
 indicatif
 inituit
 innovatively
+inottn
 intlify
 IWANABETHATGUY
 jantimon
@@ -70,9 +71,9 @@ JavaScript
 jerrykingxyz
 jkzing
 jscexperimentalplugins
-jserfeng
 JSCPU
 jscpuprofile
+jserfeng
 kaffi
 kuaishou
 Kyrylo

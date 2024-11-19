@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
+use rspack_collections::DatabaseItem;
 use rspack_core::{Chunk, ChunkUkey, Compilation};
 
 use crate::JsCompilation;
@@ -27,60 +28,47 @@ pub struct JsChunk {
 }
 
 impl JsChunk {
-  pub fn from(chunk: &rspack_core::Chunk) -> Self {
-    let Chunk {
-      // not implement yet
-      ukey: _ukey,
-      prevent_integration: _prevent_integration,
-      groups: _groups,
-      kind: _kind,
-
-      // used in js chunk
-      name,
-      filename_template,
-      css_filename_template,
-      id,
-      ids,
-      id_name_hints,
-      files,
-      auxiliary_files,
-      runtime,
-      hash,
-      rendered_hash,
-      content_hash,
-      chunk_reason,
-      ..
-    } = chunk;
-    let mut files = Vec::from_iter(files.iter().cloned());
+  pub fn from(chunk: &rspack_core::Chunk, compilation: &Compilation) -> Self {
+    let mut files = Vec::from_iter(chunk.files().iter().cloned());
     files.sort_unstable();
-    let mut auxiliary_files = auxiliary_files.iter().cloned().collect::<Vec<_>>();
+    let mut auxiliary_files = Vec::from_iter(chunk.auxiliary_files().iter().cloned());
     auxiliary_files.sort_unstable();
-    let mut runtime = Vec::<String>::from_iter(runtime.clone().into_iter().map(|r| r.to_string()));
-    runtime.sort_unstable();
 
     Self {
-      inner_ukey: chunk.ukey.as_u32(),
-      inner_groups: chunk.groups.iter().map(|ukey| ukey.as_u32()).collect(),
-      name: name.clone(),
-      id: id.clone(),
-      ids: ids.clone(),
-      id_name_hints: Vec::from_iter(id_name_hints.clone()),
-      filename_template: filename_template
-        .as_ref()
+      inner_ukey: chunk.ukey().as_u32(),
+      inner_groups: chunk.groups().iter().map(|ukey| ukey.as_u32()).collect(),
+      name: chunk.name().map(ToOwned::to_owned),
+      id: chunk.id().map(ToOwned::to_owned),
+      ids: chunk.id().map_or(Vec::new(), |id| vec![id.to_owned()]),
+      id_name_hints: Vec::from_iter(chunk.id_name_hints().clone()),
+      filename_template: chunk
+        .filename_template()
         .and_then(|f| Some(f.template()?.to_string())),
-      css_filename_template: css_filename_template
-        .as_ref()
+      css_filename_template: chunk
+        .css_filename_template()
         .and_then(|f| Some(f.template()?.to_string())),
       files,
-      runtime,
-      hash: hash.as_ref().map(|d| d.encoded().to_string()),
-      content_hash: content_hash
-        .iter()
-        .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
-        .collect::<std::collections::HashMap<String, String>>(),
-      rendered_hash: rendered_hash.as_ref().map(|hash| hash.to_string()),
-      chunk_reason: chunk_reason.clone(),
       auxiliary_files,
+      runtime: chunk.runtime().iter().map(|r| r.to_string()).collect(),
+      hash: chunk
+        .hash(&compilation.chunk_hashes_results)
+        .map(|d| d.encoded().to_string()),
+      content_hash: chunk
+        .content_hash(&compilation.chunk_hashes_results)
+        .map(|content_hash| {
+          content_hash
+            .iter()
+            .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
+            .collect::<std::collections::HashMap<String, String>>()
+        })
+        .unwrap_or_default(),
+      rendered_hash: chunk
+        .rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        )
+        .map(|hash| hash.to_string()),
+      chunk_reason: chunk.chunk_reason().map(ToOwned::to_owned),
     }
   }
 }
@@ -122,7 +110,7 @@ pub fn get_all_async_chunks(js_chunk_ukey: u32, js_compilation: &JsCompilation) 
   chunk
     .get_all_async_chunks(&compilation.chunk_group_by_ukey)
     .into_iter()
-    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c), compilation))
     .collect()
 }
 
@@ -134,7 +122,7 @@ pub fn get_all_initial_chunks(js_chunk_ukey: u32, js_compilation: &JsCompilation
   chunk
     .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
     .into_iter()
-    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c), compilation))
     .collect()
 }
 
@@ -149,7 +137,7 @@ pub fn get_all_referenced_chunks(
   chunk
     .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
     .into_iter()
-    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c)))
+    .map(|c| JsChunk::from(compilation.chunk_by_ukey.expect_get(&c), compilation))
     .collect()
 }
 

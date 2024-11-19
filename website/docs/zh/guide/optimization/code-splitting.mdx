@@ -12,10 +12,6 @@ Rspack 支持代码分割特性，允许让你对代码进行分割，控制生�
 
 当涉及到动态代码拆分时， Rspack 使用符合 ECMAScript 提案的 [import()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import) 语法来实现动态导入。
 
-:::tip 与 webpack 的差异点
-Rspack 不支持 `require.ensure` 功能。
-:::
-
 我们在 `index.js` 通过 `import()` 来动态导入 2 个模块，从而分离出一个新的 Chunk。
 
 ```js title=index.js
@@ -34,6 +30,10 @@ console.log('bar.js');
 ```
 
 此时我们执行构建，会得到 3 个 Chunk ，`src_bar_js.js`，`src_foo_js.js` 以及 `main.js`，如果我们查看他们，会发现 `src_bar_js.js` 和 `src_foo_js.js` 中有重复的部分：`shared.js`，我们后面会介绍为何存在重复模块，以及如何去除重复模块。
+
+:::tip
+参考 [模块方法 - Dynamic import()](/api/runtime-api/module-methods#dynamic-import) 了解详细的 dynamic import API，以及如何在 dynamic import 中使用动态表达式和 magic comments。
+:::
 
 :::info
 虽然 `shared.js` 在 2 个 Chunk 中重复出现，但它只会被执行一次，不用担心重复模块会重复执行的问题。

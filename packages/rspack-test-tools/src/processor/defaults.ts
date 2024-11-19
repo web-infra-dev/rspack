@@ -1,5 +1,5 @@
+import { stripVTControlCharacters as stripAnsi } from "node:util";
 import { diff as jestDiff } from "jest-diff";
-import stripAnsi from "strip-ansi";
 
 import type {
 	ECompilerType,

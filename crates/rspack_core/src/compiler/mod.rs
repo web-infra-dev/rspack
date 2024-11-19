@@ -16,6 +16,7 @@ use tracing::instrument;
 pub use self::compilation::*;
 pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
@@ -59,6 +60,7 @@ pub struct Compiler {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
+  pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
@@ -103,6 +105,7 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
+    let cache = new_cache(options.clone(), input_filesystem.clone());
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
     let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
@@ -116,6 +119,7 @@ impl Compiler {
         resolver_factory.clone(),
         loader_resolver_factory.clone(),
         None,
+        cache.clone(),
         old_cache.clone(),
         Some(module_executor),
         Default::default(),
@@ -127,6 +131,7 @@ impl Compiler {
       buildtime_plugin_driver,
       resolver_factory,
       loader_resolver_factory,
+      cache,
       old_cache,
       emitted_asset_versions: Default::default(),
       input_filesystem,
@@ -145,7 +150,6 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    let module_executor = ModuleExecutor::default();
     fast_set(
       &mut self.compilation,
       Compilation::new(
@@ -155,17 +159,20 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         None,
+        self.cache.clone(),
         self.old_cache.clone(),
-        Some(module_executor),
+        Some(Default::default()),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
       ),
     );
+    self.cache.before_compile(&mut self.compilation);
 
     self.compile().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
+    self.cache.after_compile(&self.compilation);
     Ok(())
   }
 

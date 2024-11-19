@@ -20,8 +20,8 @@ export declare class ExternalObject<T> {
   }
 }
 export declare class EntryDataDto {
-  get dependencies(): Array<JsDependency>
-  get includeDependencies(): Array<JsDependency>
+  get dependencies(): JsDependency[]
+  get includeDependencies(): JsDependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -108,7 +108,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): Array<JsDependencyMut>
+  get dependencies(): JsDependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -138,18 +138,11 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): Array<JsDependency>
-  get blocks(): Array<JsDependenciesBlock>
+  get dependencies(): JsDependency[]
+  get blocks(): JsDependenciesBlock[]
 }
 
 export declare class JsDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-}
-
-export declare class JsDependencyMut {
   get type(): string
   get category(): string
   get request(): string | undefined
@@ -181,8 +174,8 @@ export declare class JsModule {
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
-  get blocks(): Array<JsDependenciesBlock>
-  get dependencies(): Array<JsDependency>
+  get blocks(): JsDependenciesBlock[]
+  get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -518,13 +511,6 @@ export interface JsChunkGroupOrigin {
   request?: string
 }
 
-export interface JsChunkPathData {
-  id?: string
-  name?: string
-  hash?: string
-  contentHash?: string | Record<string, string>
-}
-
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -732,8 +718,13 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: JsChunkPathData
-  contentHashType?: string
+  chunk?: JsPathDataChunkLike
+}
+
+export interface JsPathDataChunkLike {
+  name?: string
+  hash?: string
+  id?: string
 }
 
 export interface JsResolveArgs {
@@ -1345,11 +1336,28 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
+export interface RawExperimentCacheOptionsCommon {
+  type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsPersistent {
+  type: "persistent"
+  snapshot: RawExperimentSnapshotOptions
+  storage: Array<RawStorageOptions>
+}
+
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
   incremental?: RawIncremental
   rspackFuture: RawRspackFuture
+  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+}
+
+export interface RawExperimentSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1463,14 +1471,17 @@ export interface RawIgnorePluginOptions {
 
 export interface RawIncremental {
   make: boolean
-  emitAssets: boolean
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  buildChunkGraph: boolean
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
-  buildChunkGraph: boolean
+  chunksRuntimeRequirements: boolean
+  chunksHashes: boolean
+  chunksRender: boolean
+  emitAssets: boolean
 }
 
 export interface RawInfo {
@@ -1557,6 +1568,7 @@ export interface RawLightningCssMinimizerOptions {
   include?: number
   exclude?: number
   draft?: RawDraft
+  drafts?: RawDraft
   nonStandard?: RawNonStandard
   pseudoClasses?: RawLightningCssPseudoClasses
   unusedSymbols: Array<string>
@@ -1943,6 +1955,11 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawStorageOptions {
+  type: "filesystem"
+  directory: string
 }
 
 export interface RawSwcJsMinimizerOptions {

@@ -29,7 +29,7 @@ import { Stability } from '../../../components/ApiMeta';
 module.exports = {
   //...
   externals: {
-    jquery: 'jQuery',
+    jquery: 'jquery',
   },
 };
 ```
@@ -293,6 +293,7 @@ module.exports = {
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
 - [`'module-import'`](#externalstypemodule-import)
+- [`'commonjs-import'`](#externalstypecommonjs-import)
 - `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
 - [`'promise'`](#externalstypepromise)
@@ -415,7 +416,7 @@ jq('.my-element').animate(/* ... */);
 
 ```javascript
 async function foo() {
-  const jq = await import('jQuery');
+  const jq = await import('jquery');
   jq('.my-element').animate(/* ... */);
 }
 ```
@@ -433,8 +434,8 @@ module.exports = {
 
 ```javascript
 var __webpack_modules__ = {
-  jQuery: module => {
-    module.exports = import('jQuery');
+  jquery: module => {
+    module.exports = import('jquery');
   },
 };
 
@@ -442,7 +443,7 @@ var __webpack_modules__ = {
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
   jq('.my-element').animate(/* ... */);
 }
@@ -460,14 +461,14 @@ async function foo() {
 import { attempt } from 'lodash';
 
 async function foo() {
-  const jq = await import('jQuery');
+  const jq = await import('jquery');
   attempt(() => jq('.my-element').animate(/* ... */));
 }
 ```
 
 ```js title="rspack.config.js"
 module.exports = {
-  externalsType: 'import',
+  externalsType: 'module-import',
   externals: {
     jquery: 'jquery',
   },
@@ -481,8 +482,8 @@ import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
 const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
 
 var __webpack_modules__ = {
-  jQuery: module => {
-    module.exports = import('jQuery');
+  jquery: module => {
+    module.exports = import('jquery');
   },
 };
 
@@ -490,7 +491,7 @@ var __webpack_modules__ = {
 
 async function foo() {
   const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jQuery'),
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
   );
   (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
 }
@@ -515,6 +516,63 @@ module.exports = {
     },
   ]
 ```
+
+### externalsType['commonjs-import']
+
+将 externals 的默认类型指定为 `'commonjs-import'`。这将结合 [`'commonjs'`](#externalstypecommonjs) 和 [`'import'`](#externalstypeimport)。Rspack 将自动检测导入语法的类型，对于动态导入设置为 `'import'`，其他的导入设置为 `'commonjs'`。
+
+这在构建一个 Node.js 应用程序时非常有用，当目标 Node.js 版本高于 `13.2.0`，同时支持 [`import()` 表达式](https://nodejs.org/api/esm.html#import-expressions) 和 `require()`。
+
+:::note
+`commonjs-import` 类型仅在 Rspack 中可用，webpack 并不支持此类型。
+:::
+
+**示例**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jquery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'commonjs-import',
+  externals: {
+    lodash: 'lodash',
+    jquery: 'jquery',
+  },
+};
+```
+
+将会转换为类似下面的代码：
+
+```javascript
+var __webpack_modules__ = {
+  lodash: function (module) {
+    module.exports = require('lodash');
+  },
+  jquery: function (module) {
+    module.exports = import('jquery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
+  );
+  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+    jq('.my-element').animate(/* ... */),
+  );
+}
+```
+
+请注意，在输出产物中将有 `import()` 语句。
 
 ### externalsType['node-commonjs']
 

@@ -114,6 +114,10 @@ impl RuntimeSpec {
     ordered.sort_unstable();
     self.key = ordered.join("\n")
   }
+
+  pub fn as_str(&self) -> &str {
+    &self.key
+  }
 }
 
 pub type RuntimeKey = String;

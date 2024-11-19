@@ -18,21 +18,24 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)
   {
-    let rebuild_modules: IdentifierSet = mutations
+    mutations
       .iter()
-      .filter_map(|mutation| match mutation {
-        Mutation::ModuleBuild { module } => Some(*module),
-        _ => None,
+      .rfold(IdentifierSet::default(), |mut acc, mutation| {
+        match mutation {
+          Mutation::ModuleBuild { module } => {
+            acc.insert(*module);
+          }
+          Mutation::ModuleRevoke { module } => {
+            // we keep the state for the module only if the module revoke first, and then rebuild
+            // otherwise we gc its state
+            if !acc.contains(module) {
+              compilation.async_modules.remove(module);
+            }
+          }
+          _ => {}
+        };
+        acc
       })
-      .collect();
-    let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-      Mutation::ModuleRevoke { module } => (!rebuild_modules.contains(module)).then_some(*module),
-      _ => None,
-    });
-    for revoked_module in revoked_modules {
-      compilation.async_modules.remove(&revoked_module);
-    }
-    rebuild_modules
   } else {
     compilation
       .get_module_graph()

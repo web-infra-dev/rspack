@@ -12,6 +12,7 @@ use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
 };
+use tokio::task;
 
 use self::{
   ctrl::{CtrlTask, Event, ExecuteParam},
@@ -19,6 +20,7 @@ use self::{
   overwrite::OverwriteTask,
 };
 use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
+use crate::cache::new_cache;
 use crate::incremental::Mutation;
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
@@ -67,13 +69,21 @@ impl ModuleExecutor {
       .await
       .unwrap_or_default();
 
-    let mut ctx = MakeTaskContext::new(compilation, make_artifact);
+    let mut ctx = MakeTaskContext::new(
+      compilation,
+      make_artifact,
+      new_cache(
+        compilation.options.clone(),
+        compilation.input_filesystem.clone(),
+      ),
+    );
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());
     self.stop_receiver = Some(stop_receiver);
-
-    tokio::spawn(async move {
+    // avoid coop budget consumed to zero cause hang risk
+    // related to https://tokio.rs/blog/2020-04-preemption
+    tokio::spawn(task::unconstrained(async move {
       let _ = run_task_loop_with_event(
         &mut ctx,
         vec![Box::new(CtrlTask::new(event_receiver))],
@@ -89,7 +99,7 @@ impl ModuleExecutor {
       stop_sender
         .send(ctx.transform_to_make_artifact())
         .expect("should success");
-    });
+    }));
   }
 
   pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {
