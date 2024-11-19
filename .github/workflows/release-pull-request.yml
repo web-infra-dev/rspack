@@ -47,7 +47,7 @@ jobs:
         # https://github.com/rspack-contrib/rspack-action
         uses: rspack-contrib/rspack-action@rspack
         with:
-          version: node ./x version ${{inputs.version || 'patch'}} --pre ${{inputs.prerelease || ''}}
+          version: node ./x version ${{inputs.version || 'patch'}} --pre ${{inputs.prerelease || 'none'}}
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
