@@ -35,7 +35,7 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     let module = module_graph.get_module_by_dependency_id(&js_dependency.dependency_id);
     let js_module = module
-      .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(&compilation)));
+      .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)));
     Ok(js_module)
   }
 

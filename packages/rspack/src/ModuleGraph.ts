@@ -1,4 +1,4 @@
-import { JsModuleGraph } from "@rspack/binding";
+import type { JsModuleGraph } from "@rspack/binding";
 import { Dependency } from "./Dependency";
 import { Module } from "./Module";
 
