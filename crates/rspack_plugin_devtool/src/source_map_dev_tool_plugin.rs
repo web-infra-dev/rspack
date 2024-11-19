@@ -8,6 +8,7 @@ use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -407,8 +408,17 @@ impl SourceMapDevToolPlugin {
             let data = PathData::default().filename(&filename);
             let data = match chunk {
               Some(chunk) => data
-                .chunk(chunk)
-                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+                .chunk_id_optional(chunk.id())
+                .chunk_hash_optional(chunk.rendered_hash(
+                  &compilation.chunk_hashes_results,
+                  compilation.options.output.hash_digest_length,
+                ))
+                .chunk_name_optional(chunk.name_for_filename_template())
+                .content_hash_optional(
+                  chunk
+                    .content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
+                    .map(|hash| hash.encoded()),
+                ),
               None => data,
             };
             let source_map_filename = compilation
@@ -443,7 +453,7 @@ impl SourceMapDevToolPlugin {
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
                   FilenameTemplate::from(comment)
-                    .render(data, None, output_options.hash_digest_length)
+                    .render(data, None)
                     .always_ok()
                 }
               };
@@ -524,13 +534,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    for file in &chunk.files {
+    for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
-    for file in &chunk.auxiliary_files {
+    for file in chunk.auxiliary_files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
   }
 
@@ -568,7 +578,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
-        chunk.auxiliary_files.insert(source_map_filename);
+        chunk.add_auxiliary_file(source_map_filename);
       }
     }
   }

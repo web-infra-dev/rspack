@@ -11,6 +11,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
 use crate::{
+  cache::Cache,
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
@@ -27,6 +28,7 @@ pub struct MakeTaskContext {
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
+  pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
 
@@ -34,7 +36,7 @@ pub struct MakeTaskContext {
 }
 
 impl MakeTaskContext {
-  pub fn new(compilation: &Compilation, artifact: MakeArtifact) -> Self {
+  pub fn new(compilation: &Compilation, artifact: MakeArtifact, cache: Arc<dyn Cache>) -> Self {
     Self {
       compilation_id: compilation.id(),
       plugin_driver: compilation.plugin_driver.clone(),
@@ -42,6 +44,7 @@ impl MakeTaskContext {
       compiler_options: compilation.options.clone(),
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
+      cache,
       old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       fs: compilation.input_filesystem.clone(),
@@ -68,6 +71,7 @@ impl MakeTaskContext {
       self.resolver_factory.clone(),
       self.loader_resolver_factory.clone(),
       None,
+      self.cache.clone(),
       self.old_cache.clone(),
       None,
       Default::default(),
@@ -142,7 +146,7 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = MakeTaskContext::new(compilation, artifact);
+  let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok(ctx.transform_to_make_artifact())
 }

@@ -1,20 +1,19 @@
 use futures::Future;
 use indexmap::IndexMap;
-use rspack_collections::Database;
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  build_chunk_graph::code_splitter::CodeSplitter, incremental::IncrementalPasses, Chunk,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  build_chunk_graph::code_splitter::CodeSplitter, incremental::IncrementalPasses, ChunkByUkey,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
 };
 
 #[derive(Debug, Default)]
 pub struct CodeSplittingCache {
-  chunk_by_ukey: Database<Chunk>,
+  chunk_by_ukey: ChunkByUkey,
   chunk_graph: ChunkGraph,
-  chunk_group_by_ukey: Database<ChunkGroup>,
+  chunk_group_by_ukey: ChunkGroupByUkey,
   entrypoints: IndexMap<String, ChunkGroupUkey>,
   async_entrypoints: Vec<ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,

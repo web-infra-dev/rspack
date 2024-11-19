@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_collections::Identifier;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -51,7 +51,7 @@ fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> Stri
   let condition_map =
     compilation
       .chunk_graph
-      .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+      .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
   let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {

@@ -5,11 +5,11 @@ import { ApiMeta } from '@components/ApiMeta';
 
 # Module Methods
 
-This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including ES6, CommonJS.
+This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html).
 
-While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors/bugs.
+While Rspack supports multiple module syntaxes, we recommend following a single syntax for consistency and to avoid odd behaviors or bugs.
 
-Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a `"type"` field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
+Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files or `.js` files when their nearest parent `package.json` file contains a ["type"](https://nodejs.org/api/packages.html#type) field with a value of either `"module"` or `"commonjs"`. Please pay attention to these enforcements before you read on:
 
 - `.mjs` or `.js` with `"type": "module"` in package.json
   - No CommonJS allowed, for example, you can't use `require`, `module.exports` or `exports`
@@ -17,9 +17,9 @@ Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files 
 - `.cjs` or `.js` with "type": "commonjs" in package.json
   - Neither import nor export is available
 
-## ES6 (Recommended)
+## ES modules (Recommended)
 
-Rspack support ES6 module syntax natively, you can use static `import`, `export` and `import()` syntax.
+Rspack support ES modules syntax natively, you can use static `import`, `export` and `import()` syntax.
 
 :::warning
 Keep in mind that you will still probably need SWC or Babel for other ES6+ features.
@@ -67,7 +67,9 @@ export default {
 function import(path: string): Promise;
 ```
 
-Dynamically load modules. Calls to `import()` are treated as split points, meaning the requested module and its children are split out into a separate chunk.
+Dynamically load modules, see [Dynamic import](/guide/optimization/code-splitting#dynamic-import) for more details.
+
+Calls to `import()` are treated as split points, meaning the requested module and its children are split out into a separate chunk.
 
 ```js
 if (module.hot) {
@@ -78,14 +80,15 @@ if (module.hot) {
 ```
 
 :::warning
-This feature relies on `Promise` internally. If you use import() with older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
+This feature relies on `Promise` internally. If you use `import()` with legacy browsers, remember to shim `Promise` using a polyfill such as [core-js](https://github.com/zloirock/core-js), [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
 :::
 
 #### Dynamic expressions in import()
 
 It is not possible to use a fully dynamic import statement, such as `import(foo)`. Because `foo` could potentially be any path to any file in your system or project.
 
-The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression - every module that could potentially be requested on an `import()` call is included.
+The `import()` must contain at least some information about where the module is located. Bundling can be limited to a specific directory or set of files so that when you are using a dynamic expression, every module that could potentially be requested on an `import()` call is included.
+
 For example, `import(`./locale/$\{language}.json`)` will cause every `.json` file in the `./locale` directory to be bundled into the new chunk. At run time, when the variable `language` has been computed, any file like `english.json` or `german.json` will be available for consumption.
 
 ```js
@@ -100,7 +103,7 @@ import(`./locale/${language}.json`).then(module => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Inline comments to make features work. By adding comments to the import, we can do things such as name our chunk or select different modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
+Inline comments to make features work. By adding comments to the import, we can do things such as specify chunk name or select different loading modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
 
 ```js
 // Single target
@@ -128,7 +131,7 @@ import(
 
 - **Type:** `boolean`
 
-Disables dynamic import parsing when set to true.{' '}
+Disables dynamic import parsing when set to true.
 
 :::warning
 Note that setting webpackIgnore to true opts out of code splitting.
@@ -137,6 +140,7 @@ Note that setting webpackIgnore to true opts out of code splitting.
 ##### webpackMode
 
 - **Type:** `"eager" | "lazy" | "weak" | "lazy-once"`
+- **Default:** `'lazy'`
 
 Different modes for resolving dynamic imports can be specified. The following options are supported:
 

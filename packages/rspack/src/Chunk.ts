@@ -1,6 +1,5 @@
 import {
 	type JsChunk,
-	type JsChunkPathData,
 	type JsCompilation,
 	__chunk_group_inner_get_chunk_group,
 	__chunk_inner_can_be_initial,
@@ -164,14 +163,5 @@ export class Chunk {
 	 */
 	__internal__innerUkey() {
 		return this.#inner.__inner_ukey;
-	}
-
-	__internal_to_path_data_chunk(): JsChunkPathData {
-		return {
-			id: this.id,
-			name: this.name,
-			hash: this.hash,
-			contentHash: this.contentHash
-		};
 	}
 }

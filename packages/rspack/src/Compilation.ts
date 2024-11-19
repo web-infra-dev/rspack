@@ -67,8 +67,22 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathData = Omit<JsPathData, "chunk"> & {
-	chunk?: Chunk | binding.JsChunkPathData;
+export type PathDataChunkLike = {
+	id?: string;
+	name?: string;
+	hash?: string;
+	contentHash?: Record<string, string>;
+};
+
+export type PathData = {
+	filename?: string;
+	hash?: string;
+	contentHash?: string;
+	runtime?: string;
+	url?: string;
+	id?: string;
+	chunk?: Chunk | PathDataChunkLike;
+	contentHashType?: string;
 };
 
 export interface LogEntry {
@@ -923,43 +937,35 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPath(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getPath(filename, pathData);
 	}
 
 	getPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPathWithInfo(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getPathWithInfo(filename, pathData);
 	}
 
 	getAssetPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPath(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getAssetPath(filename, pathData);
 	}
 
 	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPathWithInfo(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getAssetPathWithInfo(filename, pathData);
 	}
 
 	getLogger(name: string | (() => string)) {

@@ -56,7 +56,7 @@ impl From<JsHtmlPluginTag> for HtmlPluginTag {
           value.as_ref().and_then(|v| match v {
             Either::A(x) => Some(HtmlPluginAttribute {
               attr_name: key.cow_to_ascii_lowercase().into_owned(),
-              attr_value: Some(x.cow_to_ascii_lowercase().into_owned()),
+              attr_value: Some(x.to_owned()),
             }),
             Either::B(x) => {
               if *x {

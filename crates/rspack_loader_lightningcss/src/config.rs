@@ -44,7 +44,9 @@ pub struct RawConfig {
   pub targets: Option<Vec<String>>,
   pub include: Option<u32>,
   pub exclude: Option<u32>,
+  // TODO: deprecate `draft` in favor of `drafts`
   pub draft: Option<Draft>,
+  pub drafts: Option<Draft>,
   pub non_standard: Option<NonStandard>,
   pub pseudo_classes: Option<PseudoClasses>,
   pub unused_symbols: Option<Vec<String>>,
@@ -64,7 +66,8 @@ impl TryFrom<RawConfig> for Config {
         .flatten(),
       include: value.include,
       exclude: value.exclude,
-      draft: value.draft,
+      // We should use `drafts` if it is present, otherwise use `draft`
+      draft: value.drafts.or(value.draft),
       non_standard: value.non_standard,
       pseudo_classes: value.pseudo_classes,
       unused_symbols: value.unused_symbols,

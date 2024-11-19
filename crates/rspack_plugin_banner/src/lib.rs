@@ -40,6 +40,7 @@ pub struct BannerContentFnCtx<'a> {
   pub hash: &'a str,
   pub chunk: &'a Chunk,
   pub filename: &'a str,
+  pub compilation: &'a Compilation,
 }
 
 pub type BannerContentFn =
@@ -156,7 +157,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     }
 
-    for file in &chunk.files {
+    for file in chunk.files() {
       let is_match = match_object(&self.config, file);
 
       if !is_match {
@@ -177,6 +178,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             hash: &hash,
             chunk,
             filename: file,
+            compilation,
           })
           .await?;
           self.wrap_comment(&res)
@@ -185,7 +187,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let comment = compilation
         .get_path(
           &FilenameTemplate::from(banner),
-          PathData::default().chunk(chunk).hash(&hash).filename(file),
+          PathData::default()
+            .chunk_hash_optional(chunk.rendered_hash(
+              &compilation.chunk_hashes_results,
+              compilation.options.output.hash_digest_length,
+            ))
+            .chunk_id_optional(chunk.id())
+            .chunk_name_optional(chunk.name_for_filename_template())
+            .hash(&hash)
+            .filename(file),
         )
         .always_ok();
       updates.push((file.clone(), comment));

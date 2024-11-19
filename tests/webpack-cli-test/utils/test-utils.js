@@ -3,7 +3,7 @@
 "use strict";
 
 const os = require("os");
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 const path = require("path");
 const fs = require("fs");
 const execa = require("execa");

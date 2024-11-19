@@ -4,7 +4,7 @@
 const CLI = require("../../packages/webpack-cli/lib/webpack-cli");
 
 // eslint-disable-next-line node/no-unpublished-require
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 
 const readlineQuestionMock = jest.fn();
 

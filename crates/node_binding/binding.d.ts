@@ -517,13 +517,6 @@ export interface JsChunkGroupOrigin {
   request?: string
 }
 
-export interface JsChunkPathData {
-  id?: string
-  name?: string
-  hash?: string
-  contentHash?: string | Record<string, string>
-}
-
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -731,8 +724,13 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: JsChunkPathData
-  contentHashType?: string
+  chunk?: JsPathDataChunkLike
+}
+
+export interface JsPathDataChunkLike {
+  name?: string
+  hash?: string
+  id?: string
 }
 
 export interface JsResolveArgs {
@@ -1344,11 +1342,28 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
+export interface RawExperimentCacheOptionsCommon {
+  type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsPersistent {
+  type: "persistent"
+  snapshot: RawExperimentSnapshotOptions
+  storage: Array<RawStorageOptions>
+}
+
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
   incremental?: RawIncremental
   rspackFuture: RawRspackFuture
+  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+}
+
+export interface RawExperimentSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1462,14 +1477,17 @@ export interface RawIgnorePluginOptions {
 
 export interface RawIncremental {
   make: boolean
-  emitAssets: boolean
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  buildChunkGraph: boolean
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean
-  buildChunkGraph: boolean
+  chunksRuntimeRequirements: boolean
+  chunksHashes: boolean
+  chunksRender: boolean
+  emitAssets: boolean
 }
 
 export interface RawInfo {
@@ -1556,6 +1574,7 @@ export interface RawLightningCssMinimizerOptions {
   include?: number
   exclude?: number
   draft?: RawDraft
+  drafts?: RawDraft
   nonStandard?: RawNonStandard
   pseudoClasses?: RawLightningCssPseudoClasses
   unusedSymbols: Array<string>
@@ -1942,6 +1961,11 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawStorageOptions {
+  type: "filesystem"
+  directory: string
 }
 
 export interface RawSwcJsMinimizerOptions {

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  Chunk, ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier, Plugin,
+  incremental::Mutation, ChunkUkey, Compilation, CompilationOptimizeChunks, ModuleIdentifier,
+  Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -42,17 +43,29 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     }
 
     // split chunks from original chunks and create new chunk
-    let mut new_chunk = Chunk::new(None, rspack_core::ChunkKind::Normal);
-    new_chunk.chunk_reason = Some("modules are shared across multiple chunks".into());
-    let new_chunk_ukey = new_chunk.ukey;
+    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+    if let Some(mutations) = compilation.incremental.mutations_write() {
+      mutations.add(Mutation::ChunkAdd {
+        chunk: new_chunk_ukey,
+      });
+    }
+    let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
+    *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".into());
     compilation.chunk_graph.add_chunk(new_chunk_ukey);
 
     for chunk_ukey in &chunks {
-      let origin = compilation.chunk_by_ukey.expect_get_mut(chunk_ukey);
-      origin.split(&mut new_chunk, &mut compilation.chunk_group_by_ukey);
+      let [new_chunk, origin] = compilation
+        .chunk_by_ukey
+        .get_many_mut([&new_chunk_ukey, chunk_ukey])
+        .expect("should have both chunks");
+      origin.split(new_chunk, &mut compilation.chunk_group_by_ukey);
+      if let Some(mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSplit {
+          from: *chunk_ukey,
+          to: new_chunk_ukey,
+        });
+      }
     }
-
-    compilation.chunk_by_ukey.add(new_chunk);
 
     for m in modules {
       for chunk_ukey in &chunks {

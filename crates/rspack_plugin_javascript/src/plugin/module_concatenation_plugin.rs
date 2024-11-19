@@ -241,7 +241,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .map(|&chunk| {
             let chunk = chunk_by_ukey.expect_get(&chunk);
-            chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
+            chunk.name().unwrap_or("unnamed chunk(s)")
           })
           .collect::<Vec<_>>();
         missing_chunks_list.sort_unstable();
@@ -251,7 +251,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .map(|&chunk| {
             let chunk = chunk_by_ukey.expect_get(&chunk);
-            chunk.name.clone().unwrap_or("unnamed chunk(s)".to_owned())
+            chunk.name().unwrap_or("unnamed chunk(s)")
           })
           .collect::<Vec<_>>();
         chunks.sort_unstable();

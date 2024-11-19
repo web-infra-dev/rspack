@@ -15,7 +15,7 @@ impl Task<MakeTaskContext> for EntryTask {
     TaskType::Sync
   }
 
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self { dep, layer } = *self;
     let mut module_graph =
       MakeTaskContext::get_module_graph_mut(&mut context.artifact.module_graph_partial);

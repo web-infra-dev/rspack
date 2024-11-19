@@ -474,8 +474,7 @@ impl ContextModule {
               let chunk_id = compilation
                 .chunk_by_ukey
                 .expect_get(c)
-                .id
-                .as_ref()
+                .id()
                 .expect("should have chunk id in code generation");
               serde_json::json!(chunk_id)
             }))
