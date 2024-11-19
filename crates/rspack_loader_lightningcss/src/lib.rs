@@ -9,7 +9,7 @@ use lightningcss::{
   targets::{Features, Targets},
   traits::IntoOwned,
 };
-use map::RspackSourceMap;
+use map::LightningcssSourceMapWrapper;
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
@@ -183,7 +183,10 @@ impl LightningCssLoader {
       .map_err(|_| rspack_error::error!("failed to generate css"))?;
 
     if enable_sourcemap {
-      loader_context.finish_with((content.code, RspackSourceMap::new(source_map).boxed()));
+      loader_context.finish_with((
+        content.code,
+        LightningcssSourceMapWrapper::new(source_map).boxed(),
+      ));
     } else {
       loader_context.finish_with(content.code);
     }

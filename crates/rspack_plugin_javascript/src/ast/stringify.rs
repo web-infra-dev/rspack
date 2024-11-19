@@ -21,7 +21,7 @@ use swc_core::{
   },
 };
 
-use super::map::RspackSourceMap;
+use super::map::SwcSourceMapWrapper;
 use crate::TransformOutput;
 
 #[derive(Default, Clone, Debug)]
@@ -108,7 +108,7 @@ pub fn print(
 
   let map = if source_map_config.enable {
     Some(
-      RspackSourceMap::new(source_map.build_source_map_with_config(
+      SwcSourceMapWrapper::new(source_map.build_source_map_with_config(
         &src_map_buf,
         input_source_map,
         source_map_config,
