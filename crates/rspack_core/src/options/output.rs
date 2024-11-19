@@ -9,6 +9,7 @@ use rspack_macros::MergeFrom;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
+use super::CleanOptions;
 use crate::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate, Module,
   RuntimeSpec, SourceType,
@@ -24,7 +25,7 @@ pub enum PathInfo {
 pub struct OutputOptions {
   pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
-  pub clean: bool,
+  pub clean: CleanOptions,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,

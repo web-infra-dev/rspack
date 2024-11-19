@@ -31,3 +31,5 @@ mod node;
 pub use node::*;
 mod filename;
 pub use filename::*;
+mod clean_options;
+pub use clean_options::*;
