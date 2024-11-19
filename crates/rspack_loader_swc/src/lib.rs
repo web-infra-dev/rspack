@@ -9,7 +9,7 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
-use rspack_core::{rspack_sources::SourceMap, Mode, RunnerContext};
+use rspack_core::{Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
@@ -128,11 +128,6 @@ impl SwcLoader {
     }
     let ast = c.into_js_ast(program);
     let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
-
-    let map = map
-      .map(|m| SourceMap::from_json(&m))
-      .transpose()
-      .map_err(|e| error!(e.to_string()))?;
     loader_context.finish_with((code, map));
 
     Ok(())
