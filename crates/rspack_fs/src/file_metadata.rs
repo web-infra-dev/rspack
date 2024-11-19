@@ -1,4 +1,4 @@
-use std::fs::Metadata;
+use std::{fs::Metadata, io::ErrorKind};
 
 use crate::{Error, Result};
 
@@ -23,12 +23,21 @@ impl TryFrom<Metadata> for FileMetadata {
       .duration_since(std::time::UNIX_EPOCH)
       .expect("mtime is before unix epoch")
       .as_millis() as u64;
-    let ctime_ms = metadata
-      .created()
-      .map_err(Error::from)?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("ctime is before unix epoch")
-      .as_millis() as u64;
+    let ctime_ms = match metadata.created() {
+      Ok(time) => time
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("ctime is before unix epoch")
+        .as_millis() as u64,
+      Err(err) => {
+        // some linux musl not support get create time
+        // return 0 directly to solve this problem
+        if err.kind() == ErrorKind::Unsupported {
+          0_u64
+        } else {
+          return Err(err.into());
+        }
+      }
+    };
     let atime_ms = metadata
       .accessed()
       .map_err(Error::from)?
