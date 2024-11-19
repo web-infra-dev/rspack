@@ -108,8 +108,6 @@ pub fn print(
   let map = if source_map_config.enable {
     let combined_source_map =
       source_map.build_source_map_with_config(&src_map_buf, input_source_map, source_map_config);
-    // // SAFETY: This buffer is already sanitized
-    // Some(unsafe { String::from_utf8_unchecked(buf) })
 
     let mappings = encode_mappings(combined_source_map.tokens().map(|token| Mapping {
       generated_line: token.get_dst_line() + 1,
