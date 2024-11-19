@@ -87,12 +87,8 @@ impl SwcLoader {
     };
 
     let source = content.into_string_lossy();
-    let c = SwcCompiler::new(
-      resource_path.into_std_path_buf(),
-      source.clone(),
-      swc_options,
-    )
-    .map_err(AnyhowError::from)?;
+    let c = SwcCompiler::new(resource_path.into_std_path_buf(), source, swc_options)
+      .map_err(AnyhowError::from)?;
 
     let built = c
       .parse(None, |_| {
