@@ -10,7 +10,7 @@ pub struct JsValueRef<T: NapiValue> {
 
 impl<T: NapiValue> JsValueRef<T> {
   pub fn new(env: Env, value: T) -> Result<Self> {
-    let ref_ = env.create_reference(&value)?;
+    let ref_ = Ref::new(&env, &value)?;
 
     Ok(Self {
       ref_,
