@@ -17,4 +17,9 @@ export default class ModuleGraph {
 		const binding = this.#inner.getModule(Dependency.__to_binding(dependency));
 		return binding ? Module.__from_binding(binding) : null;
 	}
+
+	getIssuer(module: Module): Module | null {
+		const binding = this.#inner.getIssuer(Module.__to_binding(module));
+		return binding ? Module.__from_binding(binding) : null;
+	}
 }

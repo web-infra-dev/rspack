@@ -69,4 +69,14 @@ impl JsModuleGraph {
       )),
     })
   }
+
+  #[napi(ts_return_type = "JsModule | null")]
+  pub fn get_issuer(&self, module: &JsModule) -> napi::Result<Option<JsModuleWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    let issuer = module_graph.get_issuer(&module.identifier);
+    Ok(
+      issuer
+        .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
+    )
+  }
 }
