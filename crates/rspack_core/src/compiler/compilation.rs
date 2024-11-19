@@ -1265,8 +1265,14 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      // build_chunk_graph(compilation)?;
-      build_chunk_graph_new(compilation)?;
+      let code_splitting = std::time::Instant::now();
+      if std::env::var("NEW_CODE_SPLITTING").is_ok() {
+        build_chunk_graph_new(compilation)?;
+      } else {
+        build_chunk_graph(compilation)?;
+      }
+
+      dbg!(code_splitting.elapsed().as_millis());
       Ok(compilation)
     })
     .await?;
