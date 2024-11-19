@@ -235,8 +235,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-desc'],
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'progress-bar-webpack-plugin',
