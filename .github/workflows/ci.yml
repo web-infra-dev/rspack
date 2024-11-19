@@ -372,7 +372,7 @@ jobs:
           tool: cargo-codspeed
 
       - name: Build Benchmark
-        run: cargo codspeed build
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
         uses: CodSpeedHQ/action@v3
