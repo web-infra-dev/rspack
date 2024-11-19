@@ -476,8 +476,7 @@ fn runtime_requirement_in_tree(
         |_| false,
         move |chunk, compilation| {
           chunk
-            .content_hash(&compilation.chunk_hashes_results)
-            .expect("should have content hash")
+            .content_hash(&compilation.chunk_hashes_results)?
             .contains_key(&SOURCE_TYPE[0])
             .then(|| {
               if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
