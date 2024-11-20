@@ -26,7 +26,7 @@ use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
-use crate::JsDependencyWrapper;
+use crate::JsDependency;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
@@ -579,12 +579,8 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(ts_args_type = "dependency: JsDependency, options: JsEntryOptions")]
-  pub fn add_include(
-    &mut self,
-    dependency: JsDependencyWrapper,
-    options: JsEntryOptions,
-  ) -> Result<()> {
+  #[napi]
+  pub fn add_include(&mut self, dependency: &JsDependency, options: JsEntryOptions) -> Result<()> {
     let compilation = self.as_mut()?;
 
     // SAFETY:

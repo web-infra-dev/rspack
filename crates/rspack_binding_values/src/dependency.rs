@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::bindgen_prelude::{ClassInstance, FromNapiValue, ToNapiValue};
+use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
@@ -175,23 +175,6 @@ impl ToNapiValue for JsDependencyWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
       }
-    })
-  }
-}
-
-impl FromNapiValue for JsDependencyWrapper {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let instance: ClassInstance<JsDependencyWrapper> =
-      FromNapiValue::from_napi_value(env, napi_val)?;
-
-    Ok(Self {
-      dependency_id: instance.dependency_id,
-      dependency: instance.dependency,
-      compilation_id: instance.compilation_id,
-      compilation: instance.compilation,
     })
   }
 }
