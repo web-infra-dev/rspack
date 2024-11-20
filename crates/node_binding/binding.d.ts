@@ -1925,7 +1925,9 @@ export interface RawSourceMapDevToolPluginOptions {
   noSources?: boolean
   publicPath?: string
   sourceRoot?: string
-  test?: (text: string) => boolean
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSplitChunkSizes {
