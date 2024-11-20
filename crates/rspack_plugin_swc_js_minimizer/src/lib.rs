@@ -11,7 +11,7 @@ use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
@@ -241,11 +241,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             return Ok(())
           }
         };
-        let source = if let Some(map) = &output.map {
+        let source = if let Some(source_map) = output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             name: filename,
-            source_map: SourceMap::from_json(map).expect("should be able to generate source-map"),
+            source_map,
             original_source: None,
             inner_source_map: input_source_map,
             remove_original_source: true,
