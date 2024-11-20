@@ -25,6 +25,7 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
@@ -693,6 +694,12 @@ impl JsCompilation {
         Box::new(RuntimeModuleFromJs::from(runtime_module)),
       )
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+  }
+
+  #[napi(getter)]
+  pub fn module_graph(&self) -> napi::Result<JsModuleGraph> {
+    let compilation = self.as_ref()?;
+    Ok(JsModuleGraph::new(compilation))
   }
 }
 

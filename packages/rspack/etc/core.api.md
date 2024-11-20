@@ -48,6 +48,7 @@ import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
+import type { JsModuleGraph } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -713,6 +714,8 @@ export class Compilation {
         addAll: (deps: Iterable<string>) => void;
     };
     // (undocumented)
+    moduleGraph: ModuleGraph;
+    // (undocumented)
     get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
@@ -1316,6 +1319,8 @@ class Dependency {
     // (undocumented)
     static __from_binding(binding: JsDependency): Dependency;
     // (undocumented)
+    static __to_binding(data: Dependency): JsDependency;
+    // (undocumented)
     readonly category: string;
     // (undocumented)
     critical: boolean;
@@ -1595,7 +1600,16 @@ interface Entry_2 {
 }
 
 // @public (undocumented)
-type EntryData = binding.JsEntryData;
+class EntryData {
+    // (undocumented)
+    static __from_binding(binding: binding.JsEntryData): EntryData;
+    // (undocumented)
+    dependencies: Dependency[];
+    // (undocumented)
+    includeDependencies: Dependency[];
+    // (undocumented)
+    options: binding.JsEntryOptions;
+}
 
 // @public
 export type EntryDependOn = string | string[];
@@ -3542,6 +3556,8 @@ export class Module {
     // (undocumented)
     static __from_binding(binding: JsModule, compilation?: Compilation): Module;
     // (undocumented)
+    static __to_binding(module: Module): JsModule;
+    // (undocumented)
     readonly blocks: DependenciesBlock[];
     readonly buildInfo: Record<string, any>;
     readonly buildMeta: Record<string, any>;
@@ -3641,6 +3657,16 @@ type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type
 
 // @public (undocumented)
 type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
+
+// @public (undocumented)
+class ModuleGraph {
+    // (undocumented)
+    static __from_binding(binding: JsModuleGraph): ModuleGraph;
+    // (undocumented)
+    getIssuer(module: Module): Module | null;
+    // (undocumented)
+    getModule(dependency: Dependency): Module | null;
+}
 
 // @public (undocumented)
 export type ModuleOptions = {
