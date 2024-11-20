@@ -9,6 +9,7 @@ use lightningcss::{
   targets::{Features, Targets},
   traits::IntoOwned,
 };
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
   Loader, LoaderContext, RunnerContext,
@@ -23,11 +24,13 @@ pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
 pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static, 'static>)>;
 
+#[cacheable]
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct LightningCssLoader {
   id: Identifier,
   #[derivative(Debug = "ignore")]
+  #[cacheable(with=Skip)]
   visitors: Option<Mutex<Vec<LightningcssLoaderVisitor>>>,
   config: Config,
 }
@@ -226,6 +229,7 @@ impl Identifiable for LightningCssLoader {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for LightningCssLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {

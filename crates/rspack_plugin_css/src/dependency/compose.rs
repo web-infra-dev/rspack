@@ -1,13 +1,19 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, RuntimeSpec,
 };
 use rspack_util::atom::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssComposeDependency {
   id: DependencyId,
   request: String,
+  #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   range: DependencyRange,
 }
@@ -23,6 +29,7 @@ impl CssComposeDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CssComposeDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -57,6 +64,7 @@ impl Dependency for CssComposeDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CssComposeDependency {
   fn request(&self) -> &str {
     &self.request

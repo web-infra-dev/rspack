@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_id, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec,
@@ -5,9 +6,11 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleHotDeclineDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
 }
@@ -22,6 +25,7 @@ impl ModuleHotDeclineDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ModuleHotDeclineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -44,6 +48,7 @@ impl Dependency for ModuleHotDeclineDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ModuleHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
@@ -62,6 +67,7 @@ impl ModuleDependency for ModuleHotDeclineDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModuleHotDeclineDependency {
   fn apply(
     &self,

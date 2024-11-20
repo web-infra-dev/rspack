@@ -1,8 +1,11 @@
+mod cacheable_context;
+mod occasion;
 pub mod snapshot;
 pub mod storage;
-
 use std::sync::Arc;
 
+pub use cacheable_context::{CacheableContext, FromContext};
+use occasion::MakeOccasion;
 use rspack_fs::FileSystem;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
@@ -12,7 +15,7 @@ use self::{
   storage::{MemoryStorage, Storage, StorageOptions},
 };
 use super::Cache;
-use crate::Compilation;
+use crate::{make::MakeArtifact, Compilation, CompilerOptions};
 
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
@@ -25,14 +28,25 @@ pub struct PersistentCacheOptions {
 pub struct PersistentCache {
   storage: Arc<dyn Storage>,
   snapshot: Snapshot,
+  make_occasion: MakeOccasion,
 }
 
 impl PersistentCache {
-  pub fn new(option: &PersistentCacheOptions, fs: Arc<dyn FileSystem>) -> Self {
+  pub fn new(
+    option: &PersistentCacheOptions,
+    input_filesystem: Arc<dyn FileSystem>,
+    compiler_options: Arc<CompilerOptions>,
+  ) -> Self {
     let storage = Arc::new(MemoryStorage::default());
+    let context = Arc::new(CacheableContext {
+      options: compiler_options,
+      input_filesystem: input_filesystem.clone(),
+    });
+    let make_occasion = MakeOccasion::new(storage.clone(), context);
     Self {
-      snapshot: Snapshot::new(option.snapshot.clone(), fs, storage.clone()),
+      snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
       storage,
+      make_occasion,
     }
   }
 }
@@ -79,5 +93,17 @@ impl Cache for PersistentCache {
       .add(modified_paths.iter().map(|item| item.as_ref()));
 
     self.storage.idle();
+  }
+
+  fn before_make(&self, make_artifact: &mut MakeArtifact) {
+    if !make_artifact.initialized {
+      if let Ok(artifact) = self.make_occasion.recovery() {
+        *make_artifact = artifact;
+      }
+    }
+  }
+
+  fn after_make(&self, make_artifact: &MakeArtifact) {
+    self.make_occasion.save(make_artifact);
   }
 }

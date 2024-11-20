@@ -2,6 +2,10 @@ use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec, Skip},
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
@@ -31,11 +35,15 @@ use super::{
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
+  #[cacheable(with=AsVec<AsPreset>)]
   pub ids: Vec<Atom>,
+  #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
+  #[cacheable(with=AsPreset)]
   pub request: Atom,
   pub export_all: bool,
   pub source_order: i32,
@@ -44,6 +52,7 @@ pub struct ESMExportImportedSpecifierDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
+  #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
 }
 
@@ -991,6 +1000,7 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet<'a> {
   pub dependency_index: usize,
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ESMExportImportedSpecifierDependency {
   fn apply(
     &self,
@@ -1036,6 +1046,7 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ESMExportImportedSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -1361,6 +1372,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ESMExportImportedSpecifierDependency {
   fn request(&self) -> &str {
     &self.request

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, hash::Hash};
 
+use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -44,6 +45,7 @@ pub fn dependencies_block_update_hash(
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
@@ -65,6 +67,7 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
@@ -72,6 +75,7 @@ pub struct AsyncDependenciesBlock {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
+  #[cacheable(omit_bounds)]
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,

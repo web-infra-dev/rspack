@@ -98,6 +98,7 @@ pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
 
+use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   get_scheme, parse_resource, AdditionalData, ResourceData, ResourceParsedData, Scheme,
   BUILTIN_LOADER_PREFIX,
@@ -108,6 +109,7 @@ pub use rspack_sources;
 #[cfg(debug_assertions)]
 pub mod debug_info;
 
+#[cacheable]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,
@@ -118,7 +120,7 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
-  Custom(Ustr),
+  Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
   CssImport,
@@ -162,6 +164,7 @@ impl From<&str> for SourceType {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,
@@ -183,7 +186,7 @@ pub enum ModuleType {
   ProvideShared,
   ConsumeShared,
   SelfReference,
-  Custom(Ustr),
+  Custom(#[cacheable(with=AsPreset)] Ustr),
 }
 
 impl ModuleType {

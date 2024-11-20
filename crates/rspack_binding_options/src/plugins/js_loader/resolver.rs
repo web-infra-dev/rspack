@@ -3,6 +3,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
@@ -24,9 +25,11 @@ use tokio::sync::RwLock;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
+#[cacheable]
 #[derive(Debug)]
 pub struct JsLoader(pub Identifier);
 
+#[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {}
 
 impl Identifiable for JsLoader {
@@ -60,14 +63,15 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
     }
 
     let loader = Arc::new(
-      rspack_loader_swc::SwcLoader::new(serde_json::from_str(options.as_ref()).map_err(|e| {
-        serde_error_to_miette(
-          e,
-          options.clone(),
-          "failed to parse builtin:swc-loader options",
-        )
-      })?)
-      .with_identifier(builtin.into()),
+      rspack_loader_swc::SwcLoader::new(options.as_ref())
+        .map_err(|e| {
+          serde_error_to_miette(
+            e,
+            options.clone(),
+            "failed to parse builtin:swc-loader options",
+          )
+        })?
+        .with_identifier(builtin.into()),
     );
 
     SWC_LOADER_CACHE.write().await.insert(

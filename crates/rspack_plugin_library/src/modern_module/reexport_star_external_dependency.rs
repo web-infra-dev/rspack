@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, Dependency, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   NormalInitFragment,
@@ -8,9 +9,11 @@ use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModernModuleReexportStarExternalDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
   target_request: ExternalRequest,
   external_type: ExternalType,
@@ -30,6 +33,7 @@ impl ModernModuleReexportStarExternalDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ModernModuleReexportStarExternalDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -52,6 +56,7 @@ impl Dependency for ModernModuleReexportStarExternalDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ModernModuleReexportStarExternalDependency {
   fn request(&self) -> &str {
     &self.request
@@ -66,6 +71,7 @@ impl ModuleDependency for ModernModuleReexportStarExternalDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModernModuleReexportStarExternalDependency {
   fn apply(
     &self,

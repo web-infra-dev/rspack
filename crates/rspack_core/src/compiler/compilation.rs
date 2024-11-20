@@ -9,6 +9,7 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
+use rspack_cacheable::cacheable;
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
@@ -119,6 +120,7 @@ pub struct CompilationHooks {
   pub after_seal: CompilationAfterSealHook,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct CompilationId(u32);
 
@@ -191,7 +193,6 @@ pub struct Compilation {
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
   // artifact for create_chunk_assets
   pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
-
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
@@ -215,7 +216,7 @@ pub struct Compilation {
 
   pub modified_files: HashSet<ArcPath>,
   pub removed_files: HashSet<ArcPath>,
-  make_artifact: MakeArtifact,
+  pub make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
 }
 
@@ -1176,7 +1177,6 @@ impl Compilation {
     // take make diagnostics
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
-
     Ok(())
   }
 

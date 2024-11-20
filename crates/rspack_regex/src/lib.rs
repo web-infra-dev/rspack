@@ -6,12 +6,17 @@ mod napi;
 use std::fmt::Debug;
 
 use cow_utils::CowUtils;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsString, AsStringConverter},
+};
 use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 use self::algo::Algo;
 
 /// Using wrapper type required by [TryFrom] trait
+#[cacheable(with=AsString)]
 #[derive(Clone, Hash)]
 pub struct RspackRegex {
   algo: Box<Algo>,
@@ -102,5 +107,18 @@ impl TryFrom<SwcRegex> for RspackRegex {
 
   fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
+  }
+}
+
+impl AsStringConverter for RspackRegex {
+  fn to_string(&self) -> Result<String, rspack_cacheable::SerializeError> {
+    Ok(format!("{}#{}", self.flags, self.source))
+  }
+  fn from_str(s: &str) -> Result<Self, rspack_cacheable::DeserializeError>
+  where
+    Self: Sized,
+  {
+    let (flags, source) = s.split_once("#").expect("should have flags");
+    Ok(RspackRegex::with_flags(source, flags).expect("should generate regex"))
   }
 }

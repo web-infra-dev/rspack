@@ -9,6 +9,10 @@ use std::sync::Arc;
 
 use either::Either;
 use itertools::Itertools;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 use rspack_collections::impl_item_ukey;
 use rspack_collections::Ukey;
 use rspack_collections::UkeySet;
@@ -25,6 +29,7 @@ use crate::{
   ModuleIdentifier, Nullable, RuntimeSpec,
 };
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct ExportsInfo(Ukey);
 
@@ -1958,9 +1963,10 @@ pub enum RuntimeUsageStateType {
   Used,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UsedByExports {
-  Set(HashSet<Atom>),
+  Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
 }
 

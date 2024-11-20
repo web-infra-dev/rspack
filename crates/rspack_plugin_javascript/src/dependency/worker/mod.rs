@@ -1,5 +1,6 @@
 mod create_script_url_dependency;
 pub use create_script_url_dependency::CreateScriptUrlDependency;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
   DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
@@ -7,6 +8,7 @@ use rspack_core::{
 };
 use rspack_util::ext::DynHash;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
   id: DependencyId,
@@ -33,6 +35,7 @@ impl WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for WorkerDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -63,6 +66,7 @@ impl Dependency for WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for WorkerDependency {
   fn request(&self) -> &str {
     &self.request
@@ -77,6 +81,7 @@ impl ModuleDependency for WorkerDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for WorkerDependency {
   fn apply(
     &self,

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, RuntimeSpec, TemplateContext,
@@ -5,9 +6,11 @@ use rspack_core::{
 };
 use rspack_util::atom::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct UnsupportedDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
   range: (u32, u32),
 }
@@ -22,6 +25,7 @@ impl UnsupportedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for UnsupportedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -40,6 +44,7 @@ impl Dependency for UnsupportedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for UnsupportedDependency {
   fn apply(
     &self,

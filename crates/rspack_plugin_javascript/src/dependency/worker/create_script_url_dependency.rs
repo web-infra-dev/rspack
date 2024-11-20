@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyRange, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec,
   TemplateContext, TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CreateScriptUrlDependency {
   id: DependencyId,
@@ -21,6 +23,7 @@ impl CreateScriptUrlDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CreateScriptUrlDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -43,6 +46,7 @@ impl Dependency for CreateScriptUrlDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CreateScriptUrlDependency {
   fn apply(
     &self,

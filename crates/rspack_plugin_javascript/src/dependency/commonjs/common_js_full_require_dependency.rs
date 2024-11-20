@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec, Skip},
+};
 use rspack_core::{
   module_id, property_access, to_normal_comment, Compilation, DependencyLocation, DependencyRange,
   ExportsType, ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
@@ -9,15 +13,18 @@ use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
+  #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   range: DependencyRange,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
+  #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
 }
 
@@ -44,6 +51,7 @@ impl CommonJsFullRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CommonJsFullRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -93,6 +101,7 @@ impl Dependency for CommonJsFullRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CommonJsFullRequireDependency {
   fn request(&self) -> &str {
     &self.request
@@ -111,6 +120,7 @@ impl ModuleDependency for CommonJsFullRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CommonJsFullRequireDependency {
   fn apply(
     &self,

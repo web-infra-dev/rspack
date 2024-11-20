@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyId,
   DependencyType, ModuleDependency,
@@ -5,6 +6,7 @@ use rspack_core::{
 
 use crate::DllEntryPluginOptions;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct DllEntryDependency {
   pub context: Context,
@@ -36,12 +38,14 @@ impl DllEntryDependency {
 
 // It would not create module by rspack,if dependency is not ModuleDependency.
 // So we impl ModuleDependency for [DllEntryDependency]
+#[cacheable_dyn]
 impl ModuleDependency for DllEntryDependency {
   fn request(&self) -> &str {
     "dll main"
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for DllEntryDependency {
   fn id(&self) -> &DependencyId {
     &self.id

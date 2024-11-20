@@ -1,7 +1,9 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::RunnerContext;
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 
+#[cacheable]
 pub struct PreactRefreshLoader {
   identifier: Identifier,
 }
@@ -24,6 +26,7 @@ impl PreactRefreshLoader {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for PreactRefreshLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {

@@ -139,6 +139,15 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
 /// For impl block providing trait or associated items: `impl<A> Trait
 /// for Data<A> { ... }`.
 pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
+  if input.generics.type_params().next().is_some() {
+    // not support for generics
+    input.items.push(parse_quote! {
+        fn __dyn_id(&self) -> u64 {
+            panic!("#[cacheable_dyn] not support for impl with generics");
+        }
+    });
+    return quote! { #input }.into();
+  }
   let trait_ident = &input.trait_.as_ref().expect("should have trait ident").1;
   let trait_ident_str = trait_ident
     .segments

@@ -2,6 +2,7 @@ use std::hash::BuildHasherDefault;
 
 use cow_utils::CowUtils;
 use indexmap::IndexMap;
+use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -14,6 +15,7 @@ use rustc_hash::FxHasher;
 #[derive(Debug)]
 pub struct ChunkPrefetchTriggerRuntimeModule {
   id: Identifier,
+  #[cacheable(with=AsMap)]
   chunk_map: IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
 }
 

@@ -12,10 +12,24 @@ pub struct FileCounter {
 }
 
 impl FileCounter {
-  /// Add a [`PathBuf``] to counter
+  /// Generate FileCounter by HashMap
+  pub fn new(inner: HashMap<ArcPath, usize>) -> Self {
+    Self {
+      inner,
+      incremental_info: Default::default(),
+    }
+  }
+
+  /// Returns `true` if the [`PathBuf`] is in counter.
+  pub fn contains(&self, path: &ArcPath) -> bool {
+    self.inner.contains_key(path)
+  }
+
+  /// Add a [`PathBuf`] to counter
   ///
   /// It will +1 to the PathBuf in inner hashmap
   fn add_file(&mut self, path: ArcPath) {
+    self.incremental_info.update(&path);
     if let Some(value) = self.inner.get_mut(&path) {
       *value += 1;
     } else {
@@ -31,6 +45,7 @@ impl FileCounter {
   /// If the PathBuf usage is 0 after reduction, the record will be deleted
   /// If PathBuf does not exist, panic will occur.
   fn remove_file(&mut self, path: &ArcPath) {
+    self.incremental_info.update(path);
     if let Some(value) = self.inner.get_mut(path) {
       *value -= 1;
       if value == &0 {
@@ -63,7 +78,7 @@ impl FileCounter {
 
   /// reset incremental info
   pub fn reset_incremental_info(&mut self) {
-    self.incremental_info.reset()
+    self.incremental_info.reset();
   }
 
   /// Added files compared to the `files()` when call reset_incremental_info
@@ -74,6 +89,14 @@ impl FileCounter {
   /// Removed files compared to the `files()` when call reset_incremental_info
   pub fn removed_files(&self) -> &HashSet<ArcPath> {
     self.incremental_info.removed_files()
+  }
+
+  /// Return updated files compared to the `files()` when call reset_incremental_info and their count info
+  pub fn updated_files_count_info(&self) -> impl ExactSizeIterator<Item = (&ArcPath, usize)> {
+    self.incremental_info.updated_files().iter().map(|file| {
+      let count = self.inner.get(file).unwrap_or(&0);
+      (file, *count)
+    })
   }
 }
 
@@ -97,21 +120,31 @@ mod test {
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
     assert_eq!(counter.added_files().len(), 2);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 2);
 
     counter.remove_file(&file_a);
+    assert!(counter.contains(&file_a));
+    assert!(counter.contains(&file_b));
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 2);
     assert_eq!(counter.added_files().len(), 2);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 2);
 
     counter.remove_file(&file_b);
+    assert!(counter.contains(&file_a));
+    assert!(!counter.contains(&file_b));
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 1);
     assert_eq!(counter.added_files().len(), 1);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 2);
 
     counter.remove_file(&file_a);
+    assert!(!counter.contains(&file_a));
+    assert!(!counter.contains(&file_b));
     assert_eq!(counter.files().collect::<Vec<_>>().len(), 0);
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 2);
   }
 
   #[test]
@@ -158,21 +191,26 @@ mod test {
     counter.add_file(file_a.clone());
     assert_eq!(counter.added_files().len(), 1);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 1);
 
     counter.reset_incremental_info();
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 0);
 
     counter.add_file(file_a.clone());
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 1);
 
     counter.remove_file(&file_a);
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 0);
+    assert_eq!(counter.updated_files_count_info().len(), 1);
 
     counter.remove_file(&file_a);
     assert_eq!(counter.added_files().len(), 0);
     assert_eq!(counter.removed_files().len(), 1);
+    assert_eq!(counter.updated_files_count_info().len(), 1);
   }
 }

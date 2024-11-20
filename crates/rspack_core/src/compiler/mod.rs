@@ -1,6 +1,6 @@
 mod compilation;
 mod hmr;
-mod make;
+pub mod make;
 mod module_executor;
 use std::sync::Arc;
 
@@ -206,6 +206,7 @@ impl Compiler {
     let logger = self.compilation.get_logger("rspack.Compiler");
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
+    self.cache.before_make(&mut self.compilation.make_artifact);
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks
@@ -231,6 +232,7 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
+    self.cache.after_make(&self.compilation.make_artifact);
     logger.time_end(start);
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;

@@ -2,6 +2,8 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use itertools::Itertools;
+use rspack_cacheable::with::Skip;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
@@ -25,8 +27,11 @@ use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
 
+#[cacheable]
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
+  // TODO
+  #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
 
@@ -84,6 +89,7 @@ impl JavaScriptParserAndGenerator {
 
 static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
 
+#[cacheable_dyn]
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     SOURCE_TYPES

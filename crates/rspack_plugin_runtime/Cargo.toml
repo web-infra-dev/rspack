@@ -13,6 +13,7 @@ cow-utils                = { workspace = true }
 derivative               = { workspace = true }
 indexmap                 = { workspace = true }
 itertools                = { workspace = true }
+rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
@@ -20,6 +21,7 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
+
 rustc-hash               = { workspace = true }
 serde_json               = { workspace = true }
 tracing                  = { workspace = true }

@@ -11,6 +11,10 @@ use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsMap, Skip},
+};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -58,6 +62,7 @@ pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub struct RootModuleContext {
   pub id: ModuleIdentifier,
@@ -107,6 +112,7 @@ pub enum BindingType {
   Symbol,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
@@ -211,7 +217,7 @@ pub struct ConnectionWithRuntimeCondition<'a> {
 #[derive(Debug, Clone)]
 pub enum ModuleInfo {
   External(ExternalModuleInfo),
-  Concatenated(ConcatenatedModuleInfo),
+  Concatenated(Box<ConcatenatedModuleInfo>),
 }
 
 impl ModuleInfo {
@@ -349,6 +355,7 @@ impl ModuleInfo {
 }
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug)]
 pub struct ConcatenatedModule {
   id: ModuleIdentifier,
@@ -359,9 +366,9 @@ pub struct ConcatenatedModule {
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-
+  #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
-
+  #[cacheable(with=Skip)]
   diagnostics: Mutex<Vec<Diagnostic>>,
   build_info: Option<BuildInfo>,
 }
@@ -462,6 +469,7 @@ impl DependenciesBlock for ConcatenatedModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ConcatenatedModule {
   fn module_type(&self) -> &ModuleType {
@@ -1467,7 +1475,7 @@ impl ConcatenatedModule {
                 module: module_id,
                 ..Default::default()
               };
-              vac.insert(ModuleInfo::Concatenated(info));
+              vac.insert(ModuleInfo::Concatenated(Box::new(info)));
               list.push(module_id);
             }
             ConcatenationEntry::External(e) => {
@@ -1689,7 +1697,7 @@ impl ConcatenatedModule {
     info: ModuleInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<ModuleInfo> {
-    if let ModuleInfo::Concatenated(info) = info {
+    if let ModuleInfo::Concatenated(box info) = info {
       let module_id = info.module;
 
       let concatenation_scope = ConcatenationScope::new(module_info_map, info);
@@ -1776,7 +1784,7 @@ impl ConcatenatedModule {
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
-      Ok(ModuleInfo::Concatenated(module_info))
+      Ok(ModuleInfo::Concatenated(Box::new(module_info)))
     } else {
       Ok(info)
     }

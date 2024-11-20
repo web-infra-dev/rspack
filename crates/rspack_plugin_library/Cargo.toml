@@ -12,6 +12,7 @@ version                 = "0.2.0"
 [dependencies]
 async-trait              = { workspace = true }
 regex                    = { workspace = true }
+rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec, TemplateContext,
@@ -5,9 +6,11 @@ use rspack_core::{
 };
 use rspack_util::atom::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AMDRequireItemDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
   range: (u32, u32),
   optional: bool,
@@ -28,6 +31,7 @@ impl AMDRequireItemDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for AMDRequireItemDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -46,6 +50,7 @@ impl Dependency for AMDRequireItemDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for AMDRequireItemDependency {
   fn apply(
     &self,
@@ -76,6 +81,7 @@ impl DependencyTemplate for AMDRequireItemDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for AMDRequireItemDependency {
   fn request(&self) -> &str {
     &self.request

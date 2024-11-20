@@ -6,6 +6,10 @@ use std::{
 use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use regex::Regex;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsMap, AsOption, AsVec},
+};
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -53,6 +57,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
   pub ident: String,
@@ -72,6 +77,7 @@ fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExp
   }
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub convention: Option<CssExportsConvention>,
@@ -79,10 +85,12 @@ pub struct CssParserAndGenerator {
   pub exports_only: bool,
   pub named_exports: bool,
   pub es_module: bool,
+  #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
   pub hot: bool,
 }
 
+#[cacheable_dyn]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if self.exports_only {

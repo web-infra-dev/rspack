@@ -1,4 +1,5 @@
 use super::Cache;
+use crate::make::MakeArtifact;
 
 /// Disable cache implementation
 ///
@@ -6,4 +7,8 @@ use super::Cache;
 #[derive(Debug)]
 pub struct DisableCache;
 
-impl Cache for DisableCache {}
+impl Cache for DisableCache {
+  fn before_make(&self, make_artifact: &mut MakeArtifact) {
+    *make_artifact = Default::default();
+  }
+}

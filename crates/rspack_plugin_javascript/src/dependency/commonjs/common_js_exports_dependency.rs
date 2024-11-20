@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   property_access, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ExportNameOrSpec,
@@ -7,6 +11,7 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum ExportsBase {
   Exports,
@@ -45,12 +50,14 @@ impl ExportsBase {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: (u32, u32),
   value_range: Option<(u32, u32)>,
   base: ExportsBase,
+  #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
 }
 
@@ -71,6 +78,7 @@ impl CommonJsExportsDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CommonJsExportsDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -103,6 +111,7 @@ impl Dependency for CommonJsExportsDependency {
 
 impl AsModuleDependency for CommonJsExportsDependency {}
 
+#[cacheable_dyn]
 impl DependencyTemplate for CommonJsExportsDependency {
   fn apply(
     &self,

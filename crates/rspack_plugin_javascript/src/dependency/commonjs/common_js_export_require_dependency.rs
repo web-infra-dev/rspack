@@ -1,4 +1,8 @@
 use itertools::Itertools;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{
   module_raw, process_export_info, property_access, AsContextDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
@@ -12,6 +16,7 @@ use swc_core::atoms::Atom;
 
 use super::ExportsBase;
 
+#[cacheable]
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub struct CommonJsExportRequireDependency {
@@ -20,7 +25,9 @@ pub struct CommonJsExportRequireDependency {
   optional: bool,
   range: DependencyRange,
   base: ExportsBase,
+  #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
+  #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
 }
@@ -159,6 +166,7 @@ impl CommonJsExportRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CommonJsExportRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -338,6 +346,7 @@ impl Dependency for CommonJsExportRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CommonJsExportRequireDependency {
   fn apply(
     &self,
@@ -443,6 +452,7 @@ impl DependencyTemplate for CommonJsExportRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CommonJsExportRequireDependency {
   fn request(&self) -> &str {
     &self.request

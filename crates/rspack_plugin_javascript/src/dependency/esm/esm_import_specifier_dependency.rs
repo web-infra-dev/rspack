@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec, Skip},
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
@@ -15,23 +19,29 @@ use swc_core::ecma::atoms::Atom;
 use super::esm_import_dependency::esm_import_dependency_get_linking_error;
 use super::{create_resource_identifier_for_esm_dependency, esm_import_dependency_apply};
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMImportSpecifierDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   request: Atom,
+  #[cacheable(with=AsPreset)]
   name: Atom,
   source_order: i32,
   shorthand: bool,
   asi_safe: bool,
   range: DependencyRange,
+  #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   referenced_properties_in_destructuring: Option<HashSet<Atom>>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
+  #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   pub namespace_object_as_context: bool,
 }
@@ -113,6 +123,7 @@ impl ESMImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ESMImportSpecifierDependency {
   fn apply(
     &self,
@@ -222,6 +233,7 @@ impl DependencyTemplate for ESMImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ESMImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -342,6 +354,7 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ESMImportSpecifierDependency {
   fn request(&self) -> &str {
     &self.request

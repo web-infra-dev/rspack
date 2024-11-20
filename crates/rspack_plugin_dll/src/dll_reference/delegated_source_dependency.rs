@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory,
   DependencyId, DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct DelegatedSourceDependency {
   id: DependencyId,
@@ -18,6 +20,7 @@ impl DelegatedSourceDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for DelegatedSourceDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -36,6 +39,7 @@ impl Dependency for DelegatedSourceDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for DelegatedSourceDependency {
   fn request(&self) -> &str {
     &self.request

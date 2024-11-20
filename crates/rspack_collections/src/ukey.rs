@@ -31,6 +31,7 @@ pub trait ItemUkey {
 }
 
 /// Ukey stands for Unique key
+#[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Ukey(u32);
 

@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, Unsupported},
+};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
@@ -8,13 +12,16 @@ use swc_core::ecma::atoms::Atom;
 use crate::WasmNode;
 
 #[allow(dead_code)]
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct WasmImportDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   name: Atom,
   request: String,
   // only_direct_import: bool,
   /// the WASM AST node
+  #[cacheable(with=Unsupported)]
   pub desc: WasmNode,
   span: Option<DependencyRange>,
 }
@@ -35,6 +42,7 @@ impl WasmImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for WasmImportDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -61,6 +69,7 @@ impl Dependency for WasmImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for WasmImportDependency {
   fn request(&self) -> &str {
     &self.request

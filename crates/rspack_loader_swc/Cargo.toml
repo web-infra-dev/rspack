@@ -23,6 +23,7 @@ base64                   = { version = "0.22.1" }
 either                   = { workspace = true }
 jsonc-parser             = { version = "0.26.2", features = ["serde"] }
 rspack_ast               = { workspace = true }
+rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_loader_runner     = { workspace = true }

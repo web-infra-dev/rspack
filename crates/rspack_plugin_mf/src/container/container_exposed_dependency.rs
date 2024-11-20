@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContainerExposedDependency {
   id: DependencyId,
@@ -23,6 +25,7 @@ impl ContainerExposedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ContainerExposedDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -45,6 +48,7 @@ impl Dependency for ContainerExposedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ContainerExposedDependency {
   fn request(&self) -> &str {
     &self.request

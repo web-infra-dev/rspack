@@ -2,6 +2,7 @@ use std::{cmp::Ordering, fmt};
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+use rspack_cacheable::with::Unsupported;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
@@ -23,10 +24,13 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 pub struct GetChunkFilenameRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
+  #[cacheable(with=Unsupported)]
   content_type: &'static str,
   source_type: SourceType,
   global: String,
+  #[cacheable(with=Unsupported)]
   all_chunks: GetChunkFilenameAllChunks,
+  #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
 }
 

@@ -7,6 +7,10 @@ use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
 use regex::Regex;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, Unsupported},
+};
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
@@ -35,10 +39,11 @@ pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 static DATA_URI_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
+#[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
-  Template(Atom),
-  Fn(F),
+  Template(#[cacheable(with=AsPreset)] Atom),
+  Fn(#[cacheable(with=Unsupported)] F),
 }
 
 /// Filename template string or function
@@ -47,6 +52,7 @@ enum FilenameKind<F> {
 /// implements `Hash` and `Eq`, and its error type is `rspack_error::Error`.
 ///
 /// Other possible function types are `NoFilenameFn` and `LocalJsFilenameFn`
+#[cacheable]
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord)]
 pub struct Filename<F = Arc<dyn FilenameFn>>(FilenameKind<F>);
 

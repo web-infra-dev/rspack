@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
   ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct WebpackIsIncludedDependency {
   pub start: u32,
@@ -25,6 +27,7 @@ impl WebpackIsIncludedDependency {
 
 impl AsContextDependency for WebpackIsIncludedDependency {}
 
+#[cacheable_dyn]
 impl Dependency for WebpackIsIncludedDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::WebpackIsIncluded
@@ -47,6 +50,7 @@ impl Dependency for WebpackIsIncludedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for WebpackIsIncludedDependency {
   fn weak(&self) -> bool {
     true
@@ -57,6 +61,7 @@ impl ModuleDependency for WebpackIsIncludedDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for WebpackIsIncludedDependency {
   fn apply(
     &self,

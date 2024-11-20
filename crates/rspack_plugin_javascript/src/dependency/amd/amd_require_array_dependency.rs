@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
@@ -11,13 +12,15 @@ use super::{
   local_module_dependency::LocalModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum AmdDep {
-  String(Atom),
+  String(#[cacheable(with=AsPreset)] Atom),
   LocalModuleDependency(LocalModuleDependency),
   AMDRequireItemDependency(AMDRequireItemDependency),
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AmdRequireArrayDependency {
   id: DependencyId,
@@ -35,6 +38,7 @@ impl AmdRequireArrayDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for AmdRequireArrayDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -83,6 +87,7 @@ impl AmdRequireArrayDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for AmdRequireArrayDependency {
   fn apply(
     &self,
