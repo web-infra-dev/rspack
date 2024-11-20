@@ -23,8 +23,10 @@ use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use super::{JsFilename, PathWithInfo};
+use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsDependencyWrapper;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
@@ -574,6 +576,23 @@ impl JsCompilation {
     compilation
       .build_dependencies
       .extend(deps.into_iter().map(Into::into));
+    Ok(())
+  }
+
+  #[napi(ts_args_type = "dependency: JsDependency, options: JsEntryOptions")]
+  pub fn add_include(
+    &mut self,
+    dependency: JsDependencyWrapper,
+    options: JsEntryOptions,
+  ) -> Result<()> {
+    let compilation = self.as_mut()?;
+
+    let dependency = unsafe { Box::from_raw(dependency.dependency.as_ptr()) };
+
+    compilation
+      .add_include(dependency, options.into())
+      .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+
     Ok(())
   }
 

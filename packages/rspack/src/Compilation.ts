@@ -24,6 +24,7 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
+import { Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
@@ -37,6 +38,7 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
+import { type EntryOptions, getRawEntryOptions } from "./builtin-plugin";
 import type {
 	Filename,
 	OutputNormalized,
@@ -623,6 +625,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
 					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
 		);
+	}
+
+	addInclude(dependency: Dependency, options: EntryOptions) {
+		const rawDependency = Dependency.__to_binding(dependency);
+		const rawEntryOptions = getRawEntryOptions(options);
+
+		this.#inner.addInclude(rawDependency, rawEntryOptions);
 	}
 
 	/**

@@ -519,7 +519,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
+  pub fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     self.get_module_graph_mut().add_dependency(entry);
     if let Some(name) = options.name.clone() {

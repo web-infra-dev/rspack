@@ -86,6 +86,7 @@ export declare class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
+  addInclude(dependency: JsDependency, options: JsEntryOptions): void
   /**
    * This is a very unsafe function.
    * Please don't use this at the moment.
