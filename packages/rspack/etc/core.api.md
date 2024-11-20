@@ -63,9 +63,9 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
-import { RawSourceMapDevToolPluginOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
+import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
@@ -9567,14 +9567,8 @@ export const rspackVersion: string;
 // @public (undocumented)
 type Rule = string | RegExp;
 
-// @public
-type Rule_2 = RegExp | string;
-
 // @public (undocumented)
 type Rules = Rule[] | Rule;
-
-// @public
-type Rules_2 = Rule_2[] | Rule_2;
 
 // @public (undocumented)
 class RuleSetCompiler {
@@ -9953,15 +9947,7 @@ export const SourceMapDevToolPlugin: {
     };
 };
 
-// @public (undocumented)
-export interface SourceMapDevToolPluginOptions extends Omit<RawSourceMapDevToolPluginOptions, "test" | "include" | "exclude"> {
-    // (undocumented)
-    exclude?: Rules_2;
-    // (undocumented)
-    include?: Rules_2;
-    // (undocumented)
-    test?: Rules_2;
-}
+export { SourceMapDevToolPluginOptions }
 
 // @public
 export type SourceMapFilename = string;
