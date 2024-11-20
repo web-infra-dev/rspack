@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  fmt,
+  hash::{Hash, Hasher},
+};
 
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -21,15 +24,41 @@ pub struct Mutations {
   affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
+impl fmt::Display for Mutations {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "[")?;
+    for mutation in self.iter() {
+      writeln!(f, "{},", mutation)?;
+    }
+    writeln!(f, "]")
+  }
+}
+
 #[derive(Debug)]
 pub enum Mutation {
   ModuleBuild { module: ModuleIdentifier },
-  ModuleRevoke { module: ModuleIdentifier },
+  ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
   ChunkRemove { chunk: ChunkUkey },
+}
+
+impl fmt::Display for Mutation {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
+      Mutation::ModuleRemove { module } => write!(f, "remove moudle {}", module),
+      Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
+      Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
+      Mutation::ChunkSplit { from, to } => {
+        write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
+      }
+      Mutation::ChunksIntegrate { to } => write!(f, "integrate chunks to {}", to.as_u32()),
+      Mutation::ChunkRemove { chunk } => write!(f, "remove chunk {}", chunk.as_u32()),
+    }
+  }
 }
 
 impl Mutations {
@@ -104,7 +133,7 @@ impl Mutations {
           self
             .iter()
             .filter_map(|mutation| match mutation {
-              Mutation::ModuleRevoke { module } => Some(*module),
+              Mutation::ModuleRemove { module } => Some(*module),
               _ => None,
             })
             .collect(),
