@@ -587,6 +587,8 @@ impl JsCompilation {
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
+    // SAFETY:
+    // The `dependency` is a nonNull pointer to a `Dependency` object.
     let dependency = unsafe { Box::from_raw(dependency.dependency.as_ptr()) };
 
     compilation
