@@ -9,6 +9,7 @@ packages:
   - "crates/rspack_fs_node"
   - "examples/**"
   - "!examples/three"
+  - "tests/e2e"
   - "tests/webpack-examples"
   - "tests/webpack-test"
   - "tests/plugin-test"

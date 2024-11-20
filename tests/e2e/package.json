@@ -1,5 +1,5 @@
 {
-  "name": "rspack-e2e",
+  "name": "e2e-test",
   "private": true,
   "version": "0.1.8",
   "scripts": {
