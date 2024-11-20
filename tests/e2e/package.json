@@ -1,15 +1,10 @@
 {
-  "name": "@rspack-e2e/playground",
+  "name": "e2e-test",
   "private": true,
   "version": "0.1.8",
   "scripts": {
     "test": "playwright test",
     "test:CI": "CI=1 npm run test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/web-infra-dev/rspack",
-    "directory": "packages/playground"
   },
   "devDependencies": {
     "@babel/core": "^7.22.20",
