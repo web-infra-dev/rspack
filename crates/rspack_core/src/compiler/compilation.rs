@@ -998,10 +998,7 @@ impl Compilation {
 
       for file_manifest in manifest {
         let filename = file_manifest.filename().to_string();
-        let current_chunk = self
-          .chunk_by_ukey
-          .get_mut(&chunk_ukey)
-          .unwrap_or_else(|| panic!("chunk not found: {:?}", chunk_ukey));
+        let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
         current_chunk.set_rendered(true);
         if file_manifest.auxiliary {
