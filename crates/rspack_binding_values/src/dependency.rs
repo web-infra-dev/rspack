@@ -109,7 +109,7 @@ thread_local! {
 
 pub struct JsDependencyWrapper {
   dependency_id: DependencyId,
-  pub dependency: NonNull<dyn Dependency>,
+  dependency: NonNull<dyn Dependency>,
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
