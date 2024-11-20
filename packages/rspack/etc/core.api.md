@@ -3556,6 +3556,8 @@ export class Module {
     // (undocumented)
     static __from_binding(binding: JsModule, compilation?: Compilation): Module;
     // (undocumented)
+    static __to_binding(module: Module): JsModule;
+    // (undocumented)
     readonly blocks: DependenciesBlock[];
     readonly buildInfo: Record<string, any>;
     readonly buildMeta: Record<string, any>;
@@ -3660,6 +3662,8 @@ type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes
 class ModuleGraph {
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
+    // (undocumented)
+    getIssuer(module: Module): Module | null;
     // (undocumented)
     getModule(dependency: Dependency): Module | null;
 }

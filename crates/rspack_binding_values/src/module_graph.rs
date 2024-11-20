@@ -1,6 +1,6 @@
 use std::{ptr::NonNull, sync::Arc};
 
-use napi::Either;
+use napi::{Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
@@ -42,9 +42,10 @@ impl JsModuleGraph {
   #[napi]
   pub fn get_used_exports(
     &self,
+    env: Env,
     js_module: &JsModule,
     js_runtime: Either<String, Vec<String>>,
-  ) -> napi::Result<Option<Either<bool, Vec<String>>>> {
+  ) -> napi::Result<Option<Either<bool, Vec<JsString>>>> {
     let (_, module_graph) = self.as_ref()?;
 
     let mut runtime: FxHashSet<Arc<str>> = FxHashSet::default();
@@ -64,8 +65,8 @@ impl JsModuleGraph {
       rspack_core::UsedExports::Vec(vec) => Some(Either::B(
         vec
           .into_iter()
-          .map(|atom| atom.to_string())
-          .collect::<Vec<_>>(),
+          .map(|atom| env.create_string(atom.as_str()))
+          .collect::<napi::Result<Vec<_>>>()?,
       )),
     })
   }
