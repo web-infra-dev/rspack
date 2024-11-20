@@ -49,7 +49,7 @@ impl fmt::Display for Mutation {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
-      Mutation::ModuleRemove { module } => write!(f, "remove moudle {}", module),
+      Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
