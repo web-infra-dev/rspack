@@ -310,6 +310,16 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
     }
 
+    if compiler_options.amd.is_some() {
+      if module_type.is_js_auto() || module_type.is_js_dynamic() {
+        plugins.push(Box::new(
+          parser_plugin::AMDRequireDependenciesBlockParserPlugin,
+        ));
+        plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
+        plugins.push(Box::new(parser_plugin::RequireJsStuffPlugin));
+      }
+    }
+
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));

@@ -5,7 +5,7 @@ use swc_core::ecma::ast::CallExpr;
 use super::JavascriptParserPlugin;
 use crate::visitors::{expr_matcher, JavascriptParser};
 
-pub struct RequireJsStuffPlugin {}
+pub struct RequireJsStuffPlugin;
 
 impl JavascriptParserPlugin for RequireJsStuffPlugin {
   fn call(
