@@ -78,6 +78,8 @@ pub struct ModuleGraphPartial {
   export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+
+  module_active_state_cache: HashMap<ModuleIdentifier, ConnectionState>,
 }
 
 #[derive(Debug, Default)]
@@ -1092,14 +1094,14 @@ impl<'a> ModuleGraph<'a> {
 
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
   pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
-    let condition = self
-      .dependency_by_id(&connection.dependency_id)
-      .and_then(|d| d.as_module_dependency())
-      .and_then(|dep| dep.get_condition());
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
 
+    let condition = self
+      .dependency_by_id(&connection.dependency_id)
+      .and_then(|d| d.as_module_dependency())
+      .and_then(|dep| dep.get_condition());
     // recovery condition
     if let Some(condition) = condition {
       active_partial
@@ -1110,5 +1112,28 @@ impl<'a> ModuleGraph<'a> {
     active_partial
       .connections
       .insert(connection.dependency_id, Some(connection));
+  }
+
+  pub fn get_module_side_effects_connection_state_cache(
+    &self,
+    module: ModuleIdentifier,
+  ) -> Option<ConnectionState> {
+    self
+      .loop_partials(|p| p.module_active_state_cache.get(&module))
+      .copied()
+  }
+
+  pub fn set_module_side_effects_connection_state_cache(
+    &mut self,
+    module: ModuleIdentifier,
+    state: ConnectionState,
+  ) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+
+    active_partial
+      .module_active_state_cache
+      .insert(module, state);
   }
 }
