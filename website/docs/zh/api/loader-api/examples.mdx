@@ -29,6 +29,8 @@ module.exports = function (content, map, meta) {
 出于技术和性能方面的考虑，Rspack 内部会将所有 loader 转换为异步 loader。
 :::
 
+// ... 前面的内容保持不变 ...
+
 ## 异步 Loader
 
 对于异步 Loader，`this.async` 被用于获取 `callback` 函数：
@@ -52,6 +54,38 @@ module.exports = function (content, map, meta) {
   });
 };
 ```
+
+## ESM Loader
+
+Rspack 支持 ESM 格式的 loader，你可以使用 ESM 语法编写 loader，通过 `export default` 导出 loader 函数。
+
+在编写 ESM Loader 时，文件名需要以 `.mjs` 结尾，或者在最近的 `package.json` 中将 `type` 设置为 `module`。
+
+```js title="my-loader.mjs"
+export default function loader(content, map, meta) {
+  // ...
+}
+```
+
+如果需要设置 `raw` 或 `pitch` 等选项，可以使用具名导出：
+
+```js title="my-loader.mjs"
+export default function loader(content) {
+  // ...
+}
+
+// 设置 raw loader
+export const raw = true;
+
+// 添加 pitch 函数
+export function pitch(remainingRequest, precedingRequest, data) {
+  // ...
+}
+```
+
+::: tip
+ESM loader 和 CommonJS loader 的功能完全相同，只是使用了不同的模块语法。你可以根据项目需求选择使用哪种格式。
+:::
 
 ## 'Raw' Loader
 
