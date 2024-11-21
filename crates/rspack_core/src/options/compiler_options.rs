@@ -18,6 +18,7 @@ pub struct CompilerOptions {
   pub node: Option<NodeOption>,
   pub optimization: Optimization,
   pub profile: bool,
+  pub amd: Option<String>,
   pub bail: bool,
   pub __references: References,
 }
