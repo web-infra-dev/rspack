@@ -1557,7 +1557,7 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, &chunk_ukey, &mut set)?;
+        .call(self, chunk_ukey, &mut set)?;
 
       ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, set);
     }
