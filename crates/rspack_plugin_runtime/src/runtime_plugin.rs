@@ -16,17 +16,17 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 
 use crate::runtime_module::{
-  chunk_has_css, chunk_has_js, is_enabled_for_chunk, AsyncRuntimeModule,
-  AutoPublicPathRuntimeModule, BaseUriRuntimeModule, ChunkNameRuntimeModule,
-  ChunkPrefetchPreloadFunctionRuntimeModule, CompatGetDefaultExportRuntimeModule,
-  CreateFakeNamespaceObjectRuntimeModule, CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule,
-  DefinePropertyGettersRuntimeModule, ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule,
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
-  PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
-  SystemContextRuntimeModule,
+  chunk_has_css, chunk_has_js, is_enabled_for_chunk, AmdDefineRuntimeModule,
+  AmdOptionsRuntimeModule, AsyncRuntimeModule, AutoPublicPathRuntimeModule, BaseUriRuntimeModule,
+  ChunkNameRuntimeModule, ChunkPrefetchPreloadFunctionRuntimeModule,
+  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
+  CreateScriptRuntimeModule, CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule,
+  ESMModuleDecoratorRuntimeModule, EnsureChunkRuntimeModule, GetChunkFilenameRuntimeModule,
+  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
+  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule, NodeModuleDecoratorRuntimeModule,
+  NonceRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  RelativeUrlRuntimeModule, RuntimeIdRuntimeModule, SystemContextRuntimeModule,
 };
 
 static GLOBALS_ON_REQUIRE: LazyLock<Vec<RuntimeGlobals>> = LazyLock::new(|| {
@@ -76,6 +76,11 @@ static MODULE_DEPENDENCIES: LazyLock<Vec<(RuntimeGlobals, Vec<RuntimeGlobals>)>>
       (
         RuntimeGlobals::NODE_MODULE_DECORATOR,
         vec![RuntimeGlobals::MODULE, RuntimeGlobals::REQUIRE_SCOPE],
+      ),
+      (RuntimeGlobals::AMD_DEFINE, vec![RuntimeGlobals::REQUIRE]),
+      (
+        RuntimeGlobals::AMD_OPTIONS,
+        vec![RuntimeGlobals::REQUIRE_SCOPE],
       ),
     ]
   });
@@ -494,6 +499,19 @@ fn runtime_requirements_in_tree(
           )
           .boxed(),
         )?;
+      }
+      RuntimeGlobals::AMD_DEFINE => {
+        if compilation.options.amd.is_some() {
+          compilation.add_runtime_module(chunk_ukey, AmdDefineRuntimeModule::default().boxed())?;
+        }
+      }
+      RuntimeGlobals::AMD_OPTIONS => {
+        if let Some(options) = &compilation.options.amd {
+          compilation.add_runtime_module(
+            chunk_ukey,
+            AmdOptionsRuntimeModule::new(options.clone()).boxed(),
+          )?;
+        }
       }
       _ => {}
     }
