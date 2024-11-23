@@ -76,7 +76,7 @@
     "@rspack/plugin-preact-refresh": "1.1.0",
     "@rspack/plugin-react-refresh": "1.0.0",
     "@swc/helpers": "0.5.13",
-    "@swc/plugin-remove-console": "^3.0.0",
+    "@swc/plugin-remove-console": "^5.0.0",
     "@types/babel__generator": "7.6.8",
     "@types/babel__traverse": "7.20.6",
     "@types/fs-extra": "11.0.4",
