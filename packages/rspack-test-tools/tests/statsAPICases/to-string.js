@@ -8,8 +8,14 @@ module.exports = {
 		};
 	},
 	async check(stats) {
-		expect(
-			stats?.toString({ timings: false, version: false })
-		).toMatchInlineSnapshot(`undefined`);
+		expect(stats?.toString({ timings: false, version: false }))
+			.toMatchInlineSnapshot(`
+		asset main.js 353 bytes [emitted] (name: main)
+		./fixtures/abc.js 83 bytes [built] [code generated]
+		./fixtures/a.js 55 bytes [built] [code generated]
+		./fixtures/b.js 94 bytes [built] [code generated]
+		./fixtures/c.js 72 bytes [built] [code generated]
+		Rspack compiled successfully
+	`);
 	}
 };
