@@ -64,6 +64,7 @@ pub struct RawOutputOptions {
   pub path: String,
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
+  #[napi(ts_type = "boolean | JsCleanFilter")]
   pub clean: JsCleanOptions,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,

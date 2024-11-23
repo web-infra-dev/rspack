@@ -1740,7 +1740,7 @@ export interface RawOptions {
 export interface RawOutputOptions {
   path: string
   pathinfo: boolean | "verbose"
-  clean: JsCleanOptions
+  clean: boolean | JsCleanFilter
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
   wasmLoading: string
