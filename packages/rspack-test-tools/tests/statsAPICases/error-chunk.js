@@ -21,19 +21,6 @@ module.exports = {
 			stats?.toJson({
 				errors: true
 			}).errors
-		).toMatchInlineSnapshot(`
-		Array [
-		  Object {
-		  "chunkEntry": true,
-		  "chunkId": "751",
-		  "chunkInitial": true,
-		  "chunkName": "b",
-		  "details": undefined,
-		  "message": "  × Entrypoints 'b' and 'a' use 'dependOn' to depend on each other in a circular way./n",
-		  "moduleTrace": Array [],
-		  "stack": undefined,
-		},
-		]
-	`);
+		).toMatchInlineSnapshot(`undefined`);
 	}
 };

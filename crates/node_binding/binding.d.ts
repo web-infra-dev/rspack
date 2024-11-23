@@ -518,6 +518,17 @@ export interface JsChunkGroupOrigin {
   request?: string
 }
 
+/**
+ * File clean filter object
+ *
+ * This clean filter matches with:
+ * - keep:
+ *   - If a string, keep the files under this path
+ */
+export interface JsCleanFilter {
+  keep?: string
+}
+
 export interface JsCodegenerationResult {
   sources: Record<string, string>
 }
@@ -1729,7 +1740,7 @@ export interface RawOptions {
 export interface RawOutputOptions {
   path: string
   pathinfo: boolean | "verbose"
-  clean: boolean
+  clean: JsCleanOptions
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
   wasmLoading: string

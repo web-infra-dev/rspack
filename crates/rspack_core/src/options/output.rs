@@ -10,10 +10,7 @@ use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
 use super::CleanOptions;
-use crate::{
-  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate, Module,
-  RuntimeSpec, SourceType,
-};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
 
 #[derive(Debug)]
 pub enum PathInfo {
