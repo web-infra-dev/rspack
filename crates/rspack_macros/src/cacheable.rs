@@ -9,6 +9,7 @@ use syn::{
 
 mod kw {
   syn::custom_keyword!(with);
+  syn::custom_keyword!(crate_path);
   syn::custom_keyword!(hashable);
 }
 
@@ -30,8 +31,8 @@ impl Parse for CacheableArgs {
         input.parse::<Token![,]>()?;
       }
 
-      if input.peek(syn::token::Crate) {
-        input.parse::<syn::token::Crate>()?;
+      if input.peek(kw::crate_path) {
+        input.parse::<kw::crate_path>()?;
         input.parse::<Token![=]>()?;
         crate_path = input.parse::<syn::Path>()?;
       } else if input.peek(kw::with) {

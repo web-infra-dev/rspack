@@ -3,9 +3,9 @@
   <img alt="Rspack Banner" src="https://assets.rspack.dev/rspack/rspack-banner-plain-light.png">
 </picture>
 
-# @rspack-e2e/playground
+# rspack-e2e
 
-rspack e2e test.
+Rspack E2E test.
 
 ## Documentation
 

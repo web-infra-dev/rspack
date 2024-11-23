@@ -3,13 +3,12 @@ import {
 	type RawSourceMapDevToolPluginOptions
 } from "@rspack/binding";
 
-import type { SourceMapDevToolPluginOptions } from "./SourceMapDevToolPlugin";
 import { create } from "./base";
 
 export const EvalSourceMapDevToolPlugin = create(
 	BuiltinPluginName.EvalSourceMapDevToolPlugin,
 	(
-		options: SourceMapDevToolPluginOptions
+		options: RawSourceMapDevToolPluginOptions
 	): RawSourceMapDevToolPluginOptions => {
 		return {
 			filename: options.filename || undefined,

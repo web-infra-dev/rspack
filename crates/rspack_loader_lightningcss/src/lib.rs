@@ -9,7 +9,10 @@ use lightningcss::{
   targets::{Features, Targets},
   traits::IntoOwned,
 };
-use rspack_core::{rspack_sources::SourceMap, Loader, LoaderContext, RunnerContext};
+use rspack_core::{
+  rspack_sources::{encode_mappings, Mapping, OriginalLocation, SourceMap},
+  Loader, LoaderContext, RunnerContext,
+};
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
@@ -180,14 +183,36 @@ impl LightningCssLoader {
       .map_err(|_| rspack_error::error!("failed to generate css"))?;
 
     if enable_sourcemap {
-      let source_map = source_map
-        .to_json(None)
-        .map_err(|e| rspack_error::error!(e.to_string()))?;
-
-      loader_context.finish_with((
-        content.code,
-        SourceMap::from_json(&source_map).expect("should be able to generate source-map"),
-      ));
+      let mappings = encode_mappings(source_map.get_mappings().iter().map(|mapping| Mapping {
+        generated_line: mapping.generated_line,
+        generated_column: mapping.generated_column,
+        original: mapping.original.map(|original| OriginalLocation {
+          source_index: original.source,
+          original_line: original.original_line,
+          original_column: original.original_column,
+          name_index: original.name,
+        }),
+      }));
+      let rspack_source_map = SourceMap::new(
+        None,
+        mappings,
+        source_map
+          .get_sources()
+          .iter()
+          .map(|source| source.to_string().into())
+          .collect::<Vec<_>>(),
+        source_map
+          .get_sources_content()
+          .iter()
+          .map(|source| source.to_string().into())
+          .collect::<Vec<_>>(),
+        source_map
+          .get_names()
+          .iter()
+          .map(|source| source.to_string().into())
+          .collect::<Vec<_>>(),
+      );
+      loader_context.finish_with((content.code, rspack_source_map));
     } else {
       loader_context.finish_with(content.code);
     }

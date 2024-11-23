@@ -201,7 +201,8 @@ export type TTestConfig<T extends ECompilerType> = {
 	) => boolean;
 	findBundle?: (
 		index: number,
-		options: TCompilerOptions<T>
+		options: TCompilerOptions<T>,
+		stepName?: string
 	) => string | string[];
 	bundlePath?: string[];
 	nonEsmThis?: (p: string | string[]) => Object;

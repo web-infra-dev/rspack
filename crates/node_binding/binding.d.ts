@@ -95,6 +95,7 @@ export declare class JsCompilation {
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
   get entries(): JsEntries
   addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+  get moduleGraph(): JsModuleGraph
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -179,6 +180,12 @@ export declare class JsModule {
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+}
+
+export declare class JsModuleGraph {
+  getModule(jsDependency: JsDependency): JsModule | null
+  getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
+  getIssuer(module: JsModule): JsModule | null
 }
 
 export declare class JsResolver {
@@ -1925,7 +1932,9 @@ export interface RawSourceMapDevToolPluginOptions {
   noSources?: boolean
   publicPath?: string
   sourceRoot?: string
-  test?: (text: string) => boolean
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSplitChunkSizes {

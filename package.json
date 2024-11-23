@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.1.1",
+  "version": "1.1.3",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -35,7 +35,7 @@
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
-    "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
+    "test:e2e": "pnpm --filter \"e2e-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && npm run test:plugin && pnpm test:webpack",
     "test:plugin": "pnpm --filter \"plugin-test\" test",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
@@ -50,7 +50,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.12.3"
+    "pnpm": "9.14.1"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -81,7 +81,7 @@
     "webpack-cli": "5.1.4",
     "zx": "7.2.3"
   },
-  "packageManager": "pnpm@9.12.3",
+  "packageManager": "pnpm@9.14.1",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",

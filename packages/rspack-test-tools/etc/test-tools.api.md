@@ -1463,7 +1463,7 @@ export type TTestConfig<T extends ECompilerType> = {
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
     checkStats?: (stepName: string, stats: TCompilerStatsCompilation<T>) => boolean;
-    findBundle?: (index: number, options: TCompilerOptions<T>) => string | string[];
+    findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
     modules?: Record<string, Object>;
@@ -1500,7 +1500,7 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     // (undocumented)
     protected currentTriggerFilename: string | null;
     // (undocumented)
-    static findBundle<T extends ECompilerType>(index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
+    static findBundle<T extends ECompilerType>(this: IWatchProcessorOptions<T>, index: number, context: ITestContext, options: TCompilerOptions<T>): string | string[];
     // (undocumented)
     protected lastHash: string | null;
     // (undocumented)

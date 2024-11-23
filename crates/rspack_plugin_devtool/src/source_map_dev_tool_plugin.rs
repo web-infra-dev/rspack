@@ -16,6 +16,7 @@ use rspack_core::{
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::asset_condition::AssetConditions;
 use rspack_util::{
   identifier::make_paths_absolute, infallible::ResultInfallibleExt, path::relative,
 };
@@ -47,8 +48,6 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
-
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
@@ -77,9 +76,9 @@ pub struct SourceMapDevToolPluginOptions {
   pub public_path: Option<String>,
   // Provide a custom value for the 'sourceRoot' property in the SourceMap.
   pub source_root: Option<String>,
-  // Include or exclude source maps for modules based on their extension (defaults to .js and .css).
-  #[derivative(Debug = "ignore")]
-  pub test: Option<TestFn>,
+  pub test: Option<AssetConditions>,
+  pub include: Option<AssetConditions>,
+  pub exclude: Option<AssetConditions>,
 }
 
 enum SourceMappingUrlComment {
@@ -116,9 +115,29 @@ pub struct SourceMapDevToolPlugin {
   public_path: Option<String>,
   module: bool,
   source_root: Option<String>,
-  #[derivative(Debug = "ignore")]
-  test: Option<TestFn>,
+  test: Option<AssetConditions>,
+  include: Option<AssetConditions>,
+  exclude: Option<AssetConditions>,
   mapped_assets_cache: MappedAssetsCache,
+}
+
+fn match_object(obj: &SourceMapDevToolPlugin, str: &str) -> bool {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str) {
+      return false;
+    }
+  }
+  true
 }
 
 impl SourceMapDevToolPlugin {
@@ -161,6 +180,8 @@ impl SourceMapDevToolPlugin {
       options.module,
       options.source_root,
       options.test,
+      options.include,
+      options.exclude,
       MappedAssetsCache::new(),
     )
   }
@@ -173,25 +194,15 @@ impl SourceMapDevToolPlugin {
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
-
-    let matches = if let Some(test) = &self.test {
-      let features = raw_assets.iter().map(|(file, _)| test(file.to_owned()));
-      join_all(features)
-        .await
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?
-    } else {
-      vec![]
-    };
+    let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
     let mut mapped_sources = raw_assets
       .into_par_iter()
-      .enumerate()
-      .filter_map(|(index, (file, asset))| {
-        let is_match = if matches.is_empty() {
-          true
+      .filter_map(|(file, asset)| {
+        let is_match = if need_match {
+          match_object(self, &file)
         } else {
-          matches[index]
+          true
         };
         let source = if is_match {
           asset.get_source().map(|source| {

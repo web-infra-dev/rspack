@@ -169,7 +169,7 @@ webpack-dist
 .pnpm-store/
 
 !packages/rspack-test-tools/tests/configCases/target
-packages/playground/temp
+tests/e2e/temp
 packages/*/tests/js
 
 

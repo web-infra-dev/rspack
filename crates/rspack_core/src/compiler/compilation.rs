@@ -960,6 +960,9 @@ impl Compilation {
       for removed_chunk in removed_chunks {
         self.chunk_render_results.remove(&removed_chunk);
       }
+      self
+        .chunk_render_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       mutations.get_affected_chunks_with_chunk_graph(self)
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1111,7 +1114,7 @@ impl Compilation {
       mutations.extend(
         revoked_modules
           .iter()
-          .map(|&module| Mutation::ModuleRevoke { module }),
+          .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
         built_modules
@@ -1147,7 +1150,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
     let modules = if let Some(mutations) = mutations {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
@@ -1204,6 +1207,9 @@ impl Compilation {
     ) {}
     logger.time_end(start);
 
+    // ModuleGraph is frozen for now on, we have a module graph that won't change
+    // so now we can start to create a chunk graph based on the module graph
+
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -1245,6 +1251,9 @@ impl Compilation {
       .await?;
     logger.time_end(start);
 
+    // ChunkGraph is frozen for now on, we have a chunk graph that won't change
+    // so now we can start to generate assets based on the chunk graph
+
     let start = logger.time("module ids");
     plugin_driver.compilation_hooks.module_ids.call(self)?;
     logger.time_end(start);
@@ -1261,7 +1270,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_HASHES)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
@@ -1286,7 +1295,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_CODEGEN)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
@@ -1305,7 +1314,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
@@ -1334,6 +1343,9 @@ impl Compilation {
       for removed_chunk in removed_chunks {
         self.cgc_runtime_requirements_results.remove(&removed_chunk);
       }
+      self
+        .cgc_runtime_requirements_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       mutations.get_affected_chunks_with_chunk_graph(self)
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1364,6 +1376,9 @@ impl Compilation {
       for removed_chunk in removed_chunks {
         self.chunk_hashes_results.remove(&removed_chunk);
       }
+      self
+        .chunk_hashes_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       mutations.get_affected_chunks_with_chunk_graph(self)
     } else {
       self.chunk_by_ukey.keys().copied().collect()
