@@ -522,7 +522,9 @@ export type ChunkLoadingGlobal = string;
 export type ChunkLoadingType = string | "jsonp" | "import-scripts" | "require" | "async-node" | "import";
 
 // @public
-export type Clean = boolean;
+export type Clean = boolean | {
+    keep?: string;
+};
 
 // @public (undocumented)
 class CodeGenerationResult {
@@ -5712,7 +5714,13 @@ export const rspackOptions: z.ZodObject<{
     output: z.ZodOptional<z.ZodObject<{
         path: z.ZodOptional<z.ZodString>;
         pathinfo: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodLiteral<"verbose">]>>;
-        clean: z.ZodOptional<z.ZodBoolean>;
+        clean: z.ZodOptional<z.ZodUnion<[z.ZodBoolean, z.ZodObject<{
+            keep: z.ZodOptional<z.ZodString>;
+        }, "strict", z.ZodTypeAny, {
+            keep?: string | undefined;
+        }, {
+            keep?: string | undefined;
+        }>]>>;
         publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
@@ -5963,7 +5971,9 @@ export const rspackOptions: z.ZodObject<{
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
-        clean?: boolean | undefined;
+        clean?: boolean | {
+            keep?: string | undefined;
+        } | undefined;
         cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
@@ -6059,7 +6069,9 @@ export const rspackOptions: z.ZodObject<{
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
-        clean?: boolean | undefined;
+        clean?: boolean | {
+            keep?: string | undefined;
+        } | undefined;
         cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
@@ -8631,7 +8643,9 @@ export const rspackOptions: z.ZodObject<{
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
-        clean?: boolean | undefined;
+        clean?: boolean | {
+            keep?: string | undefined;
+        } | undefined;
         cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
@@ -9253,7 +9267,9 @@ export const rspackOptions: z.ZodObject<{
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
         uniqueName?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
-        clean?: boolean | undefined;
+        clean?: boolean | {
+            keep?: string | undefined;
+        } | undefined;
         cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
