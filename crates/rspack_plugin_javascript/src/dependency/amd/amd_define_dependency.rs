@@ -99,9 +99,9 @@ impl Branch {
     match *self {
       f if f == Branch::F => {
         format!(
-          "!(__WEBPACK_AMD_DEFINE_RESULT__ = (#).call(exports, {}, exports, module),
+          "!(__WEBPACK_AMD_DEFINE_RESULT__ = (#).call(exports, {require}, exports, module),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))",
-          RuntimeGlobals::REQUIRE.name()
+          require = RuntimeGlobals::REQUIRE.name()
         )
       }
       o if o == Branch::O => "!(module.exports = #)".to_string(),
@@ -109,10 +109,10 @@ impl Branch {
         format!(
           "!(__WEBPACK_AMD_DEFINE_FACTORY__ = (#),
 		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
-		(__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, {}, exports, module)) :
+		(__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, {require}, exports, module)) :
 		__WEBPACK_AMD_DEFINE_FACTORY__),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))",
-          RuntimeGlobals::REQUIRE.name()
+          require = RuntimeGlobals::REQUIRE.name()
         )
       }
       af if af == (Branch::A | Branch::F) => "!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, __WEBPACK_AMD_DEFINE_RESULT__ = (#).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
@@ -126,62 +126,30 @@ impl Branch {
       }
       lf if lf == (Branch::L | Branch::F) => {
         format!(
-          "!({}module = {{ id: {}, exports: {{}}, loaded: false }}, {} = (#).call({}module.exports, {}, {}module.exports, {}module), {}module.loaded = true, {} === undefined && ({} = {}module.exports))",
-          local_module_var,
-          json_stringify(named_module),
-          local_module_var,
-          local_module_var,
-          RuntimeGlobals::REQUIRE.name(),
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var
+          "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
+          var_name = local_module_var,
+          module_id = json_stringify(named_module),
+          require = RuntimeGlobals::REQUIRE.name(),
         )
       }
       lo if lo == (Branch::L | Branch::O) => format!("!({} = #)", local_module_var),
       lof if lof == (Branch::L | Branch::O | Branch::F) => {
         format!(
-          "!({}factory = (#), (typeof {}factory === 'function' ? (({}module = {{ id: {}, exports: {{}}, loaded: false }}), ({} = {}factory.call({}module.exports, {}, {}module.exports, {}module)), ({}module.loaded = true), {} === undefined && ({} = {}module.exports)) : {} = {}factory))",
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          json_stringify(named_module),
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          RuntimeGlobals::REQUIRE.name(),
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
-          local_module_var,
+          "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
+          var_name = local_module_var,
+          module_id = json_stringify(named_module),
+          require = RuntimeGlobals::REQUIRE.name(),
         )
       }
       laf if laf == (Branch::L | Branch::A | Branch::F) => format!("!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, {} = (#).apply({}exports = {{}}, __WEBPACK_AMD_DEFINE_ARRAY__), {} === undefined && ({} = {}exports))", local_module_var, local_module_var, local_module_var, local_module_var, local_module_var),
       lao if lao == (Branch::L | Branch::A | Branch::O) => format!("!(#, {} = #)", local_module_var),
       laof if laof == (Branch::L | Branch::A | Branch::O | Branch::F) => format!(
-        "!({}array = #, {}factory = (#),
-		(typeof {}factory === 'function' ?
-			(({} = {}factory.apply({}exports = {{}}, {}array)), {} === undefined && ({} = {}exports)) :
-			({} = {}factory)
+        "!({var_name}array = #, {var_name}factory = (#),
+		(typeof {var_name}factory === 'function' ?
+			(({var_name} = {var_name}factory.apply({var_name}exports = {{}}, {var_name}array)), {var_name} === undefined && ({var_name} = {var_name}exports)) :
+			({var_name} = {var_name}factory)
 		))",
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
-        local_module_var,
+        var_name = local_module_var,
       ),
       _ => "".to_string(),
     }
@@ -282,7 +250,6 @@ impl DependencyTemplate for AmdDefineDependency {
       .runtime_requirements
       .insert(branch.get_requests());
 
-    // TODO: localModuleVar.replace(/\$/g, "$$$$")
     let local_module_var = self.local_module_var();
 
     let text = branch.get_content(&local_module_var, &self.named_module);
