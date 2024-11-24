@@ -47,7 +47,7 @@ impl Branch {
 
   pub fn get_definition(&self, local_module_var: &Option<String>) -> String {
     let name = match local_module_var {
-      Some(name) => &name,
+      Some(name) => name,
       None => "XXX",
     };
     match *self {
@@ -89,11 +89,11 @@ impl Branch {
     named_module: &Option<Atom>,
   ) -> String {
     let local_module_var = match local_module_var {
-      Some(name) => &name,
+      Some(name) => name,
       None => "XXX",
     };
     let named_module = match named_module {
-      Some(name) => &name,
+      Some(name) => name,
       None => "YYY",
     };
     match *self {
@@ -257,7 +257,7 @@ impl DependencyTemplate for AmdDefineDependency {
 
     let mut texts = text.split('#');
 
-    if definition.len() > 0 {
+    if !definition.is_empty() {
       source.insert(0, &definition, None);
     }
 

@@ -116,7 +116,7 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
       return Some(true);
     }
 
-    return None;
+    None
   }
 
   fn evaluate_typeof(

@@ -310,14 +310,12 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
     }
 
-    if compiler_options.amd.is_some() {
-      if module_type.is_js_auto() || module_type.is_js_dynamic() {
-        plugins.push(Box::new(
-          parser_plugin::AMDRequireDependenciesBlockParserPlugin,
-        ));
-        plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-        plugins.push(Box::new(parser_plugin::RequireJsStuffPlugin));
-      }
+    if compiler_options.amd.is_some() && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
+      plugins.push(Box::new(
+        parser_plugin::AMDRequireDependenciesBlockParserPlugin,
+      ));
+      plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::RequireJsStuffPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
@@ -420,12 +418,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_local_module_mut(&mut self, name: &str) -> Option<&mut LocalModule> {
-    for m in self.local_modules.iter_mut() {
-      if m.get_name() == name {
-        return Some(m);
-      }
-    }
-    None
+    self.local_modules.iter_mut().find(|m| m.get_name() == name)
   }
 
   pub fn is_asi_position(&self, pos: BytePos) -> bool {

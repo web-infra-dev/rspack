@@ -159,12 +159,13 @@ impl AMDRequireDependenciesBlockParserPlugin {
         .iter()
         .map(|item| self.process_item_for_request_string(item));
       if result.all(|item| item.is_some()) {
-        return Some(result.map(|item| item.unwrap()).join(" "));
+        return Some(result.map(|item| item.expect("")).join(" "));
       }
     }
     None
   }
 
+  #[allow(clippy::only_used_in_recursion)]
   fn process_item_for_request_string(&self, param: &BasicEvaluatedExpression) -> Option<String> {
     if param.is_conditional() {
       let mut result = param
@@ -172,7 +173,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
         .iter()
         .map(|item| self.process_item_for_request_string(item));
       if result.all(|item| item.is_some()) {
-        return Some(result.map(|item| item.unwrap()).join("|"));
+        return Some(result.map(|item| item.expect("")).join("|"));
       }
     } else if param.is_string() {
       return Some(param.string().to_string());
@@ -207,7 +208,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
             .params
             .iter()
             .filter(|param| !is_reserved_param(param))
-            .map(|param| Cow::Borrowed(param));
+            .map(Cow::Borrowed);
           parser.in_function_scope(true, params, |parser| match &*arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
@@ -219,14 +220,14 @@ impl AMDRequireDependenciesBlockParserPlugin {
         parser.walk_expression(bind_expr);
       }
 
-      if func_expr._need_this.is_some_and(|x| x == false) {
+      if func_expr._need_this.is_some_and(|x| !x) {
         bind_this = false;
       }
     } else {
       parser.walk_expression(&func_arg.expr);
     }
 
-    return bind_this;
+    bind_this
   }
 
   fn process_call_require(
@@ -234,14 +235,14 @@ impl AMDRequireDependenciesBlockParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
   ) -> Option<bool> {
-    if call_expr.args.len() == 0 {
+    if call_expr.args.is_empty() {
       return None;
     }
     // TODO: check if args includes spread
 
     // require(['dep1', 'dep2'], callback, errorCallback);
 
-    let first_arg = call_expr.args.first().unwrap();
+    let first_arg = call_expr.args.first().expect("first arg cannot be None");
     let callback_arg = call_expr.args.get(1);
     let error_callback_arg = call_expr.args.get(2);
 
@@ -253,9 +254,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
         first_arg.expr.span().real_lo(),
         first_arg.expr.span().real_hi(),
       )),
-      callback_arg.and_then(|arg| Some((arg.expr.span().real_lo(), arg.expr.span().real_hi()))),
-      error_callback_arg
-        .and_then(|arg| Some((arg.expr.span().real_lo(), arg.expr.span().real_hi()))),
+      callback_arg.map(|arg| (arg.expr.span().real_lo(), arg.expr.span().real_hi())),
+      error_callback_arg.map(|arg| (arg.expr.span().real_lo(), arg.expr.span().real_hi())),
     ));
 
     let block_loc = Some(DependencyLocation::Real(
@@ -310,7 +310,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
         return Some(true);
       }
 
-      dep.function_bind_this = self.process_function_argument(parser, callback_arg.unwrap());
+      dep.function_bind_this =
+        self.process_function_argument(parser, callback_arg.expect("2nd arg cannot be None"));
 
       if let Some(error_callback_arg) = error_callback_arg {
         dep.error_callback_bind_this = self.process_function_argument(parser, error_callback_arg);

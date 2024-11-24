@@ -35,7 +35,7 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
     return false;
   }
 
-  let call_expr = expr.as_call().unwrap();
+  let call_expr = expr.as_call().expect("expr is supposed to be CallExpr");
   match &call_expr.callee {
     Callee::Super(_) => return false,
     Callee::Import(_) => return false,
@@ -43,7 +43,9 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
       if !callee.is_member() {
         return false;
       }
-      let callee_member = callee.as_member().unwrap();
+      let callee_member = callee
+        .as_member()
+        .expect("callee is supposed to be MemberExpr");
       if callee_member.prop.is_computed() {
         return false;
       }
@@ -56,7 +58,7 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
     }
   }
 
-  return true;
+  true
 }
 
 fn is_callable(expr: &Expr) -> bool {
@@ -110,7 +112,7 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
 fn get_ident_name(pat: &Pat) -> Atom {
   pat
     .as_ident()
-    .and_then(|ident| Some(ident.sym.clone()))
+    .map(|ident| ident.sym.clone())
     .unwrap_or("".into())
 }
 
@@ -368,17 +370,13 @@ impl AMDDefineDependencyParserPlugin {
               .map(|param| Cow::Borrowed(&param.pat))
               .collect(),
           ),
-          Expr::Arrow(array_func) => Some(
-            array_func
-              .params
-              .iter()
-              .map(|param| Cow::Borrowed(param))
-              .collect(),
-          ),
+          Expr::Arrow(array_func) => Some(array_func.params.iter().map(Cow::Borrowed).collect()),
           _ => None,
         };
       } else if is_bound_function_expression(func) {
-        let call_expr = func.as_call().unwrap();
+        let call_expr = func
+          .as_call()
+          .expect("call_expr is supposed to be a CallExpr");
         let object = &call_expr
           .callee
           .as_expr()
@@ -398,7 +396,7 @@ impl AMDDefineDependencyParserPlugin {
             .collect(),
         );
 
-        if call_expr.args.len() > 0 {
+        if !call_expr.args.is_empty() {
           fn_params_offset = call_expr.args.len() - 1;
         }
       }
@@ -423,31 +421,29 @@ impl AMDDefineDependencyParserPlugin {
           let idx = i - fn_params_offset;
           i += 1;
           if let Some(&name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(&param), name);
+            fn_renames.insert(get_ident_name(param), name);
             return false;
           }
-          return true;
+          true
         });
       }
-    } else {
-      if let Some(fn_params) = &mut fn_params {
-        let mut i = 0usize;
-        fn_params.retain(|param| {
-          if i < fn_params_offset {
-            return false;
-          }
-          let idx = i - fn_params_offset;
-          i += 1;
-          if idx < RESERVED_NAMES.len() {
-            fn_renames.insert(get_ident_name(&param), RESERVED_NAMES[idx]);
-            return false;
-          }
-          return true;
-        });
-      }
+    } else if let Some(fn_params) = &mut fn_params {
+      let mut i = 0usize;
+      fn_params.retain(|param| {
+        if i < fn_params_offset {
+          return false;
+        }
+        let idx = i - fn_params_offset;
+        i += 1;
+        if idx < RESERVED_NAMES.len() {
+          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx]);
+          return false;
+        }
+        true
+      });
     }
 
-    if func.is_some_and(|f| is_unbound_function_expression(f)) {
+    if func.is_some_and(is_unbound_function_expression) {
       let in_try = parser.in_try;
       parser.in_function_scope(
         true,
@@ -489,7 +485,7 @@ impl AMDDefineDependencyParserPlugin {
           }
         },
       );
-    } else if func.is_some_and(|f| is_bound_function_expression(f)) {
+    } else if func.is_some_and(is_bound_function_expression) {
       let in_try = parser.in_try;
 
       if let Some(call_expr) = func.and_then(|f| f.as_call()) {
@@ -540,30 +536,28 @@ impl AMDDefineDependencyParserPlugin {
 
         parser.walk_expr_or_spread(&call_expr.args);
       }
-    } else {
-      if let Some(expr) = func {
-        parser.walk_expression(expr);
-      } else if let Some(expr) = obj {
-        parser.walk_expression(expr);
-      }
+    } else if let Some(expr) = func {
+      parser.walk_expression(expr);
+    } else if let Some(expr) = obj {
+      parser.walk_expression(expr);
     }
 
     let local_module = named_module
       .as_ref()
-      .and_then(|name| Some(parser.add_local_module(name.as_str())));
+      .map(|name| parser.add_local_module(name.as_str()));
 
     let dep = Box::new(AmdDefineDependency::new(
       (call_expr.span.real_lo(), call_expr.span.real_hi()),
-      array.and_then(|expr| Some(span_to_range(expr.span()))),
-      func.and_then(|expr| Some(span_to_range(expr.span()))),
-      obj.and_then(|expr| Some(span_to_range(expr.span()))),
+      array.map(|expr| span_to_range(expr.span())),
+      func.map(|expr| span_to_range(expr.span())),
+      obj.map(|expr| span_to_range(expr.span())),
       named_module,
       local_module,
     ));
 
     parser.presentational_dependencies.push(dep);
 
-    return Some(true);
+    Some(true)
   }
 }
 

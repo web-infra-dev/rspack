@@ -23,10 +23,6 @@ impl AMDRequireItemDependency {
     }
   }
 
-  pub fn get_optional(&self) -> bool {
-    self.optional
-  }
-
   pub fn set_optional(&mut self, optional: bool) {
     self.optional = optional;
   }
@@ -83,6 +79,10 @@ impl DependencyTemplate for AMDRequireItemDependency {
 impl ModuleDependency for AMDRequireItemDependency {
   fn request(&self) -> &str {
     &self.request
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 

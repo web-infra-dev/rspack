@@ -72,7 +72,9 @@ impl DependencyTemplate for AMDRequireDependency {
     );
 
     // has array range but no function range
-    if self.array_range.is_some() && self.function_range.is_none() {
+    if let Some(array_range) = self.array_range
+      && self.function_range.is_none()
+    {
       let start_block = promise + ".then(function() {";
       let end_block = format!(
         ";}})['catch']{}",
@@ -81,14 +83,15 @@ impl DependencyTemplate for AMDRequireDependency {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-      let array_range = self.array_range.unwrap();
       source.replace(self.outer_range.0, array_range.0, &start_block, None);
       source.replace(array_range.1, self.outer_range.1, &end_block, None);
       return;
     }
 
     // has function range but no array range
-    if self.function_range.is_some() && self.array_range.is_none() {
+    if let Some(function_range) = self.function_range
+      && self.array_range.is_none()
+    {
       let start_block = promise + ".then((";
       let end_block = format!(
         ").bind(exports, {}, exports, module))['catch']({})",
@@ -98,16 +101,15 @@ impl DependencyTemplate for AMDRequireDependency {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-      let function_range = self.function_range.unwrap();
       source.replace(self.outer_range.0, function_range.0, &start_block, None);
       source.replace(function_range.1, self.outer_range.1, &end_block, None);
       return;
     }
 
     // has array range, function range, and errorCallbackRange
-    if self.array_range.is_some()
-      && self.function_range.is_some()
-      && self.error_callback_range.is_some()
+    if let Some(array_range) = self.array_range
+      && let Some(function_range) = self.function_range
+      && let Some(error_callback_range) = self.error_callback_range
     {
       let start_block = promise + ".then(function() { ";
       let error_range_block = if self.function_bind_this {
@@ -120,9 +122,6 @@ impl DependencyTemplate for AMDRequireDependency {
       } else {
         ")"
       };
-      let array_range = self.array_range.unwrap();
-      let function_range = self.function_range.unwrap();
-      let error_callback_range = self.error_callback_range.unwrap();
 
       source.replace(self.outer_range.0, array_range.0, &start_block, None);
 
@@ -149,7 +148,9 @@ impl DependencyTemplate for AMDRequireDependency {
     }
 
     // has array range, function range, but no errorCallbackRange
-    if self.array_range.is_some() && self.function_range.is_some() {
+    if let Some(array_range) = self.array_range
+      && let Some(function_range) = self.function_range
+    {
       let start_block = promise + ".then(function() { ";
       let end_block = format!(
         "}}{})['catch']({})",
@@ -163,9 +164,6 @@ impl DependencyTemplate for AMDRequireDependency {
       code_generatable_context
         .runtime_requirements
         .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-
-      let array_range = self.array_range.unwrap();
-      let function_range = self.function_range.unwrap();
 
       source.replace(self.outer_range.0, array_range.0, &start_block, None);
 
