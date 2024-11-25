@@ -4,12 +4,14 @@ use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, Result,
-  SyncReadableFileSystem, SyncWritableFileSystem,
+  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, FileSystem, Result,
+  SyncReadableFileSystem, SyncWritableFileSystem, WritableFileSystem,
 };
 
 #[derive(Debug)]
 pub struct NativeFileSystem;
+impl FileSystem for NativeFileSystem {}
+impl WritableFileSystem for NativeFileSystem {}
 
 impl SyncWritableFileSystem for NativeFileSystem {
   fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
@@ -102,7 +104,7 @@ impl AsyncWritableFileSystem for NativeFileSystem {
 }
 
 impl AsyncReadableFileSystem for NativeFileSystem {
-  fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
+  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
     Box::pin(fut)
   }

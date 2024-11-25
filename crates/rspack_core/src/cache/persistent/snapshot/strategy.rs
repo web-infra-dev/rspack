@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_fs::SyncReadableFileSystem;
+use rspack_fs::FileSystem;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -36,12 +36,12 @@ pub enum ValidateResult {
 }
 
 pub struct StrategyHelper {
-  fs: Arc<dyn SyncReadableFileSystem>,
+  fs: Arc<dyn FileSystem>,
   package_version_cache: HashMap<Utf8PathBuf, Option<String>>,
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn SyncReadableFileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn FileSystem>) -> Self {
     Self {
       fs,
       package_version_cache: Default::default(),

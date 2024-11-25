@@ -1,3 +1,5 @@
+mod fs;
+pub use fs::{FileSystem, ReadableFileSystem, WritableFileSystem};
 mod r#async;
 pub use r#async::{AsyncFileSystem, AsyncReadableFileSystem, AsyncWritableFileSystem};
 

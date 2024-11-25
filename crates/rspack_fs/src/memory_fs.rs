@@ -8,7 +8,7 @@ use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, Result,
+  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, FileSystem, Result,
   SyncReadableFileSystem, SyncWritableFileSystem,
 };
 
@@ -74,6 +74,7 @@ impl FileType {
 pub struct MemoryFileSystem {
   files: Mutex<HashMap<Utf8PathBuf, FileType>>,
 }
+impl FileSystem for MemoryFileSystem {}
 
 impl MemoryFileSystem {
   pub fn clear(&self) {
@@ -269,7 +270,7 @@ impl AsyncWritableFileSystem for MemoryFileSystem {
 }
 
 impl AsyncReadableFileSystem for MemoryFileSystem {
-  fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
+  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { SyncReadableFileSystem::read(self, file) };
     Box::pin(fut)
   }
@@ -418,23 +419,23 @@ mod tests {
 
     // read
     assert!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
         .await
         .is_err()
     );
     assert!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
         .await
         .is_err()
     );
     assert_eq!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
       file_content
     );
     assert_eq!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
       file_content
