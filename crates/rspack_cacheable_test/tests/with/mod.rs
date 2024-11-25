@@ -9,4 +9,5 @@ mod as_string;
 mod as_tuple2;
 mod as_tuple3;
 mod as_vec;
+mod inline;
 mod unsupported;
