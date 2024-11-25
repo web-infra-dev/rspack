@@ -8,9 +8,8 @@ use rspack_error::{error, Result};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
-  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority, Filename,
-  ModuleLayer,
+  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
+  DynamicImportFetchPriority, Filename, ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
@@ -91,7 +90,7 @@ impl ChunkGroup {
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
           .expect_get(chunk_ukey)
-          .files
+          .files()
           .iter()
           .map(|file| file.to_string())
       })
@@ -99,19 +98,19 @@ impl ChunkGroup {
   }
 
   pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.push(chunk.ukey);
+    self.chunks.push(chunk.ukey());
     chunk.add_group(self.ukey);
   }
 
   pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
-    if let Ok(index) = self.chunks.binary_search(&chunk.ukey) {
+    if let Ok(index) = self.chunks.binary_search(&chunk.ukey()) {
       if index > 0 {
         self.chunks.remove(index);
-        self.chunks.insert(0, chunk.ukey);
+        self.chunks.insert(0, chunk.ukey());
       }
       false
     } else {
-      self.chunks.insert(0, chunk.ukey);
+      self.chunks.insert(0, chunk.ukey());
       true
     }
   }
@@ -262,7 +261,10 @@ impl ChunkGroup {
       .chunks
       .iter()
       .filter_map(|chunk| {
-        get_chunk_from_ukey(chunk, &compilation.chunk_by_ukey).and_then(|item| item.id.as_ref())
+        compilation
+          .chunk_by_ukey
+          .get(chunk)
+          .and_then(|item| item.id())
       })
       .join("+")
   }
@@ -322,9 +324,7 @@ impl ChunkGroup {
     for order_key in orders {
       let mut list = vec![];
       for child_ukey in &self.children {
-        let Some(child_group) =
-          get_chunk_group_from_ukey(child_ukey, &compilation.chunk_group_by_ukey)
-        else {
+        let Some(child_group) = compilation.chunk_group_by_ukey.get(child_ukey) else {
           continue;
         };
         if let Some(order) = child_group

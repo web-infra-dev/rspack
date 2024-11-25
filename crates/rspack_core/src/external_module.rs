@@ -13,8 +13,8 @@ use crate::{
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, FactoryMeta, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions,
-  Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
 use crate::{ChunkGraph, ModuleGraph};
@@ -112,12 +112,24 @@ fn get_source_for_commonjs(module_and_specifiers: &ExternalRequestValue) -> Stri
 fn get_source_for_import(
   module_and_specifiers: &ExternalRequestValue,
   compilation: &Compilation,
+  attributes: &Option<ImportAttributes>,
 ) -> String {
-  format!(
-    "{}({})",
-    compilation.options.output.import_function_name,
-    serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
-  )
+  format!("{}({})", compilation.options.output.import_function_name, {
+    let attributes_str = if let Some(attributes) = attributes {
+      format!(
+        ", {{ with: {} }}",
+        serde_json::to_string(attributes).expect("invalid json to_string")
+      )
+    } else {
+      String::new()
+    };
+
+    format!(
+      "{}{}",
+      serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string"),
+      attributes_str
+    )
+  })
 }
 
 /**
@@ -129,6 +141,13 @@ fn resolve_external_type<'a>(
   dependency_meta: &'a DependencyMeta,
 ) -> &'a str {
   match external_type {
+    "commonjs-import" => {
+      if let Some(ExternalTypeEnum::Import) = dependency_meta.external_type.as_ref() {
+        "import"
+      } else {
+        "commonjs"
+      }
+    }
     "module-import" => {
       if let Some(external_type) = dependency_meta.external_type.as_ref() {
         match external_type {
@@ -171,6 +190,7 @@ pub type MetaExternalType = Option<ExternalTypeEnum>;
 #[derive(Debug)]
 pub struct DependencyMeta {
   pub external_type: MetaExternalType,
+  pub attributes: Option<ImportAttributes>,
 }
 
 impl ExternalModule {
@@ -293,7 +313,7 @@ impl ExternalModule {
       "import" if let Some(request) = request => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const),
-        get_source_for_import(request, compilation)
+        get_source_for_import(request, compilation, &self.dependency_meta.attributes)
       ),
       "var" | "promise" | "const" | "let" | "assign" if let Some(request) = request => format!(
         "{} = {};",
@@ -306,9 +326,20 @@ impl ExternalModule {
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
-                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {};\n",
+                "import * as __WEBPACK_EXTERNAL_MODULE_{}__ from {}{};\n",
                 id.clone(),
-                json_stringify(request.primary())
+                json_stringify(request.primary()),
+                {
+                  let meta = &self.dependency_meta.attributes;
+                  if let Some(meta) = meta {
+                    format!(
+                      " with {}",
+                      serde_json::to_string(meta).expect("json stringify failed"),
+                    )
+                  } else {
+                    String::new()
+                  }
+                },
               ),
               InitFragmentStage::StageESMImports,
               0,
@@ -337,7 +368,7 @@ impl ExternalModule {
           format!(
             "{} = {};",
             get_namespace_object_export(concatenation_scope, supports_const),
-            get_source_for_import(request, compilation)
+            get_source_for_import(request, compilation, &self.dependency_meta.attributes)
           )
         }
       }

@@ -91,10 +91,9 @@ impl LocalFilenameFn for ThreadSafeFilenameFn {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-    hash_digest_length: usize,
   ) -> rspack_error::Result<String> {
     self.0.blocking_call_with_sync((
-      JsPathData::from_path_data(*path_data, hash_digest_length),
+      JsPathData::from_path_data(*path_data),
       asset_info.cloned().map(JsAssetInfo::from),
     ))
   }
@@ -111,9 +110,8 @@ impl LocalFilenameFn for LocalJsFilenameFn<'_> {
     &self,
     path_data: &PathData,
     asset_info: Option<&AssetInfo>,
-    hash_digest_length: usize,
   ) -> Result<String, Self::Error> {
-    let js_path_data = JsPathData::from_path_data(*path_data, hash_digest_length);
+    let js_path_data = JsPathData::from_path_data(*path_data);
     let js_asset_info = asset_info.cloned().map(JsAssetInfo::from);
     self.0.call((js_path_data, js_asset_info))
   }

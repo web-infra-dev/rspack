@@ -2,7 +2,7 @@
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
-use rspack_collections::IdentifierSet;
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
 use rspack_core::{ChunkUkey, ModuleIdentifier};
 use rspack_hook::plugin;
@@ -72,7 +72,7 @@ impl CssPlugin {
   ) {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, source_type, module_graph)
+      .get_chunk_modules_iterable_by_source_type(&chunk.ukey(), source_type, module_graph)
       .collect::<Vec<_>>();
     css_modules.sort_unstable_by_key(|module| module.identifier());
 
@@ -96,7 +96,7 @@ impl CssPlugin {
     // Get ordered list of modules per chunk group
 
     let mut modules_by_chunk_group = chunk
-      .groups
+      .groups()
       .iter()
       .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
       .map(|chunk_group| {
@@ -183,7 +183,7 @@ impl CssPlugin {
         // TODO(hyf0): we should emit a warning here
         tracing::warn!("Conflicting order between");
         let conflict = CssOrderConflicts {
-          chunk: chunk.ukey,
+          chunk: chunk.ukey(),
           failed_module: has_failed.identifier(),
           selected_module: selected_module.identifier(),
         };

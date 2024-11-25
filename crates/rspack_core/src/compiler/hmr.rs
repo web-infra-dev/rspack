@@ -8,8 +8,8 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, get_chunk_from_ukey, incremental::IncrementalPasses, ChunkKind, Compilation, Compiler,
-  ModuleExecutor, RuntimeSpec,
+  fast_set, incremental::IncrementalPasses, ChunkKind, Compilation, Compiler, ModuleExecutor,
+  RuntimeSpec,
 };
 
 impl Compiler {
@@ -27,15 +27,14 @@ impl Compiler {
     let all_old_runtime = old
       .compilation
       .get_chunk_graph_entries()
-      .into_iter()
-      .filter_map(|entry_ukey| get_chunk_from_ukey(&entry_ukey, &old.compilation.chunk_by_ukey))
-      .flat_map(|entry_chunk| entry_chunk.runtime.clone())
+      .filter_map(|entry_ukey| old.compilation.chunk_by_ukey.get(&entry_ukey))
+      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect();
 
     let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
     for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
-      if chunk.kind != ChunkKind::HotUpdate {
-        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime.clone()));
+      if chunk.kind() != ChunkKind::HotUpdate {
+        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime().clone()));
       }
     }
 
@@ -71,6 +70,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
+        self.cache.clone(),
         self.old_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
@@ -130,17 +130,40 @@ impl Compiler {
         new_compilation.cgm_runtime_requirements_results =
           std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
       }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+      {
+        new_compilation.cgc_runtime_requirements_results =
+          std::mem::take(&mut self.compilation.cgc_runtime_requirements_results);
+      }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::CHUNKS_HASHES)
+      {
+        new_compilation.chunk_hashes_results =
+          std::mem::take(&mut self.compilation.chunk_hashes_results);
+      }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
+      {
+        new_compilation.chunk_render_results =
+          std::mem::take(&mut self.compilation.chunk_render_results);
+      }
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
+      self.cache.before_compile(&mut self.compilation);
       self.compile().await?;
 
       self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
+    self.cache.after_compile(&self.compilation);
 
     Ok(())
   }

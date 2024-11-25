@@ -8,6 +8,7 @@ use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
@@ -15,6 +16,7 @@ use rspack_core::{
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::asset_condition::AssetConditions;
 use rspack_util::{
   identifier::make_paths_absolute, infallible::ResultInfallibleExt, path::relative,
 };
@@ -46,8 +48,6 @@ pub enum Append {
   Disabled,
 }
 
-pub type TestFn = Box<dyn Fn(String) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
-
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct SourceMapDevToolPluginOptions {
@@ -76,9 +76,9 @@ pub struct SourceMapDevToolPluginOptions {
   pub public_path: Option<String>,
   // Provide a custom value for the 'sourceRoot' property in the SourceMap.
   pub source_root: Option<String>,
-  // Include or exclude source maps for modules based on their extension (defaults to .js and .css).
-  #[derivative(Debug = "ignore")]
-  pub test: Option<TestFn>,
+  pub test: Option<AssetConditions>,
+  pub include: Option<AssetConditions>,
+  pub exclude: Option<AssetConditions>,
 }
 
 enum SourceMappingUrlComment {
@@ -115,9 +115,29 @@ pub struct SourceMapDevToolPlugin {
   public_path: Option<String>,
   module: bool,
   source_root: Option<String>,
-  #[derivative(Debug = "ignore")]
-  test: Option<TestFn>,
+  test: Option<AssetConditions>,
+  include: Option<AssetConditions>,
+  exclude: Option<AssetConditions>,
   mapped_assets_cache: MappedAssetsCache,
+}
+
+fn match_object(obj: &SourceMapDevToolPlugin, str: &str) -> bool {
+  if let Some(condition) = &obj.test {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.include {
+    if !condition.try_match(str) {
+      return false;
+    }
+  }
+  if let Some(condition) = &obj.exclude {
+    if condition.try_match(str) {
+      return false;
+    }
+  }
+  true
 }
 
 impl SourceMapDevToolPlugin {
@@ -160,6 +180,8 @@ impl SourceMapDevToolPlugin {
       options.module,
       options.source_root,
       options.test,
+      options.include,
+      options.exclude,
       MappedAssetsCache::new(),
     )
   }
@@ -172,25 +194,15 @@ impl SourceMapDevToolPlugin {
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
-
-    let matches = if let Some(test) = &self.test {
-      let features = raw_assets.iter().map(|(file, _)| test(file.to_owned()));
-      join_all(features)
-        .await
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?
-    } else {
-      vec![]
-    };
+    let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
 
     let mut mapped_sources = raw_assets
       .into_par_iter()
-      .enumerate()
-      .filter_map(|(index, (file, asset))| {
-        let is_match = if matches.is_empty() {
-          true
+      .filter_map(|(file, asset)| {
+        let is_match = if need_match {
+          match_object(self, &file)
         } else {
-          matches[index]
+          true
         };
         let source = if is_match {
           asset.get_source().map(|source| {
@@ -407,8 +419,17 @@ impl SourceMapDevToolPlugin {
             let data = PathData::default().filename(&filename);
             let data = match chunk {
               Some(chunk) => data
-                .chunk(chunk)
-                .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.encoded())),
+                .chunk_id_optional(chunk.id())
+                .chunk_hash_optional(chunk.rendered_hash(
+                  &compilation.chunk_hashes_results,
+                  compilation.options.output.hash_digest_length,
+                ))
+                .chunk_name_optional(chunk.name_for_filename_template())
+                .content_hash_optional(
+                  chunk
+                    .content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
+                    .map(|hash| hash.encoded()),
+                ),
               None => data,
             };
             let source_map_filename = compilation
@@ -443,7 +464,7 @@ impl SourceMapDevToolPlugin {
                 SourceMappingUrlCommentRef::Fn(f) => {
                   let comment = f(data).await?;
                   FilenameTemplate::from(comment)
-                    .render(data, None, output_options.hash_digest_length)
+                    .render(data, None)
                     .always_ok()
                 }
               };
@@ -524,13 +545,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // use to write
   let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    for file in &chunk.files {
+    for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
-    for file in &chunk.auxiliary_files {
+    for file in chunk.auxiliary_files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey);
+      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
     }
   }
 
@@ -568,7 +589,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let chunk = chunk_ukey.map(|ukey| compilation.chunk_by_ukey.expect_get_mut(ukey));
       if let Some(chunk) = chunk {
-        chunk.auxiliary_files.insert(source_map_filename);
+        chunk.add_auxiliary_file(source_map_filename);
       }
     }
   }

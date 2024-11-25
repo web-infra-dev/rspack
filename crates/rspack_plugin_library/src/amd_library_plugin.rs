@@ -133,8 +133,17 @@ fn render(
       .get_path(
         &FilenameTemplate::from(name.to_string()),
         PathData::default()
-          .chunk(chunk)
-          .content_hash_type(SourceType::JavaScript),
+          .chunk_id_optional(chunk.id())
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_results,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_name_optional(chunk.name_for_filename_template())
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_results,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          )),
       )
       .always_ok();
     source.add(RawSource::from(format!(

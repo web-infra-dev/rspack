@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource},
   ApplyContext, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
@@ -70,10 +71,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     let target_path = compilation.get_path(
       &self.options.path,
-      PathData {
-        chunk: Some(chunk),
-        ..Default::default()
-      },
+      PathData::default()
+        .chunk_id_optional(chunk.id())
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template()),
     )?;
 
     if use_paths.contains(&target_path) {
@@ -86,18 +90,25 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       compilation
         .get_path(
           name,
-          PathData {
-            chunk: Some(chunk),
-            content_hash_type: Some(SourceType::JavaScript),
-            ..Default::default()
-          },
+          PathData::default()
+            .chunk_id_optional(chunk.id())
+            .chunk_hash_optional(chunk.rendered_hash(
+              &compilation.chunk_hashes_results,
+              compilation.options.output.hash_digest_length,
+            ))
+            .chunk_name_optional(chunk.name_for_filename_template())
+            .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+              &compilation.chunk_hashes_results,
+              &SourceType::JavaScript,
+              compilation.options.output.hash_digest_length,
+            )),
         )
         .ok()
     });
 
     let mut manifest_content: DllManifestContent = HashMap::default();
 
-    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey, &module_graph) {
+    for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), &module_graph) {
       if self.options.entry_only.unwrap_or_default()
         && !some_in_iterable(
           module_graph

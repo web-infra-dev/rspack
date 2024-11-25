@@ -1,7 +1,7 @@
 use std::{hash::BuildHasherDefault, sync::Arc};
 
 use dashmap::DashMap;
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::FileSystem;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
@@ -29,7 +29,7 @@ impl ResolverFactory {
     self.resolver.clear_cache();
   }
 
-  pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(options: Resolve, fs: Arc<dyn FileSystem>) -> Self {
     Self {
       base_options: options.clone(),
       resolver: Resolver::new(options, fs),

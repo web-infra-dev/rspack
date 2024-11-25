@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::FileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
@@ -18,7 +18,7 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
+  pub fs: Arc<dyn FileSystem>,
 }
 
 #[async_trait::async_trait]
@@ -26,7 +26,7 @@ impl Task<MakeTaskContext> for BuildTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
       compilation_id,
       compiler_options,
@@ -100,7 +100,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let BuildResultTask {
       mut module,
       build_result,

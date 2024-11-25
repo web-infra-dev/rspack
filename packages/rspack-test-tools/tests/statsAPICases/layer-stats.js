@@ -27,6 +27,8 @@ module.exports = {
 		};
 		const statsData = stats?.toJson(options);
 		statsData.modules.forEach(mod => {
+			mod.issuer = '';
+			mod.issuerName = '';
 			mod.children = [];
 		});
 

@@ -3,11 +3,12 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{Either3, Null};
 use napi::Either;
 use napi_derive::napi;
+use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
-  SourceMapDevToolPluginOptions, TestFn,
+  SourceMapDevToolPluginOptions,
 };
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
@@ -93,13 +94,6 @@ fn normalize_raw_module_filename_template(
   }
 }
 
-fn normalize_raw_test(raw: ThreadsafeFunction<String, bool>) -> TestFn {
-  Box::new(move |ctx| {
-    let raw = raw.clone();
-    Box::pin(async move { raw.call(ctx).await })
-  })
-}
-
 #[napi(object, object_to_js = false)]
 pub struct RawSourceMapDevToolPluginOptions {
   #[napi(ts_type = "(false | null) | string | Function")]
@@ -117,14 +111,17 @@ pub struct RawSourceMapDevToolPluginOptions {
   pub no_sources: Option<bool>,
   pub public_path: Option<String>,
   pub source_root: Option<String>,
-  #[napi(ts_type = "(text: string) => boolean")]
-  pub test: Option<ThreadsafeFunction<String, bool>>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub test: Option<RawAssetConditions>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub include: Option<RawAssetConditions>,
+  #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
+  pub exclude: Option<RawAssetConditions>,
 }
 
 impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
   fn from(opts: RawSourceMapDevToolPluginOptions) -> Self {
     let append = opts.append.map(normalize_raw_append);
-    let test = opts.test.map(normalize_raw_test);
     let filename = opts.filename.and_then(|raw| match raw {
       Either3::A(_) | Either3::B(_) => None,
       Either3::C(s) => Some(s),
@@ -152,7 +149,9 @@ impl From<RawSourceMapDevToolPluginOptions> for SourceMapDevToolPluginOptions {
       module_filename_template,
       module: opts.module.unwrap_or(true),
       source_root: opts.source_root,
-      test,
+      test: opts.test.map(into_asset_conditions),
+      include: opts.include.map(into_asset_conditions),
+      exclude: opts.exclude.map(into_asset_conditions),
     }
   }
 }

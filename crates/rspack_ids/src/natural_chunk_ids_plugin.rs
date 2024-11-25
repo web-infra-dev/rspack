@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
 };
@@ -20,7 +21,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     .values()
     .map(|chunk| chunk as &Chunk)
     .sorted_unstable_by(|a, b| compare_chunks_natural(chunk_graph, module_graph, a, b))
-    .map(|chunk| chunk.ukey)
+    .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 
   if !chunks.is_empty() {

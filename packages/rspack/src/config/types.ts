@@ -1315,7 +1315,8 @@ export type ExternalsType =
 	| "import"
 	| "module-import"
 	| "script"
-	| "node-commonjs";
+	| "node-commonjs"
+	| "commonjs-import";
 //#endregion
 
 //#region Externals
@@ -2304,6 +2305,35 @@ export type Optimization = {
 
 //#region Experiments
 /**
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
+ */
+export type ExperimentCacheOptions =
+	| boolean
+	| {
+			type: "memory";
+	  }
+	| {
+			type: "persistent";
+			snapshot: {
+				immutablePaths: Array<string | RegExp>;
+				unmanagedPaths: Array<string | RegExp>;
+				managedPaths: Array<string | RegExp>;
+			};
+			storage: {
+				type: "filesystem";
+				directory: string;
+			};
+	  };
+
+/**
  * Options for future Rspack features.
  */
 export type RspackFutureOptions = {
@@ -2409,11 +2439,6 @@ export type Incremental = {
 	make?: boolean;
 
 	/**
-	 * Enable incremental asset emission.
-	 */
-	emitAssets?: boolean;
-
-	/**
 	 * Enable inference of async modules.
 	 */
 	inferAsyncModules?: boolean;
@@ -2427,6 +2452,11 @@ export type Incremental = {
 	 * Enables diagnostics for dependencies.
 	 */
 	dependenciesDiagnostics?: boolean;
+
+	/**
+	 * Enable incremental build chunk graph.
+	 */
+	buildChunkGraph?: boolean;
 
 	/**
 	 * Enable incremental module hashes.
@@ -2444,15 +2474,34 @@ export type Incremental = {
 	modulesRuntimeRequirements?: boolean;
 
 	/**
-	 * Enable incremental build chunk graph.
+	 * Enable incremental chunk runtime requirements.
 	 */
-	buildChunkGraph?: boolean;
+	chunksRuntimeRequirements?: boolean;
+
+	/**
+	 * Enable incremental chunk hashes.
+	 */
+	chunksHashes?: boolean;
+
+	/**
+	 * Enable incremental chunk render.
+	 */
+	chunksRender?: boolean;
+
+	/**
+	 * Enable incremental asset emission.
+	 */
+	emitAssets?: boolean;
 };
 
 /**
  * Experimental features configuration.
  */
 export type Experiments = {
+	/**
+	 * Enable new cache.
+	 */
+	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
 	 */

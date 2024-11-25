@@ -24,8 +24,8 @@ use rspack_binding_values::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, Chunk,
-  ChunkUkey, CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, ChunkUkey,
+  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
@@ -1193,7 +1193,7 @@ impl CompilationAdditionalTreeRuntimeRequirements
   ) -> rspack_error::Result<()> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
-      chunk: JsChunk::from(chunk),
+      chunk: JsChunk::from(chunk, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
     };
     let result = self.function.call_with_sync(arg).await?;
@@ -1220,7 +1220,7 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
   ) -> rspack_error::Result<Option<()>> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsRuntimeRequirementInTreeArg {
-      chunk: JsChunk::from(chunk),
+      chunk: JsChunk::from(chunk, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
     };
     let result = self.function.blocking_call_with_sync(arg)?;
@@ -1267,7 +1267,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .cow_replace("webpack/runtime/", "")
           .into_owned(),
       },
-      chunk: JsChunk::from(chunk),
+      chunk: JsChunk::from(chunk, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
@@ -1295,7 +1295,10 @@ impl CompilationChunkHash for CompilationChunkHashTap {
     hasher: &mut RspackHash,
   ) -> rspack_error::Result<()> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let result = self.function.call_with_sync(JsChunk::from(chunk)).await?;
+    let result = self
+      .function
+      .call_with_sync(JsChunk::from(chunk, compilation))
+      .await?;
     result.hash(hasher);
     Ok(())
   }
@@ -1307,11 +1310,17 @@ impl CompilationChunkHash for CompilationChunkHashTap {
 
 #[async_trait]
 impl CompilationChunkAsset for CompilationChunkAssetTap {
-  async fn run(&self, chunk: &mut Chunk, file: &str) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+    file: &str,
+  ) -> rspack_error::Result<()> {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     self
       .function
       .call_with_sync(JsChunkAssetArgs {
-        chunk: JsChunk::from(chunk),
+        chunk: JsChunk::from(chunk, compilation),
         filename: file.to_string(),
       })
       .await
@@ -1654,7 +1663,10 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
     hasher: &mut RspackHash,
   ) -> rspack_error::Result<()> {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-    let result = self.function.call_with_sync(JsChunk::from(chunk)).await?;
+    let result = self
+      .function
+      .call_with_sync(JsChunk::from(chunk, compilation))
+      .await?;
     result.hash(hasher);
     Ok(())
   }

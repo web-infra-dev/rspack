@@ -1,5 +1,5 @@
 const diff = require("jest-diff").diff;
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 
 const processStats = str => {
   return str.trim().split('\n').map(i => i.trim()).join('\n').replace(/\d+(\.\d+)?/g, 'XX').replace(/"/g, "");

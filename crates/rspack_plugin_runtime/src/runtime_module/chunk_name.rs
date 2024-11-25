@@ -34,7 +34,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         RawSource::from(format!(
           "{} = {};",
           RuntimeGlobals::CHUNK_NAME,
-          serde_json::to_string(&chunk.name).expect("Invalid json string")
+          serde_json::to_string(&chunk.name()).expect("Invalid json string")
         ))
         .boxed(),
       )

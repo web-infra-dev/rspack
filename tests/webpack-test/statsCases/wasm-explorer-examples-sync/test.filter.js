@@ -7,5 +7,5 @@ module.exports = function(config) {
 };
 
 */
-module.exports = () => {return false}
-		
+// TODO: Should create a issue for this test
+module.exports = () => { return false }

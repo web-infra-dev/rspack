@@ -123,7 +123,7 @@ impl LockfileAsync for Lockfile {
     let utf8_path = Utf8Path::from_path(path.as_ref())
       .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
     let content = filesystem
-      .read(utf8_path)
+      .async_read(utf8_path)
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
     let content_str =

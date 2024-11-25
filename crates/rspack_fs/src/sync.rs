@@ -4,7 +4,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::{FileMetadata, Result};
 
-pub trait WritableFileSystem: Debug {
+pub trait SyncWritableFileSystem: Debug {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.
@@ -25,7 +25,7 @@ pub trait WritableFileSystem: Debug {
   fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 }
 
-pub trait ReadableFileSystem: Debug + Send + Sync {
+pub trait SyncReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::read]
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>>;
 
@@ -40,7 +40,7 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
 }
 
 /// Readable and writable file system representation.
-pub trait FileSystem: ReadableFileSystem + WritableFileSystem {}
+pub trait SyncFileSystem: SyncReadableFileSystem + SyncWritableFileSystem {}
 
 // Blanket implementation for all types that implement both [`ReadableFileSystem`] and [`WritableFileSystem`].
-impl<T: ReadableFileSystem + WritableFileSystem> FileSystem for T {}
+impl<T: SyncReadableFileSystem + SyncWritableFileSystem> SyncFileSystem for T {}

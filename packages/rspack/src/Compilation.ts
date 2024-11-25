@@ -24,9 +24,11 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
+import { Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
+import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
 import { JsRspackDiagnostic, type RspackError } from "./RspackError";
@@ -65,8 +67,22 @@ export interface Asset {
 	info: AssetInfo;
 }
 
-export type PathData = Omit<JsPathData, "chunk"> & {
-	chunk?: Chunk | binding.JsChunkPathData;
+export type PathDataChunkLike = {
+	id?: string;
+	name?: string;
+	hash?: string;
+	contentHash?: Record<string, string>;
+};
+
+export type PathData = {
+	filename?: string;
+	hash?: string;
+	contentHash?: string;
+	runtime?: string;
+	url?: string;
+	id?: string;
+	chunk?: Chunk | PathDataChunkLike;
+	contentHashType?: string;
 };
 
 export interface LogEntry {
@@ -234,6 +250,7 @@ export class Compilation {
 	childrenCounters: Record<string, number>;
 	children: Compilation[];
 	chunkGraph: ChunkGraph;
+	moduleGraph: ModuleGraph;
 	fileSystemInfo = {
 		createSnapshot() {
 			// fake implement to support html-webpack-plugin
@@ -364,7 +381,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.logging = new Map();
 		this.childrenCounters = {};
 		this.children = [];
+
 		this.chunkGraph = new ChunkGraph(this);
+		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 	}
 
 	get hash(): Readonly<string | null> {
@@ -918,43 +937,35 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	getPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPath(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getPath(filename, pathData);
 	}
 
 	getPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getPathWithInfo(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getPathWithInfo(filename, pathData);
 	}
 
 	getAssetPath(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPath(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getAssetPath(filename, pathData);
 	}
 
 	getAssetPathWithInfo(filename: Filename, data: PathData = {}) {
-		return this.#inner.getAssetPathWithInfo(filename, {
-			...data,
-			chunk:
-				data.chunk instanceof Chunk
-					? data.chunk.__internal_to_path_data_chunk()
-					: data.chunk
-		});
+		const pathData: JsPathData = { ...data };
+		if (data.contentHashType && data.chunk?.contentHash) {
+			pathData.contentHash = data.chunk.contentHash[data.contentHashType];
+		}
+		return this.#inner.getAssetPathWithInfo(filename, pathData);
 	}
 
 	getLogger(name: string | (() => string)) {
@@ -1238,7 +1249,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 }
 
-export type EntryData = binding.JsEntryData;
+export class EntryData {
+	dependencies: Dependency[];
+	includeDependencies: Dependency[];
+	options: binding.JsEntryOptions;
+
+	static __from_binding(binding: binding.JsEntryData): EntryData {
+		return new EntryData(binding);
+	}
+
+	private constructor(binding: binding.JsEntryData) {
+		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
+		this.includeDependencies = binding.includeDependencies.map(
+			Dependency.__from_binding
+		);
+		this.options = binding.options;
+	}
+}
 
 export class Entries implements Map<string, EntryData> {
 	#data: binding.JsEntries;
@@ -1253,13 +1280,14 @@ export class Entries implements Map<string, EntryData> {
 
 	forEach(
 		callback: (
-			value: binding.JsEntryData,
+			value: EntryData,
 			key: string,
-			map: Map<string, binding.JsEntryData>
+			map: Map<string, EntryData>
 		) => void,
 		thisArg?: any
 	): void {
-		for (const [key, value] of this) {
+		for (const [key, binding] of this) {
+			const value = EntryData.__from_binding(binding);
 			callback.call(thisArg, value, key, this);
 		}
 	}
@@ -1275,7 +1303,7 @@ export class Entries implements Map<string, EntryData> {
 	}
 
 	values(): ReturnType<Map<string, EntryData>["values"]> {
-		return this.#data.values()[Symbol.iterator]();
+		return this.#data.values().map(EntryData.__from_binding)[Symbol.iterator]();
 	}
 
 	[Symbol.iterator](): ReturnType<Map<string, EntryData>["entries"]> {
@@ -1300,7 +1328,8 @@ export class Entries implements Map<string, EntryData> {
 	}
 
 	get(key: string): EntryData | undefined {
-		return this.#data.get(key);
+		const binding = this.#data.get(key);
+		return binding ? EntryData.__from_binding(binding) : undefined;
 	}
 
 	keys(): ReturnType<Map<string, EntryData>["keys"]> {
