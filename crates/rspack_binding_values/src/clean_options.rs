@@ -36,7 +36,6 @@ impl FromNapiValue for JsCleanOptions {
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
     let val = Either::from_napi_value(env, napi_val);
-    std::fs::write("/tmp/rspack.log", format!("{:?}", val).as_bytes()).unwrap();
     Ok(Self(val?))
   }
 }
