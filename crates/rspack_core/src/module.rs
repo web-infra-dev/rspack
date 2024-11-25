@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_fs::SyncReadableFileSystem;
+use rspack_fs::FileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
@@ -32,7 +32,7 @@ pub struct BuildContext {
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn SyncReadableFileSystem>,
+  pub fs: Arc<dyn FileSystem>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

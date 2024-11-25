@@ -44,7 +44,7 @@ pub trait AsyncReadableFileSystem: Debug {
   /// Read the entire contents of a file into a bytes vector.
   ///
   /// Error: This function will return an error if path does not already exist.
-  fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
+  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
 }
 
 /// Async readable and writable file system representation.
