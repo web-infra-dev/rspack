@@ -105,7 +105,6 @@ mod tests {
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::Utf8PathBuf;
-  use tokio::runtime::Runtime;
 
   use super::super::MemoryStorage;
   use super::{PathMatcher, Snapshot, SnapshotOptions};
