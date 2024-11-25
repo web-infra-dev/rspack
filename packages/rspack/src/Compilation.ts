@@ -250,7 +250,7 @@ export class Compilation {
 	childrenCounters: Record<string, number>;
 	children: Compilation[];
 	chunkGraph: ChunkGraph;
-	moduleGraph: ModuleGraph;
+	// moduleGraph: ModuleGraph;
 	fileSystemInfo = {
 		createSnapshot() {
 			// fake implement to support html-webpack-plugin
@@ -383,7 +383,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.children = [];
 
 		this.chunkGraph = new ChunkGraph(this);
-		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
+		// this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 	}
 
 	get hash(): Readonly<string | null> {
