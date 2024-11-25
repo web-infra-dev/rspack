@@ -167,11 +167,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation
       .process_chunks_runtime_requirements(
         UkeySet::from_iter([chunk_ukey]),
+        UkeySet::from_iter([chunk_ukey]),
         compilation.plugin_driver.clone(),
       )
-      .await?;
-    compilation
-      .process_entries_runtime_requirements(once(chunk_ukey), compilation.plugin_driver.clone())
       .await?;
     let runtime_modules = compilation
       .chunk_graph
