@@ -4,8 +4,7 @@
   "included": "已内置",
   "babel-loader-description": "内部使用 SWC 实现了 babel-loader 的大部分转换功能",
   "babel-loader-remark": "babel-loader 对性能影响较大，请谨慎使用",
-  "html-webpack-plugin-desc": "在 v0.3.3 已实现对该插件的支持，请升级 Rspack 版本来使用",
-  "sentry_webpack-plugin-desc": "在 v0.3.3 已实现对该插件 v1.20.1 以上版本的支持",
+  "sentry_webpack-plugin-desc": "支持该插件 >= v1.20.1 版本",
   "copy-plugin-desc": "使用 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 替代",
   "mini-css-extract-plugin-desc": "使用 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 替代",
   "terser-webpack-plugin-desc": "Rspack 提供 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以带来更好的性能",
@@ -24,8 +23,9 @@
   "webpack-filter-warnings-plugin-desc": "使用 [ignoreWarnings](/config/other-options#ignorewarnings) 替代",
   "speed-measure-webpack-plugin-desc": "使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 替代",
   "eslint-webpack-plugin-desc": "使用 [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) 替代",
-  "circular-dependency-plugin-desc": "使用 Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) 规则替代",
+  "circular-dependency-plugin-desc": "使用 ESLint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) 规则替代",
   "html-webpack-tags-plugin-desc": "使用 [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) 替代",
   "needs-html-webpack-plugin": "该插件依赖了 html-webpack-plugin",
-  "webpack-assets-manifest-desc": "仅支持基础用法"
+  "webpack-assets-manifest-desc": "仅支持基础用法",
+  "fork-ts-checker-webpack-plugin-desc": "使用 [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) 替代"
 }
