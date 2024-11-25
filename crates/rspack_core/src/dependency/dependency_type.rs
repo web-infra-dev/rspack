@@ -10,10 +10,10 @@ pub enum DependencyType {
   Unknown,
   ExportInfoApi,
   Entry,
-  // Harmony import
+  // ESM import
   EsmImport,
   EsmImportSpecifier,
-  // Harmony export
+  // ESM export
   EsmExport,
   EsmExportImportedSpecifier,
   EsmExportSpecifier,
