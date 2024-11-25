@@ -42,17 +42,12 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
-<<<<<<< HEAD
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
-=======
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependenciesBlock, DependencyId, DependencyType, Entry,
->>>>>>> 43a0cd4e3 (feat: apply optimize)
-  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver,
-  SourceType, Stats,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesBlock, DependencyId,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
+  SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -1265,14 +1260,11 @@ impl Compilation {
     ) {}
     logger.time_end(start);
 
-<<<<<<< HEAD
     // ModuleGraph is frozen for now on, we have a module graph that won't change
     // so now we can start to create a chunk graph based on the module graph
-=======
     let _set_active_state = std::time::Instant::now();
     self.set_active_state_cache();
     dbg!(_set_active_state.elapsed().as_millis());
->>>>>>> 43a0cd4e3 (feat: apply optimize)
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {

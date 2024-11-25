@@ -710,7 +710,7 @@ impl ExportsInfo {
         return true;
       }
     } else {
-      let other_exports_info = &info.other_exports_info;
+      let other_exports_info: &ExportInfo = &info.other_exports_info;
       if other_exports_info.get_used(mg, runtime) != UsageState::Unused {
         return true;
       }
