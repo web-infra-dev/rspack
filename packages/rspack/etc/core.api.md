@@ -11266,15 +11266,12 @@ interface Webworker {
 export const webworker: Webworker;
 
 // @public (undocumented)
-const WebWorkerTemplatePlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _args: [];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public
 export type WorkerPublicPath = string;
