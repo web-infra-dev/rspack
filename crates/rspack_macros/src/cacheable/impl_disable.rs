@@ -7,13 +7,7 @@ struct CleanFieldAttrVisitor;
 
 impl VisitMut for CleanFieldAttrVisitor {
   fn visit_field_mut(&mut self, f: &mut Field) {
-    f.attrs.retain(|item| {
-      if item.path().is_ident("cacheable") {
-        false
-      } else {
-        true
-      }
-    });
+    f.attrs.retain(|item| !item.path().is_ident("cacheable"));
   }
 }
 

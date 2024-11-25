@@ -23,7 +23,6 @@ struct Person {
 #[rkyv(serialize_bounds(
     __S: rspack_cacheable::__private::rkyv::ser::Writer + rspack_cacheable::__private::rkyv::ser::Allocator + rspack_cacheable::__private::rkyv::rancor::Fallible<Error = rspack_cacheable::SerializeError>,
   ))]
-#[derive(Debug, PartialEq, Eq)]
 struct PersonRef<'a> {
   #[rkyv(omit_bounds)]
   #[rkyv(with=Inline)]

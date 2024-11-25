@@ -11,7 +11,6 @@ struct Person {
 }
 
 #[cacheable(as=Person)]
-#[derive(Debug, PartialEq, Eq)]
 struct PersonRef<'a> {
   #[rkyv(with=Inline)]
   name: &'a String,
