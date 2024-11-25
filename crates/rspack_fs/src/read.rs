@@ -1,9 +1,11 @@
+use std::fmt::Debug;
+
 use futures::future::BoxFuture;
 use rspack_paths::Utf8Path;
 use rspack_paths::Utf8PathBuf;
 
 use crate::{FileMetadata, Result};
-pub trait ReadableFileSystem {
+pub trait ReadableFileSystem: Debug + Send + Sync {
   /// See [std::fs::read]
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>>;
 

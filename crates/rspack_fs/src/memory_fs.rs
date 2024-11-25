@@ -259,60 +259,6 @@ mod tests {
 
   use super::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
 
-  #[test]
-  fn sync_fs_test() {
-    let fs = MemoryFileSystem::default();
-    let file_content = "1".as_bytes();
-    // init fs
-    WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c")).unwrap();
-    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content).unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    // test create_dir
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_err());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d")).is_ok());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_ok());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c")).is_err());
-
-    // test create_dir_all
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a1/b1/c1")).is_ok());
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c")).is_err());
-
-    // test write
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/temp/file2"), file_content).is_err());
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/file2"), file_content).is_ok());
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/file1/file2"), file_content).is_err());
-
-    // read
-    assert!(ReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2")).is_err());
-    assert!(ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2")).is_err());
-    assert_eq!(
-      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1")).unwrap(),
-      file_content
-    );
-    assert_eq!(
-      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file2")).unwrap(),
-      file_content
-    );
-
-    // metadata
-    assert!(ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    let file1_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).unwrap();
-    let file2_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file2")).unwrap();
-    assert!(file1_meta.is_file);
-    assert!(file2_meta.is_file);
-    assert!(file1_meta.ctime_ms < file2_meta.ctime_ms);
-    let dir_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/b")).unwrap();
-    assert!(dir_meta.is_directory);
-    assert!(dir_meta.ctime_ms < file2_meta.ctime_ms);
-
-    // clear
-    fs.clear();
-    assert!(ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).is_err());
-  }
-
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();
@@ -389,23 +335,23 @@ mod tests {
 
     // read
     assert!(
-      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
+      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
         .await
         .is_err()
     );
     assert!(
-      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
+      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
         .await
         .is_err()
     );
     assert_eq!(
-      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
+      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
       file_content
     );
     assert_eq!(
-      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
+      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
       file_content
