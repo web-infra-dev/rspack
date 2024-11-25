@@ -45,6 +45,10 @@ export default class FakeDocument {
 		return this._elementsByTagName.get(name) || [];
 	}
 
+	querySelectorAll(name) {
+		return this._elementsByTagName.get(name) || [];
+	}
+
 	getComputedStyle(element) {
 		const style = { getPropertyValue };
 		const links = this.getElementsByTagName("link");
@@ -63,6 +67,7 @@ export class FakeElement {
 	constructor(document, type, basePath) {
 		this._document = document;
 		this._type = type;
+		this._basePath = basePath;
 		this._children = [];
 		this._attributes = Object.create(null);
 		this._src = undefined;
@@ -71,6 +76,12 @@ export class FakeElement {
 		this.parentNode = undefined;
 		this.sheet = type === "link" ? new FakeSheet(this, basePath) : undefined;
 	}
+
+	cloneNode() {
+		return new FakeElement(this._document, this._type, this._basePath)
+	}
+
+	addEventListener() {}
 
 	insertBefore(node, before) {
 		this._document._onElementAttached(node);
@@ -134,9 +145,8 @@ export class FakeElement {
 	getAttribute(name) {
 		if (this._type === "link" && name === "href") {
 			return this.href;
-		} else {
-			return this._attributes[name];
 		}
+		return this._attributes[name];
 	}
 
 	_toRealUrl(value) {
@@ -184,9 +194,15 @@ export class FakeSheet {
 	constructor(element, basePath) {
 		this._element = element;
 		this._basePath = basePath;
+		this.cachedCss = undefined
+		this.cachedCssRules = undefined
 	}
 
 	get css() {
+		if (this.cachedCss) {
+			return this.cachedCss
+		}
+
 		let css = fs.readFileSync(
 			path.resolve(
 				this._basePath,
@@ -215,11 +231,15 @@ export class FakeSheet {
 			);
 		});
 
+		this.cachedCss = css
 		return css;
 	}
 
 	get cssRules() {
-		const walkCssTokens = require("../../lib/css/walkCssTokens");
+		if (this.cachedCssRules) {
+			return this.cachedCssRules
+		}
+		const walkCssTokens = require("./walkCssTokens");
 		const rules = [];
 		let currentRule = { getPropertyValue };
 		let selector = undefined;
@@ -232,15 +252,16 @@ export class FakeSheet {
 				currentRule[property] = value;
 			}
 		};
-		let css = fs.readFileSync(
-			path.resolve(
-				this._basePath,
-				this._element.href
-					.replace(/^https:\/\/test\.cases\/path\//, "")
-					.replace(/^https:\/\/example\.com\//, "")
-			),
-			"utf-8"
-		);
+		const filepath = /file:\/\//.test(this._element.href)
+			? new URL(this._element.href)
+			: path.resolve(
+					this._basePath,
+					this._element.href
+						.replace(/^https:\/\/test\.cases\/path\//, "")
+						.replace(/^https:\/\/example\.com\/public\/path\//, "")
+						.replace(/^https:\/\/example\.com\//, "")
+				);
+		let css = fs.readFileSync(filepath.replace(/\?hmr=\d*/, ""), "utf-8");
 		css = css.replace(/@import url\("([^"]+)"\);/g, (match, url) => {
 			if (!/^https:\/\/test\.cases\/path\//.test(url)) {
 				return url;
@@ -257,7 +278,9 @@ export class FakeSheet {
 				),
 				"utf-8"
 			);
-		});
+		})
+		.replace(/\/\*[\s\S]*?\*\//g, '')
+		.replace("//", "");
 		walkCssTokens(css, {
 			isSelector() {
 				return selector === undefined;
@@ -271,8 +294,13 @@ export class FakeSheet {
 			},
 			rightCurlyBracket(source, start, end) {
 				processDeclaration(source.slice(last, start));
+				rules.push({
+					selectorText: selector,
+					style: currentRule,
+					// hack cssText, css hmr needs this fields to detect changes
+					cssText: css
+				});
 				last = end;
-				rules.push({ selectorText: selector, style: currentRule });
 				selector = undefined;
 				currentRule = { getPropertyValue };
 				return end;
@@ -283,6 +311,7 @@ export class FakeSheet {
 				return end;
 			}
 		});
+		this.cachedCssRules = rules
 		return rules;
 	}
 }

@@ -13,16 +13,16 @@ module.exports = {
 
 		@@ ... @@
 		-     "asyncWebAssembly": false,
+		+     "asyncWebAssembly": true,
+		@@ ... @@
 		-     "css": undefined,
 		-     "futureDefaults": false,
-		+     "asyncWebAssembly": true,
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@
-		+       },
 		+       Object {
 		+         "rules": Array [
-		+           Object {
+		@@ ... @@
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -31,13 +31,13 @@ module.exports = {
 		+             },
 		+           },
 		+         ],
-		+         "test": /\\.wasm$/i,
+		+         "test": //.wasm$/i,
 		+         "type": "webassembly/async",
-		@@ ... @@
+		+       },
 		+       Object {
 		+         "mimetype": "application/wasm",
 		+         "rules": Array [
-		@@ ... @@
+		+           Object {
 		+             "descriptionData": Object {
 		+               "type": "module",
 		+             },
@@ -53,7 +53,7 @@ module.exports = {
 		+           "fullySpecified": true,
 		+           "preferRelative": true,
 		+         },
-		+         "test": /\\.css$/i,
+		+         "test": //.css$/i,
 		+         "type": "css/auto",
 		+       },
 		+       Object {
@@ -94,10 +94,9 @@ module.exports = {
 		+       },
 		+     },
 		@@ ... @@
-		+       },
 		+       "css": Object {
 		+         "namedExports": true,
-		@@ ... @@
+		+       },
 		+       "css/auto": Object {
 		+         "namedExports": true,
 		+       },
@@ -107,13 +106,6 @@ module.exports = {
 		@@ ... @@
 		+         "css",
 		@@ ... @@
-		-     "hashDigestLength": 20,
-		-     "hashFunction": "md4",
-		+     "hashDigestLength": 16,
-		+     "hashFunction": "xxhash64",
-		@@ ... @@
-		+           "...",
-		+         ],
 		+       },
 		+       "css-import": Object {
 		+         "conditionNames": Array [
@@ -126,7 +118,8 @@ module.exports = {
 		+         ],
 		+         "mainFields": Array [
 		+           "style",
-		@@ ... @@
+		+           "...",
+		+         ],
 		+         "mainFiles": Array [],
 		+         "preferRelative": true,
 	`)

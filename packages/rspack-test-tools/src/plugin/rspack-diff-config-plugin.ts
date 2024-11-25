@@ -14,7 +14,7 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 			options: RspackOptionsNormalized
 		) => RspackOptionsNormalized
 	) {
-		process.env["RSPACK_DIFF"] = "true"; // enable rspack diff
+		process.env.RSPACK_DIFF = "true"; // enable rspack diff
 	}
 
 	apply(compiler: Compiler) {
@@ -27,9 +27,11 @@ export class RspackDiffConfigPlugin implements RspackPluginInstance {
 		options.optimization.minimize = false;
 		options.optimization.chunkIds = "named";
 		options.optimization.moduleIds = "named";
-		options.optimization.mangleExports = false;
+		options.optimization.mangleExports ??= false;
+		options.optimization.concatenateModules ??= false;
 
 		options.output ??= {};
+		options.output.pathinfo ??= false;
 
 		options.output.environment ??= {};
 		options.output.environment.arrowFunction ??= false;

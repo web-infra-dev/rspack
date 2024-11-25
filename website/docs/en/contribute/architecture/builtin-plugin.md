@@ -33,7 +33,7 @@ impl Plugin for MyPlugin {
 
 And here is [an example](https://github.com/web-infra-dev/rspack/blob/7cc39cc4bb6f73791a5bcb175137ffd84b105da5/crates/rspack_plugin_ignore/src/lib.rs).
 
-If the hook you need is not defined yet, you can define it by `rspack_hook::define_hook`, `compiler.hooks.assetEmitted` for example:
+If the hook you need is not defined yet, you can define it by `rspack_hook::define_hook`. Take `compiler.hooks.assetEmitted` as an example:
 
 ```rust
 // this will allow you define hook's arguments without limit
@@ -51,8 +51,8 @@ pub struct CompilerHooks {
 
 There are 5 kinds of exec kind:
 
-- AsyncSeries, return value is `Result<()>`
-- AsyncSeriesBail, return value is `Result<Option<T>>`
-- AsyncParallel, return value is `Result<()>`
-- SyncSeries, return value is `Result<()>`
-- SyncSeriesBail, return value is `Result<Option<T>>`
+- `AsyncSeries`, return value is `Result<()>`
+- `AsyncSeriesBail`, return value is `Result<Option<T>>`
+- `AsyncParallel`, return value is `Result<()>`
+- `SyncSeries`, return value is `Result<()>`
+- `SyncSeriesBail`, return value is `Result<Option<T>>`

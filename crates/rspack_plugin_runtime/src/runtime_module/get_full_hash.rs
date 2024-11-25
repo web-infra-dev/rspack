@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -26,13 +27,14 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     Ok(
       RawSource::from(
         include_str!("runtime/get_full_hash.js")
-          .replace("$HASH$", compilation.get_hash().unwrap_or("XXXX")),
+          .cow_replace("$HASH$", compilation.get_hash().unwrap_or("XXXX"))
+          .into_owned(),
       )
       .boxed(),
     )
   }
 
-  fn cacheable(&self) -> bool {
-    false
+  fn full_hash(&self) -> bool {
+    true
   }
 }

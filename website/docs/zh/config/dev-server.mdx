@@ -1,10 +1,10 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
-<WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
+<WebpackLicense from="https://webpack.docschina.org/configuration/dev-server/" />
 
 # DevServer
 
-该选项用于配置 [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-dev-server) 的行为，用于快速开发应用程序。
+该选项用于配置 [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack-dev-server) 的行为，基于 `webpack-dev-server@5`，用于快速开发应用程序。
 
 - **类型：** `object`
 
@@ -487,7 +487,7 @@ module.exports = {
 
 ## devServer.hot
 
-- **类型：** `boolean`
+- **类型：** `boolean | 'only'`
 - **默认值：** `true`
 
 开启热更新：
@@ -531,13 +531,6 @@ module.exports = {
 :::tip 提示
 实时重新加载仅适用于与 web 相关的 [targets](/config/target)，如 `web`、`webworker`、`electron-renderer` 和 `node-webkit`。
 :::
-
-## devServer.magicHtml
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-路径是否和产物一一对应。
 
 ## devServer.onListening
 
@@ -664,7 +657,13 @@ module.exports = {
 
 ## devServer.proxy
 
-- **类型：** `object | [object, function]`
+- **类型：** `[object, function]`
+
+:::tip
+
+Rspack 中 `@rspack/dev-server` 使用的是 `webpack-dev-server` v5 版本，`devServer.proxy` 是数组类型，如果你使用的配置是 v4 版本的对象类型，使用前需要先根据 [webpack-dev-server/migration-v5.md](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md) 进行迁移。
+
+:::
 
 当你有一个单独的 API 后端开发服务器，且希望在同一个域上发送 API 请求时，代理 URL 可能会很有用。
 

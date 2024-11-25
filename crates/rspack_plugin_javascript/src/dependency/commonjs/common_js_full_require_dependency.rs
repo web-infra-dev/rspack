@@ -1,10 +1,10 @@
 use rspack_core::{
-  module_id, property_access, to_normal_comment, ExportsType, ExtendedReferencedExport,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
+  module_id, property_access, to_normal_comment, Compilation, DependencyRange, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, UsedName,
 };
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
+use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
 use swc_core::atoms::Atom;
 
@@ -13,8 +13,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   names: Vec<Atom>,
-  range: DependencyLocation,
-  span: Option<ErrorSpan>,
+  range: DependencyRange,
   is_call: bool,
   optional: bool,
   asi_safe: bool,
@@ -24,8 +23,7 @@ impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
     names: Vec<Atom>,
-    range: DependencyLocation,
-    span: Option<ErrorSpan>,
+    range: DependencyRange,
     is_call: bool,
     optional: bool,
     asi_safe: bool,
@@ -35,7 +33,6 @@ impl CommonJsFullRequireDependency {
       request,
       names,
       range,
-      span,
       is_call,
       optional,
       asi_safe,
@@ -56,8 +53,12 @@ impl Dependency for CommonJsFullRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(
@@ -69,7 +70,7 @@ impl Dependency for CommonJsFullRequireDependency {
       && module_graph
         .module_graph_module_by_dependency_id(&self.id)
         .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type_readonly(module_graph, false))
+        .map(|m| m.get_exports_type(module_graph, false))
         .is_some_and(|t| !matches!(t, ExportsType::Namespace))
     {
       if self.names.is_empty() {
@@ -81,6 +82,10 @@ impl Dependency for CommonJsFullRequireDependency {
       }
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -126,7 +131,6 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
     if let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(&self.id) {
       let used = module_graph
         .get_exports_info(&imported_module.module_identifier)
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()));
 
       if let Some(used) = used {
@@ -149,11 +153,19 @@ impl DependencyTemplate for CommonJsFullRequireDependency {
       }
     }
 
-    source.replace(self.range.start(), self.range.end(), &require_expr, None);
+    source.replace(self.range.start, self.range.end, &require_expr, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

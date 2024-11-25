@@ -24,7 +24,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
-  // HarmonyModulesPlugin
+  // ESMModulesPlugin
   compilation.set_dependency_factory(
     DependencyType::EsmImport,
     params.normal_module_factory.clone(),
@@ -70,6 +70,11 @@ async fn compilation(
   compilation.set_dependency_factory(
     DependencyType::RequireContext,
     params.context_module_factory.clone(),
+  );
+  // RequireEnsurePlugin
+  compilation.set_dependency_factory(
+    DependencyType::RequireEnsureItem,
+    params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
     DependencyType::ContextElement(rspack_core::ContextTypePrefix::Import),
@@ -174,8 +179,7 @@ async fn content_hash(
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
-    chunk.id.hash(&mut hasher);
-    chunk.ids.hash(&mut hasher);
+    chunk.id().hash(&mut hasher);
   }
 
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
@@ -195,7 +199,7 @@ async fn content_hash(
       (
         compilation
           .code_generation_results
-          .get_hash(&mgm.identifier(), Some(&chunk.runtime)),
+          .get_hash(&mgm.identifier(), Some(chunk.runtime())),
         compilation.chunk_graph.get_module_id(mgm.identifier()),
       )
     })
@@ -210,8 +214,8 @@ async fn content_hash(
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
-    if let Some((hash, _)) = compilation
-      .runtime_module_code_generation_results
+    if let Some(hash) = compilation
+      .runtime_modules_hash
       .get(runtime_module_idenfitier)
     {
       hash.hash(&mut hasher);
@@ -230,7 +234,7 @@ async fn render_manifest(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-  let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  let source = if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     self.render_chunk(compilation, chunk_ukey).await?
   } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     self.render_main(compilation, chunk_ukey).await?
@@ -254,14 +258,18 @@ async fn render_manifest(
   let (output_path, mut asset_info) = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk(chunk)
-      .content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      )
-      .runtime(&chunk.runtime),
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_id_optional(chunk.id())
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      ))
+      .runtime(chunk.runtime().as_str()),
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);
   manifest.push(RenderManifestEntry::new(
@@ -282,7 +290,7 @@ impl Plugin for JsPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

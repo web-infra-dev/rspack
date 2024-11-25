@@ -1,9 +1,10 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
 };
 
-use once_cell::sync::Lazy;
+use cow_utils::CowUtils;
 use regex::{Captures, Regex};
 use rspack_core::{contextify, Compilation, OutputOptions};
 use rspack_error::Result;
@@ -12,14 +13,14 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, ModuleOrSource};
 
-static REGEXP_ALL_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+static REGEXP_ALL_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[all-?loaders\]\[resource\]")
     .expect("failed to compile REGEXP_ALL_LOADERS_RESOURCE")
 });
-static SQUARE_BRACKET_TAG_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static SQUARE_BRACKET_TAG_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[\\*([\w-]+)\\*\]").expect("failed to compile SQUARE_BRACKET_TAG_REGEXP")
 });
-static REGEXP_LOADERS_RESOURCE: Lazy<Regex> = Lazy::new(|| {
+static REGEXP_LOADERS_RESOURCE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\[loaders\]\[resource\]").expect("failed to compile REGEXP_LOADERS_RESOURCE")
 });
 
@@ -79,18 +80,13 @@ impl ModuleFilenameHelpers {
         let identifier = contextify(context, module_identifier);
         let module_id = chunk_graph
           .get_module_id(*module_identifier)
-          .clone()
-          .unwrap_or("".to_string());
+          .map(|s| s.to_string())
+          .unwrap_or_default();
         let absolute_resource_path = "".to_string();
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier
-          .clone()
-          .split('!')
-          .last()
-          .unwrap_or("")
-          .to_string();
+        let resource = short_identifier.split('!').last().unwrap_or("").to_string();
 
         let loaders = get_before(&short_identifier, "!");
         let all_loaders = get_before(&identifier, "!");
@@ -203,7 +199,7 @@ impl ModuleFilenameHelpers {
           .as_str();
 
         if content.len() + 2 == full_match.len() {
-          match content.to_lowercase().as_str() {
+          match content.cow_to_lowercase().as_ref() {
             "identifier" => Cow::from(&ctx.identifier),
             "short-identifier" => Cow::from(&ctx.short_identifier),
             "resource" => Cow::from(&ctx.resource),

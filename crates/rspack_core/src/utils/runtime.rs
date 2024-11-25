@@ -1,12 +1,14 @@
+use std::borrow::Cow;
+
+use cow_utils::CowUtils;
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
+use super::extract_hash_pattern;
+use crate::{merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec};
 use crate::{
-  merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
-  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 pub fn get_entry_runtime(
@@ -47,15 +49,6 @@ pub fn get_entry_runtime(
   }
 }
 
-static HASH_REPLACERS: Lazy<Vec<(&Lazy<Regex>, &str)>> = Lazy::new(|| {
-  vec![
-    (&HASH_PLACEHOLDER, "[hash]"),
-    (&FULL_HASH_PLACEHOLDER, "[fullhash]"),
-    (&CHUNK_HASH_PLACEHOLDER, "[chunkhash]"),
-    (&CONTENT_HASH_PLACEHOLDER, "[contenthash]"),
-  ]
-});
-
 pub fn get_filename_without_hash_length<F: Clone>(
   filename: &Filename<F>,
 ) -> (Filename<F>, HashMap<String, usize>) {
@@ -63,19 +56,19 @@ pub fn get_filename_without_hash_length<F: Clone>(
   let Some(template) = filename.template() else {
     return (filename.clone(), hash_len_map);
   };
-  let mut template = template.to_string();
-  for (reg, key) in HASH_REPLACERS.iter() {
-    template = reg
-      .replace_all(&template, |caps: &Captures| {
-        if let Some(hash_len) = match caps.get(2) {
-          Some(m) => m.as_str().parse().ok(),
-          None => None,
-        } {
-          hash_len_map.insert(key.to_string(), hash_len);
-        }
-        key
-      })
-      .into_owned();
+  let mut template = Cow::Borrowed(template);
+  for key in [
+    HASH_PLACEHOLDER,
+    FULL_HASH_PLACEHOLDER,
+    CHUNK_HASH_PLACEHOLDER,
+    CONTENT_HASH_PLACEHOLDER,
+  ] {
+    if let Some(p) = extract_hash_pattern(&template, key) {
+      if let Some(hash_len) = p.len {
+        hash_len_map.insert((*key).to_string(), hash_len);
+      }
+      template = Cow::Owned(template.cow_replace(&p.pattern, key).into_owned());
+    }
   }
-  (Filename::from(template), hash_len_map)
+  (Filename::from(template.into_owned()), hash_len_map)
 }

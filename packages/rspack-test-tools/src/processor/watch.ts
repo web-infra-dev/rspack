@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { merge } from "webpack-merge";
 
 import { ECompilerEvent } from "../compiler";
+import { readConfigFile } from "../helper";
+import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
 import copyDiff from "../helper/legacy/copyDiff";
 import type {
 	ECompilerType,
@@ -37,7 +40,7 @@ export class WatchProcessor<
 	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
 		super({
 			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
-			findBundle: () => "bundle.js",
+			findBundle: WatchProcessor.findBundle<T>,
 			..._watchOptions
 		});
 	}
@@ -80,7 +83,75 @@ export class WatchProcessor<
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
-		await super.check(env, context);
+		const testConfig = context.getTestConfig();
+		if (testConfig.noTest) return;
+
+		const errors: Array<{ message: string; stack?: string }> = (
+			context.getError(this._options.name) || []
+		).map(e => ({
+			message: e.message,
+			stack: e.stack
+		}));
+		const warnings: Array<{ message: string; stack?: string }> = [];
+		const compiler = this.getCompiler(context);
+		const stats = compiler.getStats();
+		const checkStats = testConfig.checkStats || (() => true);
+
+		if (stats) {
+			fs.writeFileSync(
+				path.join(context.getDist(), "stats.txt"),
+				stats.toString({
+					preset: "verbose",
+					colors: false
+				}),
+				"utf-8"
+			);
+			const jsonStats = stats.toJson({
+				errorDetails: true
+			});
+
+			if (!checkStats(this._watchOptions.stepName, jsonStats)) {
+				throw new Error("stats check failed");
+			}
+			fs.writeFileSync(
+				path.join(context.getDist(), "stats.json"),
+				JSON.stringify(jsonStats, null, 2),
+				"utf-8"
+			);
+			if (jsonStats.errors) {
+				errors.push(...jsonStats.errors);
+			}
+			if (jsonStats.warnings) {
+				warnings.push(...jsonStats.warnings);
+			}
+		}
+		await new Promise<void>((resolve, reject) => {
+			checkArrayExpectation(
+				path.join(context.getSource(), this._watchOptions.stepName),
+				{ errors },
+				"error",
+				"Error",
+				reject
+			);
+			resolve();
+		});
+
+		await new Promise<void>((resolve, reject) => {
+			checkArrayExpectation(
+				path.join(context.getSource(), this._watchOptions.stepName),
+				{ warnings },
+				"warning",
+				"Warning",
+				reject
+			);
+			resolve();
+		});
+
+		// clear error if checked
+		if (fs.existsSync(context.getSource("errors.js"))) {
+			context.clearError(this._options.name);
+		}
+
 		// check hash
 		fs.renameSync(
 			path.join(context.getDist(), "stats.txt"),
@@ -90,6 +161,39 @@ export class WatchProcessor<
 			path.join(context.getDist(), "stats.json"),
 			path.join(context.getDist(), `stats.${this._watchOptions.stepName}.json`)
 		);
+	}
+
+	async config(context: ITestContext) {
+		this.multiCompilerOptions = [];
+		const caseOptions: TCompilerOptions<T>[] = Array.isArray(
+			this._multiOptions.configFiles
+		)
+			? readConfigFile(
+					this._multiOptions.configFiles!.map(i => context.getSource(i))
+				)
+			: [{}];
+
+		for (const [index, options] of caseOptions.entries()) {
+			const compilerOptions = merge(
+				typeof this._multiOptions.defaultOptions === "function"
+					? this._multiOptions.defaultOptions!(index, context)
+					: {},
+				options
+			);
+
+			if (typeof this._multiOptions.overrideOptions === "function") {
+				this._multiOptions.overrideOptions!(index, context, compilerOptions);
+			}
+
+			this.multiCompilerOptions.push(compilerOptions);
+		}
+
+		const compilerOptions =
+			this.multiCompilerOptions.length === 1
+				? this.multiCompilerOptions[0]
+				: this.multiCompilerOptions;
+		const compiler = this.getCompiler(context);
+		compiler.setOptions(compilerOptions as any);
 	}
 
 	static overrideOptions<T extends ECompilerType>({
@@ -107,6 +211,7 @@ export class WatchProcessor<
 			if (!options.context) options.context = tempDir;
 			if (!options.entry) options.entry = "./index.js";
 			if (!options.target) options.target = "async-node";
+			if (!options.devtool) options.devtool = false;
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
 			if (typeof options.output.pathinfo === "undefined")
@@ -149,6 +254,20 @@ export class WatchProcessor<
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
 		};
+	}
+
+	static findBundle<T extends ECompilerType>(
+		this: IWatchProcessorOptions<T>,
+		index: number,
+		context: ITestContext,
+		options: TCompilerOptions<T>
+	) {
+		const testConfig = context.getTestConfig();
+
+		if (typeof testConfig.findBundle === "function") {
+			return testConfig.findBundle!(index, options, this.stepName);
+		}
+		return "./bundle.js";
 	}
 }
 

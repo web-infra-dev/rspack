@@ -2,39 +2,29 @@ use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
 use itertools::Itertools;
-use rspack_database::DatabaseItem;
+use rspack_collections::IdentifierMap;
+use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_error::{error, Result};
-use rspack_identifier::IdentifierMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, get_chunk_from_ukey, get_chunk_group_from_ukey, Chunk, ChunkByUkey,
-  ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation, DynamicImportFetchPriority,
-  FilenameTemplate,
+  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
+  DynamicImportFetchPriority, Filename, ModuleLayer,
 };
 use crate::{ChunkLoading, ChunkUkey, Compilation};
 use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
-pub struct SyntheticDependencyLocation {
-  pub name: String,
-}
-
-#[derive(Debug, Clone)]
-pub enum OriginLocation {
-  Real(DependencyLocation),
-  Synthetic(SyntheticDependencyLocation),
-}
-
-#[derive(Debug, Clone)]
 pub struct OriginRecord {
   pub module_id: Option<ModuleIdentifier>,
-  pub loc: Option<OriginLocation>,
+  pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
 }
 
 impl DatabaseItem for ChunkGroup {
-  fn ukey(&self) -> rspack_database::Ukey<Self> {
+  type ItemUkey = ChunkGroupUkey;
+
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }
@@ -45,11 +35,11 @@ pub struct ChunkGroup {
   pub kind: ChunkGroupKind,
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
-  pub parents: HashSet<ChunkGroupUkey>,
+  pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: HashSet<ChunkGroupUkey>,
-  async_entrypoints: HashSet<ChunkGroupUkey>,
+  pub(crate) children: UkeySet<ChunkGroupUkey>,
+  async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -57,6 +47,7 @@ pub struct ChunkGroup {
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
+  pub(crate) is_over_size_limit: Option<bool>,
 }
 
 impl ChunkGroup {
@@ -76,6 +67,7 @@ impl ChunkGroup {
       entry_point_chunk: None,
       index: None,
       origins: vec![],
+      is_over_size_limit: None,
     }
   }
 
@@ -98,7 +90,7 @@ impl ChunkGroup {
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
           .expect_get(chunk_ukey)
-          .files
+          .files()
           .iter()
           .map(|file| file.to_string())
       })
@@ -106,19 +98,19 @@ impl ChunkGroup {
   }
 
   pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.push(chunk.ukey);
+    self.chunks.push(chunk.ukey());
     chunk.add_group(self.ukey);
   }
 
   pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
-    if let Ok(index) = self.chunks.binary_search(&chunk.ukey) {
+    if let Ok(index) = self.chunks.binary_search(&chunk.ukey()) {
       if index > 0 {
         self.chunks.remove(index);
-        self.chunks.insert(0, chunk.ukey);
+        self.chunks.insert(0, chunk.ukey());
       }
       false
     } else {
-      self.chunks.insert(0, chunk.ukey);
+      self.chunks.insert(0, chunk.ukey());
       true
     }
   }
@@ -171,9 +163,9 @@ impl ChunkGroup {
     self.async_entrypoints.iter()
   }
 
-  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> UkeySet<ChunkGroupUkey> {
     let mut queue = vec![];
-    let mut ancestors = HashSet::default();
+    let mut ancestors = UkeySet::default();
 
     queue.extend(self.parents.iter().copied());
 
@@ -269,7 +261,10 @@ impl ChunkGroup {
       .chunks
       .iter()
       .filter_map(|chunk| {
-        get_chunk_from_ukey(chunk, &compilation.chunk_by_ukey).and_then(|item| item.id.as_ref())
+        compilation
+          .chunk_by_ukey
+          .get(chunk)
+          .and_then(|item| item.id())
       })
       .join("+")
   }
@@ -298,18 +293,13 @@ impl ChunkGroup {
   }
 
   pub fn add_parent(&mut self, parent_group: ChunkGroupUkey) -> bool {
-    if self.parents.contains(&parent_group) {
-      false
-    } else {
-      self.parents.insert(parent_group);
-      true
-    }
+    self.parents.insert(parent_group)
   }
 
   pub fn add_origin(
     &mut self,
     module_id: Option<ModuleIdentifier>,
-    loc: Option<OriginLocation>,
+    loc: Option<DependencyLocation>,
     request: Option<String>,
   ) {
     self.origins.push(OriginRecord {
@@ -334,9 +324,7 @@ impl ChunkGroup {
     for order_key in orders {
       let mut list = vec![];
       for child_ukey in &self.children {
-        let Some(child_group) =
-          get_chunk_group_from_ukey(child_ukey, &compilation.chunk_group_by_ukey)
-        else {
+        let Some(child_group) = compilation.chunk_group_by_ukey.get(child_ukey) else {
           continue;
         };
         if let Some(order) = child_group
@@ -363,6 +351,10 @@ impl ChunkGroup {
     }
 
     children_by_orders
+  }
+
+  pub fn set_is_over_size_limit(&mut self, v: bool) {
+    self.is_over_size_limit = Some(v);
   }
 }
 
@@ -438,7 +430,7 @@ impl EntryRuntime {
 
 // pub type EntryRuntime = String;
 
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -446,9 +438,10 @@ pub struct EntryOptions {
   pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
-  pub filename: Option<FilenameTemplate>,
+  pub filename: Option<Filename>,
   pub library: Option<LibraryOptions>,
   pub depend_on: Option<Vec<String>>,
+  pub layer: Option<ModuleLayer>,
 }
 
 impl EntryOptions {
@@ -473,6 +466,7 @@ impl EntryOptions {
     merge_field!(filename);
     merge_field!(library);
     merge_field!(depend_on);
+    merge_field!(layer);
     Ok(())
   }
 
@@ -534,7 +528,7 @@ impl ChunkGroupOptions {
   }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),

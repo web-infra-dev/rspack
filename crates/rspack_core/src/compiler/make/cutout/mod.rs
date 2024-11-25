@@ -3,6 +3,7 @@ mod fix_build_meta;
 mod fix_issuers;
 mod has_module_graph_change;
 
+use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
@@ -27,7 +28,7 @@ impl Cutout {
     params: Vec<MakeParam>,
   ) -> HashSet<BuildDependency> {
     let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
-    let mut force_build_modules = HashSet::default();
+    let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
     let mut remove_entry_deps = HashSet::default();
 
@@ -124,26 +125,25 @@ impl Cutout {
     }
 
     // do revoke module and collect deps
-    force_build_deps.extend(artifact.revoke_modules(force_build_modules));
+    for id in force_build_modules {
+      force_build_deps.extend(artifact.revoke_module(&id));
+    }
 
     let mut module_graph = artifact.get_module_graph_mut();
     for dep_id in remove_entry_deps {
       // connection may have been deleted by revoke module
-      if let Some(con) = module_graph.connection_by_dependency(&dep_id) {
+      if let Some(con) = module_graph.connection_by_dependency_id(&dep_id) {
         self
           .clean_isolated_module
           .add_need_check_module(*con.module_identifier());
-        let con_id = con.id;
-        module_graph.revoke_connection(&con_id, true);
+        module_graph.revoke_connection(&dep_id, true);
       }
       force_build_deps.remove(&(dep_id, None));
     }
 
     artifact.entry_dependencies = entry_dependencies;
 
-    self
-      .has_module_graph_change
-      .analyze_force_build_deps(&force_build_deps);
+    self.has_module_graph_change.analyze_artifact(artifact);
 
     force_build_deps
   }

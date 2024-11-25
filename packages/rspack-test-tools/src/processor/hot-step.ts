@@ -24,7 +24,7 @@ type TModuleGetHandler = (
 	options: TCompilerOptions<ECompilerType>
 ) => string[];
 
-declare var global: {
+declare let global: {
 	self?: {
 		[key: string]: (name: string, modules: Record<string, unknown>) => void;
 	};
@@ -43,12 +43,12 @@ const SELF_HANDLER = (
 			options.output?.uniqueName || ""
 		}`
 	);
-	global["self"] ??= {};
-	global["self"][hotUpdateGlobalKey] = hotUpdateGlobal;
+	global.self ??= {};
+	global.self[hotUpdateGlobalKey] = hotUpdateGlobal;
 	require(file);
-	delete global["self"][hotUpdateGlobalKey];
-	if (!Object.keys(global["self"]).length) {
-		delete global["self"];
+	delete global.self[hotUpdateGlobalKey];
+	if (!Object.keys(global.self).length) {
+		delete global.self;
 	}
 	return res;
 };
@@ -223,22 +223,22 @@ export class HotSnapshotProcessor<
 		}
 
 		const replaceContent = (str: string) => {
-			for (const [raw, replacement] of Object.entries(hashes)) {
-				str = str.split(raw).join(replacement);
-			}
-			// handle timestamp in css-extract
-			str = str.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "");
-			return replacePaths(str);
+			return replacePaths(
+				Object.entries(hashes)
+					.reduce((str, [raw, replacement]) => {
+						return str.split(raw).join(replacement);
+					}, str)
+					.replace(/\/\/ (\d+)\s+(?=var cssReload)/, "")
+			);
 		};
 
 		const replaceFileName = (str: string) => {
-			for (const [raw, replacement] of Object.entries({
+			return Object.entries({
 				...hashes,
 				...runtimes
-			})) {
-				str = str.split(raw).join(replacement);
-			}
-			return str;
+			}).reduce((str, [raw, replacement]) => {
+				return str.split(raw).join(replacement);
+			}, str);
 		};
 
 		const fileList = stats
@@ -268,7 +268,8 @@ export class HotSnapshotProcessor<
 						runtime
 					});
 					return `- Update: ${renderName}, size: ${content.length}`;
-				} else if (fileName.endsWith("hot-update.json")) {
+				}
+				if (fileName.endsWith("hot-update.json")) {
 					const manifest = JSON.parse(content);
 					manifest.c?.sort();
 					manifest.r?.sort();
@@ -278,7 +279,8 @@ export class HotSnapshotProcessor<
 						content: JSON.stringify(manifest)
 					});
 					return `- Manifest: ${renderName}, size: ${i.size}`;
-				} else if (fileName.endsWith(".js")) {
+				}
+				if (fileName.endsWith(".js")) {
 					return `- Bundle: ${renderName}`;
 				}
 			})

@@ -1,28 +1,31 @@
 import assert from "node:assert";
-import type {
-	RawAssetGeneratorOptions,
-	RawAssetInlineGeneratorOptions,
-	RawAssetParserDataUrl,
-	RawAssetParserOptions,
-	RawAssetResourceGeneratorOptions,
-	RawCssAutoGeneratorOptions,
-	RawCssAutoParserOptions,
-	RawCssGeneratorOptions,
-	RawCssModuleGeneratorOptions,
-	RawCssModuleParserOptions,
-	RawCssParserOptions,
-	RawFuncUseCtx,
-	RawGeneratorOptions,
-	RawJavascriptParserOptions,
-	RawLibraryName,
-	RawLibraryOptions,
-	RawModuleRule,
-	RawModuleRuleUse,
-	RawOptions,
-	RawParserOptions,
-	RawRspackFuture,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions
+import {
+	type JsLibraryName,
+	type JsLibraryOptions,
+	type RawAssetGeneratorOptions,
+	type RawAssetInlineGeneratorOptions,
+	type RawAssetParserDataUrl,
+	type RawAssetParserOptions,
+	type RawAssetResourceGeneratorOptions,
+	type RawCssAutoGeneratorOptions,
+	type RawCssAutoParserOptions,
+	type RawCssGeneratorOptions,
+	type RawCssModuleGeneratorOptions,
+	type RawCssModuleParserOptions,
+	type RawCssParserOptions,
+	type RawExperiments,
+	type RawFuncUseCtx,
+	type RawGeneratorOptions,
+	type RawIncremental,
+	type RawJavascriptParserOptions,
+	type RawModuleRule,
+	type RawModuleRuleUse,
+	type RawOptions,
+	type RawParserOptions,
+	type RawRspackFuture,
+	type RawRuleSetCondition,
+	RawRuleSetConditionType,
+	type RawRuleSetLogicalConditions
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
@@ -54,7 +57,9 @@ import type {
 	CssAutoGeneratorOptions,
 	CssGeneratorOptions,
 	CssParserOptions,
+	ExperimentCacheOptions,
 	GeneratorOptionsByModuleType,
+	Incremental,
 	JavascriptParserOptions,
 	LibraryName,
 	LibraryOptions,
@@ -69,7 +74,7 @@ import type {
 	SnapshotOptions,
 	StatsValue,
 	Target
-} from "./zod";
+} from "./types";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -140,9 +145,8 @@ function getRawExtensionAlias(
 	const entries = Object.entries(alias).map(([key, value]) => {
 		if (Array.isArray(value)) {
 			return [key, value];
-		} else {
-			return [key, [value]];
 		}
+		return [key, [value]];
 	});
 	return Object.fromEntries(entries);
 }
@@ -177,8 +181,8 @@ function getRawTsConfig(
 	return {
 		configFile,
 		referencesType:
-			references == "auto" ? "auto" : references ? "manual" : "disabled",
-		references: references == "auto" ? undefined : references
+			references === "auto" ? "auto" : references ? "manual" : "disabled",
+		references: references === "auto" ? undefined : references
 	};
 }
 
@@ -222,6 +226,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
+		cssHeadDataCompression: output.cssHeadDataCompression!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
 		hotUpdateGlobal: output.hotUpdateGlobal!,
@@ -232,6 +237,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,
 		globalObject: output.globalObject!,
 		importFunctionName: output.importFunctionName!,
+		importMetaName: output.importMetaName!,
 		iife: output.iife!,
 		module: output.module!,
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
@@ -253,11 +259,12 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		scriptType: output.scriptType === false ? "false" : output.scriptType!,
 		charset: output.charset!,
 		chunkLoadTimeout: output.chunkLoadTimeout!,
-		environment: output.environment!
+		environment: output.environment!,
+		compareBeforeEmit: output.compareBeforeEmit!
 	};
 }
 
-export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
+export function getRawLibrary(library: LibraryOptions): JsLibraryOptions {
 	const {
 		type,
 		name,
@@ -287,7 +294,7 @@ export function getRawLibrary(library: LibraryOptions): RawLibraryOptions {
 	};
 }
 
-function getRawLibraryName(name: LibraryName): RawLibraryName {
+function getRawLibraryName(name: LibraryName): JsLibraryName {
 	if (typeof name === "string") {
 		return {
 			type: "string",
@@ -334,8 +341,8 @@ function getRawModule(
 	);
 	return {
 		rules,
-		parser: getRawParserOptionsByModuleType(module.parser),
-		generator: getRawGeneratorOptionsByModuleType(module.generator),
+		parser: getRawParserOptionsMap(module.parser),
+		generator: getRawGeneratorOptionsMap(module.generator),
 		noParse: module.noParse
 	};
 }
@@ -409,12 +416,23 @@ const getRawModuleRule = (
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		issuerLayer: rule.issuerLayer
+			? getRawRuleSetCondition(rule.issuerLayer)
+			: undefined,
 		dependency: rule.dependency
 			? getRawRuleSetCondition(rule.dependency)
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
 					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+				)
+			: undefined,
+		with: rule.with
+			? Object.fromEntries(
+					Object.entries(rule.with).map(([k, v]) => [
 						k,
 						getRawRuleSetCondition(v)
 					])
@@ -435,6 +453,7 @@ const getRawModuleRule = (
 				? funcUse
 				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
+		layer: rule.layer,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? upperType)
 			: undefined,
@@ -443,24 +462,28 @@ const getRawModuleRule = (
 			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.oneOf[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.oneOf
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.oneOf[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		rules: rule.rules
-			? rule.rules.map((rule, index) =>
-					getRawModuleRule(
-						rule,
-						`${path}.rules[${index}]`,
-						options,
-						rule.type ?? upperType
+			? rule.rules
+					.filter(Boolean)
+					.map((rule, index) =>
+						getRawModuleRule(
+							rule as RuleSetRule,
+							`${path}.rules[${index}]`,
+							options,
+							(rule as RuleSetRule).type ?? upperType
+						)
 					)
-				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -485,7 +508,8 @@ const getRawModuleRule = (
 
 				if (rule.test && !tryMatch(path, rule.test)) {
 					return false;
-				} else if (rule.resource && !tryMatch(path, rule.resource)) {
+				}
+				if (rule.resource && !tryMatch(path, rule.resource)) {
 					return false;
 				}
 
@@ -512,35 +536,32 @@ function getRawRuleSetCondition(
 ): RawRuleSetCondition {
 	if (typeof condition === "string") {
 		return {
-			type: "string",
-			stringMatcher: condition
+			type: RawRuleSetConditionType.string,
+			string: condition
 		};
 	}
 	if (condition instanceof RegExp) {
 		return {
-			type: "regexp",
-			regexpMatcher: {
-				source: condition.source,
-				flags: condition.flags
-			}
+			type: RawRuleSetConditionType.regexp,
+			regexp: condition
 		};
 	}
 	if (typeof condition === "function") {
 		return {
-			type: "function",
-			funcMatcher: condition
+			type: RawRuleSetConditionType.func,
+			func: condition
 		};
 	}
 	if (Array.isArray(condition)) {
 		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
+			type: RawRuleSetConditionType.array,
+			array: condition.map(i => getRawRuleSetCondition(i))
 		};
 	}
 	if (typeof condition === "object" && condition !== null) {
 		return {
-			type: "logical",
-			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
+			type: RawRuleSetConditionType.logical,
+			logical: [getRawRuleSetLogicalConditions(condition)]
 		};
 	}
 	throw new Error(
@@ -560,7 +581,7 @@ function getRawRuleSetLogicalConditions(
 	};
 }
 
-function getRawParserOptionsByModuleType(
+function getRawParserOptionsMap(
 	parser: ParserOptionsByModuleType
 ): Record<string, RawParserOptions> {
 	return Object.fromEntries(
@@ -570,11 +591,11 @@ function getRawParserOptionsByModuleType(
 	);
 }
 
-function getRawGeneratorOptionsByModuleType(
-	parser: GeneratorOptionsByModuleType
+function getRawGeneratorOptionsMap(
+	generator: GeneratorOptionsByModuleType
 ): Record<string, RawGeneratorOptions> {
 	return Object.fromEntries(
-		Object.entries(parser)
+		Object.entries(generator)
 			.map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
 			.filter(([k, v]) => v !== undefined)
 	);
@@ -589,35 +610,44 @@ function getRawParserOptions(
 			type: "asset",
 			asset: getRawAssetParserOptions(parser)
 		};
-	} else if (type === "javascript") {
-		// Filter this out, since `parser["javascript"]` already merge into `parser["javascript/*"]` in default.ts
-		return;
-	} else if (type === "javascript/auto") {
+	}
+	if (type === "javascript") {
+		return {
+			type: "javascript",
+			javascript: getRawJavascriptParserOptions(parser)
+		};
+	}
+	if (type === "javascript/auto") {
 		return {
 			type: "javascript/auto",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/dynamic") {
+	}
+	if (type === "javascript/dynamic") {
 		return {
 			type: "javascript/dynamic",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "javascript/esm") {
+	}
+	if (type === "javascript/esm") {
 		return {
 			type: "javascript/esm",
 			javascript: getRawJavascriptParserOptions(parser)
 		};
-	} else if (type === "css") {
+	}
+	if (type === "css") {
 		return {
 			type: "css",
 			css: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/auto") {
+	}
+	if (type === "css/auto") {
 		return {
 			type: "css/auto",
 			cssAuto: getRawCssParserOptions(parser)
 		};
-	} else if (type === "css/module") {
+	}
+	if (type === "css/module") {
 		return {
 			type: "css/module",
 			cssModule: getRawCssParserOptions(parser)
@@ -631,18 +661,15 @@ function getRawJavascriptParserOptions(
 	parser: JavascriptParserOptions
 ): RawJavascriptParserOptions {
 	return {
-		dynamicImportMode: parser.dynamicImportMode ?? "lazy",
-		dynamicImportPreload: parser.dynamicImportPreload?.toString() ?? "false",
-		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString() ?? "false",
-		dynamicImportFetchPriority: parser.dynamicImportFetchPriority?.toString(),
-		url:
-			parser.url === false
-				? "false"
-				: parser.url === "relative"
-					? parser.url
-					: "true",
-		exprContextCritical: parser.exprContextCritical ?? true,
-		wrappedContextCritical: parser.wrappedContextCritical ?? false,
+		dynamicImportMode: parser.dynamicImportMode,
+		dynamicImportPreload: parser.dynamicImportPreload?.toString(),
+		dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
+		dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
+		importMeta: parser.importMeta,
+		url: parser.url?.toString(),
+		exprContextCritical: parser.exprContextCritical,
+		wrappedContextCritical: parser.wrappedContextCritical,
+		wrappedContextRegExp: parser.wrappedContextRegExp,
 		exportsPresence:
 			parser.exportsPresence === false ? "false" : parser.exportsPresence,
 		importExportsPresence:
@@ -653,24 +680,19 @@ function getRawJavascriptParserOptions(
 			parser.reexportExportsPresence === false
 				? "false"
 				: parser.reexportExportsPresence,
-		strictExportPresence: parser.strictExportPresence ?? false,
-		worker: getRawJavascriptParserOptionsWorker(parser.worker!),
-		overrideStrict: parser.overrideStrict
+		strictExportPresence: parser.strictExportPresence,
+		worker:
+			typeof parser.worker === "boolean"
+				? parser.worker
+					? ["..."]
+					: []
+				: parser.worker,
+		overrideStrict: parser.overrideStrict,
+		requireAsExpression: parser.requireAsExpression,
+		requireDynamic: parser.requireDynamic,
+		requireResolve: parser.requireResolve,
+		importDynamic: parser.importDynamic
 	};
-}
-
-function getRawJavascriptParserOptionsWorker(
-	worker: boolean | string[]
-): RawJavascriptParserOptions["worker"] {
-	const DEFAULT_SYNTAX = [
-		"Worker",
-		"SharedWorker",
-		"navigator.serviceWorker.register()",
-		"Worker from worker_threads"
-	];
-	return (
-		worker === false ? [] : Array.isArray(worker) ? worker : ["..."]
-	).flatMap(item => (item === "..." ? DEFAULT_SYNTAX : item));
 }
 
 function getRawAssetParserOptions(
@@ -863,17 +885,70 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, rspackFuture } = experiments;
-	assert(!isNil(topLevelAwait) && !isNil(rspackFuture));
+	const { topLevelAwait, layers, incremental, rspackFuture, cache } =
+		experiments;
+	assert(
+		!isNil(topLevelAwait) &&
+			!isNil(rspackFuture) &&
+			!isNil(layers) &&
+			!isNil(incremental)
+	);
 
 	return {
+		layers,
 		topLevelAwait,
+		cache: getRawExperimentCache(cache),
+		incremental: getRawIncremental(incremental),
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
 }
 
+function getRawExperimentCache(
+	cache?: ExperimentCacheOptions
+): RawExperiments["cache"] {
+	if (cache === undefined) {
+		throw new Error("experiment cache can not be undefined");
+	}
+	if (typeof cache === "boolean") {
+		return {
+			type: cache ? "memory" : "disable"
+		};
+	}
+	if (cache.type === "persistent") {
+		const { type, snapshot, storage } = cache;
+		return {
+			type,
+			snapshot,
+			storage: [storage]
+		};
+	}
+	return cache;
+}
+
+function getRawIncremental(
+	incremental: false | Incremental
+): RawIncremental | undefined {
+	if (incremental === false) {
+		return undefined;
+	}
+	return {
+		make: incremental.make!,
+		inferAsyncModules: incremental.inferAsyncModules!,
+		providedExports: incremental.providedExports!,
+		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
+		buildChunkGraph: incremental.buildChunkGraph!,
+		modulesHashes: incremental.modulesHashes!,
+		modulesCodegen: incremental.modulesCodegen!,
+		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,
+		chunksRuntimeRequirements: incremental.chunksRuntimeRequirements!,
+		chunksHashes: incremental.chunksHashes!,
+		chunksRender: incremental.chunksRender!,
+		emitAssets: incremental.emitAssets!
+	};
+}
+
 function getRawRspackFutureOptions(
-	_future: RspackFutureOptions
+	future: RspackFutureOptions
 ): RawRspackFuture {
 	return {};
 }

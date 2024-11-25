@@ -1,11 +1,13 @@
 use std::{fmt::Display, sync::Arc};
 
-use rspack_core::EsVersion;
 use rspack_error::{miette::Severity, TraceableError};
 use serde_json::json;
 use swc_core::{
   common::{FileName, Spanned},
-  ecma::parser::{parse_file_as_expr, EsSyntax, Syntax},
+  ecma::{
+    ast::EsVersion,
+    parser::{parse_file_as_expr, EsSyntax, Syntax},
+  },
 };
 
 use super::BasicEvaluatedExpression;
@@ -18,7 +20,7 @@ pub fn eval_source<T: Display>(
   error_title: T,
 ) -> Option<BasicEvaluatedExpression> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
-  let fm = cm.new_source_file(FileName::Anon, source.clone());
+  let fm = cm.new_source_file(Arc::new(FileName::Anon), source);
   let result = parse_file_as_expr(
     &fm,
     Syntax::Es(EsSyntax::default()),
@@ -36,7 +38,7 @@ pub fn eval_source<T: Display>(
           span.lo.0.saturating_sub(1) as usize,
           span.hi.0.saturating_sub(1) as usize,
           format!("{error_title} warning"),
-          format!("failed to parse {}", json!(source)),
+          format!("failed to parse {}", json!(fm.src.as_ref())),
         )
         .with_severity(Severity::Warning),
       ));

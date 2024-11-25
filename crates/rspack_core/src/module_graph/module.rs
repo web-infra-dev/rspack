@@ -1,16 +1,13 @@
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ExportsInfoId;
-use crate::{
-  module_graph::ConnectionId, ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer,
-  ModuleProfile, ModuleSyntax,
-};
+use crate::ExportsInfo;
+use crate::{ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer, ModuleProfile};
 
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: HashSet<ConnectionId>,
-  incoming_connections: HashSet<ConnectionId>,
+  outgoing_connections: HashSet<DependencyId>,
+  incoming_connections: HashSet<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -21,16 +18,14 @@ pub struct ModuleGraphModule {
   pub(crate) all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
-  pub module_syntax: ModuleSyntax,
-  pub exports: ExportsInfoId,
+  pub exports: ExportsInfo,
   pub profile: Option<Box<ModuleProfile>>,
-  pub is_async: bool,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<String>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, exports_info_id: ExportsInfoId) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, exports_info: ExportsInfo) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -40,50 +35,39 @@ impl ModuleGraphModule {
       all_dependencies: Default::default(),
       pre_order_index: None,
       post_order_index: None,
-      module_syntax: ModuleSyntax::empty(),
-      exports: exports_info_id,
+      exports: exports_info,
       profile: None,
-      is_async: false,
       depth: None,
       optimization_bailout: vec![],
     }
   }
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
-    let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
+    let c = chunk_graph.get_module_id(self.module_identifier);
     c.unwrap_or_else(|| panic!("{} module id not found", self.module_identifier))
-      .as_str()
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
-    self.incoming_connections.insert(connection_id);
+  pub fn add_incoming_connection(&mut self, dependency_id: DependencyId) {
+    self.incoming_connections.insert(dependency_id);
   }
 
-  pub fn remove_incoming_connection(&mut self, connection_id: &ConnectionId) {
-    self.incoming_connections.remove(connection_id);
+  pub fn remove_incoming_connection(&mut self, dependency_id: &DependencyId) {
+    self.incoming_connections.remove(dependency_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
-    self.outgoing_connections.insert(connection_id);
+  pub fn add_outgoing_connection(&mut self, dependency_id: DependencyId) {
+    self.outgoing_connections.insert(dependency_id);
   }
 
-  pub fn remove_outgoing_connection(&mut self, connection_id: &ConnectionId) {
-    self.outgoing_connections.remove(connection_id);
+  pub fn remove_outgoing_connection(&mut self, dependency_id: &DependencyId) {
+    self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &HashSet<ConnectionId> {
+  pub fn incoming_connections(&self) -> &HashSet<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &HashSet<ConnectionId> {
-    &self.outgoing_connections
-  }
-
-  pub fn get_incoming_connections_unordered(&self) -> &HashSet<ConnectionId> {
-    &self.incoming_connections
-  }
-
-  pub fn get_outgoing_connections_unordered(&self) -> &HashSet<ConnectionId> {
+  pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
     &self.outgoing_connections
   }
 
@@ -91,7 +75,7 @@ impl ModuleGraphModule {
     self.profile = Some(profile);
   }
 
-  pub fn get_profile(&self) -> Option<&ModuleProfile> {
+  pub fn profile(&self) -> Option<&ModuleProfile> {
     self.profile.as_deref()
   }
 
@@ -105,7 +89,7 @@ impl ModuleGraphModule {
     self.issuer = issuer;
   }
 
-  pub fn get_issuer(&self) -> &ModuleIssuer {
+  pub fn issuer(&self) -> &ModuleIssuer {
     &self.issuer
   }
 

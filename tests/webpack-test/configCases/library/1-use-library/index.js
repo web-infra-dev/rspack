@@ -2,7 +2,7 @@ import d from "library";
 import { a, b, external } from "library";
 
 it(
-	"should be able to import harmony exports from library (" + NAME + ")",
+	"should be able to import ESM exports from library (" + NAME + ")",
 	function () {
 		expect(d).toBe("default-value");
 		expect(a).toBe("a");

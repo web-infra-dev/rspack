@@ -1,16 +1,14 @@
 use std::collections::VecDeque;
 
+use rspack_collections::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedReceiver};
 
-use super::{
-  entry::{EntryParam, EntryTask},
-  execute::ExecuteTask,
-};
+use super::{entry::EntryTask, execute::ExecuteTask};
 use crate::{
   compiler::make::repair::MakeTaskContext,
   utils::task_loop::{Task, TaskResult, TaskType},
-  Dependency, DependencyId, ModuleIdentifier,
+  Dependency, DependencyId, LoaderImportDependency, ModuleIdentifier,
 };
 
 #[derive(Debug)]
@@ -44,6 +42,29 @@ impl UnfinishCounter {
   }
 }
 
+#[derive(Debug, Default)]
+struct ExecuteTaskList(Vec<Box<dyn Task<MakeTaskContext>>>);
+
+impl ExecuteTaskList {
+  fn add_task(&mut self, task: ExecuteTask) {
+    self.0.push(Box::new(task));
+    if self.0.len() > 10000 {
+      // TODO change to Err
+      panic!("ExecuteTaskList exceeds limit and may contain circular build dependencies.")
+    }
+  }
+
+  fn into_vec(self) -> Vec<Box<dyn Task<MakeTaskContext>>> {
+    self.0
+  }
+}
+
+#[derive(Debug)]
+pub enum ExecuteParam {
+  DependencyId(DependencyId),
+  Entry(Box<LoaderImportDependency>, Option<String>),
+}
+
 // send event can only use in sync task
 #[derive(Debug)]
 pub enum Event {
@@ -56,15 +77,15 @@ pub enum Event {
   ),
   // current_module_identifier and sub dependency count
   FinishModule(ModuleIdentifier, usize),
-  ExecuteModule(EntryParam, ExecuteTask),
+  ExecuteModule(ExecuteParam, ExecuteTask),
   Stop(),
 }
 
 #[derive(Debug)]
 pub struct CtrlTask {
   pub event_receiver: UnboundedReceiver<Event>,
-  execute_task_map: HashMap<DependencyId, ExecuteTask>,
-  running_module_map: HashMap<ModuleIdentifier, UnfinishCounter>,
+  execute_task_map: HashMap<DependencyId, ExecuteTaskList>,
+  running_module_map: IdentifierMap<UnfinishCounter>,
 }
 
 impl CtrlTask {
@@ -83,7 +104,7 @@ impl Task<MakeTaskContext> for CtrlTask {
     TaskType::Async
   }
 
-  async fn async_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(mut self: Box<Self>) -> TaskResult<MakeTaskContext> {
     while let Some(event) = self.event_receiver.recv().await {
       tracing::info!("CtrlTask async receive {:?}", event);
       match event {
@@ -104,11 +125,13 @@ impl Task<MakeTaskContext> for CtrlTask {
           // target module finished
           let Some(origin_module_identifier) = origin_module_identifier else {
             // origin_module_identifier is none means entry dep
-            let execute_task = self
+            let mut tasks = self
               .execute_task_map
               .remove(&dep_id)
-              .expect("should have execute task");
-            return Ok(vec![Box::new(execute_task), self]);
+              .expect("should have execute task")
+              .into_vec();
+            tasks.push(self);
+            return Ok(tasks);
           };
 
           let value = self
@@ -137,12 +160,26 @@ impl Task<MakeTaskContext> for CtrlTask {
           }
         }
         Event::ExecuteModule(param, execute_task) => {
-          let dep_id = match &param {
-            EntryParam::DependencyId(id, _) => *id,
-            EntryParam::Entry(dep) => *dep.id(),
+          match param {
+            ExecuteParam::Entry(dep, layer) => {
+              let dep_id = dep.id();
+              if let Some(tasks) = self.execute_task_map.get_mut(dep_id) {
+                tasks.add_task(execute_task)
+              } else {
+                let mut list = ExecuteTaskList::default();
+                list.add_task(execute_task);
+                self.execute_task_map.insert(*dep_id, list);
+                return Ok(vec![Box::new(EntryTask { dep, layer }), self]);
+              }
+            }
+            ExecuteParam::DependencyId(dep_id) => {
+              if let Some(tasks) = self.execute_task_map.get_mut(&dep_id) {
+                tasks.add_task(execute_task)
+              } else {
+                return Ok(vec![Box::new(execute_task), self]);
+              }
+            }
           };
-          self.execute_task_map.insert(dep_id, execute_task);
-          return Ok(vec![Box::new(EntryTask { param }), self]);
         }
         Event::Stop() => {
           return Ok(vec![]);
@@ -159,13 +196,13 @@ struct FinishModuleTask {
   ctrl_task: Box<CtrlTask>,
   module_identifier: ModuleIdentifier,
 }
-
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for FinishModuleTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
 
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       mut ctrl_task,
       module_identifier,
@@ -211,8 +248,9 @@ impl Task<MakeTaskContext> for FinishModuleTask {
             let execute_task = ctrl_task
               .execute_task_map
               .remove(&dep_id)
-              .expect("should have execute task");
-            res.push(Box::new(execute_task));
+              .expect("should have execute task")
+              .into_vec();
+            res.extend(execute_task);
             continue;
           };
 
@@ -236,12 +274,26 @@ impl Task<MakeTaskContext> for FinishModuleTask {
           }
         }
         Event::ExecuteModule(param, execute_task) => {
-          let dep_id = match &param {
-            EntryParam::DependencyId(id, _) => *id,
-            EntryParam::Entry(dep) => *dep.id(),
+          match param {
+            ExecuteParam::Entry(dep, layer) => {
+              let dep_id = dep.id();
+              if let Some(tasks) = ctrl_task.execute_task_map.get_mut(dep_id) {
+                tasks.add_task(execute_task)
+              } else {
+                let mut list = ExecuteTaskList::default();
+                list.add_task(execute_task);
+                ctrl_task.execute_task_map.insert(*dep_id, list);
+                res.push(Box::new(EntryTask { dep, layer }));
+              }
+            }
+            ExecuteParam::DependencyId(dep_id) => {
+              if let Some(tasks) = ctrl_task.execute_task_map.get_mut(&dep_id) {
+                tasks.add_task(execute_task)
+              } else {
+                res.push(Box::new(execute_task));
+              }
+            }
           };
-          ctrl_task.execute_task_map.insert(dep_id, execute_task);
-          res.push(Box::new(EntryTask { param }));
         }
         Event::Stop() => {
           return Ok(vec![]);
@@ -258,9 +310,9 @@ impl Task<MakeTaskContext> for FinishModuleTask {
         .expect("should have mgm");
 
       let mut original_module_identifiers = HashSet::default();
-      for connection_id in mgm.incoming_connections() {
+      for dep_id in mgm.incoming_connections() {
         let connection = module_graph
-          .connection_by_connection_id(connection_id)
+          .connection_by_dependency_id(dep_id)
           .expect("should have connection");
         if let Some(original_module_identifier) = &connection.original_module_identifier {
           // skip self reference
@@ -272,8 +324,9 @@ impl Task<MakeTaskContext> for FinishModuleTask {
           let execute_task = ctrl_task
             .execute_task_map
             .remove(&connection.dependency_id)
-            .expect("should have execute task");
-          res.push(Box::new(execute_task));
+            .expect("should have execute task")
+            .into_vec();
+          res.extend(execute_task);
         }
       }
 

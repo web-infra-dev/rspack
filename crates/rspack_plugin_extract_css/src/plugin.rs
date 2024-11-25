@@ -1,14 +1,17 @@
-use std::{borrow::Cow, cmp::max, hash::Hash, path::PathBuf, sync::Arc};
+use std::sync::LazyLock;
+use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 
-use once_cell::sync::Lazy;
+use cow_utils::CowUtils;
 use regex::Regex;
+use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
+use rspack_core::ChunkGraph;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
-  ApplyContext, AssetInfo, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, Filename, Module,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
+  ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
+  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, CompilerOptions, Filename, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -17,7 +20,7 @@ use rspack_plugin_javascript::{
   parser_and_generator::JavaScriptParserAndGenerator, BoxJavascriptParserPlugin,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use ustr::Ustr;
 
 use crate::{
@@ -27,28 +30,18 @@ use crate::{
 };
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
-pub static MODULE_TYPE_STR: Lazy<Ustr> = Lazy::new(|| Ustr::from("css/mini-extract"));
-pub static MODULE_TYPE: Lazy<ModuleType> = Lazy::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
-pub static SOURCE_TYPE: Lazy<[SourceType; 1]> =
-  Lazy::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
-
-pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
-pub static AUTO_PUBLIC_PATH_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH).expect("should compile"));
-
-pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
-pub static ABSOLUTE_PUBLIC_PATH_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(ABSOLUTE_PUBLIC_PATH).expect("should compile"));
+pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
+pub static MODULE_TYPE: LazyLock<ModuleType> =
+  LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
+pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
+  LazyLock::new(|| [SourceType::Custom(*MODULE_TYPE_STR)]);
 
 pub static BASE_URI: &str = "webpack://";
-pub static BASE_URI_RE: Lazy<Regex> = Lazy::new(|| Regex::new(BASE_URI).expect("should compile"));
-
+pub static ABSOLUTE_PUBLIC_PATH: &str = "webpack:///mini-css-extract-plugin/";
+pub static AUTO_PUBLIC_PATH: &str = "__mini_css_extract_plugin_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__mini_css_extract_plugin_single_dot_path_segment__";
-pub static SINGLE_DOT_PATH_SEGMENT_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(SINGLE_DOT_PATH_SEGMENT).expect("should compile"));
 
-static STARTS_WITH_AT_IMPORT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^@import url").expect("should compile"));
+static STARTS_WITH_AT_IMPORT: &str = "@import url";
 
 struct CssOrderConflicts {
   chunk: ChunkUkey,
@@ -127,20 +120,17 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph<'comp>,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: FxHashMap<
-      ModuleIdentifier,
-      FxHashMap<ModuleIdentifier, FxHashSet<ChunkGroupUkey>>,
-    > = modules
+    let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
       .iter()
       .map(|m| (m.identifier(), Default::default()))
       .collect();
 
-    let mut module_dependencies: FxHashMap<ModuleIdentifier, FxHashSet<ModuleIdentifier>> = modules
+    let mut module_dependencies: IdentifierMap<IdentifierSet> = modules
       .iter()
-      .map(|module| (module.identifier(), FxHashSet::default()))
+      .map(|module| (module.identifier(), IdentifierSet::default()))
       .collect();
 
-    let mut groups = chunk.groups.iter().cloned().collect::<Vec<_>>();
+    let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
     groups.sort_unstable();
 
     let mut modules_by_chunk_group = groups
@@ -183,7 +173,7 @@ impl PluginCssExtract {
       })
       .collect::<Vec<Vec<(ModuleIdentifier, usize)>>>();
 
-    let mut used_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let mut used_modules: IdentifierSet = Default::default();
     let mut result: Vec<&dyn Module> = Default::default();
     let mut conflicts: Option<Vec<CssOrderConflicts>> = None;
 
@@ -251,7 +241,7 @@ impl PluginCssExtract {
             .expect("should have dep reason");
 
           let new_conflict = CssOrderConflicts {
-            chunk: chunk.ukey,
+            chunk: chunk.ukey(),
             fallback_module,
             reasons: best_match_deps
               .into_iter()
@@ -325,15 +315,15 @@ impl PluginCssExtract {
     let mut source = ConcatSource::default();
     let mut external_source = ConcatSource::default();
 
-    let (filename, _) = compilation.get_path_with_info(filename_template, path_data)?;
+    let (filename, asset_info) = compilation.get_path_with_info(filename_template, path_data)?;
 
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
       let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let starts_with_at_import = STARTS_WITH_AT_IMPORT_REGEX.is_match(&content);
+      let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
 
       let header = self.options.pathinfo.then(|| {
-        let req_str = readable_identifier.replace("*/", "*_/");
+        let req_str = readable_identifier.cow_replace("*/", "*_/");
         let req_str_star = "*".repeat(req_str.len());
         RawSource::from(format!(
           "/*!****{req_str_star}****!*\\\n  !*** {req_str} ***!\n  \\****{req_str_star}****/\n"
@@ -344,68 +334,74 @@ impl PluginCssExtract {
         if let Some(header) = header {
           external_source.add(header);
         }
-        if !module.media.is_empty() {
-          static MEDIA_RE: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), &module.media);
+        if let Some(media) = &module.media {
+          static MEDIA_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
+          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawSource::from(new_content.to_string() + "\n"));
         } else {
           external_source.add(RawSource::from(content.to_string() + "\n"));
         }
       } else {
+        let mut need_supports = false;
+        let mut need_media = false;
+
         if let Some(header) = header {
           source.add(header);
         }
-        if !module.supports.is_empty() {
-          source.add(RawSource::from(format!(
-            "@supports ({}) {{\n",
-            &module.supports
-          )));
+
+        if let Some(supports) = &module.supports
+          && !supports.is_empty()
+        {
+          need_supports = true;
+          source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
         }
 
-        if !module.media.is_empty() {
-          source.add(RawSource::from(format!("@media {} {{\n", &module.media)));
+        if let Some(media) = &module.media
+          && !media.is_empty()
+        {
+          need_media = true;
+          source.add(RawSource::from(format!("@media {} {{\n", media)));
         }
 
-        // TODO: layer support
+        if let Some(layer) = &module.layer {
+          source.add(RawSource::from(format!("@layer {} {{\n", layer)));
+        }
 
-        let undo_path = get_undo_path(
-          &filename,
-          compilation
-            .options
-            .output
-            .path
-            .to_str()
-            .expect("should have output.path"),
-          false,
-        );
+        let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);
 
-        let content = ABSOLUTE_PUBLIC_PATH_RE.replace_all(&content, "");
-        let content = SINGLE_DOT_PATH_SEGMENT_RE.replace_all(&content, ".");
-        let content = AUTO_PUBLIC_PATH_RE.replace_all(&content, &undo_path);
-        let content = BASE_URI_RE.replace_all(
-          &content,
+        let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
+        let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
+        let content = content.cow_replace(AUTO_PUBLIC_PATH, &undo_path);
+        let content = content.cow_replace(
+          BASE_URI,
           chunk
             .get_entry_options(&compilation.chunk_group_by_ukey)
             .and_then(|entry_options| entry_options.base_uri.as_ref())
             .unwrap_or(&undo_path),
         );
 
-        if !module.source_map.is_empty() {
+        if let Some(source_map) = &module.source_map {
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(&module.source_map).expect("invalid sourcemap"),
+            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
           }))
         } else {
           source.add(RawSource::from(content.to_string()));
         }
 
         source.add(RawSource::from("\n"));
-        if !module.media.is_empty() {
+
+        if need_media {
           source.add(RawSource::from("}\n"));
         }
-        if !module.supports.is_empty() {
+
+        if need_supports {
+          source.add(RawSource::from("}\n"));
+        }
+
+        if module.layer.is_some() {
           source.add(RawSource::from("}\n"));
         }
       }
@@ -416,7 +412,7 @@ impl PluginCssExtract {
       RenderManifestEntry::new(
         Arc::new(external_source),
         filename,
-        AssetInfo::default(),
+        asset_info,
         false,
         false,
       ),
@@ -436,34 +432,29 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for PluginCssExtract)]
-fn runtime_requirements_in_tree(
+fn runtime_requirement_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
+  // different from webpack, Rspack can invoke this multiple times,
+  // each time with current runtime_globals, and records every mutation
+  // by `runtime_requirements_mut`, but this RuntimeModule depends on
+  // 2 runtimeGlobals, if check current runtime_requirements, we might
+  // insert CssLoadingRuntimeModule with with_loading: true but with_hmr: false
+  // for the first time, and with_loading: false but with_hmr: true for the
+  // second time
+  // For plugin that depends on 2 runtime_globals, should check all_runtime_requirements
   if !self.options.runtime {
     return Ok(None);
   }
 
-  let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-
-    chunk
-      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-      .iter()
-      .any(|chunk| {
-        !compilation
-          .chunk_graph
-          .get_chunk_modules_by_source_type(chunk, SOURCE_TYPE[0], &compilation.get_module_graph())
-          .is_empty()
-      })
-  };
-
-  let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-
-  if with_loading || with_hmr {
+  if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+  {
     if let Some(chunk_filename) = self.options.chunk_filename.template()
       && chunk_filename.contains("hash")
     {
@@ -484,13 +475,16 @@ fn runtime_requirements_in_tree(
         "__webpack_require__.miniCssF".into(),
         |_| false,
         move |chunk, compilation| {
-          chunk.content_hash.contains_key(&SOURCE_TYPE[0]).then(|| {
-            if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-              filename.clone()
-            } else {
-              chunk_filename.clone()
-            }
-          })
+          chunk
+            .content_hash(&compilation.chunk_hashes_results)?
+            .contains_key(&SOURCE_TYPE[0])
+            .then(|| {
+              if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+                filename.clone()
+              } else {
+                chunk_filename.clone()
+              }
+            })
         },
       )),
     )?;
@@ -502,8 +496,6 @@ fn runtime_requirements_in_tree(
         self.options.attributes.clone(),
         self.options.link_type.clone(),
         self.options.insert.clone(),
-        with_loading,
-        with_hmr,
       )),
     )?;
   }
@@ -533,24 +525,15 @@ async fn content_hash(
   let used_modules =
     rspack_plugin_css::CssPlugin::get_modules_in_order(chunk, rendered_modules, compilation)
       .0
-      .into_iter()
-      .filter_map(|module| module.downcast_ref::<CssModule>());
+      .into_iter();
 
   let mut hasher = hashes
     .entry(SOURCE_TYPE[0])
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   used_modules
-    .map(|m| {
-      m.build_info()
-        .expect("css module built")
-        .hash
-        .as_ref()
-        .expect("css module should have hash")
-    })
-    .for_each(|current| {
-      current.hash(&mut hasher);
-    });
+    .map(|m| ChunkGraph::get_module_hash(compilation, m.identifier(), chunk.runtime()))
+    .for_each(|current| current.hash(&mut hasher));
 
   Ok(())
 }
@@ -566,7 +549,7 @@ async fn render_manifest(
   let module_graph = compilation.get_module_graph();
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
 
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
 
@@ -591,12 +574,18 @@ async fn render_manifest(
       rendered_modules,
       filename_template,
       compilation,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SOURCE_TYPE[0])
-          .map(|hash| hash.encoded()),
-      ),
+      PathData::default()
+        .chunk_id_optional(chunk.id())
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_results,
+          &SOURCE_TYPE[0],
+          compilation.options.output.hash_digest_length,
+        )),
     )
     .await?;
 
@@ -612,10 +601,7 @@ async fn render_manifest(
         format!(
           "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
 despite it was not able to fulfill desired ordering with these modules:\n{}",
-          chunk
-            .name
-            .as_deref()
-            .unwrap_or(chunk.id.as_deref().unwrap_or_default()),
+          chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
           fallback_module.readable_identifier(&compilation.options.context),
           conflict
             .reasons
@@ -645,8 +631,8 @@ despite it was not able to fulfill desired ordering with these modules:\n{}",
             .join("\n")
         ),
       )
-      .with_file(Some(PathBuf::from(render_result.filename())))
-      .with_chunk(Some(chunk_ukey.as_usize()))
+      .with_file(Some(render_result.filename().to_owned().into()))
+      .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }
   manifest.push(render_result);
@@ -673,11 +659,7 @@ fn nmf_parser(
 
 #[async_trait::async_trait]
 impl Plugin for PluginCssExtract {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks
@@ -687,7 +669,7 @@ impl Plugin for PluginCssExtract {
       .context
       .compilation_hooks
       .runtime_requirement_in_tree
-      .tap(runtime_requirements_in_tree::new(self));
+      .tap(runtime_requirement_in_tree::new(self));
     ctx
       .context
       .compilation_hooks
@@ -721,7 +703,8 @@ fn get_undo_path(filename: &str, output_path: &str, enforce_relative: bool) -> S
     .unwrap_or(output_path)
     .to_string();
 
-  static PATH_SEP: Lazy<Regex> = Lazy::new(|| Regex::new(r#"[\\/]+"#).expect("should compile"));
+  static PATH_SEP: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"[\\/]+"#).expect("should compile"));
 
   for part in PATH_SEP.split(filename) {
     if part == ".." {

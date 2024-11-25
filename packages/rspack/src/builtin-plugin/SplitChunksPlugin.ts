@@ -11,7 +11,7 @@ import {
 import { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
-import type { OptimizationSplitChunksOptions } from "../config/zod";
+import type { OptimizationSplitChunksOptions } from "../config";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
@@ -49,17 +49,15 @@ function toRawSplitChunksOptions(
 			return (ctx: Context) => {
 				if (typeof ctx.module === "undefined") {
 					return name(undefined);
-				} else {
-					return name(
-						Module.__from_binding(ctx.module, compiler._lastCompilation),
-						getChunks(ctx.chunks),
-						ctx.cacheGroupKey
-					);
 				}
+				return name(
+					Module.__from_binding(ctx.module, compiler._lastCompilation),
+					getChunks(ctx.chunks),
+					ctx.cacheGroupKey
+				);
 			};
-		} else {
-			return name;
 		}
+		return name;
 	}
 
 	function getTest(test: any) {
@@ -71,15 +69,13 @@ function toRawSplitChunksOptions(
 			return (ctx: Context) => {
 				if (typeof ctx.module === "undefined") {
 					return test(undefined);
-				} else {
-					return test(
-						Module.__from_binding(ctx.module, compiler._lastCompilation)
-					);
 				}
+				return test(
+					Module.__from_binding(ctx.module, compiler._lastCompilation)
+				);
 			};
-		} else {
-			return test;
 		}
+		return test;
 	}
 
 	function getChunks(chunks: any) {
@@ -91,9 +87,8 @@ function toRawSplitChunksOptions(
 						compiler._lastCompilation!.__internal_getInner()
 					)
 				);
-		} else {
-			return chunks;
 		}
+		return chunks;
 	}
 
 	const {

@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useState } from 'react';
-import './CompatibleCard.scss';
 import axios from 'axios';
-import * as i18n from './i18n';
+import { useEffect, useState } from 'react';
+import './CompatibleCard.scss';
 
 interface CardMeta {
   name: string;
@@ -27,7 +26,7 @@ const CompatibleCardItem = ({
         >
           {name}
         </a>
-        <div className="component-card-space"></div>
+        <div className="component-card-space" />
         <div className="component-card-status">{rspackMinVersion}</div>
       </div>
       {remark && <div>{remark}</div>}
@@ -55,9 +54,8 @@ export const CompatibleCardList = () => {
       data.sort((a, b) => {
         if (a.name < b.name) {
           return -1;
-        } else {
-          return 1;
         }
+        return 1;
       });
       setList(data);
       setLoading(false);
@@ -65,13 +63,13 @@ export const CompatibleCardList = () => {
   }, []);
 
   if (loading) {
-    return <div></div>;
+    return <div />;
   }
 
   const prefix = 'https://github.com/web-infra-dev/rspack-compat/tree/main';
   return list.map(item => (
     <CompatibleCardItem
-      key={item.name}
+      key={item.path}
       name={`${item.name}@${item.version}`}
       url={`${prefix}/${item.path}`}
       rspackMinVersion={item.rspackVersion}

@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
@@ -8,7 +9,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_identifier::Identifier;
 use rspack_plugin_runtime::chunk_has_js;
 
 #[impl_runtime_module]
@@ -51,7 +51,7 @@ fn federation_runtime_template(chunk: &Chunk, compilation: &Compilation) -> Stri
   let condition_map =
     compilation
       .chunk_graph
-      .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+      .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
   let has_js_matcher = compile_boolean_matcher(&condition_map);
 
   let chunk_matcher = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -101,11 +101,7 @@ impl Plugin for ModuleFederationRuntimePlugin {
     "rspack.container.ModuleFederationRuntimePlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compilation_hooks

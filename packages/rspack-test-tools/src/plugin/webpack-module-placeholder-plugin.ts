@@ -12,7 +12,7 @@ function createRenderRuntimeModulesFn(Template) {
 		const source = new ConcatSource();
 		for (const module of runtimeModules) {
 			const codeGenerationResults = renderContext.codeGenerationResults;
-			let runtimeSource;
+			let runtimeSource: string;
 			if (codeGenerationResults) {
 				runtimeSource = codeGenerationResults.getSource(
 					module,
@@ -33,7 +33,7 @@ function createRenderRuntimeModulesFn(Template) {
 			}
 			if (runtimeSource) {
 				const identifier = module.identifier();
-				source.add(Template.toNormalComment(`start::${identifier}`) + "\n");
+				source.add(`${Template.toNormalComment(`start::${identifier}`)}\n`);
 				if (!module.shouldIsolate()) {
 					source.add(runtimeSource);
 					source.add("\n\n");
@@ -46,7 +46,7 @@ function createRenderRuntimeModulesFn(Template) {
 					source.add(new PrefixSource("\t", runtimeSource));
 					source.add("\n}();\n\n");
 				}
-				source.add(Template.toNormalComment(`end::${identifier}`) + "\n");
+				source.add(`${Template.toNormalComment(`end::${identifier}`)}\n`);
 			}
 		}
 		return source;
@@ -56,7 +56,6 @@ function createRenderRuntimeModulesFn(Template) {
 const caches = new WeakMap();
 
 export class WebpackModulePlaceholderPlugin {
-	constructor() {}
 	apply(compiler) {
 		const { webpack } = compiler;
 		const {
@@ -73,7 +72,7 @@ export class WebpackModulePlaceholderPlugin {
 			hooks.renderModulePackage.tap(
 				"RuntimeDiffPlugin",
 				(moduleSource, module) => {
-					let cacheEntry;
+					let cacheEntry: unknown;
 					let cache = caches.get(compilation);
 					if (cache === undefined) {
 						caches.set(compilation, (cache = new WeakMap()));

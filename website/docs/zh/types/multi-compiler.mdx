@@ -1,0 +1,30 @@
+<>
+
+> 详见 [MultiCompiler API](/api/javascript-api/compiler#multicompiler)
+
+```ts
+type MultiCompiler = {
+  constructor(compilers: Compiler[] | Record<string, Compiler>): MultiCompiler;
+
+  compilers: Compiler[];
+  running: boolean;
+  options: RspackOptionsNormalized[];
+  inputFileSystem: InputFileSystem;
+  outputFileSystem: OutputFileSystem;
+  watchFileSystem: WatchFileSystem;
+
+  setDependencies(compiler: Compiler, dependencies: string[]): void;
+  validateDependencies(callback: (err: Error) => void): boolean;
+
+  run(callback: (err: Error, stats: MultiStats) => void): void;
+  watch(
+    watchOptions: WatchOptions,
+    handler: (err: Error, MultiStats) => void,
+  ): void;
+  close(callback: (err: Error) => void): void;
+  getInfrastructureLogger(name: string): Logger;
+  purgeInputFileSystem(): void;
+};
+```
+
+</>

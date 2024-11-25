@@ -2,15 +2,15 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # 内置 swc-loader
 
-<ApiMeta addedVersion="0.3.0" />
-
 `builtin:swc-loader` 是 [`swc-loader`](https://github.com/swc-project/pkgs/tree/main/packages/swc-loader) 的 Rust 版本，旨在提供更优的性能，Loader 的[配置](https://swc.rs/docs/configuration/compilation)与 JS 版本的 `swc-loader` 保持对齐。
 
 ## 示例
 
-如果需要在项目中使用 `builtin:swc-loader`，需进行如下配置。
+如果需要在项目中使用 `builtin:swc-loader`，可以参考下面的示例进行配置。
 
-比如对 `ts` 文件进行转译：
+### TypeScript 转译
+
+比如对 `.ts` 文件进行转译：
 
 ```js
 module.exports = {
@@ -34,7 +34,9 @@ module.exports = {
 };
 ```
 
-或是对 `jsx` 文件进行转译：
+### JSX 转译
+
+对 React 的 `.jsx` 文件进行转译：
 
 ```js
 module.exports = {
@@ -69,11 +71,104 @@ module.exports = {
 };
 ```
 
-另外，你也可以直接参考 [`example-builtin-swc-loader`](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) 查看更多使用指南。
+### 语法降级
+
+SWC 提供了 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 和 [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 来指定 JavaScript 语法降级的目标。
+
+#### jsc.target
+
+[jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 用于指定 ECMA 版本，例如 `es5`，`es2015`，`es2016` 等。
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              target: 'es2015',
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+#### env.targets
+
+[env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 使用 [browserslist](https://github.com/browserslist/browserslist) 的语法来指定浏览器范围，例如：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+`jsc.target` 和 `env.targets` 不能同时配置，使用时根据需求选择其中一个即可。
+:::
+
+### Polyfill 注入
+
+当你在项目中使用高版本的 JavaScript 语法和 API 时，为了让编译后的代码能稳定运行在低版本的浏览器中，通常需要完成两部分降级：语法降级和 polyfill 注入。
+
+SWC 支持注入 [core-js](https://github.com/zloirock/core-js) 作为 API polyfill，可以通过 [env.mode](https://swc.rs/docs/configuration/compilation#envmode) 和 [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs) 来配置：
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            env: {
+              mode: 'usage',
+              coreJs: '3.26.1',
+              targets: [
+                'chrome >= 87',
+                'edge >= 88',
+                'firefox >= 78',
+                'safari >= 14',
+              ],
+            },
+            // ...other options
+          },
+        },
+      },
+    ],
+  },
+};
+```
 
 ## 类型声明
-
-<ApiMeta addedVersion="0.6.3" />
 
 你可以使用 `@rspack/core` 导出的 `SwcLoaderOptions` 类型来开启类型提示：
 
@@ -126,7 +221,7 @@ export default {
 
 ### jsc.experimental.plugins
 
-<ApiMeta addedVersion="0.5.8" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 :::warning
 Wasm 插件和 SWC 的版本存在一定的绑定关系，需要选择和对应 SWC 版本兼容的 Wasm 插件才能正常执行, [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x) 里有更多关于如何选择兼容的 Wasm 插件的信息。
@@ -143,15 +238,17 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            experimental: {
-              plugins: [
-                [
-                  '@swc/plugin-remove-console',
-                  {
-                    exclude: ['error'],
-                  },
+            jsc: {
+              experimental: {
+                plugins: [
+                  [
+                    '@swc/plugin-remove-console',
+                    {
+                      exclude: ['error'],
+                    },
+                  ],
                 ],
-              ],
+              },
             },
           },
         },
@@ -163,13 +260,41 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
 
 这是 Wasm 插件的一个[示例](https://github.com/rspack-contrib/rspack-examples/blob/d4b8aaef9915ed0f540edbe504217c3d1afe8989/rspack/builtin-swc-loader/rspack.config.js#L45)。
 
+#### 设置缓存目录
+
+当你使用 SWC 的 Wasm 插件时，SWC 默认会生成缓存文件在当前项目的 `.swc` 目录下，如果你希望调整该目录，可以修改 `cacheRoot` 配置，如：
+
+```js
+const path = require('path');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              experimental: {
+                cacheRoot: path.join(__dirname, './node_modules/.cache/swc'),
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### rspackExperiments
 
 Rspack 内置的实验性功能。
 
 ### rspackExperiments.import
 
-<ApiMeta addedVersion="0.3.4" stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} />
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
 
@@ -313,226 +438,4 @@ module.exports = {
 ```ts
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
-```
-
-### rspackExperiments.relay
-
-<ApiMeta
-  addedVersion="0.3.4"
-  stability={Stability.Removed}
-  removedVersion="1.0.0-alpha.0"
-/>
-
-:::warning
-请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-relay](https://github.com/swc-project/plugins/tree/main/packages/relay).
-
-注意：配置可能会因此发生变化，请参考对应文档
-:::
-
-将项目中的 `graphql` 调用转换成相对应的 `require`。
-
-- **类型：**
-
-```ts
-type RelayOptions =
-  | undefined
-  | boolean
-  | {
-      artifactDirectory?: string;
-      language: 'javascript' | 'typescript' | 'flow'; // 默认 'javascript'
-    };
-```
-
-- **默认值：** `undefined`
-
-当该配置为 `true` 时，Rspack 会从依次尝试寻找 [context](/config/context) 目录下的 `relay.config.json`，`relay.config.js` 以及 `package.json`，详情可以参考 [relay-compiler](https://github.com/facebook/relay/tree/main/packages/relay-compiler) 文档，如果没找到则会使用默认配置。
-如果传入具体的配置则不会尝试查找任何 `relay` 配置文件，而是直接使用传入的配置。
-
-### rspackExperiments.emotion
-
-<ApiMeta
-  addedVersion="0.3.4"
-  stability={Stability.Removed}
-  removedVersion="1.0.0-alpha.0"
-/>
-
-:::warning
-请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-emotion](https://github.com/swc-project/plugins/tree/main/packages/emotion).
-
-注意：配置可能会因此发生变化，请参考对应文档
-:::
-
-用于设置对 emotion 的编译优化。
-
-- **类型：**
-
-```ts
-type EmotionOptions =
-  | boolean
-  | {
-      sourceMap?: boolean;
-      autoLabel?: 'never' | 'dev-only' | 'always';
-      labelFormat?: string;
-      importMap?: {
-        [packageName: string]: {
-          [exportName: string]: {
-            canonicalImport?: [string, string];
-          };
-        };
-      };
-    };
-```
-
-- **默认值：** `false`
-
-若你在项目中使用了 `emotion`，并且想要类似 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 的能力，你可以开启 `rspackExperiments.emotion` 配置，启用该配置后，Rspack 会使用 `swc_emotion` 插件对 `emotion` 代码进行转译。
-
-你可以直接使用默认配置，直接将 `rspackExperiments.emotion` 设置为 `true` 即可。
-
-```ts title="rspack.config.js"
-module.exports = {
-  module: {
-    rules: [
-      {
-        use: 'builtin:swc-loader',
-        options: {
-          ...
-          rspackExperiments: {
-            emotion: true
-          }
-        }
-      }
-    ]
-  }
-};
-```
-
-各字段与 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 保持一致，详细解释（下列内容部分取自 [@emotion/babel-plugin](https://emotion.sh/docs/@emotion/babel-plugin) 官方文档）：
-
-#### autoLabel
-
-- **类型：** `'never' | 'dev-only' | 'always'`
-- **默认值：** `'dev-only'`
-
-这个配置项用于：
-
-- 生成 label 值，这样由 `css` 或者 `styled` 生成的样式中会包含原来的名字，方便调试。
-- 注意样式名中非单词字符将被删除。比如 `iconStyles$1` 会变成 `iconStyles1`，因为 `$` 不是合法的 [CSS 类名选择器](https://stackoverflow.com/questions/448981/which-characters-are-valid-in-css-class-names-selectors#449000)。
-
-不同的配置项会产生不同的产物代码：
-
-- `'dev-only'`：只在 Rspack 的 development 模式下开启，在 production 模式下关闭以减小存储占用。
-- `'always'`：无论什么模式下都开启该特效。
-- `'never'`：无论什么模式下都禁用该特性。
-
-#### labelFormat
-
-- **类型：** `string`
-- **默认值：** `'[local]'`
-
-此选项仅在 `'autoLabel'` 设置为 `'dev-only'` 或 `'always'` 时有效。允许你自定义添加的 `label` 的结构。通过字符串定义，其中可变部分用方括号 `'[]'` 括起来。例如对于标签：`'my-classname——[local]'`，其中 `'[local]'` 将被替换为样式变量的名称。
-
-允许的值:
-
-- `'[local]'`——CSS 或样式表达式所在的文件名称
-- `'[filename]'`——CSS 或样式表达式所在的文件名称(不带扩展名)。
-- `'[dirname]'`——包含 CSS 或样式表达式所在文件的目录名。
-
-该配置只会影响表达式中的 `label`，这意味着 CSS 前缀和 hash 会自动被添加。
-
-#### sourceMap
-
-- **类型：** `boolean`
-
-该配置决定是否注入 source maps。production 模式下默认关闭，development 模式下默认开启。
-
-#### importMap
-
-- **类型：**
-
-```ts
-export type ImportMap =
-  | undefined
-  | {
-      [packageName: string]: {
-        [exportName: string]: {
-          canonicalImport?: [string, string];
-        };
-      };
-    };
-```
-
-- **默认值：** `undefined`
-
-此选项允许你告诉 Rspack 它应该查看哪些 import 语句，确定应该转换什么，因此如果你重导出 emotion 的方法，仍然可以转换。
-
-### rspackExperiments.styledComponents
-
-<ApiMeta
-  addedVersion="0.3.7"
-  stability={Stability.Removed}
-  removedVersion="1.0.0-alpha.0"
-/>
-
-:::warning
-请迁移至 [builtin:swc-loader plugin 配置](/guide/features/builtin-swc-loader#jscexperimentalplugins)，并使用 [@swc/plugin-styled-components](https://github.com/swc-project/plugins/tree/main/packages/styled-components).
-
-注意：配置可能会因此发生变化，请参考对应文档
-:::
-
-- **Type:**
-
-```ts
-type StyledComponentsOptions = {
-  displayName?: boolean;
-  ssr?: boolean;
-  fileName?: boolean;
-  meaninglessFileNames?: string[];
-  namespace?: string;
-  topLevelImportPaths?: string[];
-  transpileTemplateLiterals?: boolean;
-  minify?: boolean;
-  pure?: boolean;
-  cssProps?: boolean;
-};
-```
-
-- **Default:** `{}`
-
-配置对 [styled-components](https://github.com/styled-components/styled-components) 的编译时支持。SWC 对于 styled-components 的支持基本对齐了官方的 babel 插件，所以你可以访问 https://styled-components.com/docs/tooling#babel-plugin 了解更多信息。
-
-通常你还需要启用 `builtin:swc-loader` 的 JSX 支持用来处理 React 组件，配置项内容可以参考：
-
-```js
-/** @type {import('@rspack/core').Configuration}*/
-module.exports = {
-  module: {
-    rules: [
-      {
-        test: /\.jsx?$/,
-        loader: 'builtin:swc-loader',
-        options: {
-          ...
-          rspackExperiments: {
-            styledComponents: {
-              displayName: true,
-              ssr: true,
-              fileName: true,
-              meaninglessFileNames: ['index', 'styles'],
-              namespace: 'rspack-test',
-              topLevelImportPaths: [
-                '@xstyled/styled-components',
-                '@xstyled/styled-components/*',
-              ],
-              transpileTemplateLiterals: true,
-              minify: true,
-              pure: true,
-              cssProps: true,
-            },
-          },
-        },
-      },
-    ],
-  },
-};
 ```

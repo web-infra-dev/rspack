@@ -169,7 +169,7 @@ export const RuntimeGlobals = {
 	compatGetDefaultExport: "__webpack_require__.n",
 
 	/**
-	 * harmony module decorator
+	 * ES modules decorator
 	 */
 	harmonyModuleDecorator: "__webpack_require__.hmd",
 

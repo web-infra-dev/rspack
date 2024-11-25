@@ -3,157 +3,15 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # CssExtractRspackPlugin
 
-<ApiMeta addedVersion={'0.6.0'} specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} />
 
-Rspack 目前不兼容 mini-css-extract-plugin，但可以使用该插件替代，和 css-loader 搭配使用，将 CSS 提取成单独文件。
+Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)，但可以使用 CssExtractRspackPlugin 替代，它可以和 css-loader 搭配使用，用于将 CSS 提取成单独文件。
 
-如果你的项目不依赖 css-loader，更推荐使用 Rspack 内置的 CSS 解决方案 `experiments.css`，性能更好。
+> 如果你的项目不依赖于 css-loader 和 mini-css-extract-plugin，我们更推荐使用 Rspack 内置的 CSS 解决方案 [experiments.css](/config/experiments#experimentscss)，它的性能更好。
 
-- options
+## 示例
 
-  - **类型：**
-
-  ```ts
-  export interface PluginOptions {
-    filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
-    chunkFilename?:
-      | string
-      | ((pathData: PathData, assetInfo?: AssetInfo) => string);
-    ignoreOrder?: boolean;
-    insert?: string | ((linkTag: HTMLLinkElement) => void);
-    attributes?: Record<string, string>;
-    linkType?: string | 'text/css' | false;
-    runtime?: boolean;
-    pathinfo?: boolean;
-  }
-
-  export interface LoaderOptions {
-    publicPath?: string | ((resourcePath: string, context: string) => string);
-    emit?: boolean;
-    esModule?: boolean;
-  }
-  ```
-
-  plugin 配置
-
-  <Table
-    header={[
-      {
-        name: '名称',
-        key: 'name',
-      },
-      {
-        name: '类型',
-        key: 'type',
-      },
-      {
-        name: '默认值',
-        key: 'default',
-      },
-      {
-        name: '描述',
-        key: 'description',
-      },
-    ]}
-    body={[
-      {
-        name: '`filename`',
-        type: '`string`',
-        default: '"[name].css"',
-        description: 'css 产物的名字，请见 output.filename',
-      },
-      {
-        name: '`chunkFilename`',
-        type: '`string`',
-        default: '"[name].css"',
-        description:
-          'css 异步加载产物的名字，如果不设置则会使用 filename，请见 output.chunkFilename',
-      },
-      {
-        name: '`ignoreOrder`',
-        type: '`boolean`',
-        default: 'false',
-        description:
-          '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css b.css，entryB 引入 b.css a.css，a.css 和 b.css 的顺序无法确定',
-      },
-      {
-        name: '`insert`',
-        type: '`string | ((linkTag: HTMLLinkElement) => void)`',
-        default: 'undefined',
-        description:
-          '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 DOM 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
-      },
-      {
-        name: '`attributes`',
-        type: '`Record<string, string>`',
-        default: 'undefined',
-        description: '给 link 标签添加 attributes',
-      },
-      {
-        name: '`linkType`',
-        type: "`string | 'text/css' | false`",
-        default: '"text/css"',
-        description: '设置 link 标签的 type',
-      },
-      {
-        name: '`runtime`',
-        type: '`boolean`',
-        default: 'true',
-        description: '是否注入 CSS 加载相关的 runtime 代码',
-      },
-      {
-        name: '`pathinfo`',
-        type: '`boolean`',
-        default: 'false',
-        description: '产物中是否保留更详细的 CSS 路径信息',
-      },
-    ]}
-  />
-
-  loader 配置
-
-  <Table
-    header={[
-      {
-        name: '名称',
-        key: 'name',
-      },
-      {
-        name: '类型',
-        key: 'type',
-      },
-      {
-        name: '默认值',
-        key: 'default',
-      },
-      {
-        name: '描述',
-        key: 'description',
-      },
-    ]}
-    body={[
-      {
-        name: '`publicPath`',
-        type: '`string | ((resourcePath: string, context: string) => string)`',
-        default: 'output.publicPath',
-        description: 'css 模块中的 publicPath',
-      },
-      {
-        name: '`emit`',
-        type: '`boolean`',
-        default: 'true',
-        description: '是否提取出 CSS 文件，设置为 false 则不会产生 CSS 文件',
-      },
-      {
-        name: '`esModule`',
-        type: '`boolean`',
-        default: 'true',
-        description: '是否使用 es 模块语法进行 CSS Modules 类名导出',
-      },
-    ]}
-  />
-
-示例：
+使用 CssExtractRspackPlugin 时，需要在 `plugins` 中注册插件，并在 [module.rules](/config/module#modulerules) 中注册 `CssExtractRspackPlugin.loader`。
 
 ```ts title="rspack.config.js"
 const rspack = require('@rspack/core');
@@ -172,10 +30,166 @@ module.exports = {
 };
 ```
 
-:::info
-请注意当打开内置 CSS 支持（`experiments.css`）时，`.css` 结尾的文件会默认视为 `css/auto` 模块，此时如果想要使用该插件，请确保设置了 `CssExtractRspackPlugin.loader` 的 rule 类型都用 `javascript/auto` 覆盖了默认的 `css/auto` 类型。
+## Plugin 选项
 
-例如
+CssExtractRspackPlugin 插件的选项。
+
+- **Types:**
+
+```ts
+interface PluginOptions {
+  filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  chunkFilename?:
+    | string
+    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  ignoreOrder?: boolean;
+  insert?: string | ((linkTag: HTMLLinkElement) => void);
+  attributes?: Record<string, string>;
+  linkType?: string | 'text/css' | false;
+  runtime?: boolean;
+  pathinfo?: boolean;
+}
+```
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`filename`',
+      type: '`string`',
+      default: '"[name].css"',
+      description: 'CSS 产物的名称，请参考 `output.filename`',
+    },
+    {
+      name: '`chunkFilename`',
+      type: '`string`',
+      default: '"[name].css"',
+      description:
+        '异步加载的 CSS 产物的名称，如果不设置则会使用 `filename`，请参考 `output.chunkFilename`',
+    },
+    {
+      name: '`ignoreOrder`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        '若某些 CSS 在不同 chunk 中顺序有冲突，是否发出警告。例如 entryA 引入 a.css 和 b.css，entryB 引入 b.css 和 a.css，a.css 和 b.css 的顺序无法确定',
+    },
+    {
+      name: '`insert`',
+      type: '`string | ((linkTag: HTMLLinkElement) => void)`',
+      default: 'undefined',
+      description:
+        '决定 link 标签怎样插入到页面，如果传入 string 类型，则会视为 DOM 选择器，link 标签会插入到该选择器对应的元素后。如果传入 function 类型，则会将 function 转成字符串，在运行时进行调用，参数是 link 标签',
+    },
+    {
+      name: '`attributes`',
+      type: '`Record<string, string>`',
+      default: 'undefined',
+      description:
+        '设置 link 标签的自定义 attributes，仅对异步加载的 CSS 文件生效',
+    },
+    {
+      name: '`linkType`',
+      type: "`string | 'text/css' | false`",
+      default: '"text/css"',
+      description: '设置 link 标签的 type 属性值，仅对异步加载的 CSS 文件生效',
+    },
+    {
+      name: '`runtime`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        '是否注入 runtime 代码以加载 CSS。如果禁用，CSS 仍然会被提取，可用于自定义的加载方式',
+    },
+    {
+      name: '`pathinfo`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否在 CSS 产物中包含带有更详细的路径信息的注释',
+    },
+  ]}
+/>
+
+## Loader 选项
+
+`CssExtractRspackPlugin.loader` 的选项。
+
+- **Types:**
+
+```ts
+interface LoaderOptions {
+  publicPath?: string | ((resourcePath: string, context: string) => string);
+  emit?: boolean;
+  esModule?: boolean;
+}
+```
+
+<Table
+  header={[
+    {
+      name: '名称',
+      key: 'name',
+    },
+    {
+      name: '类型',
+      key: 'type',
+    },
+    {
+      name: '默认值',
+      key: 'default',
+    },
+    {
+      name: '描述',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`publicPath`',
+      type: '`string | ((resourcePath: string, context: string) => string)`',
+      default: 'output.publicPath',
+      description:
+        '为 CSS 中的外部资源（如图片、文件等）指定自定义的 publicPath',
+    },
+    {
+      name: '`emit`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        '如果为 true，则输出 CSS 文件。如果为 false，则插件将提取 CSS，但不会输出文件',
+    },
+    {
+      name: '`esModule`',
+      type: '`boolean`',
+      default: 'true',
+      description:
+        '在生成的 JavaScript 模块中，是否使用 ES 模块语法进行 CSS Modules 类名导出',
+    },
+  ]}
+/>
+
+## 注意事项
+
+请注意，当打开内置 CSS 支持（`experiments.css`）时，`.css` 结尾的文件会被默认视为 `css/auto` 模块，此时如果想要使用该插件，请确保设置了 `CssExtractRspackPlugin.loader` 的 rule 类型都用 `javascript/auto` 覆盖了默认的 `css/auto` 类型。
+
+例如：
 
 ```ts title="rspack.config.js"
 const rspack = require('@rspack/core');
@@ -186,12 +200,12 @@ module.exports = {
     rules: [
       {
         test: /src\/legacy-project\/.*\.css$/,
-        type: 'javascript/auto', // 覆盖默认的 css 模块类型，视为普通 js 文件
+        type: 'javascript/auto', // 覆盖默认的 CSS 模块类型，视为普通 JS 文件
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
       },
       {
         test: /src\/new-project\/.*\.css$/,
-        type: 'css/auto', // 使用内置 css 处理
+        type: 'css/auto', // 使用内置 CSS 处理
       },
     ],
   },
@@ -200,5 +214,3 @@ module.exports = {
   },
 };
 ```
-
-:::

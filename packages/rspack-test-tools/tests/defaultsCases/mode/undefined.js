@@ -8,15 +8,36 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-     "cache": true,
+		+     "cache": false,
+		@@ ... @@
+		-     "incremental": Object {
+		-       "buildChunkGraph": false,
+		-       "chunksHashes": false,
+		-       "chunksRender": false,
+		-       "chunksRuntimeRequirements": false,
+		-       "dependenciesDiagnostics": false,
+		-       "emitAssets": true,
+		-       "inferAsyncModules": false,
+		-       "make": true,
+		-       "modulesCodegen": false,
+		-       "modulesHashes": false,
+		-       "modulesRuntimeRequirements": false,
+		-       "providedExports": false,
+		-     },
+		+     "incremental": false,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
 		@@ ... @@
 		-     "chunkIds": "natural",
 		-     "concatenateModules": false,
+		-     "emitOnErrors": true,
 		-     "innerGraph": false,
 		-     "mangleExports": false,
 		+     "chunkIds": "deterministic",
 		+     "concatenateModules": true,
+		+     "emitOnErrors": false,
 		+     "innerGraph": true,
 		+     "mangleExports": true,
 		@@ ... @@
@@ -42,7 +63,9 @@ module.exports = {
 		+       "maxInitialRequests": 30,
 		@@ ... @@
 		-       "minSize": 10000,
+		-       "usedExports": false,
 		+       "minSize": 20000,
+		+       "usedExports": true,
 		@@ ... @@
 		-     "usedExports": false,
 		+     "usedExports": true,

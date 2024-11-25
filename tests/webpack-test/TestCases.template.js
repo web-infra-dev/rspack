@@ -119,7 +119,7 @@ const describeCases = config => {
 										usedExports: true,
 										mangleExports: true,
 										// CHANGE: rspack does not support `emitOnErrors` yet.
-										// emitOnErrors: true,
+										emitOnErrors: true,
 										concatenateModules:
 											!!testConfig?.optimization?.concatenateModules,
 										innerGraph: true,

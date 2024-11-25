@@ -8,6 +8,7 @@
 use std::env;
 use std::fs::File;
 use std::path::Path;
+use std::sync::LazyLock;
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
@@ -15,6 +16,7 @@ use base64::prelude::*;
 use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_util::itoa;
 use serde_json::error::Category;
 use swc_config::config_types::BoolOr;
 use swc_config::merge::Merge;
@@ -24,17 +26,15 @@ use swc_core::base::config::{
 use swc_core::base::{sourcemap, SwcComments};
 use swc_core::common::comments::{Comment, CommentKind, Comments};
 use swc_core::common::errors::{Handler, HANDLER};
-use swc_core::common::sync::Lazy;
 use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
 };
 use swc_core::common::{BytePos, SourceFile};
-use swc_core::ecma::ast::{EsVersion, Program};
+use swc_core::ecma::ast::{EsVersion, Pass, Program};
 use swc_core::ecma::parser::{
   parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
 };
 use swc_core::ecma::transforms::base::helpers::{self, Helpers};
-use swc_core::ecma::visit::{Fold, FoldWith};
 use swc_core::{
   base::{config::Options, try_with_handler},
   common::Globals,
@@ -89,7 +89,9 @@ fn parse_swcrc(s: &str) -> Result<Rc, Error> {
     };
     Error::new(e).context(format!(
       "failed to deserialize .swcrc (json) file: {}: {}:{}",
-      msg, line, column
+      msg,
+      itoa!(line),
+      itoa!(column)
     ))
   }
 
@@ -137,7 +139,7 @@ fn load_swcrc(path: &Path) -> Result<Rc, Error> {
 }
 
 fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error> {
-  static CUR_DIR: Lazy<PathBuf> = Lazy::new(|| {
+  static CUR_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     if cfg!(target_arch = "wasm32") {
       PathBuf::new()
     } else {
@@ -307,7 +309,7 @@ impl SwcCompiler {
       options.unresolved_mark = Some(unresolved_mark);
     });
 
-    let fm = cm.new_source_file(FileName::Real(resource_path), source);
+    let fm = cm.new_source_file(Arc::new(FileName::Real(resource_path)), source);
     let comments = SingleThreadedComments::default();
     let config = read_config(&options, &fm.name)?
       .ok_or_else(|| anyhow!("cannot process file because it's ignored by .swcrc"))?;
@@ -337,9 +339,9 @@ impl SwcCompiler {
     &'a self,
     program: Option<Program>,
     before_pass: impl FnOnce(&Program) -> P + 'a,
-  ) -> Result<BuiltInput<impl Fold + 'a>, Error>
+  ) -> Result<BuiltInput<impl Pass + 'a>, Error>
   where
-    P: Fold + 'a,
+    P: Pass + 'a,
   {
     let built = self.run(|| {
       try_with_handler(self.cm.clone(), Default::default(), |handler| {
@@ -378,17 +380,14 @@ impl SwcCompiler {
     }
   }
 
-  pub fn transform(&self, config: BuiltInput<impl Fold>) -> Result<Program, Error> {
+  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, Error> {
     let program = config.program;
     let mut pass = config.pass;
 
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
         try_with_handler(self.cm.clone(), Default::default(), |handler| {
-          HANDLER.set(handler, || {
-            // Fold module
-            Ok(program.fold_with(&mut pass))
-          })
+          HANDLER.set(handler, || Ok(program.apply(&mut pass)))
         })
       })
     });
@@ -439,7 +438,7 @@ impl SwcCompiler {
 
     let read_file_sourcemap =
       |data_url: Option<&str>| -> Result<Option<sourcemap::SourceMap>, Error> {
-        match &name {
+        match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
               Some(v) => v,
@@ -525,13 +524,7 @@ impl SwcCompiler {
         Ok(r) => r,
         Err(_err) => {
           // Load original source map if possible
-          match read_file_sourcemap(data_url) {
-            Ok(v) => v,
-            Err(_) => {
-              // tracing::error!("failed to read input source map: {:?}", err);
-              None
-            }
-          }
+          read_file_sourcemap(data_url).unwrap_or(None)
         }
       }
     };
@@ -553,18 +546,6 @@ impl SwcCompiler {
       }
     }
   }
-
-  pub fn comments(&self) -> &SingleThreadedComments {
-    &self.comments
-  }
-
-  pub fn options(&self) -> &Options {
-    &self.options
-  }
-
-  pub fn cm(&self) -> &Arc<SourceMap> {
-    &self.cm
-  }
 }
 
 pub(crate) trait IntoJsAst {
@@ -580,7 +561,7 @@ impl IntoJsAst for SwcCompiler {
       ))
       .with_context(JsAstContext {
         globals: self.globals,
-        helpers: self.helpers,
+        helpers: self.helpers.data(),
         source_map: self.cm,
         top_level_mark: self
           .options

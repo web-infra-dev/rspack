@@ -1,7 +1,7 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"./style.css?54f4": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./style.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -163,14 +163,17 @@ __webpack_require__.r = function(exports) {
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
     var document = __webpack_require__.g.document;
     if (!scriptUrl && document) {
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }
-        }
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }
+      }
       }
     
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
@@ -283,10 +286,10 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 /************************************************************************/
 var __webpack_exports__ = {};
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css?54f4");
+/* ESM import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css");
 
 
-__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css?3883"));
+__webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css"));
 
 })()
 ;

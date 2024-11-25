@@ -1,18 +1,16 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
 
 <WebpackLicense from="https://webpack.js.org/configuration/node/" />
 
 # Mode
 
+<PropertyType
+  type="'production' | 'development' | 'none'"
+  defaultValueList={[{ defaultValue: "'production'" }]}
+/>
+
 The `mode` configuration is used to set the build mode of Rspack to enable the default optimization strategy.
-
-- **Type:**
-
-```ts
-type Mode = 'production' | 'development' | 'none';
-```
-
-- **Default:** `'production'`
 
 ## Usage
 

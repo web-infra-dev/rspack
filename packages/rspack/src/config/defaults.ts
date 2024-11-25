@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
 	SwcJsMinimizerRspackPlugin
@@ -45,10 +46,10 @@ import type {
 	Optimization,
 	Performance,
 	ResolveOptions,
+	RspackFutureOptions,
 	RuleSetRules,
 	SnapshotOptions
-} from "./zod";
-import Template = require("../Template");
+} from "./types";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -87,7 +88,7 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments);
+	applyExperimentsDefaults(options.experiments, { production });
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -110,21 +111,29 @@ export const applyRspackOptionsDefaults = (
 		entry: options.entry,
 		futureDefaults: options.experiments.futureDefaults!
 	});
+	// bundlerInfo is affected by outputDefaults so must be executed after outputDefaults
+	applybundlerInfoDefaults(
+		options.experiments.rspackFuture,
+		options.output.library
+	);
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties
 	});
 
-	// @ts-expect-error
 	F(options, "externalsType", () => {
 		return options.output.library
-			? options.output.library.type
+			? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+				(options.output.library.type as any)
 			: options.output.module
-				? "module"
+				? "module-import"
 				: "var";
 	});
 
-	applyNodeDefaults(options.node, { targetProperties });
+	applyNodeDefaults(options.node, {
+		targetProperties,
+		outputModule: options.output.module
+	});
 
 	applyLoaderDefaults(options.loader, {
 		targetProperties,
@@ -183,26 +192,57 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+	experiments: ExperimentsNormalized,
+	{ production }: { production: boolean }
+) => {
+	// IGNORE(experiments.cache): In webpack, cache is undefined by default
+	F(experiments, "cache", () => !production);
+
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
 	D(experiments, "css", experiments.futureDefaults ? true : undefined);
+	D(experiments, "layers", false);
 	D(experiments, "topLevelAwait", true);
 
+	// IGNORE(experiments.incremental): Rspack specific configuration for incremental
+	D(experiments, "incremental", !production ? {} : false);
+	if (typeof experiments.incremental === "object") {
+		D(experiments.incremental, "make", true);
+		D(experiments.incremental, "inferAsyncModules", false);
+		D(experiments.incremental, "providedExports", false);
+		D(experiments.incremental, "dependenciesDiagnostics", false);
+		D(experiments.incremental, "buildChunkGraph", false);
+		D(experiments.incremental, "modulesHashes", false);
+		D(experiments.incremental, "modulesCodegen", false);
+		D(experiments.incremental, "modulesRuntimeRequirements", false);
+		D(experiments.incremental, "chunksRuntimeRequirements", false);
+		D(experiments.incremental, "chunksHashes", false);
+		D(experiments.incremental, "chunksRender", false);
+		D(experiments.incremental, "emitAssets", true);
+	}
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
-	if (typeof experiments.rspackFuture === "object") {
-		D(experiments.rspackFuture, "bundlerInfo", {});
-		if (typeof experiments.rspackFuture.bundlerInfo === "object") {
+	// rspackFuture.bundlerInfo default value is applied after applyDefaults
+};
+
+const applybundlerInfoDefaults = (
+	rspackFuture?: RspackFutureOptions,
+	library?: Library
+) => {
+	if (typeof rspackFuture === "object") {
+		D(rspackFuture, "bundlerInfo", {});
+		if (typeof rspackFuture.bundlerInfo === "object") {
 			D(
-				experiments.rspackFuture.bundlerInfo,
+				rspackFuture.bundlerInfo,
 				"version",
 				require("../../package.json").version
 			);
-			D(experiments.rspackFuture.bundlerInfo, "bundler", "rspack");
-			D(experiments.rspackFuture.bundlerInfo, "force", true);
+			D(rspackFuture.bundlerInfo, "bundler", "rspack");
+			// don't inject for library mode
+			D(rspackFuture.bundlerInfo, "force", !library);
 		}
 	}
 };
@@ -213,45 +253,22 @@ const applySnapshotDefaults = (
 ) => {};
 
 const applyJavascriptParserOptionsDefaults = (
-	parserOptions: JavascriptParserOptions,
-	fallback?: JavascriptParserOptions
+	parserOptions: JavascriptParserOptions
 ) => {
-	D(parserOptions, "dynamicImportMode", fallback?.dynamicImportMode ?? "lazy");
-	D(
-		parserOptions,
-		"dynamicImportPrefetch",
-		fallback?.dynamicImportPrefetch ?? false
-	);
-	D(
-		parserOptions,
-		"dynamicImportPreload",
-		fallback?.dynamicImportPreload ?? false
-	);
-	D(parserOptions, "url", fallback?.url ?? true);
-	D(
-		parserOptions,
-		"exprContextCritical",
-		fallback?.exprContextCritical ?? true
-	);
-	D(
-		parserOptions,
-		"wrappedContextCritical",
-		fallback?.wrappedContextCritical ?? false
-	);
-	D(parserOptions, "exportsPresence", fallback?.exportsPresence);
-	D(parserOptions, "importExportsPresence", fallback?.importExportsPresence);
-	D(
-		parserOptions,
-		"reexportExportsPresence",
-		fallback?.reexportExportsPresence
-	);
-	D(
-		parserOptions,
-		"strictExportPresence",
-		fallback?.strictExportPresence ?? false
-	);
-	D(parserOptions, "worker", fallback?.worker ?? ["..."]);
-	D(parserOptions, "overrideStrict", fallback?.overrideStrict ?? undefined);
+	D(parserOptions, "dynamicImportMode", "lazy");
+	D(parserOptions, "dynamicImportPrefetch", false);
+	D(parserOptions, "dynamicImportPreload", false);
+	D(parserOptions, "url", true);
+	D(parserOptions, "exprContextCritical", true);
+	D(parserOptions, "wrappedContextCritical", false);
+	D(parserOptions, "wrappedContextRegExp", /.*/);
+	D(parserOptions, "strictExportPresence", false);
+	D(parserOptions, "requireAsExpression", true);
+	D(parserOptions, "requireDynamic", true);
+	D(parserOptions, "requireResolve", true);
+	D(parserOptions, "importDynamic", true);
+	D(parserOptions, "worker", ["..."]);
+	D(parserOptions, "importMeta", true);
 };
 
 const applyModuleDefaults = (
@@ -281,27 +298,6 @@ const applyModuleDefaults = (
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript);
 
-	F(module.parser, "javascript/auto", () => ({}));
-	assertNotNill(module.parser["javascript/auto"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/auto"],
-		module.parser.javascript
-	);
-
-	F(module.parser, "javascript/dynamic", () => ({}));
-	assertNotNill(module.parser["javascript/dynamic"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/dynamic"],
-		module.parser.javascript
-	);
-
-	F(module.parser, "javascript/esm", () => ({}));
-	assertNotNill(module.parser["javascript/esm"]);
-	applyJavascriptParserOptionsDefaults(
-		module.parser["javascript/esm"],
-		module.parser.javascript
-	);
-
 	if (css) {
 		F(module.parser, "css", () => ({}));
 		assertNotNill(module.parser.css);
@@ -319,11 +315,11 @@ const applyModuleDefaults = (
 		F(module.generator, "css", () => ({}));
 		assertNotNill(module.generator.css);
 		D(
-			module.generator["css"],
+			module.generator.css,
 			"exportsOnly",
 			!targetProperties || !targetProperties.document
 		);
-		D(module.generator["css"], "esModule", true);
+		D(module.generator.css, "esModule", true);
 
 		F(module.generator, "css/auto", () => ({}));
 		assertNotNill(module.generator["css/auto"]);
@@ -473,15 +469,11 @@ const applyModuleDefaults = (
 						type: "asset/resource"
 					}
 				]
+			},
+			{
+				with: { type: "json" },
+				type: "json"
 			}
-			// {
-			// 	assert: { type: "json" },
-			// 	type: "json"
-			// },
-			// {
-			// 	with: { type: "json" },
-			// 	type: "json"
-			// }
 		);
 
 		return rules;
@@ -518,9 +510,11 @@ const applyOutputDefaults = (
 				: library;
 		if (Array.isArray(libraryName)) {
 			return libraryName.join(".");
-		} else if (typeof libraryName === "object") {
+		}
+		if (typeof libraryName === "object") {
 			return getLibraryName(libraryName.root);
-		} else if (typeof libraryName === "string") {
+		}
+		if (typeof libraryName === "string") {
 			return libraryName;
 		}
 		return "";
@@ -589,13 +583,13 @@ const applyOutputDefaults = (
 	);
 	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 
-	const uniqueNameId = Template.toIdentifier(
-		/** @type {NonNullable<Output["uniqueName"]>} */ output.uniqueName
-	);
-	F(output, "hotUpdateGlobal", () => "webpackHotUpdate" + uniqueNameId);
-	F(output, "chunkLoadingGlobal", () => "webpackChunk" + uniqueNameId);
+	const uniqueNameId = Template.toIdentifier(output.uniqueName);
+	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
+	F(output, "chunkLoadingGlobal", () => `webpackChunk${uniqueNameId}`);
+	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
+	D(output, "compareBeforeEmit", true);
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	F(output, "pathinfo", () => development);
 	D(
@@ -604,9 +598,11 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 
-	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
+	// IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
+	D(output, "hashFunction", "xxhash64");
 	D(output, "hashDigest", "hex");
-	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
+	// IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
+	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
@@ -620,23 +616,16 @@ const applyOutputDefaults = (
 				if (tp.dynamicImport) return "module";
 				if (tp.document) return "array-push";
 				throw new Error(
-					"For the selected environment is no default ESM chunk format available:\n" +
-						"ESM exports can be chosen when 'import()' is available.\n" +
-						"JSONP Array push can be chosen when 'document' is available.\n" +
-						helpMessage
-				);
-			} else {
-				if (tp.document) return "array-push";
-				if (tp.require) return "commonjs";
-				if (tp.nodeBuiltins) return "commonjs";
-				if (tp.importScripts) return "array-push";
-				throw new Error(
-					"For the selected environment is no default script chunk format available:\n" +
-						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
-						helpMessage
+					`For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
 				);
 			}
+			if (tp.document) return "array-push";
+			if (tp.require) return "commonjs";
+			if (tp.nodeBuiltins) return "commonjs";
+			if (tp.importScripts) return "array-push";
+			throw new Error(
+				`For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n${helpMessage}`
+			);
 		}
 		throw new Error(
 			"Chunk format can't be selected by default when no target is specified"
@@ -713,6 +702,7 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	D(output, "importMetaName", "import.meta");
 	// IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
@@ -788,8 +778,8 @@ const applyOutputDefaults = (
 	const conditionallyOptimistic = (v?: boolean, c?: boolean) =>
 		(v === undefined && c) || v;
 
-	F(environment, "globalThis", () => tp && tp.globalThis);
-	F(environment, "bigIntLiteral", () => tp && tp.bigIntLiteral);
+	F(environment, "globalThis", () => tp?.globalThis);
+	F(environment, "bigIntLiteral", () => tp && optimistic(tp.bigIntLiteral));
 	F(environment, "const", () => tp && optimistic(tp.const));
 	F(environment, "arrowFunction", () => tp && optimistic(tp.arrowFunction));
 	F(environment, "asyncFunction", () => tp && optimistic(tp.asyncFunction));
@@ -807,13 +797,13 @@ const applyOutputDefaults = (
 	);
 	F(environment, "templateLiteral", () => tp && optimistic(tp.templateLiteral));
 	F(environment, "dynamicImport", () =>
-		conditionallyOptimistic(tp && tp.dynamicImport, output.module)
+		conditionallyOptimistic(tp?.dynamicImport, output.module)
 	);
 	F(environment, "dynamicImportInWorker", () =>
-		conditionallyOptimistic(tp && tp.dynamicImportInWorker, output.module)
+		conditionallyOptimistic(tp?.dynamicImportInWorker, output.module)
 	);
 	F(environment, "module", () =>
-		conditionallyOptimistic(tp && tp.module, output.module)
+		conditionallyOptimistic(tp?.module, output.module)
 	);
 	F(environment, "document", () => tp && optimistic(tp.document));
 };
@@ -822,35 +812,25 @@ const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
 	{ targetProperties }: { targetProperties: any }
 ) => {
-	D(externalsPresets, "web", targetProperties && targetProperties.web);
-	D(externalsPresets, "node", targetProperties && targetProperties.node);
-	D(
-		externalsPresets,
-		"electron",
-		targetProperties && targetProperties.electron
-	);
+	D(externalsPresets, "web", targetProperties?.web);
+	D(externalsPresets, "node", targetProperties?.node);
+	D(externalsPresets, "electron", targetProperties?.electron);
 	D(
 		externalsPresets,
 		"electronMain",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronMain
+		targetProperties?.electron && targetProperties.electronMain
 	);
 	D(
 		externalsPresets,
 		"electronPreload",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronPreload
+		targetProperties?.electron && targetProperties.electronPreload
 	);
 	D(
 		externalsPresets,
 		"electronRenderer",
-		targetProperties &&
-			targetProperties.electron &&
-			targetProperties.electronRenderer
+		targetProperties?.electron && targetProperties.electronRenderer
 	);
-	D(externalsPresets, "nwjs", targetProperties && targetProperties.nwjs);
+	D(externalsPresets, "nwjs", targetProperties?.nwjs);
 };
 
 const applyLoaderDefaults = (
@@ -875,23 +855,28 @@ const applyLoaderDefaults = (
 
 const applyNodeDefaults = (
 	node: Node,
-	{ targetProperties }: { targetProperties: any }
+	{
+		outputModule,
+		targetProperties
+	}: { targetProperties: any; outputModule?: boolean }
 ) => {
 	if (node === false) return;
 
 	// IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
 	F(node, "global", () => {
-		if (targetProperties && targetProperties.global) return false;
+		if (targetProperties?.global) return false;
 		return "warn";
 	});
 	// IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
 	F(node, "__dirname", () => {
-		if (targetProperties && targetProperties.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 	// IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
 	F(node, "__filename", () => {
-		if (targetProperties && targetProperties.node) return "eval-only";
+		if (targetProperties?.node)
+			return outputModule ? "node-module" : "eval-only";
 		return "warn-mock";
 	});
 };
@@ -932,11 +917,12 @@ const applyOptimizationDefaults = (
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);
+	D(optimization, "emitOnErrors", !production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", production);
-	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `SwcCssMinimizerRspackPlugin` by default
+	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default
 	A(optimization, "minimizer", () => [
 		new SwcJsMinimizerRspackPlugin(),
 		new LightningCssMinimizerRspackPlugin()
@@ -954,7 +940,7 @@ const applyOptimizationDefaults = (
 		);
 		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
-		// D(splitChunks, "usedExports", optimization.usedExports === true);
+		D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
 		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
@@ -1025,7 +1011,7 @@ const getResolveDefaults = ({
 	const tp = targetProperties;
 
 	const browserField =
-		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
+		tp?.web && (!tp.node || (tp.electron && tp.electronRenderer));
 	const aliasFields = browserField ? ["browser"] : [];
 	const mainFields = browserField
 		? ["browser", "module", "..."]
@@ -1124,8 +1110,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
-					// @ts-expect-error
-					obj[prop] = newArray;
+					obj[prop] = newArray as any;
 				}
 				const items = factory();
 				if (items !== undefined) {

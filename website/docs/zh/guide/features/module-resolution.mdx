@@ -1,6 +1,6 @@
 # 模块解析
 
-模块解析指的是将模块标识符转换为模块的文件路径的过程。Rspack 使用 [nodejs_resolver](https://github.com/web-infra-dev/nodejs_resolver) 来进行模块路径解析，它是对 [node 模块解析算法](https://nodejs.org/api/modules.html#modules_all_together)的一个扩展，其接口和 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 保持一致，更多关于模块解析配置见 [解析配置](/config/resolve)。
+模块解析指的是将模块标识符转换为模块的文件路径的过程。Rspack 使用 Rust 版本的 enhanced-resolve 来进行模块路径解析，它是对 [node 模块解析算法](https://nodejs.org/api/modules.html#modules_all_together)的一个扩展，其接口和 [enhanced-resolve](https://github.com/webpack/enhanced-resolve) 保持一致，请参考 [resolve 配置](/config/resolve) 了解更多关于模块解析的配置。
 
 ## Rspack 中的解析规则
 

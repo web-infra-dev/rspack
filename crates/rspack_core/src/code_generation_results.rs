@@ -4,8 +4,8 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::AtomicU32;
 
 use anymap::CloneAny;
+use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
-use rspack_identifier::IdentifierMap;
 use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -171,6 +171,7 @@ impl CodeGenerationResult {
       source.hash(&mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
@@ -188,8 +189,8 @@ pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
-  pub module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
-  pub map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+  module_generation_result_map: HashMap<CodeGenResultId, CodeGenerationResult>,
+  map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
 
 impl CodeGenerationResults {
@@ -210,11 +211,27 @@ impl CodeGenerationResults {
       })
   }
 
-  pub fn clear_entry(
+  pub fn insert(
     &mut self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Option<(ModuleIdentifier, RuntimeSpecMap<CodeGenResultId>)> {
-    self.map.remove_entry(module_identifier)
+    module_identifier: ModuleIdentifier,
+    codegen_res: CodeGenerationResult,
+    runtimes: impl IntoIterator<Item = RuntimeSpec>,
+  ) {
+    let codegen_res_id = codegen_res.id;
+    self
+      .module_generation_result_map
+      .insert(codegen_res_id, codegen_res);
+    for runtime in runtimes {
+      self.add(module_identifier, runtime, codegen_res_id);
+    }
+  }
+
+  pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
+    let runtime_map = self.map.remove(module_identifier)?;
+    for result in runtime_map.get_values() {
+      self.module_generation_result_map.remove(result)?;
+    }
+    Some(())
   }
 
   pub fn get(
@@ -302,4 +319,21 @@ impl CodeGenerationResults {
 
     code_generation_result.hash.as_ref()
   }
+
+  pub fn into_inner(
+    self,
+  ) -> (
+    IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
+    HashMap<CodeGenResultId, CodeGenerationResult>,
+  ) {
+    (self.map, self.module_generation_result_map)
+  }
+}
+
+#[derive(Debug)]
+pub struct CodeGenerationJob {
+  pub module: ModuleIdentifier,
+  pub hash: RspackHashDigest,
+  pub runtime: RuntimeSpec,
+  pub runtimes: Vec<RuntimeSpec>,
 }

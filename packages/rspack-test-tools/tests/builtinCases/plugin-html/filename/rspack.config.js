@@ -3,12 +3,12 @@ module.exports = {
 	builtins: {
 		html: [
 			{
-				filename: "[name].[hash].html"
+				filename: "[name].[contenthash].html"
 			},
 			{
 				template: "./index.html",
-				filename: "[name].[hash].html"
+				filename: "[name].[contenthash].html"
 			}
 		]
-	}
+	},
 };

@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   cmp::Ordering,
@@ -9,13 +10,14 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
   ModuleIdentifier,
 };
+use rspack_util::itoa;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
@@ -43,10 +45,11 @@ pub fn get_used_module_ids_and_modules(
     .get_module_graph()
     .modules()
     .values()
+    .filter(|m| m.need_id())
     .for_each(|module| {
       let module_id = chunk_graph.get_module_id(module.identifier());
       if let Some(module_id) = module_id {
-        used_ids.insert(module_id.clone());
+        used_ids.insert(module_id.to_string());
       } else {
         if filter.as_ref().map_or(true, |f| (f)(module))
           && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
@@ -229,10 +232,10 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let mut formatted_name = format!("{name}{i}");
+        let mut formatted_name = format!("{name}{}", itoa!(i));
         while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
-          formatted_name = format!("{name}{i}");
+          formatted_name = format!("{name}{}", itoa!(i));
         }
         assign_name(item, formatted_name.clone());
         used_ids.insert(formatted_name);
@@ -275,10 +278,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{ident}{i}"), range);
+    let mut id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{ident}{i}"), range);
+      id = get_number_hash(&format!("{ident}{}", itoa!(i)), range);
     }
   }
 }
@@ -331,12 +334,12 @@ pub fn get_short_chunk_name(
   module_graph: &ModuleGraph,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
         .module_by_identifier(id)
-        .expect("Module not found")
+        .unwrap_or_else(|| panic!("Module not found {}", id))
     })
     .collect::<Vec<_>>();
   let short_module_names = modules
@@ -347,7 +350,7 @@ pub fn get_short_chunk_name(
     })
     .collect::<Vec<_>>();
 
-  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints.clone());
+  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints().clone());
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
@@ -380,7 +383,7 @@ pub fn get_long_chunk_name(
   module_graph: &ModuleGraph,
 ) -> String {
   let modules = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
@@ -398,7 +401,7 @@ pub fn get_long_chunk_name(
     .iter()
     .map(|m| request_to_id(&get_long_module_name("", m, context)))
     .collect::<Vec<_>>();
-  let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
+  let mut id_name_hints = chunk.id_name_hints().iter().cloned().collect::<Vec<_>>();
   id_name_hints.sort_unstable();
 
   let chunk_name = {
@@ -416,12 +419,12 @@ pub fn get_full_chunk_name(
   module_graph: &ModuleGraph,
   context: &str,
 ) -> String {
-  if let Some(name) = &chunk.name {
+  if let Some(name) = chunk.name() {
     return name.to_owned();
   }
 
   let full_module_names = chunk_graph
-    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .get_chunk_root_modules(&chunk.ukey(), module_graph)
     .iter()
     .map(|id| {
       module_graph
@@ -434,9 +437,10 @@ pub fn get_full_chunk_name(
   full_module_names.join(",")
 }
 
-static REGEX1: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
-static REGEX2: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
+static REGEX1: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
+static REGEX2: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
 
 pub fn request_to_id(request: &str) -> String {
   REGEX2
@@ -451,8 +455,8 @@ pub fn get_used_chunk_ids(compilation: &Compilation) -> HashSet<String> {
     .cloned()
     .collect::<HashSet<_>>();
   for chunk in compilation.chunk_by_ukey.values() {
-    if let Some(id) = &chunk.id {
-      used_ids.insert(id.clone());
+    if let Some(id) = chunk.id() {
+      used_ids.insert(id.to_owned());
     }
   }
   used_ids
@@ -465,21 +469,19 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   if !used_ids.is_empty() {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id.is_none() {
+      if chunk.id().is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.id = Some(next_id.to_string());
-        chunk.ids = vec![next_id.to_string()];
+        chunk.set_id(Some(next_id.to_string()));
         next_id += 1;
       }
     }
   } else {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id.is_none() {
-        chunk.id = Some(next_id.to_string());
-        chunk.ids = vec![next_id.to_string()];
+      if chunk.id().is_none() {
+        chunk.set_id(Some(next_id.to_string()));
         next_id += 1;
       }
     }
@@ -492,8 +494,8 @@ fn compare_chunks_by_modules(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey, module_graph);
-  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey, module_graph);
+  let a_modules = chunk_graph.get_ordered_chunk_modules(&a.ukey(), module_graph);
+  let b_modules = chunk_graph.get_ordered_chunk_modules(&b.ukey(), module_graph);
 
   let eq = a_modules
     .into_iter()
@@ -503,8 +505,8 @@ fn compare_chunks_by_modules(
         let a_module_id = chunk_graph.get_module_id(a_module.identifier());
         let b_module_id = chunk_graph.get_module_id(b_module.identifier());
         let ordering = compare_ids(
-          &a_module_id.clone().unwrap_or_default(),
-          &b_module_id.clone().unwrap_or_default(),
+          a_module_id.unwrap_or_default(),
+          b_module_id.unwrap_or_default(),
         );
         if ordering != Ordering::Equal {
           return Some(ordering);
@@ -519,7 +521,7 @@ fn compare_chunks_by_modules(
   // 2 chunks are exactly the same, we have to compare
   // the ukey to get stable results
   if matches!(eq, Ordering::Equal) {
-    return a.ukey.cmp(&b.ukey);
+    return a.ukey().cmp(&b.ukey());
   }
 
   eq
@@ -531,15 +533,12 @@ pub fn compare_chunks_natural(
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
-  let name_ordering = compare_ids(
-    &a.name.clone().unwrap_or_default(),
-    &b.name.clone().unwrap_or_default(),
-  );
+  let name_ordering = compare_ids(a.name().unwrap_or_default(), b.name().unwrap_or_default());
   if name_ordering != Ordering::Equal {
     return name_ordering;
   }
 
-  let runtime_ordering = compare_runtime(&a.runtime, &b.runtime);
+  let runtime_ordering = compare_runtime(a.runtime(), b.runtime());
   if runtime_ordering != Ordering::Equal {
     return runtime_ordering;
   }

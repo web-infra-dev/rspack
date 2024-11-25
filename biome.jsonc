@@ -16,48 +16,55 @@
 			"packages/**/etc/**/*",
 			"crates/**/*",
 			"tests/**/*",
-			"packages/rspack-plugin-preact-refresh/tests/**/*",
 			"packages/rspack-test-tools/template/**/*",
 			"packages/rspack-test-tools/tests/**/*",
-			"packages/rspack-plugin-mini-css-extract/test/cases/**/*",
-			"packages/playground/**/*",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"tests/e2e/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
-			"packages/rspack/src/container/default.runtime.js"
+			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		]
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": false,
+			"recommended": true,
+			"a11y": {
+				"useKeyWithClickEvents": "off"
+			},
 			"complexity": {
-				"useArrowFunction": "error"
+				"noStaticOnlyClass": "off",
+				"noThisInStatic": "off",
+				"noBannedTypes": "off"
+			},
+			"correctness": {
+				"noConstructorReturn": "off",
+				"noVoidTypeReturn": "off"
 			},
 			"style": {
-				"noUnusedTemplateLiteral": "error",
-				"useNodejsImportProtocol": "error",
-				"noNonNullAssertion": "off",
-				"useNumberNamespace": "error",
-				"useConst": "error",
-				"useImportType": "error",
-				"useExportType": "error"
+				"noNonNullAssertion": "off"
+			},
+			"performance": {
+				"noDelete": "off"
+			},
+			"suspicious": {
+				"noFallthroughSwitchClause": "off",
+				"noConfusingVoidType": "off",
+				"noPrototypeBuiltins": "off",
+				"noAssignInExpressions": "off",
+				"noControlCharactersInRegex": "off",
+				"noExplicitAny": "off"
 			}
 		},
 		"ignore": [
 			"tests/**/*",
 			"crates/**/*",
 			"packages/rspack-test-tools/template",
+			"packages/rspack-test-tools/src/helper/legacy/**/*",
+			"packages/rspack/module.d.ts",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
-			"packages/rspack-dev-server/client",
-			"packages/rspack/src/builtin-plugin/css-extract/hmr",
-			"packages/rspack-plugin-react-refresh/client",
-			"packages/rspack-plugin-preact-refresh/client",
-			"packages/rspack/src/container/default.runtime.js"
+			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
 		]
 	},
 	"vcs": {

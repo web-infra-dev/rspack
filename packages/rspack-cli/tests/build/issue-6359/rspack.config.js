@@ -1,5 +1,4 @@
 const path = require("path");
-const { WEBPACK_SERVE } = process.env;
 module.exports = /** @type {import('@rspack/cli').Configuration} */ {
 	mode: "production",
 	entry: "./entry.js",
@@ -12,7 +11,7 @@ module.exports = /** @type {import('@rspack/cli').Configuration} */ {
 			apply(compiler) {
 				new compiler.webpack.DefinePlugin({
 					DEFINE_ME: JSON.stringify(
-						`WEBPACK_SERVE=${WEBPACK_SERVE ?? "<EMPTY>"}`
+						`WEBPACK_SERVE=${process.env.WEBPACK_SERVE ?? "<EMPTY>"}`
 					)
 				}).apply(compiler);
 			}

@@ -1,4 +1,4 @@
-const { SwcJsMinimizerRspackPlugin, SwcCssMinimizerRspackPlugin } = require("@rspack/core")
+const { SwcJsMinimizerRspackPlugin } = require("@rspack/core")
 
 /**
  * @type {import("@rspack/core").Configuration}
@@ -9,8 +9,10 @@ module.exports = {
 		minimizer: [
 			new SwcJsMinimizerRspackPlugin({
 				extractComments: {},
-				format: {
-					comments: "all"
+				minimizerOptions: {
+					format: {
+						comments: "all"
+					}
 				}
 			}),
 		]

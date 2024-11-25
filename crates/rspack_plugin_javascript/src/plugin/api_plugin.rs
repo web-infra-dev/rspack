@@ -39,9 +39,9 @@ fn render_module_content(
     init_fragments.push(
       NormalInitFragment::new(
         "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n".to_string(),
-        InitFragmentStage::StageHarmonyImports,
+        InitFragmentStage::StageESMImports,
         0,
-        InitFragmentKey::ExternalModule("node-commonjs".to_string()),
+        InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
         None,
       )
       .boxed(),
@@ -55,11 +55,7 @@ impl Plugin for APIPlugin {
     "rspack.APIPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

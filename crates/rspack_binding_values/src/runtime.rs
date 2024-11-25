@@ -1,15 +1,17 @@
+use std::sync::LazyLock;
+
+use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
 use napi_derive::napi;
-use once_cell::sync::Lazy;
 use rspack_core::RuntimeGlobals;
 use rustc_hash::FxHashMap;
 
 use crate::JsChunk;
 
-static RUNTIME_GLOBAL_MAP: Lazy<(
+static RUNTIME_GLOBAL_MAP: LazyLock<(
   FxHashMap<RuntimeGlobals, String>,
   FxHashMap<String, RuntimeGlobals>,
-)> = Lazy::new(|| {
+)> = LazyLock::new(|| {
   let mut to_js_map = FxHashMap::default();
   let mut from_js_map = FxHashMap::default();
 
@@ -69,7 +71,7 @@ static RUNTIME_GLOBAL_MAP: Lazy<(
   declare_runtime_global!(COMPAT_GET_DEFAULT_EXPORT);
   declare_runtime_global!(CREATE_FAKE_NAMESPACE_OBJECT);
   declare_runtime_global!(NODE_MODULE_DECORATOR);
-  declare_runtime_global!(HARMONY_MODULE_DECORATOR);
+  declare_runtime_global!(ESM_MODULE_DECORATOR);
   declare_runtime_global!(SYSTEM_CONTEXT);
   declare_runtime_global!(THIS_AS_EXPORTS);
   declare_runtime_global!(CURRENT_REMOTE_GET_SCOPE);
@@ -128,9 +130,41 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
     let mut runtime_requirements = RuntimeGlobals::default();
 
     for item in self.runtime_requirements.value.iter() {
-      let name = item.to_snake_case().to_uppercase();
+      let snake_case = item.to_snake_case();
+      let name = snake_case.cow_to_uppercase();
 
-      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(&name) {
+      if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(name.as_ref()) {
+        runtime_requirements.extend(*item);
+      }
+    }
+
+    runtime_requirements
+  }
+}
+
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeArg {
+  pub chunk: JsChunk,
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct JsRuntimeRequirementInTreeResult {
+  pub runtime_requirements: JsRuntimeGlobals,
+}
+
+impl JsRuntimeRequirementInTreeResult {
+  pub fn as_runtime_globals(&self) -> RuntimeGlobals {
+    let mut runtime_requirements = RuntimeGlobals::default();
+
+    for item in self.runtime_requirements.value.iter() {
+      let snake_name = item.to_snake_case();
+
+      if let Some(item) = RUNTIME_GLOBAL_MAP
+        .1
+        .get(snake_name.cow_to_uppercase().as_ref())
+      {
         runtime_requirements.extend(*item);
       }
     }

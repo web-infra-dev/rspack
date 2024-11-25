@@ -36,6 +36,7 @@ import inspector from "node:inspector";
 import path from "node:path";
 import { URLSearchParams } from "node:url";
 import { type Compiler, type RspackOptions, rspack } from "@rspack/core";
+import { dynamicImport } from "./crossImport";
 
 type JSCPUProfileOptionsOutput = string;
 type JSCPUProfileOptions = {
@@ -133,7 +134,7 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 			layer === "chrome"
 				? parsed.get("output") || defaultRustTraceChromeOutput
 				: parsed.get("output") || defaultRustTraceLoggerOutput;
-		if (layer !== "chrome" && layer !== "logger") {
+		if (layer !== "chrome" && layer !== "logger" && layer !== "console") {
 			throw new Error(
 				`${layer} is not a valid layer, should be chrome or logger`
 			);
@@ -209,7 +210,7 @@ class RspackProfileLoggingPlugin {
 }
 
 export async function applyProfile(profileValue: string, item: RspackOptions) {
-	const { default: exitHook } = await import("exit-hook");
+	const { default: exitHook } = await dynamicImport("exit-hook");
 	const entries = Object.entries(resolveProfile(profileValue));
 	if (entries.length <= 0) return;
 	await fs.promises.mkdir(defaultOutputDirname);

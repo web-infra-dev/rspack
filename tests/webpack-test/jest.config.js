@@ -93,7 +93,6 @@ module.exports = {
 		// "<rootDir>/compileBooleanMatcher.unittest.js",
 		// "<rootDir>/deterministicGrouping.unittest.js",
 		// "<rootDir>/extractUrlAndGlobal.unittest.js",
-		// "<rootDir>/formatLocation.unittest.js",
 		// "<rootDir>/identifier.unittest.js",
 		// "<rootDir>/nonNumericOnlyHash.unittest.js",
 		// "<rootDir>/numberHash.unittest.js",
@@ -148,5 +147,9 @@ module.exports = {
 	"snapshotFormat": {
 		"escapeString": true,
 		"printBasicPrototype": true
-	}
+	},
+	"reporters": [
+		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
+		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+	],
 }

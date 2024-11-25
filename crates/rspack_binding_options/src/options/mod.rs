@@ -1,14 +1,13 @@
 use napi_derive::napi;
 use rspack_core::{
-  CacheOptions, CompilerOptions, Context, Experiments, IncrementalRebuild,
-  IncrementalRebuildMakeState, ModuleOptions, OutputOptions, References, Target,
+  incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
+  ModuleOptions, OutputOptions, References,
 };
 
 mod raw_builtins;
 mod raw_cache;
 mod raw_devtool;
 mod raw_dynamic_entry;
-mod raw_entry;
 mod raw_experiments;
 mod raw_external;
 mod raw_mode;
@@ -24,7 +23,6 @@ pub use raw_builtins::*;
 pub use raw_cache::*;
 pub use raw_devtool::*;
 pub use raw_dynamic_entry::*;
-pub use raw_entry::*;
 pub use raw_experiments::*;
 pub use raw_external::*;
 pub use raw_mode::*;
@@ -71,20 +69,11 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let target = Target::new(&value.target)?;
     let cache = value.cache.into();
-    let experiments = Experiments {
-      incremental_rebuild: IncrementalRebuild {
-        make: if matches!(cache, CacheOptions::Disabled) {
-          None
-        } else {
-          Some(IncrementalRebuildMakeState::default())
-        },
-        emit_asset: true,
-      },
-      top_level_await: value.experiments.top_level_await,
-      rspack_future: value.experiments.rspack_future.into(),
-    };
+    let mut experiments: Experiments = value.experiments.into();
+    if let CacheOptions::Disabled = cache {
+      experiments.incremental = IncrementalPasses::empty();
+    }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
     let snapshot = value.snapshot.into();
@@ -94,7 +83,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       context,
       mode,
       module,
-      target,
       output,
       resolve,
       resolve_loader,
@@ -104,7 +92,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       snapshot,
       optimization,
       node,
-      dev_server: Default::default(),
       profile: value.profile,
       bail: value.bail,
       __references: value.__references,

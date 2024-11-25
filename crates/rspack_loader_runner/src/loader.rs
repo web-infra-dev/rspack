@@ -1,7 +1,7 @@
+use std::sync::LazyLock;
 use std::{
   fmt::Display,
   ops::Deref,
-  path::PathBuf,
   sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -10,10 +10,10 @@ use std::{
 
 use async_trait::async_trait;
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
-use rspack_identifier::{Identifiable, Identifier};
+use rspack_paths::Utf8PathBuf;
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
@@ -29,7 +29,7 @@ pub struct LoaderItem<Context> {
   /// The absolute path is used to represent a loader stayed on the JS side.
   /// `$` split chain may be used to represent a composed loader chain from the JS side.
   /// Virtual path with a builtin protocol to represent a loader from the native side. e.g "builtin:".
-  path: PathBuf,
+  path: Utf8PathBuf,
   /// Query of a loader, starts with `?`
   query: Option<String>,
   /// Fragment of a loader, starts with `#`.
@@ -39,6 +39,14 @@ pub struct LoaderItem<Context> {
   r#type: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
+  /// Whether loader was called with [LoaderContext::finish_with].
+  ///
+  /// Indicates that the loader has finished its work,
+  /// otherwise loader runner will reset [`LoaderContext::content`], [`LoaderContext::source_map`], [`LoaderContext::additional_data`].
+  ///
+  /// This flag is used to align with webpack's behavior:
+  /// If nothing is modified in the loader, the loader will reset the content, source map, and additional data.
+  finish_called: AtomicBool,
 }
 
 impl<C> LoaderItem<C> {
@@ -62,11 +70,13 @@ impl<C> LoaderItem<C> {
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_data(&mut self, data: serde_json::Value) {
     self.data = data;
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn pitch_executed(&self) -> bool {
     self.pitch_executed.load(Ordering::Relaxed)
   }
@@ -77,13 +87,27 @@ impl<C> LoaderItem<C> {
   }
 
   #[inline]
+  #[doc(hidden)]
+  pub fn finish_called(&self) -> bool {
+    self.finish_called.load(Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
   pub fn set_pitch_executed(&self) {
     self.pitch_executed.store(true, Ordering::Relaxed)
   }
 
   #[inline]
+  #[doc(hidden)]
   pub fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_finish_called(&self) {
+    self.finish_called.store(true, Ordering::Relaxed)
   }
 }
 
@@ -141,9 +165,14 @@ impl<C> Identifiable for LoaderItem<C> {
 }
 
 #[async_trait]
-pub trait Loader<Context = ()>: Identifiable + Send + Sync {
-  async fn run(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
-    // noop
+pub trait Loader<Context = ()>: Identifiable + Send + Sync
+where
+  Context: Send,
+{
+  async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
+    // If loader does not implement normal stage,
+    // it should inherit the result from the previous loader.
+    loader_context.current_loader().set_finish_called();
     Ok(())
   }
   async fn pitch(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
@@ -177,6 +206,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         r#type: r#type.to_string(),
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
+        finish_called: AtomicBool::new(false),
       };
     }
     let ident = loader.identifier();
@@ -195,13 +225,14 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       r#type: String::default(),
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
+      finish_called: AtomicBool::new(false),
     }
   }
 }
 
 #[derive(Debug)]
 pub struct ResourceParsedData {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub query: Option<String>,
   pub fragment: Option<String>,
 }
@@ -220,7 +251,7 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static PATH_QUERY_FRAGMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("^((?:\u{200b}.|[^?#\u{200b}])*)(\\?(?:\u{200b}.|[^#\u{200b}])*)?(#.*)?$")
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });
@@ -229,10 +260,11 @@ static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
 pub(crate) mod test {
   use std::{path::PathBuf, sync::Arc};
 
-  use rspack_identifier::{Identifiable, Identifier};
+  use rspack_collections::{Identifiable, Identifier};
 
   use super::{Loader, LoaderItem};
 
+  #[allow(dead_code)]
   pub(crate) struct Custom;
 
   #[async_trait::async_trait]
@@ -243,6 +275,7 @@ pub(crate) mod test {
     }
   }
 
+  #[allow(dead_code)]
   pub(crate) struct Custom2;
   #[async_trait::async_trait]
   impl Loader<()> for Custom2 {}
@@ -252,6 +285,7 @@ pub(crate) mod test {
     }
   }
 
+  #[allow(dead_code)]
   pub(crate) struct Builtin;
   #[async_trait::async_trait]
   impl Loader<()> for Builtin {}

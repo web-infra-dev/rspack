@@ -6,7 +6,7 @@ use rspack_core::{
   CompilerOptions,
 };
 use rspack_core::{
-  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, FilenameTemplate,
+  Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, Filename,
   LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
@@ -25,7 +25,7 @@ pub struct ContainerPluginOptions {
   pub share_scope: String,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
-  pub filename: Option<FilenameTemplate>,
+  pub filename: Option<Filename>,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub enhanced: bool,
 }
@@ -93,6 +93,7 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
@@ -111,11 +112,7 @@ impl Plugin for ContainerPlugin {
     "rspack.ContainerPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

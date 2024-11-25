@@ -25,7 +25,7 @@ export type TCaseSummaryId =
 	`${TCompilerTypeId}|${TModuleTypeId}|${TDimenTypeId}`;
 export type TCaseSummary = Record<TCaseSummaryId, number>;
 
-const toPercent = (d: number) => (d * 100).toFixed(2) + "%";
+const toPercent = (d: number) => `${(d * 100).toFixed(2)}%`;
 const toFirstLetterUpperCase = (s: string) =>
 	(s.charAt(0).toUpperCase() + s.slice(1)).split("-").join(" ");
 const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID;

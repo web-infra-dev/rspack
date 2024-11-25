@@ -1,7 +1,8 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
@@ -128,7 +129,7 @@ impl AssignLibraryPlugin {
   fn get_options_for_chunk<'a>(
     &self,
     compilation: &'a Compilation,
-    chunk_ukey: &'a ChunkUkey,
+    chunk_ukey: &ChunkUkey,
   ) -> Result<Option<AssignLibraryPluginParsed<'a>>> {
     get_options_for_chunk(compilation, chunk_ukey)
       .filter(|library| library.library_type == self.options.library_type)
@@ -156,12 +157,18 @@ impl AssignLibraryPlugin {
         compilation
           .get_path(
             &FilenameTemplate::from(v.to_owned()),
-            PathData::default().chunk(chunk).content_hash_optional(
-              chunk
-                .content_hash
-                .get(&SourceType::JavaScript)
-                .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-            ),
+            PathData::default()
+              .chunk_id_optional(chunk.id())
+              .chunk_hash_optional(chunk.rendered_hash(
+                &compilation.chunk_hashes_results,
+                compilation.options.output.hash_digest_length,
+              ))
+              .chunk_name_optional(chunk.name_for_filename_template())
+              .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+                &compilation.chunk_hashes_results,
+                &SourceType::JavaScript,
+                compilation.options.output.hash_digest_length,
+              )),
           )
           .always_ok()
       };
@@ -309,12 +316,12 @@ fn embed_in_runtime_bailout(
   module: &BoxModule,
   chunk: &Chunk,
 ) -> Result<Option<String>> {
-  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey)? else {
+  let Some(options) = self.get_options_for_chunk(compilation, &chunk.ukey())? else {
     return Ok(None);
   };
   let codegen = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(&chunk.runtime));
+    .get(&module.identifier(), Some(chunk.runtime()));
   let top_level_decls = codegen
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()
@@ -401,22 +408,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (runtime, export, module_identifier) in runtime_info {
+    let mut module_graph = compilation.get_module_graph_mut();
     if let Some(export) = export {
-      let exports_info = compilation
-        .get_module_graph_mut()
-        .get_export_info(module_identifier, &(export.as_str()).into());
-      exports_info.set_used(
-        &mut compilation.get_module_graph_mut(),
-        UsageState::Used,
-        Some(&runtime),
-      );
+      let export_info = module_graph.get_export_info(module_identifier, &(export.as_str()).into());
+      export_info.set_used(&mut module_graph, UsageState::Used, Some(&runtime));
+      export_info.set_can_mangle_use(&mut module_graph, Some(false));
     } else {
-      let exports_info_id = compilation
-        .get_module_graph()
-        .get_exports_info(&module_identifier)
-        .id;
-      exports_info_id
-        .set_used_in_unknown_way(&mut compilation.get_module_graph_mut(), Some(&runtime));
+      let exports_info = module_graph.get_exports_info(&module_identifier);
+      exports_info.set_used_in_unknown_way(&mut module_graph, Some(&runtime));
     }
   }
   Ok(())
@@ -428,11 +427,7 @@ impl Plugin for AssignLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks
@@ -498,7 +493,7 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
     props_so_far.push(accessor[i].clone());
     current = format!(
       "({current}{} = {base}{} || {{}})",
-      property_access(&vec![&accessor[i]], 0),
+      property_access(vec![&accessor[i]], 0),
       property_access(&props_so_far, 0)
     );
     i += 1;
@@ -514,11 +509,11 @@ fn access_with_init(accessor: &[String], existing_length: usize, init_last: bool
   current
 }
 
-static KEYWORD_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static KEYWORD_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|super|switch|static|this|throw|try|true|typeof|var|void|while|with|yield)$").expect("should init regex")
 });
 
-static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| {
+static IDENTIFIER_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"^[\p{L}\p{Nl}$_][\p{L}\p{Nl}$\p{Mn}\p{Mc}\p{Nd}\p{Pc}]*$")
     .expect("should init regex")
 });

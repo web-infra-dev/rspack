@@ -1,37 +1,31 @@
-use std::sync::Arc;
-
-use rspack_core::module_id;
-use rspack_core::{AsContextDependency, Dependency, DependencyCategory, DependencyLocation};
+use rspack_core::{module_id, Compilation, DependencyRange, RuntimeSpec};
+use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, ModuleDependency};
+use rspack_core::{DependencyType, ModuleDependency};
 use rspack_core::{TemplateContext, TemplateReplaceSource};
-use swc_core::common::SourceMap;
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
   optional: bool,
-  loc: DependencyLocation,
-  span: Option<ErrorSpan>,
+  range: DependencyRange,
+  range_expr: Option<DependencyRange>,
 }
 
 impl CommonJsRequireDependency {
   pub fn new(
     request: String,
-    span: Option<ErrorSpan>,
-    start: u32,
-    end: u32,
-    source: Option<Arc<SourceMap>>,
+    range: DependencyRange,
+    range_expr: Option<DependencyRange>,
     optional: bool,
   ) -> Self {
-    let loc = DependencyLocation::new(start, end, source);
     Self {
       id: DependencyId::new(),
       request,
       optional,
-      loc,
-      span,
+      range,
+      range_expr,
     }
   }
 }
@@ -39,6 +33,10 @@ impl CommonJsRequireDependency {
 impl Dependency for CommonJsRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -49,8 +47,12 @@ impl Dependency for CommonJsRequireDependency {
     &DependencyType::CjsRequire
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&DependencyRange> {
+    self.range_expr.as_ref()
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -79,8 +81,8 @@ impl DependencyTemplate for CommonJsRequireDependency {
     code_generatable_context: &mut TemplateContext,
   ) {
     source.replace(
-      self.loc.start(),
-      self.loc.end() - 1,
+      self.range.start,
+      self.range.end - 1,
       module_id(
         code_generatable_context.compilation,
         &self.id,
@@ -94,6 +96,14 @@ impl DependencyTemplate for CommonJsRequireDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

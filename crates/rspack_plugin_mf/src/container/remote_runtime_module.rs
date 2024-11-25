@@ -1,9 +1,9 @@
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::{Identifiable, Identifier};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -58,7 +58,6 @@ impl RuntimeModule for RemoteRuntimeModule {
         let id = compilation
           .chunk_graph
           .get_module_id(m.identifier())
-          .as_deref()
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
@@ -68,7 +67,6 @@ impl RuntimeModule for RemoteRuntimeModule {
         let external_module_id = compilation
           .chunk_graph
           .get_module_id(external_module.identifier())
-          .as_deref()
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(
@@ -87,8 +85,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk
-          .id
-          .as_ref()
+          .id()
           .expect("should have chunkId at <RemoteRuntimeModule as RuntimeModule>::generate"),
         remotes,
       );

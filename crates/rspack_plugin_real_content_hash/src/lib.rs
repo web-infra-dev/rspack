@@ -3,10 +3,11 @@
 use std::{
   borrow::Cow,
   hash::{BuildHasherDefault, Hasher},
+  sync::LazyLock,
 };
 
 use derivative::Derivative;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::{Captures, Regex};
 use rspack_core::{
@@ -20,8 +21,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
-pub static QUOTE_META: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
+pub static QUOTE_META: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -40,7 +41,7 @@ impl Plugin for RealContentHashPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context
@@ -108,7 +109,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   for old_hash in &ordered_hashes {
     if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
       asset_names.sort();
-      let asset_contents: Vec<_> = asset_names
+      let mut asset_contents: Vec<_> = asset_names
         .par_iter()
         .filter_map(|name| assets_data.get(name))
         .map(|data| {
@@ -119,6 +120,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
           )
         })
         .collect();
+      asset_contents.dedup();
       let mut hasher = RspackHash::from(&compilation.options.output);
       for asset_content in asset_contents {
         hasher.write(&asset_content.buffer());

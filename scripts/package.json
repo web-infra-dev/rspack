@@ -11,11 +11,11 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@actions/core": "1.10.1",
+    "@actions/core": "1.11.1",
     "@pnpm/find-workspace-packages": "6.0.9",
     "chalk": "^5.3.0",
     "fs-extra": "^11.2.0",
-    "typescript": "5.0.2",
+    "typescript": "^5.6.3",
     "jest-environment-jsdom": "^29.7.0",
     "glob":"^10.3.10",
     "semver": "^7.6.2",

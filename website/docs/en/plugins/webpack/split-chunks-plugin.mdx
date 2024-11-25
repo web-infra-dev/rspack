@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta } from '../../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/optimization/" />
@@ -140,8 +140,6 @@ The minimum times must a module be shared among chunks before splitting.
 
 ### splitChunks.hidePathInfo
 
-<ApiMeta addedVersion="0.4.3" />
-
 - **Type:** `boolean`
 - **Default:** defaults to `true` if `options.mode` is `'production'`, otherwise defaults to `false`
 
@@ -165,13 +163,13 @@ When the chunk has a name already, each part will get a new name derived from th
 
 `maxSize` option is intended to be used with HTTP/2 and long term caching. It increases the request count for better caching. It could also be used to decrease the file size for faster rebuilding.
 
-:::info Tip
+:::tip
 
 `maxSize` takes higher priority than `maxInitialRequest/maxAsyncRequests`. Actual priority is `maxInitialRequest/maxAsyncRequests < maxSize < minSize`.
 
 :::
 
-:::info Tip
+:::tip
 
 Setting the value for `maxSize` sets the value for both `maxAsyncSize` and `maxInitialSize`.
 
@@ -194,8 +192,6 @@ Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitia
 The difference between `maxInitialSize` and `maxSize` is that `maxInitialSize` will only affect initial load chunks.
 
 ### splitChunks.automaticNameDelimiter
-
-<ApiMeta addedVersion="0.4.3" />
 
 - **Type:** `string`
 - **Default:** `-`
@@ -226,6 +222,62 @@ If the `splitChunks.name` matches an [entry point](/config/entry) name, the entr
 `splitChunks.cacheGroups.{cacheGroup}.name` can be used to move modules into a chunk that is a parent of the source chunk. For example, use `name: "entry-name"` to move modules into the `entry-name` chunk. You can also use on demand named chunks, but you must be careful that the selected modules are only used under this chunk.
 
 :::
+
+### splitChunks.usedExports
+
+<ApiMeta addedVersion="1.0.0" />
+
+- **Type:** `boolean`
+- **Default:** Value of [optimization.usedExports](/config/optimization#optimizationusedexports)
+
+Enabling this configuration, the splitting of chunks will be grouped based on the usage of modules exports in different runtimes, ensuring the optimal loading size in each runtime.
+
+For example, if there are three entry points named `foo`, `bar`, and `baz`, they all depend on the same module called `shared`. However, `foo` and `bar` depend on the export `value1` from `shared`, while `baz` depends on the export `value2` from `shared`.
+
+```js title=foo.js
+import { value1 } from 'shared';
+value1;
+```
+
+```js title=bar.js
+import { value1 } from 'shared';
+value1;
+```
+
+```js title=baz.js
+import { value2 } from 'shared';
+value2;
+```
+
+In the default strategy, the `shared` module appears in 3 chunks. If it meets the [minSize for splitting](plugins/webpack/split-chunks-plugin#splitchunksminsize), then the `shared` module should be extracted into a separate chunk.
+
+```
+chunk foo, chunk bar
+      \
+      chunk shared (exports value1 and value2)
+      /
+chunk baz
+```
+
+However, this would result in none of the three entry points having the optimal loaded size. Loading the `shared` module from the `foo` and `bar` entries would unnecessarily load the export `value2`, while loading from the `baz` entry would unnecessarily load the export `value1`.
+
+When the `splitChunks.usedExports` optimization is enabled, it analyzes which exports of the `shared` module are used in different entries. It finds that the exports used in `foo` and `bar` are different from those in `baz`, resulting in the creation of two distinct chunks, one corresponding to the entries `foo` and `bar`, and the other corresponding to the entry `baz`.
+
+```
+chunk foo, chunk bar
+        \
+      chunk shared-1 (exports only value1)
+
+chunk baz
+        \
+      chunk shared-2 (exports only value2)
+```
+
+### splitChunks.defaultSizeTypes
+
+- **Types:** `string[]`
+
+Sets the size types which are used when a number is used for sizes.
 
 ### splitChunks.cacheGroups
 
@@ -273,8 +325,6 @@ Sets the hint for chunk id. It will be added to chunk's filename.
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.filename
 
-<ApiMeta addedVersion="0.4.3" />
-
 - **Type:** `string`
 
 Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
@@ -293,3 +343,30 @@ module.exports = {
   },
 };
 ```
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+
+- **Type:** `boolean`
+- **Default** `false`
+
+Whether to reuse existing chunks when possible. If so, after splitting, the newly created chunk contains modules that are exactly the same as those in the original chunk, the original chunk will be reused, and no new chunk will be generated, which may affect the final filename of the chunk. For example:
+
+```
+chunk Foo: [ module A, module B ]
+chunk Bar: [ module B ]
+
+cacheGroup: {
+  test: /B/,
+  chunks: 'all'
+}
+```
+
+In chunks Foo and Bar, the module B, due to the configuration of cacheGroup, will be split into a new chunk that only contains module B. This new chunk is identical in terms of the modules it contains with chunk Bar, so chunk Bar can be directly reused.
+
+If the setting of reuseExistingChunk is set to `false`, then the module B in chunks Bar and Foo will be moved to a new chunk, and chunk Bar, since it no longer contains any modules, will be deleted as an empty chunk.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.type
+
+- **Types:** `string | RegExp`
+
+Allows to assign modules to a cache group by module type.

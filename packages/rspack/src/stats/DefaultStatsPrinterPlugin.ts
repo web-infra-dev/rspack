@@ -26,7 +26,8 @@ const printSizes = (
 	const keys = Object.keys(sizes);
 	if (keys.length > 1) {
 		return keys.map(key => `${formatSize(sizes[key])} (${key})`).join(" ");
-	} else if (keys.length === 1) {
+	}
+	if (keys.length === 1) {
 		return formatSize(sizes[keys[0]]);
 	}
 };
@@ -44,7 +45,12 @@ const getResourceName = (resource: string) => {
 };
 
 const getModuleName = (name: string) => {
-	const [, prefix, resource] = /^(.*!)?([^!]*)$/.exec(name) || [];
+	const matchResourceMatch = /^([^!]+)!=!/.exec(name);
+	const n = matchResourceMatch
+		? matchResourceMatch[0] +
+			getResourceName(name.slice(matchResourceMatch[0].length))
+		: name;
+	const [, prefix, resource] = /^(.*!)?([^!]*)$/.exec(n) || [];
 	return [prefix, getResourceName(resource)];
 };
 
@@ -119,7 +125,7 @@ const SIMPLE_PRINTERS: Record<
 			nameMessage && versionMessage
 				? `${nameMessage} (${versionMessage})`
 				: versionMessage || nameMessage || "Rspack";
-		let statusMessage;
+		let statusMessage: string;
 		if (errorsMessage && warningsMessage) {
 			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
 		} else if (errorsMessage) {
@@ -306,6 +312,8 @@ const SIMPLE_PRINTERS: Record<
 						: `from: ${sourceFilename}`
 				)
 			: undefined,
+	"asset.info.copied": (copied, { green, formatFlag }) =>
+		copied ? green(formatFlag("copied")) : undefined,
 	"asset.info.development": (development, { green, formatFlag }) =>
 		development ? green(formatFlag("dev")) : undefined,
 	"asset.info.hotModuleReplacement": (
@@ -368,7 +376,7 @@ const SIMPLE_PRINTERS: Record<
 	"module.cached": (cached, { formatFlag, green }) =>
 		cached ? green(formatFlag("cached")) : undefined,
 	"module.assets": (assets, { formatFlag, magenta }) =>
-		assets && assets.length
+		assets?.length
 			? magenta(
 					formatFlag(
 						`${assets.length} ${plural(assets.length, "asset", "assets")}`
@@ -410,11 +418,10 @@ const SIMPLE_PRINTERS: Record<
 					providedExportsCount === usedExports.length
 				) {
 					return cyan(formatFlag("all exports used"));
-				} else {
-					return cyan(
-						formatFlag(`only some exports used: ${usedExports.join(", ")}`)
-					);
 				}
+				return cyan(
+					formatFlag(`only some exports used: ${usedExports.join(", ")}`)
+				);
 			}
 		}
 	},
@@ -774,6 +781,7 @@ const PREFERRED_ORDERS: Record<string, string[]> = {
 	"asset.info": [
 		"immutable",
 		"sourceFilename",
+		"copied",
 		"javascriptModule",
 		"development",
 		"hotModuleReplacement"
@@ -992,7 +1000,7 @@ const joinInBrackets = (items: any[]) => {
 };
 
 const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
-	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+	const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);
 	if (noPrefixInFirstLine) return rem;
 	const ind = str[0] === "\n" ? "" : prefix;
 	return ind + rem;
@@ -1020,7 +1028,7 @@ const joinExplicitNewLine = (
 			first = false;
 			const noJoiner = firstInLine || content.startsWith("\n");
 			firstInLine = content.endsWith("\n");
-			return noJoiner ? content : " " + content;
+			return noJoiner ? content : ` ${content}`;
 		})
 		.filter(Boolean)
 		.join("")
@@ -1124,23 +1132,20 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	},
 	chunk: items => {
 		let hasEntry = false;
-		return (
-			"chunk " +
-			joinExplicitNewLine(
-				items.filter(item => {
-					switch (item.element) {
-						case "entry":
-							if (item.content) hasEntry = true;
-							break;
-						case "initial":
-							if (hasEntry) return false;
-							break;
-					}
-					return true;
-				}),
-				"  "
-			)
-		);
+		return `chunk ${joinExplicitNewLine(
+			items.filter(item => {
+				switch (item.element) {
+					case "entry":
+						if (item.content) hasEntry = true;
+						break;
+					case "initial":
+						if (hasEntry) return false;
+						break;
+				}
+				return true;
+			}),
+			"  "
+		)}`;
 	},
 	"chunk.childrenByOrder[]": items => `(${joinOneLine(items)})`,
 	chunkGroup: items => joinExplicitNewLine(items, "  "),
@@ -1186,11 +1191,11 @@ const SIMPLE_ELEMENT_JOINERS: Record<
 	},
 	"module.profile": joinInBrackets,
 	moduleIssuer: joinOneLine,
-	chunkOrigin: items => "> " + joinOneLine(items),
+	chunkOrigin: items => `> ${joinOneLine(items)}`,
 	"errors[].error": joinError(true),
 	"warnings[].error": joinError(false),
 	loggingGroup: items => joinExplicitNewLine(items, "").trimEnd(),
-	moduleTraceItem: items => " @ " + joinOneLine(items),
+	moduleTraceItem: items => ` @ ${joinOneLine(items)}`,
 	moduleTraceDependency: joinOneLine
 };
 
@@ -1267,18 +1272,17 @@ const AVAILABLE_FORMATS: Pick_FORMAT<
 				timeReference / 16
 			];
 			if (time < times[3]) return `${time}${unit}`;
-			else if (time < times[2]) return bold(`${time}${unit}`);
-			else if (time < times[1]) return green(`${time}${unit}`);
-			else if (time < times[0]) return yellow(`${time}${unit}`);
-			else return red(`${time}${unit}`);
-		} else {
-			let timeStr = time.toString();
-			if (time > 1000) {
-				timeStr = `${(time / 1000).toFixed(2)}`;
-				unit = " s";
-			}
-			return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
+			if (time < times[2]) return bold(`${time}${unit}`);
+			if (time < times[1]) return green(`${time}${unit}`);
+			if (time < times[0]) return yellow(`${time}${unit}`);
+			return red(`${time}${unit}`);
 		}
+		let timeStr = time.toString();
+		if (time > 1000) {
+			timeStr = `${(time / 1000).toFixed(2)}`;
+			unit = " s";
+		}
+		return `${boldQuantity ? bold(timeStr) : timeStr}${unit}`;
 	},
 	formatError: (msg, { green, yellow, red }) => {
 		let message = msg as string;
@@ -1366,8 +1370,8 @@ export class DefaultStatsPrinterPlugin {
 									) {
 										start = options.colors[color];
 									} else {
-										// @ts-expect-error
-										start = AVAILABLE_COLORS[color];
+										start =
+											AVAILABLE_COLORS[color as keyof typeof AVAILABLE_COLORS];
 									}
 								}
 								if (start) {
@@ -1397,9 +1401,14 @@ export class DefaultStatsPrinterPlugin {
 					for (const key of Object.keys(SIMPLE_PRINTERS)) {
 						stats.hooks.print
 							.for(key)
-							.tap("DefaultStatsPrinterPlugin", (obj, ctx) =>
-								// @ts-expect-error
-								SIMPLE_PRINTERS[key](obj, ctx, stats)
+							.tap(
+								"DefaultStatsPrinterPlugin",
+								(obj, ctx) =>
+									SIMPLE_PRINTERS[key](
+										obj,
+										ctx as Required<StatsPrinterContext>,
+										stats
+									) as string
 							);
 					}
 

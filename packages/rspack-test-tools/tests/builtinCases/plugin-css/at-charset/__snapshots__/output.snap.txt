@@ -62,5 +62,5 @@ body {
   background: yellow;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/aeācss,ĀĂĄaćĉċāăabĐĊČĔcėĒčadĜęĄġē/bď.ĈĘĥbĖĩđĢĮĪ;}
 ```

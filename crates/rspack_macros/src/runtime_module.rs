@@ -81,23 +81,9 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl #impl_generics rspack_identifier::Identifiable for #name #ty_generics #where_clause {
-      fn identifier(&self) -> rspack_identifier::Identifier {
+    impl #impl_generics rspack_collections::Identifiable for #name #ty_generics #where_clause {
+      fn identifier(&self) -> rspack_collections::Identifier {
         self.name()
-      }
-    }
-
-    impl #impl_generics PartialEq for #name #ty_generics #where_clause {
-      fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
-      }
-    }
-
-    impl #impl_generics Eq for #name #ty_generics #where_clause {}
-
-    impl #impl_generics std::hash::Hash for #name #ty_generics #where_clause {
-      fn hash<H: std::hash::Hasher>(&self, _state: &mut H) {
-        unreachable!()
       }
     }
 
@@ -111,6 +97,10 @@ pub fn impl_runtime_module(
       }
 
       fn add_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
+        unreachable!()
+      }
+
+      fn remove_dependency_id(&mut self, _: ::rspack_core::DependencyId) {
         unreachable!()
       }
 
@@ -128,8 +118,11 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: &::rspack_core::Compilation) -> f64 {
-        self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64)
+      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
+        match compilation {
+          Some(compilation) => self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64),
+          None => 0f64
+        }
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
@@ -170,12 +163,24 @@ pub fn impl_runtime_module(
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
         result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation)?);
-        result.set_hash(
-          &compilation.options.output.hash_function,
-          &compilation.options.output.hash_digest,
-          &compilation.options.output.hash_salt,
-        );
         Ok(result)
+      }
+
+      fn update_hash(
+        &self,
+        hasher: &mut dyn std::hash::Hasher,
+        compilation: &::rspack_core::Compilation,
+        _runtime: Option<&::rspack_core::RuntimeSpec>,
+      ) -> ::rspack_error::Result<()> {
+        use rspack_util::ext::DynHash;
+        self.name().dyn_hash(hasher);
+        self.stage().dyn_hash(hasher);
+        if self.full_hash() || self.dependent_hash() {
+          self.generate_with_custom(compilation)?.dyn_hash(hasher);
+        } else {
+          self.get_generated_code(compilation)?.dyn_hash(hasher);
+        }
+        Ok(())
       }
     }
 

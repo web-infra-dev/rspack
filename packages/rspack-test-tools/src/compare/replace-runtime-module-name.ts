@@ -9,6 +9,8 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/compat": "webpack/runtime/compat",
 	"webpack/runtime/create_fake_namespace_object":
 		"webpack/runtime/create fake namespace object",
+	"webpack/runtime/create_script_url":
+		"webpack/runtime/trusted types script url",
 	"webpack/runtime/create_script": "webpack/runtime/trusted types script",
 	"webpack/runtime/define_property_getters":
 		"webpack/runtime/define property getters",
@@ -53,7 +55,7 @@ const RUNTIME_MODULE_NAME_MAPPING = {
 	"webpack/runtime/remote": "webpack/runtime/remotes loading",
 	"webpack/runtime/share": "webpack/runtime/sharing",
 	"webpack/runtime/consume_shared": "webpack/runtime/consumes",
-	"webpack/runtime/harmony_module_decorator":
+	"webpack/runtime/esm_module_decorator":
 		"webpack/runtime/harmony module decorator",
 	"webpack/runtime/node_module_decorator":
 		"webpack/runtime/node module decorator",
@@ -72,26 +74,26 @@ const RUNTIME_MODULE_PARAM_REGEX = {
 		/webpack\/runtime\/chunk_prefetch_function\/([\w.\-_\s]+)(\*\/)?/g
 };
 
-export function replaceRuntimeModuleName(raw: string) {
-	for (const [rspackName, webpackName] of Object.entries(
-		RUNTIME_MODULE_NAME_MAPPING
-	)) {
-		if (
-			RUNTIME_MODULE_PARAM_REGEX[
-				rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
-			]
-		) {
-			raw = raw.replace(
+export function replaceRuntimeModuleName(name: string) {
+	return Object.entries(RUNTIME_MODULE_NAME_MAPPING).reduce(
+		(name, [rspackName, webpackName]) => {
+			if (
 				RUNTIME_MODULE_PARAM_REGEX[
 					rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
-				],
-				(full, $1, $2) => {
-					return webpackName.replace("$1", $1.trim()) + ($2 ? " */" : "");
-				}
-			);
-		} else {
-			raw = raw.split(rspackName).join(webpackName);
-		}
-	}
-	return raw;
+				]
+			) {
+				return name.replace(
+					RUNTIME_MODULE_PARAM_REGEX[
+						rspackName as keyof typeof RUNTIME_MODULE_PARAM_REGEX
+					],
+					(_, $1, $2) => {
+						return webpackName.replace("$1", $1.trim()) + ($2 ? " */" : "");
+					}
+				);
+			}
+
+			return name.split(rspackName).join(webpackName);
+		},
+		name
+	);
 }

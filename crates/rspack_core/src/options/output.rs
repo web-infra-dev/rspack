@@ -1,24 +1,15 @@
-use std::{
-  borrow::Cow,
-  fmt::Debug,
-  hash::Hash,
-  path::{Path, PathBuf},
-  str::FromStr,
-  string::ParseError,
-};
+use std::sync::LazyLock;
+use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
 use derivative::Derivative;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use sugar_path::SugarPath;
 
-use crate::{
-  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate, Module,
-  RuntimeSpec,
-};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
 
 #[derive(Debug)]
 pub enum PathInfo {
@@ -28,7 +19,7 @@ pub enum PathInfo {
 
 #[derive(Debug)]
 pub struct OutputOptions {
-  pub path: PathBuf,
+  pub path: Utf8PathBuf,
   pub pathinfo: PathInfo,
   pub clean: bool,
   pub public_path: PublicPath,
@@ -45,6 +36,7 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub css_head_data_compression: bool,
   pub hot_update_main_filename: FilenameTemplate,
   pub hot_update_chunk_filename: FilenameTemplate,
   pub hot_update_global: String,
@@ -53,6 +45,7 @@ pub struct OutputOptions {
   pub strict_module_error_handling: bool,
   pub global_object: String,
   pub import_function_name: String,
+  pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
@@ -67,6 +60,7 @@ pub struct OutputOptions {
   pub worker_public_path: String,
   pub script_type: String,
   pub environment: Environment,
+  pub compare_before_emit: bool,
 }
 
 impl From<&OutputOptions> for RspackHash {
@@ -95,6 +89,24 @@ impl From<&str> for ChunkLoading {
   }
 }
 
+impl From<ChunkLoading> for String {
+  fn from(value: ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false".to_string(),
+    }
+  }
+}
+
+impl From<&ChunkLoading> for &str {
+  fn from(value: &ChunkLoading) -> Self {
+    match value {
+      ChunkLoading::Enable(ty) => ty.into(),
+      ChunkLoading::Disable => "false",
+    }
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
@@ -114,6 +126,24 @@ impl From<&str> for ChunkLoadingType {
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
       _ => unimplemented!("custom chunkLoading in not supported yet"),
+    }
+  }
+}
+
+impl From<ChunkLoadingType> for String {
+  fn from(value: ChunkLoadingType) -> Self {
+    Into::<&str>::into(&value).to_string()
+  }
+}
+
+impl From<&ChunkLoadingType> for &str {
+  fn from(value: &ChunkLoadingType) -> Self {
+    match value {
+      ChunkLoadingType::Jsonp => "jsonp",
+      ChunkLoadingType::ImportScripts => "import-scripts",
+      ChunkLoadingType::Require => "require",
+      ChunkLoadingType::AsyncNode => "async-node",
+      ChunkLoadingType::Import => "import",
     }
   }
 }
@@ -170,21 +200,19 @@ impl std::fmt::Display for CrossOriginLoading {
 #[derivative(Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
-  #[derivative(Debug = "ignore")]
-  pub chunk: Option<&'a Chunk>,
-  #[derivative(Debug = "ignore")]
-  pub module: Option<&'a dyn Module>,
+  pub chunk_name: Option<&'a str>,
+  pub chunk_hash: Option<&'a str>,
+  pub chunk_id: Option<&'a str>,
+  pub module_id: Option<&'a str>,
   pub hash: Option<&'a str>,
   pub content_hash: Option<&'a str>,
-  #[derivative(Debug = "ignore")]
-  pub chunk_graph: Option<&'a ChunkGraph>,
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
 }
 
-static PREPARE_ID_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
+static PREPARE_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {
@@ -196,13 +224,38 @@ impl<'a> PathData<'a> {
     self
   }
 
-  pub fn chunk(mut self, v: &'a Chunk) -> Self {
-    self.chunk = Some(v);
+  pub fn chunk_hash(mut self, v: &'a str) -> Self {
+    self.chunk_hash = Some(v);
     self
   }
 
-  pub fn module(mut self, v: &'a dyn Module) -> Self {
-    self.module = Some(v);
+  pub fn chunk_hash_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_hash = v;
+    self
+  }
+
+  pub fn chunk_name(mut self, v: &'a str) -> Self {
+    self.chunk_name = Some(v);
+    self
+  }
+
+  pub fn chunk_name_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_name = v;
+    self
+  }
+
+  pub fn chunk_id(mut self, v: &'a str) -> Self {
+    self.chunk_id = Some(v);
+    self
+  }
+
+  pub fn chunk_id_optional(mut self, v: Option<&'a str>) -> Self {
+    self.chunk_id = v;
+    self
+  }
+
+  pub fn module_id_optional(mut self, v: Option<&'a str>) -> Self {
+    self.module_id = v;
     self
   }
 
@@ -226,17 +279,8 @@ impl<'a> PathData<'a> {
     self
   }
 
-  pub fn chunk_graph(mut self, v: &'a ChunkGraph) -> Self {
-    self.chunk_graph = Some(v);
-    self
-  }
-
-  pub fn runtime(mut self, v: &'a RuntimeSpec) -> Self {
-    self.runtime = if v.len() == 1 {
-      v.iter().next().map(|v| v.as_ref())
-    } else {
-      None
-    };
+  pub fn runtime(mut self, v: &'a str) -> Self {
+    self.runtime = Some(v);
     self
   }
 
@@ -284,15 +328,25 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = match Path::new(filename).parent() {
-      None => "".to_string(),
+    let public_path = match Utf8Path::new(filename).parent() {
+      None => String::new(),
       Some(dirname) => compilation
         .options
         .output
         .path
-        .relative(compilation.options.output.path.join(dirname).absolutize())
-        .to_string_lossy()
-        .to_string(),
+        .as_std_path()
+        .relative(
+          compilation
+            .options
+            .output
+            .path
+            .join(dirname)
+            .into_std_path_buf()
+            .absolutize(),
+        )
+        .assert_utf8()
+        .as_str()
+        .to_owned(),
     };
     Self::ensure_ends_with_slash(public_path)
   }
@@ -332,7 +386,7 @@ pub fn get_css_chunk_filename_template<'filename>(
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L444
-  if let Some(css_filename_template) = &chunk.css_filename_template {
+  if let Some(css_filename_template) = chunk.css_filename_template() {
     css_filename_template
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.css_filename
@@ -348,11 +402,11 @@ pub fn get_js_chunk_filename_template<'filename>(
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> &'filename Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L480
-  if let Some(filename_template) = &chunk.filename_template {
+  if let Some(filename_template) = chunk.filename_template() {
     filename_template
   } else if chunk.can_be_initial(chunk_group_by_ukey) {
     &output_options.filename
-  } else if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  } else if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     // TODO: Should return output_options.hotUpdateChunkFilename
     // See https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L484
     &output_options.chunk_filename

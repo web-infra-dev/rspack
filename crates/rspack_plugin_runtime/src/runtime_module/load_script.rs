@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 use crate::get_chunk_runtime_requirements;
 
@@ -84,23 +85,23 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     Ok(RawSource::from(
       include_str!("runtime/load_script.js")
-        .replace(
+        .cow_replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
           &cross_origin_loading,
         )
-        .replace("$URL$", &url)
-        .replace("$SCRIPT_TYPE$", &script_type)
-        .replace("$SCRIPT_CHARSET$", &script_charset)
-        .replace("$CHUNK_LOAD_TIMEOUT$", &compilation.options.output.chunk_load_timeout.to_string())
-        .replace("$CHUNK_LOAD_TIMEOUT_IN_SECONDS$", &compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string())
-        .replace(
+        .cow_replace("$URL$", &url)
+        .cow_replace("$SCRIPT_TYPE$", &script_type)
+        .cow_replace("$SCRIPT_CHARSET$", &script_charset)
+        .cow_replace("$CHUNK_LOAD_TIMEOUT$", &compilation.options.output.chunk_load_timeout.to_string())
+        .cow_replace("$CHUNK_LOAD_TIMEOUT_IN_SECONDS$", &compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string())
+        .cow_replace(
           "$UNIQUE_GET_ATTRIBUTE$",
           match unique_prefix {
             Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
             None => r#"s.getAttribute("src") == url"#,
           },
         )
-        .replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
+        .cow_replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
           r#"
             if(fetchPriority) {
               script.setAttribute("fetchpriority", fetchPriority);
@@ -109,22 +110,22 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         } else {
           ""
         })
-        .replace("$FETCH_PRIORITY$", if with_fetch_priority {
+        .cow_replace("$FETCH_PRIORITY$", if with_fetch_priority {
           ", fetchPriority"
         } else {
           ""
         })
-        .replace(
+        .cow_replace(
           "$UNIQUE_SET_ATTRIBUTE$",
           match unique_prefix {
             Some(_) => r#"script.setAttribute("data-webpack", dataWebpackPrefix + key);"#,
             None => "",
           },
         )
-        .replace(
+        .cow_replace(
           "$UNIQUE_PREFIX$",
           unique_prefix.unwrap_or_default().as_str(),
-        ),
+        ).into_owned(),
     )
     .boxed())
   }

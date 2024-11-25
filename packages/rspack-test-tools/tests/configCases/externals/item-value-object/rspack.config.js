@@ -3,14 +3,16 @@ const { CopyRspackPlugin } = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.js",
-	externals: {
-		lodash: {
-			root: "_",
-			commonjs: "./lodash.js",
-			amd: "./lodash.js"
+	output: {
+		library: {
+			type: "commonjs",
 		}
 	},
-	externalsType: "commonjs",
+	externals: {
+		lodash: {
+			commonjs: "./lodash.js",
+		}
+	},
 	plugins: [
 		new CopyRspackPlugin({
 			patterns: ["./lodash.js"]

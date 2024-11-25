@@ -1,18 +1,22 @@
-use std::{hash::Hash, path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
+use cow_utils::CowUtils;
+use rspack_collections::Identifiable;
 use rspack_core::{
-  impl_module_meta_info, module_namespace_promise,
+  impl_module_meta_info, module_namespace_promise, module_update_hash,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext,
+  ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
+  Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_identifier::Identifiable;
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
-use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
+use rspack_util::{
+  ext::DynHash,
+  source_map::{ModuleSourceMapConfig, SourceMapKind},
+};
 use rustc_hash::FxHashSet;
 
 use crate::dependency::LazyCompilationDependency;
@@ -25,7 +29,6 @@ pub(crate) struct LazyCompilationProxyModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   factory_meta: Option<FactoryMeta>,
-  original_module: ModuleIdentifier,
   cacheable: bool,
 
   readable_identifier: String,
@@ -42,27 +45,6 @@ pub(crate) struct LazyCompilationProxyModule {
   pub data: String,
   pub client: String,
 }
-
-impl Hash for LazyCompilationProxyModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.build_meta.hash(state);
-    self.original_module.hash(state);
-    self.readable_identifier.hash(state);
-    self.identifier.hash(state);
-    self.blocks.hash(state);
-    self.dependencies.hash(state);
-  }
-}
-
-impl PartialEq for LazyCompilationProxyModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.original_module == other.original_module
-      && self.readable_identifier == other.readable_identifier
-      && self.identifier == other.identifier
-  }
-}
-
-impl Eq for LazyCompilationProxyModule {}
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
   fn get_source_map_kind(&self) -> &SourceMapKind {
@@ -94,7 +76,6 @@ impl LazyCompilationProxyModule {
       build_info: None,
       build_meta: None,
       cacheable,
-      original_module,
       create_data,
       readable_identifier,
       resource,
@@ -131,7 +112,11 @@ impl Module for LazyCompilationProxyModule {
     &MODULE_TYPE
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.create_data.issuer_layer.as_ref()
+  }
+
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     200f64
   }
 
@@ -149,10 +134,11 @@ impl Module for LazyCompilationProxyModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let client_dep = CommonJsRequireDependency::new(self.client.clone(), None, 0, 0, None, false);
+    let client_dep =
+      CommonJsRequireDependency::new(self.client.clone(), DependencyRange::new(0, 0), None, false);
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
@@ -161,18 +147,18 @@ impl Module for LazyCompilationProxyModule {
     if self.active {
       let dep = LazyCompilationDependency::new(self.create_data.clone());
 
-      blocks.push(AsyncDependenciesBlock::new(
+      blocks.push(Box::new(AsyncDependenciesBlock::new(
         self.identifier,
         None,
         None,
         vec![Box::new(dep)],
         None,
-      ));
+      )));
     }
 
     let mut files = FxHashSet::default();
     files.extend(self.create_data.file_dependencies.clone());
-    files.insert(PathBuf::from(&self.resource));
+    files.insert(self.resource.to_owned().into());
 
     Ok(BuildResult {
       build_info: BuildInfo {
@@ -187,6 +173,7 @@ impl Module for LazyCompilationProxyModule {
     })
   }
 
+  #[tracing::instrument(name = "LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -270,7 +257,7 @@ impl Module for LazyCompilationProxyModule {
           .get_module_id(*module)
           .as_ref()
           .expect("should have module id")
-          .replace('"', r#"\""#),
+          .cow_replace('"', r#"\""#),
         keep_active,
       ))
     } else {
@@ -293,18 +280,25 @@ impl Module for LazyCompilationProxyModule {
     let mut codegen_result = CodeGenerationResult::default().with_javascript(Arc::new(source));
     codegen_result.runtime_requirements = runtime_requirements;
     codegen_result.data = codegen_data;
-    codegen_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
 
     Ok(codegen_result)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    self.active.dyn_hash(hasher);
+    self.data.dyn_hash(hasher);
+    Ok(())
   }
 }
 
 impl Identifiable for LazyCompilationProxyModule {
-  fn identifier(&self) -> rspack_identifier::Identifier {
+  fn identifier(&self) -> rspack_collections::Identifier {
     self.identifier
   }
 }
@@ -320,6 +314,10 @@ impl DependenciesBlock for LazyCompilationProxyModule {
 
   fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
     self.dependencies.push(dependency);
+  }
+
+  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
+    self.dependencies.retain(|d| d != &dependency);
   }
 
   fn get_dependencies(&self) -> &[rspack_core::DependencyId] {

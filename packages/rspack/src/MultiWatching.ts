@@ -8,8 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import asyncLib from "neo-async";
+import asyncLib from "./util/asyncLib";
 
+import type { Callback } from "@rspack/lite-tapable";
 import type { MultiCompiler } from "./MultiCompiler";
 import type { Watching } from "./Watching";
 
@@ -25,13 +26,14 @@ class MultiWatching {
 		this.watchings = watchings;
 		this.compiler = compiler;
 	}
-	// @ts-expect-error
-	invalidate(callback) {
+	invalidate(callback: Callback<Error, void>) {
 		if (callback) {
 			asyncLib.each(
 				this.watchings,
 				(watching, callback) => watching.invalidate(callback),
-				callback
+				// cannot be resolved without assertion
+				// Type 'Error | null | undefined' is not assignable to type 'Error | null'
+				callback as (err: Error | null | undefined) => void
 			);
 		} else {
 			for (const watching of this.watchings) {
@@ -40,13 +42,8 @@ class MultiWatching {
 		}
 	}
 
-	/**
-	 * @param {Callback<void>} callback signals when the watcher is closed
-	 * @returns {void}
-	 */
-	// @ts-expect-error
-	close(callback) {
-		asyncLib.forEach(
+	close(callback: Callback<Error, void>) {
+		asyncLib.each(
 			this.watchings,
 			(watching, finishedCallback) => {
 				watching.close(finishedCallback);
@@ -55,7 +52,9 @@ class MultiWatching {
 				this.compiler.hooks.watchClose.call();
 				if (typeof callback === "function") {
 					this.compiler.running = false;
-					callback(err);
+					// cannot be resolved without assertion
+					// Type 'Error | null | undefined' is not assignable to type 'Error | null'
+					callback(err as Error | null);
 				}
 			}
 		);

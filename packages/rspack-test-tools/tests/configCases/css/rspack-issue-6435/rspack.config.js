@@ -6,7 +6,7 @@ module.exports = {
   entry: "./index.js",
   output: {
     hashFunction: "md4",
-    cssFilename: "main.css"
+    hashDigestLength: 20,
   },
   module: {
     parser: {
@@ -18,6 +18,7 @@ module.exports = {
       "css/auto": {
         exportsConvention: "as-is",
         localIdentName: "[hash]-[local]",
+				exportsOnly: true
       },
     },
     rules: [

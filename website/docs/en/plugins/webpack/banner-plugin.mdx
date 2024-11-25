@@ -1,9 +1,6 @@
 import { Table } from '@builtIns';
-import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # BannerPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 ```js
 new rspack.BannerPlugin(options);
@@ -16,8 +13,12 @@ Adds a banner to the top or bottom of each generated chunk.
 - **Type:**
 
 ```ts
-type BannerContent = string;
-type BannerRules = string | RegExp | Array<string | RegExp>;
+type BannerFunction = (args: {
+  hash: string;
+  chunk: JsChunk;
+  filename: string;
+}) => string;
+type BannerContent = string | BannerFunction;
 type BannerPluginOptions = {
   banner: BannerContent;
   entryOnly?: boolean;
@@ -55,7 +56,7 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
   body={[
     {
       name: '`banner`',
-      type: '`string`',
+      type: '`BannerFunction|string`',
       default: 'undefined',
       description: 'Specifies the banner, it will be wrapped in a comment.',
     },

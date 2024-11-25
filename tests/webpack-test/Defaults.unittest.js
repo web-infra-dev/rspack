@@ -3,7 +3,7 @@ require("./helpers/warmup-webpack");
 
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 
 /**
  * Escapes regular expression metacharacters
@@ -356,8 +356,8 @@ describe("snapshots", () => {
 		    "filename": "[name].js",
 		    "globalObject": "self",
 		    "hashDigest": "hex",
-		    "hashDigestLength": 20,
-		    "hashFunction": "md4",
+		    "hashDigestLength": 16,
+		    "hashFunction": "xxhash64",
 		    "hashSalt": undefined,
 		    "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
 		    "hotUpdateGlobal": "webpackHotUpdatewebpack",
@@ -2275,11 +2275,6 @@ describe("snapshots", () => {
 			@@ ... @@
 			+         "css",
 			@@ ... @@
-			-     "hashDigestLength": 20,
-			-     "hashFunction": "md4",
-			+     "hashDigestLength": 16,
-			+     "hashFunction": "xxhash64",
-			@@ ... @@
 			+           "...",
 			+         ],
 			+       },
@@ -2366,11 +2361,6 @@ describe("snapshots", () => {
 			+     "__dirname": "warn-mock",
 			+     "__filename": "warn-mock",
 			+     "global": "warn",
-			@@ ... @@
-			-     "hashDigestLength": 20,
-			-     "hashFunction": "md4",
-			+     "hashDigestLength": 16,
-			+     "hashFunction": "xxhash64",
 			@@ ... @@
 			-       "<cwd>/node_modules/",
 			+       /^(.+?[\\\\/]node_modules[\\\\/])/,

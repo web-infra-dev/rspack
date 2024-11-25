@@ -1,8 +1,6 @@
-import { ApiMeta, Stability } from '@components/ApiMeta';
+import { Stability } from '@components/ApiMeta';
 
 # ModuleFederationPlugin
-
-<ApiMeta addedVersion={'0.5.0'} stability={Stability.Experimental} />
 
 This plugin implements [Module Federation 1.5](https://github.com/module-federation/universe/tree/main/packages/enhanced).
 
@@ -67,6 +65,16 @@ Define the output format of remote container entry. The default libraryType is "
 - Type: `string`
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
+
+### shareStrategy
+
+- Type: `'version-first' | 'loaded-first'`
+
+Control the loading strategy of shared dependencies:
+
+- `'version-first'`: Version takes precedence. After setting, all _remotes_ entry files will be automatically loaded and **register** the corresponding shared dependencies to ensure that all shared dependency versions can be obtained. This strategy is recommended when there are strict version requirements.
+
+- `'loaded-first'`: reuse first. After setting, the _remotes_ entry file will not be automatically loaded (it will only be loaded when needed), and registered shared dependencies will be reused first. This strategy is recommended when there are no strict requirements on the version and performance is required.
 
 ### remoteType
 
@@ -148,16 +156,19 @@ The SharedConfig can include the following sub-options:
 
 ## FAQ
 
-- Q: Found there is non-downgraded syntax in the output after usage
+- Found non-downgraded syntax in the build output?
 
-  A: add `builtin:swc-loader` for downgrading, specifically it should include `@module-federation/runtime/rspack.js`, for example:
+  If you need to be compatible with legacy browsers, please add [builtin:swc-loader](/guide/features/builtin-swc-loader) for syntax downgrade, and make sure it matches `@module-federation/runtime` and `@module-federation/sdk`. Here is an example:
 
   ```js
   module.exports = {
     module: {
       rules: [
         {
-          include: '@module-federation/runtime/rspack.js',
+          include: [
+            /@module-federation[\\/]sdk/,
+            /@module-federation[\\/]runtime/,
+          ],
           use: {
             loader: 'builtin:swc-loader',
             options: {

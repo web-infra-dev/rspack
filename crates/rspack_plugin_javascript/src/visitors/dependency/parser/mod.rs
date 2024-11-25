@@ -13,7 +13,7 @@ use bitflags::bitflags;
 pub use call_hooks_name::CallHooksName;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, DependencyTemplate,
-  JavascriptParserOptions, ModuleIdentifier, ResourceData,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ResourceData,
 };
 use rspack_core::{CompilerOptions, JavascriptParserUrl, ModuleType, SpanExt};
 use rspack_error::miette::Diagnostic;
@@ -207,9 +207,13 @@ pub struct JavascriptParser<'parser> {
   pub(crate) warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
   pub dependencies: Vec<BoxDependency>,
   pub(crate) presentational_dependencies: Vec<Box<dyn DependencyTemplate>>,
-  pub(crate) blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  pub(crate) blocks: Vec<Box<AsyncDependenciesBlock>>,
   // TODO: remove `additional_data` once we have builtin:css-extract-loader
-  pub additional_data: AdditionalData,
+  pub additional_data: Option<AdditionalData>,
+  pub parse_meta: FxHashMap<String, String>,
   pub(crate) comments: Option<&'parser dyn Comments>,
   pub(crate) worker_index: u32,
   pub(crate) build_meta: &'parser mut BuildMeta,
@@ -220,8 +224,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
   pub(crate) module_type: &'parser ModuleType,
+  pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub(crate) module_identifier: &'parser ModuleIdentifier,
-  // TODO: remove `is_esm` after `HarmonyExports::isEnabled`
+  // TODO: remove `is_esm` after `ESMExports::isEnabled`
   pub(crate) is_esm: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) parser_exports_state: Option<bool>,
@@ -240,7 +245,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(super) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
-  pub(crate) last_harmony_import_order: i32,
+  pub(crate) last_esm_import_order: i32,
   pub(crate) inner_graph: InnerGraphState,
 }
 
@@ -254,19 +259,21 @@ impl<'parser> JavascriptParser<'parser> {
     comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
+    module_layer: Option<&'parser ModuleLayer>,
     resource_data: &'parser ResourceData,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
-    additional_data: AdditionalData,
+    additional_data: Option<AdditionalData>,
+    parse_meta: FxHashMap<String, String>,
   ) -> Self {
-    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(32);
-    let errors = Vec::with_capacity(32);
-    let dependencies = Vec::with_capacity(256);
-    let blocks = Vec::with_capacity(256);
-    let presentational_dependencies = Vec::with_capacity(256);
+    let warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = Vec::with_capacity(4);
+    let errors = Vec::with_capacity(4);
+    let dependencies = Vec::with_capacity(64);
+    let blocks = Vec::with_capacity(64);
+    let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
     let mut plugins: Vec<parser_plugin::BoxJavascriptParserPlugin> = Vec::with_capacity(32);
@@ -278,19 +285,27 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(
       parser_plugin::RequireContextDependencyParserPlugin,
     ));
+    plugins.push(Box::new(
+      parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
+    ));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::HarmonyTopLevelThisParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyDetectionParserPlugin::new(
+      plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
+      plugins.push(Box::new(parser_plugin::ESMDetectionParserPlugin::new(
         compiler_options.experiments.top_level_await,
       )));
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::HarmonyExportDependencyParserPlugin));
+      if let Some(true) = javascript_options.import_meta {
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
+      } else {
+        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
+      }
+
+      plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
+      plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
@@ -302,25 +317,6 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    if compiler_options.dev_server.hot {
-      if module_type.is_js_auto() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_dynamic() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ModuleHotReplacementParserPlugin,
-        ));
-      } else if module_type.is_js_esm() {
-        plugins.push(Box::new(
-          parser_plugin::hot_module_replacement::ImportMetaHotReplacementParserPlugin,
-        ));
-      }
-    }
-
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::WebpackIsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
@@ -329,13 +325,16 @@ impl<'parser> JavascriptParser<'parser> {
       )));
       plugins.push(Box::new(parser_plugin::ImportParserPlugin));
       let parse_url = javascript_options.url;
-      if !matches!(parse_url, JavascriptParserUrl::Disable) {
+      if !matches!(parse_url, Some(JavascriptParserUrl::Disable)) {
         plugins.push(Box::new(parser_plugin::URLPlugin {
-          relative: matches!(parse_url, JavascriptParserUrl::Relative),
+          relative: matches!(parse_url, Some(JavascriptParserUrl::Relative)),
         }));
       }
       plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        &javascript_options.worker,
+        javascript_options
+          .worker
+          .as_ref()
+          .expect("should have worker"),
       )));
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
@@ -351,7 +350,7 @@ impl<'parser> JavascriptParser<'parser> {
     let mut db = ScopeInfoDB::new();
 
     Self {
-      last_harmony_import_order: 0,
+      last_esm_import_order: 0,
       comments,
       javascript_options,
       source_map,
@@ -374,6 +373,7 @@ impl<'parser> JavascriptParser<'parser> {
       build_info,
       compiler_options,
       module_type,
+      module_layer,
       parser_exports_state,
       enter_call: 0,
       worker_index: 0,
@@ -387,6 +387,7 @@ impl<'parser> JavascriptParser<'parser> {
       prev_statement: None,
       inner_graph: InnerGraphState::new(),
       additional_data,
+      parse_meta,
     }
   }
 
@@ -404,6 +405,10 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
+  pub fn set_asi_position(&mut self, pos: BytePos) -> bool {
+    self.semicolons.insert(pos)
+  }
+
   pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
     self.semicolons.remove(&pos)
   }
@@ -416,16 +421,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_mut_variable_info(&mut self, name: &str) -> Option<&mut VariableInfo> {
-    let Some(id) = self.definitions_db.get(self.definitions, name) else {
-      return None;
-    };
+    let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_mut_variable(id))
   }
 
   pub fn get_variable_info(&mut self, name: &str) -> Option<&VariableInfo> {
-    let Some(id) = self.definitions_db.get(self.definitions, name) else {
-      return None;
-    };
+    let id = self.definitions_db.get(self.definitions, name)?;
     Some(self.definitions_db.expect_get_variable(id))
   }
 
@@ -562,16 +563,12 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::CallExpression) {
           return None;
         }
-        let Some(root_name) = expr.callee.get_root_name() else {
-          return None;
-        };
-        let Some(FreeInfo {
+        let root_name = expr.callee.get_root_name()?;
+        let FreeInfo {
           name: resolved_root,
           info: root_info,
-        }) = self.get_free_info_from_variable(&root_name)
-        else {
-          return None;
-        };
+        } = self.get_free_info_from_variable(&root_name)?;
+
         let callee_name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -591,16 +588,13 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let Some(root_name) = object.get_root_name() else {
-          return None;
-        };
-        let Some(FreeInfo {
+        let root_name = object.get_root_name()?;
+
+        let FreeInfo {
           name: resolved_root,
           info: root_info,
-        }) = self.get_free_info_from_variable(&root_name)
-        else {
-          return None;
-        };
+        } = self.get_free_info_from_variable(&root_name)?;
+
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
@@ -955,6 +949,7 @@ impl<'parser> JavascriptParser<'parser> {
           eval::eval_call_expression(
             parser,
             &CallExpr {
+              ctxt: call.ctxt,
               span: call.span,
               callee: call.callee.clone().as_callee(),
               args: call.args.clone(),

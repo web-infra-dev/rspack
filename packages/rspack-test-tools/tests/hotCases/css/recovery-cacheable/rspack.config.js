@@ -5,6 +5,9 @@ module.exports = {
 	entry: "./index.js",
 	mode: "development",
 	devtool: false,
+	output: {
+		hotUpdateChunkFilename: '[id].hot-update.js'
+	},
 	module: {
 		rules: [
 			{

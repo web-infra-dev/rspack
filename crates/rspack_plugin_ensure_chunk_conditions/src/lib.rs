@@ -1,7 +1,4 @@
-use rspack_core::{
-  get_chunk_from_ukey, get_chunk_group_from_ukey, Compilation, CompilationOptimizeChunks, Logger,
-  Plugin, PluginContext,
-};
+use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, PluginContext};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -42,17 +39,15 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   for (module_id, chunk_keys) in &source_module_chunks {
     let mut target_chunks = HashSet::default();
     for chunk_key in chunk_keys {
-      if let Some(chunk) = get_chunk_from_ukey(chunk_key, &compilation.chunk_by_ukey) {
-        let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
+      if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
+        let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();
         visited_chunk_group_keys.clear();
         'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
           if visited_chunk_group_keys.contains(chunk_group_key) {
             continue;
           }
           visited_chunk_group_keys.insert(chunk_group_key);
-          if let Some(chunk_group) =
-            get_chunk_group_from_ukey(chunk_group_key, &compilation.chunk_group_by_ukey)
-          {
+          if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
             for chunk in &chunk_group.chunks {
               if let Some(module) = compilation
                 .get_module_graph()
@@ -110,7 +105,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

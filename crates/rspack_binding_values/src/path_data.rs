@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use napi::Either;
 use napi_derive::napi;
 
 use super::JsAssetInfo;
@@ -13,11 +10,18 @@ pub struct JsPathData {
   pub runtime: Option<String>,
   pub url: Option<String>,
   pub id: Option<String>,
-  pub chunk: Option<JsChunkPathData>,
+  pub chunk: Option<JsPathDataChunkLike>,
 }
 
-impl From<rspack_core::PathData<'_>> for JsPathData {
-  fn from(path_data: rspack_core::PathData<'_>) -> Self {
+#[napi(object)]
+pub struct JsPathDataChunkLike {
+  pub name: Option<String>,
+  pub hash: Option<String>,
+  pub id: Option<String>,
+}
+
+impl JsPathData {
+  pub fn from_path_data(path_data: rspack_core::PathData) -> JsPathData {
     Self {
       filename: path_data.filename.map(|s| s.to_string()),
       hash: path_data.hash.map(|s| s.to_string()),
@@ -25,45 +29,26 @@ impl From<rspack_core::PathData<'_>> for JsPathData {
       runtime: path_data.runtime.map(|s| s.to_string()),
       url: path_data.url.map(|s| s.to_string()),
       id: path_data.id.map(|s| s.to_string()),
-      chunk: path_data.chunk.map(JsChunkPathData::from),
+      chunk: (path_data.chunk_name.is_some()
+        || path_data.chunk_id.is_some()
+        || path_data.chunk_name.is_some())
+      .then(|| JsPathDataChunkLike {
+        name: path_data.chunk_name.map(|s| s.to_string()),
+        hash: path_data.chunk_hash.map(|s| s.to_string()),
+        id: path_data.chunk_id.map(|s| s.to_string()),
+      }),
     }
   }
-}
 
-#[napi(object)]
-pub struct JsChunkPathData {
-  pub id: Option<String>,
-  pub name: Option<String>,
-  pub hash: Option<String>,
-  pub content_hash: Option<Either<String, HashMap<String, String>>>,
-}
-
-impl<'a> From<&'a rspack_core::Chunk> for JsChunkPathData {
-  fn from(chunk: &'a rspack_core::Chunk) -> Self {
-    Self {
-      id: chunk.id.clone(),
-      name: chunk.name.clone(),
-      hash: chunk.hash.as_ref().map(|d| d.encoded().to_string()),
-      content_hash: Some(Either::B(
-        chunk
-          .content_hash
-          .iter()
-          .map(|(key, v)| (key.to_string(), v.encoded().to_string()))
-          .collect(),
-      )),
-    }
-  }
-}
-
-impl JsPathData {
-  pub fn as_core_path_data(&self) -> rspack_core::PathData {
+  pub fn to_path_data(&self) -> rspack_core::PathData {
     rspack_core::PathData {
       filename: self.filename.as_deref(),
-      chunk: None,
-      module: None,
+      chunk_name: self.chunk.as_ref().and_then(|c| c.name.as_deref()),
+      chunk_hash: self.chunk.as_ref().and_then(|c| c.hash.as_deref()),
+      chunk_id: self.chunk.as_ref().and_then(|c| c.id.as_deref()),
+      module_id: None,
       hash: self.hash.as_deref(),
       content_hash: self.content_hash.as_deref(),
-      chunk_graph: None,
       runtime: self.runtime.as_deref(),
       url: self.url.as_deref(),
       id: self.id.as_deref(),

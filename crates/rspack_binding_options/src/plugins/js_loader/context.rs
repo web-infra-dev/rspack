@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_binding_values::{JsModule, JsResourceData, ToJsModule as _};
+use rspack_binding_values::{JsModuleWrapper, JsResourceData, JsRspackError};
 use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
@@ -57,8 +59,8 @@ pub struct JsLoaderContext {
   /// Will be deprecated. Use module.module_identifier instead
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,
-  #[napi(js_name = "_module")]
-  pub module: JsModule,
+  #[napi(js_name = "_module", ts_type = "JsModule")]
+  pub module: JsModuleWrapper,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
@@ -66,6 +68,8 @@ pub struct JsLoaderContext {
   pub content: Either<Null, Buffer>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
+  #[napi(js_name = "__internal__parseMeta")]
+  pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub file_dependencies: Vec<String>,
@@ -77,6 +81,8 @@ pub struct JsLoaderContext {
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
+  #[napi(js_name = "__internal__error")]
+  pub error: Option<JsRspackError>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -85,26 +91,25 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let module = unsafe { cx.context.module.as_ref() };
+
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
-      module_identifier: cx.context.module.module_identifier.to_string(),
-      module: cx
-        .context
-        .module
-        .to_js_module()
-        .expect("CompilerModuleContext::to_js_module should not fail."),
+      module_identifier: module.identifier().to_string(),
+      module: JsModuleWrapper::new(module, cx.context.compilation_id, None),
       hot: cx.hot,
-      content: match &cx.content {
+      content: match cx.content() {
         Some(c) => Either::B(c.to_owned().into_bytes().into()),
         None => Either::A(Null),
       },
+      parse_meta: cx.parse_meta.clone().into_iter().collect(),
       additional_data: cx
-        .additional_data
-        .get::<ThreadsafeJsValueRef<Unknown>>()
+        .additional_data()
+        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
       source_map: cx
-        .source_map
-        .clone()
+        .source_map()
+        .cloned()
         .map(|v| v.to_json())
         .transpose()
         .map_err(|e| error!(e.to_string()))?
@@ -134,6 +139,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
+      error: None,
     })
   }
 }

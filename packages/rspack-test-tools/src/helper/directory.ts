@@ -18,6 +18,7 @@ export function describeByWalk(
 		dist?: string;
 		absoluteDist?: boolean;
 		describe?: jest.Describe;
+		exclude?: RegExp[];
 	} = {}
 ) {
 	const describeFn = options.describe || describe;
@@ -36,14 +37,27 @@ export function describeByWalk(
 		fs.readdirSync(path.join(sourceBase, dirname))
 			.filter(isValidCaseDirectory)
 			.filter(folder => {
+				if (options.exclude) {
+					if (
+						options.exclude.some(exclude => {
+							return exclude.test(folder);
+						})
+					) {
+						return false;
+					}
+				}
+
+				return true;
+			})
+			.filter(folder => {
 				const p = path.join(sourceBase, dirname, folder);
 				if (type === "file" && currentLevel === 1) {
 					return isFile(p);
-				} else if (type === "directory" || currentLevel > 1) {
-					return isDirectory(p);
-				} else {
-					return false;
 				}
+				if (type === "directory" || currentLevel > 1) {
+					return isDirectory(p);
+				}
+				return false;
 			})
 			.map(folder => {
 				const caseName = path.join(dirname, folder);

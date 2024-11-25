@@ -1,284 +1,255 @@
 (() => { // webpackBootstrap
 "use strict";
 var __webpack_modules__ = ({
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js": (function (module, __unused_webpack_exports, __webpack_require__) {
+"../../../../../packages/rspack/dist/cssExtractHmr.js": (function (module) {
 
-/* eslint-env browser */
-/*
-  eslint-disable
-  no-console,
-  func-names
-*/
-/** @typedef {any} TODO */
-const normalizeUrl = __webpack_require__(/*! ./normalize-url */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js");
-const srcByModuleId = Object.create(null);
-const noDocument = typeof document === "undefined";
-const { forEach } = Array.prototype;
-/**
- * @param {function} fn
- * @param {number} time
- * @returns {(function(): void)|*}
- */
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/runtime/cssExtractHmr.ts
+var cssExtractHmr_exports = {};
+__export(cssExtractHmr_exports, {
+  cssReload: () => cssReload,
+  normalizeUrl: () => normalizeUrl
+});
+module.exports = __toCommonJS(cssExtractHmr_exports);
+function normalizeUrl(url) {
+  const urlString = url.trim();
+  if (/^data:/i.test(urlString)) {
+    return urlString;
+  }
+  const protocol = urlString.indexOf("//") !== -1 ? `${urlString.split("//")[0]}//` : "";
+  const components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
+  const host = components[0].toLowerCase().replace(/\.$/, "");
+  components[0] = "";
+  const path = components.reduce((accumulator, item) => {
+    switch (item) {
+      case "..":
+        accumulator.pop();
+        break;
+      case ".":
+        break;
+      default:
+        accumulator.push(item);
+    }
+    return accumulator;
+  }, []).join("/");
+  return protocol + host + path;
+}
+var srcByModuleId = /* @__PURE__ */ Object.create(null);
+var noDocument = typeof document === "undefined";
+var { forEach } = Array.prototype;
 function debounce(fn, time) {
-    let timeout = 0;
-    return function () {
-        // @ts-ignore
-        const self = this;
-        // eslint-disable-next-line prefer-rest-params
-        const args = arguments;
-        const functionCall = function functionCall() {
-            return fn.apply(self, args);
-        };
-        clearTimeout(timeout);
-        // @ts-ignore
-        timeout = setTimeout(functionCall, time);
+  let timeout = 0;
+  return function(...args) {
+    const self = this;
+    const functionCall = function functionCall2() {
+      return fn.apply(self, args);
     };
+    clearTimeout(timeout);
+    timeout = setTimeout(functionCall, time);
+  };
 }
-function noop() { }
-/**
- * @param {TODO} moduleId
- * @returns {TODO}
- */
+function noop() {
+}
 function getCurrentScriptUrl(moduleId) {
-    let src = srcByModuleId[moduleId];
-    if (!src) {
-        if (document.currentScript) {
-            ({ src } = /** @type {HTMLScriptElement} */ (document.currentScript));
-        }
-        else {
-            const scripts = document.getElementsByTagName("script");
-            const lastScriptTag = scripts[scripts.length - 1];
-            if (lastScriptTag) {
-                ({ src } = lastScriptTag);
-            }
-        }
-        srcByModuleId[moduleId] = src;
+  let src = srcByModuleId[moduleId];
+  if (!src) {
+    if (document.currentScript) {
+      ({ src } = document.currentScript);
+    } else {
+      const scripts = document.getElementsByTagName("script");
+      const lastScriptTag = scripts[scripts.length - 1];
+      if (lastScriptTag) {
+        ({ src } = lastScriptTag);
+      }
     }
-    /**
-     * @param {string} fileMap
-     * @returns {null | string[]}
-     */
-    return function (fileMap) {
-        if (!src) {
-            return null;
-        }
-        const splitResult = src.split(/([^\\/]+)\.js$/);
-        const filename = splitResult && splitResult[1];
-        if (!filename) {
-            return [src.replace(".js", ".css")];
-        }
-        if (!fileMap) {
-            return [src.replace(".js", ".css")];
-        }
-        return fileMap.split(",").map(mapRule => {
-            const reg = new RegExp(`${filename}\\.js$`, "g");
-            return normalizeUrl(src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`));
-        });
-    };
+    srcByModuleId[moduleId] = src;
+  }
+  return (fileMap) => {
+    if (!src) {
+      return null;
+    }
+    const splitResult = src.match(/([^\\/]+)\.js$/);
+    const filename = splitResult && splitResult[1];
+    if (!filename || !fileMap) {
+      return [src.replace(".js", ".css")];
+    }
+    return fileMap.split(",").map((mapRule) => {
+      const reg = new RegExp(`${filename}\\.js$`, "g");
+      return normalizeUrl(
+        src.replace(reg, `${mapRule.replace(/{fileName}/g, filename)}.css`)
+      );
+    });
+  };
 }
-/**
- * @param {TODO} el
- * @param {string} [url]
- */
 function updateCss(el, url) {
-    if (!url) {
-        if (!el.href) {
-            return;
-        }
-        // eslint-disable-next-line
-        url = el.href.split("?")[0];
+  let normalizedUrl;
+  if (!url) {
+    if (!el.href) {
+      return;
     }
-    if (!isUrlRequest(/** @type {string} */ (url))) {
-        return;
+    normalizedUrl = el.href.split("?")[0];
+  } else {
+    normalizedUrl = url;
+  }
+  if (!isUrlRequest(normalizedUrl)) {
+    return;
+  }
+  if (el.isLoaded === false) {
+    return;
+  }
+  if (!normalizedUrl || !(normalizedUrl.indexOf(".css") > -1)) {
+    return;
+  }
+  el.visited = true;
+  const newEl = el.cloneNode();
+  newEl.isLoaded = false;
+  newEl.addEventListener("load", () => {
+    if (newEl.isLoaded) {
+      return;
     }
-    if (el.isLoaded === false) {
-        // We seem to be about to replace a css link that hasn't loaded yet.
-        // We're probably changing the same file more than once.
-        return;
+    newEl.isLoaded = true;
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
     }
-    if (!url || !(url.indexOf(".css") > -1)) {
-        return;
+  });
+  newEl.addEventListener("error", () => {
+    if (newEl.isLoaded) {
+      return;
     }
-    // eslint-disable-next-line no-param-reassign
-    el.visited = true;
-    const newEl = el.cloneNode();
-    newEl.isLoaded = false;
-    newEl.addEventListener("load", () => {
-        if (newEl.isLoaded) {
-            return;
-        }
-        newEl.isLoaded = true;
-        el.parentNode.removeChild(el);
-    });
-    newEl.addEventListener("error", () => {
-        if (newEl.isLoaded) {
-            return;
-        }
-        newEl.isLoaded = true;
-        el.parentNode.removeChild(el);
-    });
-    newEl.href = `${url}?${Date.now()}`;
-    if (el.nextSibling) {
-        el.parentNode.insertBefore(newEl, el.nextSibling);
+    newEl.isLoaded = true;
+    if (el.parentNode) {
+      el.parentNode.removeChild(el);
     }
-    else {
-        el.parentNode.appendChild(newEl);
-    }
+  });
+  newEl.href = `${normalizedUrl}?${Date.now()}`;
+  const parent = el.parentNode;
+  if (!parent) {
+    return;
+  }
+  if (el.nextSibling) {
+    parent.insertBefore(newEl, el.nextSibling);
+  } else {
+    parent.appendChild(newEl);
+  }
 }
-/**
- * @param {string} href
- * @param {TODO} src
- * @returns {TODO}
- */
 function getReloadUrl(href, src) {
-    let ret;
-    // eslint-disable-next-line no-param-reassign
-    href = normalizeUrl(href);
-    src.some(
-    /**
-     * @param {string} url
-     */
-    // eslint-disable-next-line array-callback-return
-    url => {
-        if (href.indexOf(src) > -1) {
-            ret = url;
-        }
-    });
-    return ret;
-}
-/**
- * @param {string} [src]
- * @returns {boolean}
- */
-function reloadStyle(src) {
-    if (!src) {
-        return false;
+  let ret = "";
+  const normalizedHref = normalizeUrl(href);
+  src.some((url) => {
+    if (normalizedHref.indexOf(src) > -1) {
+      ret = url;
     }
-    const elements = document.querySelectorAll("link");
-    let loaded = false;
-    forEach.call(elements, el => {
-        if (!el.href) {
-            return;
-        }
-        const url = getReloadUrl(el.href, src);
-        if (!isUrlRequest(url)) {
-            return;
-        }
-        if (el.visited === true) {
-            return;
-        }
-        if (url) {
-            updateCss(el, url);
-            loaded = true;
-        }
-    });
-    return loaded;
+  });
+  return ret;
+}
+function reloadStyle(src) {
+  if (!src) {
+    return false;
+  }
+  const elements = document.querySelectorAll("link");
+  let loaded = false;
+  forEach.call(elements, (el) => {
+    if (!el.href) {
+      return;
+    }
+    const url = getReloadUrl(el.href, src);
+    if (!isUrlRequest(url)) {
+      return;
+    }
+    if (el.visited === true) {
+      return;
+    }
+    if (url) {
+      updateCss(el, url);
+      loaded = true;
+    }
+  });
+  return loaded;
 }
 function reloadAll() {
-    const elements = document.querySelectorAll("link");
-    forEach.call(elements, el => {
-        if (el.visited === true) {
-            return;
-        }
-        updateCss(el);
-    });
+  const elements = document.querySelectorAll("link");
+  forEach.call(elements, (el) => {
+    if (el.visited === true) {
+      return;
+    }
+    updateCss(el);
+  });
 }
-/**
- * @param {string} url
- * @returns {boolean}
- */
 function isUrlRequest(url) {
-    // An URL is not an request if
-    // It is not http or https
-    if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
-        return false;
-    }
-    return true;
+  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(url)) {
+    return false;
+  }
+  return true;
 }
-/**
- * @param {TODO} moduleId
- * @param {TODO} options
- * @returns {TODO}
- */
-module.exports = function (moduleId, options) {
-    if (noDocument) {
-        console.log("no window.document found, will not HMR CSS");
-        return noop;
+function cssReload(moduleId, options) {
+  if (noDocument) {
+    console.log("[HMR] No `window.document` found, CSS HMR disabled");
+    return noop;
+  }
+  const getScriptSrc = getCurrentScriptUrl(moduleId);
+  function update() {
+    const src = getScriptSrc(options.filename);
+    const reloaded = reloadStyle(src);
+    if (options.locals) {
+      console.log("[HMR] Detected local CSS Modules. Reload all CSS");
+      reloadAll();
+      return;
     }
-    const getScriptSrc = getCurrentScriptUrl(moduleId);
-    function update() {
-        const src = getScriptSrc(options.filename);
-        const reloaded = reloadStyle(src);
-        if (options.locals) {
-            console.log("[HMR] Detected local css modules. Reload all css");
-            reloadAll();
-            return;
-        }
-        if (reloaded) {
-            console.log("[HMR] css reload %s", src.join(" "));
-        }
-        else {
-            console.log("[HMR] Reload all css");
-            reloadAll();
-        }
+    if (reloaded) {
+      console.log("[HMR] CSS reload %s", src && src.join(" "));
+    } else {
+      console.log("[HMR] Reload all CSS");
+      reloadAll();
     }
-    return debounce(update, 50);
-};
+  }
+  return debounce(update, 50);
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && 0;
 
 
 }),
-"../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/normalize-url.js": (function (module) {
-
-/* eslint-disable */
-/**
- * @param {string[]} pathComponents
- * @returns {string}
- */
-function normalizeUrl(pathComponents) {
-    return pathComponents
-        .reduce(function (accumulator, item) {
-        switch (item) {
-            case "..":
-                accumulator.pop();
-                break;
-            case ".":
-                break;
-            default:
-                accumulator.push(item);
-        }
-        return accumulator;
-    }, /** @type {string[]} */ ([]))
-        .join("/");
-}
-/**
- * @param {string} urlString
- * @returns {string}
- */
-module.exports = function (urlString) {
-    urlString = urlString.trim();
-    if (/^data:/i.test(urlString)) {
-        return urlString;
-    }
-    var protocol = urlString.indexOf("//") !== -1 ? urlString.split("//")[0] + "//" : "";
-    var components = urlString.replace(new RegExp(protocol, "i"), "").split("/");
-    var host = components[0].toLowerCase().replace(/\.$/, "");
-    components[0] = "";
-    var path = normalizeUrl(components);
-    return protocol + host + path;
-};
-
-
-}),
-"./index.css?f410": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      // 
-      var cssReload = __webpack_require__(/*! ../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../packages/rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {"locals":false});
-      module.hot.dispose(cssReload);
-      module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
-(cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
+      (function() {
+        var localsJsonString = undefined;
+        // 
+        var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   
 
@@ -647,11 +618,10 @@ function hotCheck(applyOnUpdate) {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
 							return internalApply(applyOnUpdate);
-						} else {
-							return setStatus("ready").then(function () {
-								return updatedModules;
-							});
 						}
+						return setStatus("ready").then(function () {
+							return updatedModules;
+						});
 					});
 				});
 			});
@@ -830,14 +800,17 @@ __webpack_require__.r = function(exports) {
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
     var document = __webpack_require__.g.document;
     if (!scriptUrl && document) {
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }
-        }
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }
+      }
       }
     
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
@@ -1116,15 +1089,10 @@ function applyHandler(options) {
 	for (var moduleId in currentUpdate) {
 		if (__webpack_require__.o(currentUpdate, moduleId)) {
 			var newModuleFactory = currentUpdate[moduleId];
-			var result;
-			if (newModuleFactory) {
-				result = getAffectedModuleEffects(moduleId);
-			} else {
-				result = {
-					type: "disposed",
-					moduleId: moduleId
-				};
-			}
+			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
+				type: "disposed",
+				moduleId: moduleId
+			};
 			var abortError = false;
 			var doApply = false;
 			var doDispose = false;
@@ -1145,10 +1113,10 @@ function applyHandler(options) {
 					if (!options.ignoreDeclined)
 						abortError = new Error(
 							"Aborted because of declined dependency: " +
-								result.moduleId +
-								" in " +
-								result.parentId +
-								chainInfo
+							result.moduleId +
+							" in " +
+							result.parentId +
+							chainInfo
 						);
 					break;
 				case "unaccepted":
@@ -1214,7 +1182,7 @@ function applyHandler(options) {
 				errorHandler: module.hot._selfAccepted
 			});
 		}
-	}
+	} 
 
 	var moduleOutdatedDependencies;
 	return {
@@ -1234,7 +1202,7 @@ function applyHandler(options) {
 				var data = {};
 
 				// Call dispose handlers
-				var disposeHandlers = module.hot._disposeHandlers;
+				var disposeHandlers = module.hot._disposeHandlers; 
 				for (j = 0; j < disposeHandlers.length; j++) {
 					disposeHandlers[j].call(null, data);
 				}
@@ -1275,7 +1243,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId]; 
 				}
 			}
 
@@ -1300,7 +1268,7 @@ function applyHandler(options) {
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
-								errorHandlers.push(errorHandler);
+								errorHandlers.push(errorHandler); 
 								dependenciesForCallbacks.push(dependency);
 							}
 						}
@@ -1361,17 +1329,17 @@ function applyHandler(options) {
 								moduleId: moduleId,
 								module: __webpack_require__.c[moduleId]
 							});
-						} catch (err2) {
+						} catch (err1) {
 							if (options.onErrored) {
 								options.onErrored({
 									type: "self-accept-error-handler-errored",
 									moduleId: moduleId,
-									error: err2,
+									error: err1,
 									originalError: err
 								});
 							}
 							if (!options.ignoreErrored) {
-								reportError(err2);
+								reportError(err1);
 								reportError(err);
 							}
 						}
@@ -1467,6 +1435,6 @@ __webpack_require__.hmrM = function () {
 // module cache are used so entry inlining is disabled
 // startup
 // Load entry module and return exports
-var __webpack_exports__ = __webpack_require__("./index.css?f410");
+var __webpack_exports__ = __webpack_require__("./index.css");
 })()
 ;

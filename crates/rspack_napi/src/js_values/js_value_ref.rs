@@ -4,13 +4,13 @@ use napi::bindgen_prelude::*;
 use napi::{Env, NapiValue, Ref};
 
 pub struct JsValueRef<T: NapiValue> {
-  ref_: Ref<()>,
+  ref_: Ref<T>,
   _phantom: PhantomData<T>,
 }
 
 impl<T: NapiValue> JsValueRef<T> {
   pub fn new(env: Env, value: T) -> Result<Self> {
-    let ref_ = env.create_reference(value)?;
+    let ref_ = Ref::new(&env, &value)?;
 
     Ok(Self {
       ref_,
@@ -22,8 +22,8 @@ impl<T: NapiValue> JsValueRef<T> {
     env.get_reference_value(&self.ref_)
   }
 
-  pub fn unref(&mut self, env: Env) -> Result<u32> {
-    self.ref_.unref(env)
+  pub fn unref(&mut self, env: Env) -> Result<()> {
+    self.ref_.unref(&env)
   }
 }
 

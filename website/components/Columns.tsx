@@ -1,20 +1,23 @@
 import { Children } from 'react';
-import type { PropsWithChildren } from 'react';
+import type { CSSProperties, PropsWithChildren } from 'react';
 
 interface Props {
-  titles: string[];
+  titles?: string[];
+  styles?: CSSProperties[];
 }
 
 export default function Columns({
   children,
   titles = [],
+  styles = [],
 }: PropsWithChildren<Props>) {
   return (
     <div className="flex flex-wrap gap-4">
       {Children.map(children, (child, index) => {
         const title = titles[index];
+        const style = styles[index];
         return (
-          <Column key={title} title={title}>
+          <Column key={title} title={title} style={style}>
             {child}
           </Column>
         );
@@ -25,11 +28,16 @@ export default function Columns({
 
 interface ColumnProps {
   title?: string;
+  style?: CSSProperties;
 }
 
-export function Column({ title, children }: PropsWithChildren<ColumnProps>) {
+export function Column({
+  title,
+  children,
+  style,
+}: PropsWithChildren<ColumnProps>) {
   return (
-    <div className="w-80 flex-auto m-auto" style={{ marginTop: 0 }}>
+    <div className="flex-auto m-auto" style={{ marginTop: 0, ...style }}>
       {title && <div className="font-bold text-center">{title}</div>}
       {children}
     </div>

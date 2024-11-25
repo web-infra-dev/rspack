@@ -4,10 +4,8 @@ import {
 	type RawSwcJsMinimizerRspackPluginOptions
 } from "@rspack/binding";
 
+import type { AssetConditions } from "../util/assetCondition";
 import { create } from "./base";
-
-type MinifyCondition = string | RegExp;
-type MinifyConditions = MinifyCondition | MinifyCondition[];
 
 type ExtractCommentsCondition = boolean | RegExp;
 type ExtractCommentsBanner = string | boolean;
@@ -20,15 +18,17 @@ type ExtractCommentsObject = {
 type ExtractCommentsOptions = ExtractCommentsCondition | ExtractCommentsObject;
 
 export type SwcJsMinimizerRspackPluginOptions = {
+	test?: AssetConditions;
+	exclude?: AssetConditions;
+	include?: AssetConditions;
 	extractComments?: ExtractCommentsOptions | undefined;
-	compress?: TerserCompressOptions | boolean;
-	mangle?: TerserMangleOptions | boolean;
-	format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
-	module?: boolean;
-
-	test?: MinifyConditions;
-	exclude?: MinifyConditions;
-	include?: MinifyConditions;
+	minimizerOptions?: {
+		minify?: boolean;
+		compress?: TerserCompressOptions | boolean;
+		mangle?: TerserMangleOptions | boolean;
+		format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+		module?: boolean;
+	};
 };
 
 /**
@@ -215,7 +215,7 @@ export interface TerserMangleOptions {
 	safari10?: boolean;
 	reserved?: string[];
 }
-export interface TerserManglePropertiesOptions {}
+export type TerserManglePropertiesOptions = {};
 
 function isObject(value: any): value is Object {
 	const type = typeof value;
@@ -230,40 +230,39 @@ function getRawExtractCommentsOptions(
 		if (typeof condition === "undefined" || condition === true) {
 			// copied from terser-webpack-plugin
 			return "@preserve|@lic|@cc_on|^\\**!";
-		} else if (condition === false) {
-			throw Error("unreachable");
-		} else {
-			// FIXME: flags
-			return condition.source;
 		}
+		if (condition === false) {
+			throw Error("unreachable");
+		}
+		// FIXME: flags
+		return condition.source;
 	};
 	if (typeof extractComments === "boolean") {
 		if (!extractComments) {
 			return undefined;
-		} else {
-			const res = {
-				condition: conditionStr(extractComments)
-			};
-			return res;
 		}
-	} else if (extractComments instanceof RegExp) {
+		const res = {
+			condition: conditionStr(extractComments)
+		};
+		return res;
+	}
+	if (extractComments instanceof RegExp) {
 		const res = {
 			condition: extractComments.source
 		};
 		return res;
-	} else if (isObject(extractComments)) {
+	}
+	if (isObject(extractComments)) {
 		if (extractComments.condition === false) {
 			return undefined;
-		} else {
-			const res = {
-				condition: conditionStr(extractComments.condition),
-				banner: extractComments.banner
-			};
-			return res;
 		}
-	} else {
-		return undefined;
+		const res = {
+			condition: conditionStr(extractComments.condition),
+			banner: extractComments.banner
+		};
+		return res;
 	}
+	return undefined;
 }
 
 export const SwcJsMinimizerRspackPlugin = create(
@@ -271,11 +270,11 @@ export const SwcJsMinimizerRspackPlugin = create(
 	(
 		options?: SwcJsMinimizerRspackPluginOptions
 	): RawSwcJsMinimizerRspackPluginOptions => {
-		let compress = options?.compress ?? true;
-		const mangle = options?.mangle ?? true;
+		let compress = options?.minimizerOptions?.compress ?? true;
+		const mangle = options?.minimizerOptions?.mangle ?? true;
 		const format = {
 			comments: false, // terser and swc use different default value: 'some'
-			...options?.format
+			...options?.minimizerOptions?.format
 		};
 
 		if (compress && typeof compress === "object") {
@@ -290,14 +289,17 @@ export const SwcJsMinimizerRspackPlugin = create(
 		}
 
 		return {
-			extractComments: getRawExtractCommentsOptions(options?.extractComments),
-			compress,
-			mangle,
-			format,
-			module: options?.module,
 			test: options?.test,
 			include: options?.include,
-			exclude: options?.exclude
+			exclude: options?.exclude,
+			extractComments: getRawExtractCommentsOptions(options?.extractComments),
+			minimizerOptions: {
+				compress,
+				mangle,
+				format,
+				minify: options?.minimizerOptions?.minify,
+				module: options?.minimizerOptions?.module
+			}
 		};
 	},
 	"compilation"

@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 
 use super::{
   generate_javascript_hmr_runtime,
@@ -68,7 +69,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
 
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
@@ -79,7 +80,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let condition_map =
       compilation
         .chunk_graph
-        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+        .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
 
     let mut source = ConcatSource::default();
@@ -145,8 +146,9 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       // If chunkId not corresponding chunkName will skip load it.
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading.js")
-          .replace("$BODY$", body.as_str())
-          .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
+          .cow_replace("$BODY$", body.as_str())
+          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
+          .into_owned(),
       ));
     }
 
@@ -167,13 +169,14 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       };
       source.add(RawSource::from(
         include_str!("runtime/import_scripts_chunk_loading_with_hmr.js")
-          .replace("$URL$", &url)
-          .replace("$globalObject$", &compilation.options.output.global_object)
-          .replace(
+          .cow_replace("$URL$", &url)
+          .cow_replace("$globalObject$", &compilation.options.output.global_object)
+          .cow_replace(
             "$hotUpdateGlobal$",
             &serde_json::to_string(&compilation.options.output.hot_update_global)
               .expect("failed to serde_json::to_string(hot_update_global)"),
-          ),
+          )
+          .into_owned(),
       ));
       source.add(RawSource::from(generate_javascript_hmr_runtime(
         "importScripts",

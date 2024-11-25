@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -37,7 +37,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
             RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
           )
         } else {
-          "'{url}'".to_string()
+          "url".to_string()
         }
       ))
       .boxed(),

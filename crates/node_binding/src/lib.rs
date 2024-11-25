@@ -11,15 +11,17 @@ use std::sync::Mutex;
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
-use rspack_core::PluginExt;
+use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
+mod diagnostic;
 mod panic;
 mod plugins;
 mod resolver_factory;
 
+pub use diagnostic::*;
 use plugins::*;
 use resolver_factory::*;
 use rspack_binding_options::*;
@@ -67,10 +69,14 @@ impl Rspack {
     let rspack = rspack_core::Compiler::new(
       compiler_options,
       plugins,
-      AsyncNodeWritableFileSystem::new(output_filesystem)
-        .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      resolver_factory,
-      loader_resolver_factory,
+      rspack_binding_options::buildtime_plugins::buildtime_plugins(),
+      Some(Box::new(
+        AsyncNodeWritableFileSystem::new(output_filesystem)
+          .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
+      )),
+      None,
+      Some(resolver_factory),
+      Some(loader_resolver_factory),
     );
 
     Ok(Self {
@@ -87,7 +93,7 @@ impl Rspack {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: JsFunction) -> Result<()> {
+  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -115,7 +121,7 @@ impl Rspack {
     reference: Reference<Rspack>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: JsFunction,
+    f: Function,
   ) -> Result<()> {
     use std::collections::HashSet;
 
@@ -164,6 +170,9 @@ impl Rspack {
       // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
       Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
     })?;
+
+    self.cleanup_last_compilation(&compiler.compilation);
+
     // SAFETY:
     // 1. `Compiler` is pinned and stored on the heap.
     // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
@@ -171,6 +180,10 @@ impl Rspack {
       unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
       _guard,
     )
+  }
+
+  fn cleanup_last_compilation(&self, compilation: &Compilation) {
+    JsCompilationWrapper::cleanup_last_compilation(compilation.id());
   }
 }
 
@@ -211,7 +224,7 @@ static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\"")] layer: String,
   output: String,
 ) {
   let mut state = GLOBAL_TRACE_STATE
@@ -220,6 +233,10 @@ pub fn register_global_trace(
   if matches!(&*state, TraceState::Off) {
     let guard = match layer.as_str() {
       "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
+      "console" => {
+        rspack_tracing::enable_tracing_by_env_with_tokio_console();
+        None
+      }
       "logger" => {
         rspack_tracing::enable_tracing_by_env(&filter, &output);
         None

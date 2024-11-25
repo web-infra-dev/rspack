@@ -1,4 +1,6 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
+use rspack_core::{
+  ConstDependency, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
+};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
 
@@ -9,6 +11,7 @@ use crate::visitors::{expr_matcher, JavascriptParser};
 use crate::visitors::{expression_not_supported, extract_member_root};
 
 const WEBPACK_HASH: &str = "__webpack_hash__";
+const WEBPACK_LAYER: &str = "__webpack_layer__";
 const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 const WEBPACK_MODULES: &str = "__webpack_modules__";
 const WEBPACK_MODULE: &str = "__webpack_module__";
@@ -67,13 +70,26 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    get_typeof_evaluate_of_api(for_name).map(|res| {
-      eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
-    })
+    if for_name == WEBPACK_LAYER {
+      let value = if parser.module_layer.is_none() {
+        "object"
+      } else {
+        "string"
+      };
+      Some(eval::evaluate_to_string(
+        value.to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      ))
+    } else {
+      get_typeof_evaluate_of_api(for_name).map(|res| {
+        eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
+      })
+    }
   }
 
   fn identifier(
@@ -102,6 +118,19 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             format!("{}()", RuntimeGlobals::GET_FULL_HASH).into(),
             Some(RuntimeGlobals::GET_FULL_HASH),
+          )));
+        Some(true)
+      }
+      WEBPACK_LAYER => {
+        parser
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            serde_json::to_string(&parser.module_layer)
+              .expect("should stringify JSON")
+              .into(),
+            None,
           )));
         Some(true)
       }
@@ -139,12 +168,12 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       WEBPACK_MODULE => {
+        let range: DependencyRange = ident.span.into();
         parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
-            ident.span.real_lo(),
-            ident.span.real_hi(),
             None,
+            range.with_source(parser.source_map.clone()),
           )));
         Some(true)
       }
@@ -167,7 +196,11 @@ impl JavascriptParserPlugin for APIPlugin {
             ident.span.real_hi(),
             if self.options.module {
               parser.build_info.need_create_require = true;
-              "__WEBPACK_EXTERNAL_createRequire(import.meta.url)".into()
+              format!(
+                "__WEBPACK_EXTERNAL_createRequire({}.url)",
+                parser.compiler_options.output.import_meta_name
+              )
+              .into()
             } else {
               "require".into()
             },
@@ -279,6 +312,24 @@ impl JavascriptParserPlugin for APIPlugin {
     }
   }
 
+  fn evaluate_identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &str,
+    start: u32,
+    end: u32,
+  ) -> Option<eval::BasicEvaluatedExpression> {
+    if ident == WEBPACK_LAYER {
+      if let Some(layer) = parser.module_layer {
+        Some(eval::evaluate_to_string(layer.into(), start, end))
+      } else {
+        Some(eval::evaluate_to_null(start, end))
+      }
+    } else {
+      None
+    }
+  }
+
   fn member(
     &self,
     parser: &mut JavascriptParser,
@@ -304,7 +355,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_expr!(is_require_extensions, expr, "require.extensions");
-        not_supported_expr!(is_require_ensure, expr, "require.ensure");
         not_supported_expr!(is_require_config, expr, "require.config");
         not_supported_expr!(is_require_version, expr, "require.version");
         not_supported_expr!(is_require_amd, expr, "require.amd");
@@ -350,12 +400,12 @@ impl JavascriptParserPlugin for APIPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
+      let range: DependencyRange = expr.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
-          expr.span().real_lo(),
-          expr.span().real_hi(),
           Some("id"),
+          range.with_source(parser.source_map.clone()),
         )));
       Some(true)
     } else {
@@ -392,7 +442,6 @@ impl JavascriptParserPlugin for APIPlugin {
     {
       if s == "require" {
         not_supported_call!(is_require_config, "require.config()");
-        not_supported_call!(is_require_ensure, "require.ensure()");
         not_supported_call!(is_require_include, "require.include()");
         not_supported_call!(is_require_onerror, "require.onError()");
         not_supported_call!(is_require_main_require, "require.main.require()");

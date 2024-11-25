@@ -1,9 +1,19 @@
 cargo-features = ["trim-paths"]
 
 [workspace]
-members  = ["crates/*"]
-resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
+members  = ["crates/*", "tasks/*"]
+resolver = "2"                     # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
+[workspace.package]
+authors       = ["Rspack Teams"]
+categories    = ["bundler", "development-tools", "web-programming"]
+documentation = "https://rspack.dev/"
+homepage      = "https://rspack.dev/"
+license       = "MIT"
+repository    = "https://github.com/web-infra-dev/rspack"
+
+[workspace.metadata.cargo-shear]
+ignored = ["swc"]
 [workspace.dependencies]
 anyhow             = { version = "1.0.81", features = ["backtrace"] }
 anymap             = { version = "=1.0.0-beta.2" }
@@ -11,10 +21,13 @@ async-recursion    = { version = "1.1.0" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.79" }
 bitflags           = { version = "2.5.0" }
-concat-string      = "1.0.1"
-css-module-lexer   = "0.0.14"
+camino             = { version = "1.1.8" }
+concat-string      = { version = "1.0.1" }
+cow-utils          = { version = "0.1.3" }
+css-module-lexer   = { version = "0.0.15" }
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
+either             = { version = "1.10.0" }
 futures            = { version = "0.3.30" }
 glob               = { version = "0.3.1" }
 hashlink           = { version = "0.9.0" }
@@ -22,24 +35,29 @@ heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.2.6" }
 indoc              = { version = "2.0.5" }
-itertools          = { version = "0.12.1" }
+itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
+lightningcss       = { version = "1.0.0-alpha.60" }
 linked_hash_set    = { version = "0.1.4" }
-mimalloc-rust      = { version = "0.2" }
+mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.4" }
 once_cell          = { version = "1.19.0" }
+parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
+pollster           = { version = "*" }
 proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.10.4" }
-rspack_sources     = { version = "=0.2.15" }
+ropey              = "1.6.1"
+rspack_resolver    = { version = "0.3.5", features = ["package_json_raw_json_api"] }
+rspack_sources     = { version = "=0.3.4" }
 rustc-hash         = { version = "1.1.0" }
-schemars           = { version = "0.8.16" }
 serde              = { version = "1.0.197" }
 serde_json         = { version = "1.0.115" }
+simd-json          = { version = "0.14.0-rc.2" }
 stacker            = { version = "0.1.15" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.58" }
@@ -53,21 +71,28 @@ ustr               = { package = "ustr-fxhash", version = "1.0.0" }
 xxhash-rust        = { version = "0.8.10" }
 
 # Pinned
-napi              = { package = "napi-h", version = "=2.16.1" }
-napi-build        = { version = "2" }
-napi-derive       = { version = "2" }
-tikv-jemallocator = { version = "=0.5.4", features = ["disable_initial_exec_tls"] }
+napi        = { version = "3.0.0-alpha.20" }
+napi-build  = { version = "2.1.3" }
+napi-derive = { version = "3.0.0-alpha.19" }
+
+# Serialize and Deserialize
+inventory = { version = "0.1" }
+rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-#rkyv                = { version = "=0.7.44" }                           # synced with swc wasm plugin
-swc_config          = { version = "=0.1.14" }
-swc_core            = { version = "0.96.9", default-features = false }
-swc_ecma_minifier   = { version = "=0.197.3", default-features = false }
-swc_error_reporters = { version = "=0.18.1" }
-swc_html            = { version = "=0.142.0" }
-swc_html_minifier   = { version = "=0.139.1" }
-swc_node_comments   = { version = "=0.21.0" }
+swc                 = { version = "5.0.0" }
+swc_config          = { version = "=1.0.0" }
+swc_core            = { version = "=5.0.1", default-features = false }
+swc_ecma_minifier   = { version = "=5.0.0", default-features = false }
+swc_error_reporters = { version = "=5.0.0" }
+swc_html            = { version = "=5.0.0" }
+swc_html_minifier   = { version = "=5.0.0", default-features = false }
+swc_node_comments   = { version = "=4.0.0" }
 
+
+rspack_dojang = { version = "0.1.9" }
+[workspace.metadata.release]
+rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]
 codegen-units = 16
 debug         = 2       # debug build will cause runtime panic if codegen-unints is default
@@ -92,3 +117,74 @@ lto = "fat"
 debug    = true
 inherits = "release"
 strip    = false
+
+# the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
+[workspace.lints.rust]
+absolute_paths_not_starting_with_crate = "warn"
+dead_code                              = "warn"
+trivial_numeric_casts                  = "warn"
+unused_import_braces                   = "warn"
+unused_lifetimes                       = "warn"
+unused_macro_rules                     = "warn"
+
+[workspace.lints.clippy]
+cargo_common_metadata   = "allow"
+empty_docs              = "allow" # there are some false positives inside biome_wasm
+multiple_crate_versions = "allow"
+
+# pedantic
+checked_conversions          = "warn"
+cloned_instead_of_copied     = "warn"
+copy_iterator                = "warn"
+dbg_macro                    = "warn"
+doc_link_with_quotes         = "warn"
+empty_enum                   = "warn"
+expl_impl_clone_on_copy      = "warn"
+explicit_into_iter_loop      = "warn"
+filter_map_next              = "warn"
+flat_map_option              = "warn"
+fn_params_excessive_bools    = "warn"
+from_iter_instead_of_collect = "warn"
+implicit_clone               = "warn"
+# not sure whether it's necessary
+# implicit_hasher              = "warn"
+index_refutable_slice        = "warn"
+inefficient_to_string        = "warn"
+invalid_upcast_comparisons   = "warn"
+iter_not_returning_iterator  = "warn"
+large_stack_arrays           = "warn"
+large_types_passed_by_value  = "warn"
+macro_use_imports            = "warn"
+manual_ok_or                 = "warn"
+manual_string_new            = "warn"
+map_flatten                  = "warn"
+map_unwrap_or                = "warn"
+mismatching_type_param_order = "warn"
+mut_mut                      = "warn"
+naive_bytecount              = "warn"
+needless_bitwise_bool        = "warn"
+needless_continue            = "warn"
+needless_for_each            = "warn"
+no_effect_underscore_binding = "warn"
+ref_binding_to_reference     = "warn"
+ref_option_ref               = "warn"
+stable_sort_primitive        = "warn"
+unnecessary_box_returns      = "warn"
+unnecessary_join             = "warn"
+unnested_or_patterns         = "warn"
+unreadable_literal           = "warn"
+verbose_bit_mask             = "warn"
+zero_sized_map_values        = "warn"
+
+# restriction
+empty_drop                      = "warn"
+float_cmp_const                 = "warn"
+get_unwrap                      = "warn"
+infinite_loop                   = "warn"
+lossy_float_literal             = "warn"
+rc_buffer                       = "warn"
+rc_mutex                        = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+verbose_file_reads              = "warn"
+# https://github.com/rustwasm/wasm-bindgen/issues/3944
+#mem_forget                      = "warn"

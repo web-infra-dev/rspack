@@ -2,10 +2,10 @@
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, SourceType};
 use rspack_core::{ChunkUkey, ModuleIdentifier};
 use rspack_hook::plugin;
-use rspack_identifier::IdentifierSet;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -72,7 +72,7 @@ impl CssPlugin {
   ) {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
-      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, source_type, module_graph)
+      .get_chunk_modules_iterable_by_source_type(&chunk.ukey(), source_type, module_graph)
       .collect::<Vec<_>>();
     css_modules.sort_unstable_by_key(|module| module.identifier());
 
@@ -96,9 +96,9 @@ impl CssPlugin {
     // Get ordered list of modules per chunk group
 
     let mut modules_by_chunk_group = chunk
-      .groups
+      .groups()
       .iter()
-      .map(|group| group.as_ref(&compilation.chunk_group_by_ukey))
+      .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
       .map(|chunk_group| {
         let mut indexed_modules = modules_list
           .clone()
@@ -160,7 +160,7 @@ impl CssPlugin {
             continue;
           }
           let last_module = *list.last().expect("TODO:");
-          if last_module == selected_module {
+          if last_module.identifier() == selected_module.identifier() {
             continue;
           }
           if !set.contains(&selected_module.identifier()) {
@@ -183,7 +183,7 @@ impl CssPlugin {
         // TODO(hyf0): we should emit a warning here
         tracing::warn!("Conflicting order between");
         let conflict = CssOrderConflicts {
-          chunk: chunk.ukey,
+          chunk: chunk.ukey(),
           failed_module: has_failed.identifier(),
           selected_module: selected_module.identifier(),
         };
@@ -214,11 +214,15 @@ impl CssPlugin {
       // Remove the selected module from all lists
       for SortedModules { set, list } in &mut modules_by_chunk_group {
         let last_module = list.last();
-        if last_module.map_or(false, |last_module| last_module == &selected_module) {
+        if last_module.map_or(false, |last_module| {
+          last_module.identifier() == selected_module.identifier()
+        }) {
           list.pop();
           set.remove(&selected_module.identifier());
         } else if has_failed.is_some() && set.contains(&selected_module.identifier()) {
-          let idx = list.iter().position(|m| m == &selected_module);
+          let idx = list
+            .iter()
+            .position(|m| m.identifier() == selected_module.identifier());
           if let Some(idx) = idx {
             list.remove(idx);
           }

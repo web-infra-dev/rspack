@@ -1,10 +1,10 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
 
 # DevServer
 
-This page describes the options that affect the behavior of `@rspack/dev-server` (short: dev-server), which facilitates rapid application development.
+This page describes the options that affect the behavior of [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack-dev-server) (short: dev-server), based on `webpack-dev-server@5`，which facilitates rapid application development.
 
 - **Type:** `object`
 
@@ -498,7 +498,7 @@ Specifying local-ipv6 as host will try to resolve the host option as your local 
 
 ## devServer.hot
 
-- **Type:** `boolean`
+- **Type:** `boolean | 'only'`
 - **Default:** `true`
 
 Enable Rspack's Hot Module Replacement feature:
@@ -542,13 +542,6 @@ module.exports = {
 :::tip
 Live reloading works only with web related [targets](/config/target) like `web`, `webworker`, `electron-renderer` and `node-webkit`.
 :::
-
-## devServer.magicHtml
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether the path corresponds to the product one by one.
 
 ## devServer.onListening
 
@@ -675,7 +668,13 @@ module.exports = {
 
 ## devServer.proxy
 
-- **Type:** `object | [object, function]`
+- **Type:** `[object, function]`
+
+:::tip
+
+`@rspack/dev-server` in Rspack uses the `webpack-dev-server` v5, and `devServer.proxy` is an array type. If the configuration you use is the object type of the v4 version, you need to first migrate it according to the [webpack-dev-server/migration-v5.md](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md) migration.
+
+:::
 
 Proxying some URLs can be useful when you have a separate API backend development server and you want to send API requests on the same domain.
 

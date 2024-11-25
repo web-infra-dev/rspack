@@ -63,12 +63,12 @@ const getAddonPlatformArchAbi = () => {
 
 	const abi = NodePlatformArchToAbi[platform][arch];
 	if (abi === undefined) return new Error(`unsupported cpu arch: ${arch}`);
-	binding += "-" + arch;
+	binding += `-${arch}`;
 
 	if (typeof abi === "string") {
-		binding += abi.length ? "-" + abi : "";
+		binding += abi.length ? `-${abi}` : "";
 	} else if (typeof abi === "object") {
-		binding += "-" + abi[isMusl() ? "musl" : "gnu"];
+		binding += `-${abi[isMusl() ? "musl" : "gnu"]}`;
 	} else {
 		return new Error(`unsupported abi: ${abi}`);
 	}
@@ -97,7 +97,7 @@ export const checkVersion = () => {
 		return (result = platformArchAbi);
 	}
 
-	let ADDON_VERSION;
+	let ADDON_VERSION: string;
 	try {
 		const BINDING_PKG_DIR = path.dirname(
 			require.resolve("@rspack/binding/package.json")

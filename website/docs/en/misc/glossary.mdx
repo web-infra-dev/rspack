@@ -1,9 +1,5 @@
 # Glossary
 
-{
-// TODO: A glossary is usually alphabetized
-}
-
 Below are some common terms used with Rspack and webpack.
 
 ## asset
@@ -65,6 +61,14 @@ The module graph is a graph data structure that represents relationships between
 ## plugin
 
 A plugin is a program module that can be used to extend the functionality of Rspack by means of extensibility hooks. It can be used to customize the build process, or to integrate with other tools. Rspack provides lots of hooks which you can use to customize the build process.
+
+## runtime
+
+The runtime is all the code Rspack needs to connect your modularized application while it's running in the browser or other environments. It contains the loading and resolving logic needed to connect your modules as they interact.
+
+## scope hoisting
+
+Scope hoisting is a technique that concat modules into a single scope when possible, rather than wrapping each module in a separate function. It can make minification more effective and improve runtime performance by reduce module lookup cost.
 
 ## tree shaking
 

@@ -2,10 +2,11 @@ use std::borrow::Cow;
 use std::fmt::Write;
 use std::hash::Hasher;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
+use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
 use rspack_core::{
@@ -18,16 +19,17 @@ use rspack_error::{DiagnosticExt, RspackSeverity};
 use rspack_hash::RspackHash;
 use rspack_util::identifier::make_paths_relative;
 use rspack_util::infallible::ResultInfallibleExt;
+use rspack_util::itoa;
 use rspack_util::json_stringify;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
-pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
-pub static LEADING_DIGIT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
+pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
+pub static PREFIX_UNDERSCORE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
@@ -98,22 +100,31 @@ struct LocalIdentNameRenderOptions<'a> {
 
 impl LocalIdentNameRenderOptions<'_> {
   pub fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> String {
-    let mut s = local_ident_name
+    let raw = local_ident_name
       .template
       .render(self.path_data, None)
       .always_ok();
-    s = s.replace("[uniqueName]", self.unique_name);
-    s = escape_css_ident(&s);
-    s = s.replace(r"\[local\]", self.local); // [local] is escaped to \[local\]
-    s
+    let s: &str = raw.as_ref();
+
+    s.cow_replace("[uniqueName]", self.unique_name)
+      .cow_replace("[local]", self.local)
+      .into_owned()
   }
 }
 
-static UNESCAPE_CSS_IDENT_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
+static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
-pub fn escape_css_ident(s: &str) -> String {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, "\\$1").into_owned()
+pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
+  let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
+  if !omit_optional_underscore
+    && !escaped.starts_with("--")
+    && PREFIX_UNDERSCORE_REGEX.is_match(&escaped)
+  {
+    format!("_{}", escaped).into()
+  } else {
+    escaped
+  }
 }
 
 pub(crate) fn export_locals_convention(
@@ -147,7 +158,7 @@ pub fn css_modules_exports_to_string<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from }| match from {
+      .map(|CssExport { ident, from, id: _ }| match from {
         None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module
@@ -210,7 +221,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   for (key, elements) in exports {
     let content = elements
       .iter()
-      .map(|CssExport { ident, from }| match from {
+      .map(|CssExport { ident, from, id: _ }| match from {
         None => json_stringify(&unescape(ident)),
         Some(from_name) => {
           let from = module
@@ -247,7 +258,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{i}"));
+      identifier = Cow::Owned(format!("{key}{}", itoa!(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -258,16 +269,16 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   Ok(())
 }
 
-static STRING_MULTILINE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
+static STRING_MULTILINE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
 
-static TRIM_WHITE_SPACES: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
+static TRIM_WHITE_SPACES: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
 
-static UNESCAPE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
+static UNESCAPE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
 
-static DATA: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
+static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
 pub fn unescape(s: &str) -> Cow<str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
@@ -290,12 +301,12 @@ pub fn unescape(s: &str) -> Cow<str> {
   })
 }
 
-static WHITE_OR_BRACKET_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
-static QUOTATION_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
-static APOSTROPHE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
+static WHITE_OR_BRACKET_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n\t ()'"\\]"#).expect("Invalid Regexp"));
+static QUOTATION_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n"\\]"#).expect("Invalid Regexp"));
+static APOSTROPHE_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"[\n'\\]"#).expect("Invalid Regexp"));
 
 pub fn css_escape_string(s: &str) -> String {
   let mut count_white_or_bracket = 0;
@@ -352,7 +363,7 @@ pub fn css_parsing_traceable_error(
   severity: RspackSeverity,
 ) -> TraceableError {
   TraceableError::from_arc_string(
-    source_code,
+    Some(source_code),
     start as usize,
     end as usize,
     match severity {

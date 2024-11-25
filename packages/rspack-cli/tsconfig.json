@@ -8,12 +8,9 @@
   "references": [
     {
       "path": "../rspack"
-    },
-    {
-      "path": "../rspack-dev-server"
-    },
-    {
-      "path": "../rspack-plugin-react-refresh"
     }
-  ]
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
 }

@@ -48,10 +48,9 @@ export const cutOffMessage = (stack: string, message: string) => {
 	const nextLine = stack.indexOf("\n");
 	if (nextLine === -1) {
 		return stack === message ? "" : stack;
-	} else {
-		const firstLine = stack.slice(0, nextLine);
-		return firstLine === message ? stack.slice(nextLine + 1) : stack;
 	}
+	const firstLine = stack.slice(0, nextLine);
+	return firstLine === message ? stack.slice(nextLine + 1) : stack;
 };
 
 export const cleanUp = (stack: string, message: string): string => {

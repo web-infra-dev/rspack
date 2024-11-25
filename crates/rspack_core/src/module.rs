@@ -1,31 +1,38 @@
 use std::fmt::Display;
 use std::hash::Hash;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use json::JsonValue;
+use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_identifier::{Identifiable, Identifier};
+use rspack_fs::FileSystem;
+use rspack_hash::RspackHashDigest;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
-use rspack_util::ext::{AsAny, DynEq, DynHash};
+use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
 use rustc_hash::FxHashSet as HashSet;
+use serde::Serialize;
 
 use crate::concatenated_module::ConcatenatedModule;
+use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
-  DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule, ImmutableModuleGraph,
-  ModuleDependency, ModuleGraph, ModuleGraphAccessor, ModuleType, MutableModuleGraph, NormalModule,
-  RawModule, Resolve, RunnerContext, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  CompilationId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
+  ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
-pub struct BuildContext<'a> {
-  pub runner_context: RunnerContext,
+
+pub struct BuildContext {
+  pub compilation_id: CompilationId,
+  pub compiler_options: Arc<CompilerOptions>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub compiler_options: &'a CompilerOptions,
+  pub fs: Arc<dyn FileSystem>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -45,7 +52,7 @@ pub struct BuildInfo {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
-  pub harmony_named_exports: HashSet<Atom>,
+  pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
   pub json_data: Option<JsonValue>,
@@ -63,7 +70,7 @@ impl Default for BuildInfo {
       context_dependencies: HashSet::default(),
       missing_dependencies: HashSet::default(),
       build_dependencies: HashSet::default(),
-      harmony_named_exports: HashSet::default(),
+      esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
@@ -73,7 +80,8 @@ impl Default for BuildInfo {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum BuildMetaExportsType {
   #[default]
   Unset,
@@ -91,7 +99,8 @@ pub enum ExportsType {
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -105,7 +114,8 @@ pub enum BuildMetaDefaultObject {
   },
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash)]
+#[derive(Debug, Default, Clone, Copy, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ModuleArgument {
   #[default]
   Module,
@@ -121,7 +131,8 @@ impl Display for ModuleArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ExportsArgument {
   #[default]
   Exports,
@@ -137,27 +148,30 @@ impl Display for ExportsArgument {
   }
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Default, Clone, Hash, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BuildMeta {
-  pub strict_harmony_module: bool,
+  pub strict_esm_module: bool,
   pub has_top_level_await: bool,
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
 // webpack build info
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<String>,
 }
 
@@ -174,8 +188,6 @@ pub trait Module:
   + Sync
   + Any
   + AsAny
-  + DynHash
-  + DynEq
   + Identifiable
   + DependenciesBlock
   + Diagnosable
@@ -195,25 +207,18 @@ pub trait Module:
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
-  fn size(&self, source_type: Option<&SourceType>, compilation: &Compilation) -> f64;
+  /// Only when calculating the size of the RuntimeModule is the Compilation depended on
+  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
-    let build_info = BuildInfo {
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
-      ..Default::default()
-    };
-
     Ok(BuildResult {
-      build_info,
+      build_info: Default::default(),
       build_meta: Default::default(),
       dependencies: Vec::new(),
       blocks: Vec::new(),
@@ -249,26 +254,15 @@ pub trait Module:
       .unwrap_or_default()
   }
 
-  fn get_exports_type_readonly(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
-    let mut mga = ImmutableModuleGraph::new(module_graph);
-    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
+  fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
+    get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
   }
 
-  fn get_exports_type<'a>(
-    &self,
-    module_graph: &'a mut ModuleGraph<'a>,
-    strict: bool,
-  ) -> ExportsType {
-    let mut mga = MutableModuleGraph::new(module_graph);
-    get_exports_type_impl(self.identifier(), self.build_meta(), &mut mga, strict)
-  }
-
-  fn get_strict_harmony_module(&self) -> bool {
+  fn get_strict_esm_module(&self) -> bool {
     self
       .build_meta()
       .as_ref()
-      .map(|m| m.strict_harmony_module)
-      .unwrap_or(false)
+      .is_some_and(|m| m.strict_esm_module)
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -290,10 +284,16 @@ pub trait Module:
     None
   }
 
-  /// Apply module hash to the provided hasher.
-  fn update_hash(&self, state: &mut dyn std::hash::Hasher) {
-    self.dyn_hash(state);
-  }
+  /// Update hash for cgm.hash (chunk graph module hash)
+  /// Different cgm code generation result should have different cgm.hash,
+  /// so this also accept compilation (mainly chunk graph) and runtime as args.
+  /// (Difference with `impl Hash for Module`: this is just a part for calculating cgm.hash, not for Module itself)
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()>;
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
@@ -337,6 +337,10 @@ pub trait Module:
     None
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    None
+  }
+
   fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> Option<bool> {
     None
   }
@@ -344,7 +348,7 @@ pub trait Module:
   fn get_side_effects_connection_state(
     &self,
     _module_graph: &ModuleGraph,
-    _module_chain: &mut HashSet<ModuleIdentifier>,
+    _module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
     ConnectionState::Bool(true)
   }
@@ -373,12 +377,16 @@ pub trait Module:
 
     false
   }
+
+  fn need_id(&self) -> bool {
+    true
+  }
 }
 
 fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: Option<&BuildMeta>,
-  mga: &mut dyn ModuleGraphAccessor,
+  mg: &ModuleGraph,
   strict: bool,
 ) -> ExportsType {
   if let Some((export_type, default_object)) = build_meta
@@ -418,13 +426,12 @@ fn get_exports_type_impl(
           }
 
           if let Some(export_info) =
-            mga.get_read_only_export_info(&Atom::from("__esModule"), &identifier)
+            mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
           {
-            let export_info_id = export_info.id;
-            if matches!(export_info.provided, Some(ExportInfoProvided::False)) {
+            if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
               handle_default(default_object)
             } else {
-              let Some(target) = export_info_id.get_target(mga, None) else {
+              let Some(target) = export_info.get_target(mg) else {
                 return ExportsType::Dynamic;
               };
               if target
@@ -438,7 +445,10 @@ fn get_exports_type_impl(
                 })
                 .is_some_and(|v| v == "__esModule")
               {
-                let Some(target_exports_type) = mga.get_module_meta_exports_type(&target.module)
+                let Some(target_exports_type) = mg
+                  .module_by_identifier(&target.module)
+                  .and_then(|m| m.build_meta())
+                  .map(|meta| meta.exports_type)
                 else {
                   return ExportsType::Dynamic;
                 };
@@ -473,11 +483,35 @@ fn get_exports_type_impl(
   }
 }
 
+pub fn module_update_hash(
+  module: &dyn Module,
+  hasher: &mut dyn std::hash::Hasher,
+  compilation: &Compilation,
+  runtime: Option<&RuntimeSpec>,
+) {
+  let chunk_graph = &compilation.chunk_graph;
+  chunk_graph
+    .get_module_graph_hash(module, compilation, runtime)
+    .dyn_hash(hasher);
+  if let Some(deps) = module.get_presentational_dependencies() {
+    for dep in deps {
+      dep.update_hash(hasher, compilation, runtime);
+    }
+  }
+  dependencies_block_update_hash(
+    module.get_dependencies(),
+    module.get_blocks(),
+    hasher,
+    compilation,
+    runtime,
+  );
+}
+
 pub trait ModuleExt {
   fn boxed(self) -> Box<dyn Module>;
 }
 
-impl<T: Module + 'static> ModuleExt for T {
+impl<T: Module> ModuleExt for T {
   fn boxed(self) -> Box<dyn Module> {
     Box::new(self)
   }
@@ -490,20 +524,6 @@ impl Identifiable for Box<dyn Module> {
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
     self.as_ref().identifier()
-  }
-}
-
-impl PartialEq for dyn Module {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn Module {}
-
-impl Hash for dyn Module {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 
@@ -594,10 +614,9 @@ pub struct LibIdentOptions<'me> {
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
-  use std::hash::Hash;
 
+  use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{Diagnosable, Diagnostic, Result};
-  use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
@@ -608,35 +627,11 @@ mod test {
     RuntimeSpec, SourceType,
   };
 
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct RawModule(&'static str);
 
-  impl PartialEq for RawModule {
-    fn eq(&self, other: &Self) -> bool {
-      self.identifier() == other.identifier()
-    }
-  }
-
-  #[derive(Debug, Eq)]
+  #[derive(Debug)]
   struct ExternalModule(&'static str);
-
-  impl PartialEq for ExternalModule {
-    fn eq(&self, other: &Self) -> bool {
-      self.identifier() == other.identifier()
-    }
-  }
-
-  impl Hash for RawModule {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-      self.identifier().hash(state);
-    }
-  }
-
-  impl Hash for ExternalModule {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-      self.identifier().hash(state);
-    }
-  }
 
   macro_rules! impl_noop_trait_module_type {
     ($ident: ident) => {
@@ -661,6 +656,10 @@ mod test {
           unreachable!()
         }
 
+        fn remove_dependency_id(&mut self, _: DependencyId) {
+          unreachable!()
+        }
+
         fn get_dependencies(&self) -> &[DependencyId] {
           unreachable!()
         }
@@ -680,7 +679,11 @@ mod test {
           unreachable!()
         }
 
-        fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+        fn size(
+          &self,
+          _source_type: Option<&SourceType>,
+          _compilation: Option<&Compilation>,
+        ) -> f64 {
           unreachable!()
         }
 
@@ -690,7 +693,7 @@ mod test {
 
         async fn build(
           &mut self,
-          _build_context: BuildContext<'_>,
+          _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {
           unreachable!()
@@ -698,6 +701,15 @@ mod test {
 
         fn get_diagnostics(&self) -> Vec<Diagnostic> {
           vec![]
+        }
+
+        fn update_hash(
+          &self,
+          _hasher: &mut dyn std::hash::Hasher,
+          _compilation: &Compilation,
+          _runtime: Option<&RuntimeSpec>,
+        ) -> Result<()> {
+          unreachable!()
         }
 
         fn code_generation(
@@ -760,41 +772,5 @@ mod test {
     let b = b.as_ref();
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
-  }
-
-  #[test]
-  fn hash_should_work() {
-    let e1: Box<dyn Module> = ExternalModule("e").boxed();
-    let e2: Box<dyn Module> = ExternalModule("e").boxed();
-
-    let mut state1 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    let mut state2 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    e1.hash(&mut state1);
-    e2.hash(&mut state2);
-
-    let hash1 = state1.digest(&rspack_hash::HashDigest::Hex);
-    let hash2 = state2.digest(&rspack_hash::HashDigest::Hex);
-    assert_eq!(hash1, hash2);
-
-    let e3: Box<dyn Module> = ExternalModule("e3").boxed();
-    let mut state3 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
-    e3.hash(&mut state3);
-
-    let hash3 = state3.digest(&rspack_hash::HashDigest::Hex);
-    assert_ne!(hash1, hash3);
-  }
-
-  #[test]
-  fn eq_should_work() {
-    let e1 = ExternalModule("e");
-    let e2 = ExternalModule("e");
-
-    assert_eq!(e1, e2);
-    assert_eq!(&e1.boxed(), &e2.boxed());
-
-    let r1 = RawModule("r1");
-    let r2 = RawModule("r2");
-    assert_ne!(r1, r2);
-    assert_ne!(&r1.boxed(), &r2.boxed());
   }
 }

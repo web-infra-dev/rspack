@@ -1,7 +1,7 @@
 #![allow(clippy::comparison_chain)]
 
 use std::hash::Hash;
-use std::path::PathBuf;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -16,17 +16,19 @@ use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
   CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, PublicPath,
-  RuntimeGlobals,
+  RuntimeGlobals, SelfModuleFactory,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
+use crate::parser_and_generator::{
+  CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssUsedExports,
+};
 use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
+use crate::utils::{escape_css, AUTO_PUBLIC_PATH_PLACEHOLDER};
 use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
@@ -38,14 +40,14 @@ impl CssPlugin {
     compilation: &Compilation,
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
-  ) -> FxHashSet<String> {
+  ) -> HashSet<String> {
     ordered_css_modules
       .iter()
       .filter_map(|module| {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime));
+          .get(module_id, Some(chunk.runtime()));
         code_gen_result
           .data
           .get::<CodeGenerationDataUnusedLocalIdent>()
@@ -60,13 +62,18 @@ impl CssPlugin {
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
+    let mut meta_data = vec![];
+    let with_compression = compilation.options.output.css_head_data_compression;
     let module_sources = ordered_css_modules
       .iter()
       .map(|module| {
         let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime));
+          .get(module_id, Some(chunk.runtime()));
+        if let Some(meta_data_str) = code_gen_result.data.get::<CssUsedExports>() {
+          meta_data.push(meta_data_str.0.as_str());
+        }
 
         Ok(
           code_gen_result
@@ -76,7 +83,7 @@ impl CssPlugin {
       })
       .collect::<Result<Vec<_>>>()?;
 
-    let source = module_sources
+    let mut source = module_sources
       .into_par_iter()
       // TODO(hyf0): I couldn't think of a situation where a module doesn't have `Source`.
       // Should we return a Error if there is a `None` in `module_sources`?
@@ -97,6 +104,23 @@ impl CssPlugin {
         acc.add(cur);
         acc
       });
+
+    let name_with_id = format!(
+      "{}-{}",
+      &compilation.options.output.unique_name,
+      chunk.id().unwrap_or_default()
+    );
+    let meta_data_str = format!(
+      "head{{--webpack-{}:{};}}",
+      escape_css(&name_with_id, true),
+      if with_compression {
+        lzw_encode(&meta_data.join(","))
+      } else {
+        meta_data.join(",")
+      }
+    );
+
+    source.add(RawSource::from(meta_data_str));
 
     Ok(source)
   }
@@ -152,6 +176,10 @@ async fn compilation(
     DependencyType::CssCompose,
     params.normal_module_factory.clone(),
   );
+  compilation.set_dependency_factory(
+    DependencyType::CssSelfReferenceLocalIdent,
+    Arc::new(SelfModuleFactory {}),
+  );
   Ok(())
 }
 
@@ -160,11 +188,19 @@ fn runtime_requirements_in_tree(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) -> Result<Option<()>> {
-  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Jsonp);
-  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
+  let is_enabled_for_chunk = is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
+    compilation,
+  ) || is_enabled_for_chunk(
+    chunk_ukey,
+    &ChunkLoading::Enable(ChunkLoadingType::Import),
+    compilation,
+  );
 
   if (runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
     || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
@@ -175,6 +211,7 @@ fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
     runtime_requirements_mut.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+    runtime_requirements_mut.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     compilation.add_runtime_module(chunk_ukey, Box::<CssLoadingRuntimeModule>::default())?;
   }
 
@@ -186,7 +223,7 @@ async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hashes: &mut FxHashMap<SourceType, RspackHash>,
+  hashes: &mut HashMap<SourceType, RspackHash>,
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
@@ -206,7 +243,7 @@ async fn content_hash(
       (
         compilation
           .code_generation_results
-          .get_hash(&m.identifier(), Some(&chunk.runtime)),
+          .get_hash(&m.identifier(), Some(chunk.runtime())),
         compilation.chunk_graph.get_module_id(m.identifier()),
       )
     })
@@ -220,6 +257,50 @@ async fn content_hash(
   Ok(())
 }
 
+fn lzw_encode(input: &str) -> String {
+  if input.is_empty() {
+    return input.into();
+  }
+  let mut map: HashMap<String, char> = HashMap::default();
+  let mut encoded = String::new();
+  let mut phrase = input.chars().next().expect("should have value").to_string();
+  let mut code = 256u16;
+  let max_code = 0xFFFF;
+
+  for c in input.chars().skip(1) {
+    let next_phrase = format!("{}{}", phrase, c);
+    if map.contains_key(&next_phrase) {
+      phrase = next_phrase;
+    } else {
+      if phrase.len() > 1 {
+        encoded.push(*map.get(&phrase).expect("should convert to u32 correctly"));
+      } else {
+        encoded += &phrase;
+      }
+      if code <= max_code {
+        map.insert(
+          next_phrase,
+          std::char::from_u32(code as u32).expect("should convert to u32 correctly"),
+        );
+        code += 1;
+      }
+      if code > max_code {
+        code = 256;
+        map.clear();
+      }
+      phrase = c.to_string();
+    }
+  }
+
+  if phrase.len() > 1 {
+    encoded.push(*map.get(&phrase).expect("should have phrase"));
+  } else {
+    encoded += &phrase;
+  }
+
+  encoded
+}
+
 #[plugin_hook(CompilationRenderManifest for CssPlugin)]
 async fn render_manifest(
   &self,
@@ -228,8 +309,8 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = chunk_ukey.as_ref(&compilation.chunk_by_ukey);
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
@@ -256,21 +337,26 @@ async fn render_manifest(
   let (output_path, mut asset_info) = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk(chunk)
-      .content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::Css)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      )
-      .runtime(&chunk.runtime),
+      .chunk_id_optional(chunk.id())
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::Css,
+        compilation.options.output.hash_digest_length,
+      ))
+      .runtime(chunk.runtime().as_str()),
   )?;
   asset_info.set_css_unused_idents(unused_idents);
 
   let content = source.source();
-  let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
-    .find_iter(&content)
-    .map(|mat| (mat.start(), mat.end()))
+  let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
+  let auto_public_path_matches: Vec<_> = content
+    .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
+    .map(|(index, _)| (index, index + len))
     .collect();
   let source = if !auto_public_path_matches.is_empty() {
     let mut replace = ReplaceSource::new(source);
@@ -284,7 +370,7 @@ async fn render_manifest(
   };
   if let Some(conflicts) = conflicts {
     diagnostics.extend(conflicts.into_iter().map(|conflict| {
-      let chunk = conflict.chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
       let mg = compilation.get_module_graph();
 
       let failed_module = mg
@@ -299,15 +385,14 @@ async fn render_manifest(
         format!(
           "chunk {}\nConflicting order between {} and {}",
           chunk
-            .name
-            .as_ref()
-            .unwrap_or(chunk.id.as_ref().expect("should have chunk id")),
+            .name()
+            .unwrap_or(chunk.id().expect("should have chunk id")),
           failed_module.readable_identifier(&compilation.options.context),
           selected_module.readable_identifier(&compilation.options.context)
         ),
       )
-      .with_file(Some(PathBuf::from(&output_path)))
-      .with_chunk(Some(chunk_ukey.as_usize()))
+      .with_file(Some(output_path.to_owned().into()))
+      .with_chunk(Some(chunk_ukey.as_u32()))
     }));
   }
   manifest.push(RenderManifestEntry::new(
@@ -329,7 +414,7 @@ impl Plugin for CssPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

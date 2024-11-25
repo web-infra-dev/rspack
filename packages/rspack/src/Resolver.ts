@@ -1,9 +1,11 @@
 import type * as binding from "@rspack/binding";
 import { type Resolve, getRawResolve } from "./config";
+import type {
+	ErrorWithDetails,
+	ResolveCallback
+} from "./config/adapterRuleUse";
 
-interface ResolveContext {}
-
-type ErrorWithDetail = Error & { details?: string };
+type ResolveContext = {};
 
 type ResolveOptionsWithDependencyType = Resolve & {
 	dependencyCategory?: string;
@@ -30,17 +32,13 @@ export class Resolver {
 		path: string,
 		request: string,
 		resolveContext: ResolveContext,
-		callback: (
-			err: null | ErrorWithDetail,
-			res?: string | false
-			// req?: ResolveRequest
-		) => void
+		callback: ResolveCallback
 	): void {
 		try {
 			const res = this.binding.resolveSync(path, request);
 			callback(null, res);
 		} catch (err) {
-			callback(err as ErrorWithDetail);
+			callback(err as ErrorWithDetails);
 		}
 	}
 

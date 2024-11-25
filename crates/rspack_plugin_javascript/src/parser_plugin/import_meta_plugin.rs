@@ -262,3 +262,32 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     None
   }
 }
+
+// use when parser.import_meta is false
+pub struct ImportMetaDisabledPlugin;
+
+impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
+  fn meta_property(
+    &self,
+    parser: &mut JavascriptParser,
+    root_name: &swc_core::atoms::Atom,
+    span: Span,
+  ) -> Option<bool> {
+    let import_meta_name = parser.compiler_options.output.import_meta_name.clone();
+    if import_meta_name == expr_name::IMPORT_META {
+      None
+    } else if root_name == expr_name::IMPORT_META {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          span.real_lo(),
+          span.real_hi(),
+          import_meta_name.into(),
+          None,
+        )));
+      Some(true)
+    } else {
+      None
+    }
+  }
+}

@@ -4,6 +4,7 @@ use rspack_core::{
 };
 use rspack_error::{error, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::AssertUtf8;
 use url::Url;
 
 #[plugin]
@@ -21,12 +22,13 @@ async fn normal_module_factory_resolve_for_scheme(
     let url = Url::parse(&resource_data.resource).map_err(|e| error!(e.to_string()))?;
     let path = url
       .to_file_path()
-      .map_err(|_| error!("Failed to get file path of {url}"))?;
+      .map_err(|_| error!("Failed to get file path of {url}"))?
+      .assert_utf8();
     let query = url.query().map(|q| format!("?{q}"));
     let fragment = url.fragment().map(|f| format!("#{f}"));
     let new_resource_data = ResourceData::new(format!(
       "{}{}{}",
-      path.to_string_lossy(),
+      path,
       query.as_deref().unwrap_or(""),
       fragment.as_deref().unwrap_or("")
     ))
@@ -45,11 +47,7 @@ impl Plugin for FileUriPlugin {
     "rspack.FileUriPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .normal_module_factory_hooks

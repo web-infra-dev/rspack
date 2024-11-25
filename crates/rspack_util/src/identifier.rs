@@ -1,18 +1,20 @@
+use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   path::{Path, PathBuf},
 };
 
 use concat_string::concat_string;
-use once_cell::sync::Lazy;
+use cow_utils::CowUtils;
 use regex::Regex;
 use sugar_path::SugarPath;
 
-static SEGMENTS_SPLIT_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"([|!])").expect("TODO:"));
-static WINDOWS_ABS_PATH_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
-static WINDOWS_PATH_SEPARATOR_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[/\\]").expect("TODO:"));
+static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"([|!])").expect("TODO:"));
+static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
+static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
+
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
   SEGMENTS_SPLIT_REGEXP
     .split(identifier)
@@ -63,8 +65,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
     if !WINDOWS_ABS_PATH_REGEXP.is_match(&resource) {
       resource =
-        relative_path_to_request(&WINDOWS_PATH_SEPARATOR_REGEXP.replace_all(&resource, "/"))
-          .into_owned();
+        relative_path_to_request(&resource.cow_replace(WINDOWS_PATH_SEPARATOR, "/")).into_owned();
     }
     resource
   } else {
@@ -114,15 +115,13 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
     .join("")
 }
 
-static ZERO_WIDTH_SPACE: Lazy<Regex> =
-  Lazy::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
-
-static FRAGMENT: Lazy<Regex> = Lazy::new(|| Regex::new("#").expect("invalid regex"));
+static ZERO_WIDTH_SPACE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new("\u{200b}(.)").expect("invalid regex"));
 
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<str> {
   ZERO_WIDTH_SPACE.replace_all(s, "$1")
 }
 
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<str> {
-  FRAGMENT.replace_all(s, "\u{200b}#")
+  s.cow_replace("#", "\u{200b}#")
 }

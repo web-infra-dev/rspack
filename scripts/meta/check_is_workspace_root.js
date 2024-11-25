@@ -10,7 +10,7 @@ try {
 			}
 		}
 	);
-	if (rootPkgJson.name != "monorepo") {
+	if (rootPkgJson.name !== "monorepo") {
 		throw new Error(`Unexpected cwd ${process.cwd()}`);
 	}
 } catch (oldErr) {
@@ -21,5 +21,3 @@ try {
 	err.cause = oldErr;
 	throw err;
 }
-
-export {};

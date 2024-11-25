@@ -1,18 +1,14 @@
 import path from "node:path";
 
 import type { Filename, LoaderContext, LoaderDefinition } from "../..";
-import { CssExtractRspackPlugin } from "./index";
-import schema from "./loader-options.json";
-import { stringifyLocal, stringifyRequest } from "./utils";
+import { PLUGIN_NAME, stringifyLocal, stringifyRequest } from "./utils";
 
+export const BASE_URI = "webpack://";
 export const MODULE_TYPE = "css/mini-extract";
 export const AUTO_PUBLIC_PATH = "__mini_css_extract_plugin_public_path_auto__";
-export const ABSOLUTE_PUBLIC_PATH = "webpack:///mini-css-extract-plugin/";
-export const BASE_URI = "webpack://";
+export const ABSOLUTE_PUBLIC_PATH = `${BASE_URI}/mini-css-extract-plugin/`;
 export const SINGLE_DOT_PATH_SEGMENT =
 	"__mini_css_extract_plugin_single_dot_path_segment__";
-
-const SERIALIZE_SEP = "__RSPACK_CSS_EXTRACT_SEP__";
 
 interface DependencyDescription {
 	identifier: string;
@@ -30,45 +26,50 @@ export interface CssExtractRspackLoaderOptions {
 	publicPath?: string | ((resourcePath: string, context: string) => string);
 	emit?: boolean;
 	esModule?: boolean;
-
-	// TODO: support layer
-	layer?: boolean;
+	layer?: string;
 	defaultExport?: boolean;
 }
 
-function hotLoader(
+export function hotLoader(
 	content: string,
 	context: {
 		loaderContext: LoaderContext;
-		options: CssExtractRspackLoaderOptions;
-		locals: Record<string, string>;
+		options?: CssExtractRspackLoaderOptions;
+		locals?: Record<string, string>;
 	}
-) {
-	const accept = context.locals
-		? ""
-		: "module.hot.accept(undefined, cssReload);";
+): string {
+	const localsJsonString = JSON.stringify(JSON.stringify(context.locals));
 	return `${content}
     if(module.hot) {
-      // ${Date.now()}
-      var cssReload = require(${stringifyRequest(
-				context.loaderContext,
-				path.join(__dirname, "./hmr/hotModuleReplacement.js")
-			)})(module.id, ${JSON.stringify({
-				...context.options,
-				locals: !!context.locals
-			})});
-      module.hot.dispose(cssReload);
-      ${accept}
+      (function() {
+        var localsJsonString = ${localsJsonString};
+        // ${Date.now()}
+        var cssReload = require(${stringifyRequest(
+					context.loaderContext,
+					path.join(__dirname, "cssExtractHmr.js")
+				)}).cssReload(module.id, ${JSON.stringify(context.options ?? {})});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   `;
 }
 
 const loader: LoaderDefinition = function loader(content) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -81,10 +82,7 @@ const loader: LoaderDefinition = function loader(content) {
 
 export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	if (
-		this._compiler &&
-		this._compiler.options &&
-		this._compiler.options.experiments &&
-		this._compiler.options.experiments.css &&
+		this._compiler?.options?.experiments?.css &&
 		this._module &&
 		(this._module.type === "css" ||
 			this._module.type === "css/auto" ||
@@ -100,14 +98,13 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		return;
 	}
 
-	const options = this.getOptions(schema) as CssExtractRspackLoaderOptions;
+	const options = this.getOptions() as CssExtractRspackLoaderOptions;
 	const emit = typeof options.emit !== "undefined" ? options.emit : true;
 	const callback = this.async();
 	const filepath = this.resourcePath;
+	const parseMeta = this.__internal__parseMeta;
 
-	let { publicPath } =
-		/** @type {Compilation} */
-		this._compilation!.outputOptions;
+	let { publicPath } = this._compilation!.outputOptions;
 
 	if (typeof options.publicPath === "string") {
 		// eslint-disable-next-line prefer-destructuring
@@ -140,9 +137,8 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 			| { default: Record<string, any>; __esModule: true }
 			| Record<string, any>
 	) => {
-		/** @type {Locals | undefined} */
-		let locals: Record<string, string>;
-		let namedExport;
+		let locals: Record<string, string> | undefined;
+		let namedExport: boolean;
 
 		const esModule =
 			typeof options.esModule !== "undefined" ? options.esModule : true;
@@ -160,19 +156,17 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				(!originalExports.default || !("locals" in originalExports.default));
 
 			if (namedExport) {
-				Object.keys(originalExports).forEach(key => {
+				for (const key of Object.keys(originalExports)) {
 					if (key !== "default") {
 						if (!locals) {
 							locals = {};
 						}
 
-						/** @type {Locals} */ locals[key] = (
-							originalExports as Record<string, string>
-						)[key];
+						locals[key] = (originalExports as Record<string, string>)[key];
 					}
-				});
+				}
 			} else {
-				locals = exports && exports.locals;
+				locals = exports?.locals;
 			}
 
 			if (Array.isArray(exports) && emit) {
@@ -211,7 +205,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 		}
 
 		const result = (function makeResult() {
-			if (locals!) {
+			if (locals) {
 				if (namedExport) {
 					const identifiers = Array.from(
 						(function* generateIdentifiers() {
@@ -227,10 +221,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 
 					const localsString = identifiers
 						.map(
-							([id, key]) =>
-								`\nvar ${id} = ${stringifyLocal(
-									/** @type {Locals} */ locals[key]
-								)};`
+							([id, key]) => `\nvar ${id} = ${stringifyLocal(locals![key])};`
 						)
 						.join("");
 					const exportsString = `export { ${identifiers
@@ -252,13 +243,14 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				return `\n${
 					esModule ? "export default" : "module.exports = "
 				} ${JSON.stringify(locals)};`;
-			} else if (esModule) {
+			}
+			if (esModule) {
 				return "\nexport {};";
 			}
 			return "";
 		})();
 
-		let resultSource = `// extracted by ${CssExtractRspackPlugin.pluginName}`;
+		let resultSource = `// extracted by ${PLUGIN_NAME}`;
 
 		// only attempt hotreloading if the css is actually used for something other than hash values
 		resultSource +=
@@ -266,31 +258,18 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 				? hotLoader(result, { loaderContext: this, options, locals: locals! })
 				: result;
 
-		const additionalData: Record<string, any> = { ...data };
 		if (dependencies.length > 0) {
-			additionalData[CssExtractRspackPlugin.pluginName] = dependencies
-				.map(dep => {
-					return [
-						dep.identifier,
-						dep.content,
-						dep.context,
-						dep.media,
-						dep.supports,
-						dep.sourceMap,
-						dep.identifierIndex,
-						dep.filepath
-					].join(SERIALIZE_SEP);
-				})
-				.join(SERIALIZE_SEP);
+			parseMeta[PLUGIN_NAME] = JSON.stringify(dependencies);
 		}
 
-		callback(null, resultSource, undefined, additionalData);
+		callback(null, resultSource, undefined, data);
 	};
 
 	this.importModule(
 		`${this.resourcePath}.webpack[javascript/auto]!=!!!${request}`,
 		{
-			publicPath: /** @type {Filename} */ publicPathForExtract,
+			layer: options.layer,
+			publicPath: publicPathForExtract,
 			baseUri: `${BASE_URI}/`
 		},
 		(error, exports) => {

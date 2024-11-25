@@ -4,7 +4,7 @@ use super::{build::BuildTask, MakeTaskContext};
 use crate::{
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
-  DependencyId, Module, ModuleIdentifier, ModuleProfile,
+  BoxDependency, Module, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]
@@ -12,15 +12,16 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
 
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let module_identifier = self.module.identifier();
     let artifact = &mut context.artifact;
     let module_graph =
@@ -29,7 +30,7 @@ impl Task<MakeTaskContext> for AddTask {
     if self.module.as_self_module().is_some() {
       let issuer = self
         .module_graph_module
-        .get_issuer()
+        .issuer()
         .identifier()
         .expect("self module should have issuer");
 
@@ -72,11 +73,13 @@ impl Task<MakeTaskContext> for AddTask {
 
     artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
+      compilation_id: context.compilation_id,
       module: self.module,
       current_profile: self.current_profile,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),
+      fs: context.fs.clone(),
     })])
   }
 }
@@ -84,11 +87,16 @@ impl Task<MakeTaskContext> for AddTask {
 fn set_resolved_module(
   module_graph: &mut ModuleGraph,
   original_module_identifier: Option<ModuleIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies: Vec<BoxDependency>,
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
   for dependency in dependencies {
-    module_graph.set_resolved_module(original_module_identifier, dependency, module_identifier)?;
+    module_graph.set_resolved_module(
+      original_module_identifier,
+      *dependency.id(),
+      module_identifier,
+    )?;
+    module_graph.add_dependency(dependency);
   }
   Ok(())
 }

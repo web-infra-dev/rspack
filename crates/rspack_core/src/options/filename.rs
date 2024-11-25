@@ -3,49 +3,37 @@ use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::{borrow::Cow, convert::Infallible, ptr};
 
-use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
+use regex::Regex;
 use rspack_error::error;
 use rspack_macros::MergeFrom;
 use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
+use crate::replace_all_placeholder;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
-pub static FILE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[file\]").expect("Should generate regex"));
-pub static BASE_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[base\]").expect("Should generate regex"));
-pub static NAME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[name\]").expect("Should generate regex"));
-pub static PATH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[path\]").expect("Should generate regex"));
-pub static EXT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[ext\]").expect("Should generate regex"));
-pub static QUERY_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[query\]").expect("Should generate regex"));
-pub static FRAGMENT_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fragment\]").expect("Should generate regex"));
-pub static ID_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[id\]").expect("Should generate regex"));
-pub static RUNTIME_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[runtime\]").expect("Should generate regex"));
-pub static URL_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[url\]").expect("Should generate regex"));
-pub static HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
-pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
-pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
+static FILE_PLACEHOLDER: &str = "[file]";
+static BASE_PLACEHOLDER: &str = "[base]";
+static NAME_PLACEHOLDER: &str = "[name]";
+static PATH_PLACEHOLDER: &str = "[path]";
+static EXT_PLACEHOLDER: &str = "[ext]";
+static QUERY_PLACEHOLDER: &str = "[query]";
+static FRAGMENT_PLACEHOLDER: &str = "[fragment]";
+static ID_PLACEHOLDER: &str = "[id]";
+static RUNTIME_PLACEHOLDER: &str = "[runtime]";
+static URL_PLACEHOLDER: &str = "[url]";
 
-static DATA_URI_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
+pub static HASH_PLACEHOLDER: &str = "[hash]";
+pub static FULL_HASH_PLACEHOLDER: &str = "[fullhash]";
+pub static CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
+pub static CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
+
+static DATA_URI_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
 
 #[derive(PartialEq, Debug, Hash, Eq, Clone, PartialOrd, Ord, MergeFrom)]
 enum FilenameKind<F> {
@@ -114,6 +102,7 @@ impl FilenameTemplate {
     }
   }
 }
+
 impl LocalFilenameFn for NoFilenameFn {
   type Error = Infallible;
 
@@ -122,16 +111,15 @@ impl LocalFilenameFn for NoFilenameFn {
     _path_data: &PathData,
     _asset_info: Option<&AssetInfo>,
   ) -> Result<String, Self::Error> {
-    match self.0 {}
+    unreachable!()
   }
 }
 
 impl From<FilenameTemplate> for Filename {
   fn from(value: FilenameTemplate) -> Self {
-    Self(match value.0 {
-      FilenameKind::Template(template) => FilenameKind::Template(template),
-      FilenameKind::Fn(no_fn) => match no_fn.0 {},
-    })
+    let FilenameKind::Template(template) = value.0;
+
+    Self(FilenameKind::Template(template))
   }
 }
 
@@ -177,17 +165,22 @@ impl<F> FromStr for Filename<F> {
   }
 }
 
-fn hash_len(hash: &str, caps: &Captures) -> usize {
+#[inline]
+fn hash_len(hash: &str, len: Option<usize>) -> usize {
   let hash_len = hash.len();
-  caps
-    .get(2)
-    .and_then(|m| m.as_str().parse().ok())
-    .unwrap_or(hash_len)
-    .min(hash_len)
+  len.unwrap_or(hash_len).min(hash_len)
 }
 
 pub fn has_hash_placeholder(template: &str) -> bool {
-  HASH_PLACEHOLDER.is_match(template) || FULL_HASH_PLACEHOLDER.is_match(template)
+  for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
+    let offset = key.len() - 1;
+    if let Some(start) = template.find(&key[..offset]) {
+      if template[start + offset..].find(']').is_some() {
+        return true;
+      }
+    }
+  }
+  false
 }
 
 impl<F> Filename<F> {
@@ -221,6 +214,7 @@ fn render_template(
   mut asset_info: Option<&mut AssetInfo>,
 ) -> String {
   let mut t = template;
+  // file-level
   if let Some(filename) = options.filename {
     if let Some(caps) = DATA_URI_REGEX.captures(filename) {
       let ext = mime_guess::get_mime_extensions_str(
@@ -230,15 +224,26 @@ fn render_template(
           .as_str(),
       )
       .map(|exts| exts[0]);
+
+      let replacer = options
+        .content_hash
+        // "XXXX" used for updateHash, so we don't need it here
+        .filter(|hash| !hash.contains('X'))
+        .unwrap_or("");
+
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| PATH_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| BASE_PLACEHOLDER.replace_all(t, ""))
-        .map(|t| NAME_PLACEHOLDER.replace_all(t, ""))
+        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, PATH_PLACEHOLDER, ""))
+        .map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, replacer))
+        .map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, replacer))
         .map(|t| {
-          EXT_PLACEHOLDER.replace_all(t, &ext.map(|ext| format!(".{}", ext)).unwrap_or_default())
+          replace_all_placeholder(
+            t,
+            EXT_PLACEHOLDER,
+            &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
+          )
         });
     } else if let Some(ResourceParsedData {
       path: file,
@@ -247,39 +252,63 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| FILE_PLACEHOLDER.replace_all(t, file.to_string_lossy()))
+        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, file.as_str()))
         .map(|t| {
-          EXT_PLACEHOLDER.replace_all(
+          replace_all_placeholder(
             t,
-            file
+            EXT_PLACEHOLDER,
+            &file
               .extension()
-              .map(|p| format!(".{}", p.to_string_lossy()))
+              .map(|p| format!(".{p}"))
               .unwrap_or_default(),
           )
         });
 
-      if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| BASE_PLACEHOLDER.replace_all(t, &base));
+      if let Some(base) = file.file_name() {
+        t = t.map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, base));
       }
-      if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, &name));
+      if let Some(name) = file.file_stem() {
+        t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
       }
       t = t
         .map(|t| {
-          PATH_PLACEHOLDER.replace_all(
+          replace_all_placeholder(
             t,
+            PATH_PLACEHOLDER,
             &file
               .parent()
-              .map(|p| p.to_string_lossy())
               // "" -> "", "folder" -> "folder/"
-              .filter(|p| !p.is_empty())
-              .map(|p| p + "/")
+              .filter(|p| !p.as_str().is_empty())
+              .map(|p| p.as_str().to_owned() + "/")
               .unwrap_or_default(),
           )
         })
-        .map(|t| QUERY_PLACEHOLDER.replace_all(t, &query.unwrap_or_default()))
-        .map(|t| FRAGMENT_PLACEHOLDER.replace_all(t, &fragment.unwrap_or_default()));
+        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, &query.unwrap_or_default()))
+        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default()));
     }
+  }
+  // compilation-level
+  if let Some(hash) = options.hash {
+    for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
+      t = t.map(|t| {
+        replace_all_placeholder(t, key, |len| {
+          let hash = &hash[..hash_len(hash, len)];
+          if let Some(asset_info) = asset_info.as_mut() {
+            asset_info.set_immutable(Some(true));
+            asset_info.set_full_hash(hash.to_owned());
+          }
+          hash
+        })
+      });
+    }
+  }
+  // shared by chunk-level and module-level
+  if let Some(id) = options.id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
+  } else if let Some(chunk_id) = options.chunk_id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, chunk_id));
+  } else if let Some(module_id) = options.module_id {
+    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, module_id));
   }
   if let Some(content_hash) = options.content_hash {
     if let Some(asset_info) = asset_info.as_mut() {
@@ -287,66 +316,36 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      CONTENT_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-        let content_hash = &content_hash[..hash_len(content_hash, caps)];
+      replace_all_placeholder(t, CONTENT_HASH_PLACEHOLDER, |len| {
+        let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
-          asset_info.set_immutable(true);
-          asset_info.set_content_hash(content_hash.to_owned());
+          asset_info.set_immutable(Some(true));
+          asset_info.set_content_hash(hash.to_owned());
         }
-        content_hash
+        hash
       })
     });
   }
-  if let Some(hash) = options.hash {
-    for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
-      t = t.map(|t| {
-        reg.replace_all(t, |caps: &Captures| {
-          let hash = &hash[..hash_len(hash, caps)];
-          if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
-            asset_info.set_content_hash(hash.to_owned());
-          }
-          hash
-        })
-      });
-    }
+  // chunk-level
+  if let Some(name) = options.chunk_name {
+    t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
   }
-  if let Some(chunk) = options.chunk {
-    if let Some(id) = &options.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
-    } else if let Some(id) = &chunk.id {
-      t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
-    }
-    if let Some(name) = chunk.name_for_filename_template() {
-      t = t.map(|t| NAME_PLACEHOLDER.replace_all(t, name));
-    }
-    if let Some(d) = chunk.rendered_hash.as_ref() {
-      t = t.map(|t| {
-        CHUNK_HASH_PLACEHOLDER.replace_all(t, |caps: &Captures| {
-          let hash = &**d;
-          let hash = &hash[..hash_len(hash, caps)];
-          if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
-            asset_info.set_chunk_hash(hash.to_owned());
-          }
-          hash
-        })
-      });
-    }
+  if let Some(hash) = options.chunk_hash {
+    t = t.map(|t| {
+      replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
+        let hash: &str = &hash[..hash_len(hash, len)];
+        if let Some(asset_info) = asset_info.as_mut() {
+          asset_info.set_immutable(Some(true));
+          asset_info.set_chunk_hash(hash.to_owned());
+        }
+        hash
+      })
+    });
   }
-
-  if let Some(id) = &options.id {
-    t = t.map(|t| ID_PLACEHOLDER.replace_all(t, *id));
-  } else if let Some(module) = options.module {
-    if let Some(chunk_graph) = options.chunk_graph {
-      if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
-        t = t.map(|t| ID_PLACEHOLDER.replace_all(t, id));
-      }
-    }
-  }
-  t = t.map(|t| RUNTIME_PLACEHOLDER.replace_all(t, options.runtime.unwrap_or("_")));
+  // other things
+  t = t.map(|t| replace_all_placeholder(t, RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    t = t.map(|t| URL_PLACEHOLDER.replace_all(t, url));
+    t = t.map(|t| replace_all_placeholder(t, URL_PLACEHOLDER, url));
   }
   t.into_owned()
 }

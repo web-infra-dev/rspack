@@ -1,12 +1,13 @@
 use std::hash::BuildHasherDefault;
 
+use cow_utils::CowUtils;
 use indexmap::IndexMap;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 use rustc_hash::FxHasher;
 
 #[impl_runtime_module]
@@ -32,10 +33,14 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawSource::from(include_str!("runtime/chunk_prefetch_trigger.js").replace(
-        "$CHUNK_MAP$",
-        &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
-      ))
+      RawSource::from(
+        include_str!("runtime/chunk_prefetch_trigger.js")
+          .cow_replace(
+            "$CHUNK_MAP$",
+            &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
+          )
+          .into_owned(),
+      )
       .boxed(),
     )
   }

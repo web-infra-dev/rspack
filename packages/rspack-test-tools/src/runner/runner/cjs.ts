@@ -49,7 +49,7 @@ export class CommonJsRunner<
 			...this._options.env
 		};
 		if (this._options.stats) {
-			baseModuleScope["__STATS__"] = this._options.stats;
+			baseModuleScope.__STATS__ = this._options.stats;
 		}
 		return baseModuleScope;
 	}
@@ -84,13 +84,12 @@ export class CommonJsRunner<
 			const modules = this._options.testConfig.modules;
 			if (modules && modulePathStr in modules) {
 				return modules[modulePathStr];
-			} else {
-				return require(
-					modulePathStr.startsWith("node:")
-						? modulePathStr.slice(5)
-						: modulePathStr
-				);
 			}
+			return require(
+				modulePathStr.startsWith("node:")
+					? modulePathStr.slice(5)
+					: modulePathStr
+			);
 		};
 	}
 
@@ -98,8 +97,10 @@ export class CommonJsRunner<
 		const requireCache = Object.create(null);
 
 		return (currentDirectory, modulePath, context = {}) => {
-			const file =
-				context["file"] || this.getFile(modulePath, currentDirectory);
+			if (modulePath === "@rspack/test-tools") {
+				return require("@rspack/test-tools");
+			}
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -119,7 +120,10 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(currentModuleScope);
+				this._options.testConfig.moduleScope(
+					currentModuleScope,
+					this._options.stats
+				);
 			}
 
 			if (!this._options.runInNewContext) {
@@ -135,7 +139,6 @@ export class CommonJsRunner<
 			const fn = this._options.runInNewContext
 				? vm.runInNewContext(code, this.globalContext!, file.path)
 				: vm.runInThisContext(code, file.path);
-
 			fn.call(
 				this._options.testConfig.nonEsmThis
 					? this._options.testConfig.nonEsmThis(modulePath)

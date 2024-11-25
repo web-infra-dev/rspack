@@ -6,6 +6,7 @@ mod module_group;
 
 use std::{borrow::Cow, fmt::Debug};
 
+use rspack_collections::UkeyMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -53,7 +54,7 @@ impl SplitChunksPlugin {
     logger.time_end(start);
 
     let start = logger.time("process module group map");
-    let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
+    let mut max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting> = Default::default();
 
     while !module_group_map.is_empty() {
       let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);
@@ -76,20 +77,18 @@ impl SplitChunksPlugin {
         &mut is_reuse_existing_chunk_with_all_modules,
       );
 
-      let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
-      tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason);
+      let new_chunk_mut = compilation.chunk_by_ukey.expect_get_mut(&new_chunk);
+      tracing::trace!("{module_group_key}, get Chunk {:?} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reason());
 
-      if let Some(chunk_reason) = &mut new_chunk_mut.chunk_reason {
+      if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
         chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()))
       }
 
       if let Some(filename) = &cache_group.filename {
-        new_chunk_mut.filename_template = Some(filename.clone());
+        new_chunk_mut.set_filename_template(Some(filename.clone()));
       }
 
-      new_chunk_mut
-        .id_name_hints
-        .insert(cache_group.id_hint.clone());
+      new_chunk_mut.add_id_name_hints(cache_group.id_hint.clone());
 
       if is_reuse_existing_chunk {
         // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
@@ -175,7 +174,7 @@ impl Plugin for SplitChunksPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

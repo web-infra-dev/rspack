@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
+use std::sync::LazyLock;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -88,15 +88,18 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
 
   let mut finished_items = Vec::new();
   let mut items_set: Vec<&str> = items_arr.iter().map(|s| s.as_str()).collect();
-  items_set.sort();
+  items_set.sort_unstable();
 
   // Merge single char items: (a|b|c|d|ef) => ([abcd]|ef)
-  let count_of_single_char_items = items_set.iter().filter(|&item| item.len() == 1).count();
+  let count_of_single_char_items = items_set
+    .iter()
+    .filter(|&item| item.chars().count() == 1)
+    .count();
 
   // Special case for only single char items
   if count_of_single_char_items == items_set.len() {
     let mut items_arr = items_set.into_iter().collect::<Vec<_>>();
-    items_arr.sort();
+    items_arr.sort_unstable();
     let single_char_items = items_arr.join("");
     return format!("[{}]", quote_meta(&single_char_items));
   }
@@ -108,7 +111,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let mut single_char_items: String = String::new();
     let mut new_items = BTreeSet::new();
     for item in items {
-      if item.len() == 1 {
+      if item.chars().count() == 1 {
         single_char_items += &item;
         continue;
       }
@@ -126,19 +129,19 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     if !prefix.is_empty() || !suffix.is_empty() {
       return format!(
         "{}{}{}",
-        quote_meta(&prefix),
+        quote_meta(prefix),
         items_to_regexp(
           items
             .iter()
             .map(|item| item
-              .strip_prefix(&prefix)
+              .strip_prefix(prefix)
               .expect("should strip prefix")
               .strip_suffix(&suffix)
               .expect("should strip suffix")
               .to_string())
             .collect::<Vec<_>>()
         ),
-        quote_meta(&suffix)
+        quote_meta(suffix)
       );
     }
   }
@@ -199,12 +202,12 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     let prefix = get_common_prefix(prefixed_items.iter().map(|item| item.as_str()));
     finished_items.push(format!(
       "{}{}",
-      quote_meta(&prefix),
+      quote_meta(prefix),
       items_to_regexp(
         prefixed_items
           .iter()
           .map(|item| item
-            .strip_prefix(&prefix)
+            .strip_prefix(prefix)
             .expect("should strip prefix")
             .to_string())
           .collect::<Vec<_>>()
@@ -217,7 +220,13 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
     &mut items,
     |item| {
       if !item.is_empty() {
-        Some(item[item.len() - 1..].to_string())
+        Some(
+          item
+            .chars()
+            .last()
+            .expect("should have at least one char")
+            .to_string(),
+        )
       } else {
         None
       }
@@ -256,7 +265,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
             .to_string())
           .collect::<Vec<_>>()
       ),
-      quote_meta(&suffix)
+      quote_meta(suffix)
     ));
   }
 
@@ -273,8 +282,8 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
   }
 }
 
-static QUOTE_META_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
+static QUOTE_META_REG: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("regexp init failed"));
 
 fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()
@@ -309,20 +318,18 @@ where
   result
 }
 
-fn get_common_prefix<'a>(mut items: impl Iterator<Item = &'a str> + Clone) -> String {
-  if items.clone().count() == 0 {
-    return String::new();
-  }
+fn get_common_prefix<'a>(mut items: impl Iterator<Item = &'a str> + Clone) -> &'a str {
+  let mut prefix = if let Some(prefix) = items.next() {
+    prefix
+  } else {
+    return "";
+  };
 
-  let mut prefix = items
-    .next()
-    .expect("should have at least one element")
-    .to_string();
   for item in items {
-    for (p, c) in item.chars().enumerate() {
-      if let Some(prefix_char) = prefix.chars().nth(p) {
+    for (char_index, (byte_index, c)) in item.char_indices().enumerate() {
+      if let Some(prefix_char) = prefix.chars().nth(char_index) {
         if c != prefix_char {
-          prefix = prefix[..p].to_string();
+          prefix = &prefix[..byte_index];
           break;
         }
       } else {
@@ -334,37 +341,44 @@ fn get_common_prefix<'a>(mut items: impl Iterator<Item = &'a str> + Clone) -> St
   prefix
 }
 
-fn get_common_suffix<'a, I: Iterator<Item = &'a str> + Clone>(mut items: I) -> String {
-  if items.clone().count() == 0 {
-    return String::new();
-  }
+fn is_utf8_start_byte(c: u8) -> bool {
+  c.is_ascii()
+    || ((c & 0b1110_0000) == 0b1100_0000)
+    || ((c & 0b1111_0000) == 0b1110_0000)
+    || ((c & 0b1111_1000) == 0b1111_0000)
+}
 
-  let mut suffix = items
-    .next()
-    .expect("should have at least one element")
-    .to_string();
+fn get_common_suffix<'a, I: Iterator<Item = &'a str>>(mut items: I) -> &'a str {
+  let mut suffix = if let Some(suffix) = items.next() {
+    suffix.as_bytes()
+  } else {
+    return "";
+  };
+
   for item in items {
+    let item = item.as_bytes();
+
     let mut p = item.len();
     let mut s = suffix.len();
 
     while s > 0 {
       s -= 1;
-      let Some(suffix_char) = suffix.chars().nth(s) else {
-        break;
-      };
+      let suffix_byte = suffix[s];
 
-      let item_char = if p > 0 { item.chars().nth(p - 1) } else { None };
-
-      if let Some(item_char) = item_char
-        && item_char == suffix_char
-      {
-        p -= 1;
-      } else {
-        suffix = suffix[s + 1..].to_string();
-        break;
+      if p > 0 {
+        let item_byte = item[p - 1];
+        if suffix_byte == item_byte {
+          p -= 1;
+          continue;
+        }
       }
+      suffix = &suffix[s + 1..];
+      break;
     }
   }
 
-  suffix
+  while !suffix.is_empty() && !is_utf8_start_byte(suffix[0]) {
+    suffix = &suffix[1..]
+  }
+  unsafe { std::str::from_utf8_unchecked(suffix) }
 }

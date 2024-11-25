@@ -7,11 +7,11 @@ use std::sync::Arc;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ParserOptions,
+  ModuleLayer, ParserOptions,
 };
 use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::Mark;
 use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap};
 use swc_core::ecma::atoms::Atom;
@@ -26,7 +26,7 @@ use crate::BoxJavascriptParserPlugin;
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
-  pub blocks: Vec<AsyncDependenciesBlock>,
+  pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub presentational_dependencies: Vec<BoxDependencyTemplate>,
   pub warning_diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>>,
 }
@@ -48,6 +48,7 @@ pub fn scan_dependencies(
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
+  module_layer: Option<&ModuleLayer>,
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
@@ -55,7 +56,8 @@ pub fn scan_dependencies(
   semicolons: &mut FxHashSet<BytePos>,
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
-  additional_data: AdditionalData,
+  additional_data: Option<AdditionalData>,
+  parse_meta: FxHashMap<String, String>,
 ) -> Result<ScanDependenciesResult, Vec<Box<dyn Diagnostic + Send + Sync>>> {
   let mut parser = JavascriptParser::new(
     source_map,
@@ -67,6 +69,7 @@ pub fn scan_dependencies(
     program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
+    module_layer,
     resource_data,
     build_meta,
     build_info,
@@ -74,6 +77,7 @@ pub fn scan_dependencies(
     unresolved_mark,
     parser_plugins,
     additional_data,
+    parse_meta,
   );
 
   parser.walk_program(program.get_inner_program());

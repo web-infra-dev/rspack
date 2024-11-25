@@ -7,9 +7,6 @@
   "references": [
     {
       "path": "../rspack/tsconfig.build.json"
-    },
-    {
-      "path": "../rspack-dev-server/tsconfig.build.json"
     }
   ]
 }

@@ -14,6 +14,7 @@ use rspack_error::{
   DiagnosticExt, Result,
 };
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::itoa;
 use serde_json::Value;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
@@ -72,7 +73,7 @@ async fn compilation(
         )
       } else if let Some(value) = value.as_array() {
         let indexes = (0..value.len())
-          .map(|index| format!("{}", index))
+          .map(|index| itoa!(index).to_string())
           .collect_vec();
         let iter = indexes.iter().zip(value.iter());
         walk_definitions(iter, compilation, Cow::Owned(format!("{prefix}{key}.")))
@@ -104,11 +105,7 @@ impl Plugin for DefinePlugin {
     "rspack.DefinePlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

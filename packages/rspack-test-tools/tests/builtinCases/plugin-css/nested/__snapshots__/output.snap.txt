@@ -11,5 +11,5 @@ body {
   background: green;
 }
 
-
+head{--webpack-__rspack_test__-main:&\.\/aācss,ĀĂ/componentĆĈĊāăbės;}
 ```

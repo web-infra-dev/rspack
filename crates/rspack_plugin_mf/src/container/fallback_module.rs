@@ -1,9 +1,9 @@
 use std::borrow::Cow;
-use std::hash::Hash;
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
@@ -11,9 +11,7 @@ use rspack_core::{
   RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{itoa, source_map::SourceMapKind};
 
 use super::fallback_item_dependency::FallbackItemDependency;
 use crate::utils::json_stringify;
@@ -40,7 +38,7 @@ impl FallbackModule {
       requests
         .first()
         .expect("should have at one more requests in FallbackModule"),
-      requests.len() - 1
+      itoa!(requests.len() - 1)
     );
     Self {
       blocks: Default::default(),
@@ -76,6 +74,10 @@ impl DependenciesBlock for FallbackModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -85,7 +87,7 @@ impl DependenciesBlock for FallbackModule {
 impl Module for FallbackModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 
@@ -119,15 +121,11 @@ impl Module for FallbackModule {
 
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-
     let build_info = BuildInfo {
       strict: true,
-      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
       ..Default::default()
     };
 
@@ -145,7 +143,7 @@ impl Module for FallbackModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[tracing::instrument(name = "FallbackModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -160,12 +158,7 @@ impl Module for FallbackModule {
       .get_dependencies()
       .iter()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
-      .filter_map(|module| {
-        compilation
-          .chunk_graph
-          .get_module_id(module.identifier())
-          .as_deref()
-      })
+      .filter_map(|module| compilation.chunk_graph.get_module_id(module.identifier()))
       .collect();
     let code = format!(
       r#"
@@ -194,21 +187,16 @@ module.exports = loop();
     codegen = codegen.with_javascript(RawSource::from(code).boxed());
     Ok(codegen)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
 }
 
 impl_empty_diagnosable_trait!(FallbackModule);
-
-impl Hash for FallbackModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__FallbackModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for FallbackModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for FallbackModule {}

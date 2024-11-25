@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_core::SpanExt;
 
 use super::JavascriptParserPlugin;
@@ -81,21 +82,17 @@ impl JavascriptParserPlugin for InitializeEvaluating {
       let s = if arg1.is_string() {
         param
           .string()
-          .replacen(arg1.string(), arg2.string().as_str(), 1)
+          .cow_replacen(arg1.string(), arg2.string().as_str(), 1)
       } else if arg1.regexp().1.contains('g') {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        regexp
-          .replace_all(param.string().as_ref(), arg2.string())
-          .to_string()
+        regexp.replace_all(param.string().as_ref(), arg2.string())
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        regexp
-          .replace(param.string().as_ref(), arg2.string())
-          .to_string()
+        regexp.replace(param.string().as_ref(), arg2.string())
       };
-      res.set_string(s);
+      res.set_string(s.to_string());
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     } else if property == CONCAT_METHOD_NAME && (param.is_string() || param.is_wrapped()) {

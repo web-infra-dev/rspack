@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 use rspack_sources::{BoxSource, Source};
 
 use crate::{ChunkUkey, Compilation, Module};
@@ -12,9 +12,11 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
-  // webpack fullHash || dependentHash
-  fn cacheable(&self) -> bool {
-    true
+  fn full_hash(&self) -> bool {
+    false
+  }
+  fn dependent_hash(&self) -> bool {
+    false
   }
   // if wrap iife
   fn should_isolate(&self) -> bool {
@@ -41,12 +43,30 @@ pub trait CustomSourceRuntimeModule {
 
 pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RuntimeModuleStage {
   Normal,  // Runtime modules without any dependencies to other runtime modules
   Basic,   // Runtime modules with simple dependencies on other runtime modules
   Attach,  // Runtime modules which attach to handlers of other runtime modules
   Trigger, // Runtime modules which trigger actions on bootstrap
+}
+
+impl Default for RuntimeModuleStage {
+  fn default() -> Self {
+    Self::Normal
+  }
+}
+
+impl From<u32> for RuntimeModuleStage {
+  fn from(stage: u32) -> Self {
+    match stage {
+      0 => RuntimeModuleStage::Normal,
+      5 => RuntimeModuleStage::Basic,
+      10 => RuntimeModuleStage::Attach,
+      20 => RuntimeModuleStage::Trigger,
+      _ => RuntimeModuleStage::Normal,
+    }
+  }
 }
 
 pub trait RuntimeModuleExt {

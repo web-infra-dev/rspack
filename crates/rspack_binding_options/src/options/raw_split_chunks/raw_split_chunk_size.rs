@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
-use derivative::Derivative;
 use napi_derive::napi;
 use rspack_plugin_split_chunks::SplitChunkSizes;
 
-#[derive(Derivative)]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
-#[derivative(Debug)]
 pub struct RawSplitChunkSizes {
   pub sizes: HashMap<String, f64>,
 }

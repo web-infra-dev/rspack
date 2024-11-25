@@ -1,21 +1,15 @@
-use std::{
-  borrow::Cow,
-  fmt::Display,
-  hash::{Hash, Hasher},
-  sync::Arc,
-};
+use std::{borrow::Cow, hash::Hash};
 
-use derivative::Derivative;
+use rspack_collections::Identifier;
 use rspack_error::{
   miette::{self, Diagnostic},
   thiserror::{self, Error},
 };
-use rspack_identifier::Identifier;
-use swc_core::common::{source_map::Pos, BytePos, SourceMap};
+use rspack_util::ext::DynHash;
 
 use crate::{
-  update_hash::{UpdateHashContext, UpdateRspackHash},
-  BoxDependency, DependencyId, DependencyTemplate, GroupOptions, ModuleIdentifier,
+  BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -25,62 +19,39 @@ pub trait DependenciesBlock {
 
   fn add_dependency_id(&mut self, dependency: DependencyId);
 
+  fn remove_dependency_id(&mut self, _dependency: DependencyId);
+
   fn get_dependencies(&self) -> &[DependencyId];
-
-  fn get_presentational_dependencies_for_block(&self) -> Option<&[Box<dyn DependencyTemplate>]> {
-    None
-  }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug, Clone)]
-pub struct DependencyLocation {
-  start: u32,
-  end: u32,
-  #[derivative(Debug = "ignore")]
-  source: Option<Arc<SourceMap>>,
-}
-
-impl DependencyLocation {
-  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
-    Self { start, end, source }
-  }
-
-  #[inline]
-  pub fn start(&self) -> u32 {
-    self.start
-  }
-
-  #[inline]
-  pub fn end(&self) -> u32 {
-    self.end
-  }
-}
-
-impl From<(u32, u32)> for DependencyLocation {
-  fn from(value: (u32, u32)) -> Self {
-    Self {
-      start: value.0,
-      end: value.1,
-      source: None,
+pub fn dependencies_block_update_hash(
+  deps: &[DependencyId],
+  blocks: &[AsyncDependenciesBlockIdentifier],
+  hasher: &mut dyn std::hash::Hasher,
+  compilation: &Compilation,
+  runtime: Option<&RuntimeSpec>,
+) {
+  let mg = compilation.get_module_graph();
+  for dep_id in deps {
+    let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+    if let Some(dep) = dep.as_dependency_template() {
+      dep.update_hash(hasher, compilation, runtime);
     }
   }
-}
-
-impl Display for DependencyLocation {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if let Some(source) = &self.source {
-      let pos = source.lookup_char_pos(BytePos::from_u32(self.start + 1));
-      let pos = format!("{}:{}", pos.line, pos.col.to_usize());
-      f.write_str(format!("{}-{}", pos, self.end - self.start).as_str())
-    } else {
-      Ok(())
-    }
+  for block_id in blocks {
+    let block = mg.block_by_id_expect(block_id);
+    block.update_hash(hasher, compilation, runtime);
   }
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
+
+impl AsyncDependenciesBlockIdentifier {
+  pub fn as_identifier(self) -> Identifier {
+    self.0
+  }
+}
 
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
@@ -88,11 +59,20 @@ impl From<String> for AsyncDependenciesBlockIdentifier {
   }
 }
 
+impl From<Identifier> for AsyncDependenciesBlockIdentifier {
+  fn from(value: Identifier) -> Self {
+    Self(value)
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct AsyncDependenciesBlock {
   id: AsyncDependenciesBlockIdentifier,
   group_options: Option<GroupOptions>,
-  blocks: Vec<AsyncDependenciesBlock>,
+  // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
+  // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
+  #[allow(clippy::vec_box)]
+  blocks: Vec<Box<AsyncDependenciesBlock>>,
   block_ids: Vec<AsyncDependenciesBlockIdentifier>,
   dependency_ids: Vec<DependencyId>,
   dependencies: Vec<BoxDependency>,
@@ -110,10 +90,9 @@ impl AsyncDependenciesBlock {
     dependencies: Vec<BoxDependency>,
     request: Option<String>,
   ) -> Self {
-    let loc_str: Cow<str> = loc.clone().map_or_else(
-      || "".into(),
-      |loc| format!("|loc={}:{}", loc.start(), loc.end()).into(),
-    );
+    let loc_str: Cow<str> = loc
+      .clone()
+      .map_or_else(|| "".into(), |loc| format!("|loc={loc}").into());
 
     let modifier_str: Cow<str> = modifier.map_or_else(
       || "".into(),
@@ -164,12 +143,12 @@ impl AsyncDependenciesBlock {
     // self.blocks.push(block);
   }
 
-  pub fn take_blocks(&mut self) -> Vec<AsyncDependenciesBlock> {
+  pub fn take_blocks(&mut self) -> Vec<Box<AsyncDependenciesBlock>> {
     std::mem::take(&mut self.blocks)
   }
 
-  pub fn loc(&self) -> Option<&DependencyLocation> {
-    self.loc.as_ref()
+  pub fn loc(&self) -> Option<DependencyLocation> {
+    self.loc.clone()
   }
 
   pub fn parent(&self) -> &ModuleIdentifier {
@@ -178,6 +157,28 @@ impl AsyncDependenciesBlock {
 
   pub fn request(&self) -> &Option<String> {
     &self.request
+  }
+
+  pub fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    self.group_options.dyn_hash(hasher);
+    if let Some(chunk_group) = compilation
+      .chunk_graph
+      .get_block_chunk_group(&self.id, &compilation.chunk_group_by_ukey)
+    {
+      chunk_group.id(compilation).dyn_hash(hasher);
+    }
+    dependencies_block_update_hash(
+      self.get_dependencies(),
+      self.get_blocks(),
+      hasher,
+      compilation,
+      runtime,
+    );
   }
 }
 
@@ -195,24 +196,12 @@ impl DependenciesBlock for AsyncDependenciesBlock {
     self.dependency_ids.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependency_ids.retain(|dep| dep != &dependency);
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependency_ids
-  }
-}
-
-impl UpdateRspackHash for AsyncDependenciesBlock {
-  fn update_hash<H: Hasher>(&self, state: &mut H, context: &UpdateHashContext) {
-    self.group_options.hash(state);
-    if let Some(chunk_group) = context
-      .compilation
-      .chunk_graph
-      .get_block_chunk_group(&self.id, &context.compilation.chunk_group_by_ukey)
-    {
-      chunk_group.id(context.compilation).hash(state);
-    }
-    for block in &self.blocks {
-      block.update_hash(state, context);
-    }
   }
 }
 

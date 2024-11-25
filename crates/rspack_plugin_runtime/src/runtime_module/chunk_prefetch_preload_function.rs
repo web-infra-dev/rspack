@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -39,8 +40,9 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     Ok(
       RawSource::from(
         include_str!("runtime/chunk_prefetch_preload_function.js")
-          .replace("$RUNTIME_FUNCTION$", &self.runtime_function.to_string())
-          .replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string()),
+          .cow_replace("$RUNTIME_FUNCTION$", &self.runtime_function.to_string())
+          .cow_replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string())
+          .into_owned(),
       )
       .boxed(),
     )

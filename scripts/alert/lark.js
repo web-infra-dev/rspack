@@ -57,5 +57,5 @@ const res = await fetch(LARK_WEBHOOK_URL, {
 
 if (!res.ok) {
 	const data = await res.text();
-	throw new Error("send alert failed with " + data);
+	throw new Error(`send alert failed with ${data}`);
 }

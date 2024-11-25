@@ -1,5 +1,14 @@
-const { version: rspackVersion, webpackVersion } = require("../package.json");
-export { rspackVersion, webpackVersion as version };
+import {
+	version as _version,
+	webpackVersion as _webpackVersion
+	// @ts-ignore 'package.json' is not under 'rootDir'
+} from "../package.json";
+
+// this is a hack to be compatible with plugin which detect webpack's version
+const rspackVersion = _version as string;
+const version = _webpackVersion as string;
+
+export { rspackVersion, version };
 
 export type {
 	Asset,
@@ -18,7 +27,7 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
-export type { Module } from "./Module";
+export type { Module, ResolveData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
@@ -28,18 +37,17 @@ export type {
 	StatsChunk,
 	StatsCompilation,
 	StatsError,
-	StatsModule,
-	StatsWarnings
+	StatsModule
 } from "./Stats";
 export { Stats } from "./Stats";
+export { RuntimeModule } from "./RuntimeModule";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
-import Template = require("./Template");
-export { Template };
+export { Template } from "./Template";
 
 export const WebpackError = Error;
 
@@ -69,12 +77,15 @@ export const config: Config = {
 
 export type * from "./config";
 
+import { ValidationError } from "./util/validate";
+export { ValidationError };
+
 import { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
-export { type OutputFileSystem } from "./util/fs";
+export type { OutputFileSystem } from "./util/fs";
 
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
@@ -91,6 +102,15 @@ export { EntryPlugin } from "./builtin-plugin";
 export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
+export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
+export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
+export {
+	DllReferencePlugin,
+	type DllReferencePluginOptions,
+	type DllReferencePluginOptionsSourceType,
+	type DllReferencePluginOptionsContent,
+	type DllReferencePluginOptionsManifest
+} from "./lib/DllReferencePlugin";
 export { EnvironmentPlugin } from "./lib/EnvironmentPlugin";
 export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
@@ -158,6 +178,8 @@ export const webworker: Webworker = { WebWorkerTemplatePlugin };
 import { LimitChunkCountPlugin } from "./builtin-plugin";
 import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
+import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
+
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
 	RuntimeChunkPlugin: typeof RuntimeChunkPlugin;
@@ -241,13 +263,13 @@ export type {
 } from "./builtin-plugin";
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
-export { SwcCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
 export { CopyRspackPlugin } from "./builtin-plugin";
 export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export { CssExtractRspackPlugin } from "./builtin-plugin";
+export { ContextReplacementPlugin } from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////
 export type {
@@ -261,6 +283,11 @@ export type {
 	SwcLoaderTsParserConfig
 } from "./builtin-loader/swc/index";
 
+export type {
+	LoaderOptions as LightningcssLoaderOptions,
+	FeatureOptions as LightningcssFeatureOptions
+} from "./builtin-loader/lightningcss/index";
+
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 interface Experiments {
@@ -268,10 +295,13 @@ interface Experiments {
 		register: typeof registerGlobalTrace;
 		cleanup: typeof cleanupGlobalTrace;
 	};
+	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 }
+
 export const experiments: Experiments = {
 	globalTrace: {
 		register: registerGlobalTrace,
 		cleanup: cleanupGlobalTrace
-	}
+	},
+	RemoveDuplicateModulesPlugin
 };

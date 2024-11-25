@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         RawSource::from(format!(
           "{} = {};",
           RuntimeGlobals::CHUNK_NAME,
-          serde_json::to_string(&chunk.name).expect("Invalid json string")
+          serde_json::to_string(&chunk.name()).expect("Invalid json string")
         ))
         .boxed(),
       )

@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -35,8 +36,9 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
     Ok(
       RawSource::from(
         include_str!("runtime/get_unique_id.js")
-          .replace("$BUNDLER_NAME$", &self.bundler_name)
-          .replace("$BUNDLER_VERSION$", &self.bundler_version),
+          .cow_replace("$BUNDLER_NAME$", &self.bundler_name)
+          .cow_replace("$BUNDLER_VERSION$", &self.bundler_version)
+          .into_owned(),
       )
       .boxed(),
     )

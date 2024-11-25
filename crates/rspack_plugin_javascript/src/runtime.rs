@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  to_normal_comment, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, RuntimeGlobals,
-  SourceType,
+  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
@@ -70,12 +70,16 @@ pub fn render_module(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
-    .get(&module.identifier(), Some(&chunk.runtime));
+    .get(&module.identifier(), Some(chunk.runtime()));
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
   let hooks = JsPlugin::get_compilation_hooks(compilation);
-  let mut module_chunk_init_fragments = ChunkInitFragments::default();
+  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
+    Some(fragments) => fragments.clone(),
+    None => ChunkInitFragments::default(),
+  };
+
   let mut render_source = RenderSource {
     source: origin_source.clone(),
   };
@@ -88,9 +92,11 @@ pub fn render_module(
   let mut sources = ConcatSource::default();
 
   if factory {
-    let runtime_requirements = compilation
-      .chunk_graph
-      .get_module_runtime_requirements(module.identifier(), &chunk.runtime);
+    let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
+      compilation,
+      module.identifier(),
+      chunk.runtime(),
+    );
 
     let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
     let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
@@ -122,7 +128,6 @@ pub fn render_module(
     let module_id = compilation
       .chunk_graph
       .get_module_id(module.identifier())
-      .as_deref()
       .expect("should have module_id in render_module");
     sources.add(RawSource::from(
       serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,
@@ -194,13 +199,13 @@ pub fn render_runtime_modules(
     .map(|(identifier, runtime_module)| {
       (
         compilation
-          .runtime_module_code_generation_results
+          .runtime_modules_code_generation_source
           .get(identifier)
           .expect("should have runtime module result"),
         runtime_module,
       )
     })
-    .try_for_each(|((_, source), module)| -> Result<()> {
+    .try_for_each(|(source, module)| -> Result<()> {
       if source.size() == 0 {
         return Ok(());
       }
@@ -224,7 +229,7 @@ pub fn render_runtime_modules(
           "!function() {\n"
         }));
       }
-      if module.cacheable() {
+      if !(module.full_hash() || module.dependent_hash()) {
         sources.add(source.clone());
       } else {
         sources.add(module.generate_with_custom(compilation)?);

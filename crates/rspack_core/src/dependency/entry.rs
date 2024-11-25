@@ -1,6 +1,7 @@
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  DependencyType, ModuleDependency, ModuleLayer,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -8,14 +9,21 @@ pub struct EntryDependency {
   id: DependencyId,
   request: String,
   context: Context,
+  layer: Option<ModuleLayer>,
   is_global: bool,
 }
 
 impl EntryDependency {
-  pub fn new(request: String, context: Context, is_global: bool) -> Self {
+  pub fn new(
+    request: String,
+    context: Context,
+    layer: Option<ModuleLayer>,
+    is_global: bool,
+  ) -> Self {
     Self {
       request,
       context,
+      layer,
       id: DependencyId::new(),
       is_global,
     }
@@ -41,6 +49,14 @@ impl Dependency for EntryDependency {
 
   fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 

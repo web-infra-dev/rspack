@@ -1,34 +1,34 @@
+mod create_script_url_dependency;
+pub use create_script_url_dependency::CreateScriptUrlDependency;
 use rspack_core::{
-  get_chunk_from_ukey, AsContextDependency, Dependency, DependencyCategory, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExtendedReferencedExport, ModuleDependency,
-  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::ext::DynHash;
 
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   request: String,
-  span: Option<ErrorSpan>,
   public_path: String,
+  range: DependencyRange,
+  range_path: DependencyRange,
 }
 
 impl WorkerDependency {
   pub fn new(
-    start: u32,
-    end: u32,
     request: String,
     public_path: String,
-    span: Option<ErrorSpan>,
+    range: DependencyRange,
+    range_path: DependencyRange,
   ) -> Self {
     Self {
-      start,
-      end,
       id: DependencyId::new(),
       request,
-      span,
       public_path,
+      range,
+      range_path,
     }
   }
 }
@@ -46,8 +46,8 @@ impl Dependency for WorkerDependency {
     &DependencyType::NewWorker
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
   }
 
   fn get_referenced_exports(
@@ -56,6 +56,10 @@ impl Dependency for WorkerDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -93,8 +97,8 @@ impl DependencyTemplate for WorkerDependency {
           .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
       })
       .map(|entrypoint| entrypoint.get_entry_point_chunk())
-      .and_then(|ukey| get_chunk_from_ukey(&ukey, &compilation.chunk_by_ukey))
-      .and_then(|chunk| chunk.id.as_deref())
+      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+      .and_then(|chunk| chunk.id())
       .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
       .expect("failed to get json stringified chunk id");
     let worker_import_base_url = if !self.public_path.is_empty() {
@@ -108,8 +112,8 @@ impl DependencyTemplate for WorkerDependency {
     runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
 
     source.replace(
-      self.start,
-      self.end,
+      self.range_path.start,
+      self.range_path.end,
       format!(
         "/* worker import */{} + {}({}), {}",
         worker_import_base_url,
@@ -124,6 +128,15 @@ impl DependencyTemplate for WorkerDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.public_path.dyn_hash(hasher);
   }
 }
 

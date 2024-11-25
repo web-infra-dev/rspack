@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
@@ -28,8 +28,6 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 :::
 
 ## output.asyncChunks
-
-<ApiMeta addedVersion={'0.2.6'} />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -162,6 +160,28 @@ module.exports = {
   //...
   output: {
     clean: true, // Clean the output directory before emit.
+  },
+};
+```
+
+## output.compareBeforeEmit
+
+<ApiMeta addedVersion={'1.1.0'} />
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+告知 Rspack 在写入产物文件时检查文件是否已经存在并且拥有相同内容。
+
+:::warning
+当在文件系统中已经存在有相同内容的文件时，Rspack 将不会写入产物文件。
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    compareBeforeEmit: false,
   },
 };
 ```
@@ -353,6 +373,8 @@ module.exports = {
       const: true,
       // The environment supports destructuring ('{ a, b } = obj').
       destructuring: true,
+      // The environment supports 'document' variable.
+      document: true,
       // The environment supports an async import() function to import EcmaScript modules.
       dynamicImport: false,
       // The environment supports an async import() when creating a worker, only for web targets at the moment.
@@ -525,7 +547,7 @@ module.exports = {
 
 :::
 
-Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:16]` 来指定（默认为 20）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
+Hash 的长度（`[hash]`、`[contenthash]` 或 `[chunkhash]`）可以使用 `[hash:12]` 来指定（默认为 16）。另外，可以使用 [output.hashDigestLength](#outputhashdigestlength) 来全局配置长度。
 
 当你想在实际文件名中使用占位符时，可以过滤掉占位符替换。例如，要输出一个文件 `[name].js`，你必须通过在括号之间添加反斜杠来转义 `[name]` 占位符。这样 `[\name\]` 会生成 `[name]` 而不是被替换为资源的名称。
 
@@ -595,20 +617,16 @@ module.exports = {
 ## output.hashDigestLength
 
 - **类型：** `number`
-- **默认值：** `20`
+- **默认值：** `16`
 
 要使用的哈希摘要的长度。
-
-:::tip
-`hashDigestLength` 默认值为 `20`，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用 `16` 作为默认值。
-:::
 
 ## output.hashFunction
 
 - **类型：** `'md4' | 'xxhash64'`
-- **默认值：** `'md4'`
+- **默认值：** `'xxhash64'`
 
-要使用的哈希算法。
+指定要使用的哈希算法。
 
 ```javascript title=rspack.config.js
 module.exports = {
@@ -620,7 +638,7 @@ module.exports = {
 ```
 
 :::tip
-`hashFunction` 支持更快的 `xxhash64` 算法，当启用 [`experiments.futureDefaults`](/config/experiments#experimentsfuturedefaults) 时将使用它作为默认值。
+Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
 :::
 
 ## output.hashSalt
@@ -631,8 +649,6 @@ module.exports = {
 可选的 salt，用于更新哈希值。
 
 ## output.hotUpdateChunkFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **类型：** `string`
 - **默认值：** `"[id].[fullhash].hot-update.js"`
@@ -654,8 +670,6 @@ module.exports = {
 
 ## output.hotUpdateGlobal
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 - **类型：** `string`
 - **默认值：** `"webpackHotUpdate" + output.uniqueName`
 
@@ -666,8 +680,6 @@ JSONP 函数用于异步加载热更新块。
 具体可以参阅 [output.chunkLoadingGlobal](#outputchunkLoadingGlobal)。
 
 ## output.hotUpdateMainFilename
-
-<ApiMeta addedVersion={'0.3.5'} />
 
 - **类型：** `string`
 - **默认值：** `"[runtime].[fullhash].hot-update.json"`
@@ -706,6 +718,22 @@ module.exports = {
   //...
   output: {
     importFunctionName: '__import__',
+  },
+};
+```
+
+## output.importMetaName
+
+- **Type:** `string`
+- **Default:** `'import.meta'`
+
+内部 `import.meta` 对象的名字，可将其换成 polyfill 的对象。
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  output: {
+    importMetaName: 'pseudoImport.meta',
   },
 };
 ```
@@ -1471,8 +1499,6 @@ define('MyLibrary', [], factory);
 
 ## output.module
 
-<ApiMeta stability={Stability.Experimental} />
-
 - **类型：** `boolean`
 - **默认值：** `false`
 
@@ -1628,7 +1654,7 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-按照 ES Module 规范处理 module 加载时的错误，会有性能损失。
+按照 ES modules 规范处理 module 加载时的错误，会有性能损失。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -1638,6 +1664,12 @@ module.exports = {
   },
 };
 ```
+
+## output.strictModuleExceptionHandling
+
+- **Types:** boolean
+
+告诉 Rspack 当 require 模块出现错误时，移除模块的缓存。
 
 ## output.trustedTypes
 
@@ -1794,3 +1826,36 @@ module.exports = {
 :::warning
 最好使用 [`output.library.umdNamedDefine`](#outputlibraryumdnameddefine)。
 :::
+
+## output.cssHeadDataCompression
+
+<ApiMeta addedVersion={'1.0.0'} />
+
+- **类型：** `boolean`
+- **默认值：** 在 development 模式下为 `false`，在 production 模式下为 `true`
+
+Rspack 会在 CSS 中添加一些元信息，用以解析 CSS modules，此配置决定是否压缩元信息。
+
+例如 👇
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: a: local-a/&\.\/ src\/index\.module\.css;
+}
+```
+
+压缩后
+
+```css
+.local-a {
+  color: blue;
+}
+
+head {
+  --webpack-main: &\.\/ srcăindexāmoduleācss;
+}
+```

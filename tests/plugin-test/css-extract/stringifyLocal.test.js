@@ -1,6 +1,6 @@
 const {
 	stringifyLocal
-} = require("../../../packages/rspack/dist/builtin-plugin/css-extract/utils");
+} = require("../../../packages/rspack/src/builtin-plugin/css-extract/utils");
 
 describe("stringifyLocal", () => {
 	it(`primitive`, async () => {

@@ -12,9 +12,11 @@ class JsAssetInfo {
 			hotModuleReplacement,
 			related,
 			chunkhash,
+			fullhash,
 			contenthash,
 			javascriptModule,
 			sourceFilename,
+			copied,
 			extras
 		} = jsAssetInfo;
 		return {
@@ -24,10 +26,12 @@ class JsAssetInfo {
 			development,
 			hotModuleReplacement,
 			related,
+			fullhash,
 			chunkhash,
 			contenthash,
 			javascriptModule,
-			sourceFilename
+			sourceFilename,
+			copied
 		};
 	}
 
@@ -38,10 +42,12 @@ class JsAssetInfo {
 			development = false,
 			hotModuleReplacement = false,
 			related = {},
+			fullhash = [],
 			chunkhash = [],
 			contenthash = [],
 			javascriptModule,
 			sourceFilename,
+			copied,
 			...extras
 		} = assetInfo;
 		extras = extras ?? {};
@@ -51,11 +57,13 @@ class JsAssetInfo {
 			development,
 			hotModuleReplacement,
 			related,
+			fullhash,
 			chunkhash,
 			contenthash,
 			extras,
 			javascriptModule,
-			sourceFilename
+			sourceFilename,
+			copied
 		};
 	}
 }

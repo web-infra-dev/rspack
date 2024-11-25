@@ -119,7 +119,7 @@ for (const binding of bindings) {
 		platformArchABI
 	} = parseTriple(name.slice(9));
 	assert(
-		file.split(".")[1] == platformArchABI,
+		file.split(".")[1] === platformArchABI,
 		`Binding is not matched with triple (expected: rspack.${platformArchABI}.node, got: ${file})`
 	);
 
@@ -183,13 +183,14 @@ Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICEN
 
 // Determine whether to release or not based on the CI build result.
 // Validating not releasable bindings
-fs.readdirSync(NPM, {
+const dirent = fs.readdirSync(NPM, {
 	withFileTypes: true
-})
-	.filter(item => item.isDirectory())
-	.map(item => path.join(NPM, item.name))
-	.forEach(dir => {
+});
+for (const item of dirent) {
+	if (item.isDirectory()) {
+		const dir = path.join(NPM, item.name);
 		const pkg = require(`${dir}/package.json`);
+
 		if (releasingPackages.includes(pkg.name)) {
 			// releasing
 			console.info(`Releasing package: ${pkg.name}`);
@@ -200,7 +201,8 @@ fs.readdirSync(NPM, {
 			);
 			fs.writeFileSync(`${dir}/package.json`, JSON.stringify(pkg, null, 2));
 		}
-	});
+	}
+}
 
 const bindingJsonPath = path.resolve(
 	__dirname,

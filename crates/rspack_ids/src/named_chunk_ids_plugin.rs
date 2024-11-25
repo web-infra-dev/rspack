@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ApplyContext, Chunk, CompilationChunkIds, CompilerOptions, Plugin, PluginContext,
 };
@@ -27,9 +28,8 @@ impl NamedChunkIdsPlugin {
 fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
   // set default value
   for chunk in compilation.chunk_by_ukey.values_mut() {
-    if let Some(name) = &chunk.name {
-      chunk.id = Some(name.clone());
-      chunk.ids = vec![name.clone()];
+    if let Some(name) = chunk.name() {
+      chunk.set_id(Some(name.to_owned()));
     }
   }
 
@@ -43,7 +43,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   let chunks = compilation
     .chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id.is_none())
+    .filter(|chunk| chunk.id().is_none())
     .map(|chunk| chunk as &Chunk)
     .collect::<Vec<_>>();
   let mut chunk_id_to_name = HashMap::with_capacity(chunks.len());
@@ -54,19 +54,18 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     |a, b| compare_chunks_natural(chunk_graph, &module_graph, a, b),
     &mut used_ids,
     |chunk, name| {
-      chunk_id_to_name.insert(chunk.ukey, name);
+      chunk_id_to_name.insert(chunk.ukey(), name);
     },
   );
 
   let unnamed_chunks = unnamed_chunks
     .iter()
-    .map(|chunk| chunk.ukey)
+    .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 
   chunk_id_to_name.into_iter().for_each(|(chunk_ukey, name)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.id = Some(name.clone());
-    chunk.ids = vec![name];
+    chunk.set_id(Some(name.clone()));
   });
 
   if !unnamed_chunks.is_empty() {
@@ -84,7 +83,7 @@ impl Plugin for NamedChunkIdsPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> rspack_error::Result<()> {
     ctx
       .context

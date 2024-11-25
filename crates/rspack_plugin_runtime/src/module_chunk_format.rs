@@ -13,6 +13,7 @@ use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
 };
+use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -100,7 +101,7 @@ fn render_chunk(
   let hooks = JsPlugin::get_compilation_hooks(compilation);
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     unreachable!("HMR is not implemented for module chunk format yet");
   }
 
@@ -167,12 +168,14 @@ fn render_chunk(
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
         let other_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
         startup_source.push(format!(
-          "import * as __webpack_chunk_${index}__ from '{}';",
+          "import * as __webpack_chunk_${}__ from '{}';",
+          itoa!(index),
           get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
         ));
         startup_source.push(format!(
-          "{}(__webpack_chunk_${index}__);",
-          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+          "{}(__webpack_chunk_${}__);",
+          RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
+          itoa!(index)
         ));
       }
 
@@ -213,11 +216,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

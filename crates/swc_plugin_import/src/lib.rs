@@ -5,6 +5,7 @@ mod visit;
 
 use std::fmt::Debug;
 
+use cow_utils::CowUtils;
 use handlebars::{Context, Helper, HelperResult, Output, RenderContext, Template};
 use heck::{ToKebabCase, ToLowerCamelCase, ToSnakeCase};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -17,7 +18,7 @@ use swc_core::{
       ImportSpecifier, Module, ModuleDecl, ModuleExportName, ModuleItem, Str,
     },
     atoms::Atom,
-    visit::{as_folder, Fold, VisitMut, VisitWith},
+    visit::{visit_mut_pass, VisitMut, VisitWith},
   },
 };
 
@@ -150,7 +151,9 @@ const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 /// Panic:
 ///
 /// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
-pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
+pub fn plugin_import(
+  config: &Vec<ImportOptions>,
+) -> swc_core::ecma::visit::VisitMutPass<ImportPlugin<'_>> {
   let mut renderer = handlebars::Handlebars::new();
 
   renderer.register_helper(
@@ -261,7 +264,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_uppercase().as_ref())?;
+        out.write(param.cow_to_uppercase().as_ref())?;
         Ok(())
       },
     ),
@@ -280,7 +283,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
           .param(0)
           .and_then(|v| v.value().as_str())
           .unwrap_or("");
-        out.write(param.to_lowercase().as_ref())?;
+        out.write(param.cow_to_lowercase().as_ref())?;
         Ok(())
       },
     ),
@@ -309,7 +312,7 @@ pub fn plugin_import(config: &Vec<ImportOptions>) -> impl Fold + '_ {
     }
   });
 
-  as_folder(ImportPlugin { config, renderer })
+  visit_mut_pass(ImportPlugin { config, renderer })
 }
 
 #[derive(Debug)]
@@ -479,7 +482,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
                 let as_name: Option<String> = imported.is_some().then(|| s.local.sym.to_string());
                 let ident: String = imported.unwrap_or_else(|| s.local.sym.to_string());
 
-                let mark = s.local.span.ctxt.as_u32();
+                let mark = s.local.ctxt.as_u32();
 
                 if ident_referenced(&s.local) {
                   let use_default_import = child_config.transform_to_default_import.unwrap_or(true);
@@ -548,11 +551,8 @@ impl<'a> VisitMut for ImportPlugin<'a> {
           vec![ImportSpecifier::Default(ImportDefaultSpecifier {
             span: DUMMY_SP,
             local: Ident {
-              span: Span::new(
-                BytePos::DUMMY,
-                BytePos::DUMMY,
-                SyntaxContext::from_u32(js_source.mark),
-              ),
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
               sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },
@@ -563,6 +563,7 @@ impl<'a> VisitMut for ImportPlugin<'a> {
             imported: if js_source.as_name.is_some() {
               Some(ModuleExportName::Ident(Ident {
                 span: DUMMY_SP,
+                ctxt: Default::default(),
                 sym: Atom::from(js_source.default_spec.as_str()),
                 optional: false,
               }))
@@ -570,11 +571,8 @@ impl<'a> VisitMut for ImportPlugin<'a> {
               None
             },
             local: Ident {
-              span: Span::new(
-                BytePos::DUMMY,
-                BytePos::DUMMY,
-                SyntaxContext::from_u32(js_source.mark),
-              ),
+              ctxt: SyntaxContext::from_u32(js_source.mark),
+              span: Span::new(BytePos::DUMMY, BytePos::DUMMY),
               sym: Atom::from(js_source.as_name.unwrap_or(js_source.default_spec).as_str()),
               optional: false,
             },

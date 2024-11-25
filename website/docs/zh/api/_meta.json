@@ -3,11 +3,14 @@
   "cli",
   {
     "type": "dir",
-    "name": "modules",
-    "label": "模块"
+    "name": "runtime-api",
+    "label": "运行时 API"
   },
-  "javascript-api",
-  "hmr",
+  {
+    "type": "dir",
+    "name": "javascript-api",
+    "label": "JavaScript API"
+  },
   {
     "type": "dir",
     "name": "loader-api",
@@ -17,6 +20,5 @@
     "type": "dir",
     "name": "plugin-api",
     "label": "插件 API"
-  },
-  "stats"
+  }
 ]

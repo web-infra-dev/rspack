@@ -58,7 +58,7 @@ async fn render_manifest(
     .map(|m| {
       let code_gen_result = compilation
         .code_generation_results
-        .get(&m.identifier(), Some(&chunk.runtime));
+        .get(&m.identifier(), Some(chunk.runtime()));
 
       let result = code_gen_result.get(&SourceType::Wasm).map(|source| {
         let (output_path, asset_info) = self
@@ -86,11 +86,7 @@ impl Plugin for AsyncWasmPlugin {
     "rspack.AsyncWebAssemblyModulesPlugin"
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

@@ -1,3 +1,13 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/ModuleFilenameHelpers.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
+
 type Matcher = string | RegExp | (string | RegExp)[];
 
 /**
@@ -15,7 +25,7 @@ export const asRegExp = (test: string | RegExp): RegExp => {
 	if (typeof test === "string") {
 		// Escape special characters in the string to prevent them from being interpreted as special characters in a regular expression. Do this by
 		// adding a backslash before each special character
-		return new RegExp("^" + test.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"));
+		return new RegExp(`^${test.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")}`);
 	}
 	return test;
 };
@@ -25,12 +35,11 @@ export const matchPart = (str: string, test: Matcher) => {
 
 	if (Array.isArray(test)) {
 		return test.map(asRegExp).some(regExp => regExp.test(str));
-	} else {
-		return asRegExp(test).test(str);
 	}
+	return asRegExp(test).test(str);
 };
 
-interface MatchObject {
+export interface MatchObject {
 	test?: Matcher;
 	include?: Matcher;
 	exclude?: Matcher;

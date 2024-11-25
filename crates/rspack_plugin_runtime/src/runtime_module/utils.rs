@@ -1,8 +1,9 @@
-use indexmap::{IndexMap, IndexSet};
+use cow_utils::CowUtils;
 use itertools::Itertools;
+use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_chunk_from_ukey, get_js_chunk_filename_template, stringify_map, Chunk, ChunkKind,
-  ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
+  get_js_chunk_filename_template, stringify_map, Chunk, ChunkLoading, ChunkUkey, Compilation,
+  PathData, SourceType,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -15,7 +16,7 @@ pub fn get_initial_chunk_ids(
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<String> {
   match chunk {
-    Some(chunk_ukey) => match get_chunk_from_ukey(&chunk_ukey, &compilation.chunk_by_ukey) {
+    Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
       Some(chunk) => {
         let mut js_chunks = chunk
           .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
@@ -128,16 +129,22 @@ pub fn get_output_dir(
   );
   let output_dir = compilation.get_path(
     filename,
-    PathData::default().chunk(chunk).content_hash_optional(
-      chunk
-        .content_hash
-        .get(&SourceType::JavaScript)
-        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-    ),
+    PathData::default()
+      .chunk_id_optional(chunk.id())
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SourceType::JavaScript,
+        compilation.options.output.hash_digest_length,
+      )),
   )?;
   Ok(get_undo_path(
     output_dir.as_str(),
-    compilation.options.output.path.display().to_string(),
+    compilation.options.output.path.as_str().to_string(),
     enforce_relative,
   ))
 }
@@ -147,15 +154,17 @@ pub fn is_enabled_for_chunk(
   expected: &ChunkLoading,
   compilation: &Compilation,
 ) -> bool {
-  let chunk_loading = get_chunk_from_ukey(chunk_ukey, &compilation.chunk_by_ukey)
+  let chunk_loading = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
     .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
     .and_then(|options| options.chunk_loading.as_ref())
     .unwrap_or(&compilation.options.output.chunk_loading);
   chunk_loading == expected
 }
 
-pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
-  if let Some(chunk_id) = &chunk.id {
+pub fn unquoted_stringify(chunk: &Chunk, str: &str) -> String {
+  if let Some(chunk_id) = chunk.id() {
     if str.len() >= 5 && str == chunk_id {
       return "\" + chunkId + \"".to_string();
     }
@@ -166,8 +175,8 @@ pub fn unquoted_stringify(chunk: &Chunk, str: &String) -> String {
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &IndexSet<&ChunkUkey>,
-  chunk_map: &IndexMap<&ChunkUkey, &Chunk>,
+  chunks: &UkeyIndexSet<ChunkUkey>,
+  chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,
@@ -179,16 +188,16 @@ where
 
   for chunk_ukey in chunks.iter() {
     if let Some(chunk) = chunk_map.get(chunk_ukey) {
-      if let Some(chunk_id) = &chunk.id {
+      if let Some(chunk_id) = chunk.id() {
         if let Some(value) = f(chunk) {
           if value == *chunk_id {
             use_id = true;
           } else {
             result.insert(
-              chunk_id.clone(),
+              chunk_id.to_owned(),
               serde_json::to_string(&value).expect("invalid json to_string"),
             );
-            last_key = Some(chunk_id.clone());
+            last_key = Some(chunk_id);
             entries += 1;
           }
         }
@@ -204,11 +213,11 @@ where
         format!(
           "(chunkId === {} ? {} : chunkId)",
           serde_json::to_string(&last_key).expect("invalid json to_string"),
-          result.get(&last_key).expect("cannot find last key value")
+          result.get(last_key).expect("cannot find last key value")
         )
       } else {
         result
-          .get(&last_key)
+          .get(last_key)
           .expect("cannot find last key value")
           .clone()
       }
@@ -223,7 +232,7 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&String]) -> String {
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> String {
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
@@ -245,18 +254,6 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&String]) -> S
   format!("if ({}) return {};", condition, filename)
 }
 
-pub fn create_fake_chunk(
-  id: Option<String>,
-  name: Option<String>,
-  rendered_hash: Option<String>,
-) -> Chunk {
-  let mut fake_chunk = Chunk::new(None, ChunkKind::Normal);
-  fake_chunk.name = name;
-  fake_chunk.rendered_hash = rendered_hash.map(|h| h.into());
-  fake_chunk.id = id;
-  fake_chunk
-}
-
 #[test]
 fn test_get_undo_path() {
   assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
@@ -268,10 +265,11 @@ fn test_get_undo_path() {
 
 pub fn generate_javascript_hmr_runtime(method: &str) -> String {
   include_str!("runtime/javascript_hot_module_replacement.js")
-    .replace("$key$", method)
-    .replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
-    .replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
-    .replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
-    .replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
-    .replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
+    .cow_replace("$key$", method)
+    .cow_replace("$HOT_TEST_OUTDATED$", &HOT_TEST_OUTDATED)
+    .cow_replace("$HOT_TEST_DISPOSE$", &HOT_TEST_DISPOSE)
+    .cow_replace("$HOT_TEST_UPDATED$", &HOT_TEST_UPDATED)
+    .cow_replace("$HOT_TEST_RUNTIME$", &HOT_TEST_RUNTIME)
+    .cow_replace("$HOT_TEST_ACCEPT$", &HOT_TEST_ACCEPT)
+    .into_owned()
 }

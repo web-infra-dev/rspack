@@ -1,4 +1,4 @@
-use rspack_core::{DependencyLocation, SpanExt};
+use rspack_core::{DependencyRange, SpanExt};
 use swc_core::{
   common::Spanned,
   ecma::ast::{BinExpr, BinaryOp},
@@ -149,39 +149,59 @@ fn handle_abstract_equality_comparison(
 }
 
 #[inline(always)]
+fn handle_nullish_coalescing(
+  left: BasicEvaluatedExpression,
+  expr: &BinExpr,
+  scanner: &mut JavascriptParser,
+) -> Option<BasicEvaluatedExpression> {
+  let left_nullish = left.as_nullish();
+  match left_nullish {
+    Some(true) => {
+      let mut right = scanner.evaluate_expression(&expr.right);
+      if left.could_have_side_effects() {
+        right.set_side_effects(true)
+      }
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(right)
+    }
+    Some(false) => {
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(res)
+    }
+    _ => None,
+  }
+}
+
+#[inline(always)]
 fn handle_logical_or(
   left: BasicEvaluatedExpression,
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-  match left.as_bool() {
+  let left_bool = left.as_bool();
+  match left_bool {
     Some(true) => {
-      // truthy || unknown = true
-      res.set_bool(true);
-      res.set_side_effects(left.could_have_side_effects());
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(res)
     }
     Some(false) => {
-      let right = scanner.evaluate_expression(&expr.right);
-      // falsy || unknown = unknown
-      right.as_bool().map(|b| {
-        // falsy || right = right
-        res.set_bool(b);
-        res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
-        res
-      })
+      let mut right = scanner.evaluate_expression(&expr.right);
+      if left.could_have_side_effects() {
+        right.set_side_effects(true)
+      }
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
+      Some(right)
     }
-    None => {
-      let right = scanner.evaluate_expression(&expr.right);
-      match right.as_bool() {
-        // unknown || truthy = unknown truthy
-        Some(true) => {
-          res.set_truthy();
-          Some(res)
-        }
-        // unknown || falsy/unknown = undetermined
-        _ => None,
+    _ => {
+      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
+      if right_bool.is_some_and(|x| x) {
+        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        res.set_truthy();
+        Some(res)
+      } else {
+        None
       }
     }
   }
@@ -193,34 +213,29 @@ fn handle_logical_and(
   expr: &BinExpr,
   scanner: &mut JavascriptParser,
 ) -> Option<BasicEvaluatedExpression> {
-  let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
-  match left.as_bool() {
+  let left_bool = left.as_bool();
+  match left_bool {
     Some(true) => {
-      // true && unknown = unknown
       let mut right = scanner.evaluate_expression(&expr.right);
       if left.could_have_side_effects() {
         right.set_side_effects(true)
       }
-      right.set_range(expr.span.real_lo(), expr.span.hi.0);
+      right.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(right)
     }
     Some(false) => {
-      // false && any = false
-      res.set_bool(false);
-      res.set_side_effects(left.could_have_side_effects());
+      let mut res = left.clone();
+      res.set_range(expr.span.real_lo(), expr.span.hi().0);
       Some(res)
     }
     None => {
-      let right = scanner.evaluate_expression(&expr.right);
-      match right.as_bool() {
-        // unknown && false = false
-        Some(false) => {
-          res.set_bool(false);
-          res.set_side_effects(left.could_have_side_effects() || right.could_have_side_effects());
-          Some(res)
-        }
-        // unknown && true/unknown = unknown
-        _ => None,
+      let right_bool = scanner.evaluate_expression(&expr.right).as_bool();
+      if right_bool.is_some_and(|x| !x) {
+        let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+        res.set_falsy();
+        Some(res)
+      } else {
+        None
       }
     }
   }
@@ -414,7 +429,27 @@ pub fn handle_const_operation(
         None
       }
     }
-    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr | BinaryOp::LShift | BinaryOp::RShift => {
+    BinaryOp::LShift | BinaryOp::RShift => {
+      if let Some(left_number) = left.as_int()
+        && let Some(right_number) = right.as_int()
+      {
+        // only the lower 5 bits are used when shifting, so don't do anything
+        // if the shift amount is outside [0,32)
+        if (0..32).contains(&right_number) {
+          res.set_number(match expr.op {
+            BinaryOp::LShift => left_number << right_number,
+            BinaryOp::RShift => left_number >> right_number,
+            _ => unreachable!(),
+          } as f64);
+        } else {
+          res.set_number(left_number as f64);
+        }
+        Some(res)
+      } else {
+        None
+      }
+    }
+    BinaryOp::BitAnd | BinaryOp::BitXor | BinaryOp::BitOr => {
       if let Some(left_number) = left.as_int()
         && let Some(right_number) = right.as_int()
       {
@@ -422,8 +457,6 @@ pub fn handle_const_operation(
           BinaryOp::BitAnd => left_number & right_number,
           BinaryOp::BitXor => left_number ^ right_number,
           BinaryOp::BitOr => left_number | right_number,
-          BinaryOp::LShift => left_number << right_number,
-          BinaryOp::RShift => left_number >> right_number,
           _ => unreachable!(),
         } as f64);
         Some(res)
@@ -482,6 +515,7 @@ pub fn eval_binary_expression(
       BinaryOp::NotEqEq => handle_strict_equality_comparison(false, left, expr, scanner),
       BinaryOp::LogicalAnd => handle_logical_and(left, expr, scanner),
       BinaryOp::LogicalOr => handle_logical_or(left, expr, scanner),
+      BinaryOp::NullishCoalescing => handle_nullish_coalescing(left, expr, scanner),
       BinaryOp::Add => handle_add(left, expr, scanner),
       _ => handle_const_operation(left, expr, scanner),
     }
@@ -495,18 +529,14 @@ pub fn eval_binary_expression(
   evaluated
 }
 
-fn join_locations(
-  start: Option<&DependencyLocation>,
-  end: Option<&DependencyLocation>,
-) -> (u32, u32) {
+fn join_locations(start: Option<&DependencyRange>, end: Option<&DependencyRange>) -> (u32, u32) {
   match (start, end) {
     (None, None) => unreachable!("invalid range"),
-    (None, Some(end)) => (end.start(), end.end()),
-    (Some(start), None) => (start.start(), start.end()),
-    (Some(start), Some(end)) => join_ranges(
-      Some((start.start(), start.end())),
-      Some((end.start(), end.end())),
-    ),
+    (None, Some(end)) => (end.start, end.end),
+    (Some(start), None) => (start.start, start.end),
+    (Some(start), Some(end)) => {
+      join_ranges(Some((start.start, start.end)), Some((end.start, end.end)))
+    }
   }
 }
 

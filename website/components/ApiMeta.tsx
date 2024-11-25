@@ -24,11 +24,21 @@ export function ApiMeta(props: ApiMetaProps) {
   const href = `/${lang}/misc/planning/future`;
   const tagStyle = props.inline ? styles.tagInline : styles.tag;
   const wrapperStyle = props.inline ? styles.wrapperInline : styles.wrapper;
+
+  const getGitTagHref = (version: string) =>
+    `https://github.com/web-infra-dev/rspack/releases/tag/v${version.replace('v', '')}`;
+
   return (
     <div className={wrapperStyle}>
       {props.addedVersion && (
         <span className={`${tagStyle} ${styles.added}`}>
-          <a href={href}>Added in v{props.addedVersion}</a>
+          <a
+            href={getGitTagHref(props.addedVersion)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Added in v{props.addedVersion}
+          </a>
         </span>
       )}
       {props.deprecatedVersion && (
@@ -52,7 +62,7 @@ export function ApiMeta(props: ApiMetaProps) {
       )}
       {props.specific && props.specific.length > 0 && (
         <span className={`${tagStyle} ${styles.specific}`}>
-          {props.specific.join('/')}{' '}
+          {props.specific.join('/')}&nbsp;
           {props.specific.length > 1 ? 'specific' : 'only'}
         </span>
       )}

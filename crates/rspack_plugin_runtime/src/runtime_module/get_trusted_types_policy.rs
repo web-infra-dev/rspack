@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
-use rspack_identifier::Identifier;
 
 use crate::get_chunk_runtime_requirements;
 
@@ -40,7 +41,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     let create_script = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT);
     let create_script_url = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL);
 
-    let mut result = include_str!("runtime/get_trusted_types_policy.js").replace(
+    let result = include_str!("runtime/get_trusted_types_policy.js").cow_replace(
       "$policyName$",
       &trusted_types.policy_name.clone().unwrap_or_default(),
     );
@@ -65,8 +66,14 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
         .to_string(),
       );
     }
-    result = result.replace("$policyContent$", policy_content.join(",\n").as_ref());
-    Ok(RawSource::from(result).boxed())
+    Ok(
+      RawSource::from(
+        result
+          .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
+          .into_owned(),
+      )
+      .boxed(),
+    )
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

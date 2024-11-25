@@ -10,8 +10,8 @@ import { TestContext } from "./context";
 export class Tester implements ITester {
 	private context: ITestContext;
 	private steps: ITestProcessor[] = [];
-	step: number = 0;
-	total: number = 0;
+	step = 0;
+	total = 0;
 
 	constructor(private config: ITesterConfig) {
 		this.context = new TestContext(config);
@@ -66,9 +66,8 @@ export class Tester implements ITester {
 		if (this.steps[this.step + 1]) {
 			this.step++;
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 	async resume() {
@@ -82,7 +81,7 @@ export class Tester implements ITester {
 	private async runStepMethods(
 		step: ITestProcessor,
 		methods: Array<"before" | "config" | "compiler" | "build" | "after">,
-		force: boolean = false
+		force = false
 	) {
 		for (const i of methods) {
 			if (!force && this.context.hasError()) return;

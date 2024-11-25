@@ -1,5 +1,6 @@
+use rspack_collections::{DatabaseItem, UkeySet};
+use rspack_core::incremental::Mutation;
 use rspack_core::{Chunk, ChunkUkey, Compilation};
-use rustc_hash::FxHashSet;
 
 use crate::module_group::ModuleGroup;
 use crate::SplitChunksPlugin;
@@ -33,11 +34,11 @@ impl SplitChunksPlugin {
     module_group: &mut ModuleGroup,
   ) -> Option<ChunkUkey> {
     let candidates = module_group.chunks.iter().filter_map(|chunk| {
-      let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
+      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
 
       if compilation
         .chunk_graph
-        .get_number_of_chunk_modules(&chunk.ukey)
+        .get_number_of_chunk_modules(&chunk.ukey())
         != module_group.modules.len()
       {
         // Fast path
@@ -47,7 +48,7 @@ impl SplitChunksPlugin {
       if module_group.chunks.len() > 1
         && compilation
           .chunk_graph
-          .get_number_of_entry_modules(&chunk.ukey)
+          .get_number_of_entry_modules(&chunk.ukey())
           > 0
       {
         // `module_group.chunks.len() > 1`: This `ModuleGroup` are related to multiple code splitting chunks.
@@ -64,7 +65,7 @@ impl SplitChunksPlugin {
       let is_all_module_in_chunk = module_group.modules.iter().all(|each_module| {
         compilation
           .chunk_graph
-          .is_module_in_chunk(each_module, chunk.ukey)
+          .is_module_in_chunk(each_module, chunk.ukey())
       });
       if !is_all_module_in_chunk {
         return None;
@@ -75,7 +76,7 @@ impl SplitChunksPlugin {
 
     /// Port https://github.com/webpack/webpack/blob/b471a6bfb71020f6d8f136ef10b7efb239ef5bbf/lib/optimize/SplitChunksPlugin.js#L1360-L1373
     fn best_reusable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
-      match (&first.name, &second.name) {
+      match (first.name(), second.name()) {
         (None, None) => first,
         (None, Some(_)) => second,
         (Some(_), None) => first,
@@ -95,7 +96,7 @@ impl SplitChunksPlugin {
 
     let best_reusable_chunk = candidates.reduce(|best, each| best_reusable_chunk(best, each));
 
-    best_reusable_chunk.map(|c| c.ukey)
+    best_reusable_chunk.map(|c| c.ukey())
   }
 
   pub(crate) fn get_corresponding_chunk(
@@ -110,20 +111,25 @@ impl SplitChunksPlugin {
         *is_reuse_existing_chunk = true;
         *chunk
       } else {
-        let new_chunk_ukey = Compilation::add_named_chunk(
+        let (new_chunk_ukey, created) = Compilation::add_named_chunk(
           chunk_name.clone(),
           &mut compilation.chunk_by_ukey,
           &mut compilation.named_chunks,
         );
+        if created && let Some(mutations) = compilation.incremental.mutations_write() {
+          mutations.add(Mutation::ChunkAdd {
+            chunk: new_chunk_ukey,
+          });
+        }
         let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
 
         put_split_chunk_reason(
-          &mut new_chunk.chunk_reason,
+          new_chunk.chunk_reason_mut(),
           *is_reuse_existing_chunk_with_all_modules,
         );
 
-        compilation.chunk_graph.add_chunk(new_chunk.ukey);
-        new_chunk.ukey
+        compilation.chunk_graph.add_chunk(new_chunk.ukey());
+        new_chunk.ukey()
       }
     } else if let Some(reusable_chunk) =
       self.find_the_best_reusable_chunk(compilation, module_group)
@@ -134,15 +140,20 @@ impl SplitChunksPlugin {
       reusable_chunk
     } else {
       let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      if let Some(mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkAdd {
+          chunk: new_chunk_ukey,
+        });
+      }
       let new_chunk = compilation.chunk_by_ukey.expect_get_mut(&new_chunk_ukey);
 
       put_split_chunk_reason(
-        &mut new_chunk.chunk_reason,
+        new_chunk.chunk_reason_mut(),
         *is_reuse_existing_chunk_with_all_modules,
       );
 
-      compilation.chunk_graph.add_chunk(new_chunk.ukey);
-      new_chunk.ukey
+      compilation.chunk_graph.add_chunk(new_chunk.ukey());
+      new_chunk.ukey()
     }
   }
 
@@ -152,7 +163,7 @@ impl SplitChunksPlugin {
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
@@ -180,19 +191,24 @@ impl SplitChunksPlugin {
   pub(crate) fn split_from_original_chunks(
     &self,
     _item: &ModuleGroup,
-    original_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &UkeySet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
   ) {
     let new_chunk_ukey = new_chunk;
-    for original_chunk in original_chunks {
-      debug_assert!(&new_chunk_ukey != original_chunk);
+    for original_chunk_ukey in original_chunks {
+      debug_assert!(&new_chunk_ukey != original_chunk_ukey);
       let [new_chunk, original_chunk] = compilation
         .chunk_by_ukey
-        ._todo_should_remove_this_method_inner_mut()
-        .get_many_mut([&new_chunk_ukey, original_chunk])
+        .get_many_mut([&new_chunk_ukey, original_chunk_ukey])
         .expect("split_from_original_chunks failed");
       original_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
+      if let Some(mutations) = compilation.incremental.mutations_write() {
+        mutations.add(Mutation::ChunkSplit {
+          from: *original_chunk_ukey,
+          to: new_chunk_ukey,
+        });
+      }
     }
   }
 }

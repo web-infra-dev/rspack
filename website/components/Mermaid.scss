@@ -1,0 +1,213 @@
+.dark {
+  .rspack-mermaid {
+    .flowchart-label {
+      rect {
+        fill: #23272f !important;
+        stroke: #81b1db !important;
+        stroke-width: 1px !important;
+      }
+
+      polygon {
+        fill: #23272f !important;
+        stroke: #81b1db !important;
+        stroke-width: 1px !important;
+      }
+
+      span.nodeLabel {
+        color: #ccc !important;
+      }
+    }
+
+    .edgeLabel {
+      fill: #23272f !important;
+      color: #ccc !important;
+      background-color: #23272f !important;
+    }
+
+    .flowchart-link {
+      stroke: #ccc !important;
+    }
+
+    .marker {
+      stroke: #ccc !important;
+      fill: #ccc !important;
+    }
+  }
+}
+
+.rspress-doc {
+  .rspack-mermaid {
+    .flow-start,
+    .flow-end {
+      rect,
+      polygon {
+        fill: #666 !important;
+        stroke: #666 !important;
+      }
+
+      span.nodeLabel {
+        color: #fff !important;
+      }
+    }
+
+    .flow-optimization {
+      rect,
+      polygon {
+        fill: var(--tw-ring-color) !important;
+        stroke: var(--rp-container-details-link) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+
+    .flow-hook {
+      rect,
+      polygon {
+        fill: var(--rp-container-info-border) !important;
+        stroke: var(--rp-container-info-border) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+
+    .flow-hook-non-support {
+      rect,
+      polygon {
+        fill: var(--rp-container-danger-border) !important;
+        stroke: var(--rp-container-danger-border) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+
+    .flow-hook-partial-support {
+      rect,
+      polygon {
+        fill: var(--rp-container-warning-border) !important;
+        stroke: var(--rp-container-warning-border) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+
+    .flow-process {
+      rect,
+      polygon {
+        fill: var(--rp-container-details-border) !important;
+        stroke: var(--rp-container-details-border) !important;
+      }
+
+      span.nodeLabel {
+        color: #333 !important;
+      }
+    }
+  }
+
+  .flowchart-link {
+    stroke: #666 !important;
+  }
+
+  .marker {
+    stroke: #666 !important;
+    fill: #666 !important;
+  }
+
+  .cluster {
+    rect {
+      fill: transparent !important;
+      stroke: #666 !important;
+    }
+  }
+}
+
+.dark {
+  .rspress-doc {
+    .rspack-mermaid {
+      .flow-start,
+      .flow-end {
+        rect,
+        polygon {
+          fill: #666 !important;
+          stroke: #666 !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-optimization {
+        rect,
+        polygon {
+          fill: var(--tw-ring-color) !important;
+          stroke: var(--rp-container-details-link) !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-hook {
+        rect,
+        polygon {
+          fill: var(--rp-container-info-bg) !important;
+          stroke: var(--rp-container-info-border) !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-hook-non-support {
+        rect,
+        polygon {
+          fill: var(--rp-container-danger-bg) !important;
+          stroke: var(--rp-container-danger-border) !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-hook-partial-support {
+        rect,
+        polygon {
+          fill: var(--rp-container-warning-bg) !important;
+          stroke: var(--rp-container-warning-border) !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+
+      .flow-process {
+        rect,
+        polygon {
+          fill: var(--rp-container-details-bg) !important;
+          stroke: var(--rp-container-details-border) !important;
+        }
+
+        span.nodeLabel {
+          color: #ccc !important;
+        }
+      }
+    }
+  }
+}
+
+.rspack-mermaid {
+  font-size: 20px;
+  text-align: center;
+}

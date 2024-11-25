@@ -78,7 +78,7 @@ const serialize = (val: unknown, indent = 2, formatOverrides = {}) =>
 
 export class HookCasesContext extends TestContext {
 	protected promises: Promise<void>[] = [];
-	protected count: number = 0;
+	protected count = 0;
 	protected snapshots: Record<
 		string | number,
 		Array<[string | Buffer, string]>
@@ -108,7 +108,7 @@ export class HookCasesContext extends TestContext {
 			context._addSnapshot(args, "input", group);
 			const output = cb.apply(this, args);
 			if (output && typeof output.then === "function") {
-				let resolve;
+				let resolve: ((value: void | PromiseLike<void>) => void) | undefined;
 				context.promises.push(new Promise(r => (resolve = r)));
 				return output
 					.then((o: unknown) => {
@@ -130,14 +130,15 @@ export class HookCasesContext extends TestContext {
 	 * @internal
 	 */
 	_addSnapshot(content: unknown, name: string, group: string | number) {
-		content = Buffer.isBuffer(content)
+		const normalizedContent = Buffer.isBuffer(content)
 			? content
 			: serialize(content, undefined, {
 					escapeString: true,
 					printBasicPrototype: true
 				}).replace(/\r\n/g, "\n");
+
 		(this.snapshots[group] = this.snapshots[group] || []).push([
-			content as Buffer | string,
+			normalizedContent,
 			name
 		]);
 		if (!this.snapshotsList.includes(group)) {
@@ -161,14 +162,12 @@ export class HookCasesContext extends TestContext {
 			const block = this.snapshots[group || index].reduce(
 				(acc, [content, name]) => {
 					name = `## ${name || `test: ${index}`}\n\n`;
-					const block = "```javascript\n" + content + "\n```\n";
-					return (acc += name + block + "\n");
+					const block = `\`\`\`javascript\n${content}\n\`\`\`\n`;
+					return `${acc}${name + block}\n`;
 				},
 				""
 			);
-			group = Number.isInteger(group) ? `Group: ${index}` : group;
-			group = `# ${group}\n\n`;
-			return (acc += group + block);
+			return `${acc}# ${Number.isInteger(group) ? `Group: ${index}` : group}\n\n${block}`;
 		}, "");
 		env
 			.expect(snapshots)

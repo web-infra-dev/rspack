@@ -91,7 +91,8 @@ async function recursiveCompareStrict(baseA, baseB, onCompare) {
 					const a = fs.readFileSync(nextA);
 					const b = fs.readFileSync(nextB);
 					return onCompare(nextA, a, b);
-				} else if (fileA || fileB) {
+				}
+				if (fileA || fileB) {
 					return false;
 				}
 				return recursiveCompareStrict(nextA, nextB, onCompare);

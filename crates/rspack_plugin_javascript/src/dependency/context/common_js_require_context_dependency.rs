@@ -1,7 +1,9 @@
-use rspack_core::{AsModuleDependency, ContextDependency};
-use rspack_core::{ContextOptions, Dependency, TemplateReplaceSource};
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan, TemplateContext};
+use rspack_core::{
+  AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+};
+use rspack_error::Diagnostic;
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
@@ -9,35 +11,31 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireContextDependency {
-  callee_start: u32,
-  callee_end: u32,
-  args_end: u32,
   id: DependencyId,
-  options: ContextOptions,
-  span: Option<ErrorSpan>,
+  range: DependencyRange,
+  range_callee: DependencyRange,
   resource_identifier: String,
+  options: ContextOptions,
   optional: bool,
+  critical: Option<Diagnostic>,
 }
 
 impl CommonJsRequireContextDependency {
   pub fn new(
-    callee_start: u32,
-    callee_end: u32,
-    args_end: u32,
     options: ContextOptions,
-    span: Option<ErrorSpan>,
+    range: DependencyRange,
+    range_callee: DependencyRange,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      callee_start,
-      callee_end,
-      args_end,
+      range,
+      range_callee,
       options,
-      span,
-      id: DependencyId::new(),
       resource_identifier,
       optional,
+      id: DependencyId::new(),
+      critical: None,
     }
   }
 }
@@ -55,8 +53,19 @@ impl Dependency for CommonJsRequireContextDependency {
     &DependencyType::CommonJSRequireContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    if let Some(critical) = self.critical() {
+      return Some(vec![critical.clone()]);
+    }
+    None
   }
 }
 
@@ -88,6 +97,14 @@ impl ContextDependency for CommonJsRequireContextDependency {
   fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
     rspack_core::ContextTypePrefix::Normal
   }
+
+  fn critical(&self) -> &Option<Diagnostic> {
+    &self.critical
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
+    &mut self.critical
+  }
 }
 
 impl DependencyTemplate for CommonJsRequireContextDependency {
@@ -100,14 +117,22 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
       self,
       source,
       code_generatable_context,
-      self.callee_start,
-      self.callee_end,
-      self.args_end,
+      self.range_callee.start,
+      self.range_callee.end,
+      self.range.end,
     );
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

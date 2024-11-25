@@ -1,0 +1,10 @@
+ERROR in × failed to parse builtin:swc-loader options
+   ╭─[3:12]
+ 1 │ {
+ 2 │   "jsc": {
+ 3 │     "parser2": {
+   ·             ▲
+   ·             ╰── unknown field `parser2`, expected one of `assumptions`, `parser`, `transform`, `externalHelpers`, `target`, `loose`, `keepClassNames`, `baseUrl`, `paths`, `minify`, `experimental`, `lints`, `preserveAllComments`, `output` at line 3 column 13
+ 4 │       "syntax": "ecmascript"
+ 5 │     },
+   ╰────

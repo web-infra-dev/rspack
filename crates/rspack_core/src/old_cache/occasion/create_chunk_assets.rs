@@ -1,6 +1,6 @@
 use futures::Future;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_error::Result;
-use rspack_identifier::Identifier;
 
 use crate::{old_cache::storage, Chunk, Compilation, NormalModuleSource, RenderManifestEntry};
 
@@ -16,7 +16,7 @@ impl CreateChunkAssetsOccasion {
     Self { storage }
   }
 
-  pub async fn use_cache<'a, G, F>(
+  pub async fn use_cache<G, F>(
     &self,
     compilation: &Compilation,
     chunk: &Chunk,
@@ -35,8 +35,7 @@ impl CreateChunkAssetsOccasion {
     let chunk_id = Identifier::from(chunk.expect_id());
     let modules = &compilation
       .chunk_graph
-      .get_chunk_graph_chunk(&chunk.ukey)
-      .modules;
+      .get_chunk_modules_identifier(&chunk.ukey());
     let is_cache_valid = modules.iter().all(|module_id| {
       matches!(
         compilation

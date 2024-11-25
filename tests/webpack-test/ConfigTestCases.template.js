@@ -113,9 +113,8 @@ const describeCases = config => {
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								// CHANGE: rspack does not support `pathinfo` yet.
-								// if (typeof options.output.pathinfo === "undefined")
-								// 	options.output.pathinfo = true;
+								if (typeof options.output.pathinfo === "undefined")
+									options.output.pathinfo = true;
 								if (!options.output.filename)
 									options.output.filename =
 										"bundle" +
@@ -464,6 +463,7 @@ const describeCases = config => {
 											) {
 												baseModuleScope.window = globalContext;
 												baseModuleScope.self = globalContext;
+												baseModuleScope.document = globalContext.document;
 												baseModuleScope.URL = URL;
 												baseModuleScope.Worker =
 													require("./helpers/createFakeWorker")({
@@ -567,6 +567,7 @@ const describeCases = config => {
 														}
 														if (esmMode === "unlinked") return esm;
 														return (async () => {
+															if (esmMode === "unlinked") return esm;
 															await esm.link(
 																async (specifier, referencingModule) => {
 																	return await asModule(
@@ -597,64 +598,69 @@ const describeCases = config => {
 																? ns.default
 																: ns;
 														})();
-													} else {
-														if (p in requireCache) {
-															return requireCache[p].exports;
-														}
-														const m = {
-															exports: {}
-														};
-														requireCache[p] = m;
-														const moduleScope = {
-															...baseModuleScope,
-															require: _require.bind(
-																null,
-																path.dirname(p),
-																options
-															),
-															importScripts: url => {
-																expect(url).toMatch(
-																	/^https:\/\/test\.cases\/path\//
-																);
-																_require(
-																	outputDirectory,
-																	options,
-																	`.${url.slice(
-																		"https://test.cases/path".length
-																	)}`
-																);
-															},
-															module: m,
-															exports: m.exports,
-															__dirname: path.dirname(p),
-															__filename: p,
-															_globalAssign: { expect }
-														};
-														if (testConfig.moduleScope) {
-															testConfig.moduleScope(moduleScope);
-														}
-														if (!runInNewContext)
-															content = `Object.assign(global, _globalAssign); ${content}`;
-														const args = Object.keys(moduleScope);
-														const argValues = args.map(arg => moduleScope[arg]);
-														const code = `(function(${args.join(
-															", "
-														)}) {${content}\n})`;
-
-														let oldCurrentScript = document.currentScript;
-														document.currentScript = new CurrentScript(subPath);
-														const fn = runInNewContext
-															? vm.runInNewContext(code, globalContext, p)
-															: vm.runInThisContext(code, p);
-														fn.call(
-															testConfig.nonEsmThis
-																? testConfig.nonEsmThis(module)
-																: m.exports,
-															...argValues
-														);
-														document.currentScript = oldCurrentScript;
-														return m.exports;
 													}
+													const isJSON = p.endsWith(".json");
+													if (isJSON) {
+														return JSON.parse(content);
+													}
+
+													if (p in requireCache) {
+														return requireCache[p].exports;
+													}
+													const m = {
+														exports: {}
+													};
+													requireCache[p] = m;
+
+													const moduleScope = {
+														...baseModuleScope,
+														require: _require.bind(
+															null,
+															path.dirname(p),
+															options
+														),
+														importScripts: url => {
+															expect(url).toMatch(
+																/^https:\/\/test\.cases\/path\//
+															);
+															_require(
+																outputDirectory,
+																options,
+																`.${url.slice(
+																	"https://test.cases/path".length
+																)}`
+															);
+														},
+														module: m,
+														exports: m.exports,
+														__dirname: path.dirname(p),
+														__filename: p,
+														_globalAssign: { expect }
+													};
+													if (testConfig.moduleScope) {
+														testConfig.moduleScope(moduleScope);
+													}
+													if (!runInNewContext)
+														content = `Object.assign(global, _globalAssign); ${content}`;
+													const args = Object.keys(moduleScope);
+													const argValues = args.map(arg => moduleScope[arg]);
+													const code = `(function(${args.join(
+														", "
+													)}) {${content}\n})`;
+
+													let oldCurrentScript = document.currentScript;
+													document.currentScript = new CurrentScript(subPath);
+													const fn = runInNewContext
+														? vm.runInNewContext(code, globalContext, p)
+														: vm.runInThisContext(code, p);
+													fn.call(
+														testConfig.nonEsmThis
+															? testConfig.nonEsmThis(module)
+															: m.exports,
+														...argValues
+													);
+													document.currentScript = oldCurrentScript;
+													return m.exports;
 												} else if (
 													testConfig.modules &&
 													module in testConfig.modules

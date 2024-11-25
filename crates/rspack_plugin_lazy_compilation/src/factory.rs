@@ -23,8 +23,7 @@ impl LazyCompilationDependencyFactory {
 #[async_trait::async_trait]
 impl ModuleFactory for LazyCompilationDependencyFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let dep: &LazyCompilationDependency = data
-      .dependency
+    let dep: &LazyCompilationDependency = data.dependencies[0]
       .as_any()
       .downcast_ref()
       .expect("should be lazy compile dependency");
@@ -34,11 +33,13 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
     let dep = dep.clone();
 
     let mut create_data = ModuleFactoryCreateData {
+      compilation_id: data.compilation_id,
       resolve_options: proxy_data.resolve_options.clone(),
       options: data.options.clone(),
       context: proxy_data.context.clone(),
-      dependency: Box::new(dep),
+      dependencies: vec![Box::new(dep)],
       issuer: proxy_data.issuer.clone(),
+      issuer_layer: proxy_data.issuer_layer.clone(),
       issuer_identifier: proxy_data.issuer_identifier,
       file_dependencies: proxy_data.file_dependencies.clone(),
       context_dependencies: proxy_data.context_dependencies.clone(),

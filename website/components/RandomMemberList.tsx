@@ -52,6 +52,7 @@ const coreTeam: Member[] = [
   {
     id: 'jkzing',
     desc: 'Rspack / Vue contributor',
+    x: 'https://x.com/zjkdddd',
     avatar: 'https://avatars.githubusercontent.com/u/2851517?v=4',
   },
   {
@@ -81,7 +82,7 @@ const coreTeam: Member[] = [
     id: 'chenjiahan',
     avatar: 'https://avatars.githubusercontent.com/u/7237365?s=120&v=4',
     x: 'https://x.com/jait_chen',
-    desc: 'Rspack / Rsbuild / Rspress contributor, project lead of Vant',
+    desc: 'Rspack stack contributor, project lead of Vant',
   },
   {
     id: 'JSerFeng',
@@ -92,19 +93,13 @@ const coreTeam: Member[] = [
   {
     id: '9aoy',
     avatar: 'https://avatars.githubusercontent.com/u/22373761?s=120&v=4',
-    desc: 'Rspack / Rsbuild contributor',
+    desc: 'Rspack stack contributor',
   },
   {
     id: 'sanyuan0704',
     avatar: 'https://avatars.githubusercontent.com/u/39261479?s=120&v=4',
     x: 'https://x.com/sanyuan0704',
     desc: 'Rspack / Rspress contributor',
-  },
-  {
-    id: 'suxin2017',
-    avatar: 'https://avatars.githubusercontent.com/u/28481035?v=4',
-    x: 'https://x.com/suxin2017',
-    desc: 'Rspack contributor',
   },
   {
     id: 'zackarychapple',
@@ -138,11 +133,12 @@ const coreTeam: Member[] = [
     id: 'xc2',
     avatar: 'https://avatars.githubusercontent.com/u/18117084?v=4',
     x: 'https://x.com/kfll',
-    desc: 'Rspack / Rsbuild / Rspress contributor',
+    desc: 'Rspack stack contributor',
   },
   {
     id: 'fi3ework',
     avatar: 'https://avatars.githubusercontent.com/u/12322740?v=4',
+    x: 'https://x.com/f13wk',
     desc: 'Rspack / Rslib / webpack contributor, creator of vite-plugin-checker',
   },
   {
@@ -161,7 +157,19 @@ const coreTeam: Member[] = [
     id: 'SoonIter',
     avatar: 'https://avatars.githubusercontent.com/u/79413249?v=4',
     x: 'https://x.com/Soon_Iter',
-    desc: 'Rspack / Rsbuild / Rspress contributor',
+    desc: 'Rspack stack contributor',
+  },
+  {
+    id: 'shulaoda',
+    avatar: 'https://avatars.githubusercontent.com/u/165626830?v=4',
+    x: 'https://x.com/dalaoshv',
+    desc: 'Rspack stack contributor',
+  },
+  {
+    id: 'inottn',
+    avatar: 'https://avatars.githubusercontent.com/u/18509404?v=4',
+    x: 'https://x.com/inorr_r',
+    desc: 'Rspack stack contributor, Vant core team member',
   },
 ];
 
@@ -226,8 +234,13 @@ export const RandomContributorsList = () => {
       avatar: 'https://avatars.githubusercontent.com/u/17974631?s=120&v=4',
       desc: 'Rspack / Rolldown contributor',
     },
+    {
+      id: 'suxin2017',
+      avatar: 'https://avatars.githubusercontent.com/u/28481035?v=4',
+      x: 'https://x.com/suxin2017',
+      desc: 'Rspack / Biome contributor',
+    },
   ];
 
-  const randomList = list.sort(() => Math.random() - 0.5);
-  return <RandomMemberList list={randomList} />;
+  return <RandomMemberList list={list} />;
 };

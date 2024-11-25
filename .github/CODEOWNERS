@@ -31,12 +31,11 @@ pnpm-lock.yaml
 /crates/rspack_binding_options
 /crates/rspack_core
 /crates/rspack_core/src/compiler/make @jerrykingxyz
-/crates/rspack_database
 /crates/rspack_error
 /crates/rspack_fs
 /crates/rspack_fs_node
 /crates/rspack_futures
-/crates/rspack_identifier
+/crates/rspack_collections
 /crates/rspack_ids
 /crates/rspack_napi_shared
 
@@ -74,7 +73,6 @@ pnpm-lock.yaml
 /packages/rspack
 /packages/rspack-cli
 /packages/rspack-dev-middleware
-/packages/rspack-dev-server
 /packages/rspack-plugin-html
 /packages/rspack-plugin-minify
 /packages/rspack-plugin-node-polyfill

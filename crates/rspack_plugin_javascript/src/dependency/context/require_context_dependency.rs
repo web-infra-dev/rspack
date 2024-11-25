@@ -1,38 +1,32 @@
-use rspack_core::{module_raw, AsModuleDependency, ContextDependency};
-use rspack_core::{ContextOptions, Dependency, DependencyCategory, DependencyId};
-use rspack_core::{DependencyTemplate, DependencyType, ErrorSpan};
-use rspack_core::{TemplateContext, TemplateReplaceSource};
+use rspack_core::{
+  module_raw, AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
+  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+};
+use rspack_error::Diagnostic;
 
 use super::create_resource_identifier_for_context_dependency;
 
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   options: ContextOptions,
-  span: Option<ErrorSpan>,
+  range: DependencyRange,
   resource_identifier: String,
   optional: bool,
+  critical: Option<Diagnostic>,
 }
 
 impl RequireContextDependency {
-  pub fn new(
-    start: u32,
-    end: u32,
-    options: ContextOptions,
-    span: Option<ErrorSpan>,
-    optional: bool,
-  ) -> Self {
+  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      start,
-      end,
       options,
-      span,
+      range,
       id: DependencyId::new(),
       resource_identifier,
       optional,
+      critical: None,
     }
   }
 }
@@ -50,8 +44,19 @@ impl Dependency for RequireContextDependency {
     &DependencyType::RequireContext
   }
 
-  fn span(&self) -> Option<ErrorSpan> {
-    self.span
+  fn range(&self) -> Option<&DependencyRange> {
+    Some(&self.range)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+
+  fn get_diagnostics(&self, _module_graph: &ModuleGraph) -> Option<Vec<Diagnostic>> {
+    if let Some(critical) = self.critical() {
+      return Some(vec![critical.clone()]);
+    }
+    None
   }
 }
 
@@ -83,6 +88,14 @@ impl ContextDependency for RequireContextDependency {
   fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
     rspack_core::ContextTypePrefix::Normal
   }
+
+  fn critical(&self) -> &Option<Diagnostic> {
+    &self.critical
+  }
+
+  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
+    &mut self.critical
+  }
 }
 
 impl DependencyTemplate for RequireContextDependency {
@@ -104,11 +117,19 @@ impl DependencyTemplate for RequireContextDependency {
       &self.options.request,
       self.optional,
     );
-    source.replace(self.start, self.end, &content, None);
+    source.replace(self.range.start, self.range.end, &content, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }
 

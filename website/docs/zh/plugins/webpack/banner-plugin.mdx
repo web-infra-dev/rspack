@@ -1,9 +1,6 @@
 import { Table } from '@builtIns';
-import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # BannerPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 ```js
 new rspack.BannerPlugin(options);
@@ -16,7 +13,12 @@ new rspack.BannerPlugin(options);
 - **类型：**
 
 ```ts
-type BannerContent = string;
+type BannerFunction = (args: {
+  hash: string;
+  chunk: JsChunk;
+  filename: string;
+}) => string;
+type BannerContent = string | BannerFunction;
 type BannerRules = string | RegExp | Array<string | RegExp>;
 type BannerPluginOptions = {
   banner: BannerContent;
@@ -55,7 +57,7 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
   body={[
     {
       name: '`banner`',
-      type: '`string`',
+      type: '`BannerFunction|string`',
       default: 'undefined',
       description: '指定 banner 内容（会被包裹成注释）',
     },

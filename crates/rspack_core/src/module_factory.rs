@@ -2,18 +2,22 @@ use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
 use rustc_hash::FxHashSet as HashSet;
-use sugar_path::SugarPath;
 
-use crate::{BoxDependency, BoxModule, CompilerOptions, Context, ModuleIdentifier, Resolve};
+use crate::{
+  BoxDependency, BoxModule, CompilationId, CompilerOptions, Context, ModuleIdentifier, ModuleLayer,
+  Resolve,
+};
 
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
+  pub compilation_id: CompilationId,
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub context: Context,
-  pub dependency: BoxDependency,
+  pub dependencies: Vec<BoxDependency>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
+  pub issuer_layer: Option<ModuleLayer>,
 
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -23,43 +27,38 @@ pub struct ModuleFactoryCreateData {
 
 impl ModuleFactoryCreateData {
   pub fn request(&self) -> Option<&str> {
-    self
-      .dependency
+    self.dependencies[0]
       .as_module_dependency()
       .map(|d| d.request())
-      .or_else(|| self.dependency.as_context_dependency().map(|d| d.request()))
+      .or_else(|| {
+        self.dependencies[0]
+          .as_context_dependency()
+          .map(|d| d.request())
+      })
   }
 
   pub fn add_file_dependency(&mut self, file: PathBuf) {
-    if file.is_absolute() {
-      self.file_dependencies.insert(file.normalize());
-    }
+    self.file_dependencies.insert(file);
   }
 
   pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
-    self
-      .file_dependencies
-      .extend(files.into_iter().map(|x| x.normalize()));
+    self.file_dependencies.extend(files);
   }
 
   pub fn add_context_dependency(&mut self, context: PathBuf) {
-    self.context_dependencies.insert(context.normalize());
+    self.context_dependencies.insert(context);
   }
 
   pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
-    self
-      .context_dependencies
-      .extend(contexts.into_iter().map(|x| x.normalize()));
+    self.context_dependencies.extend(contexts);
   }
 
   pub fn add_missing_dependency(&mut self, missing: PathBuf) {
-    self.missing_dependencies.insert(missing.normalize());
+    self.missing_dependencies.insert(missing);
   }
 
   pub fn add_missing_dependencies(&mut self, missing: impl IntoIterator<Item = PathBuf>) {
-    self
-      .missing_dependencies
-      .extend(missing.into_iter().map(|x| x.normalize()));
+    self.missing_dependencies.extend(missing);
   }
 }
 

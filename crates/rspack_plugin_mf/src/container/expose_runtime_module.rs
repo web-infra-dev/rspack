@@ -1,9 +1,9 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
 
 use super::container_entry_module::CodeGenerationDataExpose;
 use crate::utils::json_stringify;
@@ -37,7 +37,7 @@ impl ExposeRuntimeModule {
       for m in modules {
         let code_gen = compilation
           .code_generation_results
-          .get(&m.identifier(), Some(&chunk.runtime));
+          .get(&m.identifier(), Some(chunk.runtime()));
         if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
           return Some(data);
         };

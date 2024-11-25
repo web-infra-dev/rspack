@@ -1,8 +1,8 @@
 pub mod base64 {
   use std::borrow::Cow;
+  use std::sync::LazyLock;
 
   use base64_simd::{Base64 as Raw, Error, STANDARD};
-  use once_cell::sync::Lazy;
   use regex::Regex;
 
   pub struct Base64(Raw);
@@ -37,8 +37,8 @@ pub mod base64 {
     BASE64.0.decode_to_vec(data)
   }
 
-  static INVALID_BASE64_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"[^+/0-9A-Za-z-_]").expect("Invalid RegExp"));
+  static INVALID_BASE64_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"[^+/0-9A-Za-z-_]").expect("Invalid RegExp"));
 
   // modified from https://github.com/feross/buffer/blob/795bbb5bda1b39f1370ebd784bea6107b087e3a7/index.js#L1942
   // Buffer.from in nodejs will clean base64 first, which causes some inconsistent behavior with base64_simd

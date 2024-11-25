@@ -5,17 +5,23 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage"
+    "test": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage",
+    "testu": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --updateSnapshot"
   },
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-minify": "workspace:*",
+    "@swc/core": "1.4.0",
+    "@swc/jest": "^0.2.36",
     "css-loader": "^6.11.0",
     "file-loader": "^6.2.0",
-    "sass-loader": "14.2.1",
-    "jsdom": "^24.0.0",
+    "html-loader": "2.1.1",
+    "pug-loader": "2.4.0",
+    "sass-embedded": "^1.77.8",
+    "sass-loader": "^16.0.0",
+    "jsdom": "^25.0.0",
     "del": "^6.0.0",
+    "lodash": "^4.17.21",
     "memfs": "4.8.1"
   },
   "dependencies": {}

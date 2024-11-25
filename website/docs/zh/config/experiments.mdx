@@ -1,33 +1,35 @@
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '@components/PropertyType';
+
+<WebpackLicense from="https://webpack.js.org/configuration/experiments/" />
 
 # Experiments
 
-该选项赋予用户激活和尝试实验功能的能力。
+该选项允许用户开启和尝试一些实验性的功能。
 
 - **类型：** `object`
+
+:::tip
+在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。因此，如果你使用了实验性特性，请留意 minor 版本的更新日志。
+:::
 
 ## experiments.asyncWebAssembly
 
 - **类型：** `boolean`
 - **默认值：** `false`
 
-支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块
-当设置 [`experiments.futureDefaults`](#experimentsfuturedefaults) 为 `true` 时，默认启用此功能。
+支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块。
 
-## experiments.incrementalRebuild
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    asyncWebAssembly: true,
+  },
+};
+```
 
-<ApiMeta
-  deprecatedVersion="0.4.0"
-  removedVersion="0.5.0"
-  stability={Stability.Removed}
-/>
-
-启用增量重新编译。当启用此选项，Rspack 在重新编译时会尝试复用上次构建的结果来提升构建速度，支持对不同阶段进行配置，默认为开启状态。
-
-0.5 版本移除该配置并内置开启该功能。
-
-- **类型：** `boolean | { make?: boolean, emitAsset?: boolean }`
-- **默认值：** `true`
+当设置 [experiments.futureDefaults](#experimentsfuturedefaults) 为 `true` 时，默认启用此功能。
 
 ## experiments.outputModule
 
@@ -46,6 +48,9 @@ module.exports = {
 
 ## experiments.css
 
+- **类型：** `boolean`
+- **默认值：** `false`
+
 启用原生 CSS 支持和 CSS 相关的 parser 和 generator options：
 
 - [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
@@ -55,9 +60,15 @@ module.exports = {
 - [`module.generator.css`](/config/module#modulegeneratorcss)
 - [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
 
-:::warning
-如果你在使用 `style-loader` 和 `css-loader` 请关闭该配置，因为 `style-loader` 和 `css-loader` 和原生 CSS 功能冲突。
-:::
+基本示例：
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    css: true,
+  },
+};
+```
 
 ## experiments.futureDefaults
 
@@ -73,22 +84,41 @@ module.exports = {
 
 ## experiments.topLevelAwait
 
-<ApiMeta addedVersion="0.3.8" />
+开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
-开启打包 [top level await](https://github.com/tc39/proposal-top-level-await) 的支持，`top level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
+默认开启，可通过该配置关闭：
 
-默认开启，可通过该配置关闭。
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    topLevelAwait: false,
+  },
+};
+```
 
 ## experiments.lazyCompilation
 
-<ApiMeta addedVersion="0.7.0" />
-
-- **类型：**
+- **类型：** `boolean | LazyCompilationOptions`
+- **默认值：** `false`
 
 ```ts
 type LazyCompilationOptions =
   | boolean
   | {
+      backend?: {
+        /**
+         * A custom client.
+         */
+        client?: string;
+        /**
+         * Specify where to listen to from the server.
+         */
+        listen?: number | ListenOptions;
+        /**
+         * Specify the protocol the client should use to connect to the server.
+         */
+        protocol?: 'http' | 'https';
+      };
       /**
        * 为 entries 启用 lazy compilation
        */
@@ -103,8 +133,6 @@ type LazyCompilationOptions =
       test?: RegExp | ((m: Module) => boolean);
     };
 ```
-
-- **默认值：** `false`
 
 开启懒编译，这对提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能会非常有帮助。例如你有二十个入口，只有访问到的入口才会进行构建，或者如果项目中存在非常多的 `import()`，每一个 `import()` 所指向的模块都只有在被真正访问到时，才进行构建。
 
@@ -126,6 +154,26 @@ module.exports = {
 :::note
 当前 lazy compilation 是对齐 webpack 实现的，**并且仍处于实验性阶段**。在部分场景下，lazy compilation 可能无法按照预期工作，或是性能提升不明显。
 :::
+
+### experiments.lazyCompilation.backend.listen
+
+- **类型：** `number | ListenOptions`
+
+```ts
+type ListenOptions = {
+  port?: number | undefined;
+  host?: string | undefined;
+  backlog?: number | undefined;
+  path?: string | undefined;
+  exclusive?: boolean | undefined;
+  readableAll?: boolean | undefined;
+  writableAll?: boolean | undefined;
+  /**
+   * @default false
+   */
+  ipv6Only?: boolean | undefined;
+};
+```
 
 ### 排除 HMR client
 
@@ -155,318 +203,131 @@ new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
 }).apply(compiler);
 ```
 
+## experiments.layers
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+控制是否启用 layer 功能，layer 可以为模块图中以一个模块作为起点的子图中的所有模块添加标识符前缀，用来与其他不同 layer 的模块进行区分，比如：
+
+`index.js` 模块的 layer 为默认的 `null`，其 `identifier` 为 `./index.js`，我们为其添加 `layer = 'client'`，其 `identifier` 会变成 `(client)/./index.js`，这时这两个不同 layer 的 `index.js` 会被区分为不同的模块，因为其唯一标识 `identifier` 不一样，最终产物中也会存在这两个模块的产物。
+
+模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    layers: true,
+  },
+};
+```
+
+## experiments.incremental
+
+<ApiMeta addedVersion="1.1.0-beta.0" />
+
+<PropertyType
+  type="boolean | Incremental"
+  defaultValueList={[
+    { defaultValue: 'false', mode: 'production' },
+    { defaultValue: '{ make: true, emitAssets: true }', mode: 'development' },
+  ]}
+/>
+
+```ts
+type Incremental = {
+  make?: boolean;
+  inferAsyncModules?: boolean;
+  providedExports?: boolean;
+  dependenciesDiagnostics?: boolean;
+  buildChunkGraph?: boolean;
+  modulesHashes?: boolean;
+  modulesCodegen?: boolean;
+  modulesRuntimeRequirements?: boolean;
+  chunksRuntimeRequirements?: boolean;
+  chunksHashes?: boolean;
+  chunksRender?: boolean;
+  emitAssets?: boolean;
+};
+```
+
+是否增量地进行重构建，加快重构建或 HMR 的速度，建议仅在开发时启用：
+
+```js
+const isDev = process.env.NODE_ENV;
+module.exports = {
+  mode: isDev ? 'development' : 'production',
+  experiments: {
+    incremental: isDev,
+  },
+};
+```
+
+`true` 表示对全部阶段启用增量，`false` 表示对全部阶段关闭增量，也可以仅对指定的部分阶段开启增量：
+
+```js
+module.exports = {
+  experiments: {
+    // 对全部阶段启用增量
+    incremental: true,
+    // 对全部阶段关闭增量
+    incremental: false,
+    // 仅对指定的部分阶段开启增量
+    incremental: {
+      make: true,
+      emitAssets: true,
+    },
+  },
+};
+```
+
+目前 Rspack 默认开启 `make` 和 `emitAssets` 阶段的增量，这也是之前 Rspack v1.0 的默认行为。随着该特性的进一步稳定，我们会默认开启更多阶段的增量，直到完全启用。
+
+:::tip
+该特性属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
+:::
+
 ## experiments.rspackFuture
 
-<ApiMeta addedVersion="0.3.2" />
-
 - **类型：** `object`
-
 - **默认值：** 参考下方各项配置
 
 用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
 
-### experiments.rspackFuture.disableTransformByDefault
+### experiments.rspackFuture.bundlerInfo
 
-<ApiMeta
-  addedVersion="0.3.5"
-  removedVersion="0.5.0"
-  stability={Stability.Removed}
-/>
+<ApiMeta addedVersion="1.0.0" />
 
-- **类型：** `boolean`
-
-- **引入版本：** v0.3.5
-
-- **默认开启版本：** v0.4.0
-
-- **移除版本：** v0.5.0
-
-- **说明：**
-
-  该功能主要对于三类问题进行处理：[builtins](/config/builtins) 代码转换功能，[target](/config/target)，自定义 [Rule.type](/config/module#ruletype)
-
-  1. **移除对部分 [builtins](/config/builtins) 功能的支持：**
-
-  - [builtins.relay](/config/builtins#builtinsrelay)
-  - [builtins.react](/config/builtins#builtinsreact)
-  - [builtins.emotion](/config/builtins#builtinsemotion)
-  - [builtins.pluginImport](/config/builtins#builtinspluginimport)
-  - [builtins.decorator](/config/builtins#builtinsdecorator)
-  - [builtins.presetEnv](/config/builtins#builtinspresetenv)
-
-  这部分配置项应当作用于被选中的相应模块，而使用 `builtins.(relay|react|emotion|pluginImport|decorator)` 则等于是全局开启，这种方案不被推崇，因此将被废弃。
-
-  在开启 `disableTransformByDefault` 后，上述配置项将失效，迁移指南可以参考 [builtin:swc-loader/options.rspackExperiments](/guide/features/loader#optionsrspackexperiments)。
-
-  例如我们希望 `emotion` 的转换被应用于所有 `jsx` 文件：
-
-  ```js title="rspack.config.js"
-  module.exports = {
-    module: {
-      rules: [
-        {
-          test: /\.jsx$/,
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: "ecmascript",
-                jsx: true
-              }
-            },
-            rspackExperiments: {
-              emotion: true // 配置项和原 builtins 保持一致
-            }
-          }
-          type: 'javascript/auto',
-        },
-      ],
-    },
-    experiments: {
-      rspackFuture: {
-        disableTransformByDefault: true
-      }
-    }
+- **类型：**
+  ```ts
+  type BundlerInfo = {
+    version?: string,
+    bundler?: string,
+    force?: ('version' | 'uniqueId')[] ｜ boolean;
   };
   ```
 
-  对于 decorator 的配置项可以在，swc 代码中找到并替换，如 [legacyDecorator](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator)，[decoratorMetadata](https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator)。
+用于在生成产物中注入当前使用的 Rspack 信息。其中：
 
-  2. **[target](/config/target) 将不会对用户侧代码做降级**
+- `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
+- `bundler`：用于指定打包工具名称，默认为 `rspack`
+- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `true` 即强制注入，可通过数组选择强制注入的项目。
 
-  在**以往**的版本中，我们通常会配置 `target: ["web", "es5"]` 来生成适用于 web 和降级后的代码。
+#### 关闭默认注入
 
-  现在，当用户开启了 `disableTransformByDefault` 配置项后，`target` 仅会被用于控制 runtime 代码（除了用户编写、node_modules 内的 Rspack 生成的代码，例如 chunk 加载等等）
+可通过将 `force` 设定为 `false` 来关闭默认注入，此时仅在检测到代码中使用了 `__rspack_version__` 和 `__rspack_unique_id__` 时才会注入：
 
-  这和 webpack 的插件化设计思维完成了对齐，你可以使用 `builtin:swc-loader` 的 [`env`](https://swc.rs/docs/configuration/compilation#env) 或 [`target`](https://swc.rs/docs/configuration/compilation#jsctarget) 进行迁移，
-  并精确控制需要转译的模块：
-
-  ```js title="rspack.config.js"
-  module.exports = {
-    module: {
-      rules: [
-        {
-          test: /\.js$/,
-          exclude: /node_modules/,
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: "ecmascript"
-              },
-              target: "es5" // 注意，env 和 jsc.target 不能同时设置
-            },
-            env: { // 注意，env 和 jsc.target 不能同时设置
-              targets: "chrome >= 48"
-            }
-          }
-          type: 'javascript/auto',
-        },
-      ],
-    },
-    experiments: {
-      rspackFuture: {
-        disableTransformByDefault: true
-      }
-    }
-  };
-  ```
-
-  **注意**：在未开启 `disableTransformByDefault` 时，rspack 内置的转译器会对 `node_modules` 下的所有内容进行转译。
-  因此在开启了 `disableTransformByDefault` 后，`builtin:swc-loader` 配合 `exclude: /node_modules/` 需要确保 `node_modules` 下代码已经完成了降级，否则可能会存在兼容性问题。
-
-  3. **移除了非 webpack 兼容的 [Rule.type](/config/module#ruletype)**
-
-  这些类型被移除：
-
-  - `"typescript"`
-  - `"jsx"`
-  - `"tsx"`
-
-  对于 JS 相关的类型仅会保留：
-
-  - `"javascript/auto"`
-  - `"javascript/esm"`
-  - `"javascript/dynamic"`
-
-  在开启 `disableTransformByDefault` 后，Rspack 仅支持符合 web 标准的输入，对齐 webpack 的设计理念。
-
-  在我们完成和 webpack 的讨论后，webpack 和 Rspack 将会提供更加开箱即用的配置，以支持非标准的输入，如 TypeScript 等。
-
-  由于目前对于 `jsx`, `tsx`, `ts` 后缀名的文件会隐式地开启转译，因此在开启 `disableTransformByDefault` 后会提示编译报错，你可以这样完成迁移：
-
-  ```js title="rspack.config.js"
-  module.exports = {
-    module: {
-      rules: [
-        {
-          test: /\.ts$/,
-          exclude: /node_modules/,
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: "typescript"
-              }
-            }
-          }
-          type: 'javascript/auto',
-        },
-      ],
-      {
-        test: /\.tsx$/,
-        exclude: /node_modules/,
-        loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            parser: {
-              syntax: "typescript",
-              tsx: true
-            }
-          }
-        }
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.jsx$/,
-        exclude: /node_modules/,
-        loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            parser: {
-              syntax: "ecmascript",
-              jsx: true
-            }
-          }
-        }
-      }
-    },
-    experiments: {
-      rspackFuture: {
-        disableTransformByDefault: true
-      }
-    }
-  };
-  ```
-
-### experiments.rspackFuture.newResolver
-
-<ApiMeta
-  addedVersion="0.3.7"
-  removedVersion="0.5.0"
-  stability={Stability.Removed}
-/>
-
-- **类型：** `boolean`
-
-- **引入版本：** v0.3.5
-
-- **默认开启版本：** v0.4.0
-
-- **移除版本：** v0.5.0
-
-该功能将会开启新版 resolver，新的实现比旧版的 resolver 快了 5 倍。
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__)：注入版本信息
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__)：注入打包工具唯一ID
 
 ```js title="rspack.config.js"
 module.exports = {
   experiments: {
     rspackFuture: {
-      newResolver: true,
+      bundlerInfo: { force: false },
     },
   },
 };
-```
-
-新的 resolver 同时提供了在 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin#references-_string-defaultundefined) 中定义的[tsconfig project references](https://www.typescriptlang.org/docs/handbook/project-references.html) 功能。
-具体请参考 [resolve API](/config/resolve#resolvetsconfig).
-
-```js title="rspack.config.js"
-module.exports = {
-  resolve: {
-    tsconfig: {
-      configFile: path.resolve(__dirname, './tsconfig.json'),
-      references: 'auto'
-    },
-  }
-  experiments: {
-    rspackFuture: {
-      newResolver: true
-    }
-  }
-}
-```
-
-### experiments.rspackFuture.newTreeshaking
-
-<ApiMeta addedVersion="0.4.2" removedVersion="0.7.0" />
-
-- **类型：** `boolean`
-- **引入版本：** v0.4.2
-- **默认开启版本：** v0.6.0
-- **移除版本：** v0.7.0
-
-:::warning
-从 0.7.0 版本开始，newTreeshaking 默认开启并且不能切换回已废弃的老 tree shaking 算法。
-:::
-
-该功能启用了与 webpack 相同的新摇树优化实现，可以生成更高效和更小的代码。
-
-```js title="rspack.config.js"
-module.exports = {
-  experiments: {
-    rspackFuture: {
-      newTreeshaking: true,
-    },
-  },
-};
-```
-
-### experiments.rspackFuture.disableApplyEntryLazily
-
-<ApiMeta
-  addedVersion="0.4.5"
-  removedVersion="0.6.0"
-  stability={Stability.Removed}
-/>
-
-- **类型：** `boolean`
-- **引入版本：** v0.4.5
-- **默认开启版本：** v0.5.0
-- **移除版本：** v0.6.0
-
-在未开启该功能时，在 `compiler.hooks.afterEnvironment` 调用之后仍然可以对 `options.entry` 进行有效的修改。
-
-而在开启该功能后，在 `compiler.hooks.afterEnvironment` 调用之后不会再进行 `options.entry` 的有效修改。该行为与 Webpack 一致，所以该配置对于使用 Rspack 开发应用的用户来说基本没有影响，而对于 Rspack 的插件或上层框架开发者需要注意。
-
-一个常见的场景就是在[创建 Compiler 之后增加一些入口](https://github.com/webpack/webpack-dev-server/blob/540c43852ea33f9cb18820e1cef05d5ddb86cc3e/lib/Server.js#L719-L783)：
-
-```js
-const rspack = require('@rspack/core');
-const compiler = rspack(options);
-
-function prependEntry(compiler, additionalEntry) {
-  for (const key in compiler.options.entry) {
-    compiler.options.entry[key].import = [
-      additionalEntry,
-      ...(compiler.options.entry[key].import || []),
-    ];
-  }
-}
-
-prependEntry(compiler, 'dev-client.js');
-```
-
-在开启该功能后修改将不生效，需要进行如下修改：
-
-```js
-const rspack = require('@rspack/core');
-const compiler = rspack(options);
-
-function prependEntry(compiler, additionalEntry) {
-  new compiler.webpack.EntryPlugin(compiler.context, additionalEntry, {
-    name: undefined,
-  }).apply(compiler);
-}
-
-prependEntry(compiler, 'dev-client.js');
 ```

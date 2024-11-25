@@ -7,8 +7,12 @@ const root = path.resolve(__dirname, "../");
 const config = {
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
-		"<rootDir>/**/*.test.js"
+		"<rootDir>/**/*.test.js",
+		"<rootDir>/**/*.test.ts"
 	],
+	transform: {
+    '^.+\\.ts?$': '@swc/jest',
+  },
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	cache: false,

@@ -1,5 +1,5 @@
+import { stripVTControlCharacters as stripAnsi } from "node:util";
 import { diff as jestDiff } from "jest-diff";
-import stripAnsi from "strip-ansi";
 
 import type {
 	ECompilerType,
@@ -11,31 +11,7 @@ import { SimpleTaskProcessor } from "./simple";
 
 const CURRENT_CWD = process.cwd();
 
-const quoteMeta = (str: string) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
-const cwdRegExp = new RegExp(
-	`${quoteMeta(CURRENT_CWD)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
-	"g"
-);
-const escapedCwd = JSON.stringify(CURRENT_CWD).slice(1, -1);
-const escapedCwdRegExp = new RegExp(
-	`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
-	"g"
-);
-const normalize = (str: string) => {
-	if (CURRENT_CWD.startsWith("/")) {
-		str = str.replace(new RegExp(quoteMeta(CURRENT_CWD), "g"), "<cwd>");
-	} else {
-		str = str.replace(cwdRegExp, (m, g) => `<cwd>${g.replace(/\\/g, "/")}`);
-		str = str.replace(
-			escapedCwdRegExp,
-			(m, g) => `<cwd>${g.replace(/\\\\/g, "/")}`
-		);
-	}
-	str = str.replace(/@@ -\d+,\d+ \+\d+,\d+ @@/g, "@@ ... @@");
-	return str;
-};
-
-class Diff {
+class RspackTestDiff {
 	constructor(public value: string) {}
 }
 
@@ -44,7 +20,7 @@ export interface IDefaultsConfigProcessorOptions<T extends ECompilerType> {
 	cwd?: string;
 	name: string;
 	diff: (
-		diff: jest.JestMatchers<Diff>,
+		diff: jest.JestMatchers<RspackTestDiff>,
 		defaults: jest.JestMatchers<TCompilerOptions<T>>
 	) => Promise<void>;
 	compilerType: T;
@@ -60,7 +36,7 @@ export class DefaultsConfigProcessor<
 	) {
 		super({
 			options: context => {
-				let res;
+				let res: TCompilerOptions<T>;
 				if (typeof _defaultsConfigOptions.options === "function") {
 					res = _defaultsConfigOptions.options(context);
 				} else {
@@ -93,7 +69,7 @@ export class DefaultsConfigProcessor<
 			jestDiff(this.defaultConfig, config, { expand: false, contextLines: 0 })!
 		);
 		await this._defaultsConfigOptions.diff(
-			env.expect(new Diff(diff)),
+			env.expect(new RspackTestDiff(diff)),
 			env.expect(this.defaultConfig)
 		);
 	}
@@ -114,31 +90,12 @@ export class DefaultsConfigProcessor<
 		process.chdir(cwd);
 		const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
 			require("@rspack/core").config;
-		config = getNormalizedWebpackOptions(config);
-		applyWebpackOptionsDefaults(config);
+		const normalizedConfig = getNormalizedWebpackOptions(config);
+		applyWebpackOptionsDefaults(normalizedConfig);
 		// make snapshot stable
-		(config as any).experiments.rspackFuture.bundlerInfo.version = "$version$";
+		(normalizedConfig as any).experiments.rspackFuture.bundlerInfo.version =
+			"$version$";
 		process.chdir(CURRENT_CWD);
-		return config;
-	}
-
-	static addSnapshotSerializer(expectImpl: jest.Expect) {
-		expectImpl.addSnapshotSerializer({
-			test(value) {
-				return value instanceof Diff;
-			},
-			print(received) {
-				return normalize((received as Diff).value);
-			}
-		});
-
-		expectImpl.addSnapshotSerializer({
-			test(value) {
-				return typeof value === "string";
-			},
-			print(received) {
-				return JSON.stringify(normalize(received as string));
-			}
-		});
+		return normalizedConfig;
 	}
 }

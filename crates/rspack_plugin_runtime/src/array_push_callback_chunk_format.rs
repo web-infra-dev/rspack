@@ -2,8 +2,9 @@ use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::{error, Result};
 use rspack_hash::RspackHash;
@@ -106,8 +107,8 @@ fn render_chunk(
   let hot_update_global = &compilation.options.output.hot_update_global;
   let mut source = ConcatSource::default();
 
-  if matches!(chunk.kind, ChunkKind::HotUpdate) {
-    source.add(RawSource::Source(format!(
+  if matches!(chunk.kind(), ChunkKind::HotUpdate) {
+    source.add(RawSource::from(format!(
       "{}[{}]('{}', ",
       global_object,
       serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
@@ -115,10 +116,10 @@ fn render_chunk(
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
-      source.add(RawSource::Source(",".to_string()));
+      source.add(RawSource::from(",".to_string()));
       source.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
     }
-    source.add(RawSource::Source(")".to_string()));
+    source.add(RawSource::from(")".to_string()));
   } else {
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
 
@@ -160,9 +161,8 @@ fn render_chunk(
           &mut render_source,
         )?;
         source.add(render_source.source);
-        let runtime_requirements = compilation
-          .chunk_graph
-          .get_tree_runtime_requirements(chunk_ukey);
+        let runtime_requirements =
+          ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
           source.add(RawSource::from("return __webpack_exports__;\n"));
         }
@@ -180,11 +180,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

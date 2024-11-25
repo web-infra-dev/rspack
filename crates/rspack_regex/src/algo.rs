@@ -112,24 +112,6 @@ impl Algo {
   }
 }
 
-#[cfg(test)]
-impl Algo {
-  fn end_with_pats(&self) -> std::collections::HashSet<&str> {
-    match self {
-      Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
-      Algo::Regress(_) => panic!("expect EndWith"),
-    }
-  }
-
-  fn is_end_with(&self) -> bool {
-    matches!(self, Self::EndWith { .. })
-  }
-
-  fn is_regress(&self) -> bool {
-    matches!(self, Self::Regress(..))
-  }
-}
-
 fn is_ends_with_regex(hir: &Hir) -> bool {
   if let HirKind::Concat(list) = hir.kind() {
     list[0].kind() != &HirKind::Look(Look::Start)
@@ -142,6 +124,23 @@ fn is_ends_with_regex(hir: &Hir) -> bool {
 #[cfg(test)]
 mod test_algo {
   use super::*;
+
+  impl Algo {
+    fn end_with_pats(&self) -> std::collections::HashSet<&str> {
+      match self {
+        Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
+        Algo::Regress(_) => panic!("expect EndWith"),
+      }
+    }
+
+    fn is_end_with(&self) -> bool {
+      matches!(self, Self::EndWith { .. })
+    }
+
+    fn is_regress(&self) -> bool {
+      matches!(self, Self::Regress(..))
+    }
+  }
 
   #[test]
   fn should_use_end_with_algo_with_i_flag() {

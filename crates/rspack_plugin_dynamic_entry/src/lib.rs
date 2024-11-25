@@ -52,8 +52,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let decs = entry_fn().await?;
   for EntryDynamicResult { import, options } in decs {
     for entry in import {
-      let dependency: BoxDependency =
-        Box::new(EntryDependency::new(entry, self.context.clone(), false));
+      let dependency: BoxDependency = Box::new(EntryDependency::new(
+        entry,
+        self.context.clone(),
+        options.layer.clone(),
+        false,
+      ));
       compilation.add_entry(dependency, options.clone()).await?;
     }
   }
@@ -62,11 +66,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[async_trait]
 impl Plugin for DynamicEntryPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

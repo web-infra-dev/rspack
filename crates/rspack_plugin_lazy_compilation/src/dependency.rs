@@ -12,8 +12,7 @@ pub(crate) struct LazyCompilationDependency {
 
 impl LazyCompilationDependency {
   pub fn new(original_module_create_data: ModuleFactoryCreateData) -> Self {
-    let dep = original_module_create_data
-      .dependency
+    let dep = original_module_create_data.dependencies[0]
       .as_module_dependency()
       .expect("LazyCompilation: should convert to module dependency");
     let request = dep.request().to_string();
@@ -46,5 +45,9 @@ impl Dependency for LazyCompilationDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::LazyImport
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::Transitive
   }
 }

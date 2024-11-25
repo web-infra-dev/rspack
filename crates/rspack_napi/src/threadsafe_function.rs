@@ -1,15 +1,12 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData, sync::Arc};
 
 use napi::{
   bindgen_prelude::{
-    check_status, Either3, Either4, FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName,
-    ValidateNapiValue,
+    Either3, Either4, FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue,
   },
   sys::{self, napi_env},
-  threadsafe_function::{
-    ErrorStrategy, ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode,
-  },
-  Either, Env, JsUnknown, NapiRaw, Status, ValueType,
+  threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Either, Env, JsUnknown as Unknown, NapiRaw, Status, ValueType,
 };
 use oneshot::Receiver;
 use rspack_error::{miette::IntoDiagnostic, Error, Result};
@@ -18,20 +15,20 @@ use crate::{JsCallback, NapiErrorExt};
 
 type ErrorResolver = dyn FnOnce(Env);
 
-pub struct ThreadsafeFunction<T: 'static, R> {
-  inner: RawThreadsafeFunction<T, ErrorStrategy::Fatal>,
+pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
+  inner: Arc<RawThreadsafeFunction<T, Unknown, T, false, true>>,
   env: napi_env,
   resolver: JsCallback<Box<ErrorResolver>>,
   _data: PhantomData<R>,
 }
 
-impl<T, R> Debug for ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> Debug for ThreadsafeFunction<T, R> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ThreadsafeFunction").finish_non_exhaustive()
   }
 }
 
-impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> Clone for ThreadsafeFunction<T, R> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -42,19 +39,18 @@ impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
   }
 }
 
-unsafe impl<T: 'static, R> Sync for ThreadsafeFunction<T, R> {}
-unsafe impl<T: 'static, R> Send for ThreadsafeFunction<T, R> {}
+unsafe impl<T: 'static + JsValuesTupleIntoVec, R> Sync for ThreadsafeFunction<T, R> {}
+unsafe impl<T: 'static + JsValuesTupleIntoVec, R> Send for ThreadsafeFunction<T, R> {}
 
 impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<T, R> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let inner = unsafe {
-      <RawThreadsafeFunction<T, ErrorStrategy::Fatal> as FromNapiValue>::from_napi_value(
+      <RawThreadsafeFunction<T, Unknown, T, false, true> as FromNapiValue>::from_napi_value(
         env, napi_val,
       )
     }?;
-    check_status!(unsafe { sys::napi_unref_threadsafe_function(env, inner.raw()) })?;
     Ok(Self {
-      inner,
+      inner: Arc::new(inner),
       env,
       resolver: unsafe { JsCallback::new(env) }?,
       _data: PhantomData,
@@ -62,7 +58,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
   }
 }
 
-impl<T: 'static, R> ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
     self.resolver.call(Box::new(move |env| {
@@ -74,14 +70,13 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
 
   fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
     let (tx, rx) = oneshot::channel::<Result<D>>();
-    let env = self.env;
     self
       .inner
-      .call_with_return_value_raw(value, ThreadsafeFunctionCallMode::NonBlocking, {
-        move |r: napi::Result<JsUnknown>| {
+      .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, {
+        move |r: napi::Result<Unknown>, env| {
           let r = match r {
-            Err(err) => Err(err.into_rspack_error_with_detail(&unsafe { Env::from_raw(env) })),
-            Ok(o) => unsafe { D::from_napi_value(env, o.raw()) }.into_diagnostic(),
+            Err(err) => Err(err.into_rspack_error_with_detail(&env)),
+            Ok(o) => unsafe { D::from_napi_value(env.raw(), o.raw()) }.into_diagnostic(),
           };
           tx.send(r)
             .unwrap_or_else(|_| panic!("failed to send tsfn value"));
@@ -102,7 +97,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
   }
 }
 
-impl<T: 'static, R> ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   /// Synchronously call JS function and report error as `uncaughtException`.
   /// See: [napi_create_threadsafe_function](https://nodejs.org/dist/latest/docs/api/n-api.html#napi_create_threadsafe_function)
   pub fn call_with_fatal(&self, value: T) {
@@ -113,7 +108,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
   }
 }
 
-impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> ThreadsafeFunction<T, R> {
   /// Call the JS function.
   pub async fn call_with_sync(&self, value: T) -> Result<R> {
     self.call_async::<R>(value).await
@@ -125,7 +120,9 @@ impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, R> {
   }
 }
 
-impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue> ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue + ValidateNapiValue>
+  ThreadsafeFunction<T, R>
+{
   /// Call the JS function.
   /// This method expects the returned value of JS function to be a `Promise<R>` or `R`.
   /// If `Promise<T>` is returned, it will be awaited and its value `T` will be returned.
@@ -145,7 +142,9 @@ impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue> ThreadsafeFunct
   }
 }
 
-impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, Promise<R>> {
+impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
+  ThreadsafeFunction<T, Promise<R>>
+{
   /// Call the JS function.
   /// If `Promise<T>` is returned, it will be awaited and its value `T` will be returned.
   /// Otherwise, an [napi::Error] is returned.
@@ -160,8 +159,10 @@ impl<T: 'static, R: 'static + FromNapiValue> ThreadsafeFunction<T, Promise<R>> {
   }
 }
 
-impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue + TypeName>
-  ThreadsafeFunction<T, Either<Promise<R>, R>>
+impl<
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue + ValidateNapiValue + TypeName,
+  > ThreadsafeFunction<T, Either<Promise<R>, R>>
 {
   /// Call the JS function and resolve the returned value depending on its type.
   /// If `Promise<T>` is returned, it will be awaited and its value `T` will be returned.
@@ -177,8 +178,10 @@ impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue + TypeName>
   }
 }
 
-impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue + TypeName>
-  ThreadsafeFunction<T, Either<R, Promise<R>>>
+impl<
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue + ValidateNapiValue + TypeName,
+  > ThreadsafeFunction<T, Either<R, Promise<R>>>
 {
   /// Call the JS function and resolve the returned value depending on its type.
   /// If `Promise<T>` is returned, it will be awaited and its value `T` will be returned.
@@ -195,7 +198,7 @@ impl<T: 'static, R: 'static + FromNapiValue + ValidateNapiValue + TypeName>
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
   > ThreadsafeFunction<T, Either3<T0, T1, Promise<Either<T0, T1>>>>
@@ -219,7 +222,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
   > ThreadsafeFunction<T, Either3<T0, Promise<Either<T0, T1>>, T1>>
@@ -243,7 +246,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
   > ThreadsafeFunction<T, Either3<Promise<Either<T0, T1>>, T0, T1>>
@@ -267,7 +270,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T2: 'static + FromNapiValue + ValidateNapiValue + TypeName,
@@ -293,7 +296,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T2: 'static + FromNapiValue + ValidateNapiValue + TypeName,
@@ -319,7 +322,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T2: 'static + FromNapiValue + ValidateNapiValue + TypeName,
@@ -345,7 +348,7 @@ impl<
 }
 
 impl<
-    T: 'static,
+    T: 'static + JsValuesTupleIntoVec,
     T0: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T1: 'static + FromNapiValue + ValidateNapiValue + TypeName,
     T2: 'static + FromNapiValue + ValidateNapiValue + TypeName,
@@ -370,9 +373,12 @@ impl<
   }
 }
 
-impl<T: 'static + JsValuesTupleIntoVec, R> ValidateNapiValue for ThreadsafeFunction<T, R> {}
+impl<T: 'static + JsValuesTupleIntoVec + JsValuesTupleIntoVec, R> ValidateNapiValue
+  for ThreadsafeFunction<T, R>
+{
+}
 
-impl<T: 'static, R> TypeName for ThreadsafeFunction<T, R> {
+impl<T: 'static + JsValuesTupleIntoVec, R> TypeName for ThreadsafeFunction<T, R> {
   fn type_name() -> &'static str {
     "ThreadsafeFunction"
   }

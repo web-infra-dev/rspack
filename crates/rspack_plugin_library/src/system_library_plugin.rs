@@ -23,6 +23,7 @@ struct SystemLibraryPluginParsed<'a> {
 }
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 struct SystemLibraryJavascriptModulesPluginPlugin;
 
 #[plugin]
@@ -98,7 +99,7 @@ fn render(
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
-    .get_chunk_module_identifiers(chunk_ukey)
+    .get_chunk_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {
       module_graph
@@ -200,11 +201,7 @@ impl Plugin for SystemLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

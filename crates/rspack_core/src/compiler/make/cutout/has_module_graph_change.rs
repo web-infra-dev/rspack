@@ -1,17 +1,39 @@
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use indexmap::IndexMap;
+use rspack_collections::IdentifierMap;
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::atoms::Atom;
 
 use super::super::MakeArtifact;
-use crate::{
-  AsyncDependenciesBlockIdentifier, DependencyId, GroupOptions, ModuleGraph, ModuleIdentifier,
-};
+use crate::{AsyncDependenciesBlockIdentifier, GroupOptions, ModuleGraph, ModuleIdentifier};
 
-#[derive(Debug, Default, Eq, PartialEq, Clone)]
+#[derive(Debug, Default, Clone)]
 struct ModuleDeps {
   // child module identifier of current module
-  child_modules: HashMap<ModuleIdentifier, HashSet<Atom>>,
+  child_modules: IndexMap<ModuleIdentifier, HashSet<Atom>>,
   // blocks in current module
   module_blocks: Vec<(AsyncDependenciesBlockIdentifier, Option<GroupOptions>)>,
+}
+
+impl std::cmp::PartialEq for ModuleDeps {
+  fn eq(&self, other: &Self) -> bool {
+    // check imports order
+    if !self.child_modules.iter().eq(other.child_modules.iter()) {
+      return false;
+    }
+    /* TODO:
+     * we should check order in imported ids as well,
+     * different ids may comes from different modules
+     * after reexports optimized, but check the order
+     * of imported ids can break some usual sceneries
+     * like turns `import {A, B} from 'foo'` into
+     * `import {B, A} from 'foo'`, chunk graph cannot
+     * change, this is usual in development, we will
+     * drop this module deps support after newIncremental
+     * is stabilized
+     */
+
+    self.module_blocks == other.module_blocks
+  }
 }
 
 impl ModuleDeps {
@@ -22,14 +44,14 @@ impl ModuleDeps {
       .expect("should have module");
 
     let deps = module.get_dependencies();
-    let mut child_deps: HashMap<ModuleIdentifier, HashSet<Atom>> = Default::default();
+    let mut child_deps: IndexMap<ModuleIdentifier, HashSet<Atom>> = Default::default();
 
     for dep_id in deps {
       let dep = module_graph
         .dependency_by_id(dep_id)
         .expect("should have dependency");
 
-      let Some(conn) = module_graph.connection_by_dependency(dep_id) else {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
         continue;
       };
       let identifier = conn.module_identifier();
@@ -61,7 +83,8 @@ impl ModuleDeps {
 #[derive(Debug, Default)]
 pub struct HasModuleGraphChange {
   disabled: bool,
-  origin_module_deps: HashMap<ModuleIdentifier, ModuleDeps>,
+  expect_built_modules_len: usize,
+  origin_module_deps: IdentifierMap<ModuleDeps>,
 }
 
 impl HasModuleGraphChange {
@@ -77,12 +100,17 @@ impl HasModuleGraphChange {
     );
   }
 
-  pub fn analyze_force_build_deps(
-    &mut self,
-    deps: &HashSet<(DependencyId, Option<ModuleIdentifier>)>,
-  ) {
-    if deps.is_empty() {
+  pub fn analyze_artifact(&mut self, artifact: &MakeArtifact) {
+    if artifact.has_module_graph_change {
       self.disabled = true;
+      return;
+    }
+
+    self.expect_built_modules_len = artifact.built_modules.len();
+    for module_identifier in self.origin_module_deps.keys() {
+      if !artifact.built_modules.contains(module_identifier) {
+        self.expect_built_modules_len += 1;
+      }
     }
   }
 
@@ -91,23 +119,20 @@ impl HasModuleGraphChange {
     if self.disabled {
       return;
     }
-    if self.origin_module_deps.is_empty() {
-      // origin_module_deps empty means no force_build_module and no file changed
-      // this only happens when build from entry
+    if artifact.built_modules.len() != self.expect_built_modules_len {
+      // contain unexpected module built
       artifact.has_module_graph_change = true;
       return;
     }
-    // if artifact.has_module_graph_change is true, no need to recalculate
-    if !artifact.has_module_graph_change {
-      for (module_identifier, module_deps) in self.origin_module_deps {
-        if module_graph
-          .module_by_identifier(&module_identifier)
-          .is_none()
-          || ModuleDeps::from_module(module_graph, &module_identifier) != module_deps
-        {
-          artifact.has_module_graph_change = true;
-          return;
-        }
+
+    for (module_identifier, module_deps) in self.origin_module_deps {
+      if module_graph
+        .module_by_identifier(&module_identifier)
+        .is_none()
+        || ModuleDeps::from_module(module_graph, &module_identifier) != module_deps
+      {
+        artifact.has_module_graph_change = true;
+        return;
       }
     }
   }
@@ -118,17 +143,17 @@ mod t {
   use std::borrow::Cow;
 
   use itertools::Itertools;
+  use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-  use rspack_identifier::Identifiable;
   use rspack_macros::impl_source_map_config;
   use rspack_sources::Source;
   use rspack_util::source_map::SourceMapKind;
 
   use crate::{
-    compiler::make::cutout::has_module_graph_change::ModuleDeps, AsContextDependency, BuildInfo,
-    BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-    Dependency, DependencyId, DependencyTemplate, ExportsInfoId, FactoryMeta, Module,
-    ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
+    compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
+    BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta,
+    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
     ModuleType, RuntimeSpec, SourceType,
   };
 
@@ -162,8 +187,12 @@ mod t {
       self
         .ids
         .iter()
-        .map(|id| id.to_string().into())
+        .map(|id| (*id).to_string().into())
         .collect_vec()
+    }
+
+    fn could_affect_referencing_module(&self) -> AffectType {
+      AffectType::True
     }
   }
 
@@ -178,6 +207,15 @@ mod t {
 
     fn dependency_id(&self) -> Option<DependencyId> {
       None
+    }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: Option<&RuntimeSpec>,
+    ) {
+      todo!()
     }
   }
 
@@ -217,13 +255,17 @@ mod t {
       self.deps.push(dependency);
     }
 
+    fn remove_dependency_id(&mut self, dependency: DependencyId) {
+      self.deps.retain(|dep| dep != &dependency);
+    }
+
     fn get_dependencies(&self) -> &[DependencyId] {
       &self.deps
     }
   }
 
   impl Identifiable for TestModule {
-    fn identifier(&self) -> rspack_identifier::Identifier {
+    fn identifier(&self) -> rspack_collections::Identifier {
       self.id
     }
   }
@@ -251,7 +293,7 @@ mod t {
       todo!()
     }
 
-    fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+    fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
       todo!()
     }
 
@@ -287,6 +329,15 @@ mod t {
     ) -> Result<CodeGenerationResult> {
       todo!()
     }
+
+    fn update_hash(
+      &self,
+      _hasher: &mut dyn std::hash::Hasher,
+      _compilation: &Compilation,
+      _runtime: Option<&RuntimeSpec>,
+    ) -> Result<()> {
+      todo!()
+    }
   }
 
   #[test]
@@ -303,9 +354,9 @@ mod t {
     let module1_id = module1.id;
 
     mg.add_module(module_orig);
-    mg.add_module_graph_module(ModuleGraphModule::new(module_orig_id, ExportsInfoId::new()));
+    mg.add_module_graph_module(ModuleGraphModule::new(module_orig_id, ExportsInfo::new()));
     mg.add_module(module1);
-    mg.add_module_graph_module(ModuleGraphModule::new(module1_id, ExportsInfoId::new()));
+    mg.add_module_graph_module(ModuleGraphModule::new(module1_id, ExportsInfo::new()));
     mg.add_dependency(dep1);
     mg.set_resolved_module(Some(module_orig_id), dep1_id, module1_id)
       .unwrap();

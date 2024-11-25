@@ -1,29 +1,27 @@
 use itertools::Itertools;
 use rspack_core::{
-  create_exports_object_referenced, module_raw, ExtendedReferencedExport, ModuleGraph,
-  NormalInitFragment, RuntimeSpec, UsedName,
+  create_exports_object_referenced, module_raw, Compilation, DependencyRange, DependencyType,
+  ExtendedReferencedExport, ModuleGraph, NormalInitFragment, RuntimeSpec, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, InitFragmentKey, InitFragmentStage};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{DependencyType, ErrorSpan};
 use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
+use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone)]
 pub struct ProvideDependency {
-  start: u32,
-  end: u32,
   id: DependencyId,
   request: Atom,
   identifier: String,
   ids: Vec<Atom>,
+  range: DependencyRange,
 }
 
 impl ProvideDependency {
-  pub fn new(start: u32, end: u32, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
+  pub fn new(range: DependencyRange, request: Atom, identifier: String, ids: Vec<Atom>) -> Self {
     Self {
-      start,
-      end,
+      range,
       request,
       identifier,
       ids,
@@ -37,16 +35,16 @@ impl Dependency for ProvideDependency {
     &self.id
   }
 
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Provided
-  }
-
-  fn span(&self) -> Option<ErrorSpan> {
-    None
   }
 
   fn get_referenced_exports(
@@ -59,6 +57,10 @@ impl Dependency for ProvideDependency {
     } else {
       vec![ExtendedReferencedExport::Array(self.ids.clone())]
     }
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
   }
 }
 
@@ -90,14 +92,13 @@ impl DependencyTemplate for ProvideDependency {
       ..
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
-    let Some(con) = module_graph.connection_by_dependency(&self.id) else {
-      unreachable!();
+    let Some(con) = module_graph.connection_by_dependency_id(&self.id) else {
+      // not find connection, maybe because it's not resolved in make phase, and `bail` is false
+      return;
     };
     let exports_info = module_graph.get_exports_info(con.module_identifier());
     let used_name =
-      exports_info
-        .id
-        .get_used_name(&module_graph, *runtime, UsedName::Vec(self.ids.clone()));
+      exports_info.get_used_name(&module_graph, *runtime, UsedName::Vec(self.ids.clone()));
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* provided dependency */ var {} = {}{};\n",
@@ -113,14 +114,24 @@ impl DependencyTemplate for ProvideDependency {
       ),
       InitFragmentStage::StageProvides,
       1,
-      InitFragmentKey::ExternalModule(format!("provided {}", self.identifier)),
+      InitFragmentKey::ModuleExternal(format!("provided {}", self.identifier)),
       None,
     )));
-    source.replace(self.start, self.end, &self.identifier, None);
+    source.replace(self.range.start, self.range.end, &self.identifier, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.identifier.dyn_hash(hasher);
+    self.ids.dyn_hash(hasher);
   }
 }
 

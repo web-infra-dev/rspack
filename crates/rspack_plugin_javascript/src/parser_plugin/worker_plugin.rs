@@ -1,10 +1,10 @@
 use std::hash::Hash;
+use std::sync::LazyLock;
 
 use itertools::Itertools;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  AsyncDependenciesBlock, ConstDependency, DependencyLocation, EntryOptions, ErrorSpan,
+  AsyncDependenciesBlock, ConstDependency, DependencyLocation, DependencyRange, EntryOptions,
   GroupOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
@@ -16,13 +16,13 @@ use swc_core::{
 };
 
 use super::{
-  harmony_import_dependency_parser_plugin::{HarmonySpecifierData, HARMONY_SPECIFIER_TAG},
+  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
   url_plugin::get_url_request,
   JavascriptParserPlugin,
 };
 use crate::{
-  dependency::WorkerDependency,
-  utils::get_literal_str_by_obj_prop,
+  dependency::{CreateScriptUrlDependency, WorkerDependency},
+  utils::object_properties::get_literal_str_by_obj_prop,
   visitors::{JavascriptParser, TagInfoData},
   webpack_comment::try_extract_webpack_magic_comment,
 };
@@ -74,6 +74,7 @@ fn parse_new_worker_options_from_comments(
 fn add_dependencies(
   parser: &mut JavascriptParser,
   span: Span,
+  first_arg: &ExprOrSpread,
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
 ) {
@@ -89,20 +90,16 @@ fn add_dependencies(
   let range = parsed_options.as_ref().and_then(|options| options.range);
   let name = parsed_options.and_then(|options| options.name);
   let output_module = output_options.module;
-  let span = ErrorSpan::from(span);
   let dep = Box::new(WorkerDependency::new(
-    parsed_path.range.0,
-    parsed_path.range.1,
     parsed_path.value,
     output_options.worker_public_path.clone(),
-    Some(span),
+    span.into(),
+    parsed_path.range.into(),
   ));
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
-    Some(DependencyLocation::new(
-      span.start,
-      span.end,
-      Some(parser.source_map.clone()),
+    Some(DependencyLocation::Real(
+      Into::<DependencyRange>::into(span).with_source(parser.source_map.clone()),
     )),
     None,
     vec![dep],
@@ -118,9 +115,20 @@ fn add_dependencies(
     filename: None,
     library: None,
     depend_on: None,
+    layer: None,
   })));
 
-  parser.blocks.push(block);
+  parser.blocks.push(Box::new(block));
+
+  if parser.compiler_options.output.trusted_types.is_some() {
+    parser
+      .dependencies
+      .push(Box::new(CreateScriptUrlDependency::new(
+        span.into(),
+        first_arg.span().into(),
+      )));
+  }
+
   if let Some(range) = range {
     parser
       .presentational_dependencies
@@ -149,11 +157,15 @@ fn add_dependencies(
   }
 }
 
-fn handle_worker(
+fn handle_worker<'a>(
   parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
+  args: &'a [ExprOrSpread],
   span: Span,
-) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
+) -> Option<(
+  ParsedNewWorkerPath,
+  Option<ParsedNewWorkerOptions>,
+  &'a ExprOrSpread,
+)> {
   if let Some(expr_or_spread) = args.first()
     && let ExprOrSpread {
       spread: None,
@@ -183,7 +195,7 @@ fn handle_worker(
         // new Worker(/* options */ new URL("worker.js"))
         parse_new_worker_options_from_comments(parser, expr_or_spread.span(), span)
       });
-    Some((path, options))
+    Some((path, options, expr_or_spread))
   } else {
     None
   }
@@ -197,10 +209,16 @@ pub struct WorkerPlugin {
   pattern_syntax: FxHashMap<String, FxHashSet<String>>,
 }
 
-static WORKER_FROM_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
+static WORKER_FROM_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
+const DEFAULT_SYNTAX: [&str; 4] = [
+  "Worker",
+  "SharedWorker",
+  "navigator.serviceWorker.register()",
+  "Worker from worker_threads",
+];
 
 #[derive(Debug, Clone)]
 struct WorkerSpecifierData {
@@ -217,40 +235,50 @@ impl WorkerPlugin {
       pattern_syntax: FxHashMap::default(),
     };
     for syntax in syntax_list {
-      if let Some(syntax) = syntax.strip_prefix('*')
-        && let Some(first_dot) = syntax.find('.')
-        && let Some(syntax) = syntax.strip_suffix("()")
-      {
-        let pattern = &syntax[0..first_dot];
-        let members = &syntax[first_dot + 1..];
-        if let Some(value) = this.pattern_syntax.get_mut(pattern) {
-          value.insert(members.to_string());
-        } else {
-          this.pattern_syntax.insert(
-            pattern.to_string(),
-            FxHashSet::from_iter([members.to_string()]),
-          );
-        }
-      } else if let Some(syntax) = syntax.strip_suffix("()") {
-        this.call_syntax.insert(syntax.to_string());
-      } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
-        let ids = &captures[1];
-        let is_call = &captures.get(2).is_some();
-        let source = &captures[3];
-        if *is_call {
-          this
-            .from_call_syntax
-            .insert((ids.to_string(), source.to_string()));
-        } else {
-          this
-            .from_new_syntax
-            .insert((ids.to_string(), source.to_string()));
+      if syntax == "..." {
+        for syntax in DEFAULT_SYNTAX {
+          this.handle_syntax(syntax);
         }
       } else {
-        this.new_syntax.insert(syntax.to_string());
+        this.handle_syntax(syntax);
       }
     }
     this
+  }
+
+  fn handle_syntax(&mut self, syntax: &str) {
+    if let Some(syntax) = syntax.strip_prefix('*')
+      && let Some(first_dot) = syntax.find('.')
+      && let Some(syntax) = syntax.strip_suffix("()")
+    {
+      let pattern = &syntax[0..first_dot];
+      let members = &syntax[first_dot + 1..];
+      if let Some(value) = self.pattern_syntax.get_mut(pattern) {
+        value.insert(members.to_string());
+      } else {
+        self.pattern_syntax.insert(
+          pattern.to_string(),
+          FxHashSet::from_iter([members.to_string()]),
+        );
+      }
+    } else if let Some(syntax) = syntax.strip_suffix("()") {
+      self.call_syntax.insert(syntax.to_string());
+    } else if let Some(captures) = WORKER_FROM_REGEX.captures(syntax) {
+      let ids = &captures[1];
+      let is_call = &captures.get(2).is_some();
+      let source = &captures[3];
+      if *is_call {
+        self
+          .from_call_syntax
+          .insert((ids.to_string(), source.to_string()));
+      } else {
+        self
+          .from_new_syntax
+          .insert((ids.to_string(), source.to_string()));
+      }
+    } else {
+      self.new_syntax.insert(syntax.to_string());
+    }
   }
 }
 
@@ -310,8 +338,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
       && value.contains(&members.iter().map(|id| id.as_str()).join("."))
     {
       return handle_worker(parser, &call_expr.args, call_expr.span).map(
-        |(parsed_path, parsed_options)| {
-          add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+        |(parsed_path, parsed_options, first_arg)| {
+          add_dependencies(
+            parser,
+            call_expr.span,
+            first_arg,
+            parsed_path,
+            parsed_options,
+          );
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
           }
@@ -328,19 +362,25 @@ impl JavascriptParserPlugin for WorkerPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == HARMONY_SPECIFIER_TAG {
+    if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
-      let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
         .from_call_syntax
         .contains(&(ids, settings.source.to_string()))
       {
         return handle_worker(parser, &call_expr.args, call_expr.span).map(
-          |(parsed_path, parsed_options)| {
-            add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
+          |(parsed_path, parsed_options, first_arg)| {
+            add_dependencies(
+              parser,
+              call_expr.span,
+              first_arg,
+              parsed_path,
+              parsed_options,
+            );
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
             }
@@ -353,13 +393,21 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if !self.call_syntax.contains(for_name) {
       return None;
     }
-    handle_worker(parser, &call_expr.args, call_expr.span).map(|(parsed_path, parsed_options)| {
-      add_dependencies(parser, call_expr.span, parsed_path, parsed_options);
-      if let Some(callee) = call_expr.callee.as_expr() {
-        parser.walk_expression(callee);
-      }
-      true
-    })
+    handle_worker(parser, &call_expr.args, call_expr.span).map(
+      |(parsed_path, parsed_options, first_arg)| {
+        add_dependencies(
+          parser,
+          call_expr.span,
+          first_arg,
+          parsed_path,
+          parsed_options,
+        );
+        if let Some(callee) = call_expr.callee.as_expr() {
+          parser.walk_expression(callee);
+        }
+        true
+      },
+    )
   }
 
   fn new_expression(
@@ -368,11 +416,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == HARMONY_SPECIFIER_TAG {
+    if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
-      let settings = HarmonySpecifierData::downcast(tag_info.data.clone()?);
+      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
         .from_new_syntax
@@ -382,8 +430,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
           .args
           .as_ref()
           .and_then(|args| handle_worker(parser, args, new_expr.span))
-          .map(|(parsed_path, parsed_options)| {
-            add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+          .map(|(parsed_path, parsed_options, first_arg)| {
+            add_dependencies(
+              parser,
+              new_expr.span,
+              first_arg,
+              parsed_path,
+              parsed_options,
+            );
             parser.walk_expression(&new_expr.callee);
             true
           });
@@ -397,8 +451,14 @@ impl JavascriptParserPlugin for WorkerPlugin {
       .args
       .as_ref()
       .and_then(|args| handle_worker(parser, args, new_expr.span))
-      .map(|(parsed_path, parsed_options)| {
-        add_dependencies(parser, new_expr.span, parsed_path, parsed_options);
+      .map(|(parsed_path, parsed_options, first_arg)| {
+        add_dependencies(
+          parser,
+          new_expr.span,
+          first_arg,
+          parsed_path,
+          parsed_options,
+        );
         parser.walk_expression(&new_expr.callee);
         true
       })

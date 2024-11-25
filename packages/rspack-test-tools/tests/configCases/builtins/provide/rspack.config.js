@@ -11,14 +11,14 @@ module.exports = {
 			"bbb.ccc": "./bbbccc",
 			dddeeefff: ["./ddd", "eee", "3-f"],
 			aa1: ["./a", "c", "cube"],
-			es2015_aUsed: ["./harmony2", "aUsed"],
+			es2015_aUsed: ["./esm2", "aUsed"],
 			"process.env.NODE_ENV": "./env",
-			es2015: "./harmony",
-			es2015_name: ["./harmony", "default"],
-			es2015_alias: ["./harmony", "alias"],
-			es2015_year: ["./harmony", "year"],
+			es2015: "./esm",
+			es2015_name: ["./esm", "default"],
+			es2015_alias: ["./esm", "alias"],
+			es2015_year: ["./esm", "year"],
 			"this.aaa": "./aaa",
-			esm: "./esm.js",
+			str: "./str.js",
 			process: "./process.js"
 		})
 	]

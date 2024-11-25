@@ -1,4 +1,4 @@
-import WebpackLicense from '@components/webpack-license';
+import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/api/loaders/#examples" />
 
@@ -6,7 +6,7 @@ import WebpackLicense from '@components/webpack-license';
 
 The following sections provide some basic examples of the different types of loaders. Note that the `map` and `meta` parameters are optional, see [`this.callback`](#thiscallbackerr-error--null-content-string--buffer-sourcemap-sourcemap-meta-any) below.
 
-## Synchronous Loaders
+## Sync Loaders
 
 Either `return` or `this.callback` can be used to return the transformed `content` synchronously:
 
@@ -26,12 +26,12 @@ module.exports = function (content, map, meta) {
 ```
 
 ::: info
-Rspack, internally, will convert loaders into asynchronous regardless of it's a synchronous loader for technical and performance reason.
+Rspack, internally, will convert loaders into async regardless of it's a synchronous loader for technical and performance reason.
 :::
 
-## Asynchronous Loaders
+## Async Loaders
 
-For asynchronous loaders, `this.async` is used to retrieve the `callback` function:
+For async loaders, `this.async` is used to retrieve the `callback` function:
 
 ```js title="async-loader.js"
 module.exports = function (content, map, meta) {
@@ -52,6 +52,38 @@ module.exports = function (content, map, meta) {
   });
 };
 ```
+
+## ESM Loader
+
+Rspack supports ESM loaders, you can write loaders using ESM syntax and export the loader function using `export default`.
+
+When writing ESM loaders, the file name needs to end with `.mjs`, or set `type` to `module` in the nearest `package.json`.
+
+```js title="my-loader.mjs"
+export default function loader(content, map, meta) {
+  // ...
+}
+```
+
+If you need to set options like `raw` or `pitch`, you can use named exports:
+
+```js title="my-loader.mjs"
+export default function loader(content) {
+  // ...
+}
+
+// Set raw loader
+export const raw = true;
+
+// Add pitch function
+export function pitch(remainingRequest, precedingRequest, data) {
+  // ...
+}
+```
+
+::: tip
+ESM loader and CommonJS loader have the same functionality, but use different module syntax. You can choose the format based on your project needs.
+:::
 
 ## 'Raw' Loader
 

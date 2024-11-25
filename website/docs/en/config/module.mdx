@@ -1,4 +1,8 @@
 import { ApiMeta } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
 # Module
 
@@ -83,6 +87,7 @@ module.exports = {
         dynamicImportPrefetch: false,
         dynamicImportPreload: false,
         url: true,
+        importMeta: true,
       },
       // Parser options for CSS modules
       css: {
@@ -133,35 +138,48 @@ Parser options for `javascript` modules.
 
 #### module.parser.javascript.dynamicImportMode
 
-- **Type:** `'lazy' | 'eager'`
-- **Default:** `'lazy'`
+<PropertyType
+  type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
+  defaultValueList={[{ defaultValue: "'lazy'" }]}
+/>
 
-Specifies global mode for dynamic import.
+Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
 
 #### module.parser.javascript.dynamicImportPrefetch
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **Type:** `boolean | number`
-- **Default:** `false`
-
-Specifies global prefetch for dynamic import.
+Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
 
 #### module.parser.javascript.dynamicImportPreload
 
-<ApiMeta addedVersion="0.4.5" />
+<PropertyType
+  type="boolean | number"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **Type:** `boolean | number`
-- **Default:** `false`
+Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
 
-Specifies global preload for dynamic import.
+#### module.parser.javascript.dynamicImportFetchPriority
+
+<ApiMeta addedVersion="1.0.0" />
+
+<PropertyType
+  type="'low' | 'high' | 'auto'"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
+
+Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
 
 #### module.parser.javascript.url
 
-<ApiMeta addedVersion="0.4.4" />
-
-- **Type:** `true | false | 'relative'`
-- **Default:** `true`
+<PropertyType
+  type="true | false | 'relative'"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable parsing of `new URL()` syntax.
 
@@ -177,28 +195,45 @@ When use 'relative', Rspack would generate relative URLs for `new URL()` syntax,
 
 #### module.parser.javascript.exprContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **Type:** `boolean | undefined`
-- **Default:** `true`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'true' }]}
+/>
 
 Enable warnings for full dynamic dependencies (`import(variable)`).
 
 #### module.parser.javascript.wrappedContextCritical
 
-<ApiMeta addedVersion="0.6.3" />
-
-- **Type:** `boolean | undefined`
-- **Default:** `false`
+<PropertyType
+  type="boolean | undefined"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
+#### module.parser.javascript.wrappedContextRegExp
+
+<PropertyType
+  type="RegExp | undefined"
+  defaultValueList={[{ defaultValue: '/.*/' }]}
+/>
+
+Set a regular expression to match wrapped dynamic dependencies.
+
+#### module.parser.javascript.importMeta
+
+<ApiMeta addedVersion="1.0.0-alpha.6" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable or disable evaluating `import.meta`.
+
 #### module.parser.javascript.exportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
-- **Default:** `"auto"`
+<PropertyType
+  type="'error' | 'warn' | 'auto' | false"
+  defaultValueList={[{ defaultValue: "'auto'" }]}
+/>
 
 Warn or error for using non-existent exports and conflicting re-exports.
 
@@ -209,25 +244,27 @@ Warn or error for using non-existent exports and conflicting re-exports.
 
 #### module.parser.javascript.importExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
 
 #### module.parser.javascript.reexportExportsPresence
 
-<ApiMeta addedVersion="0.7.1" />
-
-- **Type:** `"error" | "warn" | "auto" | false`
+<PropertyType type="'error' | 'warn' | 'auto' | false" />
 
 Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+
+#### module.parser.javascript.strictExportPresence
+
+- **Type:** `boolean`
+
+Emit errors instead of warnings when imported names don't exist in imported module.
 
 #### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-- **Type:** `string[] | boolean`
+<PropertyType type="string[] | boolean" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
@@ -256,7 +293,7 @@ module.exports = {
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
-- **Type:** `'strict' | 'non-strict'`
+<PropertyType type="'strict' | 'non-strict'" />
 
 Override the module to strict or non-strict.
 
@@ -264,19 +301,13 @@ This may affect the behavior of the module (some behaviors differ between strict
 
 ### module.parser["javascript/auto"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
 ### module.parser["javascript/dynamic"]
 
-<ApiMeta addedVersion="0.6.3" />
-
 Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
 ### module.parser["javascript/esm"]
-
-<ApiMeta addedVersion="0.6.3" />
 
 Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
@@ -289,8 +320,6 @@ This configuration will only take effect when `experiments.css = true`.
 :::
 
 #### module.parser["css/auto"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -329,8 +358,6 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.parser.css.namedExports
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
 
 ### module.parser["css/module"]
@@ -342,8 +369,6 @@ This configuration will only take effect when `experiments.css = true`.
 :::
 
 #### module.parser["css/module"].namedExports
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
 
@@ -463,7 +488,7 @@ A mimetype for data URI. Resolves from module resource extension by default. Onl
 
 #### module.generator.asset.filename
 
-- **Type:** `string`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
 - **Supported Template string：** checkout [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
 
@@ -575,16 +600,12 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator["css/auto"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **Default:** `'as-is'`
 
 Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
 
 #### module.generator["css/auto"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
@@ -595,8 +616,6 @@ If `false`, generate stylesheets and embed them in the template.
 
 #### module.generator["css/auto"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
 
@@ -604,27 +623,26 @@ Customize the format of the local class names generated for CSS modules, besides
 
 #### module.generator["css/auto"].esModule
 
-<ApiMeta addedVersion="0.7.0" />
-
 - **Type:** `boolean`
 - **Default:** `true`
 
 This configuration is available for improved ESM-CJS interoperability purposes.
 
-Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES Module during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES modules during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, a common use case, when using the cjs output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
 ```js
 import style from './style.css';
+
 export function Button() {
   return <button className={style.btn}></button>;
 }
 ```
 
-The cjs format output published by the third-party component library:
+The CommonJS format output published by the third-party component library:
 
 ```js
 'use strict';
@@ -653,21 +671,11 @@ Generator options for `css` modules.
 This configuration will only take effect when `experiments.css = true`.
 :::
 
-#### module.generator.css.exportsConvention
-
-<ApiMeta addedVersion="0.6.0" removedVersion="0.7.0" />
-
-Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
-
 #### module.generator.css.exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
 #### module.generator.css.esModule
-
-<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
@@ -681,31 +689,23 @@ This configuration will only take effect when `experiments.css = true`.
 
 #### module.generator["css/module"].exportsConvention
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
 #### module.generator["css/module"].exportsOnly
-
-<ApiMeta addedVersion="0.6.0" />
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
 #### module.generator["css/module"].localIdentName
 
-<ApiMeta addedVersion="0.6.0" />
-
 Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
 
 #### module.generator["css/module"].esModule
-
-<ApiMeta addedVersion="0.7.0" />
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
 
 ## module.rules
 
-- **Type:** `Rule[]`
+- **Type:** `(Rule | Falsy)[]`
 - **Default:** `[]`
 
 An array of rules that match the module's requests when it is created. These rules can modify the creation behavior of the module. They can apply Loader, etc. to the module.
@@ -807,6 +807,71 @@ Matches all modules that match this resource, and will match against Resource (t
 
 Matches all modules that match this resource, and will match against Resource (the absolute path without query and fragment) of the module that issued the current module.
 
+### Rule.issuerLayer
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Matches all modules that match this resource, and will match against layer of the module that issued the current module.
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+A basic example:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        issuerLayer: 'other-layer',
+      },
+    ],
+  },
+};
+```
+
+A more complex example is the combination with [entry options](/config/entry#entrydescriptionlayer) to build modern and legacy bundles at the same time:
+
+```js title=rspack.config.js
+module.exports = {
+  entry: {
+    index: {
+      import: './src/index.js',
+      layer: 'modern',
+    },
+    'index-legacy': {
+      import: './src/index.js',
+      layer: 'legacy',
+    },
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        issuerLayer: 'modern',
+        options: {
+          env: { targets: ['chrome >= 100'] },
+        },
+      },
+      {
+        test: /\.js$/,
+        issuerLayer: 'legacy',
+        options: {
+          env: { targets: ['ie >= 11'] },
+        },
+      },
+    ],
+  },
+  experiments: {
+    layers: true,
+  },
+};
+```
+
 ### Rule.dependency
 
 - **Type:** [`Condition`](/config/module#condition)
@@ -865,6 +930,68 @@ module.exports = {
           name: packageJsonName => packageJsonName.includes('rspack'),
         },
         // additional rule options...
+      },
+    ],
+  },
+};
+```
+
+### Rule.with
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **Type:** `{ [key: string]: Condition }`
+- **Default:** `undefined`
+
+`with` can be used in conjunction with [import attributes](https://github.com/tc39/proposal-import-attributes).
+
+For example, the following configuration will match `{ type: "url" }` and will change the [`type`](/config/module#ruletype) of the matched modules to `"asset/resource"`:
+
+```ts title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+The following import will match:
+
+```ts
+import url from './data' with { type: 'url' };
+import('./data', { with: { type: 'url' } });
+```
+
+It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
+
+```diff title=rspack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        with: { type: 'url' },
+        type: 'asset/resource',
+      },
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            experimental: {
++             keepImportAttributes: true,
+            },
+            parser: {
+              syntax: 'typescript',
+            },
+          },
+        },
+        type: 'javascript/auto',
       },
     ],
   },
@@ -943,6 +1070,16 @@ For specific generator options and the corresponding module type, you can refer 
 
 Flag the module for side effects
 
+### Rule.enforce
+
+<PropertyType type="'pre' | 'post'" />
+
+Specifies the category of the loader.
+
+When specified as 'pre', the loader will execute before all other loaders.
+
+When specified as 'post', the loader will execute after all other loaders.
+
 ### Rule.type
 
 - **Type:** `'javascript/auto' | 'typescript' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
@@ -950,14 +1087,39 @@ Flag the module for side effects
 Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. For example, when a module is marked as `'typescript'` then the module is processed using the TS parser/generator.
 
 - `'javascript/auto'`: JavaScript modules, supported module systems: CommonJS, ESM, no plans for AMD module support at this time.
-- `'javascript/esm'`：JavaScript modules, treated as ES Module.
+- `'javascript/esm'`：JavaScript modules, treated as ES modules.
 - `'javascript/dynamic'`：JavaScript modules, treated as Script.
-- `'typescript'`: TypeScript module (🚧 deprecated, checkout [experiments.rspackFuture.disableTransformByDefault](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for more details)
 - `'css'`: CSS module
 - `'css/module'`: CSS Modules module
 - `'css/auto'`: CSS Modules module if filename matches `/\.module(s)?\.[^.]+$/`, otherwise CSS module
 - `'json'`: JSON data module
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`: See [Asset Module](/guide/features/asset-module)
+
+### Rule.layer
+
+<ApiMeta addedVersion="1.0.0-beta.1" />
+
+- **Type:** `string`
+
+Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
+
+:::warning
+This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+:::
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        layer: 'layer-name',
+      },
+    ],
+  },
+};
+```
 
 ### Rule.use
 
@@ -1061,7 +1223,7 @@ A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when 
 
 ### Rule.oneOf
 
-- **Type:** <code>[Rule](#rule)[]</code>
+- **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.

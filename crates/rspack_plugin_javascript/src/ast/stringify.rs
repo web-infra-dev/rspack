@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rspack_ast::javascript::Ast;
+use rspack_core::rspack_sources::{self, encode_mappings, Mapping, OriginalLocation};
 use rspack_error::{miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::base::sourcemap;
@@ -105,14 +106,44 @@ pub fn print(
   };
 
   let map = if source_map_config.enable {
-    let mut buf = vec![];
+    let combined_source_map =
+      source_map.build_source_map_with_config(&src_map_buf, input_source_map, source_map_config);
 
-    source_map
-      .build_source_map_with_config(&src_map_buf, input_source_map.cloned(), source_map_config)
-      .to_writer(&mut buf)
-      .unwrap_or_else(|e| panic!("{}", e.to_string()));
-    // SAFETY: This buffer is already sanitized
-    Some(unsafe { String::from_utf8_unchecked(buf) })
+    let mappings = encode_mappings(combined_source_map.tokens().map(|token| Mapping {
+      generated_line: token.get_dst_line() + 1,
+      generated_column: token.get_dst_col(),
+      original: if token.has_source() {
+        Some(OriginalLocation {
+          source_index: token.get_src_id(),
+          original_line: token.get_src_line() + 1,
+          original_column: token.get_src_col(),
+          name_index: if token.has_name() {
+            Some(token.get_name_id())
+          } else {
+            None
+          },
+        })
+      } else {
+        None
+      },
+    }));
+
+    Some(rspack_sources::SourceMap::new(
+      combined_source_map.get_file().map(|file| file.to_string()),
+      mappings,
+      combined_source_map
+        .sources()
+        .map(|source| source.to_string().into())
+        .collect::<Vec<_>>(),
+      combined_source_map
+        .source_contents()
+        .map(|source| source.unwrap_or_default().to_string().into())
+        .collect::<Vec<_>>(),
+      combined_source_map
+        .names()
+        .map(|source| source.to_string().into())
+        .collect::<Vec<_>>(),
+    ))
   } else {
     None
   };

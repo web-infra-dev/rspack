@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
-use rspack_error::{error, BatchErrors, DiagnosticKind, Result, TraceableError};
+use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
 use rspack_plugin_javascript::{ast::parse_js, utils::DedupEcmaErrors};
 use rspack_plugin_javascript::{
   ast::{print, SourceMapConfig},
@@ -35,7 +35,7 @@ use swc_core::{
       hygiene::hygiene,
       resolver,
     },
-    visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
+    visit::{noop_visit_type, Visit, VisitMutWith, VisitWith},
   },
 };
 use swc_ecma_minifier::{
@@ -43,25 +43,25 @@ use swc_ecma_minifier::{
   option::{MinifyOptions, TopLevelOptions},
 };
 
-use crate::{JsMinifyOptions, NormalizedExtractComments, SwcJsMinimizerRspackPluginOptions};
+use crate::{JsMinifyOptions, NormalizedExtractComments, PluginOptions};
 
-pub fn match_object(obj: &SwcJsMinimizerRspackPluginOptions, str: &str) -> Result<bool> {
+pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
   if let Some(condition) = &obj.test {
-    if !condition.try_match(str)? {
-      return Ok(false);
+    if !condition.try_match(str) {
+      return false;
     }
   }
   if let Some(condition) = &obj.include {
-    if !condition.try_match(str)? {
-      return Ok(false);
+    if !condition.try_match(str) {
+      return false;
     }
   }
   if let Some(condition) = &obj.exclude {
-    if condition.try_match(str)? {
-      return Ok(false);
+    if condition.try_match(str) {
+      return false;
     }
   }
-  Ok(true)
+  true
 }
 
 /**
@@ -114,7 +114,7 @@ pub fn minify(
         DiagnosticKind::JavaScript,
         cm.clone(),
         |handler| {
-          let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
+          let fm = cm.new_source_file(Arc::new(FileName::Custom(filename.to_string())), input);
           let target = opts.ecma.clone().into();
 
           let source_map = opts
@@ -215,9 +215,8 @@ pub fn minify(
           let program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
               let program = program
-                .fold_with(&mut resolver(unresolved_mark, top_level_mark, false))
-                .fold_with(&mut paren_remover(Some(&comments as &dyn Comments)));
-
+                .apply(&mut resolver(unresolved_mark, top_level_mark, false))
+                .apply(&mut paren_remover(Some(&comments as &dyn Comments)));
               let mut program = swc_ecma_minifier::optimize(
                 program,
                 cm.clone(),
@@ -227,13 +226,14 @@ pub fn minify(
                 &swc_ecma_minifier::option::ExtraOptions {
                   unresolved_mark,
                   top_level_mark,
+                  mangle_name_cache: None,
                 },
               );
 
               if !is_mangler_enabled {
                 program.visit_mut_with(&mut hygiene())
               }
-              program.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+              program.apply(&mut fixer(Some(&comments as &dyn Comments)))
             })
           });
 
@@ -287,7 +287,7 @@ pub fn minify(
                 .insert(
                   filename.to_string(),
                   ExtractedCommentsInfo {
-                    source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
+                    source: RawSource::from(extracted_comments.join("\n\n")).boxed(),
                     comments_file_name: extract_comments.filename.to_string(),
                   },
                 );
@@ -315,7 +315,7 @@ pub fn minify(
               names: source_map_names,
             },
             None,
-            true,
+            opts.minify,
             Some(&comments),
             &opts.format,
           )

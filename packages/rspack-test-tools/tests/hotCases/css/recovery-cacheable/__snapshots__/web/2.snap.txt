@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 830
+- Update: main.hot-update.js, size: 1059
 
 ## Manifest
 
@@ -20,10 +20,10 @@
 ## Update
 
 
-### main.LAST_HASH.hot-update.js
+### main.hot-update.js
 
 #### Changed Modules
-- ./change.css?a8a3
+- ./change.css
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -32,15 +32,29 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"./change.css?a8a3": (function (module, __webpack_exports__, __webpack_require__) {
+"./change.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
-      var cssReload = __webpack_require__(/*! ../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js */ "../../../../../rspack/dist/builtin-plugin/css-extract/hmr/hotModuleReplacement.js")(module.id, {"locals":false});
-      module.hot.dispose(cssReload);
-      module.hot.accept(undefined, function(__WEBPACK_OUTDATED_DEPENDENCIES__) {
-(cssReload)(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this));
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__(/*! ../../../../../rspack/dist/cssExtractHmr.js */ "../../../../../rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
     }
   
 

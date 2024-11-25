@@ -1,9 +1,6 @@
 import { Table } from '@builtIns';
-import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # ProgressPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 This plugin can be used to configure the progress bar.
 
@@ -15,21 +12,40 @@ new rspack.ProgressPlugin(options);
 
 ## Options
 
-### prefix
+### Function
+
+Provide a handler function which will be called when hooks report progress. `handler` function arguments:
+
+- `percentage`: a number between 0 and 1 indicating the completion percentage of the compilation
+- `message`: a short description of the currently-executing hook
+- `...args`: zero or more additional strings describing the current progress
+
+```js
+const handler = (percentage, message, ...args) => {
+  // e.g. Output each progress message directly to the console:
+  console.info(percentage, message, ...args);
+};
+
+new rspack.ProgressPlugin(handler);
+```
+
+### Object
+
+#### prefix
 
 - **Type:** `string`
 - **Default:** `'Rspack'`
 
 The text will be displayed before the progress bar.
 
-### profile
+#### profile
 
 - **Type:** `boolean`
 - **Default:** `false`
 
 Tells `ProgressPlugin` to collect profile data for progress steps.
 
-### template
+#### template
 
 - **Type:** `string`
 - **Default:** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
@@ -38,7 +54,7 @@ The template of progress bar.
 
 Also see [indicatif::ProgressBar::with_template](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.with_template).
 
-### tick
+#### tick
 
 - **Type:** `string | string[] | undefined`
 - **Default:** `undefined`
@@ -47,7 +63,7 @@ The tick string sequence for spinners, if it's string then it will be split into
 
 Also see [indicatif::ProgressBar::tick_strings](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.tick_strings).
 
-### progressChars
+#### progressChars
 
 - **Type:** `string`
 - **Default:** `━━`

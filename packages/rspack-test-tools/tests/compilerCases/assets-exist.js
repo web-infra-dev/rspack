@@ -23,9 +23,8 @@ module.exports = {
 		};
 	},
 	async check(_, __, stats) {
-		expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(`
-			"  × Conflict: Multiple assets emit different content to the same filename main.js
-			"
-		`);
+		expect(stats.toJson().errors[0].message).toMatchInlineSnapshot(
+			`× Conflict: Multiple assets emit different content to the same filename main.js`
+		);
 	}
 };

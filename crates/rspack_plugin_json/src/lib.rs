@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 use std::borrow::Cow;
 
+use cow_utils::CowUtils;
 use json::{
   number::Number,
   object::Object,
@@ -21,6 +22,7 @@ use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray, TraceableError,
 };
+use rspack_util::itoa;
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -82,7 +84,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
         UnexpectedEndOfJson => {
           // End offset of json file
-          let offset = source.len() - 1;
+          let length = source.len();
+          let offset = if length > 0 { length - 1 } else { length };
           TraceableError::from_file(
             source.into_owned(),
             offset,
@@ -143,9 +146,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        generate_context
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
         let module = module_graph
           .module_by_identifier(&module.identifier())
           .expect("should have module identifier");
@@ -159,9 +159,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if exports_info
-              .other_exports_info
-              .get_export_info(&module_graph)
-              .get_used(*runtime)
+              .other_exports_info(&module_graph)
+              .get_used(&module_graph, *runtime)
               == UsageState::Unused =>
           {
             create_object_for_exports_info(json_data.clone(), exports_info, *runtime, &module_graph)
@@ -174,7 +173,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let json_expr = if is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
             "JSON.parse('{}')",
-            json_str.replace('\\', r"\\").replace('\'', r"\'")
+            json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
           json_str
@@ -183,6 +182,9 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           format!("var {NAMESPACE_OBJECT_EXPORT} = {json_expr}")
         } else {
+          generate_context
+            .runtime_requirements
+            .insert(RuntimeGlobals::MODULE);
           format!(r#"module.exports = {}"#, json_expr)
         };
         Ok(RawSource::from(content).boxed())
@@ -215,7 +217,7 @@ impl Plugin for JsonPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
@@ -228,11 +230,11 @@ impl Plugin for JsonPlugin {
 
 fn create_object_for_exports_info(
   data: JsonValue,
-  exports_info: &ExportsInfo,
+  exports_info: ExportsInfo,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
 ) -> JsonValue {
-  if exports_info.other_exports_info.get_used(mg, runtime) != UsageState::Unused {
+  if exports_info.other_exports_info(mg).get_used(mg, runtime) != UsageState::Unused {
     return data;
   }
 
@@ -245,15 +247,14 @@ fn create_object_for_exports_info(
     JsonValue::Object(mut obj) => {
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
-        let export_info = exports_info.id.get_read_only_export_info(&key.into(), mg);
-        let used = export_info.get_used(runtime);
+        let export_info = exports_info.get_read_only_export_info(mg, &key.into());
+        let used = export_info.get_used(mg, runtime);
         if used == UsageState::Unused {
           continue;
         }
         let new_value = if used == UsageState::OnlyPropertiesUsed
-          && let Some(exports_info_id) = export_info.exports_info
+          && let Some(exports_info) = export_info.exports_info(mg)
         {
-          let exports_info = mg.get_exports_info_by_id(&exports_info_id);
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
           create_object_for_exports_info(temp, exports_info, runtime, mg)
@@ -261,7 +262,7 @@ fn create_object_for_exports_info(
           std::mem::replace(value, JsonValue::Null)
         };
         let used_name = export_info
-          .get_used_name(Some(&(key.into())), runtime)
+          .get_used_name(mg, Some(&(key.into())), runtime)
           .expect("should have used name");
         used_pair.push((used_name, new_value));
       }
@@ -278,18 +279,15 @@ fn create_object_for_exports_info(
         .into_iter()
         .enumerate()
         .map(|(i, item)| {
-          let export_info = exports_info
-            .id
-            .get_read_only_export_info(&format!("{i}").into(), mg);
-          let used = export_info.get_used(runtime);
+          let export_info = exports_info.get_read_only_export_info(mg, &itoa!(i).into());
+          let used = export_info.get_used(mg, runtime);
           if used == UsageState::Unused {
             return None;
           }
           max_used_index = max_used_index.max(i);
           if used == UsageState::OnlyPropertiesUsed
-            && let Some(exports_info_id) = export_info.exports_info
+            && let Some(exports_info) = export_info.exports_info(mg)
           {
-            let exports_info = mg.get_exports_info_by_id(&exports_info_id);
             Some(create_object_for_exports_info(
               item,
               exports_info,
@@ -302,9 +300,8 @@ fn create_object_for_exports_info(
         })
         .collect::<Vec<_>>();
       let arr_length_used = exports_info
-        .id
-        .get_read_only_export_info(&"length".into(), mg)
-        .get_used(runtime);
+        .get_read_only_export_info(mg, &"length".into())
+        .get_used(mg, runtime);
       let array_length_when_used = match arr_length_used {
         UsageState::Unused => None,
         _ => Some(original_len),

@@ -1,8 +1,4 @@
-import { ApiMeta } from '@components/ApiMeta.tsx';
-
 # ExternalsPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 This plugin allows you to specify external dependencies that should not be bundled into the output files. This is particularly useful for libraries that are already available globally or managed by other scripts.
 The [`externalsType`](/config/externals#externalstype) and [`externals`](/config/externals#externals-1) configurations leverage the plugin internally. Therefore, you can utilize the respective functionality directly through these configuration options without needing to use the plugin separately.

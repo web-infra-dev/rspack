@@ -17,6 +17,9 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-         "force": true,
+		+         "force": false,
+		@@ ... @@
 		-     "chunkLoadingGlobal": "webpackChunk_rspack_test_tools",
 		+     "chunkLoadingGlobal": "webpackChunk_name_my_name_Lib_name_",
 		@@ ... @@
@@ -38,9 +41,9 @@ module.exports = {
 		+       "export": undefined,
 		+       "name": Object {
 		+         "root": Array [
-		+           "[\\\\name\\\\]",
-		+           "my[\\\\name\\\\]Lib[name]",
-		+           "[\\\\name\\\\]",
+		+           "[/name/]",
+		+           "my[/name/]Lib[name]",
+		+           "[/name/]",
 		+         ],
 		+       },
 		+       "type": "var",

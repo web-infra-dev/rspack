@@ -1,9 +1,9 @@
+use std::sync::LazyLock;
 use std::{fmt::Debug, sync::Arc};
 
-use once_cell::sync::Lazy;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
+  ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
+  CompilerOptions, DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
   NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -15,7 +15,7 @@ use crate::{
   backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
 };
 
-static WEBPACK_DEV_SERVER_CLIENT_RE: Lazy<RspackRegex> = Lazy::new(|| {
+static WEBPACK_DEV_SERVER_CLIENT_RE: LazyLock<RspackRegex> = LazyLock::new(|| {
   RspackRegex::new(
     r#"(webpack|rspack)[/\\]hot[/\\]|(webpack|rspack)-dev-server[/\\]client|(webpack|rspack)-hot-middleware[/\\]client"#,
   )
@@ -29,16 +29,16 @@ pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
 }
 
 pub trait LazyCompilationTestCheck: Send + Sync + Debug {
-  fn test(&self, module: &dyn Module) -> bool;
+  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool;
 }
 
 impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {
-  fn test(&self, module: &dyn Module) -> bool {
+  fn test(&self, compilation_id: CompilationId, module: &dyn Module) -> bool {
     match self {
       LazyCompilationTest::Regex(regex) => {
         regex.test(&module.name_for_condition().unwrap_or("".into()))
       }
-      LazyCompilationTest::Fn(f) => f.test(module),
+      LazyCompilationTest::Fn(f) => f.test(compilation_id, module),
     }
   }
 }
@@ -64,9 +64,9 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     Self::new_inner(Mutex::new(backend), entries, imports, test, cacheable)
   }
 
-  fn check_test(&self, module: &BoxModule) -> bool {
+  fn check_test(&self, compilation_id: CompilationId, module: &BoxModule) -> bool {
     if let Some(test) = &self.inner.test {
-      test.test(module.as_ref())
+      test.test(compilation_id, module.as_ref())
     } else {
       true
     }
@@ -96,7 +96,7 @@ async fn normal_module_factory_module(
   create_data: &mut NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let dep_type = module_factory_create_data.dependency.dependency_type();
+  let dep_type = module_factory_create_data.dependencies[0].dependency_type();
 
   if matches!(dep_type, DependencyType::LazyImport) {
     return Ok(());
@@ -134,7 +134,7 @@ async fn normal_module_factory_module(
     }
 
     // ignore global entry
-    let entry: Option<&EntryDependency> = module_factory_create_data.dependency.downcast_ref();
+    let entry: Option<&EntryDependency> = module_factory_create_data.dependencies[0].downcast_ref();
     let Some(entry) = entry else {
       return Ok(());
     };
@@ -149,7 +149,7 @@ async fn normal_module_factory_module(
   }
 
   if WEBPACK_DEV_SERVER_CLIENT_RE.test(&create_data.resource_resolve_data.resource)
-    || !self.check_test(module)
+    || !self.check_test(module_factory_create_data.compilation_id, module)
   {
     return Ok(());
   }
@@ -180,11 +180,7 @@ async fn normal_module_factory_module(
 impl<T: Backend + 'static, F: LazyCompilationTestCheck + 'static> Plugin
   for LazyCompilationPlugin<T, F>
 {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

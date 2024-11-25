@@ -1,9 +1,10 @@
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
-  returning_function,
+  module_update_hash, returning_function,
   rspack_sources::{RawSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
@@ -13,8 +14,6 @@ use rspack_core::{
   StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_hash::RspackHash;
-use rspack_identifier::{Identifiable, Identifier};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
@@ -85,6 +84,10 @@ impl DependenciesBlock for ContainerEntryModule {
     self.dependencies.push(dependency)
   }
 
+  fn remove_dependency_id(&mut self, dependency: DependencyId) {
+    self.dependencies.retain(|d| d != &dependency)
+  }
+
   fn get_dependencies(&self) -> &[DependencyId] {
     &self.dependencies
   }
@@ -94,7 +97,7 @@ impl DependenciesBlock for ContainerEntryModule {
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: &Compilation) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
   }
 
@@ -122,13 +125,9 @@ impl Module for ContainerEntryModule {
   }
   async fn build(
     &mut self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
-    self.update_hash(&mut hasher);
-    let hash = hasher.digest(&build_context.compiler_options.output.hash_digest);
-
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
     for (name, options) in &self.exposes {
@@ -151,7 +150,7 @@ impl Module for ContainerEntryModule {
       block.set_group_options(GroupOptions::ChunkGroup(
         ChunkGroupOptions::default().name_optional(options.name.clone()),
       ));
-      blocks.push(block);
+      blocks.push(Box::new(block));
     }
     dependencies.push(Box::new(StaticExportsDependency::new(
       StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
@@ -160,7 +159,6 @@ impl Module for ContainerEntryModule {
 
     Ok(BuildResult {
       build_info: BuildInfo {
-        hash: Some(hash),
         strict: true,
         top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
@@ -175,7 +173,7 @@ impl Module for ContainerEntryModule {
     })
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[tracing::instrument(name = "ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,
@@ -274,24 +272,19 @@ var init = function(shareScope, initScope) {{
     }
     Ok(code_generation_result)
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<()> {
+    module_update_hash(self, hasher, compilation, runtime);
+    Ok(())
+  }
 }
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
-
-impl Hash for ContainerEntryModule {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    "__rspack_internal__ContainerEntryModule".hash(state);
-    self.identifier().hash(state);
-  }
-}
-
-impl PartialEq for ContainerEntryModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier() == other.identifier()
-  }
-}
-
-impl Eq for ContainerEntryModule {}
 
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);

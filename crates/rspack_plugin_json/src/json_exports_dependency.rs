@@ -1,9 +1,11 @@
 use json::JsonValue;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyId, DependencyTemplate,
-  ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, TemplateContext,
-  TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::{ext::DynHash, itoa};
+
 #[derive(Debug, Clone)]
 pub struct JsonExportsDependency {
   id: DependencyId,
@@ -30,6 +32,10 @@ impl Dependency for JsonExportsDependency {
       ..Default::default()
     })
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
+  }
 }
 
 impl AsModuleDependency for JsonExportsDependency {}
@@ -45,6 +51,15 @@ impl DependencyTemplate for JsonExportsDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    self.data.to_string().dyn_hash(hasher);
   }
 }
 
@@ -84,7 +99,7 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
           .enumerate()
           .map(|(i, item)| {
             ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: format!("{i}").into(),
+              name: itoa!(i).into(),
               can_mangle: Some(true),
               exports: get_exports_from_data(item).map(|item| match item {
                 ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),

@@ -1,6 +1,6 @@
 import "./index.css";
-const fs = require("fs");
-const path = require("path");
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
 
 it("should build success", () => {
 	const css = fs.readFileSync(

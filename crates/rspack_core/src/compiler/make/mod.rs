@@ -1,16 +1,16 @@
 mod cutout;
-mod file_counter;
 pub mod repair;
 
 use std::path::PathBuf;
 
+use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
-use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
-use self::{cutout::Cutout, file_counter::FileCounter, repair::repair};
+use self::{cutout::Cutout, repair::repair};
 use crate::{
-  BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  utils::FileCounter, BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -22,8 +22,9 @@ pub struct MakeArtifact {
 
   // data
   pub built_modules: IdentifierSet,
+  pub revoked_modules: IdentifierSet,
   pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: HashSet<ModuleIdentifier>,
+  pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
   entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
@@ -56,30 +57,38 @@ impl MakeArtifact {
     std::mem::take(&mut self.built_modules)
   }
 
-  fn revoke_modules(&mut self, ids: HashSet<ModuleIdentifier>) -> Vec<BuildDependency> {
+  pub fn take_revoked_modules(&mut self) -> IdentifierSet {
+    std::mem::take(&mut self.revoked_modules)
+  }
+
+  fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
-    let mut res = vec![];
-    for module_identifier in &ids {
-      let module = module_graph
-        .module_by_identifier(module_identifier)
-        .expect("should have module");
-      if let Some(build_info) = module.build_info() {
-        self
-          .file_dependencies
-          .remove_batch_file(&build_info.file_dependencies);
-        self
-          .context_dependencies
-          .remove_batch_file(&build_info.context_dependencies);
-        self
-          .missing_dependencies
-          .remove_batch_file(&build_info.missing_dependencies);
-        self
-          .build_dependencies
-          .remove_batch_file(&build_info.build_dependencies);
-      }
-      res.extend(module_graph.revoke_module(module_identifier));
+    let module = module_graph
+      .module_by_identifier(module_identifier)
+      .expect("should have module");
+    if let Some(build_info) = module.build_info() {
+      self
+        .file_dependencies
+        .remove_batch_file(&build_info.file_dependencies);
+      self
+        .context_dependencies
+        .remove_batch_file(&build_info.context_dependencies);
+      self
+        .missing_dependencies
+        .remove_batch_file(&build_info.missing_dependencies);
+      self
+        .build_dependencies
+        .remove_batch_file(&build_info.build_dependencies);
     }
-    res
+    self.revoked_modules.insert(*module_identifier);
+    module_graph.revoke_module(module_identifier)
+  }
+
+  pub fn reset_dependencies_incremental_info(&mut self) {
+    self.file_dependencies.reset_incremental_info();
+    self.context_dependencies.reset_incremental_info();
+    self.missing_dependencies.reset_incremental_info();
+    self.build_dependencies.reset_incremental_info();
   }
 }
 
@@ -91,10 +100,10 @@ pub enum MakeParam {
   ModifiedFiles(HashSet<PathBuf>),
   RemovedFiles(HashSet<PathBuf>),
   ForceBuildDeps(HashSet<BuildDependency>),
-  ForceBuildModules(HashSet<ModuleIdentifier>),
+  ForceBuildModules(IdentifierSet),
 }
 
-pub fn make_module_graph(
+pub async fn make_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
 ) -> Result<MakeArtifact> {
@@ -107,7 +116,7 @@ pub fn make_module_graph(
         .values()
         .flat_map(|item| item.all_dependencies())
         .chain(compilation.global_entry.all_dependencies())
-        .cloned()
+        .copied()
         .collect(),
     ));
   }
@@ -129,21 +138,22 @@ pub fn make_module_graph(
 
   // reset temporary data
   artifact.built_modules = Default::default();
+  artifact.revoked_modules = Default::default();
   artifact.diagnostics = Default::default();
   artifact.has_module_graph_change = false;
 
-  artifact = update_module_graph(compilation, artifact, params)?;
+  artifact = update_module_graph(compilation, artifact, params).await?;
   Ok(artifact)
 }
 
-pub fn update_module_graph(
+pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
   let mut cutout = Cutout::default();
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
-  artifact = repair(compilation, artifact, build_dependencies)?;
+  artifact = repair(compilation, artifact, build_dependencies).await?;
   cutout.fix_artifact(&mut artifact);
   Ok(artifact)
 }

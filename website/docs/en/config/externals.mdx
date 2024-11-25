@@ -1,5 +1,5 @@
-import WebpackLicense from '@components/webpack-license';
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/WebpackLicense';
+import { Stability } from '../../../components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/externals/" />
 
@@ -29,7 +29,7 @@ For example, to include [jQuery](https://jquery.com/) from a CDN instead of bund
 module.exports = {
   //...
   externals: {
-    jquery: 'jQuery',
+    jquery: 'jquery',
   },
 };
 ```
@@ -111,34 +111,19 @@ module.exports = {
 
 ### object
 
-<ApiMeta addedVersion={'0.3.5'} />
-
 :::warning
-An object with `{ root, amd, commonjs, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
 ```js title="rspack.config.js"
 module.exports = {
-  //...
   externals: {
-    react: 'react',
-  },
-
-  // or
-
-  externals: {
+    // When `libraryTarget: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
     lodash: {
-      commonjs: 'lodash',
-      amd: 'lodash',
       root: '_', // indicates global variable
-    },
-  },
-
-  // or
-
-  externals: {
-    subtract: {
-      root: ['math', 'subtract'],
+      commonjs: 'lodash',
+      commonjs2: 'lodash',
+      amd: 'lodash',
     },
   },
 };
@@ -304,9 +289,11 @@ Supported types:
 - [`'commonjs'`](#externalstypecommonjs)
 - `'commonjs-module'`
 - [`'global'`](#externalstypeglobal)
-- `'import'` - uses `import()` to load a native EcmaScript module (async module)
-- `'jsonp'`
 - [`'module'`](#externalstypemodule)
+- [`'import'`](#externalstypeimport) - uses `import()` to load a native EcmaScript module (async module)
+- [`'module-import'`](#externalstypemodule-import)
+- [`'commonjs-import'`](#externalstypecommonjs-import)
+- `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
 - [`'promise'`](#externalstypepromise) - same as `'var'` but awaits the result (async module)
 - [`'self'`](#externalstypeself)
@@ -419,6 +406,175 @@ jq('.my-element').animate(/* ... */);
 ```
 
 Note that there will be an `import` statement in the output bundle.
+
+### externalsType.import
+
+Specify the default type of externals as `'import'`. Rspack will generate code like `import('...')` for externals used in a module.
+
+**Example**
+
+```javascript
+async function foo() {
+  const jq = await import('jquery');
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'import',
+  externals: {
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+var __webpack_modules__ = {
+  jquery: module => {
+    module.exports = import('jquery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
+  );
+  jq('.my-element').animate(/* ... */);
+}
+```
+
+Note that there will be an `import()` statement in the output bundle.
+
+### externalsType['module-import']
+
+Specify the default type of externals as `'module-import'`. This combines [`'module'`](#externalstypemodule) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting it to `'module'` for static imports and `'import'` for dynamic imports.
+
+Make sure to enable [`experiments.outputModule`](/config/#experimentsoutputmodule) first if static imports exist, otherwise Rspack will throw errors.
+
+**Example**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jquery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'module-import',
+  externals: {
+    lodash: 'lodash',
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
+const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
+
+var __webpack_modules__ = {
+  jquery: module => {
+    module.exports = import('jquery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
+  );
+  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+Note that there will be an `import` or `import()` statement in the output bundle.
+
+When a module is not imported via `import` or `import()`, Rspack will use `"module"` externals type as fallback. If you want to use a different type of externals as fallback, you can specify it with a function in the `externals` option. For example:
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: "module-import",
+  externals: [
+    function (
+      { request, dependencyType },
+      callback
+    ) {
+      if (dependencyType === "commonjs") {
+        return callback(null, `node-commonjs ${request}`);
+      }
+      callback();
+    },
+  ]
+```
+
+### externalsType['commonjs-import']
+
+Specify the default type of externals as `'commonjs-import'`. This combines [`'commonjs'`](#externalstypecommonjs) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting dynamic import to `'import'` and leaving others to `'commonjs'`.
+
+This is useful when building a Node.js application that target Node.js version higher than `13.2.0`, which supports both [`import()` expressions](https://nodejs.org/api/esm.html#import-expressions) and `require()`.
+
+:::note
+`commonjs-import` type is only available of Rspack, and not applicable for webpack.
+:::
+
+**Example**
+
+```javascript
+import { attempt } from 'lodash';
+
+async function foo() {
+  const jq = await import('jquery');
+  attempt(() => jq('.my-element').animate(/* ... */));
+}
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  externalsType: 'commonjs-import',
+  externals: {
+    lodash: 'lodash',
+    jquery: 'jquery',
+  },
+};
+```
+
+Will generate into something like
+
+```javascript
+var __webpack_modules__ = {
+  lodash: function (module) {
+    module.exports = require('lodash');
+  },
+  jquery: function (module) {
+    module.exports = import('jquery');
+  },
+};
+
+// webpack runtime...
+
+async function foo() {
+  const jq = await Promise.resolve(/* import() */).then(
+    __webpack_require__.bind(__webpack_require__, 'jquery'),
+  );
+  (0, lodash__WEBPACK_IMPORTED_MODULE_0__.attempt)(() =>
+    jq('.my-element').animate(/* ... */),
+  );
+}
+```
+
+Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['node-commonjs']
 
@@ -728,13 +884,11 @@ Treat references to `http(s)://...` and `std:...` as external and load them via 
 
 ### externalsPresets.webAsync
 
-<ApiMeta addedVersion="0.3.5" />
-
 **Type:** `boolean`
 
 Treat references to `http(s)://...` and `std:...` as external and load them via `async import()` when used **(Note that this external type is an `async` module, which has various effects on the execution)**.
 
-Note that if you're going to output ES Modules with those node.js-related presets, Rspack will set the default `externalsType` to [`node-commonjs`](#externalstypenode-commonjs) which would use `createRequire` to construct a require function instead of using `require()`.
+Note that if you're going to output ES modules with those node.js-related presets, Rspack will set the default `externalsType` to [`node-commonjs`](#externalstypenode-commonjs) which would use `createRequire` to construct a require function instead of using `require()`.
 
 **Example**
 

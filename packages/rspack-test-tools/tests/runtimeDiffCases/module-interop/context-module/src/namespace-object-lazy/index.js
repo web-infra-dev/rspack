@@ -25,13 +25,13 @@ function contextCJS(name) {
 	});
 }
 
-function contextHarmony(name) {
+function contextESM(name) {
 	return Promise.all([
-		import(`./dir-harmony/${name}`),
-		import(/* webpackMode: "lazy-once", webpackChunkName: "dir-harmony-1" */`./dir-harmony?1/${name}`),
-		import(/* webpackMode: "eager", webpackChunkName: "dir-harmony-2" */`./dir-harmony?2/${name}`)
+		import(`./dir-esm/${name}`),
+		import(/* webpackMode: "lazy-once", webpackChunkName: "dir-esm-1" */`./dir-esm?1/${name}`),
+		import(/* webpackMode: "eager", webpackChunkName: "dir-esm-2" */`./dir-esm?2/${name}`)
 	]).then(function(results) {
-		return import(/* webpackMode: "weak" */`./dir-harmony/${name}`).then(function(r) {
+		return import(/* webpackMode: "weak" */`./dir-esm/${name}`).then(function(r) {
 			results.push(r);
 			return results;
 		});
@@ -67,11 +67,11 @@ it("should receive a namespace object when importing commonjs via context", func
 	]);
 });
 
-it("should receive a namespace object when importing harmony via context", function() {
+it("should receive a namespace object when importing ESM via context", function() {
 	return Promise.all([
-		promiseTest(contextHarmony("one"), nsObj({ named: "named", default: "default" })),
-		promiseTest(contextHarmony("two"), nsObj({ named: "named", default: "default" })),
-		promiseTest(contextHarmony("three"), nsObj({ named: "named", default: "default" }))
+		promiseTest(contextESM("one"), nsObj({ named: "named", default: "default" })),
+		promiseTest(contextESM("two"), nsObj({ named: "named", default: "default" })),
+		promiseTest(contextESM("three"), nsObj({ named: "named", default: "default" }))
 	]);
 });
 

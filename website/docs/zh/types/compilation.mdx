@@ -1,0 +1,41 @@
+<>
+
+> 详见 [Compilation 对象](/api/javascript-api/compilation)
+
+```ts
+type Compilation = {
+  emitAsset(): void; // 添加产物
+  updateAsset(): void; // 变更产物内容
+  renameAsset(): void; // 更改产物名称
+  deleteAsset(): void; // 移除产物
+  getAssets(): Asset[]; // 获得所有产物信息
+  getAsset(): Asset; // 获得产物信息
+  getPath(): string; // 从模板生成路径
+  getPathWithInfo(): PathWithInfo; // 从模板生成路径和资源信息
+  getStats(): Stats; // 获取 stats 对象
+  createChildCompiler(): Compiler; // 创建子编译器
+  rebuildModule(): void; // 重新编译模块
+  getLogger(): Logger; // 获取 Logger 对象
+  getCache(): CacheFacade; // 获取 Cache 对象
+  options: RspackOptionsNormalized; // 完整构建配置
+  compiler: Compiler; // 当前编译器
+  hooks: CompilationHooks; // Compilation 钩子
+  hash: string | null; // 本次构建哈希
+  fullhash: string | null; // 等同于 hash
+  assets: Record<string, Source>; // 产物映射表
+  chunkGroups: ChunkGroup[]; // 所有 ChunkGroup 列表
+  entrypoints: Map<string, Entrypoint>; // Entry 对象映射表
+  namedChunkGroups: Map<string, ChunkGroup>; // 名称与 ChunkGroup 映射表
+  modules: Set<Module>; // 所有模块信息
+  chunks: Set<Chunk>; // 所有 Chunk 信息
+  namedChunks: Map<string, Chunk>; // 名称与 Chunk 的映射表
+  fileDependencies: CompilationDependencies; // 本地文件依赖
+  contextDependencies: CompilationDependencies; // 本地目录依赖
+  missingDependencies: CompilationDependencies; // 缺失文件依赖
+  buildDependencies: CompilationDependencies; // 构建文件依赖
+  errors: RspackError[]; // 构建错误列表
+  warnings: RspackError[]; // 构建警告列表
+};
+```
+
+</>

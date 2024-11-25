@@ -1,6 +1,6 @@
 /** @type {import("../../../..").TConfigCaseConfig} */
 module.exports = {
 	findBundle: (i, options) => {
-		return ["main.js"];
+		return ["styles.css", "main.js"];
 	}
 };

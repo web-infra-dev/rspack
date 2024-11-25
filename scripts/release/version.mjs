@@ -20,7 +20,7 @@ export function getNextName(name) {
 	if (["monorepo"].includes(name)) {
 		return name;
 	}
-	const nextName = name + "-canary";
+	const nextName = `${name}-canary`;
 	return nextName;
 }
 
@@ -32,11 +32,21 @@ export async function getSnapshotVersion(lastVersion) {
 		.replace(/[^\d]/g, "");
 	return `${lastVersion}-canary-${commitId}-${dateTime}`;
 }
-export async function version_handler(version) {
+export async function version_handler(version, options) {
 	const allowedVersion = ["major", "minor", "patch", "snapshot"];
+	const allowPretags = ["alpha", "beta", "rc"];
+	const { pre } = options;
 	if (!allowedVersion.includes(version)) {
 		throw new Error(
 			`version must be one of ${allowedVersion}, but you passed ${version}`
+		);
+	}
+
+	const hasPre = pre && pre !== "none";
+
+	if (hasPre && !allowPretags.includes(pre)) {
+		throw new Error(
+			`pre tag must be one of ${allowPretags}, but you passed ${pre}`
 		);
 	}
 	const root = process.cwd();
@@ -46,7 +56,23 @@ export async function version_handler(version) {
 	if (version === "snapshot") {
 		nextVersion = await getSnapshotVersion(semver.inc(lastVersion, "patch"));
 	} else {
-		nextVersion = semver.inc(lastVersion, version);
+		if (hasPre) {
+			const existsPreTag = allowPretags.find(i => lastVersion.includes(i));
+			if (existsPreTag) {
+				// has pre tag
+				if (existsPreTag === pre) {
+					// same pre tag
+					nextVersion = semver.inc(lastVersion, "prerelease", pre);
+				} else {
+					// different pre tag
+					nextVersion = `${lastVersion.split(existsPreTag)[0]}${pre}.0`;
+				}
+			} else {
+				nextVersion = semver.inc(lastVersion, `pre${version}`, pre);
+			}
+		} else {
+			nextVersion = semver.inc(lastVersion, version);
+		}
 	}
 	const workspaces = await findWorkspacePackagesNoCheck(root);
 	for (const workspace of workspaces) {

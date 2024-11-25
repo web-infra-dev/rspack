@@ -21,12 +21,16 @@ inputs:
     default: false
     required: false
     type: boolean
+  miri:
+    default: false
+    required: false
+    type: boolean
   save-cache:
     default: false
     required: false
     type: boolean
   shared-key:
-    default: 'check'
+    default: "check"
     required: false
     type: string
 
@@ -55,6 +59,11 @@ runs:
     - name: Set minimal
       shell: bash
       run: rustup set profile minimal
+
+    - name: Add Miri
+      shell: bash
+      if: ${{ inputs.miri == 'true' }}
+      run: rustup component add miri
 
     - name: Add Clippy
       shell: bash

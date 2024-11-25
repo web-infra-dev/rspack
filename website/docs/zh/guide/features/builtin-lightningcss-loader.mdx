@@ -1,0 +1,141 @@
+import { ApiMeta, Stability } from '@components/ApiMeta';
+
+# 内置 lightningcss-loader
+
+<ApiMeta addedVersion="1.0.0" />
+
+`builtin:lightningcss-loader` 使用 Rspack 内置的 [lightningcss](https://github.com/parcel-bundler/lightningcss) 处理 CSS，可以替代 `postcss-loader` 中的降级功能，让 CSS 编译更快。
+
+## 示例
+
+如果需要在项目中使用 `builtin:lightningcss-loader`，需进行如下配置。
+
+```js
+const rspack = require('@rspack/core');
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loader
+        ],
+      },
+    ],
+  },
+};
+```
+
+## 类型声明
+
+你可以使用 `@rspack/core` 导出的 `LightningcssLoaderOptions` 类型来开启类型提示：
+
+- `rspack.config.js`:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+            options: {
+              targets: 'ie 10',
+            },
+          },
+          // ... other loader
+        ],
+      },
+    ],
+  },
+};
+```
+
+## Options
+
+下面是 `builtin:lightningcss-loader` 支持的配置。详细的解释请查看 [lightningcss 文档](https://lightningcss.dev/transpilation.html)
+
+```ts
+type LightningcssFeatureOptions = {
+  nesting?: boolean;
+  notSelectorList?: boolean;
+  dirSelector?: boolean;
+  langSelectorList?: boolean;
+  isSelector?: boolean;
+  textDecorationThicknessPercent?: boolean;
+  mediaIntervalSyntax?: boolean;
+  mediaRangeSyntax?: boolean;
+  customMediaQueries?: boolean;
+  clampFunction?: boolean;
+  colorFunction?: boolean;
+  oklabColors?: boolean;
+  labColors?: boolean;
+  p3Colors?: boolean;
+  hexAlphaColors?: boolean;
+  spaceSeparatedColorNotation?: boolean;
+  fontFamilySystemUi?: boolean;
+  doublePositionGradients?: boolean;
+  vendorPrefixes?: boolean;
+  logicalProperties?: boolean;
+  selectors?: boolean;
+  mediaQueries?: boolean;
+  color?: boolean;
+};
+
+type LightningcssLoaderOptions = {
+  minify?: boolean;
+  errorRecovery?: boolean;
+  targets?: string[] | string;
+  include?: LightningcssFeatureOptions;
+  exclude?: LightningcssFeatureOptions;
+  /**
+   * @deprecated Use `drafts` instead.
+   * This will be removed in the next major version.
+   */
+  draft?: Drafts;
+  drafts?: Drafts;
+  nonStandard?: NonStandard;
+  pseudoClasses?: PseudoClasses;
+  unusedSymbols?: Set<String>;
+};
+```
+
+### targets
+
+browserslist 查询字符串。
+
+下面是一些 targets 的用法示例。
+
+- 设置 browserslist 查询字符串：
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: 'ie 10',
+  },
+};
+```
+
+- 设置 browserslist 查询字符串数组：
+
+```js
+const loader = {
+  loader: 'builtin:lightningcss-loader',
+  /** @type {import('@rspack/core').LightningcssLoaderOptions} */
+  options: {
+    targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+  },
+};
+```

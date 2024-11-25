@@ -7,13 +7,17 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-// @ts-expect-error
+// @ts-expect-error we directly import from enhanced-resolve inner js file to improve performance
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
 
 import type { Compiler } from "..";
 import type { InfrastructureLogging } from "../config";
-import createConsoleLogger from "../logging/createConsoleLogger";
+import {
+	type LoggerConsole,
+	createConsoleLogger
+} from "../logging/createConsoleLogger";
+import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
 
@@ -35,23 +39,25 @@ export default class NodeEnvironmentPlugin {
 			debug: infrastructureLogging.debug || false,
 			console:
 				infrastructureLogging.console ||
-				nodeConsole({
+				(nodeConsole({
 					colors: infrastructureLogging.colors,
 					appendOnly: infrastructureLogging.appendOnly,
-					stream: infrastructureLogging.stream
-				})
+					stream: infrastructureLogging.stream!
+				}) as LoggerConsole)
 		});
-		compiler.inputFileSystem = new CachedInputFileSystem(fs, 60000);
-		const inputFileSystem = compiler.inputFileSystem;
+
+		const inputFileSystem: InputFileSystem = new CachedInputFileSystem(
+			fs,
+			60000
+		);
+		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
 		compiler.intermediateFileSystem = fs;
-		compiler.watchFileSystem = new NodeWatchFileSystem(
-			compiler.inputFileSystem
-		);
+		compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {
 				compiler.fsStartTime = Date.now();
-				inputFileSystem.purge();
+				inputFileSystem.purge?.();
 			}
 		});
 	}

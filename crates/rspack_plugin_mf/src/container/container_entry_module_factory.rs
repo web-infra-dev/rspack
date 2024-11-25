@@ -13,8 +13,7 @@ pub struct ContainerEntryModuleFactory;
 #[async_trait]
 impl ModuleFactory for ContainerEntryModuleFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
-    let dep = data
-      .dependency
+    let dep = data.dependencies[0]
       .downcast_ref::<ContainerEntryDependency>()
       .expect("dependency of ContainerEntryModuleFactory should be ContainerEntryDependency");
     Ok(ModuleFactoryResult::new_with_module(Box::new(

@@ -1,8 +1,46 @@
-import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { Stability } from '@components/ApiMeta.tsx';
 
 # 性能分析
 
-<ApiMeta addedVersion={'0.3.0'} />
+本章节介绍 Rspack 中一些常见的性能瓶颈和性能分析方法。
+
+## 性能瓶颈
+
+尽管 Rspack 本身提供的构建性能已经足够优秀，但在 Rspack 中使用一些 JavaScript 编写的 loaders 和 plugins 时，它们可能会导致整体的构建性能劣化，尤其是在大型项目中。
+
+对于这类问题，有一部分可以通过 Rspack 内置的高性能替代方案来解决，另一部分可以通过性能分析工具来定位，从而采取针对性的优化。
+
+下面是一些常见的案例：
+
+### babel-loader
+
+[babel-loader](https://github.com/babel/babel-loader) 基于 Babel 来编译 JavaScript 和 TypeScript 代码，可以将 Babel 替换为更快的 SWC。Rspack 内置了 [builtin:swc-loader](/guide/features/builtin-swc-loader)，它是 `swc-loader` 的 Rust 版本，旨在提供更优的性能。
+
+如果你需要使用 Babel 插件实现自定义的转换逻辑，可以在配置 babel-loader 时使用 [Rule.include](/config/module#ruleinclude) 来匹配尽可能少的文件，以减少 Babel 编译的开销。
+
+### postcss-loader
+
+[postcss-loader](https://github.com/postcss/postcss-loader) 基于 PostCSS 来编译 CSS 代码，通常会配合 PostCSS 插件进行 CSS 语法降级、添加浏览器前缀等，可以将 PostCSS 替换为更快的 Lightning CSS，使用 Rspack 内置的 [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader) 即可。
+
+如果项目里使用了 Tailwind CSS v3 的 PostCSS 插件，则需要等待 Tailwind CSS v4 版本发布，该版本基于 Rust 和 Lightning CSS 实现，性能会有显著提升，详见 [Open-sourcing our progress on Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4-alpha)。
+
+### terser-webpack-plugin
+
+[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 即可。
+
+### css-minimizer-webpack-plugin
+
+[css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 即可。
+
+### less-loader
+
+[less-loader](https://github.com/webpack-contrib/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack-contrib/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
+
+### html-webpack-plugin
+
+[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 在生成大量 HTML 文件时，性能表现不佳，Rspack 基于 Rust 实现的 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 可以提供更好的性能。
+
+## Rspack Profile
 
 Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析。
 
@@ -15,3 +53,44 @@ $ RSPACK_PROFILE=ALL rspack build
 - `trace.json`：使用 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看
 - `jscpuprofile.json`：使用 [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) 细粒度地记录了 JavaScript 侧的各个阶段的耗时，可以使用 [speedscope.app](https://www.speedscope.app/) 进行查看
 - `logging.json`：包含一些日志信息，粗粒度地记录了构建的各个阶段耗时
+
+## Rsdoctor 的编译分析
+
+你可以通过使用 Rsdoctor 来查看 Loader 和 Plugin 的编译耗时及编译过程。
+
+#### Loader Timeline
+
+如果想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
+
+您可以在时间轴中查看每个 Loader 的执行时间以及编译的文件，以及这个 Loader 编译文件所花费的时间。
+
+参考 [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline).
+
+#### Loader Details
+
+如果你想查看 Loader 对代码编译过程，那么可以利用 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis) 功能:
+
+![image](https://assets.rspack.dev/others/assets/rsdoctor/rsdoctor-analyze-code.png)
+
+在这个报告页面中，你可以查看到 Loader 对每个文件的编译前后的代码的变化。
+
+参考 [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
+
+#### 开启编译耗时分析
+
+关于如何启用 `RsdoctorRspackPlugin`，可以参考 [使用 Rsdoctor](/guide/optimization/use-rsdoctor)。
+
+- `RsdoctorRspackPlugin` 的 `features.loader` 和 `features.plugins` 参数需要为 `true`，`features.loader` 和 `features.plugins` 是默认开启的。查看参数文档[Rsdoctor options](https://rsdoctor.dev/zh/config/options/options#features)。
+- 使用文档：
+  - Loader Analysis 使用文档可查看 [Loader Timeline](https://rsdoctor.dev/zh/guide/usage/loaders-timeline) 和 [Loader Details](https://rsdoctor.dev/zh/guide/usage/loaders-analysis)。
+  - Plugins Analysis 使用文档可查看 [Plugin Analysis](https://rsdoctor.dev/zh/guide/usage/plugins-analysis)。
+
+#### FAQ
+
+**CssExtractRspackPlugin 的 loader 耗时过长问题**
+
+在使用 Rsdoctor 对 Rspack 项目进行编译耗时分析时，可能会发现 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 的 loader 耗时较长，详情及原因请查看：
+
+[> CssExtractRspackPlugin 的 loader 耗时过长问题](https://rsdoctor.dev/zh/guide/more/faq#cssextractrspackplugin-%E7%9A%84-loader-%E8%80%97%E6%97%B6%E8%BF%87%E9%95%BF%E9%97%AE%E9%A2%98)

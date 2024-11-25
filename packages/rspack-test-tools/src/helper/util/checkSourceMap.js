@@ -29,9 +29,9 @@ export default async function checkSourceMap(
 	for (const id in toSearch) {
 		const isSearchConfig =
 			typeof toSearch[id] === "object" && toSearch[id] !== null;
-		const outId = isSearchConfig ? toSearch[id].outId ?? id : id;
+		const outId = isSearchConfig ? (toSearch[id].outId ?? id) : id;
 		const checkColumn = isSearchConfig
-			? toSearch[id].checkColumn ?? _checkColumn
+			? (toSearch[id].checkColumn ?? _checkColumn)
 			: _checkColumn;
 		const inSource = isSearchConfig ? toSearch[id].inSource : toSearch[id];
 
@@ -77,9 +77,7 @@ export default async function checkSourceMap(
 		const observed = JSON.stringify({ source, line, column });
 		recordCheck(
 			expected === observed,
-			`expected original position: ${expected}, observed original position: ${observed}, out: ${
-				outLine + "," + outColumn + "," + outIndex + ":" + outId
-			}, ${checkColumn ? "" : "(column ignored)"}`
+			`expected original position: ${expected}, observed original position: ${observed}, out: ${`${outLine},${outColumn},${outIndex}:${outId}`}, ${checkColumn ? "" : "(column ignored)"}`
 		);
 
 		// Also check the reverse mapping

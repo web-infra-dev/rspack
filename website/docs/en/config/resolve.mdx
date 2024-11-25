@@ -1,4 +1,6 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/resolve/" />
 
 # Resolve
 
@@ -28,23 +30,10 @@ At this point:
 
 ## resolve.aliasFields
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **Type:** `string[]`
 - **Default:** `['browser']`
 
 Define a field, such as `browser`, that should be parsed in accordance with [this specification](https://github.com/defunctzombie/package-browser-field-spec).
-
-## resolve.browserField
-
-<ApiMeta deprecatedVersion="0.5.1" removedVersion="0.7.0" />
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether to resolve according to the [package-browser-filed-spec](https://github.com/defunctzombie/package-browser-field-spec) rule.
-
-Works the same with enhanced-resolve's `resolve.aliasFields = ["browser"]`.
 
 ## resolve.conditionNames
 
@@ -54,8 +43,6 @@ Works the same with enhanced-resolve's `resolve.aliasFields = ["browser"]`.
 Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) for the `exports` and `imports` fields in package.json.
 
 ## resolve.descriptionFiles
-
-<ApiMeta addedVersion="0.6.6" />
 
 - **Type:** `string[]`
 - **Default:** `['package.json']`
@@ -71,8 +58,6 @@ module.exports = {
 ```
 
 ## resolve.enforceExtension
-
-<ApiMeta addedVersion="0.6.6" />
 
 - **Type:** `boolean`
 
@@ -102,8 +87,7 @@ Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index
 
 Define alias for the extension. e.g.
 
-```js
-// rspack.config.js
+```js title="rspack.config.js"
 module.exports = {
   resolve: {
     extensionAlias: {
@@ -113,7 +97,13 @@ module.exports = {
 };
 ```
 
-`require('./index.js')` will try to parse `'./index.ts'`, `./index.js`.
+This is particularly useful for TypeScript projects, as TypeScript recommends using the `.js` extension to reference TypeScript files.
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // actually refers to `foo.ts`
+```
+
+Rspack will try to resolve `'./foo.ts'` and `./foo.js'` sequentially when resolving `import './foo.js'`.
 
 ## resolve.fallback
 
@@ -183,8 +173,6 @@ module.exports = {
 ```
 
 ## resolve.importsFields
-
-<ApiMeta addedVersion="0.6.6" />
 
 - **Type:** `string[]`
 - **Default:** `["imports"]`
@@ -273,39 +261,12 @@ When enabled, `require('file')` will first look for the `. /file` file in the cu
 
 ## resolve.preferAbsolute
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **Type:** `boolean`
 - **Default:** `false`
 
 Opt for absolute paths when resolving, in relation to `resolve.roots`.
 
-## resolve.tsConfigPath
-
-<ApiMeta removedVersion="1.0.0-alpha.0" />
-
-- **Type:** `string | undefined`
-- **Default:** `undefined`
-
-If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
-
-```js rspack.config.js
-const path = require('path');
-
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-  // ...
-  resolve: {
-    tsConfigPath: path.resolve(__dirname, 'tsconfig.json'),
-  },
-  // ...
-};
-module.exports = config;
-```
-
 ## resolve.tsConfig
-
-<ApiMeta addedVersion="0.3.7" />
 
 - **Type:** `string | object | undefined`
 - **Default:** `undefined`
@@ -354,16 +315,12 @@ No longer resolve extensions, no longer resolve mainFiles in package.json (but d
 
 ## resolve.restrictions
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **Type:** `string[]`
 - **Default:** `[]`
 
 A list of resolve restrictions to restrict the paths that a request can be resolved on.
 
 ## resolve.roots
-
-<ApiMeta addedVersion="0.5.1" />
 
 - **Type:** `string[]`
 - **Default:** `[]`

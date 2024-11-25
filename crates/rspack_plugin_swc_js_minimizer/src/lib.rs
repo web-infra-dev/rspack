@@ -5,12 +5,13 @@ mod minify;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::Path;
-use std::sync::{mpsc, Mutex};
+use std::sync::{mpsc, LazyLock, Mutex};
 
-use once_cell::sync::{Lazy, OnceCell};
+use cow_utils::CowUtils;
+use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap};
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
@@ -21,8 +22,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
-use rspack_regex::RspackRegex;
-use rspack_util::try_any_sync;
+use rspack_util::asset_condition::AssetConditions;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_core::base::config::JsMinifyFormatOptions;
 pub use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaVersion};
@@ -32,18 +32,24 @@ use self::minify::{match_object, minify};
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
-static JAVASCRIPT_ASSET_REGEXP: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
+static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
+
+#[derive(Debug, Hash)]
+pub struct PluginOptions {
+  pub test: Option<AssetConditions>,
+  pub include: Option<AssetConditions>,
+  pub exclude: Option<AssetConditions>,
+  pub extract_comments: Option<ExtractComments>,
+  pub minimizer_options: MinimizerOptions,
+}
 
 #[derive(Debug, Default)]
-pub struct SwcJsMinimizerRspackPluginOptions {
-  pub extract_comments: Option<ExtractComments>,
+pub struct MinimizerOptions {
+  pub minify: Option<bool>,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,
-  pub test: Option<SwcJsMinimizerRules>,
-  pub include: Option<SwcJsMinimizerRules>,
-  pub exclude: Option<SwcJsMinimizerRules>,
   pub module: Option<bool>,
 
   /// Internal fields for hashing only.
@@ -54,9 +60,8 @@ pub struct SwcJsMinimizerRspackPluginOptions {
   pub __format_cache: OnceCell<String>,
 }
 
-impl std::hash::Hash for SwcJsMinimizerRspackPluginOptions {
+impl std::hash::Hash for MinimizerOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.extract_comments.hash(state);
     self
       .__format_cache
       .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
@@ -79,41 +84,6 @@ impl std::hash::Hash for SwcJsMinimizerRspackPluginOptions {
           .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
-    self.test.hash(state);
-    self.include.hash(state);
-    self.exclude.hash(state);
-  }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum SwcJsMinimizerRule {
-  String(String),
-  Regexp(RspackRegex),
-}
-
-impl SwcJsMinimizerRule {
-  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum SwcJsMinimizerRules {
-  String(String),
-  Regexp(rspack_regex::RspackRegex),
-  Array(Vec<SwcJsMinimizerRule>),
-}
-
-impl SwcJsMinimizerRules {
-  pub fn try_match(&self, data: &str) -> rspack_error::Result<bool> {
-    match self {
-      Self::String(s) => Ok(data.starts_with(s)),
-      Self::Regexp(r) => Ok(r.test(data)),
-      Self::Array(l) => try_any_sync(l, |i| i.try_match(data)),
-    }
   }
 }
 
@@ -147,11 +117,11 @@ struct NormalizedExtractComments<'a> {
 #[plugin]
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
-  options: SwcJsMinimizerRspackPluginOptions,
+  options: PluginOptions,
 }
 
 impl SwcJsMinimizerRspackPlugin {
-  pub fn new(options: SwcJsMinimizerRspackPluginOptions) -> Self {
+  pub fn new(options: PluginOptions) -> Self {
     Self::new_inner(options)
   }
 }
@@ -181,12 +151,13 @@ async fn js_chunk_hash(
 
 #[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let minify_options = &self.options;
+  let options = &self.options;
+  let minimizer_options = &self.options.minimizer_options;
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
   let all_extracted_comments = Mutex::new(HashMap::new());
-  let extract_comments_condition = minify_options
+  let extract_comments_condition = options
     .extract_comments
     .as_ref()
     .map(|extract_comment| extract_comment.condition.as_ref())
@@ -203,10 +174,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         return false
       }
 
-      let is_matched = match_object(minify_options, filename)
-        .unwrap_or(false);
+      let is_matched = match_object(options, filename);
 
-      if !is_matched || original.get_info().minimized {
+      if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false
       }
 
@@ -218,7 +188,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let input = original_source.source().to_string();
         let input_source_map = original_source.map(&MapOptions::default());
 
-        let is_module = if let Some(module) = self.options.module {
+        let is_module = if let Some(module) = minimizer_options.module {
           Some(module)
         } else if let Some(module) = original.info.javascript_module {
           Some(module)
@@ -231,20 +201,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
 
         let js_minify_options = JsMinifyOptions {
-          compress: minify_options.compress.clone(),
-          mangle: minify_options.mangle.clone(),
-          format: minify_options.format.clone(),
+          minify: minimizer_options.minify.unwrap_or(true),
+          compress: minimizer_options.compress.clone(),
+          mangle: minimizer_options.mangle.clone(),
+          format: minimizer_options.format.clone(),
           source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
           module: is_module,
           ..Default::default()
           };
-        let extract_comments_option = minify_options.extract_comments.as_ref().map(|extract_comments| {
+        let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
           let comments_filename = format!("{}.LICENSE.txt", filename);
           let banner = match &extract_comments.banner {
             OptionWrapper::Default => {
               let dir = Path::new(filename).parent().expect("should has parent");
-              let relative = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy().to_string().replace('\\', "/");
+              let raw = Path::new(&comments_filename).strip_prefix(dir).expect("should has common prefix").to_string_lossy();
+              let relative = raw.cow_replace('\\', "/");
               Some(format!("/*! For license information please see {relative} */"))
             },
             OptionWrapper::Disabled => None,
@@ -269,11 +241,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             return Ok(())
           }
         };
-        let source = if let Some(map) = &output.map {
+        let source = if let Some(source_map) = output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             name: filename,
-            source_map: SourceMap::from_json(map).expect("should be able to generate source-map"),
+            source_map,
             original_source: None,
             inner_source_map: input_source_map,
             remove_original_source: true,
@@ -289,7 +261,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .contains_key(filename)
         {
           ConcatSource::new([
-            RawSource::Source(banner).boxed(),
+            RawSource::from(banner).boxed(),
             RawSource::from("\n").boxed(),
             source
           ]).boxed()
@@ -297,7 +269,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           source
         };
         original.set_source(Some(source));
-        original.get_info_mut().minimized = true;
+        original.get_info_mut().minimized.replace(true);
       }
 
       Ok(())
@@ -317,7 +289,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         CompilationAsset {
           source: Some(comments.source),
           info: AssetInfo {
-            minimized: true,
+            minimized: Some(true),
             ..Default::default()
           },
         },
@@ -335,7 +307,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context
@@ -353,6 +325,7 @@ impl Plugin for SwcJsMinimizerRspackPlugin {
 
 #[derive(Debug, Clone, Default)]
 pub struct JsMinifyOptions {
+  pub minify: bool,
   pub compress: BoolOrDataConfig<TerserCompressorOptions>,
   pub mangle: BoolOrDataConfig<MangleOptions>,
   pub format: JsMinifyFormatOptions,

@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, fmt::Display};
 
 use itertools::Itertools;
-use rspack_identifier::Identifier;
+use rspack_collections::Identifier;
 use rspack_util::comparators::compare_ids;
 use rspack_util::comparators::compare_numbers;
 use rustc_hash::FxHashMap as HashMap;
@@ -9,13 +9,13 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
 };
-
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
 mod extract_url_and_global;
 mod fast_actions;
+mod file_counter;
 mod find_graph_roots;
 mod hash;
 mod identifier;
@@ -28,7 +28,6 @@ mod source;
 pub mod task_loop;
 mod template;
 mod to_path;
-mod visitor;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
@@ -36,6 +35,7 @@ pub use concatenation_scope::*;
 pub use self::comment::*;
 pub use self::extract_url_and_global::*;
 pub use self::fast_actions::*;
+pub use self::file_counter::FileCounter;
 pub use self::find_graph_roots::*;
 pub use self::hash::*;
 pub use self::identifier::*;
@@ -47,7 +47,6 @@ pub use self::runtime::*;
 pub use self::source::*;
 pub use self::template::*;
 pub use self::to_path::to_path;
-pub use self::visitor::*;
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
@@ -79,7 +78,7 @@ pub fn parse_to_url(url: &str) -> url::Url {
 /// ```
 pub fn join_string_component(mut components: Vec<String>) -> String {
   match components.len() {
-    0 => "".to_string(),
+    0 => String::new(),
     1 => std::mem::take(&mut components[0]),
     2 => {
       format!("{} and {}", components[0], components[1])
@@ -216,22 +215,20 @@ pub fn compare_chunks_with_graph(
   chunk_a_ukey: &ChunkUkey,
   chunk_b_ukey: &ChunkUkey,
 ) -> Ordering {
-  let cgc_a = chunk_graph.get_chunk_graph_chunk(chunk_a_ukey);
-  let cgc_b = chunk_graph.get_chunk_graph_chunk(chunk_b_ukey);
-  if cgc_a.modules.len() > cgc_b.modules.len() {
+  let modules_a = chunk_graph.get_chunk_modules_identifier(chunk_a_ukey);
+  let modules_b = chunk_graph.get_chunk_modules_identifier(chunk_b_ukey);
+  if modules_a.len() > modules_b.len() {
     return Ordering::Less;
   }
-  if cgc_a.modules.len() < cgc_b.modules.len() {
+  if modules_a.len() < modules_b.len() {
     return Ordering::Greater;
   }
 
-  let modules_a: Vec<&BoxModule> = cgc_a
-    .modules
+  let modules_a: Vec<&BoxModule> = modules_a
     .iter()
     .filter_map(|module_id| module_graph.module_by_identifier(module_id))
     .collect();
-  let modules_b: Vec<&BoxModule> = cgc_b
-    .modules
+  let modules_b: Vec<&BoxModule> = modules_b
     .iter()
     .filter_map(|module_id| module_graph.module_by_identifier(module_id))
     .collect();

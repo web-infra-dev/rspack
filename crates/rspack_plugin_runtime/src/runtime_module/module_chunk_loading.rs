@@ -1,9 +1,10 @@
+use cow_utils::CowUtils;
+use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_identifier::Identifier;
 
 use super::utils::{chunk_has_js, get_output_dir};
 use crate::{
@@ -40,8 +41,9 @@ impl ModuleChunkLoadingRuntimeModule {
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| {
         format!(
-          "new URL({}, import.meta.url);",
-          serde_json::to_string(root_output_dir).expect("should able to be serde_json::to_string")
+          "new URL({}, {}.url);",
+          serde_json::to_string(root_output_dir).expect("should able to be serde_json::to_string"),
+          compilation.options.output.import_meta_name
         )
       });
     RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
@@ -57,7 +59,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey);
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
 
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
@@ -69,7 +71,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let condition_map =
       compilation
         .chunk_graph
-        .get_chunk_condition_map(&chunk.ukey, compilation, chunk_has_js);
+        .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
@@ -100,13 +102,15 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if with_loading || with_external_install_chunk {
       source.add(RawSource::from(
-        include_str!("runtime/module_chunk_loading.js").replace(
-          "$WITH_ON_CHUNK_LOAD$",
-          match with_on_chunk_load {
-            true => "__webpack_require__.O();",
-            false => "",
-          },
-        ),
+        include_str!("runtime/module_chunk_loading.js")
+          .cow_replace(
+            "$WITH_ON_CHUNK_LOAD$",
+            match with_on_chunk_load {
+              true => "__webpack_require__.O();",
+              false => "",
+            },
+          )
+          .into_owned(),
       ));
     }
 
@@ -115,13 +119,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/module_chunk_loading_with_loading.js")
-          .replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
-          .replace(
+          .cow_replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
+          .cow_replace(
             "$IMPORT_FUNCTION_NAME$",
             &compilation.options.output.import_function_name,
           )
-          .replace("$OUTPUT_DIR$", &root_output_dir)
-          .replace(
+          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
+          .cow_replace(
             "$MATCH_FALLBACK$",
             if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
@@ -129,6 +133,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
               "else installedChunks[chunkId] = 0;\n"
             },
           )
+          .into_owned()
       };
 
       source.add(RawSource::from(format!(

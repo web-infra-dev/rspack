@@ -1,10 +1,10 @@
+use rspack_collections::Identifier;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
-use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
 
@@ -44,12 +44,18 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     );
     let filename = compilation.get_path(
       filename,
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      ),
+      PathData::default()
+        .chunk_id_optional(chunk.id())
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_results,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        )),
     )?;
     Ok(
       RawSource::from(auto_public_path_template(
@@ -62,7 +68,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 }
 
 fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
-  let output_path = output.path.display().to_string();
+  let output_path = output.path.as_str().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
   let assign = if undo_path.is_empty() {
     format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)
@@ -73,12 +79,14 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     )
   };
   let global = RuntimeGlobals::GLOBAL.name();
+  let import_meta_name = output.import_meta_name.clone();
 
-  // TODO: replace import.meta with importMetaName
   let script_url_template = if output.script_type.eq("module") {
-    r#"var scriptUrl;
-    if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+    format!(
+      r#"var scriptUrl;
+    if (typeof {import_meta_name}.url === "string") scriptUrl = {import_meta_name}.url
     "#
+    )
     .to_string()
   } else {
     format!(
@@ -86,14 +94,17 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
     if ({global}.importScripts) scriptUrl = {global}.location + "";
     var document = {global}.document;
     if (!scriptUrl && document) {{
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {{
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {{
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }}
-        }}
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {{
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {{
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }}
+      }}
       }}
     "#
     )

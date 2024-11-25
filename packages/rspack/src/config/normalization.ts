@@ -29,10 +29,10 @@ import type {
 	DevtoolNamespace,
 	EnabledLibraryTypes,
 	EnabledWasmLoadingTypes,
-	EntryFilename,
-	EntryRuntime,
+	EntryDescription,
 	EntryStatic,
 	Environment,
+	ExperimentCacheOptions,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
@@ -48,6 +48,8 @@ import type {
 	HotUpdateMainFilename,
 	Iife,
 	ImportFunctionName,
+	ImportMetaName,
+	Incremental,
 	InfrastructureLogging,
 	LazyCompilationOptions,
 	LibraryOptions,
@@ -82,7 +84,7 @@ import type {
 	WatchOptions,
 	WebassemblyModuleFilename,
 	WorkerPublicPath
-} from "./zod";
+} from "./types";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -93,11 +95,10 @@ export const getNormalizedRspackOptions = (
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
 							return ignore;
-						} else {
-							return (warning: Error) => {
-								return ignore.test(warning.message);
-							};
 						}
+						return (warning: Error) => {
+							return ignore.test(warning.message);
+						};
 					})
 				: undefined,
 		name: config.name,
@@ -137,6 +138,7 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
+				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -158,6 +160,7 @@ export const getNormalizedRspackOptions = (
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				importMetaName: output.importMetaName,
 				iife: output.iife,
 				module: output.module,
 				sourceMapFilename: output.sourceMapFilename,
@@ -208,7 +211,8 @@ export const getNormalizedRspackOptions = (
 					output.devtoolFallbackModuleFilenameTemplate,
 				chunkLoadTimeout: output.chunkLoadTimeout,
 				charset: output.charset,
-				environment: cloneObject(output.environment)
+				environment: cloneObject(output.environment),
+				compareBeforeEmit: output.compareBeforeEmit
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -301,9 +305,28 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
+			cache: experiments.cache,
 			lazyCompilation: optionalNestedConfig(
 				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
+			),
+			incremental: optionalNestedConfig(experiments.incremental, options =>
+				options === true
+					? ({
+							make: true,
+							dependenciesDiagnostics: true,
+							inferAsyncModules: true,
+							providedExports: true,
+							buildChunkGraph: true,
+							modulesHashes: true,
+							modulesCodegen: true,
+							modulesRuntimeRequirements: true,
+							chunksRuntimeRequirements: true,
+							chunksHashes: true,
+							chunksRender: true,
+							emitAssets: true
+						} satisfies Incremental)
+					: options
 			)
 		})),
 		watch: config.watch,
@@ -350,6 +373,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				asyncChunks: value.asyncChunks,
 				filename: value.filename,
 				library: value.library,
+				layer: value.layer,
 				dependOn: Array.isArray(value.dependOn)
 					? value.dependOn
 					: value.dependOn
@@ -411,12 +435,12 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => (
-						(obj[key] = (
-							customKeys && key in customKeys ? customKeys[key] : fn
-						)(value[key])),
-						obj
-					),
+					(obj, key) => {
+						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+							value[key]
+						);
+						return obj;
+					},
 					{} as Record<string, R>
 				);
 	if (customKeys) {
@@ -436,17 +460,21 @@ export type EntryNormalized = EntryDynamicNormalized | EntryStaticNormalized;
 export interface EntryStaticNormalized {
 	[k: string]: EntryDescriptionNormalized;
 }
-export interface EntryDescriptionNormalized {
+
+export type EntryDescriptionNormalized = Pick<
+	EntryDescription,
+	| "runtime"
+	| "chunkLoading"
+	| "asyncChunks"
+	| "publicPath"
+	| "baseUri"
+	| "filename"
+	| "library"
+	| "layer"
+> & {
 	import?: string[];
-	runtime?: EntryRuntime;
-	chunkLoading?: ChunkLoading;
-	asyncChunks?: boolean;
-	publicPath?: PublicPath;
-	baseUri?: string;
-	filename?: EntryFilename;
-	library?: LibraryOptions;
 	dependOn?: string[];
-}
+};
 
 export interface OutputNormalized {
 	path?: Path;
@@ -470,6 +498,7 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	importMetaName?: ImportMetaName;
 	iife?: Iife;
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
@@ -494,6 +523,8 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
+	cssHeadDataCompression?: boolean;
+	compareBeforeEmit?: boolean;
 }
 
 export interface ModuleOptionsNormalized {
@@ -505,11 +536,14 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
+	cache?: ExperimentCacheOptions;
 	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	topLevelAwait?: boolean;
 	css?: boolean;
+	layers?: boolean;
+	incremental?: false | Incremental;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 }

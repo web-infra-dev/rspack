@@ -111,7 +111,7 @@ fn render(
   let module_graph = compilation.get_module_graph();
   let modules = compilation
     .chunk_graph
-    .get_chunk_module_identifiers(chunk_ukey)
+    .get_chunk_modules_identifier(chunk_ukey)
     .iter()
     .filter_map(|identifier| {
       module_graph
@@ -185,7 +185,7 @@ fn render(
         chunk,
         compilation,
       ),
-      external_root_array(&externals)?
+      externals_root_array(&externals)?
     );
     format!(
       "}} else if(typeof exports === 'object'){{\n
@@ -201,7 +201,7 @@ fn render(
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
         externals_require_array("commonjs", &externals)?,
-        external_root_array(&externals)?
+        externals_root_array(&externals)?
       )
     };
     format!(
@@ -280,11 +280,7 @@ impl Plugin for UmdLibraryPlugin {
     PLUGIN_NAME
   }
 
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks
@@ -309,12 +305,18 @@ fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
   compilation
     .get_path(
       &FilenameTemplate::from(v),
-      PathData::default().chunk(chunk).content_hash_optional(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
-      ),
+      PathData::default()
+        .chunk_id_optional(chunk.id())
+        .chunk_hash_optional(chunk.rendered_hash(
+          &compilation.chunk_hashes_results,
+          compilation.options.output.hash_digest_length,
+        ))
+        .chunk_name_optional(chunk.name_for_filename_template())
+        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_results,
+          &SourceType::JavaScript,
+          compilation.options.output.hash_digest_length,
+        )),
     )
     .always_ok()
 }
@@ -345,20 +347,20 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
   )
 }
 
-fn external_root_array(modules: &[&ExternalModule]) -> Result<String> {
+fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
   Ok(
     modules
       .iter()
       .map(|m| {
         let typ = "root";
         let request = match &m.request {
-          ExternalRequest::Single(r) => r.primary(),
+          ExternalRequest::Single(r) => r.iter(),
           ExternalRequest::Map(map) => map
             .get(typ)
-            .map(|r| r.primary())
+            .map(|r| r.iter())
             .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
         };
-        Ok(format!("root{}", accessor_to_object_access([request])))
+        Ok(format!("root{}", accessor_to_object_access(request)))
       })
       .collect::<Result<Vec<_>>>()?
       .join(", "),

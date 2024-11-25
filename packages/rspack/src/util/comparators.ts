@@ -46,18 +46,16 @@ const concatComparatorsCache: TwoKeyWeakMap<
 	Comparator
 > = new TwoKeyWeakMap();
 
-export const concatComparators = (
-	c1: Comparator,
-	c2: Comparator,
-	...cRest: Comparator[]
-): Comparator => {
-	if (cRest.length > 0) {
-		const [c3, ...cRest2] = cRest;
-		return concatComparators(c1, concatComparators(c2, c3, ...cRest2));
-	}
+export const concatComparators = (...comps: Array<Comparator>): Comparator => {
+	const [c1, c2, ...cRest] = comps;
 
 	if (c2 === undefined) {
 		return c1;
+	}
+
+	if (cRest.length > 0) {
+		const [c3, ...cRest2] = cRest;
+		return concatComparators(c1, concatComparators(c2, c3, ...cRest2));
 	}
 
 	const cacheEntry = concatComparatorsCache.get(c1, c2);
@@ -72,10 +70,7 @@ export const concatComparators = (
 	return result;
 };
 
-export const compareIds = (
-	a: string | number,
-	b: string | number
-): -1 | 0 | 1 => {
+export const compareIds = <T = string | number>(a: T, b: T): -1 | 0 | 1 => {
 	if (typeof a !== typeof b) {
 		return typeof a < typeof b ? -1 : 1;
 	}
@@ -92,8 +87,7 @@ export const compareChunkGroupsByIndex = (
 	a: ChunkGroup,
 	b: ChunkGroup
 ): -1 | 0 | 1 => {
-	//@ts-expect-error copy from webpack
-	return a.index < b.index ? -1 : 1;
+	return a.index! < b.index! ? -1 : 1;
 };
 
 const compareSelectCache: TwoKeyWeakMap<
@@ -117,12 +111,11 @@ export const compareSelect = <T, R>(
 				return comparator(aValue, bValue);
 			}
 			return -1;
-		} else {
-			if (bValue !== undefined && bValue !== null) {
-				return 1;
-			}
-			return 0;
 		}
+		if (bValue !== undefined && bValue !== null) {
+			return 1;
+		}
+		return 0;
 	};
 	compareSelectCache.set(getter, comparator, result);
 	return result;

@@ -12,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_util::itoa;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
 use swc_core::common::{FileName, Span, SyntaxContext};
@@ -19,7 +20,7 @@ use swc_core::ecma::ast;
 use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
 use swc_node_comments::SwcComments;
 
-use crate::dependency::HarmonyCompatibilityDependency;
+use crate::dependency::ESMCompatibilityDependency;
 use crate::visitors::{scan_dependencies, swc_visitor::resolver};
 use crate::visitors::{semicolon, ScanDependenciesResult};
 use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
@@ -96,6 +97,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let ParseContext {
       source,
       module_type,
+      module_layer,
       resource_data,
       compiler_options,
       build_info,
@@ -104,6 +106,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       loaders,
       module_parser_options,
       additional_data,
+      parse_meta,
       ..
     } = parse_context;
     let mut diagnostics: Vec<Box<dyn Diagnostic + Send + Sync>> = vec![];
@@ -129,13 +132,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source = remove_bom(source);
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let fm = cm.new_source_file(
-      FileName::Custom(
+      Arc::new(FileName::Custom(
         resource_data
           .resource_path
           .as_ref()
-          .map(|p| p.to_string_lossy().to_string())
+          .map(|p| p.as_str().to_string())
           .unwrap_or_default(),
-      ),
+      )),
       source.source().to_string(),
     );
     let comments = SwcComments::default();
@@ -146,6 +149,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           module_type,
           ModuleType::JsDynamic | ModuleType::JsAuto
         ),
+        import_attributes: true,
         ..Default::default()
       }),
       target,
@@ -174,13 +178,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.top_level_mark,
         false,
       ));
-      // dbg!(&resource_data.resource_path);
-      // dbg!(lexer.clone().collect_vec());
       program.visit_with(&mut semicolon::InsertedSemicolons {
         semicolons: &mut semicolons,
         tokens: &lexer.collect_vec(),
       });
-      // dbg!(&semicolons);
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
@@ -199,6 +200,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         resource_data,
         compiler_options,
         module_type,
+        module_layer,
         build_info,
         build_meta,
         module_identifier,
@@ -207,6 +209,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         unresolved_mark,
         &mut self.parser_plugins,
         additional_data,
+        parse_meta,
       )
     }) {
       Ok(result) => result,
@@ -334,7 +337,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    // Only harmony modules are valid for optimization
+    // Only ES modules are valid for optimization
     if module.build_meta().is_none()
       || module
         .build_meta()
@@ -349,7 +352,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
         dep
           .as_any()
-          .downcast_ref::<HarmonyCompatibilityDependency>()
+          .downcast_ref::<ESMCompatibilityDependency>()
           .is_some()
       }) {
         return Some("Module is not an ECMAScript module".into());
@@ -367,6 +370,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 }
 
+// Todo(shulaoda): check if this can be removed
 fn span_to_location(span: Span, source: &str) -> Option<String> {
   let r = ropey::Rope::from_str(source);
   let start = span.real_lo();
@@ -379,12 +383,19 @@ fn span_to_location(span: Span, source: &str) -> Option<String> {
   let end_line = r.char_to_line(end_char_offset);
   let end_column = end_char_offset - r.line_to_char(end_line);
   if start_line == end_line {
-    Some(format!("{}:{start_column}-{end_column}", start_line + 1))
+    Some(format!(
+      "{}:{}-{}",
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_column)
+    ))
   } else {
     Some(format!(
-      "{}:{start_column}-{}:{end_column}",
-      start_line + 1,
-      end_line + 1
+      "{}:{}-{}:{}",
+      itoa!(start_line + 1),
+      itoa!(start_column),
+      itoa!(end_line + 1),
+      itoa!(end_column)
     ))
   }
 }

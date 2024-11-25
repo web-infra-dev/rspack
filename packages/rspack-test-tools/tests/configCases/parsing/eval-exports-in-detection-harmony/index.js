@@ -1,4 +1,4 @@
-import fs from "fs"; // import make this module a detection harmony
+import fs from "fs"; // import make this module a detection ESM
 
 it("should compile", async () => {
 	const a = typeof exports === "object";

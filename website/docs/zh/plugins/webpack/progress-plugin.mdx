@@ -1,9 +1,6 @@
 import { Table } from '@builtIns';
-import { ApiMeta } from '@components/ApiMeta.tsx';
 
 # ProgressPlugin
-
-<ApiMeta addedVersion={'0.3.3'} />
 
 此插件可以用来配置进度条。
 
@@ -15,21 +12,40 @@ new rspack.ProgressPlugin(options);
 
 ## 选项
 
-### prefix
+### Function
+
+提供一个处理函数，当 hooks 进度更新时将调用该函数。`handler` 函数参数为：
+
+- `percentage`：0 到 1 之间的数字，表示编译的完成百分比
+- `message`：关于当前执行 hook 的简短描述
+- `...args`：零个或多个描述当前进度的附加字符串
+
+```js
+const handler = (percentage, message, ...args) => {
+  // e.g. Output each progress message directly to the console:
+  console.info(percentage, message, ...args);
+};
+
+new rspack.ProgressPlugin(handler);
+```
+
+### Object
+
+#### prefix
 
 - **Type:** `string`
 - **Default:** `'Rspack'`
 
 进度条前显示文案。
 
-### profile
+#### profile
 
 - **Type:** `boolean`
 - **Default:** `false`
 
 是否收集进度步骤的性能数据。
 
-### template
+#### template
 
 - **Type:** `string`
 - **Default:** `● {prefix:.bold} {bar:25.green/white.dim} ({percent}%) {wide_msg:.dim}`
@@ -38,7 +54,7 @@ new rspack.ProgressPlugin(options);
 
 详情查阅 [indicatif::ProgressBar::with_template](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.with_template).
 
-### tick
+#### tick
 
 - **Type:** `string | string[] | undefined`
 - **Default:** `undefined`
@@ -47,7 +63,7 @@ Spinner 变化的字符串序列，如果是字符串，则会被拆分为字符
 
 详情查阅 [indicatif::ProgressBar::tick_strings](https://docs.rs/indicatif/latest/indicatif/style/struct.ProgressStyle.html#method.tick_strings).
 
-### progressChars
+#### progressChars
 
 - **Type:** `string`
 - **Default:** `━━`

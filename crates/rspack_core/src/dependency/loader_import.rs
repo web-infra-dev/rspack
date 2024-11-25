@@ -1,3 +1,4 @@
+use super::AffectType;
 use crate::{
   AsContextDependency, AsDependencyTemplate, Context, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
@@ -28,12 +29,20 @@ impl Dependency for LoaderImportDependency {
     &self.id
   }
 
+  fn get_context(&self) -> Option<&Context> {
+    Some(&self.context)
+  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::LoaderImport
   }
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::LoaderImport
+  }
+
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
   }
 }
 

@@ -4,11 +4,11 @@
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "aClass": () => (/* binding */ aClass),
-/* harmony export */   "bClass": () => (/* binding */ bClass),
-/* harmony export */   "cClass": () => (/* binding */ cClass)
-/* harmony export */ });
+/* ESM export */ __webpack_require__.d(__webpack_exports__, {
+/* ESM export */   "aClass": () => (/* binding */ aClass),
+/* ESM export */   "bClass": () => (/* binding */ bClass),
+/* ESM export */   "cClass": () => (/* binding */ cClass)
+/* ESM export */ });
 // extracted by mini-css-extract-plugin
 var aClass = "foo__style__a-class";
 var bClass = "foo__style__b__class";
@@ -44,7 +44,7 @@ var cClass = "foo__style__cClass";
 /************************************************************************/
 /******/ /* webpack/runtime/define property getters */
 /******/ (() => {
-/******/ 	// define getter functions for harmony exports
+/******/ 	// define getter functions for ESM exports
 /******/ 	__webpack_require__.d = (exports, definition) => {
 /******/ 		for(var key in definition) {
 /******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
@@ -75,7 +75,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* ESM import */ var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 
 
 // eslint-disable-next-line no-console

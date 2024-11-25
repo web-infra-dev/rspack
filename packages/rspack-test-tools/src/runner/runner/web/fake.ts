@@ -43,16 +43,18 @@ export class FakeDocumentWebRunner<
 
 	protected createGlobalContext() {
 		const globalContext = super.createGlobalContext();
-		globalContext["document"] = this.document;
-		globalContext["getComputedStyle"] = this.document.getComputedStyle.bind(
+		globalContext.document = this.document;
+		globalContext.getComputedStyle = this.document.getComputedStyle.bind(
 			this.document
 		);
 		const urlToPath = (url: string) => {
-			if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
-			return path.resolve(this._options.dist, `./${url}`);
+			return path.resolve(
+				this._options.dist,
+				`./${url.startsWith("https://test.cases/path/") ? url.slice(24) : url}`
+			);
 		};
 
-		globalContext["fetch"] = async (url: string) => {
+		globalContext.fetch = async (url: string) => {
 			try {
 				const buffer: Buffer = await new Promise((resolve, reject) =>
 					fs.readFile(urlToPath(url), (err, b) =>
@@ -74,16 +76,16 @@ export class FakeDocumentWebRunner<
 				throw err;
 			}
 		};
-		globalContext["importScripts"] = (url: string) => {
+		globalContext.importScripts = (url: string) => {
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.requirers.get("entry")!(this._options.dist, urlToRelativePath(url));
 		};
-		globalContext["document"] = this.document;
-		globalContext["Worker"] = createFakeWorker(this._options.env, {
+		globalContext.document = this.document;
+		globalContext.Worker = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
-		globalContext["EventSource"] = EventSource;
-		globalContext["location"] = {
+		globalContext.EventSource = EventSource;
+		globalContext.location = {
 			href: "https://test.cases/path/index.html",
 			origin: "https://test.cases",
 			toString() {
@@ -99,7 +101,7 @@ export class FakeDocumentWebRunner<
 		file: TBasicRunnerFile
 	) {
 		const subModuleScope = super.createModuleScope(requireFn, m, file);
-		subModuleScope["importScripts"] = (url: string) => {
+		subModuleScope.importScripts = (url: string) => {
 			this._options.env.expect(url).toMatch(/^https:\/\/test\.cases\/path\//);
 			this.getRequire()(
 				this._options.dist,
@@ -111,19 +113,23 @@ export class FakeDocumentWebRunner<
 
 	protected createBaseModuleScope() {
 		const moduleScope = super.createBaseModuleScope();
-		moduleScope["window"] = this.globalContext;
-		moduleScope["self"] = this.globalContext;
-		moduleScope["globalThis"] = this.globalContext;
-		moduleScope["document"] = this.globalContext!["document"];
-		moduleScope["fetch"] = this.globalContext!["fetch"];
-		moduleScope["importScripts"] = this.globalContext!["importScripts"];
-		moduleScope["Worker"] = this.globalContext!["Worker"];
-		moduleScope["EventSource"] = this.globalContext!["EventSource"];
-		moduleScope["URL"] = URL;
-		moduleScope["Worker"] = createFakeWorker(this._options.env, {
+		moduleScope.window = this.globalContext;
+		moduleScope.self = this.globalContext;
+		moduleScope.globalThis = this.globalContext;
+		moduleScope.document = this.globalContext!.document;
+
+		moduleScope.getComputedStyle = this.globalContext!.getComputedStyle.bind(
+			this.globalContext
+		);
+		moduleScope.fetch = this.globalContext!.fetch;
+		moduleScope.importScripts = this.globalContext!.importScripts;
+		moduleScope.Worker = this.globalContext!.Worker;
+		moduleScope.EventSource = this.globalContext!.EventSource;
+		moduleScope.URL = URL;
+		moduleScope.Worker = createFakeWorker(this._options.env, {
 			outputDirectory: this._options.dist
 		});
-		moduleScope["__dirname"] = this._options.dist;
+		moduleScope.__dirname = this._options.dist;
 		return moduleScope;
 	}
 
@@ -132,8 +138,7 @@ export class FakeDocumentWebRunner<
 			if (Array.isArray(modulePath)) {
 				throw new Error("Array module path is not supported in hot cases");
 			}
-			const file =
-				context["file"] || this.getFile(modulePath, currentDirectory);
+			const file = context.file || this.getFile(modulePath, currentDirectory);
 			if (!file) {
 				return this.requirers.get("miss")!(currentDirectory, modulePath);
 			}
@@ -157,13 +162,12 @@ export class FakeDocumentWebRunner<
 					modulePath,
 					context
 				);
-			} else {
-				return this.requirers.get("cjs")!(
-					this._options.dist,
-					modulePath,
-					context
-				);
 			}
+			return this.requirers.get("cjs")!(
+				this._options.dist,
+				modulePath,
+				context
+			);
 		});
 	}
 

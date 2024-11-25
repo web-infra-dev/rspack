@@ -1,14 +1,14 @@
 use napi_derive::napi;
-use rspack_error::{Diagnostic, Result, RspackSeverity};
+use rspack_error::{miette, Diagnostic, Result, RspackSeverity};
 
 #[napi(object)]
-pub struct JsDiagnostic {
+pub struct JsRspackDiagnostic {
   pub severity: JsRspackSeverity,
   pub error: JsRspackError,
 }
 
-impl From<JsDiagnostic> for Diagnostic {
-  fn from(value: JsDiagnostic) -> Self {
+impl From<JsRspackDiagnostic> for Diagnostic {
+  fn from(value: JsRspackDiagnostic) -> Self {
     value.error.into_diagnostic(value.severity.into())
   }
 }
@@ -28,12 +28,22 @@ impl From<JsRspackSeverity> for RspackSeverity {
   }
 }
 
+impl From<JsRspackSeverity> for miette::Severity {
+  fn from(value: JsRspackSeverity) -> Self {
+    match value {
+      JsRspackSeverity::Error => miette::Severity::Error,
+      JsRspackSeverity::Warn => miette::Severity::Warning,
+    }
+  }
+}
+
 #[napi(object)]
 #[derive(Debug)]
 pub struct JsRspackError {
   pub name: String,
   pub message: String,
   pub module_identifier: Option<String>,
+  pub loc: Option<String>,
   pub file: Option<String>,
   pub stack: Option<String>,
   pub hide_stack: Option<bool>,
@@ -50,7 +60,8 @@ impl JsRspackError {
       }),
       message: diagnostic.render_report(colored)?,
       module_identifier: diagnostic.module_identifier().map(|d| d.to_string()),
-      file: diagnostic.file().map(|f| f.to_string_lossy().to_string()),
+      loc: diagnostic.loc(),
+      file: diagnostic.file().map(|f| f.as_str().to_string()),
       stack: diagnostic.stack(),
       hide_stack: diagnostic.hide_stack(),
     })

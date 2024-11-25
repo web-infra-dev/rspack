@@ -1,10 +1,368 @@
+import Mermaid from '@components/Mermaid';
 import { Badge } from '@theme';
+import ModuleType from '../../types/module.mdx';
+import ChunkType from '../../types/chunk.mdx';
+import RuntimeModuleType from '../../types/runtime-module.mdx';
+import SourceType from '../../types/source.mdx';
+import HashType from '../../types/hash.mdx';
+import CompilerType from '../../types/compiler.mdx';
+import { Collapse, CollapsePanel } from '@components/Collapse';
+import Columns from '@components/Columns';
+import { NoSSR } from 'rspress/runtime';
+import { ApiMeta } from '@components/ApiMeta';
 
 # Compilation 钩子
 
 :::info
 Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构等因素，在使用钩子时 Rust 侧编译对象传输到 JavaScript 侧后，对 JavaScript 侧的修改不会被同步到 Rust 侧。因此绝大部分钩子为“只读”。
 :::
+
+## Overview
+
+<NoSSR>
+
+<Columns styles={[{}, { flex: "0.8" }]}>
+
+<Mermaid title="compilation.addEntry()">
+
+{`
+flowchart TD
+EntryPlugin("EntryPlugin") --> AddEntry("compilation.addEntry(callback)")
+AddEntry --> HookAddEntry(hooks.addEntry)
+subgraph BuildModuleGraph["创建模块图"]
+HookAddEntry --> FactorizeModule("ModuleFactory.create()")
+FactorizeModule <--> SideEffectsResolve(<a href="/zh/config/optimization#optimizationsideeffects">检测模块副作用</a>)
+FactorizeModule <--> Resolve("解析模块路径")
+
+FactorizeModule --> BuildModule("compilation.buildModule()")
+BuildModule --> HookStillValidModule{hooks.stillValidModule}
+HookStillValidModule --> |true| ProcessDependencies("处理模块依赖")
+HookStillValidModule --> |false| HookBuildModule(<a href="#buildmodule">hooks.buildModule</a>)
+HookBuildModule --> ModuleBuild("module.build()")
+ModuleBuild --> RunLoaders("运行 Loader 编译模块")
+RunLoaders --> ParserParse("解析模块依赖")
+ParserParse --> ModuleBuild
+ParserParse <--> InnerGraph(<a href="/zh/config/optimization#optimizationinnergraph">分析变量引用</a>)
+ParserParse <--> SideEffectsCode(<a href="/zh/config/optimization#optimizationsideeffects">检测代码副作用</a>)
+ModuleBuild --> |success| HookSucceedModule(<a href="#succeedmodule">hooks.succeedModule</a>)
+ModuleBuild --> |failed| HookFailedModule(hooks.failedModule)
+HookSucceedModule --> ProcessDependencies
+HookFailedModule --> ProcessDependencies
+ProcessDependencies --> FactorizeModule
+ProcessDependencies --> |failed| HookFailedEntry(hooks.failedEntry)
+ProcessDependencies --> |success| HookSucceedEntry(hooks.succeedEntry)
+HookFailedEntry --> Callback("callback()")
+HookSucceedEntry --> Callback
+
+end
+
+class AddEntry flow-start
+class Callback flow-end
+class FactorizeModule,Resolve,BuildModule,ProcessDependencies,RunLoaders,ParserParse,ModuleBuild flow-process
+class InnerGraph,SideEffectsResolve,SideEffectsCode flow-optimization
+class HookBuildModule,HookSucceedModule flow-hook
+class HookStillValidModule,HookAddEntry,HookFailedEntry,HookSucceedEntry,HookFailedModule flow-hook-non-support
+`}
+
+</Mermaid>
+
+<div>
+<Mermaid title="compilation.finish()">
+
+{`
+flowchart TD
+CompilerCompile("compiler.compile()") --> CompilationFinish("compilation.finish(callback)")
+CompilationFinish --> HookFinishModules(<a href="#finishmodules">hooks.finishModules</a>)
+HookFinishModules <--> FlagDependencyExports(<a href="/zh/config/optimization#optimizationprovidedexports">分析模块导出</a>)
+HookFinishModules --> Callback("callback()")
+
+class CompilationFinish flow-start
+class Callback flow-end
+class FlagDependencyExports flow-optimization
+class HookFinishModules flow-hook
+`}
+
+</Mermaid>
+
+<br />
+
+<Mermaid title="Stats">
+
+{`
+flowchart TD
+StatsToString("stats.toString()") --> CreateStatsOptions("compilation.createStatsOptions")
+CreateStatsOptions --> HookStatsPreset(<a href="#statspreset">hooks.statsPreset</a>)
+HookStatsPreset --> HookStatsNormalize(<a href="#statsnormalize">hooks.statsNormalize</a>)
+HookStatsNormalize --> CreateStatsOptions
+CreateStatsOptions --> HookStatsFactory(<a href="#statsfactory">hooks.statsFactory</a>)
+HookStatsFactory --> HookStatsPrinter(<a href="#statsprinter">hooks.statsPrinter</a>)
+HookStatsPrinter --> StatsJSON(<a href="/zh/api/javascript-api/stats-json">生成 Stats 对象</a>)
+StatsJSON --> StatsOutput("生成 Stats 字符串")
+
+class StatsToString flow-start
+class StatsOutput flow-end
+class CreateStatsOptions,StatsJSON flow-process
+class HookStatsFactory,HookStatsPrinter,HookStatsPreset,HookStatsNormalize flow-hook
+`}
+
+</Mermaid>
+
+</div>
+
+</Columns>
+
+<br />
+
+<Mermaid title="compilation.seal()">
+
+{`
+flowchart TD
+subgraph Start
+direction LR
+CompilerCompile("compiler.compile()") --> Seal("compilation.seal(callback)")
+Seal --> HookSeal(<a href="#seal">hooks.seal</a>)
+
+class HookSeal flow-hook
+end
+
+Start --> ChunkGraph
+
+subgraph ChunkGraph["创建 Chunk 图"]
+direction LR
+
+    subgraph OptimizeDependencies["优化模块图"]
+    direction TB
+    HooksOptimizationDependencies(hooks.optimizeDependencies) <--> FlagUsedExports(<a href="/zh/config/optimization#optimizationusedexports">分析被使用的导出</a>)
+    HooksOptimizationDependencies --> HookAfterOptimizeDependencies(hooks.afterOptimizeDependencies)
+
+    class HooksOptimizationDependencies,HookAfterOptimizeDependencies flow-hook-non-support
+    class FlagUsedExports flow-optimization
+    end
+
+    OptimizeDependencies --> GenerateChunkGraph
+
+    subgraph GenerateChunkGraph["生成 Chunk 图"]
+    direction TB
+    HookBeforeChunks(hooks.beforeChunks) --> CreateEntryChunks("创建入口 Chunk")
+    CreateEntryChunks --> BuildChunkGraph("从入口出发生成 Chunk 图")
+    BuildChunkGraph --> HookAfterChunks(hooks.afterChunks)
+
+    class HookBeforeChunks,HookAfterChunks flow-hook-non-support
+    class CreateEntryChunks,BuildChunkGraph flow-process
+    class FlagUsedExports flow-optimization
+    end
+
+end
+
+ChunkGraph --> Optimization
+
+subgraph Optimization["优化模块和 Chunk"]
+direction LR
+
+    subgraph OptimizeModules["优化模块"]
+    direction TB
+    HookOptimize(hooks.optimize) --> HookOptimizeModules(<a href="#optimizemodules">hooks.optimizeModules</a>)
+    HookOptimizeModules --> HookAfterOptimizeModules(<a href="#afteroptimizemodules">hooks.afterOptimizeModules</a>)
+
+    class HookOptimize flow-hook-non-support
+    class HookOptimizeModules,HookAfterOptimizeModules flow-hook-partial-support
+    end
+
+    OptimizeModules --> OptimizeChunks["优化 Chunk"]
+
+    subgraph OptimizeChunks
+    HookOptimizeChunks(hooks.optimizeChunks) <--> SplitChunks(<a href="/zh/config/optimization#optimizationsplitchunks">拆分 Chunk 优化</a>)
+    HookOptimizeChunks --> HookAfterOptimizeChunks(hooks.afterOptimizeChunks)
+
+    class HookOptimizeChunks,HookAfterOptimizeChunks flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+    OptimizeChunks --> OptimizeTree
+
+    subgraph OptimizeTree["优化 Chunk 组"]
+    HookOptimizeTree(<a href="#optimizetree">hooks.optimizeTree</a>) --> HookAfterOptimizeTree(hooks.afterOptimizeTree)
+
+    class HookOptimizeTree flow-hook-partial-support
+    class HookAfterOptimizeTree flow-hook-non-support
+    end
+
+    OptimizeTree --> OptimizeChunkModules
+
+    subgraph OptimizeChunkModules["优化 Chunk 内的模块"]
+    HookOptimizeChunkModules(<a href="#optimizechunkmodules">hooks.optimizeChunkModules</a>) <--> ModuleConcatenation(<a href="/zh/config/optimization#optimizationconcatenatemodules">合并拼接模块</a>)
+    HookOptimizeChunkModules --> HookAfterOptimizeChunkModules(hooks.afterOptimizeChunkModules)
+    HookAfterOptimizeChunkModules --> HookShouldRecord(hooks.shouldRecord)
+
+    class HookOptimizeChunkModules flow-hook-partial-support
+    class HookShouldRecord,HookAfterOptimizeChunkModules flow-hook-non-support
+    class ModuleConcatenation flow-optimization
+    end
+
+end
+
+Optimization --> GenerateIds
+
+subgraph GenerateIds["生成 ID 信息"]
+direction LR
+
+    subgraph CreateModuleIds["生成模块 ID"]
+    HookReviveModules(hooks.reviveModules) --> HookBeforeModuleIds(hooks.beforeModuleIds)
+    HookBeforeModuleIds --> HookModuleIds(hooks.moduleIds)
+    HookModuleIds --> HookOptimizeModuleIds(hooks.optimizeModuleIds)
+    HookOptimizeModuleIds --> HookAfterOptimizeModuleIds(hooks.afterOptimizeModuleIds)
+
+    class HookReviveModules,HookModuleIds,HookBeforeModuleIds,HookOptimizeModuleIds,HookAfterOptimizeModuleIds flow-hook-non-support
+    end
+
+    CreateModuleIds --> CreateChunkIds
+
+    subgraph CreateChunkIds["生成 Chunk ID"]
+    HookReviveChunks(hooks.reviveChunks) --> HookBeforeChunkIds(hooks.beforeChunkIds)
+    HookBeforeChunkIds --> HookChunkIds(hooks.moduleIds)
+    HookChunkIds --> HookOptimizeChunkIds(hooks.optimizeChunkIds)
+    HookOptimizeChunkIds --> HookAfterOptimizeChunkIds(hooks.afterOptimizeChunkIds)
+
+    class HookReviveChunks,HookChunkIds,HookBeforeChunkIds,HookOptimizeChunkIds,HookAfterOptimizeChunkIds flow-hook-non-support
+    end
+
+    CreateChunkIds --> CreateRecords
+
+    subgraph CreateRecords["生成编译记录"]
+    ShouldRecord{"shouldRecord"} --> |true| HookRecordModules(hooks.recordModules)
+    ShouldRecord{"shouldRecord"} --> |false| HookOptimizeCodeGeneration(hooks.optimizeCodeGeneration)
+    HookRecordModules --> HookRecordChunks(hooks.recordChunks)
+    HookRecordChunks --> HookOptimizeCodeGeneration(hooks.optimizeCodeOptions)
+
+    class ShouldRecord,HookRecordModules,HookRecordChunks,HookOptimizeCodeGeneration flow-hook-non-support
+    class SplitChunks flow-optimization
+    end
+
+end
+
+GenerateIds --> CodeGeneration
+
+subgraph CodeGeneration["生成模块和 Chunk 代码"]
+direction LR
+
+    subgraph CreateModuleHashes["生成模块哈希"]
+    HookBeforeModuleHash(hooks.beforeModuleHash) --> GenerateModuleHashes("生成模块哈希")
+    GenerateModuleHashes --> HookAfterModuleHash(hooks.afterModuleHash)
+
+    class HookBeforeModuleHash,HookAfterModuleHash flow-hook-non-support
+    class GenerateModuleHashes flow-process
+    end
+
+    CreateModuleHashes --> ModuleGeneration
+
+    subgraph ModuleGeneration["生成模块代码"]
+    HookBeforeModuleCodeGeneration(hooks.beforeModuleCodeGeneration) --> ModuleCodeGeneration("生成模块代码")
+    ModuleCodeGeneration --> HookAfterModuleCodeGeneration(hooks.afterModuleCodeGeneration)
+
+    class HookBeforeModuleCodeGeneration,HookAfterModuleCodeGeneration flow-hook-non-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    ModuleGeneration --> CollectRuntimeRequirements
+
+    subgraph CollectRuntimeRequirements["收集运行时模块依赖"]
+    HookBeforeRuntime(hooks.beforeRuntimeRequirements) --> HookModuleRuntime(hooks.runtimeRequirementInModule)
+    HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
+    HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
+    HookChunkRuntime --> HookAdditionalTreeRuntime(<a href="#additionaltreeruntimerequirements">hooks.additionalTreeRuntimeRequirements</a>)
+    HookAdditionalTreeRuntime --> HookTreeRuntime(<a href="#runtimerequirementintree">hooks.runtimeRequirementInTree</a>)
+    HookTreeRuntime --> HookAfterRuntimeRequirements(hooks.afterRuntimeRequirements)
+    HookTreeRuntime <--> HookRuntimeModule(<a href="#runtimemodule">hooks.runtimeModule</a>)
+
+    class HookBeforeRuntime,HookModuleRuntime,HookAdditionalChunkRuntime,HookChunkRuntime,HookAfterRuntimeRequirements, flow-hook-non-support
+    class HookAdditionalTreeRuntime,HookRuntimeModule,HookTreeRuntime flow-hook-partial-support
+    class ModuleCodeGeneration flow-process
+    end
+
+    CollectRuntimeRequirements --> CompilationHash
+
+    subgraph CompilationHash["生成 Compilation 哈希"]
+    HookBeforeHash(hooks.beforeHash) --> CreateHash("生成 Compilation 哈希")
+    CreateHash --> HookChunkHash(<a href="#chunkhash">hooks.chunkHash</a>)
+    HookChunkHash --> HookFullHash(hooks.fullHash)
+    HookFullHash --> CreateHash
+    CreateHash --> HookAfterHash(hooks.afterHash)
+
+    class HookBeforeHash,HookAfterHash,HookFullHash flow-hook-non-support
+    class HookChunkHash flow-hook-partial-support
+    class CreateHash flow-process
+    end
+
+end
+
+CodeGeneration --> Assets
+
+subgraph Assets["生成产物信息"]
+direction LR
+subgraph CreateModuleAssets["生成模块产物"]
+ShouldRecord2{"shouldRecord"} --> |true| HookRecordHash(hooks.recordHash)
+HookRecordHash --> HookBeforeModuleAssets(hooks.beforeModuleAssets)
+ShouldRecord2{"shouldRecord"} --> |false| HookBeforeModuleAssets
+HookBeforeModuleAssets --> GenerateModuleAssets("生成模块产物")
+GenerateModuleAssets <--> HookModuleAsset(hooks.moduleAsset)
+
+    class ShouldRecord2,HookRecordHash,HookBeforeModuleAssets,HookModuleAsset flow-hook-non-support
+    class GenerateModuleAssets flow-process
+    end
+
+    CreateModuleAssets --> CreateChunkAssets
+
+    subgraph CreateChunkAssets["生成 Chunk 产物"]
+    HookShouldGenerateChunkAssets{hooks.shouldGenerateChunkAssets} --> |true| HookBeforeChunkAssets(hooks.beforeChunkAssets)
+    HookBeforeChunkAssets --> GenerateChunkAssets("生成 Chunk 产物")
+    GenerateChunkAssets --> HookRenderManifest(hooks.renderManifest)
+    HookRenderManifest --> HookChunkAsset(<a href="#chunkasset">hooks.chunkAsset</a>)
+    HookChunkAsset --> GenerateChunkAssets
+    HookShouldGenerateChunkAssets --> |false| HookProcessAssets(<a href="#processassets">hooks.processAssets</a>)
+
+    class HookBeforeChunkAssets,HookShouldGenerateChunkAssets,HookRenderManifest flow-hook-non-support
+    class HookChunkAsset flow-hook-partial-support
+    class HookProcessAssets flow-hook
+    class GenerateChunkAssets flow-process
+    end
+
+    CreateChunkAssets --> ProcessAssets
+
+    subgraph ProcessAssets["加工产物"]
+      HookProcessAssets2(<a href="#processassets">hooks.processAssets</a>) --> HookAfterProcessAssets(<a href="#afterprocessassets">hooks.afterProcessAssets</a>)
+      HookAfterProcessAssets --> |shouldRecord=true| HookRecord(hooks.record)
+
+      class HookProcessAssets2,HookAfterProcessAssets flow-hook
+      class HookRecord flow-hook-non-support
+
+    end
+
+end
+
+Assets --> End
+
+subgraph End
+direction LR
+HookNeedAdditionalSeal --> |true| HookUnseal(hooks.unseal)
+HookNeedAdditionalSeal --> |false| HookAfterSeal
+HookUnseal --> Reseal("compilation.seal()")
+HookAfterSeal(<a href="#afterseal">hooks.afterSeal</a>) --> Callback("callback()")
+
+class HookAfterSeal flow-hook
+class HookNeedAdditionalSeal,HookUnseal flow-hook-non-support
+class Reseal flow-start
+end
+
+End -. additional seal .-> Start
+
+class Seal flow-start
+class Callback flow-end
+
+`}
+
+</Mermaid>
+
+</NoSSR>
 
 ## `buildModule`
 
@@ -16,26 +374,15 @@ Rspack 主要编译逻辑运行在 Rust 侧。出于稳定性、性能、架构�
 - **参数：**
   - `Module`：模块实例
 
-```ts
-type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
-  buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
-  identifier(): string;
-  nameForCondition(): string | null;
-};
-```
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `executeModule`
 
@@ -48,6 +395,8 @@ type Module = {
   - `ExecuteModuleArgument`：模块运行参数
   - `ExecuteModuleContext`：模块运行上下文
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="ExecuteModuleArgument.ts" key="ExecuteModuleArgument">
 ```ts
 type ExecuteModuleArgument = {
   codeGenerationResult: {
@@ -60,11 +409,16 @@ type ExecuteModuleArgument = {
     error?: Error;
   };
 };
-
+```
+  </CollapsePanel>
+    <CollapsePanel className="collapse-code-panel" header="ExecuteModuleContext.ts" key="ExecuteModuleContext">
+```ts
 type ExecuteModuleContext = {
   __webpack_require__: (id: string) => any;
 };
 ```
+  </CollapsePanel>
+</Collapse>
 
 ## `succeedModule`
 
@@ -76,6 +430,16 @@ type ExecuteModuleContext = {
 - **参数：**
   - `Module`：模块实例
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
 ## `finishModules`
 
 <Badge text="只读" type="info" />
@@ -85,6 +449,16 @@ type ExecuteModuleContext = {
 - **类型：** `AsyncSeriesHook<[Module[]]>`
 - **参数：**
   - `Module[]`：所有模块列表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeModules`
 
@@ -96,6 +470,22 @@ type ExecuteModuleContext = {
 - **参数：**
   - `Module[]`：所有模块列表
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
+
+## `seal`
+
+停止接收新模块并开始优化前触发。
+
+- **类型：** `SyncHook<[]>`
+
 ## `afterOptimizeModules`
 
 <Badge text="只读" type="info" />
@@ -105,6 +495,16 @@ type ExecuteModuleContext = {
 - **类型：** `SyncBailHook<[Module[]]>`
 - **参数：**
   - `Module[]`：所有模块列表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeTree`
 
@@ -117,30 +517,18 @@ type ExecuteModuleContext = {
   - `Chunk[]`：Chunk 列表：
   - `Module[]`：模块列表
 
-```ts
-type Chunk = {
-  name?: string;
-  id?: string;
-  ids: string[];
-  idNameHints: string[];
-  filenameTemplate?: string;
-  cssFilenameTemplate?: string;
-  files: Set<string>;
-  runtime: Set<string>;
-  hash?: string;
-  contentHash: Record<string, string>;
-  renderedHash?: string;
-  chunkReason?: string;
-  auxiliaryFiles: Set<string>;
-  isOnlyInitial(): boolean;
-  canBeInitial(): boolean;
-  hasRuntime(): boolean;
-  groupsIterable: Set<ChunkGroup>;
-  getAllAsyncChunks(): Set<Chunk>;
-  getAllInitialChunks(): Set<Chunk>;
-  getAllReferencedChunks(): Set<Chunk>;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `optimizeChunkModules`
 
@@ -153,24 +541,114 @@ type Chunk = {
   - `Chunk[]`：Chunk 列表：
   - `Module[]`：模块列表
 
-## `additionalTreeRuntimeRequirements`
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Module.ts"
+    key="Module"
+  >
+    <ModuleType />
+  </CollapsePanel>
+</Collapse>
 
-<Badge text="只读" type="info" />
+## `additionalTreeRuntimeRequirements`
 
 在树运行时依赖计算完成后调用。
 
 - **类型：** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
 - **参数：**
   - `Chunk`：Chunk 实例
-  - `Set<RuntimeGlobals>`：运行时依赖
+  - `Set<RuntimeGlobals>`：运行时依赖集合
 
-```ts
-enum RuntimeGlobals {}
+可通过修改运行时依赖集合以添加额外的内置运行时模块：
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.additionalTreeRuntimeRequirements.tap(
+            'CustomPlugin',
+            (_, set) => {
+              // 添加访问 compilation 哈希值的运行时模块
+              set.add(RuntimeGlobals.getFullHash);
+            },
+          );
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// 将打印 compilation 的哈希值
+console.log(__webpack_require__.h);
+```
+
+## `runtimeRequirementInTree`
+
+<ApiMeta addedVersion="1.0.6" />
+
+在根据运行时依赖以添加运行时模块时调用。
+
+- **类型：** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
+- **参数：**
+  - `Chunk`：Chunk 实例
+  - `Set<RuntimeGlobals>`：运行时依赖集合
+
+可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义运行时模块：
+
+```js title="rspack.config.js"
+module.exports = {
+  entry: './index.js',
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals, RuntimeModule } = compiler.webpack;
+        class CustomRuntimeModule extends RuntimeModule {
+          constructor() {
+            super('custom');
+          }
+
+          generate() {
+            const compilation = this.compilation;
+            return `
+            __webpack_require__.mock = function(file) {
+              return ${RuntimeGlobals.publicPath} + "/subpath/" + file;
+            };
+          `;
+          }
+        }
+
+        compiler.hooks.thisCompilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeRequirementInTree
+            .for(RuntimeGlobals.ensureChunkHandlers)
+            .tap('CustomPlugin', (chunk, set) => {
+              // 添加访问 publicPath 的运行时模块
+              set.add(RuntimeGlobals.publicPath);
+              // 添加自定义运行时模块
+              compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
+            });
+        });
+      },
+    },
+  ],
+};
+```
+
+```js title="index.js"
+// 将打印 "/subpath/index.js"
+console.log(__webpack_require__.mock('index.js'));
 ```
 
 ## `runtimeModule`
-
-<Badge text="只读" type="info" />
 
 在运行时模块被添加后调用。
 
@@ -179,40 +657,154 @@ enum RuntimeGlobals {}
   - `RuntimeModule`：运行时模块
   - `Chunk`：Chunk 实例
 
-```ts
-type RuntimeModule = {
-  source?: {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  };
-  moduleIdentifier: string;
-  constructorName: string;
-  name: string;
+可通过 `source` 字段修改该运行时模块生成的代码。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    {
+      apply(compiler) {
+        const { RuntimeGlobals } = compiler.webpack;
+        compiler.hooks.compilation.tap('CustomPlugin', compilation => {
+          compilation.hooks.runtimeModule.tap(
+            'CustomPlugin',
+            (module, chunk) => {
+              if (module.name === 'public_path' && chunk.name === 'main') {
+                const originSource = module.source.source.toString('utf-8');
+                module.source.source = Buffer.from(
+                  `${RuntimeGlobals.publicPath} = "/override/public/path";\n`,
+                  'utf-8',
+                );
+              }
+            },
+          );
+        });
+      },
+    },
+  ],
 };
 ```
+
+```js title="index.js"
+// 将打印 "/override/public/path"
+console.log(__webpack_require__.p);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="RuntimeModule.ts"
+    key="RuntimeModule"
+  >
+    <RuntimeModuleType />
+  </CollapsePanel>
+</Collapse>
 
 ## `processAssets`
 
 在产物输出之前进行修改产物。
 
 - **类型：** `AsyncSeriesHook<Assets>`
+- **hook 参数：**
+  - `name: string` — 插件的名称
+  - `stage: Stage` — 要处理的阶段（参考 [Process assets stages](#process-assets-stages)）
 - **参数：**
-  - `Assets`：产物资源映射表
+  - `Assets: Record<string, Source>`: 一个对象，其中 key 是 asset 的路径名，值是由 [Source](https://github.com/webpack/webpack-sources#source) 表示的 asset 数据。
 
-```ts
-type Assets = Record<
-  string,
-  {
-    source(): string | ArrayBuffer;
-    buffer(): Buffer;
-    size(): number;
-    map(options?: MapOptions): RawSourceMap | null;
-    sourceAndMap(options?: MapOptions): SourceAndMapResult;
-  }
->;
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
+
+### Process assets 示例
+
+- 在 `PROCESS_ASSETS_STAGE_ADDITIONAL` 阶段输出一个新的 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+    },
+    assets => {
+      const { RawSource } = compiler.webpack.sources;
+      const source = new RawSource('This is a new asset!');
+      compilation.emitAsset('new-asset.txt', source);
+    },
+  );
+});
 ```
+
+- 更新一个已经存在的 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+    },
+    assets => {
+      const asset = assets['foo.js'];
+      if (!asset) {
+        return;
+      }
+
+      const { RawSource } = compiler.webpack.sources;
+      const oldContent = asset.source();
+      const newContent = oldContent + '\nconsole.log("hello world!")';
+      const source = new RawSource(newContent);
+
+      compilation.updateAsset(assetName, source);
+    },
+  );
+});
+```
+
+- 移除一个 asset：
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'MyPlugin',
+      stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+    },
+    assets => {
+      const assetName = 'unwanted-script.js';
+      if (assets[assetName]) {
+        compilation.deleteAsset(assetName);
+      }
+    },
+  );
+});
+```
+
+### Process assets stages
+
+下面是支持的 stage 列表，Rspack 会按由上至下的顺序依次执行这些 stages，请根据你需要进行的操作来选择合适的 stage。
+
+- `PROCESS_ASSETS_STAGE_ADDITIONAL` — 在编译中添加额外的 asset。
+- `PROCESS_ASSETS_STAGE_PRE_PROCESS` — asset 进行了基础的预处理。
+- `PROCESS_ASSETS_STAGE_DERIVED` — 从现有 asset 中派生新的 asset。
+- `PROCESS_ASSETS_STAGE_ADDITIONS` — 为现有的 asset 添加额外的内容，例如 banner 或初始代码。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE` — 以通用的方式优化现有 asset。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COUNT` — 优化现有 asset 的数量，例如，进行合并操作。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_COMPATIBILITY` — 优化现有 asset 的兼容性，例如添加 polyfills 或者 vendor prefixes。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE` — 优化现有 asset 的大小，例如进行压缩或者删除空格。
+- `PROCESS_ASSETS_STAGE_DEV_TOOLING` — 为 asset 添加开发者工具，例如，提取 source map。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE` — 将 asset 内联到其他 asset 中来优化现有 asset 数量。
+- `PROCESS_ASSETS_STAGE_SUMMARIZE` — 整理现有 asset 列表。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_HASH` — 优化 asset 的 hash 值，例如，生成基于 asset 内容的真实 hash 值。
+- `PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER` — 优化已有 asset 的转换操作，例如对 asset 进行压缩，并作为独立的 asset。
+- `PROCESS_ASSETS_STAGE_ANALYSE` — 分析已有 asset。
+- `PROCESS_ASSETS_STAGE_REPORT` — 创建用于上报的 asset。
 
 ## `afterProcessAssets`
 
@@ -222,7 +814,17 @@ type Assets = Record<
 
 - **类型：** `SyncHook<Assets>`
 - **参数：**
-  - `Assets`：产物资源映射表
+  - `Assets: Record<string, Source>`：产物资源映射表
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Source.ts"
+    key="Source"
+  >
+    <SourceType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterSeal`
 
@@ -243,12 +845,14 @@ type Assets = Record<
   - `Chunk`：Chunk 实例
   - `Hash`：Chunk 哈希实例
 
-```ts
-type Hash = {
-  update(data: string | Buffer, inputEncoding?: string): Hash;
-  digest(encoding?: string): string | Buffer;
-};
-```
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="Hash.ts" key="Hash">
+    <HashType />
+  </CollapsePanel>
+</Collapse>
 
 ## `chunkAsset`
 
@@ -260,6 +864,12 @@ type Hash = {
 - **参数：**
   - `Chunk`：Chunk 实例
   - `string`：产物文件名
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
 
 ## `childCompiler`
 
@@ -273,6 +883,16 @@ type Hash = {
   - `string`：子编译名称
   - `number`：子编译索引
 
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compiler.ts"
+    key="Compiler"
+  >
+    <CompilerType />
+  </CollapsePanel>
+</Collapse>
+
 ## `statsPreset`
 
 <Badge text="只读" type="info" />
@@ -284,17 +904,6 @@ type Hash = {
   - `Partial<StatsOptions>`：Stats 配置
   - `CreateStatsOptionsContext`：Stats 上下文
 
-```ts
-type StatsOptions = {
-  // 见构建配置中的 stats
-};
-
-type CreateStatsOptionsContext = {
-  forToString?: boolean;
-  [key: string]: any;
-};
-```
-
 以如下插件为例：
 
 ```js
@@ -304,6 +913,20 @@ compilation.hooks.statsPreset.for('my-preset').tap('MyPlugin', options => {
 ```
 
 该插件确保对于预设 `"my-preset"`，如果 `all` 选项未定义，则默认为 `true`。
+
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
 
 ## `statsNormalize`
 
@@ -328,6 +951,20 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
 
 在这个插件中，如果 `myOption` 缺失，会将其设置为 `[]`。此外，它确保 `myOption` 始终是一个数组，即使它最初被定义为单个值。
 
+<Collapse>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+  <CollapsePanel className="collapse-code-panel" header="CreateStatsOptionsContext.ts" key="CreateStatsOptionsContext">
+```ts
+type CreateStatsOptionsContext = {
+  forToString?: boolean;
+  [key: string]: any;
+};
+```
+  </CollapsePanel>
+</Collapse>
+
 ## `statsFactory`
 
 <Badge text="只读" type="info" />
@@ -339,6 +976,8 @@ compilation.hooks.statsNormalize.tap('MyPlugin', options => {
   - `StatsFactory`：Stats 工厂实例，详见 [Stats Factory 钩子](/api/plugin-api/stats-hooks#statsfactory)
   - `StatsOptions`：Stats 配置
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsFactory.ts" key="StatsFactory">
 ```ts
 type StatsFactory = {
   hooks: StatsFactoryHooks;
@@ -349,6 +988,11 @@ type StatsFactory = {
   ): void;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+</Collapse>
 
 ## `statsPrinter`
 
@@ -361,6 +1005,8 @@ type StatsFactory = {
   - `StatsPrinter`：Stats 打印实例，详见 [Stats Printer 钩子](/api/plugin-api/stats-hooks#statsprinter)
   - `StatsOptions`：Stats 配置
 
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="StatsPrinter.ts" key="StatsPrinter">
 ```ts
 type StatsPrinter = {
   hooks: StatsPrinterHooks;
@@ -375,3 +1021,8 @@ type StatsPrinter = {
   ): string;
 };
 ```
+  </CollapsePanel>
+  <CollapsePanel header="StatsOptions.ts" key="StatsOptions">
+详见 [Stats 配置](/config/stats)
+  </CollapsePanel>
+</Collapse>

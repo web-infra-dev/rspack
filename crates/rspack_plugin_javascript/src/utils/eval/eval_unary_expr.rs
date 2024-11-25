@@ -113,9 +113,7 @@ pub fn eval_unary_expression(
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
     UnaryOp::Bang => {
       let arg = scanner.evaluate_expression(&expr.arg);
-      let Some(boolean) = arg.as_bool() else {
-        return None;
-      };
+      let boolean = arg.as_bool()?;
       let mut eval = BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0);
       eval.set_bool(!boolean);
       eval.set_side_effects(arg.could_have_side_effects());
@@ -123,9 +121,7 @@ pub fn eval_unary_expression(
     }
     UnaryOp::Tilde => {
       let arg = scanner.evaluate_expression(&expr.arg);
-      let Some(number) = arg.as_int() else {
-        return None;
-      };
+      let number = arg.as_int()?;
       let mut eval = BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0);
       eval.set_number(!number as f64);
       eval.set_side_effects(arg.could_have_side_effects());
@@ -133,9 +129,7 @@ pub fn eval_unary_expression(
     }
     UnaryOp::Minus | UnaryOp::Plus => {
       let arg = scanner.evaluate_expression(&expr.arg);
-      let Some(number) = arg.as_number() else {
-        return None;
-      };
+      let number = arg.as_number()?;
       let res = match &expr.op {
         UnaryOp::Minus => -number,
         UnaryOp::Plus => number,

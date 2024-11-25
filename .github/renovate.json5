@@ -1,165 +1,168 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "timezone": "Asia/Shanghai",
-  "schedule": [
-    "before 8am on wednesday"
-  ],
-  "enabledManagers": [
-    "github-actions",
-    "cargo",
-    "npm"
-  ],
-  "ignorePaths": [
-    "**/fixtures/**",
-    "**/tests/**",
-    "npm/**",
-    "tests/webpack-examples/**",
-    "tests/webpack-test/**"
-  ],
-  "assignees": [],
-  "packageRules": [
-    {
-      "groupName": "github-actions",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "excludePackageNames": [
-        "actions/upload-artifact",
-        "actions/download-artifact"
-      ]
-    },
-    {
-      "groupName": "upload-download-actions",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchPackageNames": [
-        "actions/upload-artifact",
-        "actions/download-artifact"
-      ],
-      "enabled": false
-    },
-    {
-      "groupName": "crates",
-      "matchManagers": [
-        "cargo"
-      ],
-      "excludePackagePrefixes": [
-        "swc",
-        "napi"
-      ],
-      "excludePackageNames": [
-        "ustr",
-        "textwrap",
-        "styled_components",
-        "owo-colors",
-        "miette",
-        "rkyv"
-      ]
-    },
-    {
-      "groupName": "swc",
-      "matchManagers": [
-        "cargo"
-      ],
-      "matchPackagePrefixes": [
-        "swc"
-      ],
-      "matchPackageNames": [
-        "styled_components"
-      ],
-      "enabled": false // manually update swc and related crate since it may contain breaking change in minor | patch version
-    },
-    {
-      "groupName": "napi",
-      "matchManagers": [
-        "cargo"
-      ],
-      "matchPackagePrefixes": [
-        "napi"
-      ]
-    },
-    {
-      "groupName": "ignored crates",
-      "matchManagers": [
-        "cargo"
-      ],
-      "matchPackageNames": [
-        "ustr",
-        "textwrap",
-        "owo-colors",
-        "miette",
-        "rkyv"
-      ],
-      "enabled": false
-    },
-    {
-      "groupName": "ignored indexmap",
-      "matchManagers": [
-        "cargo"
-      ],
-      "matchFileNames": [
-        "crates/rspack_plugin_css/Cargo.toml"
-      ],
-      "matchPackageNames": [
-        "indexmap"
-      ],
-      "enabled": false
-    },
-    {
-      "groupName": "npm dev dependencies",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchDepTypes": [
-        "devDependencies"
-      ],
-      "excludePackagePrefixes": [
-        "webpack",
-        "sass"
-      ],
-      "excludePackageNames": [
-        "@playwright/test",
-        "react",
-        "react-dom",
-        "typescript",
-        "pnpm"
-      ]
-    },
-    {
-      "groupName": "npm dependencies",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
-      "enabled": false
-    },
-    {
-      "groupName": "npm ignored dependencies",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchPackageNames": [
-        "@playwright/test",
-        "react",
-        "react-dom",
-        "typescript",
-        "pnpm",
-        "sass"
-      ],
-      "enabled": false
-    },
-    {
-      "groupName": "webpack",
-      "matchManagers": [
-        "npm"
-      ],
-      "matchPackagePrefixes": [
-        "webpack"
-      ],
-      "enabled": false
-    }
-  ]
+	$schema: "https://docs.renovatebot.com/renovate-schema.json",
+	timezone: "Asia/Shanghai",
+	extends: [":dependencyDashboard"],
+	schedule: ["before 8am on wednesday"],
+	enabledManagers: ["github-actions", "cargo", "npm"],
+	ignorePaths: [
+		"**/fixtures/**",
+		"**/tests/**",
+		"npm/**",
+		"tests/webpack-examples/**",
+		"tests/webpack-test/**"
+	],
+	assignees: ["@SoonIter"],
+	packageRules: [
+		// manually update peer dependencies
+		{
+			depTypeList: ["peerDependencies"],
+			enabled: false
+		},
+		{
+			matchPackagePatterns: ["*"],
+			semanticCommitType: "chore",
+			// always bump package.json
+			rangeStrategy: "bump"
+		},
+		{
+			groupName: "github-actions",
+			matchManagers: ["github-actions"],
+			excludePackageNames: [
+				"actions/upload-artifact",
+				"actions/download-artifact"
+			]
+		},
+		{
+			groupName: "pnpm",
+			matchPackageNames: ["pnpm"],
+			matchUpdateTypes: ["minor"]
+		},
+		{
+			groupName: "ignored github-actions upload-download-actions",
+			matchManagers: ["github-actions"],
+			matchPackageNames: [
+				"actions/upload-artifact",
+				"actions/download-artifact"
+			],
+			enabled: false
+		},
+		{
+			groupName: "crates",
+			matchManagers: ["cargo"],
+			excludePackagePrefixes: ["swc", "napi"],
+			excludePackageNames: [
+				"ustr",
+				"textwrap",
+				"styled_components",
+				"owo-colors",
+				"miette",
+				"rkyv",
+				"rspack_resolver"
+			]
+		},
+		{
+			groupName: "swc",
+			matchManagers: ["cargo"],
+			matchPackagePrefixes: ["swc"],
+			matchPackageNames: ["styled_components"],
+			enabled: false // manually update swc and related crate since it may contain breaking change in minor | patch version
+		},
+		{
+			groupName: "napi",
+			matchPackagePrefixes: ["napi", "@napi-rs/"]
+		},
+		{
+			// rspack packages
+			groupName: "@rspack/dev-server @rspack/plugin-react-refresh @rspack/plugin-preact-refresh",
+			matchManagers: ["npm"],
+			matchPackageNames: [
+				"@rspack/dev-server",
+				"@rspack/plugin-react-refresh",
+				"@rspack/plugin-preact-refresh"
+			]
+		},
+		{
+			// rspack crates
+			groupName: "crate rspack_resolver",
+			matchManagers: ["cargo"],
+			matchPackageNames: ["rspack_resolver"]
+		},
+		{
+			groupName: "ignored crates",
+			matchManagers: ["cargo"],
+			matchPackageNames: ["ustr", "textwrap", "owo-colors", "miette", "rkyv"],
+			enabled: false
+		},
+		{
+			groupName: "ignored indexmap",
+			matchManagers: ["cargo"],
+			matchFileNames: ["crates/rspack_plugin_css/Cargo.toml"],
+			matchPackageNames: ["indexmap"],
+			enabled: false
+		},
+		{
+			groupName: "npm dev dependencies",
+			matchManagers: ["npm"],
+			matchDepTypes: ["devDependencies"],
+			excludePackagePrefixes: ["webpack"],
+			excludePackageNames: [
+				"typescript",
+				"pnpm",
+				"@playwright/test",
+				"@biomejs/biome",
+				"prettier"
+			],
+			// bump major in a separate PR
+			matchUpdateTypes: ["patch", "minor"]
+		},
+		{
+			groupName: "npm dependencies",
+			matchManagers: ["npm"],
+			matchDepTypes: ["dependencies"],
+			excludePackageNames: [
+				"@rspack/dev-server",
+				"@rspack/plugin-react-refresh",
+				"@rspack/plugin-preact-refresh"
+			],
+			// bump major in a separate PR
+			matchUpdateTypes: ["patch", "minor"]
+		},
+		{
+			groupName: "webpack",
+			matchManagers: ["npm"],
+			matchPackagePrefixes: ["webpack"],
+			enabled: false
+		},
+		{
+			// should update the playwright image in .github/workflows/reusable-build.yml
+			groupName: "playwright",
+			matchManagers: ["npm"],
+			matchPackagePrefixes: ["@playwright/test"]
+		},
+		{
+			groupName: "typescript and @microsoft/api-extractor",
+			matchManagers: ["npm"],
+			matchPackageNames: [
+				"typescript",
+				"@microsoft/api-extractor",
+				"@microsoft/api-extractor-model"
+			],
+			// bump major in a separate PR
+			matchUpdateTypes: ["patch", "minor"]
+		},
+		{
+			// linter and formatter
+			groupName: "@biomejs/biome and prettier",
+			matchManagers: ["npm"],
+			matchPackageNames: ["@biomejs/biome", "prettier"]
+		},
+		{
+			// document
+			groupName: "rspress",
+			matchManagers: ["npm"],
+			matchFileNames: ["website/package.json"],
+			matchPackagePrefixes: ["@rspress/", "rspress-plugin-", "rsbuild-plugin"],
+			matchPackageNames: ["rspress"]
+		}
+	]
 }

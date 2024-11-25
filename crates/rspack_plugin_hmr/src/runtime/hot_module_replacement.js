@@ -261,11 +261,10 @@ function hotCheck(applyOnUpdate) {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
 							return internalApply(applyOnUpdate);
-						} else {
-							return setStatus("ready").then(function () {
-								return updatedModules;
-							});
 						}
+						return setStatus("ready").then(function () {
+							return updatedModules;
+						});
 					});
 				});
 			});

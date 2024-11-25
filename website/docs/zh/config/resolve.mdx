@@ -1,4 +1,6 @@
-import { ApiMeta } from '../../../components/ApiMeta';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/resolve/" />
 
 # Resolve
 
@@ -28,23 +30,10 @@ import { ApiMeta } from '../../../components/ApiMeta';
 
 ## resolve.aliasFields
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **类型：** `string[]`
 - **默认值：**`['browser']`
 
 定义一个字段，例如 `browser`，以依照[此规范](https://github.com/defunctzombie/package-browser-field-spec)进行解析。
-
-## resolve.browserField
-
-<ApiMeta deprecatedVersion="0.5.1" removedVersion="0.7.0" />
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-是否按照 [package-browser-filed-spec](https://github.com/defunctzombie/package-browser-field-spec) 规则解析。
-
-等同于 enhanced-resolve 的 `resolve.aliasFields = ["browser"]`。
 
 ## resolve.conditionNames
 
@@ -54,8 +43,6 @@ import { ApiMeta } from '../../../components/ApiMeta';
 与 node 的 [conditionNames](https://nodejs.org/api/packages.html#conditional-exports) 相同，用于 package.json 中的 `exports` 和 `imports` 字段。
 
 ## resolve.descriptionFiles
-
-<ApiMeta addedVersion="0.6.6" />
 
 - **类型：** `string[]`
 - **默认值：** `['package.json']`
@@ -71,8 +58,6 @@ module.exports = {
 ```
 
 ## resolve.enforceExtension
-
-<ApiMeta addedVersion="0.6.6" />
 
 - **类型：** `boolean`
 
@@ -100,10 +85,9 @@ module.exports = {
 - **类型：** `Record<string, string[] | string>`
 - **默认值：** `{}`
 
-定义拓展名的别名，例如
+定义拓展名的别名，例如：
 
-```js
-// rspack.config.js
+```js title="rspack.config.js"
 module.exports = {
   resolve: {
     extensionAlias: {
@@ -113,7 +97,13 @@ module.exports = {
 };
 ```
 
-在 `require('./index.js')` 时，会依次尝试解析 `'./index.ts'`, `./index.js`。
+这对于 TypeScript 项目来说非常有用，因为 TypeScript 推荐使用 `.js` 扩展名来引用 TypeScript 文件。
+
+```ts title="index.ts"
+import { foo } from './foo.js'; // 实际引用的是 foo.ts
+```
+
+Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` 和 `./foo.js`。
 
 ## resolve.fallback
 
@@ -232,8 +222,6 @@ module.exports = {
 
 ## resolve.importsFields
 
-<ApiMeta addedVersion="0.6.6" />
-
 - **类型：** `string[]`
 - **默认值:** `['imports']`
 
@@ -273,41 +261,14 @@ module.exports = {
 
 ## resolve.preferAbsolute
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **类型：** `boolean`
 - **默认值：**`false`
 
 在解析时，倾向使用与 `resolve.roots` 相关的绝对路径。
 
-## resolve.tsConfigPath
-
-<ApiMeta removedVersion="1.0.0-alpha.0" />
-
-- **类型：** `string | undefined`
-- **默认值：** `undefined`
-
-这个选项接受的是 `tsconfig.json` 的文件路径。在开启这个选项后， Rspack 会基于 `tsconfig.json` 中 的 `paths` 和 `baseUrl` 来寻找模块，其功能等同于 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin)。
-
-```js rspack.config.js
-const path = require('path');
-
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-  // ...
-  resolve: {
-    tsConfigPath: path.resolve(__dirname, 'tsconfig.json'),
-  },
-  // ...
-};
-module.exports = config;
-```
-
 ## resolve.tsConfig
 
 Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) 的配置。
-
-<ApiMeta addedVersion="0.3.7" />
 
 - **类型：** `string | object | undefined`
 - **默认值:** `undefined`
@@ -354,16 +315,12 @@ module.exports = {
 
 ## resolve.restrictions
 
-<ApiMeta addedVersion="0.5.1" />
-
 - **类型：** `string[]`
 - **默认值：**`[]`
 
 限制请求解析路径的解析限制列表。
 
 ## resolve.roots
-
-<ApiMeta addedVersion="0.5.1" />
 
 - **类型：** `string[]`
 - **默认值：**`[]`

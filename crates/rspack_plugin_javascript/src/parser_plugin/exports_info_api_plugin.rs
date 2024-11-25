@@ -1,7 +1,10 @@
-use rspack_core::{extract_member_expression_chain, ConstDependency, SpanExt};
+use rspack_core::{ConstDependency, SpanExt};
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
+use crate::{
+  dependency::ExportInfoDependency,
+  visitors::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo},
+};
 
 const WEBPACK_EXPORTS_INFO: &str = "__webpack_exports_info__";
 
@@ -14,31 +17,31 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
     member_expr: &swc_core::ecma::ast::MemberExpr,
     _name: &str,
   ) -> Option<bool> {
-    let expression_info = extract_member_expression_chain(member_expr);
-    let member_chain = expression_info.members();
-    if !member_chain.is_empty()
-      && member_chain[0].0 == WEBPACK_EXPORTS_INFO
-      && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
+    let (members, root) = parser
+      .get_member_expression_info(member_expr, AllowedMemberTypes::Expression)
+      .and_then(|info| match info {
+        MemberExpressionInfo::Call(_) => None,
+        MemberExpressionInfo::Expression(info) => {
+          if let ExportedVariableInfo::Name(root) = info.root_info {
+            Some((info.members, root))
+          } else {
+            None
+          }
+        }
+      })?;
+
+    let len = members.len();
+    if len >= 1 && root == WEBPACK_EXPORTS_INFO && parser.is_unresolved_ident(WEBPACK_EXPORTS_INFO)
     {
-      let len = member_chain.len();
-      if len >= 2 {
-        let prop = member_chain[len - 1].0.clone();
-        let dep = Box::new(ExportInfoDependency::new(
-          member_expr.span.real_lo(),
-          member_expr.span.real_hi(),
-          member_chain
-            .into_iter()
-            .skip(1)
-            .take(len - 2)
-            .map(|item| item.0.clone())
-            .collect::<Vec<_>>(),
-          prop,
-        ));
-        parser.presentational_dependencies.push(dep);
-        Some(true)
-      } else {
-        None
-      }
+      let prop = members[len - 1].clone();
+      let dep = Box::new(ExportInfoDependency::new(
+        member_expr.span.real_lo(),
+        member_expr.span.real_hi(),
+        members.into_iter().take(len - 1).collect::<Vec<_>>(),
+        prop,
+      ));
+      parser.presentational_dependencies.push(dep);
+      Some(true)
     } else {
       None
     }

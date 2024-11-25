@@ -1,6 +1,5 @@
 it("should transform unsupported require api to undefined", function () {
 	expect(require.extensions).toBeUndefined();
-	expect(require.ensure).toBeUndefined();
 	expect(require.config).toBeUndefined();
 	expect(require.version).toBeUndefined();
 	expect(require.amd).toBeUndefined();
@@ -10,11 +9,6 @@ it("should transform unsupported require api to undefined", function () {
 	expect(module.parent.require).toBeUndefined();
 
 	expect(require.include("a")).toBeUndefined();
-	expect(
-		require.ensure(["a", "b"], function (require) {
-			/* ... */
-		})
-	).toBeUndefined();
 	expect(require.onError(function () {})).toBeUndefined();
 	expect(require.main.require("a")).toBeUndefined();
 	expect(module.parent.require("a")).toBeUndefined();
@@ -22,7 +16,6 @@ it("should transform unsupported require api to undefined", function () {
 	function requireInBlock() {
 		var require = {
 			extensions: {},
-			ensure: {},
 			config: {},
 			version: {},
 			amd: {},
@@ -38,7 +31,6 @@ it("should transform unsupported require api to undefined", function () {
 			}
 		};
 		expect(require.extensions).toBeTruthy();
-		expect(require.ensure).toBeTruthy();
 		expect(require.config).toBeTruthy();
 		expect(require.version).toBeTruthy();
 		expect(require.amd).toBeTruthy();

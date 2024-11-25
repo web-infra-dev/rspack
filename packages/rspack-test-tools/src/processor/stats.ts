@@ -1,5 +1,3 @@
-/* eslint-disable no-control-regex */
-
 import fs from "node:fs";
 import path from "node:path";
 import type { Compiler, Stats } from "@rspack/core";
@@ -18,9 +16,10 @@ export interface IStatsProcessorOptions<T extends ECompilerType>
 	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
 
 const REG_ERROR_CASE = /error$/;
-const quoteMeta = (str: string) => {
-	return str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
-};
+
+class RspackStats {
+	constructor(public value: string) {}
+}
 
 export class StatsProcessor<
 	T extends ECompilerType
@@ -45,12 +44,17 @@ export class StatsProcessor<
 	async compiler(context: ITestContext) {
 		await super.compiler(context);
 		const instance = this.getCompiler(context).getCompiler()! as any;
-		const compilers = instance.compilers ? instance.compilers : [instance];
-		compilers.forEach((c: Compiler) => {
-			const ifs = c.inputFileSystem;
-			c.inputFileSystem = Object.create(ifs);
-			c.inputFileSystem.readFile = () => {
-				const args = Array.prototype.slice.call(arguments);
+		const compilers: Compiler[] = instance.compilers
+			? instance.compilers
+			: [instance];
+		for (const compiler of compilers) {
+			if (!compiler.inputFileSystem) {
+				continue;
+			}
+			const ifs = compiler.inputFileSystem;
+			const inputFileSystem = Object.create(ifs);
+			compiler.inputFileSystem = inputFileSystem;
+			inputFileSystem.readFile = (...args: any[]) => {
 				const callback = args.pop();
 				ifs.readFile.apply(
 					ifs,
@@ -61,12 +65,12 @@ export class StatsProcessor<
 								return callback(null, result);
 							callback(null, escapeEOL(result.toString("utf-8")));
 						}
-					])
+					]) as Parameters<typeof ifs.readFile>
 				);
 			};
 
 			// CHANGE: The checkConstraints() function is currently not implemented in rspack
-			// c.hooks.compilation.tap("StatsTestCasesTest", compilation => {
+			// compiler.hooks.compilation.tap("StatsTestCasesTest", compilation => {
 			// 	[
 			// 		"optimize",
 			// 		"optimizeModules",
@@ -80,7 +84,7 @@ export class StatsProcessor<
 			// 		);
 			// 	});
 			// });
-		});
+		}
 	}
 
 	async check(env: ITestEnv, context: ITestContext) {
@@ -147,39 +151,14 @@ export class StatsProcessor<
 
 		let actual = stats.toString(toStringOptions);
 		env.expect(typeof actual).toBe("string");
+		actual = this.stderr.toString() + actual;
 		if (!hasColorSetting) {
-			actual = this.stderr.toString() + actual;
 			actual = actual
 				.replace(/\u001b\[[0-9;]*m/g, "")
 				// CHANGE: The time unit display in Rspack is second
 				.replace(/[.0-9]+(\s?s)/g, "X$1");
-		} else {
-			actual = this.stderr.toStringRaw() + actual;
-			// eslint-disable-no-control-regex
-			actual = actual
-				.replace(/\u001b\[1m\u001b\[([0-9;]*)m/g, "<CLR=$1,BOLD>")
-				.replace(/\u001b\[1m/g, "<CLR=BOLD>")
-				.replace(/\u001b\[39m\u001b\[22m/g, "</CLR>")
-				.replace(/\u001b\[([0-9;]*)m/g, "<CLR=$1>")
-				// CHANGE: The time unit display in Rspack is second
-				.replace(/[.0-9]+(<\/CLR>)?(\s?s)/g, "X$1$2");
 		}
-		// cspell:ignore Xdir
-		const testPath = context.getSource();
-		actual = actual
-			.replace(/\r\n?/g, "\n")
-			// CHANGE: Remove potential line break and "|" caused by long text
-			.replace(/((ERROR|WARNING)([\s\S](?!╭|├))*?)(\n  │ )/g, "$1")
-			// CHANGE: Update the regular expression to replace the 'Rspack' version string
-			.replace(/Rspack [^ )]+(\)?) compiled/g, "Rspack x.x.x$1 compiled")
-			.replace(
-				new RegExp(quoteMeta(testPath), "g"),
-				"Xdir/" + path.basename(this._options.name)
-			)
-			.replace(/(\w)\\(\w)/g, "$1/$2")
-			.replace(/, additional resolving: X ms/g, "")
-			.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
-		env.expect(actual).toMatchSnapshot();
+		env.expect(new RspackStats(actual)).toMatchSnapshot();
 		const testConfig = context.getTestConfig();
 		if (typeof testConfig?.validate === "function") {
 			testConfig.validate(stats, this.stderr.toString());

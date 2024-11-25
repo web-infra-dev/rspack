@@ -8,13 +8,12 @@ import chalk from "chalk";
 import filenamify from "filenamify";
 import { diff } from "jest-diff";
 import mkdirp from "mkdirp";
+import type { FileMatcherOptions } from "../../../jest";
 
 /**
  * Check if 2 strings or buffer are equal
- * @param {string | Buffer} a
- * @param {string | Buffer} b
  */
-const isEqual = (a, b) => {
+const isEqual = (a: string | Buffer, b: string | Buffer): boolean => {
 	// @ts-ignore: TypeScript gives error if we pass string to buffer.equals
 	return Buffer.isBuffer(a) ? a.equals(b) : a === b;
 };
@@ -22,12 +21,27 @@ const isEqual = (a, b) => {
 /**
  * Match given content against content of the specified file.
  *
- * @param {string | Buffer} content Output content to match
- * @param {string} [filepath] Path to the file to match against
- * @param {{ diff?: import('jest-diff').DiffOptions }} options Additional options for matching
- * @this {{ testPath: string, currentTestName: string, assertionCalls: number, isNot: boolean, snapshotState: { added: number, updated: number, unmatched: number, _updateSnapshot: 'none' | 'new' | 'all' } }}
+ * @param content Output content to match
+ * @param filepath Path to the file to match against
+ * @param options Additional options for matching
  */
-export function toMatchFileSnapshot(content, filepath, options = {}) {
+export function toMatchFileSnapshot(
+	this: {
+		testPath: string;
+		currentTestName: string;
+		assertionCalls: number;
+		isNot: boolean;
+		snapshotState: {
+			added: number;
+			updated: number;
+			unmatched: number;
+			_updateSnapshot: "none" | "new" | "all";
+		};
+	},
+	content: string | Buffer,
+	filepath: string,
+	options: FileMatcherOptions = {}
+) {
 	const { isNot, snapshotState } = this;
 
 	const filename =
@@ -42,18 +56,6 @@ export function toMatchFileSnapshot(content, filepath, options = {}) {
 				)
 			: filepath;
 
-	options = {
-		// Options for jest-diff
-		diff: Object.assign(
-			{
-				expand: false,
-				contextLines: 5,
-				aAnnotation: "Snapshot"
-			},
-			options.diff || {}
-		)
-	};
-
 	if (snapshotState._updateSnapshot === "none" && !fs.existsSync(filename)) {
 		// We're probably running in CI environment
 
@@ -64,9 +66,7 @@ export function toMatchFileSnapshot(content, filepath, options = {}) {
 			message: () =>
 				`New output file ${chalk.blue(
 					path.basename(filename)
-				)} was ${chalk.bold.red("not written")}.\n\n` +
-				"The update flag must be explicitly passed to write a new snapshot.\n\n" +
-				`This is likely because this test is run in a ${chalk.blue(
+				)} was ${chalk.bold.red("not written")}.\n\nThe update flag must be explicitly passed to write a new snapshot.\n\nThis is likely because this test is run in a ${chalk.blue(
 					"continuous integration (CI) environment"
 				)} in which snapshots are not written by default.\n\n`
 		};
@@ -83,68 +83,73 @@ export function toMatchFileSnapshot(content, filepath, options = {}) {
 			if (!isEqual(content, output)) {
 				// The value of `pass` is reversed when used with `.not`
 				return { pass: false, message: () => "" };
-			} else {
-				snapshotState.unmatched++;
-
-				return {
-					pass: true,
-					message: () =>
-						`Expected received content ${chalk.red(
-							"to not match"
-						)} the file ${chalk.blue(path.basename(filename))}.`
-				};
 			}
-		} else {
-			if (isEqual(content, output)) {
-				return { pass: true, message: () => "" };
-			} else {
-				if (snapshotState._updateSnapshot === "all") {
-					mkdirp.sync(path.dirname(filename));
-					fs.writeFileSync(filename, content);
-
-					snapshotState.updated++;
-
-					return { pass: true, message: () => "" };
-				} else {
-					snapshotState.unmatched++;
-
-					const difference =
-						Buffer.isBuffer(content) || Buffer.isBuffer(output)
-							? ""
-							: `\n\n${diff(output, content, options.diff)}`;
-
-					return {
-						pass: false,
-						message: () =>
-							`Received content ${chalk.red(
-								"doesn't match"
-							)} the file ${chalk.blue(path.basename(filename))}.${difference}`
-					};
-				}
-			}
-		}
-	} else {
-		if (
-			!isNot &&
-			(snapshotState._updateSnapshot === "new" ||
-				snapshotState._updateSnapshot === "all")
-		) {
-			mkdirp.sync(path.dirname(filename));
-			fs.writeFileSync(filename, content);
-
-			snapshotState.added++;
-
-			return { pass: true, message: () => "" };
-		} else {
 			snapshotState.unmatched++;
 
 			return {
 				pass: true,
 				message: () =>
-					`The output file ${chalk.blue(
-						path.basename(filename)
-					)} ${chalk.bold.red("doesn't exist")}.`
+					`Expected received content ${chalk.red(
+						"to not match"
+					)} the file ${chalk.blue(path.basename(filename))}.`
 			};
 		}
+		if (isEqual(content, output)) {
+			return { pass: true, message: () => "" };
+		}
+		if (snapshotState._updateSnapshot === "all") {
+			mkdirp.sync(path.dirname(filename));
+			fs.writeFileSync(filename, content);
+
+			snapshotState.updated++;
+
+			return { pass: true, message: () => "" };
+		}
+		snapshotState.unmatched++;
+
+		const difference =
+			Buffer.isBuffer(content) || Buffer.isBuffer(output)
+				? ""
+				: `\n\n${diff(
+						output,
+						content,
+						Object.assign(
+							{
+								expand: false,
+								contextLines: 5,
+								aAnnotation: "Snapshot"
+							},
+							options.diff || {}
+						)
+					)}`;
+
+		return {
+			pass: false,
+			message: () =>
+				`Received content ${chalk.red(
+					"doesn't match"
+				)} the file ${chalk.blue(path.basename(filename))}.${difference}`
+		};
 	}
+	if (
+		!isNot &&
+		(snapshotState._updateSnapshot === "new" ||
+			snapshotState._updateSnapshot === "all")
+	) {
+		mkdirp.sync(path.dirname(filename));
+		fs.writeFileSync(filename, content);
+
+		snapshotState.added++;
+
+		return { pass: true, message: () => "" };
+	}
+	snapshotState.unmatched++;
+
+	return {
+		pass: true,
+		message: () =>
+			`The output file ${chalk.blue(
+				path.basename(filename)
+			)} ${chalk.bold.red("doesn't exist")}.`
+	};
 }

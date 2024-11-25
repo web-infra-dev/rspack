@@ -1,0 +1,98 @@
+import { Table } from '@builtIns';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/plugins/dll-plugin/" />
+
+# DllPlugin
+
+Dll 插件用于在一个单独的 rspack 配置中生成一个 dll 库，DllReference 插件通过该插件生成的 manifest.json 能够将依赖映射到对应的位置上。
+
+## 选项
+
+- **类型：**
+
+```ts
+type DllPluginOptions = {
+  context?: string;
+  entryOnly?: boolean;
+  format?: boolean;
+  name?: string;
+  path: string;
+  type?: string;
+};
+```
+
+<Table
+  header={[
+    {
+      name: 'Name',
+      key: 'name',
+    },
+    {
+      name: 'Type',
+      key: 'type',
+    },
+    {
+      name: 'Default',
+      key: 'default',
+    },
+    {
+      name: 'Description',
+      key: 'description',
+    },
+  ]}
+  body={[
+    {
+      name: '`context`',
+      type: '`string`',
+      default: `Rspack copmiler 的 context`,
+      description: 'manifest 文件中依赖请求的 context',
+    },
+    {
+      name: '`path`',
+      type: '`string`',
+      default: `undefined`,
+      description: 'manifest 文件输出的绝对路径',
+    },
+    {
+      name: '`entryOnly`',
+      type: '`boolean`',
+      default: '`true`',
+      description: '如果为 true ，只有入口文件会被暴露',
+    },
+    {
+      name: '`format`',
+      type: '`boolean`',
+      default: 'undefined',
+      description: 'manifest 文件是否会被格式化输出',
+    },
+    {
+      name: '`name`',
+      type: '`string`',
+      default: 'undefined',
+      description: '暴露处的 Dll 函数名称',
+    },
+    {
+      name: '`type`',
+      type: '`string`',
+      default: 'undefined',
+      description: 'dll bundle 的类型',
+    },
+  ]}
+/>
+
+## 示例
+
+```js
+new rspack.DllPlugin({
+  path: path.resolve(__dirname, 'manifest.json'),
+  name: '[name]_dll_lib',
+});
+```
+
+插件将会生成 `manifest.json` 文件并将其输出到指定路径。
+manifest 文件包含了从 `require` 和 `import` 请求到模块id的映射。
+
+`manifest.json` 将会被 [DllReferencePlugin](/plugins/webpack/dll-reference-plugin) 消费，通过"动态链接库"的方式将依赖链接起来。
+
+此插件与 `output.library` 的选项相结合可以暴露出dll 函数。

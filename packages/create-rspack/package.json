@@ -1,15 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "1.0.0-alpha.5",
-  "license": "MIT",
-  "main": "index.js",
-  "bin": {
-    "create-rspack": "index.js"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
+  "version": "1.1.3",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -17,8 +8,30 @@
     "url": "https://github.com/web-infra-dev/rspack",
     "directory": "packages/create-rspack"
   },
+  "license": "MIT",
+  "type": "module",
+  "main": "bin.js",
+  "bin": {
+    "create-rspack": "bin.js"
+  },
+  "files": [
+    "template-*",
+    "dist",
+    "bin.js"
+  ],
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build -w"
+  },
   "dependencies": {
-    "prompts": "2.4.2",
-    "yargs": "17.6.2"
+    "create-rstack": "1.0.6"
+  },
+  "devDependencies": {
+    "@rslib/core": "0.0.15",
+    "typescript": "^5.6.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

@@ -1,7 +1,7 @@
 ERROR in ./a.json
   × Module parse failed:
   ╰─▶   × Json parsing error: Unexpected character }
-         ╭─[1:1]
+         ╭─[3:0]
        1 │ {
        2 │   "a"
        3 │ }
@@ -10,7 +10,6 @@ ERROR in ./a.json
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./a.json
 
 ERROR in ./b.json
   × Module parse failed:
@@ -22,4 +21,3 @@ ERROR in ./b.json
       
   help: 
         You may need an appropriate loader to handle this file type.
- @ ./b.json

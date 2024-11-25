@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
@@ -9,20 +8,21 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilerOptions, Context, DependencyId, ExportInfo, ExportsInfo, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleProfile, Resolve,
-  UsageState,
+  BoxDependency, CompilationId, CompilerOptions, Context, ExportInfoData, ExportsInfoData,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleProfile, Resolve,
 };
 
 #[derive(Debug)]
 pub struct FactorizeTask {
+  pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_source: Option<BoxSource>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
-  pub dependency: BoxDependency,
-  pub dependencies: Vec<DependencyId>,
+  pub issuer_layer: Option<ModuleLayer>,
+  pub dependencies: Vec<BoxDependency>,
   pub resolve_options: Option<Box<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -33,12 +33,11 @@ impl Task<MakeTaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
-    let dependency = self.dependency;
-    //    let dep_id = *dependency.id();
+    let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context()
       && !context.is_empty()
@@ -53,18 +52,19 @@ impl Task<MakeTaskContext> for FactorizeTask {
     }
     .clone();
 
-    let other_exports_info = ExportInfo::new(None, UsageState::Unknown, None);
-    let side_effects_only_info = ExportInfo::new(
-      Some("*side effects only*".into()),
-      UsageState::Unknown,
-      None,
-    );
-    let exports_info = ExportsInfo::new(other_exports_info.id, side_effects_only_info.id);
+    let issuer_layer = dependency
+      .get_layer()
+      .or(self.issuer_layer.as_ref())
+      .cloned();
+
+    let other_exports_info = ExportInfoData::new(None, None);
+    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
+    let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
     let factorize_result_task = FactorizeResultTask {
-      //      dependency: dep_id,
+      // dependency: dep_id,
       original_module_identifier: self.original_module_identifier,
       factory_result: None,
-      dependencies: self.dependencies,
+      dependencies: vec![],
       current_profile: self.current_profile,
       exports_info_related: ExportsInfoRelated {
         exports_info,
@@ -80,12 +80,14 @@ impl Task<MakeTaskContext> for FactorizeTask {
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
+      compilation_id: self.compilation_id,
       resolve_options: self.resolve_options,
       options: self.options.clone(),
       context,
-      dependency,
+      dependencies: self.dependencies,
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
+      issuer_layer,
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),
@@ -100,6 +102,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
         let diagnostics = create_data.diagnostics.drain(..).collect();
         Ok(vec![Box::new(
           factorize_result_task
+            .with_dependencies(create_data.dependencies)
             .with_factory_result(Some(result))
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
@@ -113,7 +116,10 @@ impl Task<MakeTaskContext> for FactorizeTask {
         }
         // Wrap source code if available
         if let Some(s) = self.original_module_source {
-          e = e.with_source_code(s.source().to_string());
+          let has_source_code = e.source_code().is_some();
+          if !has_source_code {
+            e = e.with_source_code(s.source().to_string());
+          }
         }
         // Bail out if `options.bail` set to `true`,
         // which means 'Fail out on the first error instead of tolerating it.'
@@ -121,11 +127,12 @@ impl Task<MakeTaskContext> for FactorizeTask {
           return Err(e);
         }
         let mut diagnostics = Vec::with_capacity(create_data.diagnostics.len() + 1);
-        diagnostics.push(e.into());
+        diagnostics.push(Into::<Diagnostic>::into(e).with_loc(create_data.dependencies[0].loc()));
         diagnostics.append(&mut create_data.diagnostics);
         // Continue bundling if `options.bail` set to `false`.
         Ok(vec![Box::new(
           factorize_result_task
+            .with_dependencies(create_data.dependencies)
             .with_diagnostics(diagnostics)
             .with_file_dependencies(create_data.file_dependencies.drain())
             .with_missing_dependencies(create_data.missing_dependencies.drain())
@@ -139,9 +146,9 @@ impl Task<MakeTaskContext> for FactorizeTask {
 /// a struct temporarily used creating ExportsInfo
 #[derive(Debug)]
 pub struct ExportsInfoRelated {
-  pub exports_info: ExportsInfo,
-  pub other_exports_info: ExportInfo,
-  pub side_effects_info: ExportInfo,
+  pub exports_info: ExportsInfoData,
+  pub other_exports_info: ExportInfoData,
+  pub side_effects_info: ExportInfoData,
 }
 
 #[derive(Debug)]
@@ -150,7 +157,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  pub dependencies: Vec<DependencyId>,
+  pub dependencies: Vec<BoxDependency>,
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
 
@@ -161,6 +168,11 @@ pub struct FactorizeResultTask {
 }
 
 impl FactorizeResultTask {
+  fn with_dependencies(mut self, dependencies: Vec<BoxDependency>) -> Self {
+    self.dependencies = dependencies;
+    self
+  }
+
   fn with_factory_result(mut self, factory_result: Option<ModuleFactoryResult>) -> Self {
     self.factory_result = factory_result;
     self
@@ -187,11 +199,12 @@ impl FactorizeResultTask {
   }
 }
 
+#[async_trait::async_trait]
 impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
@@ -202,7 +215,6 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       context_dependencies,
       missing_dependencies,
       diagnostics,
-      ..
     } = *self;
     let artifact = &mut context.artifact;
     if !diagnostics.is_empty() {
@@ -211,7 +223,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
       } else {
         artifact
           .make_failed_dependencies
-          .insert((dependencies[0], None));
+          .insert((*dependencies[0].id(), None));
       }
     }
 
@@ -233,34 +245,31 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
     let Some(factory_result) = factory_result else {
-      let dep = module_graph
-        .dependency_by_id(&dependencies[0])
-        .expect("dep should available");
+      let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
       return Ok(vec![]);
     };
 
     let Some(module) = factory_result.module else {
-      let dep = module_graph
-        .dependency_by_id(&dependencies[0])
-        .expect("dep should available");
+      let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
-    let mut mgm = ModuleGraphModule::new(module.identifier(), exports_info_related.exports_info.id);
+    let mut mgm =
+      ModuleGraphModule::new(module.identifier(), exports_info_related.exports_info.id());
     mgm.set_issuer_if_unset(original_module_identifier);
 
     module_graph.set_exports_info(
-      exports_info_related.exports_info.id,
+      exports_info_related.exports_info.id(),
       exports_info_related.exports_info,
     );
     module_graph.set_export_info(
-      exports_info_related.side_effects_info.id,
+      exports_info_related.side_effects_info.id(),
       exports_info_related.side_effects_info,
     );
     module_graph.set_export_info(
-      exports_info_related.other_exports_info.id,
+      exports_info_related.other_exports_info.id(),
       exports_info_related.other_exports_info,
     );
     tracing::trace!("Module created: {}", &module_identifier);

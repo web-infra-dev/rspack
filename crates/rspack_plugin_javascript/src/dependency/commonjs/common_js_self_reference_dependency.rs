@@ -1,5 +1,5 @@
 use rspack_core::{
-  property_access, AsContextDependency, Dependency, DependencyCategory, DependencyId,
+  property_access, AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
   RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
 };
@@ -62,6 +62,10 @@ impl Dependency for CommonJsSelfReferenceDependency {
       vec![ExtendedReferencedExport::Array(self.names.clone())]
     }
   }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
 }
 
 impl ModuleDependency for CommonJsSelfReferenceDependency {
@@ -93,7 +97,6 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
     let used = if self.names.is_empty() {
       module_graph
         .get_exports_info(&module.identifier())
-        .id
         .get_used_name(&module_graph, *runtime, UsedName::Vec(self.names.clone()))
         .unwrap_or_else(|| UsedName::Vec(self.names.clone()))
     } else {
@@ -136,5 +139,13 @@ impl DependencyTemplate for CommonJsSelfReferenceDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }

@@ -3,17 +3,18 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
+use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
-  Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
+  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
   StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_identifier::Identifier;
 use rspack_util::infallible::ResultInfallibleExt as _;
+use rspack_util::itoa;
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -169,10 +170,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .for_each(|(dep, mgm)| {
             if let Some(mgm) = mgm {
               if !dep_modules.contains_key(&mgm.module_identifier) {
-                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
                 let val = (import_var.clone(), mgm.id(chunk_graph));
 
-                if matches!(module_graph.is_async(&mgm.module_identifier), Some(true)) {
+                if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
                   promises.push(import_var);
                 }
                 dep_modules.insert(mgm.module_identifier, val);
@@ -186,7 +187,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
               let used_name = module_graph
                 .get_exports_info(&mgm.module_identifier)
-                .id
                 .get_used_name(module_graph, *runtime, UsedName::Str(dep.name().into()));
               let Some(UsedName::Str(used_name)) = used_name else {
                 return;

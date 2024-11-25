@@ -1,19 +1,22 @@
 [package]
-edition    = "2021"
-license    = "MIT"
-name       = "rspack_util"
-repository = "https://github.com/web-infra-dev/rspack"
-version    = "0.1.0"
+description = "rspack util"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_util"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bitflags      = { workspace = true }
 concat-string = { workspace = true }
+cow-utils     = { workspace = true }
 dashmap       = { workspace = true }
 indexmap      = { workspace = true }
-once_cell     = { workspace = true }
+itoa          = { version = "1.0.11" }
 regex         = { workspace = true }
+ropey         = { workspace = true }
 rustc-hash    = { workspace = true }
 serde         = { workspace = true }
 serde_json    = { workspace = true }
@@ -21,3 +24,5 @@ sugar_path    = { workspace = true }
 unicase       = { workspace = true }
 
 swc_core = { workspace = true, features = ["ecma_ast"] }
+
+rspack_regex = { version = "0.1.0", path = "../rspack_regex" }

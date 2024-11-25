@@ -1,22 +1,20 @@
-use std::sync::Arc;
-
-use rspack_core::{AsContextDependency, AsModuleDependency, Dependency};
-use rspack_core::{DependencyId, DependencyLocation};
+use rspack_core::DependencyId;
+use rspack_core::{
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyRange, RuntimeSpec,
+};
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
-use swc_core::common::SourceMap;
 
 #[derive(Debug, Clone)]
 pub struct RequireHeaderDependency {
   id: DependencyId,
-  loc: DependencyLocation,
+  range: DependencyRange,
 }
 
 impl RequireHeaderDependency {
-  pub fn new(start: u32, end: u32, source: Option<Arc<SourceMap>>) -> Self {
-    let loc = DependencyLocation::new(start, end, source);
+  pub fn new(range: DependencyRange) -> Self {
     Self {
       id: DependencyId::new(),
-      loc,
+      range,
     }
   }
 }
@@ -24,6 +22,14 @@ impl RequireHeaderDependency {
 impl Dependency for RequireHeaderDependency {
   fn id(&self) -> &DependencyId {
     &self.id
+  }
+
+  fn loc(&self) -> Option<String> {
+    Some(self.range.to_string())
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::False
   }
 }
 
@@ -42,8 +48,8 @@ impl DependencyTemplate for RequireHeaderDependency {
     } = code_generatable_context;
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
-      self.loc.start(),
-      self.loc.end() - 1,
+      self.range.start,
+      self.range.end,
       RuntimeGlobals::REQUIRE.name(),
       None,
     );
@@ -51,5 +57,13 @@ impl DependencyTemplate for RequireHeaderDependency {
 
   fn dependency_id(&self) -> Option<DependencyId> {
     Some(self.id)
+  }
+
+  fn update_hash(
+    &self,
+    _hasher: &mut dyn std::hash::Hasher,
+    _compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
   }
 }

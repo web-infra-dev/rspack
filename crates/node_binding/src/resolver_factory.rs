@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::{Resolve, ResolverFactory};
+use rspack_fs::{FileSystem, NativeFileSystem};
 
 use crate::{
   raw_resolve::{
@@ -14,23 +15,30 @@ use crate::{
 pub struct JsResolverFactory {
   pub(crate) resolver_factory: Option<Arc<ResolverFactory>>,
   pub(crate) loader_resolver_factory: Option<Arc<ResolverFactory>>,
+  pub(crate) input_filesystem: Arc<dyn FileSystem>,
 }
 
 #[napi]
 impl JsResolverFactory {
   #[napi(constructor)]
   pub fn new() -> napi::Result<Self> {
+    let input_filesystem = Arc::new(NativeFileSystem {});
     Ok(Self {
       resolver_factory: None,
       loader_resolver_factory: None,
+      input_filesystem,
     })
   }
 
   pub fn get_resolver_factory(&mut self, resolve_options: Resolve) -> Arc<ResolverFactory> {
     match &self.resolver_factory {
       Some(resolver_factory) => resolver_factory.clone(),
+
       None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(resolve_options));
+        let resolver_factory = Arc::new(ResolverFactory::new(
+          resolve_options,
+          self.input_filesystem.clone(),
+        ));
         self.resolver_factory = Some(resolver_factory.clone());
         resolver_factory
       }
@@ -41,7 +49,10 @@ impl JsResolverFactory {
     match &self.loader_resolver_factory {
       Some(resolver_factory) => resolver_factory.clone(),
       None => {
-        let resolver_factory = Arc::new(ResolverFactory::new(resolve_options));
+        let resolver_factory = Arc::new(ResolverFactory::new(
+          resolve_options,
+          self.input_filesystem.clone(),
+        ));
         self.loader_resolver_factory = Some(resolver_factory.clone());
         resolver_factory
       }

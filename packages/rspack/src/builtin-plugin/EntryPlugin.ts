@@ -1,39 +1,40 @@
 import {
 	BuiltinPluginName,
-	type RawEntryOptions,
-	type RawEntryPluginOptions
+	type JsEntryOptions,
+	type JsEntryPluginOptions
 } from "@rspack/binding";
 
 import {
-	type ChunkLoading,
-	type EntryRuntime,
-	type FilenameTemplate,
-	type LibraryOptions,
-	type PublicPath,
+	type EntryDescriptionNormalized,
 	getRawChunkLoading,
 	getRawLibrary
 } from "../config";
 import { isNil } from "../util";
 import { create } from "./base";
 
-export type EntryOptions = {
+/**
+ * Options for the `EntryPlugin`.
+ */
+export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
+	/**
+	 * The name of the entry chunk.
+	 */
 	name?: string;
-	runtime?: EntryRuntime;
-	chunkLoading?: ChunkLoading;
-	asyncChunks?: boolean;
-	publicPath?: PublicPath;
-	baseUri?: string;
-	filename?: FilenameTemplate;
-	library?: LibraryOptions;
-	dependOn?: string[];
 };
+
+/**
+ * The entry plugin that will handle creation of the `EntryDependency`.
+ * It adds an entry chunk on compilation. The chunk is named `options.name` and
+ * contains only one module (plus dependencies). The module is resolved from
+ * `entry` in `context` (absolute path).
+ */
 export const EntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
 	(
 		context: string,
 		entry: string,
 		options: EntryOptions | string = ""
-	): RawEntryPluginOptions => {
+	): JsEntryPluginOptions => {
 		const entryOptions =
 			typeof options === "string" ? { name: options } : options;
 		return {
@@ -45,7 +46,7 @@ export const EntryPlugin = create(
 	"make"
 );
 
-export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
+export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;
 	const chunkLoading = entry.chunkLoading;
 	return {
@@ -59,6 +60,7 @@ export function getRawEntryOptions(entry: EntryOptions): RawEntryOptions {
 		asyncChunks: entry.asyncChunks,
 		filename: entry.filename,
 		library: entry.library && getRawLibrary(entry.library),
+		layer: entry.layer ?? undefined,
 		dependOn: entry.dependOn
 	};
 }

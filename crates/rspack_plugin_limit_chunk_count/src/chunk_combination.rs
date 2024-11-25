@@ -1,10 +1,26 @@
-use std::cmp::Ordering;
 use std::hash::Hash;
+use std::{cmp::Ordering, sync::atomic::AtomicU32};
 
+use rspack_collections::{impl_item_ukey, Database, DatabaseItem, Ukey};
 use rspack_core::ChunkUkey;
-use rspack_database::{Database, DatabaseItem, Ukey};
 
-pub type ChunkCombinationUkey = Ukey<ChunkCombination>;
+static NEXT_CHUNK_COMBINATION_UKEY: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ChunkCombinationUkey(Ukey, std::marker::PhantomData<ChunkCombination>);
+
+impl_item_ukey!(ChunkCombinationUkey);
+
+impl ChunkCombinationUkey {
+  pub fn new() -> Self {
+    Self(
+      NEXT_CHUNK_COMBINATION_UKEY
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        .into(),
+      std::marker::PhantomData,
+    )
+  }
+}
 
 pub struct ChunkCombination {
   pub ukey: ChunkCombinationUkey,
@@ -20,7 +36,8 @@ pub struct ChunkCombination {
 }
 
 impl DatabaseItem for ChunkCombination {
-  fn ukey(&self) -> Ukey<Self> {
+  type ItemUkey = ChunkCombinationUkey;
+  fn ukey(&self) -> Self::ItemUkey {
     self.ukey
   }
 }
@@ -82,7 +99,9 @@ impl ChunkCombinationBucket {
           Ordering::Less
         } else {
           // Layer 3: ordered by position difference in orderedChunk (-> to be deterministic)
-          match a.b_idx.cmp(&b.a_idx) {
+          let a_idx_diff = a.b_idx - a.a_idx;
+          let b_idx_diff = b.b_idx - b.a_idx;
+          match a_idx_diff.cmp(&b_idx_diff) {
             Ordering::Less => Ordering::Greater,
             Ordering::Greater => Ordering::Less,
             Ordering::Equal => {

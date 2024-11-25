@@ -1,22 +1,25 @@
+#![feature(let_chains)]
+
 mod chunk_combination;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use chunk_combination::{ChunkCombination, ChunkCombinationBucket, ChunkCombinationUkey};
+use rspack_collections::{UkeyMap, UkeySet};
 use rspack_core::{
-  compare_chunks_with_graph, get_chunk_from_ukey, get_chunk_group_from_ukey, ChunkSizeOptions,
-  ChunkUkey, Compilation, CompilationOptimizeChunks, Plugin,
+  compare_chunks_with_graph, incremental::Mutation, ChunkSizeOptions, ChunkUkey, Compilation,
+  CompilationOptimizeChunks, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 fn add_to_set_map(
-  map: &mut HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>>,
+  map: &mut UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>>,
   key: &ChunkUkey,
   value: ChunkCombinationUkey,
 ) {
   if map.get(key).is_none() {
-    let mut set = HashSet::new();
+    let mut set = UkeySet::default();
     set.insert(value);
     map.insert(*key, set);
   } else {
@@ -24,7 +27,7 @@ fn add_to_set_map(
     if let Some(set) = set {
       set.insert(value);
     } else {
-      let mut set = HashSet::new();
+      let mut set = UkeySet::default();
       set.insert(value);
       map.insert(*key, set);
     }
@@ -92,7 +95,8 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   // we keep a mapping from chunk to all combinations
   // but this mapping is not kept up-to-date with deletions
   // so `deleted` flag need to be considered when iterating this
-  let mut combinations_by_chunk: HashMap<ChunkUkey, HashSet<ChunkCombinationUkey>> = HashMap::new();
+  let mut combinations_by_chunk: UkeyMap<ChunkUkey, UkeySet<ChunkCombinationUkey>> =
+    UkeyMap::default();
 
   let chunk_size_option = ChunkSizeOptions {
     chunk_overhead: self.options.chunk_overhead,
@@ -150,10 +154,12 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     }
   }
 
+  let mut removed_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+  let mut integrated_chunks: UkeySet<ChunkUkey> = UkeySet::default();
   // list of modified chunks during this run
   // combinations affected by this change are skipped to allow
   // further optimizations
-  let mut modified_chunks: HashSet<ChunkUkey> = HashSet::new();
+  let mut modified_chunks: UkeySet<ChunkUkey> = UkeySet::default();
 
   while let Some(combination_ukey) = combinations.pop_first() {
     let combination = combinations.get_mut(&combination_ukey);
@@ -167,13 +173,13 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     if !modified_chunks.is_empty() {
       let a_chunk = chunk_by_ukey.expect_get(&a);
       let b_chunk = chunk_by_ukey.expect_get(&b);
-      let mut queue = a_chunk.groups.iter().copied().collect::<HashSet<_>>();
-      for group_ukey in b_chunk.groups.iter() {
+      let mut queue = a_chunk.groups().iter().copied().collect::<HashSet<_>>();
+      for group_ukey in b_chunk.groups().iter() {
         queue.insert(*group_ukey);
       }
       for group_ukey in queue.clone() {
         for modified_chunk_ukey in modified_chunks.clone() {
-          if let Some(m_chunk) = get_chunk_from_ukey(&modified_chunk_ukey, chunk_by_ukey) {
+          if let Some(m_chunk) = chunk_by_ukey.get(&modified_chunk_ukey) {
             if modified_chunk_ukey != a
               && modified_chunk_ukey != b
               && m_chunk.is_in_group(&group_ukey)
@@ -188,7 +194,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
             }
           }
         }
-        if let Some(group) = get_chunk_group_from_ukey(&group_ukey, chunk_group_by_ukey) {
+        if let Some(group) = chunk_group_by_ukey.get(&group_ukey) {
           for parent in group.parents_iterable() {
             queue.insert(*parent);
           }
@@ -204,7 +210,9 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
         &mut new_chunk_group_by_ukey,
         &module_graph,
       );
+      integrated_chunks.insert(a);
       new_chunk_by_ukey.remove(&b);
+      removed_chunks.insert(b);
 
       // flag chunk a as modified as further optimization are possible for all children here
       modified_chunks.insert(a);
@@ -294,6 +302,15 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   compilation.chunk_group_by_ukey = new_chunk_group_by_ukey;
   compilation.chunk_graph = new_chunk_graph;
 
+  if let Some(mutations) = compilation.incremental.mutations_write() {
+    for chunk in removed_chunks {
+      mutations.add(Mutation::ChunkRemove { chunk });
+    }
+    for chunk in integrated_chunks {
+      mutations.add(Mutation::ChunksIntegrate { to: chunk });
+    }
+  }
+
   Ok(None)
 }
 
@@ -305,7 +322,7 @@ impl Plugin for LimitChunkCountPlugin {
   fn apply(
     &self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx
       .context

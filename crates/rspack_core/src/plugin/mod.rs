@@ -18,10 +18,12 @@ pub trait Plugin: fmt::Debug + Send + Sync {
   fn apply(
     &self,
     _ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
+    _options: &CompilerOptions,
   ) -> Result<()> {
     Ok(())
   }
+
+  fn clear_cache(&self) {}
 }
 
 pub type BoxPlugin = Box<dyn Plugin>;

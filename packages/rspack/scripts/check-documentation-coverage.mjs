@@ -157,13 +157,12 @@ function checkConfigsDocumentationCoverage() {
 				for (const [key, schema] of Object.entries(zod.shape)) {
 					const next = (() => {
 						if (key.includes("/")) {
-							return path + `["${key}"]`;
-						} else {
-							if (path) {
-								return path + "." + key;
-							}
-							return key;
+							return `${path}["${key}"]`;
 						}
+						if (path) {
+							return `${path}.${key}`;
+						}
+						return key;
 					})();
 					implementedConfigs.push(next);
 					visit(schema, next);
@@ -191,7 +190,7 @@ function checkConfigsDocumentationCoverage() {
 					let level;
 					for (let j = 0; j < line.length; j++) {
 						if (level === undefined) {
-							if (line[j] != "#") {
+							if (line[j] !== "#") {
 								level = j;
 							}
 						} else {
@@ -245,6 +244,7 @@ function checkConfigsDocumentationCoverage() {
 			"module.generator",
 
 			"experiments.rspackFuture",
+			"experiments.incremental",
 
 			"output.library.amd",
 			"output.library.commonjs",

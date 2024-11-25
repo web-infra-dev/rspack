@@ -1,13 +1,13 @@
 use std::collections::VecDeque;
 
-use rustc_hash::FxHashSet as HashSet;
+use rspack_collections::IdentifierSet;
 
 use super::super::MakeArtifact;
 use crate::ModuleIdentifier;
 
 #[derive(Debug, Default)]
 pub struct CleanIsolatedModule {
-  need_check_isolated_module_ids: HashSet<ModuleIdentifier>,
+  need_check_isolated_module_ids: IdentifierSet,
 }
 
 impl CleanIsolatedModule {
@@ -31,8 +31,6 @@ impl CleanIsolatedModule {
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
-    let module_graph = artifact.get_module_graph_mut();
-    let mut need_remove_modules = HashSet::default();
     let mut queue = VecDeque::from(
       self
         .need_check_isolated_module_ids
@@ -40,6 +38,7 @@ impl CleanIsolatedModule {
         .collect::<Vec<_>>(),
     );
     while let Some(module_identifier) = queue.pop_front() {
+      let module_graph = artifact.get_module_graph();
       let Some(mgm) = module_graph.module_graph_module_by_identifier(&module_identifier) else {
         tracing::trace!("Module is cleaned: {}", module_identifier);
         continue;
@@ -53,9 +52,8 @@ impl CleanIsolatedModule {
         // clean child module
         queue.push_back(*connection.module_identifier());
       }
+      artifact.revoke_module(&module_identifier);
       tracing::trace!("Module is cleaned: {}", module_identifier);
-      need_remove_modules.insert(module_identifier);
     }
-    artifact.revoke_modules(need_remove_modules);
   }
 }

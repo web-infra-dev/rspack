@@ -9,12 +9,12 @@ module.exports = {
 	}),
 	diff: e =>
 		e.toMatchInlineSnapshot(`
-    - Expected
-    + Received
+		- Expected
+		+ Received
 
-    @@ ... @@
-    +       "require",
-    @@ ... @@
-    +       "async-node",
-  `)
+		@@ ... @@
+		+       "require",
+		@@ ... @@
+		+       "async-node",
+	`)
 };
