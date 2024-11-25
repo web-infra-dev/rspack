@@ -21,9 +21,9 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
 :::tip
-在个别情况下，你仍然需要保留 `webpack` 作为开发依赖，例如使用 [vue-loader](https://github.com/vuejs/vue-loader) 或 [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin) 时。
+在个别情况下，你仍然需要保留 `webpack` 作为开发依赖，例如使用 [vue-loader](https://github.com/vuejs/vue-loader) 时。
 
-这是因为这些插件直接 `import` 了 webpack 的子路径，与 webpack 产生了耦合。如果你遇到了这种情况，可以向这些插件的维护者反馈，询问他们能否将 `webpack` 作为可选依赖。
+这是因为这些库直接 `import` 了 webpack 的子路径，与 webpack 产生了耦合。如果你遇到了这种情况，可以向这些插件的维护者反馈，询问他们能否将 `webpack` 作为可选依赖。
 :::
 
 ## 修改 package.json
@@ -96,9 +96,11 @@ module.exports = {
 
 Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供了替代方案。
 
-查看[Plugin 兼容](/guide/compatibility/plugin)以了解 Rspack 对 webpack 常见社区插件的兼容情况。
+查看 [Plugin 兼容](/guide/compatibility/plugin) 以了解 Rspack 对 webpack 常见社区插件的兼容情况。
 
-### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
+### `copy-webpack-plugin`
+
+使用 [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) 代替 [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin)：
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -114,7 +116,9 @@ module.exports = {
 }
 ```
 
-### [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) → [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
+### `mini-css-extract-plugin`
+
+使用 [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) 代替 [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin)：
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -132,18 +136,20 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [
--          CssExtractWebpackPlugin.loader,
-+          rspack.CssExtractRspackPlugin.loader,
+-         CssExtractWebpackPlugin.loader,
++         rspack.CssExtractRspackPlugin.loader,
           "css-loader"
         ],
-+        type: 'javascript/auto'
++       type: 'javascript/auto'
       }
     ]
   }
 }
 ```
 
-### [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin) → [resolve.tsConfig](/config/resolve#resolvetsconfig)
+### `tsconfig-paths-webpack-plugin`
+
+使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 代替 [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin)：
 
 ```diff title="rspack.config.js"
 - const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
@@ -153,6 +159,22 @@ module.exports = {
 -   plugins: [new TsconfigPathsPlugin({})]
 +   tsConfig: {}
   }
+}
+```
+
+### `fork-ts-checker-webpack-plugin`
+
+使用 [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) 代替 [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin)：
+
+```diff title="rspack.config.js"
+- const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
++ const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+
+module.exports = {
+  plugins: [
+-   new ForkTsCheckerWebpackPlugin()
++   new TsCheckerRspackPlugin()
+  ]
 }
 ```
 
