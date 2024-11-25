@@ -9,6 +9,7 @@ mod as_string;
 mod as_tuple2;
 mod as_tuple3;
 mod as_vec;
+mod inline;
 mod unsupported;
 
 pub use as_cacheable::AsCacheable;
@@ -21,6 +22,7 @@ pub use as_string::{AsString, AsStringConverter};
 pub use as_tuple2::AsTuple2;
 pub use as_tuple3::AsTuple3;
 pub use as_vec::{AsVec, AsVecConverter};
+pub use inline::Inline;
 pub use r#as::{As, AsConverter};
 pub use rkyv::with::Map as AsOption;
 pub use rkyv::with::Skip;
