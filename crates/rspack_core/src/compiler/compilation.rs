@@ -14,7 +14,7 @@ use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{error, miette::diagnostic, Diagnostic, DiagnosticExt, Result, Severity};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::SyncReadableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -201,7 +201,7 @@ pub struct Compilation {
   pub modified_files: HashSet<PathBuf>,
   pub removed_files: HashSet<PathBuf>,
   make_artifact: MakeArtifact,
-  pub input_filesystem: Arc<dyn ReadableFileSystem>,
+  pub input_filesystem: Arc<dyn SyncReadableFileSystem>,
 }
 
 impl Compilation {
@@ -238,7 +238,7 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     modified_files: HashSet<PathBuf>,
     removed_files: HashSet<PathBuf>,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
+    input_filesystem: Arc<dyn SyncReadableFileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
