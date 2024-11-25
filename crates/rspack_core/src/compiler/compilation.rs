@@ -39,12 +39,12 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn,
-  Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType,
-  Stats,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
+  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap,
+  LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver,
+  SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -175,7 +175,7 @@ pub struct Compilation {
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
-  pub chunk_render_results: UkeyMap<ChunkUkey, (Vec<RenderManifestEntry>, Vec<Diagnostic>)>,
+  pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
   pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -972,15 +972,25 @@ impl Compilation {
     let chunk_render_results = chunks
       .iter()
       .map(|chunk| async {
-        let mut manifest = Vec::new();
-        let mut diagnostics = Vec::new();
-        plugin_driver
-          .compilation_hooks
-          .render_manifest
-          .call(self, chunk, &mut manifest, &mut diagnostics)
+        let result = self
+          .old_cache
+          .chunk_render_occasion
+          .use_cache(self, chunk, || async {
+            let mut manifests = Vec::new();
+            let mut diagnostics = Vec::new();
+            plugin_driver
+              .compilation_hooks
+              .render_manifest
+              .call(self, chunk, &mut manifests, &mut diagnostics)
+              .await?;
+            Ok(ChunkRenderResult {
+              manifests,
+              diagnostics,
+            })
+          })
           .await?;
 
-        Ok((*chunk, (manifest, diagnostics)))
+        Ok((*chunk, result))
       })
       .collect::<FuturesResults<Result<_>>>();
     let chunk_render_results = chunk_render_results
@@ -995,10 +1005,17 @@ impl Compilation {
       chunk_render_results
     };
 
-    for (chunk_ukey, (manifest, diagnostics)) in chunk_ukey_and_manifest {
+    for (
+      chunk_ukey,
+      ChunkRenderResult {
+        manifests,
+        diagnostics,
+      },
+    ) in chunk_ukey_and_manifest
+    {
       self.extend_diagnostics(diagnostics);
 
-      for file_manifest in manifest {
+      for file_manifest in manifests {
         let filename = file_manifest.filename().to_string();
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
