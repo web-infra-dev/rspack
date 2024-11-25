@@ -3,7 +3,7 @@ pub mod storage;
 
 use std::sync::Arc;
 
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::SyncReadableFileSystem;
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -28,7 +28,7 @@ pub struct PersistentCache {
 }
 
 impl PersistentCache {
-  pub fn new(option: &PersistentCacheOptions, fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(option: &PersistentCacheOptions, fs: Arc<dyn SyncReadableFileSystem>) -> Self {
     let storage = Arc::new(MemoryStorage::default());
     Self {
       snapshot: Snapshot::new(option.snapshot.clone(), fs, storage.clone()),

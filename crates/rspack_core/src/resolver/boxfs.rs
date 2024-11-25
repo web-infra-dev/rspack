@@ -1,14 +1,14 @@
 use std::{io, sync::Arc};
 
-use rspack_fs::{Error, ReadableFileSystem};
+use rspack_fs::{Error, SyncReadableFileSystem};
 use rspack_paths::AssertUtf8;
 use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
 
 #[derive(Clone)]
-pub struct BoxFS(Arc<dyn ReadableFileSystem>);
+pub struct BoxFS(Arc<dyn SyncReadableFileSystem>);
 
 impl BoxFS {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn SyncReadableFileSystem>) -> Self {
     Self(fs)
   }
 }

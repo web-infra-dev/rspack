@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::SyncReadableFileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
@@ -18,7 +18,7 @@ pub struct BuildTask {
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
+  pub fs: Arc<dyn SyncReadableFileSystem>,
 }
 
 #[async_trait::async_trait]
