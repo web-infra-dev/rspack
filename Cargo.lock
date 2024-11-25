@@ -3669,6 +3669,7 @@ dependencies = [
  "once_cell",
  "rspack_cacheable",
  "rspack_resolver",
+ "rspack_sources",
  "rustc-hash 1.1.0",
  "serde_json",
  "swc_core",
