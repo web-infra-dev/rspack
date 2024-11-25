@@ -13,7 +13,7 @@ use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
-use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
+use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
 mod diagnostic;
@@ -70,10 +70,9 @@ impl Rspack {
       compiler_options,
       plugins,
       rspack_binding_options::buildtime_plugins::buildtime_plugins(),
-      Some(Box::new(
-        AsyncNodeWritableFileSystem::new(output_filesystem)
-          .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
-      )),
+      Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
+        |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
+      )?)),
       None,
       Some(resolver_factory),
       Some(loader_resolver_factory),
