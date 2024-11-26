@@ -462,6 +462,7 @@ pub struct LibraryCustomUmdObject {
 pub struct Environment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
+  pub node_prefix_for_core_modules: Option<bool>,
 }
 
 impl Environment {
@@ -471,5 +472,9 @@ impl Environment {
 
   pub fn supports_arrow_function(&self) -> bool {
     self.arrow_function.unwrap_or_default()
+  }
+
+  pub fn supports_node_prefix_for_core_modules(&self) -> bool {
+    self.node_prefix_for_core_modules.unwrap_or_default()
   }
 }

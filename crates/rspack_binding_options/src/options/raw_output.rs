@@ -47,6 +47,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 pub struct RawEnvironment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
+  pub node_prefix_for_core_modules: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -54,6 +55,7 @@ impl From<RawEnvironment> for Environment {
     Self {
       r#const: value.r#const,
       arrow_function: value.arrow_function,
+      node_prefix_for_core_modules: value.node_prefix_for_core_modules,
     }
   }
 }

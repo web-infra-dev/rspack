@@ -43,7 +43,7 @@ where
 impl<T, A, S> SerializeWith<T, S> for As<A>
 where
   A: AsConverter<T> + Archive + Serialize<S>,
-  S: Fallible<Error = SerializeError> + Sharing,
+  S: Fallible<Error = SerializeError> + Sharing + ?Sized,
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
@@ -60,7 +60,7 @@ impl<T, A, D> DeserializeWith<Archived<A>, T, D> for As<A>
 where
   A: AsConverter<T> + Archive,
   A::Archived: Deserialize<A, D>,
-  D: Fallible<Error = DeserializeError> + Pooling,
+  D: Fallible<Error = DeserializeError> + Pooling + ?Sized,
 {
   #[inline]
   fn deserialize_with(field: &Archived<A>, de: &mut D) -> Result<T, DeserializeError> {

@@ -1346,6 +1346,7 @@ export interface RawEntryDynamicResult {
 export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
+  nodePrefixForCoreModules?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {

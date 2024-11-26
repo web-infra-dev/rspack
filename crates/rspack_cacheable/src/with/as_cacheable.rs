@@ -20,7 +20,7 @@ impl<T: Archive> ArchiveWith<T> for AsCacheable {
 impl<T, S> SerializeWith<T, S> for AsCacheable
 where
   T: Archive + Serialize<S>,
-  S: ?Sized + Fallible,
+  S: Fallible + ?Sized,
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
@@ -32,7 +32,7 @@ impl<T, D> DeserializeWith<Archived<T>, T, D> for AsCacheable
 where
   T: Archive,
   T::Archived: Deserialize<T, D>,
-  D: ?Sized + Fallible,
+  D: Fallible + ?Sized,
 {
   #[inline]
   fn deserialize_with(field: &Archived<T>, de: &mut D) -> Result<T, D::Error> {

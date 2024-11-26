@@ -3,9 +3,10 @@ use std::fmt::Debug;
 use futures::future::BoxFuture;
 use rspack_paths::Utf8Path;
 
-use crate::{FileMetadata, Result};
+use super::{FileMetadata, Result};
 
-pub trait AsyncWritableFileSystem: Debug {
+#[async_trait::async_trait]
+pub trait WritableFileSystem: Debug + Send + Sync {
   /// Creates a new, empty directory at the provided path.
   ///
   /// NOTE: If a parent of the given path doesn’t exist, this function is supposed to return an error.
@@ -16,14 +17,14 @@ pub trait AsyncWritableFileSystem: Debug {
   /// - User lacks permissions to create directory at path.
   /// - A parent of the given path doesn’t exist. (To create a directory and all its missing parents at the same time, use the create_dir_all function.)
   /// - Path already exists.
-  fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
+  async fn create_dir(&self, dir: &Utf8Path) -> Result<()>;
 
   /// Recursively create a directory and all of its parent components if they are missing.
-  fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
+  async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()>;
 
   /// Write a slice as the entire contents of a file.
   /// This function will create a file if it does not exist, and will entirely replace its contents if it does.
-  fn write<'a>(&'a self, file: &'a Utf8Path, data: &'a [u8]) -> BoxFuture<'a, Result<()>>;
+  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 
   /// Removes a file from the filesystem.
   fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
@@ -39,16 +40,3 @@ pub trait AsyncWritableFileSystem: Debug {
 
   fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>>;
 }
-
-pub trait AsyncReadableFileSystem: Debug {
-  /// Read the entire contents of a file into a bytes vector.
-  ///
-  /// Error: This function will return an error if path does not already exist.
-  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
-}
-
-/// Async readable and writable file system representation.
-pub trait AsyncFileSystem: AsyncReadableFileSystem + AsyncWritableFileSystem {}
-
-// Blanket implementation for all types that implement both [`AsyncReadableFileSystem`] and [`WritableFileSystem`].
-impl<T: AsyncReadableFileSystem + AsyncWritableFileSystem> AsyncFileSystem for T {}

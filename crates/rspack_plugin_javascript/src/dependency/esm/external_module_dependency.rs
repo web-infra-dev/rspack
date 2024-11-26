@@ -33,9 +33,15 @@ impl DependencyTemplate for ExternalModuleDependency {
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let need_prefix = code_generatable_context
+      .compilation
+      .options
+      .output
+      .environment
+      .supports_node_prefix_for_core_modules();
     let chunk_init_fragments = code_generatable_context.chunk_init_fragments();
     let fragment = ExternalModuleInitFragment::new(
-      self.module.clone(),
+      format!("{}{}", if need_prefix { "node:" } else { "" }, self.module),
       self.import_specifier.clone(),
       self.default_import.clone(),
       InitFragmentStage::StageConstants,

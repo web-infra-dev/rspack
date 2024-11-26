@@ -7,7 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_base64::encode_to_string;
-use rspack_fs::AsyncFileSystem;
+use rspack_fs::FileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
@@ -70,7 +70,7 @@ pub enum FetchResultType {
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
-  filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+  filesystem: Arc<dyn FileSystem + Send + Sync>,
   http_client: Arc<dyn HttpClient>,
 }
 
@@ -78,7 +78,7 @@ impl HttpCache {
   pub fn new(
     cache_location: Option<String>,
     lockfile_location: Option<String>,
-    filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+    filesystem: Arc<dyn FileSystem + Send + Sync>,
     http_client: Option<Arc<dyn HttpClient>>,
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);

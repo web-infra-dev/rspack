@@ -3776,6 +3776,7 @@ dependencies = [
 name = "rspack_fs"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dunce",
  "futures",
  "rspack_error",
@@ -3787,6 +3788,7 @@ dependencies = [
 name = "rspack_fs_node"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "futures",
  "napi",
  "napi-build",
