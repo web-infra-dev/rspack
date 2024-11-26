@@ -25,22 +25,24 @@ impl Branch {
         RuntimeGlobals::REQUIRE | RuntimeGlobals::EXPORTS | RuntimeGlobals::MODULE
       }
       o if o == Branch::O => RuntimeGlobals::MODULE,
-      of if of == (Branch::O | Branch::F) => {
+      o_f if o_f == (Branch::O | Branch::F) => {
         RuntimeGlobals::REQUIRE | RuntimeGlobals::EXPORTS | RuntimeGlobals::MODULE
       }
-      af if af == (Branch::A | Branch::F) => RuntimeGlobals::EXPORTS | RuntimeGlobals::MODULE,
-      ao if ao == (Branch::A | Branch::O) => RuntimeGlobals::MODULE,
-      aof if aof == (Branch::A | Branch::O | Branch::F) => {
+      a_f if a_f == (Branch::A | Branch::F) => RuntimeGlobals::EXPORTS | RuntimeGlobals::MODULE,
+      a_o if a_o == (Branch::A | Branch::O) => RuntimeGlobals::MODULE,
+      a_o_f if a_o_f == (Branch::A | Branch::O | Branch::F) => {
         RuntimeGlobals::EXPORTS | RuntimeGlobals::MODULE
       }
-      lf if lf == (Branch::L | Branch::F) => RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE,
-      lo if lo == (Branch::L | Branch::O) => RuntimeGlobals::empty(),
-      lof if lof == (Branch::L | Branch::O | Branch::F) => {
+      l_f if l_f == (Branch::L | Branch::F) => RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE,
+      l_o if l_o == (Branch::L | Branch::O) => RuntimeGlobals::empty(),
+      l_o_f if l_o_f == (Branch::L | Branch::O | Branch::F) => {
         RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE
       }
-      laf if laf == (Branch::L | Branch::A | Branch::F) => RuntimeGlobals::empty(),
-      lao if lao == (Branch::L | Branch::A | Branch::O) => RuntimeGlobals::empty(),
-      laof if laof == (Branch::L | Branch::A | Branch::O | Branch::F) => RuntimeGlobals::empty(),
+      l_a_f if l_a_f == (Branch::L | Branch::A | Branch::F) => RuntimeGlobals::empty(),
+      l_a_o if l_a_o == (Branch::L | Branch::A | Branch::O) => RuntimeGlobals::empty(),
+      l_a_o_f if l_a_o_f == (Branch::L | Branch::A | Branch::O | Branch::F) => {
+        RuntimeGlobals::empty()
+      }
       _ => RuntimeGlobals::empty(),
     }
   }
@@ -53,30 +55,30 @@ impl Branch {
     match *self {
       f if f == Branch::F => "var __WEBPACK_AMD_DEFINE_RESULT__;".to_string(),
       o if o == Branch::O => "".to_string(),
-      of if of == (Branch::O | Branch::F) => {
+      o_f if o_f == (Branch::O | Branch::F) => {
         "var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;".to_string()
       }
-      af if af == (Branch::A | Branch::F) => {
+      a_f if a_f == (Branch::A | Branch::F) => {
         "var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;".to_string()
       }
-      ao if ao == (Branch::A | Branch::O) => "".to_string(),
-      aof if aof == (Branch::A | Branch::O | Branch::F) => "var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;".to_string(),
-      lf if lf == (Branch::L | Branch::F) => {
+      a_o if a_o == (Branch::A | Branch::O) => "".to_string(),
+      a_o_f if a_o_f == (Branch::A | Branch::O | Branch::F) => "var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;".to_string(),
+      l_f if l_f == (Branch::L | Branch::F) => {
         format!("var {}, {}module;", name, name)
       },
-      lo if lo == (Branch::L | Branch::O) => {
+      l_o if l_o == (Branch::L | Branch::O) => {
         format!("var {};", name)
       },
-      lof if lof == (Branch::L | Branch::O | Branch::F) => {
+      l_o_f if l_o_f == (Branch::L | Branch::O | Branch::F) => {
         format!("var {}, {}factory, {}module;", name, name, name)
       },
-      laf if laf == (Branch::L | Branch::A | Branch::F) => {
+      l_a_f if l_a_f == (Branch::L | Branch::A | Branch::F) => {
         format!("var __WEBPACK_AMD_DEFINE_ARRAY__, {}, {}exports;", name, name)
       },
-      lao if lao == (Branch::L | Branch::A | Branch::O)=> {
+      l_a_o if l_a_o == (Branch::L | Branch::A | Branch::O)=> {
         format!("var {};", name)
       },
-      laof if laof == (Branch::L | Branch::A | Branch::O | Branch::F) => {
+      l_a_o_f if l_a_o_f == (Branch::L | Branch::A | Branch::O | Branch::F) => {
         format!("var {}array, {}factory, {}exports, {};", name, name, name, name)
       },
       _ => "".to_string(),
@@ -105,7 +107,7 @@ impl Branch {
         )
       }
       o if o == Branch::O => "!(module.exports = #)".to_string(),
-      of if of == (Branch::O | Branch::F) => {
+      o_f if o_f == (Branch::O | Branch::F) => {
         format!(
           "!(__WEBPACK_AMD_DEFINE_FACTORY__ = (#),
 		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
@@ -115,16 +117,16 @@ impl Branch {
           require = RuntimeGlobals::REQUIRE.name()
         )
       }
-      af if af == (Branch::A | Branch::F) => "!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, __WEBPACK_AMD_DEFINE_RESULT__ = (#).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
+      a_f if a_f == (Branch::A | Branch::F) => "!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, __WEBPACK_AMD_DEFINE_RESULT__ = (#).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))".to_string(),
-      ao if ao == (Branch::A | Branch::O) => "!(#, module.exports = #)".to_string(),
-      aof if aof == (Branch::A | Branch::O | Branch::F) => {
+      a_o if a_o == (Branch::A | Branch::O) => "!(#, module.exports = #)".to_string(),
+      a_o_f if a_o_f == (Branch::A | Branch::O | Branch::F) => {
         "!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, __WEBPACK_AMD_DEFINE_FACTORY__ = (#),
 		__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 		(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))".to_string()
       }
-      lf if lf == (Branch::L | Branch::F) => {
+      l_f if l_f == (Branch::L | Branch::F) => {
         format!(
           "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
           var_name = local_module_var,
@@ -132,8 +134,8 @@ impl Branch {
           require = RuntimeGlobals::REQUIRE.name(),
         )
       }
-      lo if lo == (Branch::L | Branch::O) => format!("!({} = #)", local_module_var),
-      lof if lof == (Branch::L | Branch::O | Branch::F) => {
+      l_o if l_o == (Branch::L | Branch::O) => format!("!({} = #)", local_module_var),
+      l_o_f if l_o_f == (Branch::L | Branch::O | Branch::F) => {
         format!(
           "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
           var_name = local_module_var,
@@ -141,9 +143,9 @@ impl Branch {
           require = RuntimeGlobals::REQUIRE.name(),
         )
       }
-      laf if laf == (Branch::L | Branch::A | Branch::F) => format!("!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, {} = (#).apply({}exports = {{}}, __WEBPACK_AMD_DEFINE_ARRAY__), {} === undefined && ({} = {}exports))", local_module_var, local_module_var, local_module_var, local_module_var, local_module_var),
-      lao if lao == (Branch::L | Branch::A | Branch::O) => format!("!(#, {} = #)", local_module_var),
-      laof if laof == (Branch::L | Branch::A | Branch::O | Branch::F) => format!(
+      l_a_f if l_a_f == (Branch::L | Branch::A | Branch::F) => format!("!(__WEBPACK_AMD_DEFINE_ARRAY__ = #, {} = (#).apply({}exports = {{}}, __WEBPACK_AMD_DEFINE_ARRAY__), {} === undefined && ({} = {}exports))", local_module_var, local_module_var, local_module_var, local_module_var, local_module_var),
+      l_a_o if l_a_o == (Branch::L | Branch::A | Branch::O) => format!("!(#, {} = #)", local_module_var),
+      l_a_o_f if l_a_o_f == (Branch::L | Branch::A | Branch::O | Branch::F) => format!(
         "!({var_name}array = #, {var_name}factory = (#),
 		(typeof {var_name}factory === 'function' ?
 			(({var_name} = {var_name}factory.apply({var_name}exports = {{}}, {var_name}array)), {var_name} === undefined && ({var_name} = {var_name}exports)) :
