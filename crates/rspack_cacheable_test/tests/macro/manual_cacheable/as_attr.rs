@@ -56,6 +56,7 @@ struct DataRef<'a> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn as_attr() {
   let a = Data {
     block1: "abc".into(),
