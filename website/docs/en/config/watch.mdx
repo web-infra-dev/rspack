@@ -21,7 +21,7 @@ module.exports = {
 ```
 
 :::tip
-In `@rspack/dev-server` watch mode is enabled by default.
+`watch` is enabled by default when using `@rspack/dev-server`.
 :::
 
 ## watchOptions
@@ -59,19 +59,89 @@ module.exports = {
 ### watchOptions.ignored
 
 - **Type:** `RegExp`, `string`, `string[]`
+- **Default:** `undefined`
 
-The path that matches is excluded while watching.
+The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage, it is recommended to exclude a huge folder like `node_modules` and `.git` using a regular expression:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    ignored: /[\\/](?:\.git|node_modules)[\\/]/,
+  },
+};
+```
+
+Alternatively, a glob pattern may be used:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    ignored: '**/node_modules',
+  },
+};
+```
+
+It is also possible to use multiple glob patterns:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    ignored: ['**/files/**/*.js', '**/node_modules'],
+  },
+};
+```
+
+In addition, you can specify one or more absolute paths:
+
+```js title=rspack.config.js
+const path = require('node:path');
+
+module.exports = {
+  //...
+  watchOptions: {
+    ignored: [path.posix.resolve(__dirname, './ignored-dir')],
+  },
+};
+```
+
+When using glob patterns, Rspack convert them to regular expressions with [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp), so make sure to get yourself familiar with it before you use glob patterns for watchOptions.ignored.
 
 ### watchOptions.poll
 
 - **Type:** `boolean`, `number`
 - **Default:** `false`
 
-Whether to watch by polling, the default polling interval for `true` is 5007 milliseconds.
+Whether to watch by polling.
+
+When set to `true`, the default polling interval is 5007 milliseconds.
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    poll: true,
+  },
+};
+```
+
+It can also set a custom polling interval:
+
+```js title=rspack.config.js
+module.exports = {
+  //...
+  watchOptions: {
+    poll: 1000, // Check for changes every second
+  },
+};
+```
 
 ### watchOptions.followSymlinks
 
 - **Type:** `boolean`
+- **Default:** `false`
 
 Follow symbolic links while looking for a file. This is usually not needed as Rspack already resolves symlinks with [resolve.symlinks](/config/resolve#resolvesymlinks).
 
