@@ -4,7 +4,7 @@ mod strategy;
 use std::sync::Arc;
 
 use rspack_cacheable::{from_bytes, to_bytes};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::FileSystem;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -25,16 +25,12 @@ pub struct Snapshot {
   // 1. update compiler.input_file_system to async file system
   // 2. update this fs to AsyncReadableFileSystem
   // 3. update add/calc_modified_files to async fn
-  fs: Arc<dyn ReadableFileSystem>,
+  fs: Arc<dyn FileSystem>,
   storage: Arc<dyn Storage>,
 }
 
 impl Snapshot {
-  pub fn new(
-    options: SnapshotOptions,
-    fs: Arc<dyn ReadableFileSystem>,
-    storage: Arc<dyn Storage>,
-  ) -> Self {
+  pub fn new(options: SnapshotOptions, fs: Arc<dyn FileSystem>, storage: Arc<dyn Storage>) -> Self {
     Self {
       options,
       fs,
@@ -107,7 +103,7 @@ impl Snapshot {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use rspack_fs::{MemoryFileSystem, SyncWritableFileSystem};
   use rspack_paths::Utf8PathBuf;
 
   use super::super::MemoryStorage;

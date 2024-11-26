@@ -227,10 +227,10 @@ impl HttpCache {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
-        if is_valid && self.filesystem.read(cache_path).await.is_ok() {
+        if is_valid && self.filesystem.async_read(cache_path).await.is_ok() {
           let cached_content = self
             .filesystem
-            .read(cache_path)
+            .async_read(cache_path)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to read cached content: {:?}", e))?;
 

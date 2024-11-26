@@ -8,8 +8,8 @@ use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, ReadableFileSystem,
-  Result, WritableFileSystem,
+  AsyncReadableFileSystem, AsyncWritableFileSystem, Error, FileMetadata, FileSystem, Result,
+  SyncReadableFileSystem, SyncWritableFileSystem,
 };
 
 fn current_time() -> u64 {
@@ -74,6 +74,7 @@ impl FileType {
 pub struct MemoryFileSystem {
   files: Mutex<HashMap<Utf8PathBuf, FileType>>,
 }
+impl FileSystem for MemoryFileSystem {}
 
 impl MemoryFileSystem {
   pub fn clear(&self) {
@@ -139,7 +140,7 @@ impl MemoryFileSystem {
   }
 }
 
-impl WritableFileSystem for MemoryFileSystem {
+impl SyncWritableFileSystem for MemoryFileSystem {
   fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
     if self.contains_dir(dir)? {
       return Ok(());
@@ -162,7 +163,7 @@ impl WritableFileSystem for MemoryFileSystem {
     }
 
     if let Some(p) = dir.parent() {
-      WritableFileSystem::create_dir_all(self, p)?;
+      SyncWritableFileSystem::create_dir_all(self, p)?;
     }
     let mut files = self.files.lock().expect("should get lock");
     files.insert(dir.to_path_buf(), FileType::new_dir());
@@ -199,7 +200,7 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 }
 
-impl ReadableFileSystem for MemoryFileSystem {
+impl SyncReadableFileSystem for MemoryFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
@@ -228,17 +229,17 @@ impl ReadableFileSystem for MemoryFileSystem {
 
 impl AsyncWritableFileSystem for MemoryFileSystem {
   fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { WritableFileSystem::create_dir(self, dir) };
+    let fut = async move { SyncWritableFileSystem::create_dir(self, dir) };
     Box::pin(fut)
   }
 
   fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { WritableFileSystem::create_dir_all(self, dir) };
+    let fut = async move { SyncWritableFileSystem::create_dir_all(self, dir) };
     Box::pin(fut)
   }
 
   fn write<'a>(&'a self, file: &'a Utf8Path, data: &'a [u8]) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { WritableFileSystem::write(self, file, data) };
+    let fut = async move { SyncWritableFileSystem::write(self, file, data) };
     Box::pin(fut)
   }
 
@@ -258,19 +259,19 @@ impl AsyncWritableFileSystem for MemoryFileSystem {
   }
 
   fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { ReadableFileSystem::read(self, file) };
+    let fut = async move { SyncReadableFileSystem::read(self, file) };
     Box::pin(fut)
   }
 
   fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async move { ReadableFileSystem::metadata(self, file) };
+    let fut = async move { SyncReadableFileSystem::metadata(self, file) };
     Box::pin(fut)
   }
 }
 
 impl AsyncReadableFileSystem for MemoryFileSystem {
-  fn read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { ReadableFileSystem::read(self, file) };
+  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
+    let fut = async move { SyncReadableFileSystem::read(self, file) };
     Box::pin(fut)
   }
 }
@@ -280,8 +281,8 @@ mod tests {
   use rspack_paths::Utf8Path;
 
   use super::{
-    AsyncReadableFileSystem, AsyncWritableFileSystem, MemoryFileSystem, ReadableFileSystem,
-    WritableFileSystem,
+    AsyncReadableFileSystem, AsyncWritableFileSystem, MemoryFileSystem, SyncReadableFileSystem,
+    SyncWritableFileSystem,
   };
 
   #[test]
@@ -289,53 +290,57 @@ mod tests {
     let fs = MemoryFileSystem::default();
     let file_content = "1".as_bytes();
     // init fs
-    WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c")).unwrap();
-    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content).unwrap();
+    SyncWritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c")).unwrap();
+    SyncWritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     // test create_dir
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_err());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d")).is_ok());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_ok());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    assert!(WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c")).is_err());
+    assert!(SyncWritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_err());
+    assert!(SyncWritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d")).is_ok());
+    assert!(SyncWritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e")).is_ok());
+    assert!(SyncWritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
+    assert!(SyncWritableFileSystem::create_dir(&fs, Utf8Path::new("/a/file1/c")).is_err());
 
     // test create_dir_all
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a1/b1/c1")).is_ok());
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    assert!(WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c")).is_err());
+    assert!(SyncWritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a1/b1/c1")).is_ok());
+    assert!(SyncWritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
+    assert!(SyncWritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/file1/c")).is_err());
 
     // test write
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/temp/file2"), file_content).is_err());
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/file2"), file_content).is_ok());
-    assert!(WritableFileSystem::write(&fs, Utf8Path::new("/a/file1/file2"), file_content).is_err());
+    assert!(
+      SyncWritableFileSystem::write(&fs, Utf8Path::new("/a/temp/file2"), file_content).is_err()
+    );
+    assert!(SyncWritableFileSystem::write(&fs, Utf8Path::new("/a/file2"), file_content).is_ok());
+    assert!(
+      SyncWritableFileSystem::write(&fs, Utf8Path::new("/a/file1/file2"), file_content).is_err()
+    );
 
     // read
-    assert!(ReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2")).is_err());
-    assert!(ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2")).is_err());
+    assert!(SyncReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2")).is_err());
+    assert!(SyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2")).is_err());
     assert_eq!(
-      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file1")).unwrap(),
+      SyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1")).unwrap(),
       file_content
     );
     assert_eq!(
-      ReadableFileSystem::read(&fs, Utf8Path::new("/a/file2")).unwrap(),
+      SyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file2")).unwrap(),
       file_content
     );
 
     // metadata
-    assert!(ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
-    let file1_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).unwrap();
-    let file2_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file2")).unwrap();
+    assert!(SyncReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1/c/d")).is_err());
+    let file1_meta = SyncReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).unwrap();
+    let file2_meta = SyncReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file2")).unwrap();
     assert!(file1_meta.is_file);
     assert!(file2_meta.is_file);
     assert!(file1_meta.ctime_ms < file2_meta.ctime_ms);
-    let dir_meta = ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/b")).unwrap();
+    let dir_meta = SyncReadableFileSystem::metadata(&fs, Utf8Path::new("/a/b")).unwrap();
     assert!(dir_meta.is_directory);
     assert!(dir_meta.ctime_ms < file2_meta.ctime_ms);
 
     // clear
     fs.clear();
-    assert!(ReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).is_err());
+    assert!(SyncReadableFileSystem::metadata(&fs, Utf8Path::new("/a/file1")).is_err());
   }
 
   #[tokio::test]
@@ -414,23 +419,23 @@ mod tests {
 
     // read
     assert!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/temp/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/temp/file2"))
         .await
         .is_err()
     );
     assert!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1/file2"))
         .await
         .is_err()
     );
     assert_eq!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file1"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
       file_content
     );
     assert_eq!(
-      AsyncReadableFileSystem::read(&fs, Utf8Path::new("/a/file2"))
+      AsyncReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
       file_content

@@ -22,9 +22,9 @@ Now you can remove the webpack-related dependencies from your project:
 <PackageManagerTabs command="remove webpack webpack-cli webpack-dev-server" />
 
 :::tip
-In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader) or [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin).
+In some cases, you will still need to keep `webpack` as a dev dependency, such as when using [vue-loader](https://github.com/vuejs/vue-loader).
 
-This is because these plugins directly `import` subpaths of webpack and couple with webpack. If you encounter this issue, you can provide feedback to the maintainers of these plugins, asking them if they can make `webpack` an optional dependency.
+This is because these packages directly `import` subpaths of webpack and couple with webpack. If you encounter this issue, you can provide feedback to the maintainers of these plugins, asking them if they can make `webpack` an optional dependency.
 :::
 
 ## Updating package.json
@@ -101,7 +101,9 @@ Rspack supports most of the webpack community plugins and also offers alternativ
 
 Check [Plugin compat](/guide/compatibility/plugin) for more information on Rspack's compatibility with popular webpack community plugins.
 
-### [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) → [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
+### `copy-webpack-plugin`
+
+Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin):
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
@@ -117,7 +119,9 @@ module.exports = {
 }
 ```
 
-### [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) → [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
+### `mini-css-extract-plugin`
+
+Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead of [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin):
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
@@ -135,18 +139,20 @@ module.exports = {
       {
         test: /\.css$/i,
         use: [
--          CssExtractWebpackPlugin.loader,
-+          rspack.CssExtractRspackPlugin.loader,
+-         CssExtractWebpackPlugin.loader,
++         rspack.CssExtractRspackPlugin.loader,
           "css-loader"
         ],
-+        type: 'javascript/auto'
++       type: 'javascript/auto'
       }
     ]
   }
 }
 ```
 
-### [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin) → [resolve.tsConfig](/config/resolve#resolvetsconfig)
+### `tsconfig-paths-webpack-plugin`
+
+Use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead of [tsconfig-paths-webpack-plugin](https://github.com/dividab/tsconfig-paths-webpack-plugin):
 
 ```diff title="rspack.config.js"
 - const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
@@ -156,6 +162,22 @@ module.exports = {
 -   plugins: [new TsconfigPathsPlugin({})]
 +   tsConfig: {}
   }
+}
+```
+
+### `fork-ts-checker-webpack-plugin`
+
+Use [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) instead of [fork-ts-checker-webpack-plugin](https://github.com/TypeStrong/fork-ts-checker-webpack-plugin):
+
+```diff title="rspack.config.js"
+- const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
++ const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
+
+module.exports = {
+  plugins: [
+-   new ForkTsCheckerWebpackPlugin()
++   new TsCheckerRspackPlugin()
+  ]
 }
 ```
 

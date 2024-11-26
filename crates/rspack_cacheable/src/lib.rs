@@ -3,7 +3,6 @@ pub use rspack_macros::{cacheable, cacheable_dyn};
 #[cfg(feature = "noop")]
 pub use rspack_macros::{disable_cacheable as cacheable, disable_cacheable_dyn as cacheable_dyn};
 pub mod r#dyn;
-pub mod utils;
 pub mod with;
 
 mod context;

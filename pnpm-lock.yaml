@@ -654,6 +654,9 @@ importers:
       wast-loader:
         specifier: ^1.12.1
         version: 1.12.1
+      worker-rspack-loader:
+        specifier: ^3.1.2
+        version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.7.40(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0)))
 
   packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/app:
     dependencies:
@@ -9770,6 +9773,18 @@ packages:
   wordwrap@0.0.2:
     resolution: {integrity: sha512-xSBsCeh+g+dinoBv3GAOWM4LcVVO68wLXRanibtBSdUvkGWQRGeE9P7IwU9EmDDi4jA6L44lz15CGMwdw9N5+Q==}
     engines: {node: '>=0.4.0'}
+
+  worker-rspack-loader@3.1.2:
+    resolution: {integrity: sha512-lz2CoI/xGUFtjGrfTfzU6193fRdqSPsYrwPppeVCyknnFjq384RQ8BTHYp/KVMsgrodIubZX/G/i7sxvwC9tSA==}
+    engines: {node: '>= 10.13.0'}
+    peerDependencies:
+      '@rspack/core': 0.x || 1.x
+      webpack: ^5.0.0
+    peerDependenciesMeta:
+      '@rspack/core':
+        optional: true
+      webpack:
+        optional: true
 
   wrap-ansi@6.2.0:
     resolution: {integrity: sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==}
@@ -20182,6 +20197,14 @@ snapshots:
       acorn-globals: 3.1.0
 
   wordwrap@0.0.2: {}
+
+  worker-rspack-loader@3.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.7.40(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0))):
+    dependencies:
+      loader-utils: 2.0.4
+      schema-utils: 3.3.0
+    optionalDependencies:
+      '@rspack/core': link:packages/rspack
+      webpack: 5.94.0(@swc/core@1.7.40(@swc/helpers@0.5.13))(webpack-cli@5.1.4(webpack@5.94.0))
 
   wrap-ansi@6.2.0:
     dependencies:
