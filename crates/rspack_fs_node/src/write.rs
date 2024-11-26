@@ -1,26 +1,27 @@
+use async_trait::async_trait;
 use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
-use rspack_fs::{AsyncWritableFileSystem, FileMetadata};
+use rspack_fs::{FileMetadata, WritableFileSystem};
 use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
 
-pub struct AsyncNodeWritableFileSystem(ThreadsafeNodeFS);
+pub struct NodeFileSystem(ThreadsafeNodeFS);
 
-impl std::fmt::Debug for AsyncNodeWritableFileSystem {
+impl std::fmt::Debug for NodeFileSystem {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("AsyncNodeWritableFileSystem").finish()
   }
 }
 
-impl AsyncNodeWritableFileSystem {
+impl NodeFileSystem {
   pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
     Ok(Self(tsfs))
   }
 }
-
-impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
-  fn create_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+#[async_trait]
+impl WritableFileSystem for NodeFileSystem {
+  async fn create_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<()> {
     let fut = async {
       let dir = dir.as_str().to_string();
       self.0.mkdir.call(dir).await.map_err(|e| {
@@ -31,10 +32,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
       })
     };
 
-    Box::pin(fut)
+    fut.await
   }
 
-  fn create_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {
+  async fn create_dir_all(&self, dir: &Utf8Path) -> rspack_fs::Result<()> {
     let fut = async {
       let dir = dir.as_str().to_string();
       self
@@ -50,14 +51,10 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
         })
         .map(|_| ())
     };
-    Box::pin(fut)
+    fut.await
   }
 
-  fn write<'a>(
-    &'a self,
-    file: &'a Utf8Path,
-    data: &'a [u8],
-  ) -> BoxFuture<'a, rspack_fs::Result<()>> {
+  async fn write(&self, file: &Utf8Path, data: &[u8]) -> rspack_fs::Result<()> {
     let fut = async {
       let file = file.as_str().to_string();
       let data = data.to_vec();
@@ -73,7 +70,7 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
           ))
         })
     };
-    Box::pin(fut)
+    fut.await
   }
 
   fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, rspack_fs::Result<()>> {

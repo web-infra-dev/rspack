@@ -1,10 +1,10 @@
 mod fs;
-pub use fs::{FileSystem, ReadableFileSystem, WritableFileSystem};
-mod r#async;
-pub use r#async::{AsyncFileSystem, AsyncReadableFileSystem, AsyncWritableFileSystem};
+pub use fs::FileSystem;
+mod read;
+pub use read::ReadableFileSystem;
 
-mod sync;
-pub use sync::{SyncFileSystem, SyncReadableFileSystem, SyncWritableFileSystem};
+mod write;
+pub use write::WritableFileSystem;
 
 mod file_metadata;
 pub use file_metadata::FileMetadata;

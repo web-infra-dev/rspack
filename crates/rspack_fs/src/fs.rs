@@ -1,10 +1,5 @@
-use crate::{
-  AsyncFileSystem, AsyncReadableFileSystem, AsyncWritableFileSystem, SyncFileSystem,
-  SyncReadableFileSystem, SyncWritableFileSystem,
-};
+use std::fmt::Debug;
 
-pub trait FileSystem: AsyncFileSystem + SyncFileSystem {}
+use crate::{ReadableFileSystem, WritableFileSystem};
 
-pub trait ReadableFileSystem: AsyncReadableFileSystem + SyncReadableFileSystem {}
-
-pub trait WritableFileSystem: AsyncWritableFileSystem + SyncWritableFileSystem {}
+pub trait FileSystem: ReadableFileSystem + WritableFileSystem + Debug + Sync + Send {}

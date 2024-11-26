@@ -132,26 +132,28 @@ impl StrategyHelper {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, SyncReadableFileSystem, SyncWritableFileSystem};
+  use rspack_fs::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
 
   use super::{Strategy, StrategyHelper, ValidateResult};
 
-  #[test]
-  fn should_strategy_works() {
+  #[tokio::test]
+  async fn should_strategy_works() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/packages/p1".into()).unwrap();
-    fs.create_dir_all("/packages/p2".into()).unwrap();
+    fs.create_dir_all("/packages/p1".into()).await.unwrap();
+    fs.create_dir_all("/packages/p2".into()).await.unwrap();
     fs.write(
       "/packages/p1/package.json".into(),
       r#"{"version": "1.0.0"}"#.as_bytes(),
     )
+    .await
     .unwrap();
     fs.write(
       "/packages/p2/package.json".into(),
       r#"{"version": "1.1.0"}"#.as_bytes(),
     )
+    .await
     .unwrap();
-    fs.write("/file1".into(), "abc".as_bytes()).unwrap();
+    fs.write("/file1".into(), "abc".as_bytes()).await.unwrap();
 
     // compile_time
     let Strategy::CompileTime(time1) = StrategyHelper::compile_time() else {
@@ -222,7 +224,7 @@ mod tests {
       ValidateResult::NoChanged
     ));
     std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1".into(), "abcd".as_bytes()).unwrap();
+    fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
     assert!(matches!(
       helper.validate(&"/file1".into(), &now),
       ValidateResult::Modified
