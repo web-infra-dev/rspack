@@ -1,10 +1,12 @@
 mod fs;
 pub use fs::FileSystem;
+pub use fs::FileSystemExt;
 mod read;
 pub use read::ReadableFileSystem;
 
 mod write;
 pub use write::WritableFileSystem;
+pub use write::WritableFileSystemExt;
 
 mod file_metadata;
 pub use file_metadata::FileMetadata;

@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
 use napi::Either;
 use napi_derive::napi;
@@ -57,22 +55,22 @@ pub struct JsCleanFilter {
 }
 
 impl JsCleanFilter {
-  pub fn to_clean_options<T: AsRef<Path>>(&self, working_dir: T) -> CleanOptions {
-    let wd = working_dir.as_ref();
-    let keep = self.keep.as_ref().map(|p| wd.join(p));
+  pub fn to_clean_options(&self) -> CleanOptions {
+    let keep = self.keep.as_ref();
     if let Some(path) = keep {
-      CleanOptions::KeepPath(path)
+      let p = path.as_str();
+      CleanOptions::from(p)
     } else {
-      CleanOptions::Boolean(false)
+      CleanOptions::CleanAll(false)
     }
   }
 }
 
 impl JsCleanOptions {
-  pub fn to_clean_options<T: AsRef<Path>>(&self, working_dir: T) -> CleanOptions {
+  pub fn to_clean_options(&self) -> CleanOptions {
     match &self.0 {
-      Either::A(b) => CleanOptions::Boolean(*b),
-      Either::B(f) => f.to_clean_options(working_dir),
+      Either::A(b) => CleanOptions::CleanAll(*b),
+      Either::B(f) => f.to_clean_options(),
     }
   }
 }

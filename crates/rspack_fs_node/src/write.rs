@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
-use rspack_fs::{FileMetadata, WritableFileSystem};
+use rspack_fs::{FileMetadata, WritableFileSystem, WritableFileSystemExt};
 use rspack_paths::Utf8Path;
 
 use crate::node::ThreadsafeNodeFS;
@@ -175,3 +175,5 @@ impl WritableFileSystem for NodeFileSystem {
     Box::pin(fut)
   }
 }
+
+impl WritableFileSystemExt for NodeFileSystem {}

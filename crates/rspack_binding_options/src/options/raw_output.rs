@@ -125,7 +125,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
     Ok(OutputOptions {
       path: value.path.clone().into(),
       pathinfo,
-      clean: value.clean.to_clean_options(value.path),
+      clean: value.clean.to_clean_options(),
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.as_str().into(),

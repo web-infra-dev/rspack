@@ -3,7 +3,10 @@ use std::fs;
 use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
-use crate::{Error, FileMetadata, FileSystem, ReadableFileSystem, Result, WritableFileSystem};
+use crate::{
+  write::WritableFileSystemExt, Error, FileMetadata, FileSystem, ReadableFileSystem, Result,
+  WritableFileSystem,
+};
 
 #[derive(Debug)]
 pub struct NativeFileSystem;
@@ -60,6 +63,8 @@ impl WritableFileSystem for NativeFileSystem {
   }
 }
 
+impl WritableFileSystemExt for NativeFileSystem {}
+
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).map_err(Error::from)
@@ -79,6 +84,7 @@ impl ReadableFileSystem for NativeFileSystem {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }
+
   fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
     Box::pin(fut)
