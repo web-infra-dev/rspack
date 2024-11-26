@@ -57,10 +57,11 @@ where
   }
 }
 
-impl<WK, WV, K, V, S: Fallible + ?Sized> Serialize<S> for Entry<&'_ K, &'_ V, WK, WV>
+impl<WK, WV, K, V, S> Serialize<S> for Entry<&'_ K, &'_ V, WK, WV>
 where
   WK: SerializeWith<K, S>,
   WV: SerializeWith<V, S>,
+  S: Fallible + ?Sized,
 {
   #[inline]
   fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
@@ -90,7 +91,7 @@ where
   T: AsMapConverter<Key = K, Value = V>,
   WK: ArchiveWith<K>,
   WV: ArchiveWith<V>,
-  S: Fallible + ?Sized + Allocator + Writer,
+  S: Fallible + Allocator + Writer + ?Sized,
   for<'a> Entry<&'a K, &'a V, WK, WV>: Serialize<S>,
 {
   fn serialize_with(field: &T, s: &mut S) -> Result<Self::Resolver, S::Error> {

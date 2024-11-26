@@ -39,7 +39,7 @@ where
 impl<T, S> SerializeWith<T, S> for AsString
 where
   T: AsStringConverter,
-  S: Fallible<Error = SerializeError> + Writer,
+  S: Fallible<Error = SerializeError> + Writer + ?Sized,
 {
   #[inline]
   fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
@@ -52,7 +52,7 @@ where
 impl<T, D> DeserializeWith<ArchivedString, T, D> for AsString
 where
   T: AsStringConverter,
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = DeserializeError> + ?Sized,
 {
   #[inline]
   fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<T, DeserializeError> {

@@ -26,7 +26,7 @@ where
 impl<'a, T, F, S> SerializeWith<&'a F, S> for Inline<T>
 where
   T: SerializeWith<F, S>,
-  S: ?Sized + Fallible,
+  S: Fallible + ?Sized,
 {
   #[inline]
   fn serialize_with(field: &&F, serializer: &mut S) -> Result<Self::Resolver, S::Error> {

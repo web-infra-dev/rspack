@@ -17,7 +17,7 @@ impl<F> ArchiveWith<F> for Unsupported {
 
 impl<F, S> SerializeWith<F, S> for Unsupported
 where
-  S: Fallible<Error = SerializeError>,
+  S: Fallible<Error = SerializeError> + ?Sized,
 {
   fn serialize_with(_: &F, _: &mut S) -> Result<(), SerializeError> {
     Err(SerializeError::UnsupportedField)
@@ -26,7 +26,7 @@ where
 
 impl<F, D> DeserializeWith<(), F, D> for Unsupported
 where
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = DeserializeError> + ?Sized,
 {
   fn deserialize_with(_: &(), _: &mut D) -> Result<F, DeserializeError> {
     Err(DeserializeError::UnsupportedField)
