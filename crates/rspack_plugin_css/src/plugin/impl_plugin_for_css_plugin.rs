@@ -24,11 +24,9 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::parser_and_generator::{
-  CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssUsedExports,
-};
+use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
 use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::{escape_css, AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 use crate::{plugin::CssPluginInner, CssPlugin};
 
 struct CssModuleDebugInfo<'a> {
@@ -62,8 +60,6 @@ impl CssPlugin {
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
-    let mut meta_data = vec![];
-    let with_compression = compilation.options.output.css_head_data_compression;
     let module_sources = ordered_css_modules
       .iter()
       .map(|module| {
@@ -71,9 +67,6 @@ impl CssPlugin {
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
-        if let Some(meta_data_str) = code_gen_result.data.get::<CssUsedExports>() {
-          meta_data.push(meta_data_str.0.as_str());
-        }
 
         Ok(
           code_gen_result
@@ -83,7 +76,7 @@ impl CssPlugin {
       })
       .collect::<Result<Vec<_>>>()?;
 
-    let mut source = module_sources
+    let source = module_sources
       .into_par_iter()
       // TODO(hyf0): I couldn't think of a situation where a module doesn't have `Source`.
       // Should we return a Error if there is a `None` in `module_sources`?
@@ -104,23 +97,6 @@ impl CssPlugin {
         acc.add(cur);
         acc
       });
-
-    let name_with_id = format!(
-      "{}-{}",
-      &compilation.options.output.unique_name,
-      chunk.id().unwrap_or_default()
-    );
-    let meta_data_str = format!(
-      "head{{--webpack-{}:{};}}",
-      escape_css(&name_with_id, true),
-      if with_compression {
-        lzw_encode(&meta_data.join(","))
-      } else {
-        meta_data.join(",")
-      }
-    );
-
-    source.add(RawSource::from(meta_data_str));
 
     Ok(source)
   }
@@ -255,50 +231,6 @@ async fn content_hash(
     });
 
   Ok(())
-}
-
-fn lzw_encode(input: &str) -> String {
-  if input.is_empty() {
-    return input.into();
-  }
-  let mut map: HashMap<String, char> = HashMap::default();
-  let mut encoded = String::new();
-  let mut phrase = input.chars().next().expect("should have value").to_string();
-  let mut code = 256u16;
-  let max_code = 0xFFFF;
-
-  for c in input.chars().skip(1) {
-    let next_phrase = format!("{}{}", phrase, c);
-    if map.contains_key(&next_phrase) {
-      phrase = next_phrase;
-    } else {
-      if phrase.len() > 1 {
-        encoded.push(*map.get(&phrase).expect("should convert to u32 correctly"));
-      } else {
-        encoded += &phrase;
-      }
-      if code <= max_code {
-        map.insert(
-          next_phrase,
-          std::char::from_u32(code as u32).expect("should convert to u32 correctly"),
-        );
-        code += 1;
-      }
-      if code > max_code {
-        code = 256;
-        map.clear();
-      }
-      phrase = c.to_string();
-    }
-  }
-
-  if phrase.len() > 1 {
-    encoded.push(*map.get(&phrase).expect("should have phrase"));
-  } else {
-    encoded += &phrase;
-  }
-
-  encoded
 }
 
 #[plugin_hook(CompilationRenderManifest for CssPlugin)]
@@ -453,6 +385,7 @@ impl Plugin for CssPlugin {
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
           es_module: g.es_module.expect("should have es_module"),
+          hot: false,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -479,6 +412,7 @@ impl Plugin for CssPlugin {
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
           es_module: g.es_module.expect("should have es_module"),
+          hot: false,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -505,6 +439,7 @@ impl Plugin for CssPlugin {
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
           es_module: g.es_module.expect("should have es_module"),
+          hot: false,
         }) as Box<dyn ParserAndGenerator>
       }),
     );

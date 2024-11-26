@@ -17,6 +17,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
   hot_module_replacement_plugin::{
     ImportMetaHotReplacementParserPlugin, ModuleHotReplacementParserPlugin,
@@ -373,7 +374,14 @@ fn normal_module_factory_parser(
     } else if module_type.is_js_esm() {
       parser.add_parser_plugin(Box::new(ImportMetaHotReplacementParserPlugin::new()));
     }
+  } else if matches!(
+    module_type,
+    ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
+  ) && let Some(parser) = parser.downcast_mut::<CssParserAndGenerator>()
+  {
+    parser.hot = true;
   }
+
   Ok(())
 }
 
