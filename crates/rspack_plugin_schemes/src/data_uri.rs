@@ -69,13 +69,11 @@ async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Con
         Err(_) => Ok(Some(Content::String(resource_data.resource.to_string()))),
       };
     }
-    if !body.is_ascii() {
-      return Ok(Some(Content::Buffer(
-        urlencoding::decode_binary(body.as_bytes()).into_owned(),
-      )));
-    } else {
-      return Ok(Some(Content::Buffer(body.bytes().collect())));
-    }
+
+    return match urlencoding::decode(body) {
+      Ok(decoded_content) => Ok(Some(Content::Buffer(decoded_content.as_bytes().to_vec()))),
+      Err(_) => Ok(Some(Content::Buffer(body.as_bytes().to_vec()))),
+    };
   }
   Ok(None)
 }
