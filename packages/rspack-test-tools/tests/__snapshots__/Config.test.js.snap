@@ -514,7 +514,7 @@ export { a };
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
-import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
+import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
 var __webpack_modules__ = ({
 "17": (function (module) {
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");

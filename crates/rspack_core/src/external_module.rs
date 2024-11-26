@@ -272,11 +272,19 @@ impl ExternalModule {
         )
       }
       "node-commonjs" if let Some(request) = request => {
+        let need_prefix = compilation
+          .options
+          .output
+          .environment
+          .supports_node_prefix_for_core_modules();
+
         if compilation.options.output.module {
           chunk_init_fragments.push(
             NormalInitFragment::new(
-              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from \"module\";\n"
-                .to_string(),
+              format!(
+                "import {{ createRequire as __WEBPACK_EXTERNAL_createRequire }} from \"{}\";\n",
+                if need_prefix { "node:module" } else { "module" }
+              ),
               InitFragmentStage::StageESMImports,
               0,
               InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
