@@ -1,34 +1,61 @@
 use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes,
-  with::{AsTuple2, Inline},
+  cacheable, cacheable_dyn, from_bytes, to_bytes,
+  with::{AsOption, AsTuple2, AsVec, Inline},
 };
 
+#[cacheable_dyn]
+trait Module {}
+
 #[cacheable]
-#[derive(Debug, PartialEq, Eq)]
-struct Person {
-  name: String,
-  content: (String, String),
+struct NormalModule {
+  inner: String,
 }
 
-#[cacheable(as=Person)]
-struct PersonRef<'a> {
-  #[rkyv(with=Inline)]
-  name: &'a String,
-  #[rkyv(with=AsTuple2<Inline, Inline>)]
-  content: (&'a String, &'a String),
+#[cacheable_dyn]
+impl Module for NormalModule {}
+
+#[cacheable]
+struct Data {
+  block1: String,
+  block2: Vec<(String, Option<String>)>,
+  block3: Box<dyn Module>,
+}
+
+#[cacheable(as=Data)]
+struct DataRef<'a> {
+  #[cacheable(with=Inline)]
+  block1: &'a String,
+  #[cacheable(with=AsVec<AsTuple2<Inline, AsOption<Inline>>>)]
+  block2: Vec<(&'a String, Option<&'a String>)>,
+  #[allow(clippy::borrowed_box)]
+  #[cacheable(with=Inline)]
+  block3: &'a Box<dyn Module>,
 }
 
 #[test]
 fn as_attr() {
-  let a = Person {
-    name: "abc".into(),
-    content: ("a".into(), "b".into()),
+  let a = Data {
+    block1: "abc".into(),
+    block2: vec![
+      ("key1".into(), None),
+      ("key2".into(), Some("value2".into())),
+      ("key3".into(), Some("value3".into())),
+    ],
+    block3: Box::new(NormalModule {
+      inner: "inner".into(),
+    }),
   };
-  let a_ref = PersonRef {
-    name: &a.name,
-    content: (&a.content.0, &a.content.1),
+  let a_ref = DataRef {
+    block1: &a.block1,
+    block2: a
+      .block2
+      .iter()
+      .map(|(key, value)| (key, value.as_ref()))
+      .collect(),
+    block3: &a.block3,
   };
-  let bytes = to_bytes(&a_ref, &()).unwrap();
-  let deserialize_a: Person = from_bytes(&bytes, &()).unwrap();
-  assert_eq!(a, deserialize_a);
+  let bytes = to_bytes(&a, &()).unwrap();
+  let bytes_ref = to_bytes(&a_ref, &()).unwrap();
+  assert_eq!(bytes, bytes_ref);
+  from_bytes::<Data, ()>(&bytes, &()).unwrap();
 }

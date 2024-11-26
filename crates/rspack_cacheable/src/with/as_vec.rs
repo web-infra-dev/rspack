@@ -79,7 +79,7 @@ where
 impl<T, A, O, D> DeserializeWith<ArchivedVec<A::Archived>, T, D> for AsVec<A>
 where
   T: AsVecConverter<Item = O>,
-  D: Fallible<Error = DeserializeError>,
+  D: Fallible<Error = DeserializeError> + ?Sized,
   A: ArchiveWith<O> + DeserializeWith<A::Archived, O, D>,
 {
   fn deserialize_with(field: &ArchivedVec<A::Archived>, d: &mut D) -> Result<T, DeserializeError> {
