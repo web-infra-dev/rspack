@@ -319,8 +319,11 @@ impl PluginCssExtract {
         Diagnostic::warn(
           "".into(),
           format!(
-            "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
-  despite it was not able to fulfill desired ordering with these modules:\n{}",
+            r#"chunk {} [{PLUGIN_NAME}]
+Conflicting order. Following module has been added:
+ * {}
+despite it was not able to fulfill desired ordering with these modules:
+{}"#,
             chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
             fallback_module.readable_identifier(&compilation.options.context),
             conflict
