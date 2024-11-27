@@ -1,10 +1,11 @@
 use futures::Future;
 use rspack_collections::Identifier;
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
+use rspack_sources::BoxSource;
 
-use crate::{old_cache::storage, ChunkRenderResult, ChunkUkey, Compilation};
+use crate::{old_cache::storage, Chunk, Compilation, SourceType};
 
-type Storage = dyn storage::Storage<ChunkRenderResult>;
+type Storage = dyn storage::Storage<(BoxSource, Vec<Diagnostic>)>;
 
 #[derive(Debug)]
 pub struct ChunkRenderOccasion {
@@ -19,12 +20,13 @@ impl ChunkRenderOccasion {
   pub async fn use_cache<G, F>(
     &self,
     compilation: &Compilation,
-    chunk: &ChunkUkey,
+    chunk: &Chunk,
+    source_type: &SourceType,
     generator: G,
-  ) -> Result<ChunkRenderResult>
+  ) -> Result<(BoxSource, Vec<Diagnostic>)>
   where
-    G: Fn() -> F,
-    F: Future<Output = Result<ChunkRenderResult>>,
+    G: FnOnce() -> F,
+    F: Future<Output = Result<(BoxSource, Vec<Diagnostic>)>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
@@ -32,11 +34,12 @@ impl ChunkRenderOccasion {
       None => return generator().await,
     };
 
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-    let chunk_hash = chunk
-      .hash(&compilation.chunk_hashes_results)
-      .expect("should have chunk hash");
-    let cache_key = Identifier::from(chunk_hash.encoded());
+    let Some(content_hash) =
+      chunk.content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
+    else {
+      return generator().await;
+    };
+    let cache_key = Identifier::from(content_hash.encoded());
     if let Some(value) = storage.get(&cache_key) {
       Ok(value)
     } else {

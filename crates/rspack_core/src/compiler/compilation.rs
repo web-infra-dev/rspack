@@ -972,25 +972,21 @@ impl Compilation {
     let chunk_render_results = chunks
       .iter()
       .map(|chunk| async {
-        let result = self
-          .old_cache
-          .chunk_render_occasion
-          .use_cache(self, chunk, || async {
-            let mut manifests = Vec::new();
-            let mut diagnostics = Vec::new();
-            plugin_driver
-              .compilation_hooks
-              .render_manifest
-              .call(self, chunk, &mut manifests, &mut diagnostics)
-              .await?;
-            Ok(ChunkRenderResult {
-              manifests,
-              diagnostics,
-            })
-          })
+        let mut manifests = Vec::new();
+        let mut diagnostics = Vec::new();
+        plugin_driver
+          .compilation_hooks
+          .render_manifest
+          .call(self, chunk, &mut manifests, &mut diagnostics)
           .await?;
 
-        Ok((*chunk, result))
+        Ok((
+          *chunk,
+          ChunkRenderResult {
+            manifests,
+            diagnostics,
+          },
+        ))
       })
       .collect::<FuturesResults<Result<_>>>();
     let chunk_render_results = chunk_render_results
@@ -1016,7 +1012,7 @@ impl Compilation {
       self.extend_diagnostics(diagnostics);
 
       for file_manifest in manifests {
-        let filename = file_manifest.filename().to_string();
+        let filename = file_manifest.filename;
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
         current_chunk.set_rendered(true);
@@ -2013,13 +2009,13 @@ impl Compilation {
     &'a self,
     filename: &Filename<F>,
     mut data: PathData<'b>,
-  ) -> Result<(String, AssetInfo), F::Error> {
-    let mut info = AssetInfo::default();
+    info: &mut AssetInfo,
+  ) -> Result<String, F::Error> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(&mut info))?;
-    Ok((path, info))
+    let path = filename.render(data, Some(info))?;
+    Ok(path)
   }
 
   pub fn get_asset_path<F: LocalFilenameFn>(
@@ -2341,42 +2337,10 @@ pub fn set_depth_if_lower(
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub source: BoxSource,
-  filename: String,
+  pub filename: String,
+  pub has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
   pub info: AssetInfo,
-  // pub identifier: String,
-  // hash?: string;
-  pub(crate) auxiliary: bool,
-  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
-}
-
-impl RenderManifestEntry {
-  pub fn new(
-    source: BoxSource,
-    filename: String,
-    info: AssetInfo,
-    auxiliary: bool,
-    has_filename: bool,
-  ) -> Self {
-    Self {
-      source,
-      filename,
-      info,
-      auxiliary,
-      has_filename,
-    }
-  }
-
-  pub fn source(&self) -> &BoxSource {
-    &self.source
-  }
-
-  pub fn filename(&self) -> &str {
-    &self.filename
-  }
-
-  pub fn has_filename(&self) -> bool {
-    self.has_filename
-  }
+  pub auxiliary: bool,
 }
 
 fn process_runtime_requirement_hook(

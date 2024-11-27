@@ -128,7 +128,7 @@ pub fn get_output_dir(
     &compilation.chunk_group_by_ukey,
   );
   let output_dir = compilation.get_path(
-    filename,
+    &filename,
     PathData::default()
       .chunk_id_optional(chunk.id())
       .chunk_hash_optional(chunk.rendered_hash(

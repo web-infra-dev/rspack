@@ -5,7 +5,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rayon::prelude::*;
-use rspack_core::rspack_sources::ReplaceSource;
+use rspack_collections::DatabaseItem;
+use rspack_core::rspack_sources::{BoxSource, CachedSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{ConcatSource, RawSource, Source, SourceExt},
@@ -13,9 +14,9 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
+  AssetInfo, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, PublicPath,
+  CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, ModuleGraph, PublicPath,
   RuntimeGlobals, SelfModuleFactory,
 };
 use rspack_error::{Diagnostic, Result};
@@ -39,9 +40,9 @@ impl CssPlugin {
   fn get_chunk_unused_local_idents(
     compilation: &Compilation,
     chunk: &Chunk,
-    ordered_css_modules: &[&dyn Module],
+    css_modules: &[&dyn Module],
   ) -> HashSet<String> {
-    ordered_css_modules
+    css_modules
       .iter()
       .filter_map(|module| {
         let module_id = &module.identifier();
@@ -55,6 +56,65 @@ impl CssPlugin {
       })
       .flat_map(|data| data.iter().cloned())
       .collect()
+  }
+
+  fn render_chunk(
+    &self,
+    compilation: &Compilation,
+    mg: &ModuleGraph,
+    chunk: &Chunk,
+    output_path: &str,
+    css_import_modules: Vec<&dyn Module>,
+    css_modules: Vec<&dyn Module>,
+  ) -> Result<(BoxSource, Vec<Diagnostic>)> {
+    let (ordered_css_modules, conflicts) =
+      Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
+    let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
+
+    let content = source.source();
+    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
+    let auto_public_path_matches: Vec<_> = content
+      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
+      .map(|(index, _)| (index, index + len))
+      .collect();
+    let source = if !auto_public_path_matches.is_empty() {
+      let mut replace = ReplaceSource::new(source);
+      for (start, end) in auto_public_path_matches {
+        let relative = PublicPath::render_auto_public_path(compilation, output_path);
+        replace.replace(start as u32, end as u32, &relative, None);
+      }
+      replace.boxed()
+    } else {
+      source.boxed()
+    };
+    let mut diagnostics = vec![];
+    if let Some(conflicts) = conflicts {
+      diagnostics.extend(conflicts.into_iter().map(|conflict| {
+        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+
+        let failed_module = mg
+          .module_by_identifier(&conflict.failed_module)
+          .expect("should have module");
+        let selected_module = mg
+          .module_by_identifier(&conflict.selected_module)
+          .expect("should have module");
+
+        Diagnostic::warn(
+          "Conflicting order".into(),
+          format!(
+            "chunk {}\nConflicting order between {} and {}",
+            chunk
+              .name()
+              .unwrap_or(chunk.id().expect("should have chunk id")),
+            failed_module.readable_identifier(&compilation.options.context),
+            selected_module.readable_identifier(&compilation.options.context)
+          ),
+        )
+        .with_file(Some(output_path.to_owned().into()))
+        .with_chunk(Some(chunk.ukey().as_u32()))
+      }));
+    }
+    Ok((source, diagnostics))
   }
 
   fn render_chunk_to_source(
@@ -227,12 +287,16 @@ async fn content_hash(
 ) -> Result<()> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
-  let (ordered_modules, _) = Self::get_ordered_chunk_css_modules(
-    chunk,
-    &compilation.chunk_graph,
-    &module_graph,
-    compilation,
-  );
+  let css_import_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
+    .collect::<Vec<_>>();
+  let css_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
+    .collect::<Vec<_>>();
+  let (ordered_modules, _) =
+    Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let mut hasher = hashes
     .entry(SourceType::Css)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
@@ -314,27 +378,27 @@ async fn render_manifest(
     return Ok(());
   }
   let module_graph = compilation.get_module_graph();
-  let (ordered_css_modules, conflicts) = Self::get_ordered_chunk_css_modules(
-    chunk,
-    &compilation.chunk_graph,
-    &module_graph,
-    compilation,
-  );
-
-  // Prevent generating css files for chunks which don't contain css modules.
-  if ordered_css_modules.is_empty() {
+  let css_import_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::CssImport, &module_graph)
+    .collect::<Vec<_>>();
+  let css_modules = compilation
+    .chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk_ukey, SourceType::Css, &module_graph)
+    .collect::<Vec<_>>();
+  if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
   }
-
-  let source = Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules)?;
-  let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &ordered_css_modules);
 
   let filename_template = get_css_chunk_filename_template(
     chunk,
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let (output_path, mut asset_info) = compilation.get_path_with_info(
+  let mut asset_info = AssetInfo::default();
+  let unused_idents = Self::get_chunk_unused_local_idents(compilation, chunk, &css_modules);
+  asset_info.set_css_unused_idents(unused_idents);
+  let output_path = compilation.get_path_with_info(
     filename_template,
     PathData::default()
       .chunk_id_optional(chunk.id())
@@ -349,59 +413,33 @@ async fn render_manifest(
         compilation.options.output.hash_digest_length,
       ))
       .runtime(chunk.runtime().as_str()),
+    &mut asset_info,
   )?;
-  asset_info.set_css_unused_idents(unused_idents);
 
-  let content = source.source();
-  let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-  let auto_public_path_matches: Vec<_> = content
-    .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-    .map(|(index, _)| (index, index + len))
-    .collect();
-  let source = if !auto_public_path_matches.is_empty() {
-    let mut replace = ReplaceSource::new(source);
-    for (start, end) in auto_public_path_matches {
-      let relative = PublicPath::render_auto_public_path(compilation, &output_path);
-      replace.replace(start as u32, end as u32, &relative, None);
-    }
-    replace.boxed()
-  } else {
-    source.boxed()
-  };
-  if let Some(conflicts) = conflicts {
-    diagnostics.extend(conflicts.into_iter().map(|conflict| {
-      let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
-      let mg = compilation.get_module_graph();
+  let (source, more_diagnostics) = compilation
+    .old_cache
+    .chunk_render_occasion
+    .use_cache(compilation, chunk, &SourceType::Css, || async {
+      let (source, diagnostics) = self.render_chunk(
+        compilation,
+        &module_graph,
+        chunk,
+        &output_path,
+        css_import_modules,
+        css_modules,
+      )?;
+      Ok((CachedSource::new(source).boxed(), diagnostics))
+    })
+    .await?;
 
-      let failed_module = mg
-        .module_by_identifier(&conflict.failed_module)
-        .expect("should have module");
-      let selected_module = mg
-        .module_by_identifier(&conflict.selected_module)
-        .expect("should have module");
-
-      Diagnostic::warn(
-        "Conflicting order".into(),
-        format!(
-          "chunk {}\nConflicting order between {} and {}",
-          chunk
-            .name()
-            .unwrap_or(chunk.id().expect("should have chunk id")),
-          failed_module.readable_identifier(&compilation.options.context),
-          selected_module.readable_identifier(&compilation.options.context)
-        ),
-      )
-      .with_file(Some(output_path.to_owned().into()))
-      .with_chunk(Some(chunk_ukey.as_u32()))
-    }));
-  }
-  manifest.push(RenderManifestEntry::new(
-    source.boxed(),
-    output_path,
-    asset_info,
-    false,
-    false,
-  ));
+  diagnostics.extend(more_diagnostics);
+  manifest.push(RenderManifestEntry {
+    source: source.boxed(),
+    filename: output_path,
+    has_filename: false,
+    info: asset_info,
+    auxiliary: false,
+  });
   Ok(())
 }
 

@@ -533,9 +533,10 @@ impl JsCompilation {
   ) -> napi::Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let path_and_asset_info =
-      compilation.get_path_with_info(&filename.into(), data.to_path_data())?;
-    Ok(path_and_asset_info.into())
+    let mut asset_info = AssetInfo::default();
+    let path =
+      compilation.get_path_with_info(&filename.into(), data.to_path_data(), &mut asset_info)?;
+    Ok((path, asset_info).into())
   }
 
   #[napi]

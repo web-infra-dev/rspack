@@ -4,7 +4,7 @@ use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
-use rspack_core::ChunkGraph;
+use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
   ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
@@ -13,6 +13,7 @@ use rspack_core::{
   ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
   PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
+use rspack_core::{AssetInfo, ChunkGraph};
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -116,7 +117,7 @@ impl PluginCssExtract {
   fn sort_modules<'comp>(
     &self,
     chunk: &Chunk,
-    modules: Vec<&dyn Module>,
+    modules: &[&dyn Module],
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph<'comp>,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
@@ -297,16 +298,63 @@ impl PluginCssExtract {
   async fn render_content_asset<'comp>(
     &self,
     chunk: &Chunk,
-    rendered_modules: Vec<&dyn Module>,
-    filename_template: &Filename,
+    rendered_modules: &[&dyn Module],
+    filename: &str,
     compilation: &'comp Compilation,
-    path_data: PathData<'comp>,
-  ) -> Result<(RenderManifestEntry, Option<Vec<CssOrderConflicts>>)> {
+  ) -> (BoxSource, Vec<Diagnostic>) {
     let module_graph = compilation.get_module_graph();
     // mini-extract-plugin has different conflict order in some cases,
     // for compatibility, we cannot use experiments.css sorting algorithm
     let (used_modules, conflicts) =
       self.sort_modules(chunk, rendered_modules, compilation, &module_graph);
+
+    let mut diagnostics = Vec::new();
+    if let Some(conflicts) = conflicts {
+      diagnostics.extend(conflicts.into_iter().map(|conflict| {
+        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+        let fallback_module = module_graph
+          .module_by_identifier(&conflict.fallback_module)
+          .expect("should have module");
+
+        Diagnostic::warn(
+          "".into(),
+          format!(
+            "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
+  despite it was not able to fulfill desired ordering with these modules:\n{}",
+            chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
+            fallback_module.readable_identifier(&compilation.options.context),
+            conflict
+              .reasons
+              .iter()
+              .map(|(m, failed_reasons, good_reasons)| {
+                let m = module_graph
+                  .module_by_identifier(m)
+                  .expect("should have module");
+
+                format!(
+                  " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
+                  m.readable_identifier(&compilation.options.context),
+                  failed_reasons
+                    .as_ref()
+                    .map(|s| s.as_str())
+                    .unwrap_or_default(),
+                  good_reasons
+                    .as_ref()
+                    .map(|s| format!(
+                      "\n  - while fulfilling desired order of chunk group(s) {}",
+                      s.as_str()
+                    ))
+                    .unwrap_or_default(),
+                )
+              })
+              .collect::<Vec<_>>()
+              .join("\n")
+          ),
+        )
+        .with_file(Some(filename.to_owned().into()))
+        .with_chunk(Some(chunk.ukey().as_u32()))
+      }));
+    }
 
     let used_modules = used_modules
       .into_iter()
@@ -314,8 +362,6 @@ impl PluginCssExtract {
 
     let mut source = ConcatSource::default();
     let mut external_source = ConcatSource::default();
-
-    let (filename, asset_info) = compilation.get_path_with_info(filename_template, path_data)?;
 
     for module in used_modules {
       let content = Cow::Borrowed(module.content.as_str());
@@ -368,7 +414,7 @@ impl PluginCssExtract {
           source.add(RawSource::from(format!("@layer {} {{\n", layer)));
         }
 
-        let undo_path = get_undo_path(&filename, compilation.options.output.path.as_str(), false);
+        let undo_path = get_undo_path(filename, compilation.options.output.path.as_str(), false);
 
         let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
         let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
@@ -408,16 +454,7 @@ impl PluginCssExtract {
     }
 
     external_source.add(source);
-    Ok((
-      RenderManifestEntry::new(
-        Arc::new(external_source),
-        filename,
-        asset_info,
-        false,
-        false,
-      ),
-      conflicts,
-    ))
+    (external_source.boxed(), diagnostics)
   }
 }
 
@@ -568,74 +605,43 @@ async fn render_manifest(
     &self.options.chunk_filename
   };
 
-  let (render_result, conflicts) = self
-    .render_content_asset(
-      chunk,
-      rendered_modules,
-      filename_template,
-      compilation,
-      PathData::default()
-        .chunk_id_optional(chunk.id())
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_results,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_name_optional(chunk.name_for_filename_template())
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_results,
-          &SOURCE_TYPE[0],
-          compilation.options.output.hash_digest_length,
-        )),
-    )
+  let mut asset_info = AssetInfo::default();
+  let filename = compilation.get_path_with_info(
+    filename_template,
+    PathData::default()
+      .chunk_id_optional(chunk.id())
+      .chunk_hash_optional(chunk.rendered_hash(
+        &compilation.chunk_hashes_results,
+        compilation.options.output.hash_digest_length,
+      ))
+      .chunk_name_optional(chunk.name_for_filename_template())
+      .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+        &compilation.chunk_hashes_results,
+        &SOURCE_TYPE[0],
+        compilation.options.output.hash_digest_length,
+      )),
+    &mut asset_info,
+  )?;
+
+  let (source, more_diagnostics) = compilation
+    .old_cache
+    .chunk_render_occasion
+    .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
+      let (source, diagnostics) = self
+        .render_content_asset(chunk, &rendered_modules, &filename, compilation)
+        .await;
+      Ok((CachedSource::new(source).boxed(), diagnostics))
+    })
     .await?;
 
-  if let Some(conflicts) = conflicts {
-    diagnostics.extend(conflicts.into_iter().map(|conflict| {
-      let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
-      let fallback_module = module_graph
-        .module_by_identifier(&conflict.fallback_module)
-        .expect("should have module");
-
-      Diagnostic::warn(
-        "".into(),
-        format!(
-          "chunk {} [{PLUGIN_NAME}]\nConflicting order. Following module has been added:\n * {}
-despite it was not able to fulfill desired ordering with these modules:\n{}",
-          chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
-          fallback_module.readable_identifier(&compilation.options.context),
-          conflict
-            .reasons
-            .iter()
-            .map(|(m, failed_reasons, good_reasons)| {
-              let m = module_graph
-                .module_by_identifier(m)
-                .expect("should have module");
-
-              format!(
-                " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
-                m.readable_identifier(&compilation.options.context),
-                failed_reasons
-                  .as_ref()
-                  .map(|s| s.as_str())
-                  .unwrap_or_default(),
-                good_reasons
-                  .as_ref()
-                  .map(|s| format!(
-                    "\n  - while fulfilling desired order of chunk group(s) {}",
-                    s.as_str()
-                  ))
-                  .unwrap_or_default(),
-              )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-        ),
-      )
-      .with_file(Some(render_result.filename().to_owned().into()))
-      .with_chunk(Some(chunk_ukey.as_u32()))
-    }));
-  }
-  manifest.push(render_result);
+  diagnostics.extend(more_diagnostics);
+  manifest.push(RenderManifestEntry {
+    source,
+    filename,
+    has_filename: false,
+    info: asset_info,
+    auxiliary: false,
+  });
 
   Ok(())
 }
