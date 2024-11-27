@@ -83,6 +83,14 @@ pub trait WritableFileSystemExt: WritableFileSystem {
     dir: &'a Utf8Path,
     except: &'a Utf8Path,
   ) -> BoxFuture<'a, Result<()>> {
+    if dir.starts_with(except) {
+      let fut = async move { Ok(()) };
+      return Box::pin(fut);
+    }
+    if !except.starts_with(dir) {
+      return self.remove_dir_all(dir);
+    }
+
     let fut = async move {
       let mut to_clean = dir;
       while to_clean != except {
