@@ -85,13 +85,13 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/css-concat should print correct stats for 1`] = `
-asset main.js 7.8 KiB [emitted] (name: main)
-asset main.css 51 bytes [emitted] (name: main)
-Entrypoint main 7.85 KiB = main.js 7.8 KiB main.css 51 bytes
-runtime modules 6.47 KiB 6 modules
-cacheable modules 20 bytes (javascript) 23 bytes (css)
+asset main.js 3.65 KiB [emitted] (name: main)
+asset main.css 24 bytes [emitted] (name: main)
+Entrypoint main 3.67 KiB = main.js 3.65 KiB main.css 24 bytes
+runtime modules 2.26 KiB 6 modules
+cacheable modules 62 bytes (javascript) 23 bytes (css)
   ./index.js 20 bytes [built] [code generated]
-  ./foo.css 23 bytes [built] [code generated]
+  ./foo.css 42 bytes (javascript) 23 bytes (css) [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
 
@@ -106,8 +106,8 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/hot+production should print correct stats for 1`] = `
-asset main.js 35.5 KiB [emitted] (name: main)
-runtime modules 33.1 KiB 12 modules
+asset main.js 33.5 KiB [emitted] (name: main)
+runtime modules 31.2 KiB 12 modules
 ./index.js 25 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;

@@ -2,6 +2,7 @@ const common = {
 	mode: "production",
 	optimization: {
 		moduleIds: "named",
+		concatenateModules: false
 	},
 	module: {
 		generator: {

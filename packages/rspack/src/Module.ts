@@ -215,6 +215,7 @@ export class Module {
 	declare readonly buildMeta: Record<string, any>;
 	declare readonly modules: Module[] | undefined;
 	declare readonly blocks: DependenciesBlock[];
+	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
 
 	static __from_binding(binding: JsModule, compilation?: Compilation) {

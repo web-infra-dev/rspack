@@ -333,6 +333,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
+		amd: config.amd ? JSON.stringify(config.amd) : undefined,
 		bail: config.bail
 	};
 };
@@ -589,5 +590,6 @@ export interface RspackOptionsNormalized {
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	performance?: Performance;
 	profile?: Profile;
+	amd?: string;
 	bail?: Bail;
 }

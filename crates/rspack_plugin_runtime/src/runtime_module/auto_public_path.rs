@@ -43,7 +43,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       &compilation.chunk_group_by_ukey,
     );
     let filename = compilation.get_path(
-      filename,
+      &filename,
       PathData::default()
         .chunk_id_optional(chunk.id())
         .chunk_hash_optional(chunk.rendered_hash(

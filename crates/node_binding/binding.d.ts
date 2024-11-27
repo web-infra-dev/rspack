@@ -1723,6 +1723,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  amd?: string
   bail: boolean
   __references: Record<string, any>
 }
