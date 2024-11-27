@@ -3569,6 +3569,8 @@ export class Module {
     // (undocumented)
     readonly context?: string;
     // (undocumented)
+    readonly dependencies: Dependency[];
+    // (undocumented)
     readonly factoryMeta?: JsFactoryMeta;
     // (undocumented)
     identifier(): string;
