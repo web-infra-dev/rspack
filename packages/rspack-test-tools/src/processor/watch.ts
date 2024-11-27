@@ -257,6 +257,7 @@ export class WatchProcessor<
 	}
 
 	static findBundle<T extends ECompilerType>(
+		this: IWatchProcessorOptions<T>,
 		index: number,
 		context: ITestContext,
 		options: TCompilerOptions<T>
@@ -264,7 +265,7 @@ export class WatchProcessor<
 		const testConfig = context.getTestConfig();
 
 		if (typeof testConfig.findBundle === "function") {
-			return testConfig.findBundle!(index, options);
+			return testConfig.findBundle!(index, options, this.stepName);
 		}
 		return "./bundle.js";
 	}

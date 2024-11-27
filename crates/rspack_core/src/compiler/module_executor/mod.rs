@@ -151,7 +151,7 @@ impl ModuleExecutor {
     let built_modules = self.make_artifact.take_built_modules();
     if let Some(mutations) = compilation.incremental.mutations_write() {
       for id in &built_modules {
-        mutations.add(Mutation::ModuleRevoke { module: *id });
+        mutations.add(Mutation::ModuleRemove { module: *id });
       }
     }
     for id in built_modules {
@@ -161,7 +161,7 @@ impl ModuleExecutor {
     let revoked_modules = self.make_artifact.take_revoked_modules();
     if let Some(mutations) = compilation.incremental.mutations_write() {
       for id in revoked_modules {
-        mutations.add(Mutation::ModuleRevoke { module: id });
+        mutations.add(Mutation::ModuleRemove { module: id });
       }
     }
 

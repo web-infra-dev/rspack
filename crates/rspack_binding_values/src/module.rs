@@ -22,7 +22,7 @@ pub struct JsFactoryMeta {
 
 #[napi]
 pub struct JsModule {
-  identifier: ModuleIdentifier,
+  pub(crate) identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,

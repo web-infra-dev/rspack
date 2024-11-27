@@ -123,6 +123,7 @@ export const getRawOptions = (
 		node: getRawNode(options.node),
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
+		amd: options.amd,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		bail: options.bail!,
 		__references: {}

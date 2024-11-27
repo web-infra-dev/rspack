@@ -27,7 +27,6 @@ impl Compiler {
     let all_old_runtime = old
       .compilation
       .get_chunk_graph_entries()
-      .into_iter()
       .filter_map(|entry_ukey| old.compilation.chunk_by_ukey.get(&entry_ukey))
       .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect();

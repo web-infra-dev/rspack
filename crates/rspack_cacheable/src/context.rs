@@ -20,7 +20,7 @@ impl<'a> ContextGuard<'a> {
     Self { context }
   }
 
-  pub fn add_to_sharing<S: Sharing<SerializeError>>(
+  pub fn add_to_sharing<S: Sharing<SerializeError> + ?Sized>(
     &self,
     sharing: &mut S,
   ) -> Result<(), SerializeError> {
@@ -28,7 +28,7 @@ impl<'a> ContextGuard<'a> {
     sharing.finish_sharing(CONTEXT_ADDR, self as *const _ as usize)
   }
 
-  pub fn sharing_context<S: Sharing<SerializeError>>(
+  pub fn sharing_context<S: Sharing<SerializeError> + ?Sized>(
     sharing: &'a mut S,
   ) -> Result<&'a dyn Any, SerializeError> {
     match sharing.start_sharing(CONTEXT_ADDR) {
@@ -40,7 +40,7 @@ impl<'a> ContextGuard<'a> {
     }
   }
 
-  pub fn add_to_pooling<P: Pooling<DeserializeError>>(
+  pub fn add_to_pooling<P: Pooling<DeserializeError> + ?Sized>(
     &self,
     pooling: &mut P,
   ) -> Result<(), DeserializeError> {
@@ -51,7 +51,7 @@ impl<'a> ContextGuard<'a> {
     }
   }
 
-  pub fn pooling_context<P: Pooling<DeserializeError>>(
+  pub fn pooling_context<P: Pooling<DeserializeError> + ?Sized>(
     pooling: &'a mut P,
   ) -> Result<&'a dyn Any, DeserializeError> {
     match pooling.start_pooling(CONTEXT_ADDR) {

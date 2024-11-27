@@ -102,6 +102,20 @@ impl AssetParserAndGenerator {
     }
   }
 
+  fn decode_data_uri_content(encoding: &str, content: &str, source: &BoxSource) -> Vec<u8> {
+    if encoding == "base64"
+      && let Some(cleaned) = rspack_base64::clean_base64(content)
+    {
+      return rspack_base64::decode_to_vec(cleaned.as_bytes())
+        .unwrap_or_else(|_| source.buffer().to_vec());
+    }
+
+    match urlencoding::decode(content) {
+      Ok(decoded_content) => decoded_content.as_bytes().to_vec(),
+      Err(_) => content.as_bytes().to_vec(),
+    }
+  }
+
   fn hash_for_source(
     &self,
     source: &BoxSource,
@@ -184,7 +198,12 @@ impl AssetParserAndGenerator {
     encoding: &str,
     source: &BoxSource,
   ) -> Result<String> {
-    if let Some(encoded_content) = &resource_data.encoded_content {
+    if let Some(encoded_content) = &resource_data.encoded_content
+      && let Some(resource_encoding) = &resource_data.encoding
+      && resource_encoding == encoding
+      && AssetParserAndGenerator::decode_data_uri_content(encoding, encoded_content, source)
+        .eq(&source.buffer().to_vec())
+    {
       return Ok(encoded_content.to_owned());
     }
     if encoding.is_empty() {

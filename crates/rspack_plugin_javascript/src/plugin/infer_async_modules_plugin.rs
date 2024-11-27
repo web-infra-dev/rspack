@@ -25,7 +25,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           Mutation::ModuleBuild { module } => {
             acc.insert(*module);
           }
-          Mutation::ModuleRevoke { module } => {
+          Mutation::ModuleRemove { module } => {
             // we keep the state for the module only if the module revoke first, and then rebuild
             // otherwise we gc its state
             if !acc.contains(module) {

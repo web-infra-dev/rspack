@@ -31,7 +31,7 @@ where
 impl<T, S> SerializeWith<T, S> for AsRefStr
 where
   T: AsRefStrConverter,
-  S: ?Sized + Fallible + Writer,
+  S: Fallible + Writer + ?Sized,
   S::Error: Source,
 {
   #[inline]
@@ -43,7 +43,7 @@ where
 impl<T, D> DeserializeWith<ArchivedString, T, D> for AsRefStr
 where
   T: AsRefStrConverter,
-  D: ?Sized + Fallible,
+  D: Fallible + ?Sized,
 {
   #[inline]
   fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<T, D::Error> {

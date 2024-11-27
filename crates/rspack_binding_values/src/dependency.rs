@@ -6,6 +6,12 @@ use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
+#[napi(object)]
+pub struct RawDependency {
+  pub request: String,
+  // options: EntryOptions
+}
+
 // JsDependency allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]

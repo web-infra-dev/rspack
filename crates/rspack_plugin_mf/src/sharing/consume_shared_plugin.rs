@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 use std::{fmt, path::Path, sync::Arc};
@@ -98,19 +98,31 @@ fn resolve_matched_configs(
   }
 }
 
-async fn get_description_file(mut dir: &Path) -> Option<(PathBuf, serde_json::Value)> {
+async fn get_description_file(
+  mut dir: &Path,
+  satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
+) -> (Option<serde_json::Value>, Option<Vec<String>>) {
   let description_filename = "package.json";
+  let mut checked_file_paths = HashSet::new();
+
   loop {
     let description_file = dir.join(description_filename);
     if let Ok(data) = tokio::fs::read(&description_file).await
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
     {
-      return Some((description_file, data));
+      if satisfies_description_file_data
+        .as_ref()
+        .map_or(false, |f| !f(Some(data.clone())))
+      {
+        checked_file_paths.insert(description_file.to_string_lossy().to_string());
+      } else {
+        return (Some(data), None);
+      }
     }
     if let Some(parent) = dir.parent() {
       dir = parent;
     } else {
-      return None;
+      return (None, Some(checked_file_paths.into_iter().collect()));
     }
   }
 }
@@ -226,29 +238,55 @@ impl ConsumeSharedPlugin {
         required_version_warning("Unable to extract the package name from request.");
         return None;
       };
-      if let Some(package_name) = package_name
-        && let Some((description_path, data)) = get_description_file(context.as_ref()).await
-      {
-        if let Some(name) = data.get("name").and_then(|n| n.as_str())
-          && name == package_name
-        {
-          // Package self-referencing
+
+      if let Some(package_name) = package_name {
+        let (data, checked_description_file_paths) = get_description_file(
+          context.as_ref(),
+          Some(|data: Option<serde_json::Value>| {
+            if let Some(data) = data {
+              let name_matches = data
+                .get("name")
+                .and_then(|n| n.as_str())
+                .map_or(false, |name| name == package_name);
+              let version_matches = get_required_version_from_description_file(data, package_name)
+                .map_or(false, |version| {
+                  matches!(version, ConsumeVersion::Version(_))
+                });
+              name_matches || version_matches
+            } else {
+              false
+            }
+          }),
+        )
+        .await;
+
+        if let Some(data) = data {
+          if let Some(name) = data.get("name").and_then(|n| n.as_str())
+            && name == package_name
+          {
+            // Package self-referencing
+            return None;
+          }
+          return get_required_version_from_description_file(data, package_name);
+        } else {
+          if let Some(file_paths) = checked_description_file_paths
+            && !file_paths.is_empty()
+          {
+            required_version_warning(&format!(
+              "Unable to find required version for \"{package_name}\" in description file/s\n{}\nIt need to be in dependencies, devDependencies or peerDependencies.",
+              file_paths.join("\n")
+            ));
+          } else {
+            required_version_warning(&format!(
+              "Unable to find description file in {}",
+              context.as_str()
+            ));
+          }
           return None;
         }
-        get_required_version_from_description_file(data, package_name).or_else(|| {
-          required_version_warning(&format!(
-            "Unable to find required version for \"{package_name}\" in description file ({}). It need to be in dependencies, devDependencies or peerDependencies.",
-            description_path.display(),
-          ));
-          None
-        })
-      } else {
-        required_version_warning(&format!(
-          "Unable to find description file in {}",
-          context.as_str()
-        ));
-        None
       }
+
+      None
     }
   }
 

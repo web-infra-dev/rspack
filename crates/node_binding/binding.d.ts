@@ -86,7 +86,7 @@ export declare class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
-  addInclude(dependency: JsDependency, options: JsEntryOptions): void
+  addInclude(context: string, jsDependency: RawDependency, jsOptions: JsEntryOptions | undefined | null, callback: (arg: undefined | string) => void): void
   /**
    * This is a very unsafe function.
    * Please don't use this at the moment.
@@ -96,6 +96,7 @@ export declare class JsCompilation {
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
   get entries(): JsEntries
   addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+  get moduleGraph(): JsModuleGraph
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -180,6 +181,12 @@ export declare class JsModule {
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+}
+
+export declare class JsModuleGraph {
+  getModule(jsDependency: JsDependency): JsModule | null
+  getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
+  getIssuer(module: JsModule): JsModule | null
 }
 
 export declare class JsResolver {
@@ -1283,6 +1290,10 @@ export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
+export interface RawDependency {
+  request: string
+}
+
 export interface RawDllEntryPluginOptions {
   context: string
   entries: Array<string>
@@ -1329,6 +1340,7 @@ export interface RawEntryDynamicResult {
 export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
+  nodePrefixForCoreModules?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {
@@ -1716,6 +1728,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  amd?: string
   bail: boolean
   __references: Record<string, any>
 }

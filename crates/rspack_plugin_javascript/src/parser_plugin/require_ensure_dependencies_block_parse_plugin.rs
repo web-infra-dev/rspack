@@ -178,14 +178,14 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
   }
 }
 
-struct FunctionExpression<'a> {
-  func: Either<&'a FnExpr, &'a ArrowExpr>,
-  expressions: Option<&'a Expr>,
+pub(crate) struct FunctionExpression<'a> {
+  pub(crate) func: Either<&'a FnExpr, &'a ArrowExpr>,
+  pub(crate) expressions: Option<&'a Expr>,
   // Used by AMD
-  _need_this: Option<bool>,
+  pub(crate) _need_this: Option<bool>,
 }
 
-trait GetFunctionExpression {
+pub(crate) trait GetFunctionExpression {
   fn get_function_expr(&self) -> Option<FunctionExpression>;
   fn inner_paren(&self) -> &Self;
 }

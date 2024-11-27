@@ -48,6 +48,7 @@ import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
+import type { JsModuleGraph } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -86,6 +87,9 @@ type allKeys<T> = T extends any ? keyof T : never;
 
 // @public (undocumented)
 type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
+
+// @public
+export type Amd = false | Record<string, any>;
 
 // @public (undocumented)
 interface AmdConfig extends BaseModuleConfig {
@@ -715,6 +719,8 @@ export class Compilation {
         addAll: (deps: Iterable<string>) => void;
     };
     // (undocumented)
+    moduleGraph: ModuleGraph;
+    // (undocumented)
     get modules(): ReadonlySet<Module>;
     // (undocumented)
     name?: string;
@@ -1318,7 +1324,11 @@ class Dependency {
     // (undocumented)
     static __from_binding(binding: JsDependency): Dependency;
     // (undocumented)
+<<<<<<< HEAD
     static __to_binding(dependency: Dependency): JsDependency;
+=======
+    static __to_binding(data: Dependency): JsDependency;
+>>>>>>> origin
     // (undocumented)
     readonly category: string;
     // (undocumented)
@@ -1599,7 +1609,16 @@ interface Entry_2 {
 }
 
 // @public (undocumented)
-type EntryData = binding.JsEntryData;
+class EntryData {
+    // (undocumented)
+    static __from_binding(binding: binding.JsEntryData): EntryData;
+    // (undocumented)
+    dependencies: Dependency[];
+    // (undocumented)
+    includeDependencies: Dependency[];
+    // (undocumented)
+    options: binding.JsEntryOptions;
+}
 
 // @public
 export type EntryDependOn = string | string[];
@@ -3546,6 +3565,8 @@ export class Module {
     // (undocumented)
     static __from_binding(binding: JsModule, compilation?: Compilation): Module;
     // (undocumented)
+    static __to_binding(module: Module): JsModule;
+    // (undocumented)
     readonly blocks: DependenciesBlock[];
     readonly buildInfo: Record<string, any>;
     readonly buildMeta: Record<string, any>;
@@ -3645,6 +3666,16 @@ type ModuleFilterItemTypes = RegExp | string | ((name: string, module: any, type
 
 // @public (undocumented)
 type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
+
+// @public (undocumented)
+class ModuleGraph {
+    // (undocumented)
+    static __from_binding(binding: JsModuleGraph): ModuleGraph;
+    // (undocumented)
+    getIssuer(module: Module): Module | null;
+    // (undocumented)
+    getModule(dependency: Dependency): Module | null;
+}
 
 // @public (undocumented)
 export type ModuleOptions = {
@@ -5230,6 +5261,7 @@ declare namespace rspackExports {
         DevServer,
         IgnoreWarnings,
         Profile,
+        Amd,
         Bail,
         Performance_2 as Performance,
         RspackOptions,
@@ -5276,6 +5308,7 @@ export type RspackOptions = {
     devServer?: DevServer;
     module?: ModuleOptions;
     profile?: Profile;
+    amd?: Amd;
     bail?: Bail;
     performance?: Performance_2;
 };
@@ -8219,6 +8252,7 @@ export const rspackOptions: z.ZodObject<{
         noParse?: string | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
     }>>;
     profile: z.ZodOptional<z.ZodBoolean>;
+    amd: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodRecord<z.ZodString, z.ZodAny>]>>;
     bail: z.ZodOptional<z.ZodBoolean>;
     performance: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
         assetFilter: z.ZodOptional<z.ZodFunction<z.ZodTuple<[z.ZodString], z.ZodUnknown>, z.ZodBoolean>>;
@@ -8485,6 +8519,7 @@ export const rspackOptions: z.ZodObject<{
         __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
         __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
+    amd?: false | Record<string, any> | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;
     devtool?: false | "eval" | "cheap-source-map" | "cheap-module-source-map" | "source-map" | "inline-cheap-source-map" | "inline-cheap-module-source-map" | "inline-source-map" | "inline-nosources-cheap-source-map" | "inline-nosources-cheap-module-source-map" | "inline-nosources-source-map" | "nosources-cheap-source-map" | "nosources-cheap-module-source-map" | "nosources-source-map" | "hidden-nosources-cheap-source-map" | "hidden-nosources-cheap-module-source-map" | "hidden-nosources-source-map" | "hidden-cheap-source-map" | "hidden-cheap-module-source-map" | "hidden-source-map" | "eval-cheap-source-map" | "eval-cheap-module-source-map" | "eval-source-map" | "eval-nosources-cheap-source-map" | "eval-nosources-cheap-module-source-map" | "eval-nosources-source-map" | undefined;
@@ -9107,6 +9142,7 @@ export const rspackOptions: z.ZodObject<{
         __dirname?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
         __filename?: boolean | "warn-mock" | "mock" | "eval-only" | "node-module" | undefined;
     } | undefined;
+    amd?: false | Record<string, any> | undefined;
     profile?: boolean | undefined;
     cache?: boolean | undefined;
     devtool?: false | "eval" | "cheap-source-map" | "cheap-module-source-map" | "source-map" | "inline-cheap-source-map" | "inline-cheap-module-source-map" | "inline-source-map" | "inline-nosources-cheap-source-map" | "inline-nosources-cheap-module-source-map" | "inline-nosources-source-map" | "nosources-cheap-source-map" | "nosources-cheap-module-source-map" | "nosources-source-map" | "hidden-nosources-cheap-source-map" | "hidden-nosources-cheap-module-source-map" | "hidden-nosources-source-map" | "hidden-cheap-source-map" | "hidden-cheap-module-source-map" | "hidden-source-map" | "eval-cheap-source-map" | "eval-cheap-module-source-map" | "eval-source-map" | "eval-nosources-cheap-source-map" | "eval-nosources-cheap-module-source-map" | "eval-nosources-source-map" | undefined;
@@ -9492,6 +9528,8 @@ export { RspackOptionsApply as WebpackOptionsApply }
 
 // @public (undocumented)
 export interface RspackOptionsNormalized {
+    // (undocumented)
+    amd?: string;
     // (undocumented)
     bail?: Bail;
     // (undocumented)
@@ -10471,6 +10509,7 @@ declare namespace t {
         DevServer,
         IgnoreWarnings,
         Profile,
+        Amd,
         Bail,
         Performance_2 as Performance,
         RspackOptions,
@@ -11244,15 +11283,12 @@ interface Webworker {
 export const webworker: Webworker;
 
 // @public (undocumented)
-const WebWorkerTemplatePlugin: {
-    new (): {
-        name: BuiltinPluginName;
-        _args: [];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
+class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
+    // (undocumented)
+    name: BuiltinPluginName;
+    // (undocumented)
+    raw(compiler: Compiler): BuiltinPlugin | undefined;
+}
 
 // @public
 export type WorkerPublicPath = string;

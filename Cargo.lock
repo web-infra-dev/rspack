@@ -949,9 +949,9 @@ dependencies = [
 
 [[package]]
 name = "css-module-lexer"
-version = "0.0.14"
+version = "0.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c3cb070d213f1295804b62e861ba5d05435497591212a55826af6d54b2447c8"
+checksum = "0b51940c54c6ca015d3add383571ec5610114466eb67aa0a27096e1dcf3c9e29"
 dependencies = [
  "smallvec",
 ]
@@ -3627,6 +3627,7 @@ dependencies = [
  "rspack_collections",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_napi",
  "rspack_plugin_html",
  "rspack_plugin_runtime",
@@ -3635,6 +3636,7 @@ dependencies = [
  "rustc-hash 1.1.0",
  "serde",
  "serde_json",
+ "tracing",
 ]
 
 [[package]]
@@ -3669,6 +3671,7 @@ dependencies = [
  "once_cell",
  "rspack_cacheable",
  "rspack_resolver",
+ "rspack_sources",
  "rustc-hash 1.1.0",
  "serde_json",
  "swc_core",
@@ -3775,6 +3778,7 @@ dependencies = [
 name = "rspack_fs"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dunce",
  "futures",
  "rspack_error",
@@ -3786,6 +3790,7 @@ dependencies = [
 name = "rspack_fs_node"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "futures",
  "napi",
  "napi-build",

@@ -227,6 +227,10 @@ export class Module {
 		return module;
 	}
 
+	static __to_binding(module: Module): JsModule {
+		return module.#inner;
+	}
+
 	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
 

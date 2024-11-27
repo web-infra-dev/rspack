@@ -12,8 +12,8 @@ export class Dependency {
 		return new Dependency(binding);
 	}
 
-	static __to_binding(dependency: Dependency): JsDependency {
-		return dependency.#inner;
+	static __to_binding(data: Dependency): JsDependency {
+		return data.#inner;
 	}
 
 	private constructor(binding: JsDependency) {
