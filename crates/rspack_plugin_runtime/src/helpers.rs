@@ -260,7 +260,7 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
     &compilation.chunk_group_by_ukey,
   );
   compilation.get_path(
-    filename,
+    &filename,
     PathData::default()
       .chunk_id_optional(chunk.id())
       .chunk_hash_optional(chunk.rendered_hash(

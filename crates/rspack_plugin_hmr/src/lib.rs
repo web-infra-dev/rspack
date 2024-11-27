@@ -257,8 +257,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
-        let filename = if entry.has_filename() {
-          entry.filename().to_string()
+        let filename = if entry.has_filename {
+          entry.filename.to_string()
         } else {
           compilation
             .get_path(
