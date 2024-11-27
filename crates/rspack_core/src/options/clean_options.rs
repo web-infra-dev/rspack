@@ -38,7 +38,7 @@ impl From<&'_ str> for CleanOptions {
 }
 impl From<&String> for CleanOptions {
   fn from(value: &String) -> Self {
-    let pb = Utf8PathBuf::from_str(&value).expect("should be a valid path");
+    let pb = Utf8PathBuf::from_str(value).expect("should be a valid path");
     Self::KeepPath(pb)
   }
 }
