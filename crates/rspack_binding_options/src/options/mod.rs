@@ -54,6 +54,7 @@ pub struct RawOptions {
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
   pub profile: bool,
+  pub amd: Option<String>,
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, any>")]
   pub __references: References,
@@ -93,6 +94,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       optimization,
       node,
       profile: value.profile,
+      amd: value.amd,
       bail: value.bail,
       __references: value.__references,
     })
