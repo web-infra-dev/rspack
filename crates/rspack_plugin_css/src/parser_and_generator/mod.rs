@@ -24,7 +24,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   dependency::CssSelfReferenceLocalIdentDependency,
-  utils::{css_modules_exports_to_string, escape_css, LocalIdentOptions},
+  utils::{css_modules_exports_to_string, LocalIdentOptions},
 };
 use crate::{
   dependency::CssSelfReferenceLocalIdentReplacement,
@@ -47,7 +47,8 @@ static REGEX_IS_MODULES: LazyLock<Regex> =
 static REGEX_IS_COMMENTS: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"/\*[\s\S]*?\*/").expect("Invalid regex"));
 
-pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Css];
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::Css, SourceType::JavaScript];
 
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
@@ -79,6 +80,7 @@ pub struct CssParserAndGenerator {
   pub named_exports: bool,
   pub es_module: bool,
   pub exports: Option<CssExports>,
+  pub hot: bool,
 }
 
 impl ParserAndGenerator for CssParserAndGenerator {
@@ -443,71 +445,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
-        let identifier = module.identifier();
-        let module_id = compilation
-          .chunk_graph
-          .get_module_id(identifier)
-          .unwrap_or_default();
-
-        if let Some(exports) = &self.exports {
-          let mg = compilation.get_module_graph();
-          let unused = get_unused_local_ident(exports, identifier, generate_context.runtime, &mg);
-          context.data.insert(unused);
-
-          let used = get_used_exports(exports, identifier, generate_context.runtime, &mg);
-
-          static RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#"\\"#).expect("should compile"));
-          let module_id = RE.replace_all(module_id, "/");
-
-          let meta_data = used
-            .iter()
-            .map(|(n, v)| {
-              let escaped = escape_css(n, false);
-              v.iter()
-                .map(|v| {
-                  let composed = &v.id;
-
-                  if let Some(composed) = composed {
-                    let mg = compilation.get_module_graph();
-                    let module = mg
-                      .get_module_by_dependency_id(composed)
-                      .expect("should have from dependency");
-                    let module_id = compilation
-                      .chunk_graph
-                      .get_module_id(module.identifier())
-                      .expect("should have module id");
-
-                    format!(
-                      "{}:{}@{}/",
-                      escaped,
-                      escape_css(module_id, false),
-                      escape_css(&v.ident, false)
-                    )
-                  } else {
-                    format!("{}:{}/", escaped, escape_css(&v.ident, false))
-                  }
-                })
-                .collect::<Vec<_>>()
-                .join("")
-            })
-            .collect::<Vec<_>>()
-            .join("");
-
-          context.data.insert(CssUsedExports(format!(
-            "{}{}{}",
-            meta_data,
-            if self.es_module { "&" } else { "" },
-            escape_css(&module_id, false)
-          )));
-        } else {
-          context.data.insert(CssUsedExports(format!(
-            "{}{}",
-            if self.es_module { "&" } else { "" },
-            escape_css(module_id, false)
-          )));
-        }
-
         module.get_dependencies().iter().for_each(|id| {
           if let Some(dependency) = compilation
             .get_module_graph()
@@ -530,11 +467,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
+        let with_hmr = self.hot;
         let exports = if generate_context.concatenation_scope.is_some() {
+          // currently this is dead branch, as css module will never be concatenated expect exportsOnly
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
             let mg = generate_context.compilation.get_module_graph();
-
+            let unused_exports =
+              get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+            generate_context.data.insert(unused_exports);
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
@@ -560,20 +501,47 @@ impl ParserAndGenerator for CssParserAndGenerator {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
+            let unused_exports =
+              get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+            generate_context.data.insert(unused_exports);
+
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
-            css_modules_exports_to_string(
-              exports,
-              module,
-              generate_context.compilation,
-              generate_context.runtime_requirements,
+            if with_hmr {
+              format!(
+                "{}\nmodule.hot.accept();\n",
+                css_modules_exports_to_string(
+                  exports,
+                  module,
+                  generate_context.compilation,
+                  generate_context.runtime_requirements,
+                  ns_obj,
+                  left,
+                  right,
+                )?
+              )
+            } else {
+              css_modules_exports_to_string(
+                exports,
+                module,
+                generate_context.compilation,
+                generate_context.runtime_requirements,
+                ns_obj,
+                left,
+                right,
+              )?
+            }
+          } else {
+            format!(
+              "{}{}module.exports = {{}}{};\n{}",
               ns_obj,
               left,
               right,
-            )?
-          } else {
-            format!("{}{}module.exports = {{}}{};\n", ns_obj, left, right)
+              with_hmr
+                .then_some("module.hot.accept();\n")
+                .unwrap_or_default()
+            )
           }
         };
         generate_context
@@ -601,7 +569,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    Some("Module Concatenation is not implemented for CssParserAndGenerator".into())
+    if self.exports_only {
+      None
+    } else {
+      // CSS Module cannot be concatenated as it must appear in css chunk, if it's
+      // concatenated, it will be removed from module graph
+      Some("Module Concatenation is not implemented for CssParserAndGenerator".into())
+    }
   }
 
   fn update_hash(
@@ -628,7 +602,7 @@ fn get_used_exports<'a>(
       let export_info = mg.get_read_only_export_info(&identifier, name.as_str().into());
 
       if let Some(export_info) = export_info {
-        !matches!(export_info.get_used(mg, runtime), UsageState::Unused)
+        export_info.get_used(mg, runtime) != UsageState::Unused
       } else {
         true
       }
@@ -668,6 +642,3 @@ fn get_unused_local_ident(
       .collect(),
   }
 }
-
-#[derive(Debug, Clone)]
-pub struct CssUsedExports(pub String);

@@ -42,7 +42,7 @@ __webpack_require__.f.css = function (chunkId, promises, fetchPriority) {
 								error.request = realSrc;
 								installedChunkData[1](error);
 							} else {
-								loadCssChunkData(__webpack_require__.m, link, chunkId);
+								loadCssChunkData(__webpack_require__.m, chunkId);
 								installedChunkData[0]();
 							}
 						}
