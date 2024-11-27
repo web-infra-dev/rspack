@@ -1,3 +1,5 @@
+mod amd_define;
+mod amd_options;
 mod async_module;
 mod auto_public_path;
 mod base_uri;
@@ -40,6 +42,8 @@ mod startup_chunk_dependencies;
 mod startup_entry_point;
 mod system_context;
 mod utils;
+pub use amd_define::AmdDefineRuntimeModule;
+pub use amd_options::AmdOptionsRuntimeModule;
 pub use async_module::AsyncRuntimeModule;
 pub use auto_public_path::AutoPublicPathRuntimeModule;
 pub use base_uri::BaseUriRuntimeModule;

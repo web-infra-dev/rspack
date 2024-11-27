@@ -2615,6 +2615,13 @@ export type IgnoreWarnings = (
 export type Profile = boolean;
 //#endregion
 
+//#region amd
+/**
+ * Set the value of `require.amd` and `define.amd`. Or disable AMD support.
+ */
+export type Amd = false | Record<string, any>;
+//#endregion
+
 //#region Bail
 /**
  * Fail out on the first error instead of tolerating it.
@@ -2762,6 +2769,11 @@ export type RspackOptions = {
 	 * Whether to capture a profile of the application.
 	 */
 	profile?: Profile;
+	/**
+	 * Set the value of `require.amd` or `define.amd`.
+	 * Setting `amd` to false will disable rspack's AMD support.
+	 */
+	amd?: Amd;
 	/**
 	 * Whether to fail on the first error.
 	 */

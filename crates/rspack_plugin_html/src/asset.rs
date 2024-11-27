@@ -13,7 +13,7 @@ use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
+  AssetInfo, Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
 };
 use rspack_error::{miette, AnyhowError};
 use rspack_paths::Utf8PathBuf;
@@ -343,12 +343,14 @@ pub fn create_html_asset(
 ) -> (String, CompilationAsset) {
   let hash = hash_for_source(html);
 
-  let (output_path, asset_info) = compilation
+  let mut asset_info = AssetInfo::default();
+  let output_path = compilation
     .get_path_with_info(
       output_file_name,
       PathData::default()
         .filename(template_file_name)
         .content_hash(&hash),
+      &mut asset_info,
     )
     .always_ok();
 
