@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use itertools::Itertools;
+use rspack_ast::javascript::Ast;
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
@@ -157,17 +158,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       Some(&comments),
     );
 
-    let mut ast = match crate::ast::parse(
-      lexer.clone(),
-      &fm,
-      cm.clone(),
-      Some(comments.clone()),
-      module_type,
-    ) {
-      Ok(ast) => ast,
-      Err(e) => {
-        diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
-        return default_with_diagnostics(source, diagnostics);
+    // FIXME: remove cloned
+    let mut ast = match additional_data
+      .as_ref()
+      .and_then(|data| data.get::<Ast>().cloned())
+    {
+      Some(ast) => ast,
+      None => {
+        match crate::ast::parse(
+          lexer.clone(),
+          &fm,
+          cm.clone(),
+          Some(comments.clone()),
+          module_type,
+        ) {
+          Ok(ast) => ast,
+          Err(e) => {
+            diagnostics.append(&mut e.into_iter().map(|e| e.boxed()).collect());
+            return default_with_diagnostics(source, diagnostics);
+          }
+        }
       }
     };
 

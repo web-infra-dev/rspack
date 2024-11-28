@@ -1,10 +1,12 @@
+use std::cell::UnsafeCell;
 use std::sync::Arc;
 
-use rspack_ast::javascript::Ast;
+use rspack_ast::javascript::{Ast, Program};
 use rspack_core::rspack_sources::{self, encode_mappings, Mapping, OriginalLocation};
 use rspack_error::{miette::IntoDiagnostic, Result};
 use swc_core::base::config::JsMinifyFormatOptions;
 use swc_core::base::sourcemap;
+use swc_core::ecma::visit::VisitMutWith;
 use swc_core::{
   common::{
     collections::AHashMap, comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName,
@@ -21,6 +23,8 @@ use swc_core::{
   },
 };
 
+use super::repairer::AstSpanRepairer;
+use super::writer::JsWriter;
 use crate::TransformOutput;
 
 #[derive(Default, Clone, Debug)]
@@ -34,8 +38,8 @@ pub struct CodegenOptions<'a> {
   pub inline_script: Option<bool>,
 }
 
-pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> {
-  ast.visit(|program, context| {
+pub fn stringify(ast: &mut Ast, options: CodegenOptions) -> Result<TransformOutput> {
+  ast.visit_mut(|program, context| {
     let keep_comments = options.keep_comments;
     let target = options.target.unwrap_or(EsVersion::latest());
     let source_map_config = options.source_map_config;
@@ -45,17 +49,27 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
       ascii_only: options.ascii_only.unwrap_or_default(),
       ..Default::default()
     };
+
+    let comments = keep_comments
+      .unwrap_or_default()
+      .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
+      .flatten();
+
+    // FIXME: unsafety handle
+    let node = unsafe {
+      let cell: &UnsafeCell<Program> = &*(program as *const Program as *const UnsafeCell<Program>);
+      let inner_program = &mut *cell.get();
+      inner_program.get_inner_program_mut()
+    };
+
     print(
-      program.get_inner_program(),
+      node,
       context.source_map.clone(),
       target,
       source_map_config,
       options.input_source_map,
       minify,
-      keep_comments
-        .unwrap_or_default()
-        .then(|| program.comments.as_ref().map(|c| c as &dyn Comments))
-        .flatten(),
+      comments,
       &format_opt,
     )
   })
@@ -63,7 +77,7 @@ pub fn stringify(ast: &Ast, options: CodegenOptions) -> Result<TransformOutput> 
 
 #[allow(clippy::too_many_arguments)]
 pub fn print(
-  node: &SwcProgram,
+  node: &mut SwcProgram,
   source_map: Arc<SourceMap>,
   target: EsVersion,
   source_map_config: SourceMapConfig,
@@ -74,14 +88,17 @@ pub fn print(
 ) -> Result<TransformOutput> {
   let mut src_map_buf = vec![];
 
+  let mut span_map = Default::default();
+
   let src = {
     let mut buf = vec![];
     {
-      let mut wr = Box::new(text_writer::JsWriter::new(
+      let mut wr = Box::new(JsWriter::new(
         source_map.clone(),
         "\n",
         &mut buf,
         source_map_config.enable.then_some(&mut src_map_buf),
+        Some(&mut span_map),
       )) as Box<dyn WriteJs>;
 
       if minify {
@@ -104,6 +121,10 @@ pub fn print(
     // SAFETY: SWC will emit valid utf8 for sure
     unsafe { String::from_utf8_unchecked(buf) }
   };
+
+  let mut repairer = AstSpanRepairer { span_map };
+
+  node.visit_mut_with(&mut repairer);
 
   let map = if source_map_config.enable {
     let combined_source_map =

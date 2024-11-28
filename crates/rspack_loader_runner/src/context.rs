@@ -235,6 +235,19 @@ where
   }
 }
 
+impl<T> From<(T, Option<SourceMap>, AdditionalData)> for LoaderPatch
+where
+  T: Into<Content>,
+{
+  fn from(value: (T, Option<SourceMap>, AdditionalData)) -> Self {
+    Self {
+      content: Some(value.0.into()),
+      source_map: value.1,
+      additional_data: Some(value.2),
+    }
+  }
+}
+
 impl<T> From<(T, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,

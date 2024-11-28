@@ -212,7 +212,7 @@ pub fn minify(
 
           let is_mangler_enabled = min_opts.mangle.is_some();
 
-          let program = helpers::HELPERS.set(&Helpers::new(false), || {
+          let mut program = helpers::HELPERS.set(&Helpers::new(false), || {
             HANDLER.set(handler, || {
               let program = program
                 .apply(&mut resolver(unresolved_mark, top_level_mark, false))
@@ -305,7 +305,7 @@ pub fn minify(
           );
 
           print(
-            &program,
+            &mut program,
             cm.clone(),
             target,
             SourceMapConfig {

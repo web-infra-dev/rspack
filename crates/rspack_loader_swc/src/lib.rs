@@ -9,7 +9,7 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
-use rspack_core::{Mode, RunnerContext};
+use rspack_core::{AdditionalData, Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_plugin_javascript::ast::{self, SourceMapConfig};
@@ -126,9 +126,15 @@ impl SwcLoader {
       program.visit_with(&mut v);
       codegen_options.source_map_config.names = v.names;
     }
-    let ast = c.into_js_ast(program);
-    let TransformOutput { code, map } = ast::stringify(&ast, codegen_options)?;
-    loader_context.finish_with((code, map));
+    let mut ast = c.into_js_ast(program);
+    let TransformOutput { code, map } = ast::stringify(&mut ast, codegen_options)?;
+
+    let mut additional_data: AdditionalData =
+      loader_context.take_additional_data().unwrap_or_default();
+
+    additional_data.insert(ast);
+
+    loader_context.finish_with((code, map, additional_data));
 
     Ok(())
   }

@@ -56,6 +56,10 @@ impl Program {
   pub fn get_inner_program(&self) -> &SwcProgram {
     &self.program
   }
+
+  pub fn get_inner_program_mut(&mut self) -> &mut SwcProgram {
+    &mut self.program
+  }
 }
 
 impl Take for Program {
@@ -189,6 +193,16 @@ impl Ast {
   pub fn visit<F, R>(&self, f: F) -> R
   where
     F: FnOnce(&Program, &Context) -> R,
+  {
+    let Self { program, context } = self;
+    GLOBALS.set(&context.globals, || {
+      HELPERS.set(&Helpers::from_data(context.helpers), || f(program, context))
+    })
+  }
+
+  pub fn visit_mut<F, R>(&mut self, f: F) -> R
+  where
+    F: FnOnce(&mut Program, &Context) -> R,
   {
     let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
