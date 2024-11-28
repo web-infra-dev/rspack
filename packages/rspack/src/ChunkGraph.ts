@@ -3,7 +3,8 @@ import {
 	__chunk_graph_inner_get_chunk_entry_modules,
 	__chunk_graph_inner_get_chunk_modules,
 	__chunk_graph_inner_get_chunk_modules_iterable_by_source_type,
-	__chunk_graph_inner_get_module_id
+	__chunk_graph_inner_get_module_id,
+	__chunk_graph_inner_get_module_chunks
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
@@ -68,5 +69,32 @@ export class ChunkGraph {
 			binding,
 			this.compilation.__internal_getInner()
 		);
+	}
+
+	getModuleChunksIterable(module: Module): Iterable<Chunk> {
+		const binding = Module.__to_binding(module);
+		const moduleChunks = __chunk_graph_inner_get_module_chunks(
+			binding,
+			this.compilation.__internal_getInner()
+		);
+		return {
+			[Symbol.iterator]: () => {
+				let index = 0;
+				return {
+					next: () => {
+						if (index < moduleChunks.length) {
+							return {
+								value: Chunk.__from_binding(
+									moduleChunks[index++],
+									this.compilation
+								),
+								done: false
+							};
+						}
+						return { value: undefined, done: true };
+					}
+				};
+			}
+		};
 	}
 }
