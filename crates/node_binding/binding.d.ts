@@ -223,6 +223,8 @@ export declare function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: numbe
 
 export declare function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, jsCompilation: JsCompilation): JsModule[]
 
+export declare function __chunk_graph_inner_get_module_id(jsModule: JsModule, jsCompilation: JsCompilation): string | null
+
 export declare function __chunk_group_inner_get_chunk_group(ukey: number, jsCompilation: JsCompilation): JsChunkGroup
 
 export declare function __chunk_inner_can_be_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
