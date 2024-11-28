@@ -6,6 +6,9 @@ module.exports = [
 		output: {
 			uniqueName: "my-app"
 		},
+		optimization: {
+			chunkIds: 'named'
+		},
 		experiments: {
 			css: true
 		}
@@ -13,6 +16,9 @@ module.exports = [
 	{
 		target: "web",
 		mode: "production",
+		optimization: {
+			chunkIds: 'named'
+		},
 		performance: false,
 		experiments: {
 			css: true

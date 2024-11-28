@@ -429,6 +429,7 @@ export type Output = {
 	cssFilename?: CssFilename;
 
 	/**
+	 * @deprecated this config is unused, and will be removed in the future.
 	 * Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
 	 *
 	 * The value is `true` in production mode.
