@@ -39,4 +39,6 @@ pub trait WritableFileSystem: Debug + Send + Sync {
   fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
 
   fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>>;
+
+  fn rename<'a>(&'a self, from: &'a Utf8Path, to: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
 }

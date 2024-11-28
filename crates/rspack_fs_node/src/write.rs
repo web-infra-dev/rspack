@@ -179,6 +179,28 @@ impl WritableFileSystem for NodeFileSystem {
     };
     Box::pin(fut)
   }
+
+  fn rename<'a>(
+    &'a self,
+    from: &'a Utf8Path,
+    to: &'a Utf8Path,
+  ) -> BoxFuture<'a, rspack_fs::Result<()>> {
+    let fut = async {
+      self
+        .0
+        .rename_file
+        .call((from.as_str().to_string(), to.as_str().to_string()))
+        .await
+        .map_err(|e| {
+          rspack_fs::Error::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+          ))
+        })
+        .map(|_| ())
+    };
+    Box::pin(fut)
+  }
 }
 
 #[async_trait]

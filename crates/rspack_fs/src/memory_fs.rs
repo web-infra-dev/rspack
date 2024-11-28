@@ -235,6 +235,11 @@ impl WritableFileSystem for MemoryFileSystem {
     let fut = async move { ReadableFileSystem::metadata(self, file) };
     Box::pin(fut)
   }
+
+  fn rename<'a>(&'a self, from: &'a Utf8Path, to: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let fut = async move { self._rename_file(from, to) };
+    Box::pin(fut)
+  }
 }
 
 impl ReadableFileSystem for MemoryFileSystem {

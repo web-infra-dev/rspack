@@ -64,6 +64,11 @@ impl WritableFileSystem for NativeFileSystem {
     };
     Box::pin(fut)
   }
+
+  fn rename<'a>(&'a self, from: &'a Utf8Path, to: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+    let fut = async move { tokio::fs::rename(from, to).await.map_err(Error::from) };
+    Box::pin(fut)
+  }
 }
 
 impl ReadableFileSystem for NativeFileSystem {
