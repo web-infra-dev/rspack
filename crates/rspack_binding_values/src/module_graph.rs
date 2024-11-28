@@ -39,6 +39,27 @@ impl JsModuleGraph {
     Ok(js_module)
   }
 
+  #[napi(ts_return_type = "JsModule | null")]
+  pub fn get_resolved_module(
+    &self,
+    js_dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
+      Some(connection) => match connection.resolved_original_module_identifier {
+        Some(identifier) => {
+          let module = module_graph.module_by_identifier(&identifier);
+          let js_module = module.map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          });
+          Ok(js_module)
+        }
+        None => Ok(None),
+      },
+      None => Ok(None),
+    }
+  }
+
   #[napi]
   pub fn get_used_exports(
     &self,

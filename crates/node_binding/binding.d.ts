@@ -185,6 +185,7 @@ export declare class JsModule {
 
 export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
+  getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
 }
