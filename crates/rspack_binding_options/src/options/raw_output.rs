@@ -1,7 +1,7 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::library::JsLibraryOptions;
-use rspack_binding_values::{JsCleanOptions, JsFilename};
+use rspack_binding_values::{JsFilename, RawCleanOptions};
 use rspack_core::{CrossOriginLoading, Environment, PathInfo};
 use rspack_core::{OutputOptions, TrustedTypes};
 
@@ -66,8 +66,8 @@ pub struct RawOutputOptions {
   pub path: String,
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
-  #[napi(ts_type = "boolean | JsCleanFilter")]
-  pub clean: JsCleanOptions,
+  #[napi(ts_type = "boolean | JsCleanOptions")]
+  pub clean: RawCleanOptions,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,

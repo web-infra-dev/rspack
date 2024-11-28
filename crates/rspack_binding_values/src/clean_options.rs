@@ -1,4 +1,4 @@
-use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
+use napi::bindgen_prelude::FromNapiValue;
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::CleanOptions;
@@ -17,18 +17,9 @@ use rspack_napi::napi;
 /// type CleanOptions = boolean | { keep?: string }
 /// ```
 #[derive(Debug)]
-pub struct JsCleanOptions(Either<bool, JsCleanFilter>);
+pub struct RawCleanOptions(Either<bool, JsCleanOptions>);
 
-impl ToNapiValue for JsCleanOptions {
-  unsafe fn to_napi_value(
-    env: napi::sys::napi_env,
-    val: Self,
-  ) -> napi::Result<napi::sys::napi_value> {
-    Either::to_napi_value(env, val.0)
-  }
-}
-
-impl FromNapiValue for JsCleanOptions {
+impl FromNapiValue for RawCleanOptions {
   unsafe fn from_napi_value(
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
@@ -38,14 +29,14 @@ impl FromNapiValue for JsCleanOptions {
   }
 }
 
-/// File clean filter object
+/// File clean options
 ///
-/// This clean filter matches with:
+/// This matches with:
 /// - keep:
 ///   - If a string, keep the files under this path
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 #[derive(Debug)]
-pub struct JsCleanFilter {
+pub struct JsCleanOptions {
   pub keep: Option<String>,
   // todo:
   // - support RegExp type
@@ -54,7 +45,7 @@ pub struct JsCleanFilter {
   //    if the fn returns true on path str, keep the file
 }
 
-impl JsCleanFilter {
+impl JsCleanOptions {
   pub fn to_clean_options(&self) -> CleanOptions {
     let keep = self.keep.as_ref();
     if let Some(path) = keep {
@@ -66,7 +57,7 @@ impl JsCleanFilter {
   }
 }
 
-impl JsCleanOptions {
+impl RawCleanOptions {
   pub fn to_clean_options(&self) -> CleanOptions {
     match &self.0 {
       Either::A(b) => CleanOptions::CleanAll(*b),
