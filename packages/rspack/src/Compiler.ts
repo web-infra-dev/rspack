@@ -250,7 +250,12 @@ class Compiler {
 
 		this.hooks.shutdown.tap("rspack:cleanup", () => {
 			if (!this.running) {
-				this.#instance = undefined;
+				// Delayed rspack cleanup to the next tick.
+				// This supports calls to `fn rspack` to do something with `Stats` within the same tick.
+				process.nextTick(() => {
+					this.#instance = undefined;
+					this.#compilation && (this.#compilation.__internal__shutdown = true);
+				});
 			}
 		});
 	}
