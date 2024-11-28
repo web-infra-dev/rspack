@@ -9,6 +9,7 @@ mod compilation;
 mod context_module_factory;
 mod dependency;
 mod dependency_block;
+mod exports_info;
 mod filename;
 mod html;
 mod identifier;

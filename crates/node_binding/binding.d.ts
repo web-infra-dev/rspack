@@ -163,6 +163,10 @@ export declare class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export declare class JsExportsInfo {
+  setUsedInUnknownWay(jsRuntime?: string | Array<string> | undefined | null): boolean
+}
+
 export declare class JsModule {
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
@@ -188,6 +192,7 @@ export declare class JsModuleGraph {
   getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
+  getExportsInfo(module: JsModule): JsExportsInfo
 }
 
 export declare class JsResolver {
