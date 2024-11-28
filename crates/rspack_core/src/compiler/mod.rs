@@ -5,7 +5,7 @@ mod module_executor;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::{FileSystem, NativeFileSystem, WritableFileSystemExt};
+use rspack_fs::{FileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -20,7 +20,7 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, include_hash, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
+  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
   ResolverFactory, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
@@ -53,7 +53,7 @@ pub struct CompilerHooks {
 #[derive(Debug)]
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
-  pub output_filesystem: Box<dyn WritableFileSystemExt>,
+  pub output_filesystem: Box<dyn WritableFileSystem>,
   pub input_filesystem: Arc<dyn FileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
@@ -73,7 +73,7 @@ impl Compiler {
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
-    output_filesystem: Option<Box<dyn WritableFileSystemExt>>,
+    output_filesystem: Option<Box<dyn WritableFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
@@ -407,10 +407,12 @@ impl Compiler {
     if self.emitted_asset_versions.is_empty() {
       if let CleanOptions::KeepPath(p) = clean_options {
         let path_to_keep = self.options.output.path.join(Utf8Path::new(p));
-        self
-          .output_filesystem
-          .remove_dir_except(&self.options.output.path, &path_to_keep)
-          .await?;
+        trim_dir(
+          &*self.output_filesystem,
+          &self.options.output.path,
+          &path_to_keep,
+        )
+        .await?;
         return Ok(());
       }
 

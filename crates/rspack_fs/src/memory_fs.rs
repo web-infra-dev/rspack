@@ -7,10 +7,7 @@ use std::{
 use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
-use crate::{
-  Error, FileMetadata, FileSystem, ReadableFileSystem, Result, WritableFileSystem,
-  WritableFileSystemExt,
-};
+use crate::{Error, FileMetadata, FileSystem, ReadableFileSystem, Result, WritableFileSystem};
 
 fn current_time() -> u64 {
   SystemTime::now()
@@ -256,14 +253,11 @@ impl ReadableFileSystem for MemoryFileSystem {
   }
 }
 
-impl WritableFileSystemExt for MemoryFileSystem {}
-
 #[cfg(test)]
 mod tests {
   use rspack_paths::Utf8Path;
 
   use super::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
-  use crate::WritableFileSystemExt;
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();
@@ -432,43 +426,5 @@ mod tests {
     assert!(WritableFileSystem::stat(&fs, Utf8Path::new("/a/file1"))
       .await
       .is_err(),);
-
-    // extended api
-    assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a1/b1"))
-        .await
-        .is_ok()
-    );
-
-    assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a2/b1"))
-        .await
-        .is_ok()
-    );
-
-    assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a2/b2"))
-        .await
-        .is_ok()
-    );
-
-    assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a3/b1"))
-        .await
-        .is_ok()
-    );
-
-    assert!(WritableFileSystemExt::remove_dir_except(
-      &fs,
-      Utf8Path::new("/ex"),
-      Utf8Path::new("/ex/a2")
-    )
-    .await
-    .is_ok());
-
-    let children = WritableFileSystem::read_dir(&fs, Utf8Path::new("/ex"))
-      .await
-      .unwrap();
-    assert_eq!(children, vec!["a2"]);
   }
 }

@@ -3,10 +3,7 @@ use std::fs;
 use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
-use crate::{
-  write::WritableFileSystemExt, Error, FileMetadata, FileSystem, ReadableFileSystem, Result,
-  WritableFileSystem,
-};
+use crate::{Error, FileMetadata, FileSystem, ReadableFileSystem, Result, WritableFileSystem};
 
 #[derive(Debug)]
 pub struct NativeFileSystem;
@@ -62,8 +59,6 @@ impl WritableFileSystem for NativeFileSystem {
     Box::pin(fut)
   }
 }
-
-impl WritableFileSystemExt for NativeFileSystem {}
 
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
