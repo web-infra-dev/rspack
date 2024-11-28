@@ -4208,8 +4208,6 @@ export interface OutputNormalized {
     // (undocumented)
     cssFilename?: CssFilename;
     // (undocumented)
-    cssHeadDataCompression?: boolean;
-    // (undocumented)
     devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
     // (undocumented)
     devtoolModuleFilenameTemplate?: DevtoolModuleFilenameTemplate;
@@ -5960,6 +5958,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -6005,7 +6004,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -6056,6 +6054,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -6101,7 +6100,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -8630,6 +8628,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -8675,7 +8674,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -9253,6 +9251,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -9298,7 +9297,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;

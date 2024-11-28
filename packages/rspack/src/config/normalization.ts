@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
@@ -115,6 +116,13 @@ export const getNormalizedRspackOptions = (
 						)(config.entry)
 					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
+			if ("cssHeadDataCompression" in output) {
+				util.deprecate(
+					() => {},
+					"cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future"
+				)();
+			}
+
 			const { library } = output;
 			const libraryAsName = library;
 			const libraryBase =
@@ -138,7 +146,6 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
-				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -524,7 +531,6 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
-	cssHeadDataCompression?: boolean;
 	compareBeforeEmit?: boolean;
 }
 

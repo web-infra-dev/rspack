@@ -1742,7 +1742,6 @@ export interface RawOutputOptions {
   crossOriginLoading: RawCrossOriginLoading
   cssFilename: JsFilename
   cssChunkFilename: JsFilename
-  cssHeadDataCompression: boolean
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
   hotUpdateGlobal: string
