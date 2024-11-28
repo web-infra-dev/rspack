@@ -208,7 +208,7 @@ impl Compiler {
       .await
       .err()
     {
-      self.compilation.extend_diagnostics(vec![e.into()]);
+      self.compilation.push_diagnostic(e.into());
     }
     logger.time_end(make_hook_start);
     self.compilation.make().await?;
