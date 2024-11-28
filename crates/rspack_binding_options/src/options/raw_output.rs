@@ -123,7 +123,7 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
     };
 
     Ok(OutputOptions {
-      path: value.path.clone().into(),
+      path: value.path.into(),
       pathinfo,
       clean: value.clean.to_clean_options(),
       public_path: value.public_path.into(),
