@@ -250,7 +250,10 @@ class Compiler {
 
 		this.hooks.shutdown.tap("rspack:cleanup", () => {
 			if (!this.running) {
-				this.#instance = undefined;
+				process.nextTick(() => {
+					this.#instance = undefined;
+					this.#compilation && (this.#compilation.__internal__shutdown = true);
+				});
 			}
 		});
 	}

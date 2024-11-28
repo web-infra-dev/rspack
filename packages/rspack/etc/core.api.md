@@ -574,6 +574,9 @@ export class Compilation {
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
+    // (undocumented)
+    get __internal__shutdown(): boolean;
+    set __internal__shutdown(shutdown: boolean);
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
@@ -10022,7 +10025,7 @@ type StatOptions = {
 export class Stats {
     constructor(compilation: Compilation);
     // (undocumented)
-    compilation: Compilation;
+    get compilation(): Compilation;
     // (undocumented)
     get endTime(): number | undefined;
     // (undocumented)
