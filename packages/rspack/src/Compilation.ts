@@ -39,7 +39,7 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
-import { type EntryOptions, getRawEntryOptions } from "./builtin-plugin";
+import { type EntryOptions } from "./builtin-plugin";
 import type {
 	Filename,
 	OutputNormalized,
@@ -636,23 +636,18 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		context: string,
 		dependency: EntryDependency,
 		options: EntryOptions,
-		callback: (error?: Error, module?: Module) => void
+		callback: (error?: null | Error) => void
 	) {
-		const rawDependency = EntryDependency.__to_raw(dependency, context);
-
 		this.#inner.addInclude(
 			context,
-			rawDependency,
+			EntryDependency.__to_raw(dependency),
 			options as any,
-			(err: string | null, binding: binding.JsDependency) => {
+			(err, binding) => {
 				if (err) {
 					callback(new Error(err));
 				} else {
 					EntryDependency.__attach_binding(dependency, binding);
-					this.hooks.finishModules.tap("addInclude", () => {
-						let module = this.moduleGraph.getModule(dependency);
-						callback(null, module);
-					});
+					callback(null);
 				}
 			}
 		);

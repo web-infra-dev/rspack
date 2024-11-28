@@ -24,7 +24,6 @@ use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
-use crate::JsDependency;
 use crate::JsDependencyWrapper;
 use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
@@ -584,7 +583,6 @@ impl JsCompilation {
   pub fn add_include(
     &mut self,
     context: String,
-    // 目前仅支持 entry dependency
     js_dependency: RawDependency,
     js_options: Option<JsEntryOptions>,
     callback: Function<(Either<(), String>, Either<(), JsDependencyWrapper>), ()>,

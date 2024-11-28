@@ -11,7 +11,7 @@ import {
 } from "../config";
 import { isNil } from "../util";
 import { create } from "./base";
-import { Dependency } from "../Dependency";
+import { EntryDependency } from "../dependencies/EntryDependency";
 
 /**
  * Options for the `EntryPlugin`.
@@ -48,10 +48,17 @@ const OriginEntryPlugin = create(
 );
 
 type EntryPluginType = typeof OriginEntryPlugin & {
-	createDependency(entry: string, options: string | EntryOptions): Dependency;
+	createDependency(
+		entry: string,
+		options: string | EntryOptions
+	): EntryDependency;
 };
 
-export const EntryPlugin = OriginEntryPlugin;
+export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
+
+EntryPlugin.createDependency = (request, options) => {
+	return new EntryDependency(request);
+};
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;

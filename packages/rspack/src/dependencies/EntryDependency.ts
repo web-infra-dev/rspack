@@ -1,9 +1,9 @@
-import { JsDependency } from "@rspack/binding";
+import { JsDependency, RawDependency } from "@rspack/binding";
 
-// 目前不处理 EntryDependency 的继承层级
-// 现在EntryDependency 目前唯一的用处就是作为 addInclude 函数的参数
-// EntryDependency 的存在原因是 Rust 侧 EntryDependency 和 webpack 的 EntryDependency 构造不一致
-// 故 js 侧通过 EntryDependency 占位，直到构造信息完整时才进行构建
+// Currently, the inheritance hierarchy of EntryDependency is not handled.
+// The only usage of EntryDependency for now is as a parameter for the addInclude function.
+// The reason why EntryDependency exists is that the construction of EntryDependency on the Rust side is inconsistent with that of webpack's EntryDependency.
+// Therefore, on the JavaScript side, EntryDependency is used as a placeholder until the construction information is complete for the actual build.
 export class EntryDependency {
 	#inner?: JsDependency;
 
@@ -11,9 +11,21 @@ export class EntryDependency {
 
 	static __to_binding(dependency: EntryDependency): JsDependency {
 		if (!dependency.#inner) {
-			throw new Error("TODO");
+			throw new Error(
+				"The binding has not been attached to the EntryDependency."
+			);
 		}
 		return dependency.#inner;
+	}
+
+	static __to_raw(dependency: EntryDependency): RawDependency {
+		return {
+			request: dependency.request
+		};
+	}
+
+	static __attach_binding(dependency: EntryDependency, binding: JsDependency) {
+		dependency.#inner = binding;
 	}
 
 	constructor(request: string) {
