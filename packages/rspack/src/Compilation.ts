@@ -188,6 +188,7 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 
 export class Compilation {
 	#inner: JsCompilation;
+	#shutdown: boolean;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -274,6 +275,7 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
+		this.#shutdown = false;
 		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
@@ -1249,6 +1251,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal_getInner() {
 		return this.#inner;
+	}
+
+	get __internal__shutdown() {
+		return this.#shutdown;
+	}
+
+	set __internal__shutdown(shutdown) {
+		this.#shutdown = shutdown;
 	}
 
 	seal() {}

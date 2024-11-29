@@ -5,11 +5,13 @@ use std::{fmt::Debug, hash::Hash};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet, UkeyMap, UkeySet};
+use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use crate::{
   compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph, ChunkGroupOrderKey,
+  RenderManifestEntry,
 };
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
@@ -40,6 +42,12 @@ impl ChunkHashesResult {
   pub fn content_hash(&self) -> &ChunkContentHash {
     &self.content_hash
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct ChunkRenderResult {
+  pub manifests: Vec<RenderManifestEntry>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 #[derive(Debug, Clone)]

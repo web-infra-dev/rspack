@@ -12,9 +12,7 @@ mod local;
 mod occasion;
 mod storage;
 pub use local::*;
-use occasion::{
-  CodeGenerateOccasion, CreateChunkAssetsOccasion, ProcessRuntimeRequirementsOccasion,
-};
+use occasion::{ChunkRenderOccasion, CodeGenerateOccasion, ProcessRuntimeRequirementsOccasion};
 use storage::new_storage;
 
 #[derive(Debug)]
@@ -22,7 +20,7 @@ pub struct Cache {
   is_idle: AtomicBool,
   pub code_generate_occasion: CodeGenerateOccasion,
   pub process_runtime_requirements_occasion: ProcessRuntimeRequirementsOccasion,
-  pub create_chunk_assets_occasion: CreateChunkAssetsOccasion,
+  pub chunk_render_occasion: ChunkRenderOccasion,
 }
 
 impl Cache {
@@ -33,7 +31,7 @@ impl Cache {
       process_runtime_requirements_occasion: ProcessRuntimeRequirementsOccasion::new(new_storage(
         &options.cache,
       )),
-      create_chunk_assets_occasion: CreateChunkAssetsOccasion::new(new_storage(&options.cache)),
+      chunk_render_occasion: ChunkRenderOccasion::new(new_storage(&options.cache)),
     }
   }
 

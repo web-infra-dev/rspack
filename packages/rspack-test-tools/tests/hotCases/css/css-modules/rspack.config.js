@@ -4,17 +4,17 @@ module.exports = {
     main: './index.js',
   },
   module: {
-		generator: {
+		parser: {
 			'css/module': {
-				exportsOnly: true
+				namedExports: false,
 			}
 		},
     rules: [
       {
         test: /\.module\.css$/,
         type: 'css/module',
-        parser: {
-          namedExports: false,
+        generator: {
+					exportsOnly: true
         }
       }
     ]

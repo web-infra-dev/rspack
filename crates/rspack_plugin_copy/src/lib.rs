@@ -275,11 +275,10 @@ impl CopyRspackPlugin {
       }
       Err(e) => {
         let e: Error = DiagnosticError::from(e.boxed()).into();
-        let rspack_err: Vec<Diagnostic> = vec![e.into()];
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
-          .extend(rspack_err);
+          .push(e.into());
         return None;
       }
     };

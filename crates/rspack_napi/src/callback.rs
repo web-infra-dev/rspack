@@ -40,6 +40,7 @@ pub struct JsCallback<Resolver: FnOnce(Env)> {
 }
 
 unsafe impl<Resolver: FnOnce(Env)> Send for JsCallback<Resolver> {}
+unsafe impl<Resolver: FnOnce(Env)> Sync for JsCallback<Resolver> {}
 
 impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
   /// # Safety

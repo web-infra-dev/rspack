@@ -574,6 +574,9 @@ export class Compilation {
     __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic): void;
     // @internal
     __internal__setAssetSource(filename: string, source: Source): void;
+    // (undocumented)
+    get __internal__shutdown(): boolean;
+    set __internal__shutdown(shutdown: boolean);
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
@@ -3573,6 +3576,8 @@ export class Module {
     // (undocumented)
     readonly context?: string;
     // (undocumented)
+    readonly dependencies: Dependency[];
+    // (undocumented)
     readonly factoryMeta?: JsFactoryMeta;
     // (undocumented)
     identifier(): string;
@@ -4211,8 +4216,6 @@ export interface OutputNormalized {
     cssChunkFilename?: CssChunkFilename;
     // (undocumented)
     cssFilename?: CssFilename;
-    // (undocumented)
-    cssHeadDataCompression?: boolean;
     // (undocumented)
     devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
     // (undocumented)
@@ -5964,6 +5967,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -6009,7 +6013,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -6060,6 +6063,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -6105,7 +6109,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -8634,6 +8637,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -8679,7 +8683,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -9257,6 +9260,7 @@ export const rspackOptions: z.ZodObject<{
             umdNamedDefine?: boolean | undefined;
         } | undefined;
         wasmLoading?: string | false | undefined;
+        cssHeadDataCompression?: boolean | undefined;
         auxiliaryComment?: string | {
             root?: string | undefined;
             commonjs?: string | undefined;
@@ -9302,7 +9306,6 @@ export const rspackOptions: z.ZodObject<{
         devtoolFallbackModuleFilenameTemplate?: string | ((args_0: any) => any) | undefined;
         charset?: boolean | undefined;
         chunkLoadTimeout?: number | undefined;
-        cssHeadDataCompression?: boolean | undefined;
         compareBeforeEmit?: boolean | undefined;
         libraryExport?: string | string[] | undefined;
         libraryTarget?: string | undefined;
@@ -10028,7 +10031,7 @@ type StatOptions = {
 export class Stats {
     constructor(compilation: Compilation);
     // (undocumented)
-    compilation: Compilation;
+    get compilation(): Compilation;
     // (undocumented)
     get endTime(): number | undefined;
     // (undocumented)

@@ -4,7 +4,7 @@
 #![feature(option_get_or_insert_default)]
 
 pub mod dependency;
-mod parser_and_generator;
+pub mod parser_and_generator;
 pub mod plugin;
 pub mod runtime;
 mod utils;

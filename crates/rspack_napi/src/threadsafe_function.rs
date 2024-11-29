@@ -1,4 +1,8 @@
-use std::{fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{
+  fmt::Debug,
+  marker::PhantomData,
+  sync::{Arc, OnceLock},
+};
 
 use napi::{
   bindgen_prelude::{
@@ -15,10 +19,11 @@ use crate::{JsCallback, NapiErrorExt};
 
 type ErrorResolver = dyn FnOnce(Env);
 
+static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
+
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
   inner: Arc<RawThreadsafeFunction<T, Unknown, T, false, true>>,
   env: napi_env,
-  resolver: JsCallback<Box<ErrorResolver>>,
   _data: PhantomData<R>,
 }
 
@@ -33,7 +38,6 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for ThreadsafeFunction<T, R> {
     Self {
       inner: self.inner.clone(),
       env: self.env,
-      resolver: self.resolver.clone(),
       _data: self._data,
     }
   }
@@ -49,10 +53,11 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
         env, napi_val,
       )
     }?;
+    let _ = ERROR_RESOLVER
+      .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") });
     Ok(Self {
       inner: Arc::new(inner),
       env,
-      resolver: unsafe { JsCallback::new(env) }?,
       _data: PhantomData,
     })
   }
@@ -61,10 +66,14 @@ impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
-    self.resolver.call(Box::new(move |env| {
-      let err = err.into_rspack_error_with_detail(&env);
-      tx.send(err).expect("failed to resolve js error");
-    }));
+    ERROR_RESOLVER
+      .get()
+      // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
+      .expect("should have error resolver initialized")
+      .call(Box::new(move |env| {
+        let err = err.into_rspack_error_with_detail(&env);
+        tx.send(err).expect("failed to resolve js error");
+      }));
     rx.await.expect("failed to resolve js error")
   }
 

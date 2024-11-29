@@ -1,6 +1,6 @@
-import * as style from "../exports/style.module.css?ns";
-import { a, abc } from "../exports/style.module.css?picked";
-import def from "../exports/style.module.css?default";
+import * as style from "../pseudo-export/style.module.css?ns";
+import { a, abc } from "../pseudo-export/style.module.css?picked";
+import def from "../pseudo-export/style.module.css?default";
 
 it("should allow to import a css module", () => {
 	expect(style).toEqual(
