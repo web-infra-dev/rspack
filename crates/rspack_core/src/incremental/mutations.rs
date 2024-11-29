@@ -70,6 +70,10 @@ impl Mutations {
     self.inner.len()
   }
 
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
   // TODO: remove this
   pub fn swap_modules_with_chunk_graph_cache(&mut self, to: &mut Self) {
     std::mem::swap(
