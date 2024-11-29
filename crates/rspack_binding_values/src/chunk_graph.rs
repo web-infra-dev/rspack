@@ -1,8 +1,9 @@
+use napi::{Env, JsString};
 use napi_derive::napi;
 use rspack_core::{ChunkUkey, SourceType};
 use rspack_napi::napi::Result;
 
-use crate::{JsChunk, JsCompilation, JsModuleWrapper};
+use crate::{JsChunk, JsCompilation, JsModule, JsModuleWrapper};
 
 #[napi(
   js_name = "__chunk_graph_inner_get_chunk_modules",
@@ -89,4 +90,36 @@ pub fn get_chunk_modules_iterable_by_source_type(
       .map(|module| JsModuleWrapper::new(module, compilation.id(), Some(compilation)))
       .collect(),
   )
+}
+
+#[napi(js_name = "__chunk_graph_inner_get_module_id")]
+pub fn get_module_id(
+  env: Env,
+  js_module: &JsModule,
+  js_compilation: &JsCompilation,
+) -> Result<Option<JsString>> {
+  let compilation = unsafe { js_compilation.inner.as_ref() };
+
+  match compilation.chunk_graph.get_module_id(js_module.identifier) {
+    Some(id) => {
+      let js_value = env.create_string(id)?;
+      Ok(Some(js_value))
+    }
+    None => Ok(None),
+  }
+}
+
+#[napi(js_name = "__chunk_graph_inner_get_module_chunks")]
+pub fn get_module_chunks(js_module: &JsModule, js_compilation: &JsCompilation) -> Vec<JsChunk> {
+  let compilation = unsafe { js_compilation.inner.as_ref() };
+  let module_chunks = compilation
+    .chunk_graph
+    .get_module_chunks(js_module.identifier);
+  module_chunks
+    .iter()
+    .filter_map(|chunk_ukey| {
+      let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+      chunk.map(|chunk| JsChunk::from(chunk, compilation))
+    })
+    .collect::<Vec<_>>()
 }

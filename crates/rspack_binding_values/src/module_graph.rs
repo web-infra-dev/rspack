@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
-use crate::{JsDependency, JsModule, JsModuleWrapper};
+use crate::{exports_info::JsExportsInfo, JsDependency, JsModule, JsModuleWrapper};
 
 #[napi]
 pub struct JsModuleGraph {
@@ -37,6 +37,27 @@ impl JsModuleGraph {
     let js_module = module
       .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)));
     Ok(js_module)
+  }
+
+  #[napi(ts_return_type = "JsModule | null")]
+  pub fn get_resolved_module(
+    &self,
+    js_dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
+      Some(connection) => match connection.resolved_original_module_identifier {
+        Some(identifier) => {
+          let module = module_graph.module_by_identifier(&identifier);
+          let js_module = module.map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          });
+          Ok(js_module)
+        }
+        None => Ok(None),
+      },
+      None => Ok(None),
+    }
   }
 
   #[napi]
@@ -79,5 +100,12 @@ impl JsModuleGraph {
       issuer
         .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
     )
+  }
+
+  #[napi]
+  pub fn get_exports_info(&self, module: &JsModule) -> napi::Result<JsExportsInfo> {
+    let (compilation, module_graph) = self.as_ref()?;
+    let exports_info = module_graph.get_exports_info(&module.identifier);
+    Ok(JsExportsInfo::new(exports_info, &compilation))
   }
 }

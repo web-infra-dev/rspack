@@ -39,6 +39,7 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
+import { type EntryOptions } from "./builtin-plugin";
 import type {
 	Filename,
 	OutputNormalized,
@@ -58,6 +59,7 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import { EntryDependency } from "./dependencies/EntryDependency";
 export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -629,6 +631,27 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 					? jsAssetInfo =>
 							JsAssetInfo.__to_binding(assetInfoUpdateOrFunction(jsAssetInfo))
 					: JsAssetInfo.__to_binding(assetInfoUpdateOrFunction)
+		);
+	}
+
+	addInclude(
+		context: string,
+		dependency: EntryDependency,
+		options: EntryOptions,
+		callback: (error?: null | Error) => void
+	) {
+		this.#inner.addInclude(
+			context,
+			EntryDependency.__to_raw(dependency),
+			options as any,
+			(err, binding) => {
+				if (err) {
+					callback(new Error(err));
+				} else {
+					EntryDependency.__attach_binding(dependency, binding);
+					callback(null);
+				}
+			}
 		);
 	}
 

@@ -185,24 +185,22 @@ async fn compilation(
 #[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   for (resource, config) in self.resolved_provide_map.read().await.iter() {
-    compilation
-      .add_include(
-        Box::new(ProvideSharedDependency::new(
-          config.share_scope.to_string(),
-          config.share_key.to_string(),
-          config.version.clone(),
-          resource.to_string(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-        )),
-        EntryOptions {
-          name: None,
-          ..Default::default()
-        },
-      )
-      .await?;
+    compilation.add_include(
+      Box::new(ProvideSharedDependency::new(
+        config.share_scope.to_string(),
+        config.share_key.to_string(),
+        config.version.clone(),
+        resource.to_string(),
+        config.eager,
+        config.singleton,
+        config.required_version.clone(),
+        config.strict_version,
+      )),
+      EntryOptions {
+        name: None,
+        ..Default::default()
+      },
+    )?
   }
   Ok(())
 }

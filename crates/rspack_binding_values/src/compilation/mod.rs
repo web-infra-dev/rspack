@@ -9,13 +9,11 @@ use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
-use rspack_core::rspack_sources::BoxSource;
-use rspack_core::AssetInfo;
-use rspack_core::ChunkUkey;
-use rspack_core::Compilation;
-use rspack_core::CompilationAsset;
-use rspack_core::CompilationId;
-use rspack_core::ModuleIdentifier;
+use rspack_core::Dependency;
+use rspack_core::{
+  rspack_sources::BoxSource, AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationId,
+  EntryDependency, EntryOptions, ModuleIdentifier,
+};
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
@@ -23,12 +21,15 @@ use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use super::{JsFilename, PathWithInfo};
+use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsDependencyWrapper;
 use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
+use crate::RawDependency;
 use crate::ToJsCompatSource;
 use crate::{
   chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
@@ -577,6 +578,59 @@ impl JsCompilation {
       .build_dependencies
       .extend(deps.into_iter().map(Into::into));
     Ok(())
+  }
+
+  #[napi]
+  pub fn add_include(
+    &mut self,
+    context: String,
+    js_dependency: RawDependency,
+    js_options: Option<JsEntryOptions>,
+    callback: Function<(Either<(), String>, Either<(), JsDependencyWrapper>), ()>,
+  ) {
+    match self.as_mut() {
+      Ok(compilation) => {
+        let layer = match &js_options {
+          Some(options) => options.layer.clone(),
+          None => None,
+        };
+
+        let dependency = Box::new(EntryDependency::new(
+          js_dependency.request,
+          context.into(),
+          layer,
+          false,
+        ));
+        let dependency_id = *dependency.id();
+
+        let options = match js_options {
+          Some(js_opts) => js_opts.into(),
+          None => EntryOptions::default(),
+        };
+
+        let _ = match compilation.add_include(dependency, options) {
+          Ok(_) => {
+            let module_graph = compilation.get_module_graph();
+            let dependency = module_graph
+              .dependency_by_id(&dependency_id)
+              .unwrap()
+              .as_ref();
+            callback.call((
+              Either::A(()),
+              Either::B(JsDependencyWrapper::new(
+                dependency,
+                compilation.id(),
+                Some(compilation),
+              )),
+            ))
+          }
+          Err(e) => callback.call((Either::B(e.to_string()), Either::A(()))),
+        };
+      }
+      Err(e) => {
+        let _ = callback.call((Either::B(e.to_string()), Either::A(())));
+      }
+    };
   }
 
   /// This is a very unsafe function.

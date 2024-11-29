@@ -580,6 +580,8 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
+    addInclude(dependency: Dependency, options: EntryOptions): void;
+    // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -1325,7 +1327,11 @@ class Dependency {
     // (undocumented)
     static __from_binding(binding: JsDependency): Dependency;
     // (undocumented)
+<<<<<<< HEAD
+    static __to_binding(dependency: Dependency): JsDependency;
+=======
     static __to_binding(data: Dependency): JsDependency;
+>>>>>>> origin
     // (undocumented)
     readonly category: string;
     // (undocumented)

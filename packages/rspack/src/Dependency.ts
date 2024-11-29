@@ -1,4 +1,5 @@
 import type { JsDependency } from "@rspack/binding";
+import { EntryDependency } from "./dependencies/EntryDependency";
 
 export class Dependency {
 	#inner: JsDependency;
@@ -12,7 +13,10 @@ export class Dependency {
 		return new Dependency(binding);
 	}
 
-	static __to_binding(data: Dependency): JsDependency {
+	static __to_binding(data: Dependency | EntryDependency): JsDependency {
+		if (data instanceof EntryDependency) {
+			return EntryDependency.__to_binding(data);
+		}
 		return data.#inner;
 	}
 

@@ -86,6 +86,7 @@ export declare class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
+  addInclude(context: string, jsDependency: RawDependency, jsOptions: JsEntryOptions | undefined | null, callback: (arg0: undefined | string, arg1: undefined | JsDependencyWrapper) => void): void
   /**
    * This is a very unsafe function.
    * Please don't use this at the moment.
@@ -162,6 +163,10 @@ export declare class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export declare class JsExportsInfo {
+  setUsedInUnknownWay(jsRuntime?: string | Array<string> | undefined | null): boolean
+}
+
 export declare class JsModule {
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
@@ -184,8 +189,10 @@ export declare class JsModule {
 
 export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
+  getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
+  getExportsInfo(module: JsModule): JsExportsInfo
 }
 
 export declare class JsResolver {
@@ -221,6 +228,10 @@ export declare function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey:
 export declare function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, jsCompilation: JsCompilation): JsModule[]
 
 export declare function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, jsCompilation: JsCompilation): JsModule[]
+
+export declare function __chunk_graph_inner_get_module_chunks(jsModule: JsModule, jsCompilation: JsCompilation): Array<JsChunk>
+
+export declare function __chunk_graph_inner_get_module_id(jsModule: JsModule, jsCompilation: JsCompilation): string | null
 
 export declare function __chunk_group_inner_get_chunk_group(ukey: number, jsCompilation: JsCompilation): JsChunkGroup
 
@@ -1287,6 +1298,10 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+}
+
+export interface RawDependency {
+  request: string
 }
 
 export interface RawDllEntryPluginOptions {

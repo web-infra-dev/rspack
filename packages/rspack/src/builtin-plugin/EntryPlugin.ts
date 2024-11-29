@@ -11,6 +11,7 @@ import {
 } from "../config";
 import { isNil } from "../util";
 import { create } from "./base";
+import { EntryDependency } from "../dependencies/EntryDependency";
 
 /**
  * Options for the `EntryPlugin`.
@@ -28,7 +29,7 @@ export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
  * contains only one module (plus dependencies). The module is resolved from
  * `entry` in `context` (absolute path).
  */
-export const EntryPlugin = create(
+const OriginEntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
 	(
 		context: string,
@@ -45,6 +46,19 @@ export const EntryPlugin = create(
 	},
 	"make"
 );
+
+type EntryPluginType = typeof OriginEntryPlugin & {
+	createDependency(
+		entry: string,
+		options: string | EntryOptions
+	): EntryDependency;
+};
+
+export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
+
+EntryPlugin.createDependency = (request, options) => {
+	return new EntryDependency(request);
+};
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;

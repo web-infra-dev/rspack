@@ -1493,7 +1493,11 @@ impl ExportInfo {
     false
   }
 
-  fn set_used_in_unknown_way(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
+  pub fn set_used_in_unknown_way(
+    &self,
+    mg: &mut ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+  ) -> bool {
     let mut changed = false;
 
     if self.set_used_conditionally(

@@ -1,6 +1,7 @@
 import type { JsModuleGraph } from "@rspack/binding";
 import { Dependency } from "./Dependency";
 import { Module } from "./Module";
+import { ExportsInfo } from "./ExportsInfo";
 
 export default class ModuleGraph {
 	static __from_binding(binding: JsModuleGraph) {
@@ -18,8 +19,21 @@ export default class ModuleGraph {
 		return binding ? Module.__from_binding(binding) : null;
 	}
 
+	getResolvedModule(dependency: Dependency): Module | null {
+		const binding = this.#inner.getResolvedModule(
+			Dependency.__to_binding(dependency)
+		);
+		return binding ? Module.__from_binding(binding) : null;
+	}
+
 	getIssuer(module: Module): Module | null {
 		const binding = this.#inner.getIssuer(Module.__to_binding(module));
 		return binding ? Module.__from_binding(binding) : null;
+	}
+
+	getExportsInfo(module: Module): ExportsInfo {
+		return ExportsInfo.__from_binding(
+			this.#inner.getExportsInfo(Module.__to_binding(module))
+		);
 	}
 }
