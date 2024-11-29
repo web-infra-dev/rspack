@@ -1066,32 +1066,100 @@ module.exports = {
 
 - **类型：** `boolean`
 
-标记模块是否存在副作用。
+标记模块是否存在副作用，这会影响 [Tree Shaking](/guide/optimization/tree-shaking) 的结果。
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /foo\.js$/,
+        sideEffects: false,
+      },
+    ],
+  },
+};
+```
 
 ### Rule.enforce
 
 <PropertyType type="'pre' | 'post'" />
 
-指定 loader 的类型。
+指定 loader 的类型，未指定时默认为 normal loader。
 
-当指定为 'pre' 时，该 loader 会在其他所有 loader 之前执行。
+当指定为 `'pre'` 时，该 loader 会在其他所有 loader 之前执行。
 
-当指定为 'post' 时，该 loader 会在其他所有 loader 之后执行。
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        enforce: 'pre',
+        loader: 'my-pre-loader',
+      },
+    ],
+  },
+};
+```
+
+当指定为 `'post'` 时，该 loader 会在其他所有 loader 之后执行。
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        enforce: 'post',
+        loader: 'my-post-loader',
+      },
+    ],
+  },
+};
+```
+
+所有 loader 都会进入以下两个阶段：
+
+- **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/examples#pitching-loader)。
+- **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
 ### Rule.type
 
-- **类型：** `'javascript/auto' | 'typescript' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'tsx' | 'jsx'`
+- **类型：** `'javascript/auto' | 'css' | 'css/module' | 'css/auto' | 'json' | 'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`
 
-用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。例如：当模块被标记为 `'typescript'` 则会使用 TS parser/generator 对模块进行处理。
+用于标记匹配的模块的类型，这会影响 Rspack 内置对于该模块的处理方式。
 
-- `'javascript/auto'`：JavaScript 模块，支持的模块系统：CommonJS、ESM，暂没有对 AMD 模块支持的计划。
+默认情况下，Rspack 会根据文件扩展名来决定模块的类型。例如，`.js` 和 `.mjs` 文件会被当作 `javascript/auto` 模块处理，`.json` 文件会被当作 `json` 模块处理。
+
+例如，如果你想通过一个自定义 Loader 加载 `.json` 文件，你需要将类型设置为 `javascript/auto` 以绕过 Rspack 内置的 JSON 导入。
+
+```js title=rspack.config.js
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.json$/,
+        type: 'javascript/auto',
+        loader: 'custom-json-loader',
+      },
+    ],
+  },
+};
+```
+
+所有 `type` 如下：
+
+- `'javascript/auto'`：JavaScript 模块，支持的模块系统：CommonJS、ES modules。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
-- `'css'`：CSS 模块。
-- `'css/module'`：CSS Modules 模块。
-- `'css/auto'`：基于文件名判断，若匹配`/\.module(s)?\.[^.]+$/`则为 CSS Modules 模块，否则为 CSS 模块。
-- `'json'`：JSON data 模块。
-- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：参考[资源模块](/guide/features/asset-module)。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
+- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [原生 CSS 支持](/guide/tech/css#原生-css-支持)。
+- `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ### Rule.layer
 
