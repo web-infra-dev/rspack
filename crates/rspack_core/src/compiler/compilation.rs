@@ -29,14 +29,14 @@ use super::{
   module_executor::ModuleExecutor,
 };
 use crate::{
-  build_chunk_graph::build_chunk_graph,
+  build_chunk_graph::{build_chunk_graph, code_splitter::CodeSplitter},
   cache::Cache,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
   get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
-  old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
+  old_cache::{use_code_splitting_cache, Cache as OldCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
@@ -181,7 +181,8 @@ pub struct Compilation {
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
-  pub code_splitting_cache: CodeSplittingCache,
+  // pub code_splitting_cache: CodeSplittingCache,
+  pub code_splitter_cache: CodeSplitter,
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
@@ -284,7 +285,8 @@ impl Compilation {
       cache,
       old_cache,
       incremental,
-      code_splitting_cache: Default::default(),
+      // code_splitting_cache: Default::default(),
+      code_splitter_cache: Default::default(),
       hash: None,
       used_chunk_ids: Default::default(),
 

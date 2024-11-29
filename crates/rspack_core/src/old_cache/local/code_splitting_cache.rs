@@ -39,37 +39,24 @@ where
   }
 
   let has_change = compilation.has_module_import_export_change();
-  if !has_change
-    || compilation
+  if has_change
+    && !compilation
       .incremental
       .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
   {
-    let cache = &mut compilation.code_splitting_cache;
-    rayon::scope(|s| {
-      s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
-      s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
-      s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
-      s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
-      s.spawn(|_| compilation.async_entrypoints = cache.async_entrypoints.clone());
-      s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
-      s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
-    });
-
-    if !has_change {
-      return Ok(());
-    }
+    compilation.chunk_by_ukey = Default::default();
+    compilation.chunk_graph = Default::default();
+    compilation.chunk_group_by_ukey = Default::default();
+    compilation.entrypoints = Default::default();
+    compilation.async_entrypoints = Default::default();
+    compilation.named_chunk_groups = Default::default();
+    compilation.named_chunks = Default::default();
   }
 
-  let compilation = task(compilation).await?;
-  let cache = &mut compilation.code_splitting_cache;
-  rayon::scope(|s| {
-    s.spawn(|_| cache.chunk_by_ukey = compilation.chunk_by_ukey.clone());
-    s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
-    s.spawn(|_| cache.chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone());
-    s.spawn(|_| cache.entrypoints = compilation.entrypoints.clone());
-    s.spawn(|_| cache.async_entrypoints = compilation.async_entrypoints.clone());
-    s.spawn(|_| cache.named_chunk_groups = compilation.named_chunk_groups.clone());
-    s.spawn(|_| cache.named_chunks = compilation.named_chunks.clone());
-  });
-  Ok(())
+  if !has_change {
+    return Ok(());
+  }
+
+  task(compilation).await?;
+  return Ok(());
 }

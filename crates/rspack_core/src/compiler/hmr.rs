@@ -90,12 +90,26 @@ impl Compiler {
           .compilation
           .swap_make_artifact_with_compilation(&mut new_compilation);
 
-        // seal stage used
-        new_compilation.code_splitting_cache =
-          std::mem::take(&mut self.compilation.code_splitting_cache);
+        // reuse code splitting cache from the old compilation
+        new_compilation.chunk_by_ukey = std::mem::take(&mut self.compilation.chunk_by_ukey);
+        new_compilation.chunk_graph = std::mem::take(&mut self.compilation.chunk_graph);
+        new_compilation.chunk_group_by_ukey =
+          std::mem::take(&mut self.compilation.chunk_group_by_ukey);
+        new_compilation.entrypoints = std::mem::take(&mut self.compilation.entrypoints);
+        new_compilation.async_entrypoints = std::mem::take(&mut self.compilation.async_entrypoints);
+        new_compilation.named_chunk_groups =
+          std::mem::take(&mut self.compilation.named_chunk_groups);
+        new_compilation.named_chunks = std::mem::take(&mut self.compilation.named_chunks);
 
         // reuse module executor
         new_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
+      }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+      {
+        new_compilation.code_splitter_cache =
+          std::mem::take(&mut self.compilation.code_splitter_cache);
       }
       if new_compilation
         .incremental
