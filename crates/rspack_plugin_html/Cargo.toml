@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT"
 name        = "rspack_plugin_html"
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [features]
 default = []
 
@@ -16,13 +16,13 @@ futures           = { workspace = true }
 itertools         = { workspace = true }
 path-clean        = { workspace = true }
 rayon             = { workspace = true }
-rspack_base64     = { version = "0.1.0", path = "../rspack_base64" }
-rspack_core       = { version = "0.1.0", path = "../rspack_core" }
+rspack_base64     = { version = "0.2.0", path = "../rspack_base64" }
+rspack_core       = { version = "0.2.0", path = "../rspack_core" }
 rspack_dojang     = { workspace = true }
-rspack_error      = { version = "0.1.0", path = "../rspack_error" }
-rspack_hook       = { version = "0.1.0", path = "../rspack_hook" }
-rspack_paths      = { version = "0.1.0", path = "../rspack_paths" }
-rspack_util       = { version = "0.1.0", path = "../rspack_util" }
+rspack_error      = { version = "0.2.0", path = "../rspack_error" }
+rspack_hook       = { version = "0.2.0", path = "../rspack_hook" }
+rspack_paths      = { version = "0.2.0", path = "../rspack_paths" }
+rspack_util       = { version = "0.2.0", path = "../rspack_util" }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 sha2              = "0.10.8"
