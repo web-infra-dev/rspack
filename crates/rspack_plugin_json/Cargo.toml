@@ -11,6 +11,6 @@ version     = "0.2.0"
 cow-utils    = { workspace = true }
 json         = { workspace = true }
 ropey        = "1.6.1"
-rspack_core  = { version = "0.2.0", path = "../rspack_core" }
-rspack_error = { version = "0.2.0", path = "../rspack_error" }
-rspack_util  = { version = "0.2.0", path = "../rspack_util" }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_util  = { workspace = true }

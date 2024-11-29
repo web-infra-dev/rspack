@@ -9,11 +9,11 @@ version     = "0.2.0"
 
 [dependencies]
 regex                    = { workspace = true }
-rspack_core              = { version = "0.2.0", path = "../rspack_core" }
-rspack_error             = { version = "0.2.0", path = "../rspack_error" }
-rspack_hook              = { version = "0.2.0", path = "../rspack_hook" }
-rspack_plugin_javascript = { version = "0.2.0", path = "../rspack_plugin_javascript" }
-rspack_regex             = { version = "0.2.0", path = "../rspack_regex" }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_regex             = { workspace = true }
 tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]

@@ -8,9 +8,9 @@ version     = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core  = { version = "0.2.0", path = "../rspack_core" }
-rspack_error = { version = "0.2.0", path = "../rspack_error" }
-rspack_hook  = { version = "0.2.0", path = "../rspack_hook" }
+rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
+rspack_hook  = { workspace = true }
 rustc-hash   = { workspace = true }
 tracing      = { workspace = true }
 

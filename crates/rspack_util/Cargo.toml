@@ -25,4 +25,4 @@ unicase       = { workspace = true }
 
 swc_core = { workspace = true, features = ["ecma_ast"] }
 
-rspack_regex = { version = "0.2.0", path = "../rspack_regex" }
+rspack_regex = { workspace = true }

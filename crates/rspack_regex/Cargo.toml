@@ -13,7 +13,7 @@ cow-utils    = { workspace = true }
 napi         = { workspace = true }
 regex-syntax = { version = "0.8.3", default-features = false, features = ["std"] }
 regress      = "0.10.0"
-rspack_error = { version = "0.2.0", path = "../rspack_error" }
+rspack_error = { workspace = true }
 swc_core     = { workspace = true, features = ["ecma_ast"] }
 
 [dev-dependencies]

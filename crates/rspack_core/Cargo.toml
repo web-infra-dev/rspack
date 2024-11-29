@@ -42,7 +42,7 @@ rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
-rspack_util = { version = "0.2.0", path = "../rspack_util" }
+rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
