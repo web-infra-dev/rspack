@@ -128,7 +128,7 @@ impl ContextModuleFactory {
         resolve_options: options
           .resolve_options
           .clone()
-          .map(|arc| Box::new(Arc::try_unwrap(arc).unwrap_or_else(|arc| (*arc).clone()))),
+          .map(|r| Box::new(Arc::unwrap_or_clone(r))),
         resolve_to_context: false,
         dependency_category: options.context_options.category,
       });

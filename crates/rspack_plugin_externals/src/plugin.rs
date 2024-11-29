@@ -188,8 +188,11 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .clone()
               .map(|r| Box::new(Arc::unwrap_or_clone(r))),
             resolve_to_context: false,
-            // dependency_category: *data.dependency.category(),
-            dependency_category: *data.dependencies.get(0).unwrap().category(),
+            dependency_category: *data
+              .dependencies
+              .first()
+              .expect("Expected at least one dependency")
+              .category(),
           },
           resolver_factory: data.resolver_factory.clone(),
         })

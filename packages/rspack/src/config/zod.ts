@@ -869,10 +869,27 @@ const externalItemFunctionData = z.strictObject({
 		.optional(),
 	getResolve: z
 		.function()
-		.returns(z.function().args(z.string(), z.string(), z.function().optional()))
+		.returns(
+			z
+				.function()
+				.args(z.string(), z.string())
+				.returns(z.promise(z.string()))
+				.or(
+					z
+						.function()
+						.args(
+							z.string(),
+							z.string(),
+							z
+								.function()
+								.args(z.instanceof(Error).optional(), z.string().optional())
+								.returns(z.void())
+						)
+						.returns(z.void())
+				)
+		)
 		.optional()
-});
-export type ExternalItemFunctionData = z.infer<typeof externalItemFunctionData>;
+}) satisfies z.ZodType<t.ExternalItemFunctionData>;
 
 const externalItem = z
 	.string()
@@ -882,7 +899,7 @@ const externalItem = z
 		z
 			.function()
 			.args(
-				externalItemFunctionData,
+				externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>,
 				z
 					.function()
 					.args(
@@ -896,14 +913,13 @@ const externalItem = z
 	.or(
 		z
 			.function()
-			.args(externalItemFunctionData)
+			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
 			.returns(z.promise(externalItemValue))
 	) satisfies z.ZodType<t.ExternalItem>;
 
 const externals = externalItem
 	.array()
 	.or(externalItem) satisfies z.ZodType<t.Externals>;
-//#endregion
 
 //#region ExternalsPresets
 const externalsPresets = z.strictObject({

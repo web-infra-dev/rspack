@@ -73,8 +73,15 @@ function getRawExternalItem(
 										context,
 										request,
 										getResolveContext(),
-										// @ts-expect-error TODO: fix the type
-										callback
+										(err, result) => {
+											if (err) return callback(err);
+											// Sync with how webpack fixes the type:
+											// https://github.com/webpack/webpack/blob/a2ad76cd50ae780dead395c68ea67d46de9828f3/lib/ExternalModuleFactoryPlugin.js#L276
+											callback(
+												undefined,
+												typeof result === "string" ? result : undefined
+											);
+										}
 									);
 								} else {
 									return new Promise((resolve, reject) => {

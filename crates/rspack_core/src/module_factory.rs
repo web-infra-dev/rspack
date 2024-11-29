@@ -12,7 +12,6 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
   pub compilation_id: CompilationId,
-  // pub resolve_options: Option<Box<Resolve>>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub context: Context,
