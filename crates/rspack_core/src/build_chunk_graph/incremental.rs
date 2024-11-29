@@ -446,10 +446,7 @@ impl CodeSplitter {
       .incremental
       .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
-      let affected_lock = mutations.get_affected_modules_with_module_graph(&module_graph);
-      let affected = affected_lock.clone();
-      drop(affected_lock);
-      affected
+      mutations.get_affected_modules_with_module_graph(&module_graph)
     } else {
       compilation
         .get_module_graph()

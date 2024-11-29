@@ -5,7 +5,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
   CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -358,7 +358,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph())
+    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+    let logger = compilation.get_logger("rspack.incremental.providedExports");
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules.len(),
+      compilation.get_module_graph().modules().len()
+    ));
+    modules
   } else {
     compilation
       .get_module_graph()

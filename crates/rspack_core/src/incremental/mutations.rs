@@ -65,6 +65,18 @@ impl Mutations {
   pub fn add(&mut self, mutation: Mutation) {
     self.inner.push(mutation);
   }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  // TODO: remove this
+  pub fn swap_modules_with_chunk_graph_cache(&mut self, to: &mut Self) {
+    std::mem::swap(
+      &mut self.modules_with_chunk_graph_cache,
+      &mut to.modules_with_chunk_graph_cache,
+    );
+  }
 }
 
 impl Mutations {
@@ -287,6 +299,7 @@ fn compute_affected_modules_with_chunk_graph(
     chunk_graph
       .get_module_id(module_identifier)
       .hash(&mut hasher);
+    ModuleGraph::is_async(compilation, &module_identifier).hash(&mut hasher);
     let module_ids: FxIndexSet<_> = module_graph
       .get_ordered_connections(&module_identifier)
       .expect("should have module")
@@ -324,7 +337,7 @@ fn compute_affected_modules_with_chunk_graph(
 
   let module_graph = compilation.get_module_graph();
   let affected_modules: IdentifierMap<u64> = cache
-    .par_iter()
+    .iter()
     .filter_map(|item| {
       let (module_identifier, &old_invalidate_key) = item.pair();
       let module = module_graph

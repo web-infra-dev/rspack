@@ -363,6 +363,10 @@ impl ChunkByUkey {
   pub fn iter_mut(&mut self) -> impl Iterator<Item = (&ChunkUkey, &mut Chunk)> {
     self.inner.iter_mut()
   }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
 }
 
 #[derive(Debug, Default, Clone)]
