@@ -13,5 +13,6 @@ export const ProvidePlugin = create(
 			return [key, value];
 		});
 		return Object.fromEntries(entries);
-	}
+	},
+	"compilation"
 );
