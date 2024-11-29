@@ -1,36 +1,47 @@
-use std::path::PathBuf;
+use std::{borrow::Borrow, hash::Hash};
 
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 /// Used to collect file add or remove.
 #[derive(Debug, Default)]
 pub struct IncrementalInfo {
-  added_files: HashSet<PathBuf>,
-  removed_files: HashSet<PathBuf>,
+  added_files: HashSet<ArcPath>,
+  removed_files: HashSet<ArcPath>,
 }
 
 impl IncrementalInfo {
   /// Get added files
-  pub fn added_files(&self) -> &HashSet<PathBuf> {
+  pub fn added_files(&self) -> &HashSet<ArcPath> {
     &self.added_files
   }
 
   /// Get removed files
-  pub fn removed_files(&self) -> &HashSet<PathBuf> {
+  pub fn removed_files(&self) -> &HashSet<ArcPath> {
     &self.removed_files
   }
 
   /// Add a file
-  pub fn add(&mut self, path: &PathBuf) {
+  pub fn add<P>(&mut self, path: &P)
+  where
+    P: Hash + Eq + ?Sized,
+    ArcPath: Borrow<P>,
+    for<'a> &'a P: Into<ArcPath>,
+  {
     if !self.removed_files.remove(path) {
-      self.added_files.insert(path.clone());
+      self.added_files.insert(path.into());
     }
   }
 
   /// Remove a file
-  pub fn remove(&mut self, path: &PathBuf) {
+  pub fn remove<P>(&mut self, path: &P)
+  where
+    P: Hash + Eq + ?Sized,
+    ArcPath: Borrow<P>,
+    for<'a> &'a P: Into<ArcPath>,
+  {
     if !self.added_files.remove(path) {
-      self.removed_files.insert(path.clone());
+      self.removed_files.insert(path.into());
     }
   }
 
@@ -51,20 +62,20 @@ mod test {
     let mut info = IncrementalInfo::default();
     let file_a = PathBuf::from("/a");
 
-    info.add(&file_a);
-    info.add(&file_a);
+    info.add(file_a.as_path());
+    info.add(file_a.as_path());
     assert_eq!(info.added_files().len(), 1);
     assert_eq!(info.removed_files().len(), 0);
 
-    info.remove(&file_a);
+    info.remove(file_a.as_path());
     assert_eq!(info.added_files().len(), 0);
     assert_eq!(info.removed_files().len(), 0);
 
-    info.remove(&file_a);
+    info.remove(file_a.as_path());
     assert_eq!(info.added_files().len(), 0);
     assert_eq!(info.removed_files().len(), 1);
 
-    info.remove(&file_a);
+    info.remove(file_a.as_path());
     assert_eq!(info.added_files().len(), 0);
     assert_eq!(info.removed_files().len(), 1);
   }

@@ -82,7 +82,7 @@ fn resolve_matched_configs(
       resolved.insert(resource.path.as_str().to_string(), config.clone());
       compilation
         .file_dependencies
-        .insert(resource.path.into_std_path_buf());
+        .insert(resource.path.as_path().into());
     } else if ABSOLUTE_REQUEST.is_match(request) {
       resolved.insert(request.to_owned(), config.clone());
     } else if request.ends_with('/') {
