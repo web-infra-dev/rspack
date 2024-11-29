@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT"
 name        = "rspack_plugin_javascript"
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [dependencies]
 anymap = { workspace = true }
 async-trait = { workspace = true }
@@ -22,16 +22,16 @@ once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 ropey = { workspace = true }
-rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
-rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
-rspack_core = { version = "0.1.0", path = "../rspack_core" }
-rspack_error = { version = "0.1.0", path = "../rspack_error" }
-rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
-rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
-rspack_ids = { version = "0.1.0", path = "../rspack_ids/" }
-rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
-rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
-rspack_util = { version = "0.1.0", path = "../rspack_util" }
+rspack_ast = { version = "0.2.0", path = "../rspack_ast" }
+rspack_collections = { version = "0.2.0", path = "../rspack_collections" }
+rspack_core = { version = "0.2.0", path = "../rspack_core" }
+rspack_error = { version = "0.2.0", path = "../rspack_error" }
+rspack_hash = { version = "0.2.0", path = "../rspack_hash" }
+rspack_hook = { version = "0.2.0", path = "../rspack_hook" }
+rspack_ids = { version = "0.2.0", path = "../rspack_ids/" }
+rspack_paths = { version = "0.2.0", path = "../rspack_paths" }
+rspack_regex = { version = "0.2.0", path = "../rspack_regex" }
+rspack_util = { version = "0.2.0", path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 stacker = { workspace = true }
