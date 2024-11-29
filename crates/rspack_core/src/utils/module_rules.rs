@@ -134,11 +134,15 @@ pub async fn module_rule_matcher<'a>(
     return Ok(false);
   }
 
-  if let Some(issuer_layer_rule) = &module_rule.issuer_layer
-    && let Some(issuer_layer) = issuer_layer
-    && !issuer_layer_rule.try_match(issuer_layer.into()).await?
-  {
-    return Ok(false);
+  if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
+    match issuer_layer {
+      Some(issuer_layer) => {
+        if !issuer_layer_rule.try_match(issuer_layer.into()).await? {
+          return Ok(false);
+        }
+      }
+      None => return Ok(false),
+    };
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
