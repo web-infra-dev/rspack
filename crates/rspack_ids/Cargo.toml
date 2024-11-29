@@ -11,11 +11,11 @@ version     = "0.2.0"
 itertools          = { workspace = true }
 rayon              = { workspace = true }
 regex              = { workspace = true }
-rspack_collections = { version = "0.2.0", path = "../rspack_collections" }
-rspack_core        = { version = "0.2.0", path = "../rspack_core" }
-rspack_error       = { version = "0.2.0", path = "../rspack_error" }
-rspack_hook        = { version = "0.2.0", path = "../rspack_hook" }
-rspack_util        = { version = "0.2.0", path = "../rspack_util" }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+rspack_hook        = { workspace = true }
+rspack_util        = { workspace = true }
 tracing            = { workspace = true }
 
 [package.metadata.cargo-shear]

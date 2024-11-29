@@ -10,5 +10,5 @@ version     = "0.2.0"
 [dependencies]
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
 oneshot      = "0.1.6"
-rspack_error = { version = "0.2.0", path = "../rspack_error" }
+rspack_error = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

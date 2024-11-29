@@ -7,12 +7,12 @@ name        = "rspack_macros_test"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
 [dev-dependencies]
-rspack_collections = { version = "0.2.0", path = "../rspack_collections" }
-rspack_core        = { version = "0.2.0", path = "../rspack_core" }
-rspack_error       = { version = "0.2.0", path = "../rspack_error" }
-rspack_hook        = { version = "0.2.0", path = "../rspack_hook" }
-rspack_macros      = { version = "0.2.0", path = "../rspack_macros" }
-rspack_util        = { version = "0.2.0", path = "../rspack_util" }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+rspack_hook        = { workspace = true }
+rspack_macros      = { workspace = true }
+rspack_util        = { workspace = true }
 tokio              = { workspace = true, features = ["macros"] }
 tracing            = { workspace = true }
 trybuild           = { version = "1.0.91", features = ["diff"] }
