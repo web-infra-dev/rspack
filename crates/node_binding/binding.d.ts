@@ -47,7 +47,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
@@ -526,7 +526,19 @@ export interface JsCodegenerationResults {
   map: Record<string, Record<string, JsCodegenerationResult>>
 }
 
+/**
+ * Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
+ *
+ * It can only be used in non-async context and the lifetime is bound to the fn closure.
+ *
+ * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsCompatSourceOwned` instead.
+ */
 export interface JsCompatSource {
+  source: string | Buffer
+  map?: string
+}
+
+export interface JsCompatSourceOwned {
   source: string | Buffer
   map?: string
 }
@@ -781,7 +793,7 @@ export interface JsRuntimeGlobals {
 }
 
 export interface JsRuntimeModule {
-  source?: JsCompatSource
+  source?: JsCompatSourceOwned
   moduleIdentifier: string
   constructorName: string
   name: string
