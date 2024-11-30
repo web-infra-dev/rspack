@@ -52,10 +52,6 @@ if (!BROWSER_SUPPORTS_HTML5) require('html5shiv');
 When defining values for `process` prefer `'process.env.NODE_ENV': JSON.stringify('production')` over `process: { env: { NODE_ENV: JSON.stringify('production') } }`. Using the latter will overwrite the `process` object which can break compatibility with some modules that expect other values on the process object to be defined.
 :::
 
-:::tip
-Note that because the plugin does a direct text replacement, the value given to it must include **actual quotes** inside of the string itself. Typically, this is done either with alternate quotes, such as `'"production"'`, or by using `JSON.stringify('production')`.
-:::
-
 ```js
 if (!PRODUCTION) {
   console.log('Debug info');

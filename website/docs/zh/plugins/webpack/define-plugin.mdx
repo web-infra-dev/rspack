@@ -52,10 +52,6 @@ if (!BROWSER_SUPPORTS_HTML5) require('html5shiv');
 在为 `process` 定义值时，推荐使用 `'process.env.NODE_ENV': JSON.stringify('production')` 而不是 `process: { env: { NODE_ENV: JSON.stringify('production') } }`。使用后者会重写 `process` 对象，这可能会破坏对某些模块的兼容性，这些模块期望 process 对象上的其他值被定义。
 :::
 
-:::tip 提示
-请注意，由于插件直接执行文本替换，因此提供给它的值必须包含字符串内部的实际引号。通常，这是通过使用交替引号，如 `'"production"'`，或使用 `JSON.stringify('production')` 来完成。
-:::
-
 ```js
 if (!PRODUCTION) {
   console.log('Debug info');
