@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
 use crate::{
-  config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
+  config::{HtmlChunkSortMode, HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
   sri::{add_sri, create_digest_from_asset},
   tag::HtmlPluginTag,
 };
@@ -49,7 +49,7 @@ impl HtmlPluginAssets {
     let mut asset_map = HashMap::new();
     assets.public_path = public_path.to_string();
 
-    let included_assets = compilation
+    let filtered_entry_names = compilation
       .entrypoints
       .keys()
       .filter(|&entry_name| {
@@ -62,6 +62,24 @@ impl HtmlPluginAssets {
         }
         included
       })
+      .collect::<Vec<_>>();
+
+    let sorted_entry_names = match config.chunks_sort_mode {
+      HtmlChunkSortMode::Auto => filtered_entry_names,
+      HtmlChunkSortMode::Manual => config
+        .chunks
+        .as_ref()
+        .map(|chunks| {
+          chunks
+            .iter()
+            .filter(|&name| compilation.entrypoints.contains_key(name))
+            .collect()
+        })
+        .unwrap_or(filtered_entry_names),
+    };
+
+    let included_assets = sorted_entry_names
+      .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
       .filter_map(|asset_name| {

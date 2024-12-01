@@ -102,6 +102,9 @@ export type HtmlRspackPluginOptions = {
 	/** Allows you to skip some chunks. */
 	excludeChunks?: string[];
 
+	/** Allows to control how chunks should be sorted before they are included to the HTML. */
+	chunksSortMode?: "auto" | "manual";
+
 	/** The sri hash algorithm, disabled by default. */
 	sri?: "sha256" | "sha384" | "sha512";
 
@@ -164,6 +167,7 @@ const htmlRspackPluginOptions = z.strictObject({
 		.optional(),
 	chunks: z.string().array().optional(),
 	excludeChunks: z.string().array().optional(),
+	chunksSortMode: z.enum(["auto", "manual"]).optional(),
 	sri: z.enum(["sha256", "sha384", "sha512"]).optional(),
 	minify: z.boolean().optional(),
 	title: z.string().optional(),
@@ -205,6 +209,7 @@ const HtmlRspackPluginImpl = create(
 					? "false"
 					: configInject;
 		const base = typeof c.base === "string" ? { href: c.base } : c.base;
+		const chunksSortMode = c.chunksSortMode ?? "auto";
 
 		let compilation: Compilation | null = null;
 		this.hooks.compilation.tap("HtmlRspackPlugin", compilationInstance => {
@@ -346,6 +351,7 @@ const HtmlRspackPluginImpl = create(
 			publicPath: c.publicPath,
 			chunks: c.chunks,
 			excludeChunks: c.excludeChunks,
+			chunksSortMode,
 			sri: c.sri,
 			minify: c.minify,
 			meta,
