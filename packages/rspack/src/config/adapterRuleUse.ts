@@ -201,7 +201,7 @@ export interface LoaderContext<OptionsType = {}> {
 	 *
 	 * @internal
 	 */
-	__internal__parseMeta: Record<string, string>;
+	__internal__addParseMeta: (key: string, val: string) => void;
 }
 
 export type LoaderDefinitionFunction<

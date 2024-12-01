@@ -42,10 +42,8 @@ import {
 import {
 	concatErrorMsgAndStack,
 	isNil,
-	serializeObject,
 	stringifyLoaderObject,
-	toBuffer,
-	toObject
+	toBuffer
 } from "../util";
 import { createHash } from "../util/createHash";
 import {
@@ -222,16 +220,6 @@ export class LoaderObject {
 	}
 }
 
-class JsSourceMap {
-	static __from_binding(map?: Buffer) {
-		return isNil(map) ? undefined : toObject(map);
-	}
-
-	static __to_binding(map?: object) {
-		return serializeObject(map);
-	}
-}
-
 const loadLoaderAsync: (loaderObject: LoaderObject) => Promise<void> =
 	promisify(loadLoader);
 
@@ -343,7 +331,7 @@ function getCurrentLoader(
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
-): Promise<JsLoaderContext> {
+): Promise<void> {
 	const loaderState = context.loaderState;
 
 	//
@@ -355,12 +343,6 @@ export async function runLoaders(
 		? splittedResource.fragment
 		: undefined;
 	const contextDirectory = resourcePath ? dirname(resourcePath) : null;
-
-	// execution state
-	const fileDependencies = context.fileDependencies;
-	const contextDependencies = context.contextDependencies;
-	const missingDependencies = context.missingDependencies;
-	const buildDependencies = context.buildDependencies;
 
 	/// Construct `loaderContext`
 	const loaderContext = {} as LoaderContext;
@@ -375,33 +357,18 @@ export async function runLoaders(
 	loaderContext.resourceQuery = resourceQuery!;
 	loaderContext.resourceFragment = resourceFragment!;
 	loaderContext.dependency = loaderContext.addDependency =
-		function addDependency(file) {
-			fileDependencies.push(file);
-		};
-	loaderContext.addContextDependency = function addContextDependency(context) {
-		contextDependencies.push(context);
-	};
-	loaderContext.addMissingDependency = function addMissingDependency(context) {
-		missingDependencies.push(context);
-	};
-	loaderContext.addBuildDependency = function addBuildDependency(file) {
-		buildDependencies.push(file);
-	};
-	loaderContext.getDependencies = function getDependencies() {
-		return fileDependencies.slice();
-	};
-	loaderContext.getContextDependencies = function getContextDependencies() {
-		return contextDependencies.slice();
-	};
-	loaderContext.getMissingDependencies = function getMissingDependencies() {
-		return missingDependencies.slice();
-	};
-	loaderContext.clearDependencies = function clearDependencies() {
-		fileDependencies.length = 0;
-		contextDependencies.length = 0;
-		missingDependencies.length = 0;
-		context.cacheable = true;
-	};
+		context.addBuildDependency.bind(context);
+	loaderContext.addContextDependency =
+		context.addContextDependency.bind(context);
+	loaderContext.addMissingDependency =
+		context.addContextDependency.bind(context);
+	loaderContext.addBuildDependency = context.addContextDependency.bind(context);
+	loaderContext.getDependencies = context.getDependencies.bind(context);
+	loaderContext.getContextDependencies =
+		context.getContextDependencies.bind(context);
+	loaderContext.getMissingDependencies =
+		context.getMissingDependencies.bind(context);
+	loaderContext.clearDependencies = context.clearDependencies.bind(context);
 	loaderContext.importModule = function importModule(
 		request,
 		userOptions,
@@ -696,7 +663,7 @@ export async function runLoaders(
 			name,
 			source!,
 			assetInfo!,
-			context._moduleIdentifier
+			context._module.moduleIdentifier
 		);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
@@ -790,11 +757,7 @@ export async function runLoaders(
 	}
 
 	/// Sync with `context`
-	Object.defineProperty(loaderContext, "loaderIndex", {
-		enumerable: true,
-		get: () => context.loaderIndex,
-		set: loaderIndex => (context.loaderIndex = loaderIndex)
-	});
+	loaderContext.loaderIndex = context.loaderIndex;
 	Object.defineProperty(loaderContext, "cacheable", {
 		enumerable: true,
 		get: () => (cacheable: boolean) => {
@@ -808,107 +771,89 @@ export async function runLoaders(
 		get: () => loaderContext.loaders[loaderContext.loaderIndex].data,
 		set: data => (loaderContext.loaders[loaderContext.loaderIndex].data = data)
 	});
-	Object.defineProperty(loaderContext, "__internal__parseMeta", {
-		enumerable: true,
-		get: () => context.__internal__parseMeta
-	});
+	loaderContext.__internal__addParseMeta =
+		context.__internal__addParseMeta.bind(context);
 
-	try {
-		switch (loaderState) {
-			case JsLoaderState.Pitching: {
-				while (loaderContext.loaderIndex < loaderContext.loaders.length) {
-					const currentLoaderObject =
-						loaderContext.loaders[loaderContext.loaderIndex];
+	switch (loaderState) {
+		case JsLoaderState.Pitching: {
+			while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
 
-					if (currentLoaderObject.shouldYield()) break;
-					if (currentLoaderObject.pitchExecuted) {
-						loaderContext.loaderIndex += 1;
-						continue;
-					}
-
-					await loadLoaderAsync(currentLoaderObject);
-					const fn = currentLoaderObject.pitch;
-					currentLoaderObject.pitchExecuted = true;
-					if (!fn) continue;
-
-					const args =
-						(await runSyncOrAsync(fn, loaderContext, [
-							loaderContext.remainingRequest,
-							loaderContext.previousRequest,
-							currentLoaderObject.data
-						])) || [];
-
-					const hasArg = args.some(value => value !== undefined);
-
-					if (hasArg) {
-						const [content, sourceMap, additionalData] = args;
-						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = serializeObject(sourceMap);
-						context.additionalData = additionalData;
-						break;
-					}
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.pitchExecuted) {
+					loaderContext.loaderIndex += 1;
+					continue;
 				}
 
-				break;
-			}
-			case JsLoaderState.Normal: {
-				let content = context.content;
-				let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
-				let additionalData = context.additionalData;
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.pitch;
+				currentLoaderObject.pitchExecuted = true;
+				if (!fn) continue;
 
-				while (loaderContext.loaderIndex >= 0) {
-					const currentLoaderObject =
-						loaderContext.loaders[loaderContext.loaderIndex];
+				const args =
+					(await runSyncOrAsync(fn, loaderContext, [
+						loaderContext.remainingRequest,
+						loaderContext.previousRequest,
+						currentLoaderObject.data
+					])) || [];
 
-					if (currentLoaderObject.shouldYield()) break;
-					if (currentLoaderObject.normalExecuted) {
-						loaderContext.loaderIndex--;
-						continue;
-					}
+				const hasArg = args.some(value => value !== undefined);
 
-					await loadLoaderAsync(currentLoaderObject);
-					const fn = currentLoaderObject.normal;
-					currentLoaderObject.normalExecuted = true;
-					if (!fn) continue;
-					const args = [content, sourceMap, additionalData];
-					convertArgs(args, !!currentLoaderObject.raw);
-					[content, sourceMap, additionalData] =
-						(await runSyncOrAsync(fn, loaderContext, args)) || [];
+				if (hasArg) {
+					const [content, sourceMap, additionalData] = args;
+					context.content = isNil(content) ? null : toBuffer(content);
+					context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
+					context.additionalData = additionalData;
+					break;
 				}
-
-				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
-				context.additionalData = additionalData;
-
-				break;
 			}
-			default:
-				throw new Error(`Unexpected loader runner state: ${loaderState}`);
+
+			break;
 		}
+		case JsLoaderState.Normal: {
+			let content = context.content;
+			let sourceMap = context.sourceMap
+				? JSON.parse(context.sourceMap)
+				: undefined;
+			let additionalData = context.additionalData;
 
-		// update loader state
-		context.loaderItems = loaderContext.loaders.map(item =>
-			LoaderObject.__to_binding(item)
-		);
-	} catch (e) {
-		const error = e as Error & { hideStack?: boolean | "true" };
-		context.__internal__error =
-			typeof e === "string"
-				? {
-						name: "ModuleBuildError",
-						message: e
-					}
-				: {
-						name: "ModuleBuildError",
-						message: error.message,
-						stack: typeof error.stack === "string" ? error.stack : undefined,
-						hideStack:
-							"hideStack" in error
-								? error.hideStack === true || error.hideStack === "true"
-								: undefined
-					};
+			while (loaderContext.loaderIndex >= 0) {
+				const currentLoaderObject =
+					loaderContext.loaders[loaderContext.loaderIndex];
+
+				if (currentLoaderObject.shouldYield()) break;
+				if (currentLoaderObject.normalExecuted) {
+					loaderContext.loaderIndex--;
+					continue;
+				}
+
+				await loadLoaderAsync(currentLoaderObject);
+				const fn = currentLoaderObject.normal;
+				currentLoaderObject.normalExecuted = true;
+				if (!fn) continue;
+				const args = [content, sourceMap, additionalData];
+				convertArgs(args, !!currentLoaderObject.raw);
+				[content, sourceMap, additionalData] =
+					(await runSyncOrAsync(fn, loaderContext, args)) || [];
+			}
+
+			context.content = isNil(content) ? null : toBuffer(content);
+			context.sourceMap = sourceMap ? JSON.stringify(sourceMap) : undefined;
+			context.additionalData = additionalData;
+
+			break;
+		}
+		default:
+			throw new Error(`Unexpected loader runner state: ${loaderState}`);
 	}
-	return context;
+
+	// update loader state
+	context.loaderItems = loaderContext.loaders.map(item =>
+		LoaderObject.__to_binding(item)
+	);
+
+	context.loaderIndex = loaderContext.loaderIndex;
 }
 
 function utf8BufferToString(buf: Buffer) {
