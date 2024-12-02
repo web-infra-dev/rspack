@@ -299,10 +299,7 @@ fn compute_affected_modules_with_chunk_graph(
   ) -> u64 {
     let module_identifier = module.identifier();
     let mut hasher = FxHasher::default();
-    compilation
-      .chunk_graph
-      .get_module_id(module_identifier)
-      .hash(&mut hasher);
+    ChunkGraph::get_module_id(&compilation.module_ids, module_identifier).hash(&mut hasher);
     ModuleGraph::is_async(compilation, &module_identifier).hash(&mut hasher);
     for module_id in module_graph
       .get_ordered_connections(&module_identifier)
@@ -312,9 +309,7 @@ fn compute_affected_modules_with_chunk_graph(
         let connection = module_graph
           .connection_by_dependency_id(dep_id)
           .expect("should have connection");
-        compilation
-          .chunk_graph
-          .get_module_id(*connection.module_identifier())
+        ChunkGraph::get_module_id(&compilation.module_ids, *connection.module_identifier())
       })
     {
       module_id.hash(&mut hasher);
