@@ -74,6 +74,14 @@ export class ChunkGroup {
 	isInitial(): boolean {
 		return this.#inner.isInitial();
 	}
+
+	getModulePreOrderIndex(module: Module) {
+		return this.#inner.getModulePreOrderIndex(module.identifier());
+	}
+
+	getModulePostOrderIndex(module: Module) {
+		return this.#inner.getModulePostOrderIndex(module.identifier());
+	}
 }
 
 interface ChunkGroupOrigin {

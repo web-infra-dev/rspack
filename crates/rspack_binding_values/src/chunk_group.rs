@@ -2,7 +2,7 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
+use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId, ModuleIdentifier};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -89,15 +89,15 @@ impl JsChunkGroup {
 impl JsChunkGroup {
   #[napi]
   pub fn is_initial(&self) -> napi::Result<bool> {
-    let (_, chunk_graph) = self.as_ref()?;
-    Ok(chunk_graph.is_initial())
+    let (_, chunk_group) = self.as_ref()?;
+    Ok(chunk_group.is_initial())
   }
 
   #[napi(ts_return_type = "JsChunkGroup[]")]
   pub fn get_parents(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
-    let (compilation, chunk_graph) = self.as_ref()?;
+    let (compilation, chunk_group) = self.as_ref()?;
     Ok(
-      chunk_graph
+      chunk_group
         .parents
         .iter()
         .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
@@ -107,16 +107,16 @@ impl JsChunkGroup {
 
   #[napi(ts_return_type = "JsChunk")]
   pub fn get_runtime_chunk(&self) -> napi::Result<JsChunkWrapper> {
-    let (compilation, chunk_graph) = self.as_ref()?;
-    let chunk_ukey = chunk_graph.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+    let (compilation, chunk_group) = self.as_ref()?;
+    let chunk_ukey = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
     Ok(JsChunkWrapper::new(chunk_ukey, compilation))
   }
 
   #[napi]
   pub fn get_files(&self) -> napi::Result<Vec<&String>> {
-    let (compilation, chunk_graph) = self.as_ref()?;
+    let (compilation, chunk_group) = self.as_ref()?;
     Ok(
-      chunk_graph
+      chunk_group
         .chunks
         .iter()
         .filter_map(|chunk_ukey| {
@@ -128,6 +128,23 @@ impl JsChunkGroup {
         .flatten()
         .collect::<Vec<_>>(),
     )
+  }
+
+  #[napi]
+  pub fn get_module_pre_order_index(&self, module_identifier: String) -> Option<u32> {
+    let (_, chunk_group) = self.as_ref().expect("should have chunk group");
+    chunk_group
+      .module_pre_order_index(&ModuleIdentifier::from(module_identifier))
+      .map(|v| v as u32)
+  }
+
+  #[napi]
+  pub fn get_module_post_order_index(&self, module_identifier: String) -> Option<u32> {
+    let (_, chunk_group) = self.as_ref().expect("should have chunk group");
+
+    chunk_group
+      .module_post_order_index(&ModuleIdentifier::from(module_identifier))
+      .map(|v| v as u32)
   }
 }
 
