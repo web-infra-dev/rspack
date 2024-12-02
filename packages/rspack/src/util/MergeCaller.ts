@@ -7,7 +7,7 @@ export default class MergeCaller<D> {
 	// add in constructor
 	private debounceTime: number;
 	private callFn: CallFn<D>;
-	constructor(fn: CallFn<D>, debounceTime: number) {
+	constructor(fn: CallFn<D>, debounceTime: number = 0) {
 		this.debounceTime = debounceTime;
 		this.callFn = fn;
 	}
