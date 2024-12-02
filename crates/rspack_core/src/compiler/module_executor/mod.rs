@@ -8,6 +8,7 @@ use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
 pub use execute::ExecutedRuntimeModule;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
+use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
@@ -19,7 +20,8 @@ use self::{
   execute::{ExecuteModuleResult, ExecuteTask},
   overwrite::OverwriteTask,
 };
-use super::make::{repair::MakeTaskContext, update_module_graph, MakeArtifact, MakeParam};
+use super::make::cutout::Cutout;
+use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
 use crate::cache::new_cache;
 use crate::incremental::Mutation;
 use crate::{
@@ -27,9 +29,15 @@ use crate::{
   DependencyId, LoaderImportDependency, PublicPath,
 };
 
+#[derive(Debug)]
+struct DepStatus {
+  id: DependencyId,
+  should_update: bool,
+}
+
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
-  request_dep_map: DashMap<(String, Option<String>), DependencyId>,
+  request_dep_map: DashMap<(String, Option<String>), DepStatus>,
   pub make_artifact: MakeArtifact,
 
   event_sender: Option<UnboundedSender<Event>>,
@@ -65,9 +73,17 @@ impl ModuleExecutor {
     make_artifact.diagnostics = Default::default();
     make_artifact.has_module_graph_change = false;
 
-    make_artifact = update_module_graph(compilation, make_artifact, params)
-      .await
-      .unwrap_or_default();
+    let mut cutout = Cutout::default();
+    let build_dependencies = cutout
+      .cutout_artifact(&mut make_artifact, params)
+      .into_iter()
+      .map(|(id, _)| id)
+      .collect::<HashSet<_>>();
+    for mut dep_status in self.request_dep_map.iter_mut() {
+      if build_dependencies.contains(&dep_status.id) {
+        dep_status.should_update = true;
+      }
+    }
 
     let mut ctx = MakeTaskContext::new(
       compilation,
@@ -210,12 +226,26 @@ impl ModuleExecutor {
           original_module_context.unwrap_or(Context::from("")),
         );
         let dep_id = *dep.id();
-        v.insert(dep_id);
+        v.insert(DepStatus {
+          id: dep_id,
+          should_update: false,
+        });
         (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
       }
-      Entry::Occupied(v) => {
-        let dep_id = *v.get();
-        (ExecuteParam::DependencyId(dep_id), dep_id)
+      Entry::Occupied(mut v) => {
+        let dep_status = v.get_mut();
+        let dep_id = dep_status.id;
+        if dep_status.should_update {
+          let dep = LoaderImportDependency::new_with_id(
+            dep_id,
+            request.clone(),
+            original_module_context.unwrap_or(Context::from("")),
+          );
+          dep_status.should_update = false;
+          (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
+        } else {
+          (ExecuteParam::DependencyId(dep_id), dep_id)
+        }
       }
     };
 

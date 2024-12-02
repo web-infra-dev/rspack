@@ -1,4 +1,4 @@
-mod cutout;
+pub mod cutout;
 pub mod repair;
 
 use std::path::PathBuf;
