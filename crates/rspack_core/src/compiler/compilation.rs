@@ -168,14 +168,23 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  // artifact for infer_async_modules_plugin
   pub async_modules: IdentifierSet,
+  // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
+  // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
+  // artifact for create_module_hashes
   pub cgm_hash_results: CgmHashResults,
+  // artifact for process_modules_runtime_requirements
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
+  // artifact for process_chunks_runtime_requirements
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
+  // artifact for create_hash
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
+  // artifact for create_chunk_assets
   pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
+
   pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -965,6 +974,12 @@ impl Compilation {
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
       chunks.extend(self.get_chunk_graph_entries());
+      let logger = self.get_logger("rspack.incremental.chunksRender");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
       chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1171,7 +1186,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.dependencies_diagnostics.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_module_graph(&self.get_module_graph())
+      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1291,7 +1313,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesHashes");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1316,7 +1345,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.code_generation_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesCodegen");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1337,7 +1373,14 @@ impl Compilation {
           .cgm_runtime_requirements_results
           .remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1369,6 +1412,12 @@ impl Compilation {
       self
         .cgc_runtime_requirements_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        affected_chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
       affected_chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1397,7 +1446,14 @@ impl Compilation {
       self
         .chunk_hashes_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      mutations.get_affected_chunks_with_chunk_graph(self)
+      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len(),
+      ));
+      chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -1928,6 +1984,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_module_hashes", skip_all)]
   pub fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
+    let mg = self.get_module_graph();
     let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
       .into_par_iter()
       .map(|module| {
@@ -1942,7 +1999,6 @@ impl Compilation {
         let mut hashes = RuntimeSpecMap::new();
         for runtime in runtimes.into_values() {
           let mut hasher = RspackHash::from(&self.options.output);
-          let mg = self.get_module_graph();
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");

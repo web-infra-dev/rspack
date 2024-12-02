@@ -15,6 +15,6 @@ export function isAsyncModule(content, moduleId) {
 }
 
 export function hasAsyncModuleRuntime(content) {
-  const comment = "//" + ["webpack", "runtime", "async_module"].join("/");
+  const comment = "// " + ["webpack", "runtime", "async_module"].join("/");
   return content.includes(comment)
 }
