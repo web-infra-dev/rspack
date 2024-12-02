@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::{borrow::Cow, hash::Hash};
 
@@ -9,7 +8,7 @@ use itertools::Itertools;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_util::itoa;
@@ -959,8 +958,8 @@ impl Module for ContextModule {
         .collect();
     }
 
-    let mut context_dependencies: HashSet<PathBuf> = Default::default();
-    context_dependencies.insert(self.options.resource.clone().into_std_path_buf());
+    let mut context_dependencies: HashSet<ArcPath> = Default::default();
+    context_dependencies.insert(self.options.resource.as_std_path().into());
 
     let build_info = BuildInfo {
       context_dependencies,

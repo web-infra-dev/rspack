@@ -3,6 +3,7 @@ mod entries;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::Path;
 use std::ptr::NonNull;
 
 use dependencies::JsDependencies;
@@ -549,7 +550,7 @@ impl JsCompilation {
 
     compilation
       .file_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -559,7 +560,7 @@ impl JsCompilation {
 
     compilation
       .context_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -569,7 +570,7 @@ impl JsCompilation {
 
     compilation
       .missing_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -579,7 +580,7 @@ impl JsCompilation {
 
     compilation
       .build_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 

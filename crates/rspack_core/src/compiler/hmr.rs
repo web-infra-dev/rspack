@@ -1,9 +1,10 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
+use rspack_paths::ArcPath;
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -48,18 +49,18 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files = HashSet::default();
-      modified_files.extend(changed_files.iter().map(PathBuf::from));
-      let mut removed_files = HashSet::default();
-      removed_files.extend(deleted_files.iter().map(PathBuf::from));
+      let mut modified_files: HashSet<ArcPath> = HashSet::default();
+      modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
+      let mut removed_files: HashSet<ArcPath> = HashSet::default();
+      removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 
       self.old_cache.end_idle();
-      self
-        .old_cache
-        .set_modified_files(all_files.into_iter().collect());
+      // self
+      //   .old_cache
+      //   .set_modified_files(all_files.into_iter().collect());
 
       self.plugin_driver.clear_cache();
 

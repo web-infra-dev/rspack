@@ -439,10 +439,26 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(mut r) => {
         let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
-          build_info.file_dependencies = captured_error.take_file_dependencies();
-          build_info.context_dependencies = captured_error.take_context_dependencies();
-          build_info.missing_dependencies = captured_error.take_missing_dependencies();
-          build_info.build_dependencies = captured_error.take_build_dependencies();
+          build_info.file_dependencies = captured_error
+            .take_file_dependencies()
+            .into_iter()
+            .map(Into::into)
+            .collect();
+          build_info.context_dependencies = captured_error
+            .take_context_dependencies()
+            .into_iter()
+            .map(Into::into)
+            .collect();
+          build_info.missing_dependencies = captured_error
+            .take_missing_dependencies()
+            .into_iter()
+            .map(Into::into)
+            .collect();
+          build_info.build_dependencies = captured_error
+            .take_build_dependencies()
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
           let stack = captured_error.take_stack();
           Diagnostic::from(
@@ -496,6 +512,28 @@ impl Module for NormalModule {
     };
     let original_source = self.create_source(content, loader_result.source_map)?;
 
+    build_info.cacheable = loader_result.cacheable;
+    build_info.file_dependencies = loader_result
+      .file_dependencies
+      .into_iter()
+      .map(Into::into)
+      .collect();
+    build_info.context_dependencies = loader_result
+      .context_dependencies
+      .into_iter()
+      .map(Into::into)
+      .collect();
+    build_info.missing_dependencies = loader_result
+      .missing_dependencies
+      .into_iter()
+      .map(Into::into)
+      .collect();
+    build_info.build_dependencies = loader_result
+      .build_dependencies
+      .into_iter()
+      .map(Into::into)
+      .collect();
+
     if no_parse {
       self.parsed = false;
       self.original_source = Some(original_source.clone());
@@ -505,11 +543,6 @@ impl Module for NormalModule {
 
       build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
-      build_info.cacheable = loader_result.cacheable;
-      build_info.file_dependencies = loader_result.file_dependencies;
-      build_info.context_dependencies = loader_result.context_dependencies;
-      build_info.missing_dependencies = loader_result.missing_dependencies;
-      build_info.build_dependencies = loader_result.build_dependencies;
 
       return Ok(BuildResult {
         build_info,
@@ -519,12 +552,6 @@ impl Module for NormalModule {
         optimization_bailouts: Vec::new(),
       });
     }
-
-    build_info.cacheable = loader_result.cacheable;
-    build_info.file_dependencies = loader_result.file_dependencies;
-    build_info.context_dependencies = loader_result.context_dependencies;
-    build_info.missing_dependencies = loader_result.missing_dependencies;
-    build_info.build_dependencies = loader_result.build_dependencies;
 
     let (
       ParseResult {

@@ -1,10 +1,9 @@
 mod cutout;
 pub mod repair;
 
-use std::path::PathBuf;
-
 use rspack_collections::IdentifierSet;
 use rspack_error::{Diagnostic, Result};
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
@@ -97,8 +96,8 @@ pub enum MakeParam {
   BuildEntry(HashSet<DependencyId>),
   BuildEntryAndClean(HashSet<DependencyId>),
   CheckNeedBuild,
-  ModifiedFiles(HashSet<PathBuf>),
-  RemovedFiles(HashSet<PathBuf>),
+  ModifiedFiles(HashSet<ArcPath>),
+  RemovedFiles(HashSet<ArcPath>),
   ForceBuildDeps(HashSet<BuildDependency>),
   ForceBuildModules(IdentifierSet),
 }

@@ -1,5 +1,4 @@
 use std::hash::Hash;
-use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use rspack_collections::{Identifiable, Identifier};
@@ -14,6 +13,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_paths::ArcPath;
 use rspack_util::ext::DynHash;
 use rspack_util::itoa;
 use rustc_hash::FxHashSet;
@@ -45,10 +45,10 @@ pub(crate) struct CssModule {
 
   identifier__: Identifier,
   cacheable: bool,
-  file_dependencies: FxHashSet<PathBuf>,
-  context_dependencies: FxHashSet<PathBuf>,
-  missing_dependencies: FxHashSet<PathBuf>,
-  build_dependencies: FxHashSet<PathBuf>,
+  file_dependencies: FxHashSet<ArcPath>,
+  context_dependencies: FxHashSet<ArcPath>,
+  missing_dependencies: FxHashSet<ArcPath>,
+  build_dependencies: FxHashSet<ArcPath>,
 }
 
 impl CssModule {

@@ -2,7 +2,6 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  path::PathBuf,
   sync::{atomic::AtomicU32, Arc},
 };
 
@@ -18,6 +17,7 @@ use rspack_fs::FileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
+use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -196,10 +196,10 @@ pub struct Compilation {
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
 
-  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub context_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub missing_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub build_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -207,8 +207,8 @@ pub struct Compilation {
 
   pub module_executor: Option<ModuleExecutor>,
 
-  pub modified_files: HashSet<PathBuf>,
-  pub removed_files: HashSet<PathBuf>,
+  pub modified_files: HashSet<ArcPath>,
+  pub removed_files: HashSet<ArcPath>,
   make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
 }
@@ -245,8 +245,8 @@ impl Compilation {
     cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
     module_executor: Option<ModuleExecutor>,
-    modified_files: HashSet<PathBuf>,
-    removed_files: HashSet<PathBuf>,
+    modified_files: HashSet<ArcPath>,
+    removed_files: HashSet<ArcPath>,
     input_filesystem: Arc<dyn FileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
@@ -377,9 +377,9 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -399,9 +399,9 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -425,9 +425,9 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -451,9 +451,9 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact

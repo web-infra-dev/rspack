@@ -1,6 +1,7 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Result};
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
@@ -19,9 +20,9 @@ pub struct ModuleFactoryCreateData {
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
 
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: HashSet<ArcPath>,
+  pub context_dependencies: HashSet<ArcPath>,
+  pub missing_dependencies: HashSet<ArcPath>,
   pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -37,28 +38,40 @@ impl ModuleFactoryCreateData {
       })
   }
 
-  pub fn add_file_dependency(&mut self, file: PathBuf) {
-    self.file_dependencies.insert(file);
+  pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
+    self.file_dependencies.insert(file.into());
   }
 
-  pub fn add_file_dependencies(&mut self, files: impl IntoIterator<Item = PathBuf>) {
-    self.file_dependencies.extend(files);
+  pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {
+    self
+      .file_dependencies
+      .extend(files.into_iter().map(Into::into));
   }
 
-  pub fn add_context_dependency(&mut self, context: PathBuf) {
-    self.context_dependencies.insert(context);
+  pub fn add_context_dependency<F: Into<ArcPath>>(&mut self, context: F) {
+    self.context_dependencies.insert(context.into());
   }
 
-  pub fn add_context_dependencies(&mut self, contexts: impl IntoIterator<Item = PathBuf>) {
-    self.context_dependencies.extend(contexts);
+  pub fn add_context_dependencies<F: Into<ArcPath>>(
+    &mut self,
+    contexts: impl IntoIterator<Item = F>,
+  ) {
+    self
+      .context_dependencies
+      .extend(contexts.into_iter().map(Into::into));
   }
 
-  pub fn add_missing_dependency(&mut self, missing: PathBuf) {
-    self.missing_dependencies.insert(missing);
+  pub fn add_missing_dependency<F: Into<ArcPath>>(&mut self, missing: F) {
+    self.missing_dependencies.insert(missing.into());
   }
 
-  pub fn add_missing_dependencies(&mut self, missing: impl IntoIterator<Item = PathBuf>) {
-    self.missing_dependencies.extend(missing);
+  pub fn add_missing_dependencies<F: Into<ArcPath>>(
+    &mut self,
+    missing: impl IntoIterator<Item = F>,
+  ) {
+    self
+      .missing_dependencies
+      .extend(missing.into_iter().map(Into::into));
   }
 }
 
