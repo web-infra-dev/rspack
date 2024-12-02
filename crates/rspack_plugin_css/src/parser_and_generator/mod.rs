@@ -508,30 +508,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
 
-            if with_hmr {
-              format!(
-                "{}\nmodule.hot.accept();\n",
-                css_modules_exports_to_string(
-                  exports,
-                  module,
-                  generate_context.compilation,
-                  generate_context.runtime_requirements,
-                  ns_obj,
-                  left,
-                  right,
-                )?
-              )
-            } else {
-              css_modules_exports_to_string(
-                exports,
-                module,
-                generate_context.compilation,
-                generate_context.runtime_requirements,
-                ns_obj,
-                left,
-                right,
-              )?
-            }
+            css_modules_exports_to_string(
+              exports,
+              module,
+              generate_context.compilation,
+              generate_context.runtime_requirements,
+              ns_obj,
+              left,
+              right,
+              with_hmr,
+            )?
           } else {
             format!(
               "{}{}module.exports = {{}}{};\n{}",
