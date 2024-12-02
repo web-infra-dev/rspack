@@ -37,6 +37,7 @@ struct DepStatus {
 
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
+  cutout: Cutout,
   request_dep_map: DashMap<(String, Option<String>), DepStatus>,
   pub make_artifact: MakeArtifact,
 
@@ -73,8 +74,8 @@ impl ModuleExecutor {
     make_artifact.diagnostics = Default::default();
     make_artifact.has_module_graph_change = false;
 
-    let mut cutout = Cutout::default();
-    let build_dependencies = cutout
+    let build_dependencies = self
+      .cutout
       .cutout_artifact(&mut make_artifact, params)
       .into_iter()
       .map(|(id, _)| id)
@@ -131,6 +132,9 @@ impl ModuleExecutor {
     } else {
       panic!("receive make artifact failed");
     }
+
+    let cutout = std::mem::take(&mut self.cutout);
+    cutout.fix_artifact(&mut self.make_artifact);
 
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, files) in module_assets {
