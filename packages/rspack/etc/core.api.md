@@ -511,6 +511,10 @@ export class ChunkGroup {
     // (undocumented)
     getFiles(): ReadonlyArray<string>;
     // (undocumented)
+    getModulePostOrderIndex(module: Module): number | null;
+    // (undocumented)
+    getModulePreOrderIndex(module: Module): number | null;
+    // (undocumented)
     getParents(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
     readonly index?: number;
