@@ -19,10 +19,10 @@ pub struct MakeArtifact {
   // should be reset when rebuild
   pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
-
-  // data
   pub built_modules: IdentifierSet,
   pub revoked_modules: IdentifierSet,
+
+  // data
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
@@ -51,14 +51,6 @@ impl MakeArtifact {
 
   pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
     std::mem::take(&mut self.diagnostics)
-  }
-
-  pub fn take_built_modules(&mut self) -> IdentifierSet {
-    std::mem::take(&mut self.built_modules)
-  }
-
-  pub fn take_revoked_modules(&mut self) -> IdentifierSet {
-    std::mem::take(&mut self.revoked_modules)
   }
 
   fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {

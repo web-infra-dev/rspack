@@ -185,7 +185,6 @@ pub struct Compilation {
   // artifact for create_chunk_assets
   pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
 
-  pub built_modules: IdentifierSet,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
@@ -287,7 +286,6 @@ impl Compilation {
       cgc_runtime_requirements_results: Default::default(),
       chunk_hashes_results: Default::default(),
       chunk_render_results: Default::default(),
-      built_modules: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -1138,21 +1136,22 @@ impl Compilation {
     }
 
     // take built_modules
-    let revoked_modules = self.make_artifact.take_revoked_modules();
-    let built_modules = self.make_artifact.take_built_modules();
     if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
-        revoked_modules
+        self
+          .make_artifact
+          .revoked_modules
           .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        built_modules
+        self
+          .make_artifact
+          .built_modules
           .iter()
           .map(|&module| Mutation::ModuleBuild { module }),
       );
     }
-    self.built_modules.extend(built_modules);
 
     let start = logger.time("finish modules");
     plugin_driver
@@ -2124,6 +2123,10 @@ impl Compilation {
   // TODO remove it after code splitting support incremental rebuild
   pub fn has_module_import_export_change(&self) -> bool {
     self.make_artifact.has_module_graph_change
+  }
+
+  pub fn built_modules(&self) -> &IdentifierSet {
+    &self.make_artifact.built_modules
   }
 }
 
