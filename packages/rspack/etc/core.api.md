@@ -2296,6 +2296,7 @@ export type HtmlRspackPluginOptions = {
     scriptLoading?: "blocking" | "defer" | "module" | "systemjs-module";
     chunks?: string[];
     excludeChunks?: string[];
+    chunksSortMode?: "auto" | "manual";
     sri?: "sha256" | "sha384" | "sha512";
     minify?: boolean;
     favicon?: string;
