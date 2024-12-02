@@ -6,7 +6,7 @@ use std::{
 
 use cow_utils::CowUtils;
 use regex::{Captures, Regex};
-use rspack_core::{contextify, Compilation, OutputOptions};
+use rspack_core::{contextify, ChunkGraph, Compilation, OutputOptions};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rustc_hash::FxHashMap as HashMap;
@@ -57,11 +57,7 @@ impl ModuleFilenameHelpers {
     output_options: &OutputOptions,
     namespace: &str,
   ) -> ModuleFilenameTemplateFnCtx {
-    let Compilation {
-      chunk_graph,
-      options,
-      ..
-    } = compilation;
+    let Compilation { options, .. } = compilation;
     let context = &options.context;
 
     match module_or_source {
@@ -78,8 +74,7 @@ impl ModuleFilenameHelpers {
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
-        let module_id = chunk_graph
-          .get_module_id(*module_identifier)
+        let module_id = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
           .map(|s| s.to_string())
           .unwrap_or_default();
         let absolute_resource_path = "".to_string();

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, incremental::IncrementalPasses, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec,
+  fast_set, incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler,
+  ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -193,9 +193,10 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
-    .par_iter()
-    .filter_map(|(identifier, cgm)| {
-      let cid = cgm.id.as_deref();
+    .keys()
+    .par_bridge()
+    .filter_map(|identifier| {
+      let cid = ChunkGraph::get_module_id(&compilation.module_ids, *identifier);
       // TODO: Determine how to calc module hash if module related to multiple runtime code
       // gen
       if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)

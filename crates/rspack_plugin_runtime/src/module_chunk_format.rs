@@ -3,8 +3,9 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
+  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -143,11 +144,8 @@ fn render_chunk(
 
     let mut loaded_chunks = HashSet::default();
     for (i, (module, entry)) in entries.iter().enumerate() {
-      let module_id = compilation
-        .get_module_graph()
-        .module_graph_module_by_identifier(module)
-        .map(|module| module.id(&compilation.chunk_graph))
-        .expect("should have module id");
+      let module_id =
+        ChunkGraph::get_module_id(&compilation.module_ids, *module).expect("should have module id");
       let runtime_chunk = compilation
         .chunk_group_by_ukey
         .expect_get(entry)

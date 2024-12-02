@@ -48,7 +48,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   assign_deterministic_ids(
     chunks,
     |chunk| get_full_chunk_name(chunk, chunk_graph, &module_graph, &context),
-    |a, b| compare_chunks_natural(chunk_graph, &module_graph, a, b),
+    |a, b| compare_chunks_natural(chunk_graph, &module_graph, &compilation.module_ids, a, b),
     |chunk, id| {
       let size = used_ids.len();
       used_ids.insert(id.to_string());

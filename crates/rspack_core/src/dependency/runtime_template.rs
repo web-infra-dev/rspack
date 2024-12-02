@@ -350,7 +350,7 @@ pub fn module_id(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
   {
     module_id_expr(&compilation.options, request, module_id)
   } else if weak {
@@ -645,7 +645,7 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(

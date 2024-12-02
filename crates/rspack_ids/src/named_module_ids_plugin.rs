@@ -1,6 +1,6 @@
 use rspack_core::{
-  compare_modules_by_identifier, ApplyContext, CompilationModuleIds, CompilerOptions, Plugin,
-  PluginContext,
+  compare_modules_by_identifier, ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -19,7 +19,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/ids/NamedModuleIdsPlugin.js
   let context: &str = compilation.options.context.as_ref();
   let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
-  let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+  let mut module_ids = std::mem::take(&mut compilation.module_ids);
   let module_graph = compilation.get_module_graph();
   let modules = modules
     .into_iter()
@@ -32,13 +32,15 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     |module, short_name| get_long_module_name(short_name, module, context),
     |a, b| compare_modules_by_identifier(a, b),
     &mut used_ids,
-    |m, name| chunk_graph.set_module_id(m.identifier(), name),
+    |m, name| {
+      ChunkGraph::set_module_id(&mut module_ids, m.identifier(), name);
+    },
   );
 
   if !unnamed_modules.is_empty() {
-    assign_ascending_module_ids(&used_ids, unnamed_modules, &mut chunk_graph)
+    assign_ascending_module_ids(&used_ids, unnamed_modules, &mut module_ids)
   }
-  compilation.chunk_graph = chunk_graph;
+  compilation.module_ids = module_ids;
   Ok(())
 }
 

@@ -23,9 +23,7 @@ pub fn update_hash_for_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| {
-        compilation
-          .chunk_graph
-          .get_module_id(module.module_identifier)
+        ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
           .unwrap_or("null")
       })
     {
@@ -152,9 +150,7 @@ pub fn generate_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| {
-        compilation
-          .chunk_graph
-          .get_module_id(module.module_identifier)
+        ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
           .unwrap_or("null")
       })
     {

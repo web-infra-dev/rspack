@@ -1,6 +1,7 @@
 use rspack_collections::Identifiable;
 use rspack_core::{
-  to_identifier, ChunkUkey, Compilation, ExternalModule, ExternalRequest, LibraryOptions,
+  to_identifier, ChunkGraph, ChunkUkey, Compilation, ExternalModule, ExternalRequest,
+  LibraryOptions,
 };
 use rspack_error::{error, Result};
 
@@ -27,11 +28,8 @@ fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilati
       format!(
         "__WEBPACK_EXTERNAL_MODULE_{}__",
         to_identifier(
-          compilation
-            .get_module_graph()
-            .module_graph_module_by_identifier(&m.identifier())
-            .expect("Module not found")
-            .id(&compilation.chunk_graph)
+          ChunkGraph::get_module_id(&compilation.module_ids, m.identifier())
+            .expect("should have module id")
         )
       )
     })

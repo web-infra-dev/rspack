@@ -9,6 +9,7 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::rspack_sources::{ConcatSource, RawSource};
+use rspack_core::ChunkGraph;
 use rspack_core::{
   to_identifier, Compilation, CompilerOptions, GenerateContext, PathData, ResourceData,
   RuntimeGlobals,
@@ -214,7 +215,11 @@ pub fn stringified_exports<'a>(
             })
             .expect("should have css from module");
 
-          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          let from = serde_json::to_string(
+            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+              .expect("should have module"),
+          )
+          .expect("should json stringify module id");
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           format!(
             "{}({from})[{}]",
@@ -284,7 +289,11 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
             })
             .expect("should have css from module");
 
-          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
+          let from = serde_json::to_string(
+            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+              .expect("should have module"),
+          )
+          .expect("should json stringify module id");
           format!(
             "{}({from})[{}]",
             RuntimeGlobals::REQUIRE,

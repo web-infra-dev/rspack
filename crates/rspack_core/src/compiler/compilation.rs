@@ -176,6 +176,8 @@ pub struct Compilation {
   pub async_modules: IdentifierSet,
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
+  // artifact for module_ids
+  pub module_ids: IdentifierMap<String>,
   // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
   // artifact for create_module_hashes
@@ -284,6 +286,7 @@ impl Compilation {
 
       async_modules: Default::default(),
       dependencies_diagnostics: Default::default(),
+      module_ids: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),

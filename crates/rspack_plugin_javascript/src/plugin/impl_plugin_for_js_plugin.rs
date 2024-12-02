@@ -205,7 +205,7 @@ async fn content_hash(
         compilation
           .code_generation_results
           .get_hash(&mgm.identifier(), Some(chunk.runtime())),
-        compilation.chunk_graph.get_module_id(mgm.identifier()),
+        ChunkGraph::get_module_id(&compilation.module_ids, mgm.identifier()),
       )
     })
     .for_each(|(current, id)| {

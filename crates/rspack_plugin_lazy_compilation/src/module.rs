@@ -6,7 +6,7 @@ use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
   rspack_sources::{RawSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationData, CodeGenerationResult, Compilation,
+  BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
   Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
   RuntimeSpec, SourceType, TemplateContext,
@@ -187,7 +187,6 @@ impl Module for LazyCompilationProxyModule {
 
     let client_dep_id = self.dependencies[0];
     let module_graph = &compilation.get_module_graph();
-    let chunk_graph = &compilation.chunk_graph;
 
     let client_module = module_graph
       .module_identifier_by_dependency_id(&client_dep_id)
@@ -197,9 +196,7 @@ impl Module for LazyCompilationProxyModule {
 
     let client = format!(
       "var client = __webpack_require__(\"{}\");\nvar data = \"{}\"",
-      chunk_graph
-        .get_module_id(*client_module)
-        .as_ref()
+      ChunkGraph::get_module_id(&compilation.module_ids, *client_module)
         .expect("should have module id"),
       self.data
     );
@@ -253,9 +250,7 @@ impl Module for LazyCompilationProxyModule {
           "import()",
           false
         ),
-        chunk_graph
-          .get_module_id(*module)
-          .as_ref()
+        ChunkGraph::get_module_id(&compilation.module_ids, *module)
           .expect("should have module id")
           .cow_replace('"', r#"\""#),
         keep_active,

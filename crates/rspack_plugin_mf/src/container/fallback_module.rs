@@ -6,9 +6,9 @@ use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
+  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_util::{itoa, source_map::SourceMapKind};
@@ -158,7 +158,7 @@ impl Module for FallbackModule {
       .get_dependencies()
       .iter()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
-      .filter_map(|module| compilation.chunk_graph.get_module_id(module.identifier()))
+      .filter_map(|module| ChunkGraph::get_module_id(&compilation.module_ids, module.identifier()))
       .collect();
     let code = format!(
       r#"

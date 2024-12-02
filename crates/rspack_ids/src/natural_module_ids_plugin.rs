@@ -15,7 +15,7 @@ pub struct NaturalModuleIdsPlugin;
 fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let (used_ids, mut modules_in_natural_order) = get_used_module_ids_and_modules(compilation, None);
 
-  let mut chunk_graph = std::mem::take(&mut compilation.chunk_graph);
+  let mut module_ids = std::mem::take(&mut compilation.module_ids);
   let module_graph = compilation.get_module_graph();
 
   modules_in_natural_order
@@ -26,9 +26,9 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     .filter_map(|i| module_graph.module_by_identifier(&i))
     .collect::<Vec<_>>();
 
-  assign_ascending_module_ids(&used_ids, modules_in_natural_order, &mut chunk_graph);
+  assign_ascending_module_ids(&used_ids, modules_in_natural_order, &mut module_ids);
 
-  compilation.chunk_graph = chunk_graph;
+  compilation.module_ids = module_ids;
 
   Ok(())
 }

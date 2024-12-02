@@ -2,7 +2,7 @@
 
 use std::hash::{Hash, Hasher};
 
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
@@ -17,7 +17,6 @@ use crate::{ChunkGraph, Module};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
-  pub id: Option<String>,
   pub(super) entry_in_chunks: UkeySet<ChunkUkey>,
   pub chunks: UkeySet<ChunkUkey>,
   pub(super) runtime_in_chunks: UkeySet<ChunkUkey>,
@@ -26,7 +25,6 @@ pub struct ChunkGraphModule {
 impl ChunkGraphModule {
   pub fn new() -> Self {
     Self {
-      id: None,
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
       runtime_in_chunks: Default::default(),
@@ -147,14 +145,19 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_module_id(&self, module_identifier: ModuleIdentifier) -> Option<&str> {
-    let cgm = self.expect_chunk_graph_module(module_identifier);
-    cgm.id.as_deref()
+  pub fn get_module_id(
+    module_ids: &IdentifierMap<String>,
+    module_identifier: ModuleIdentifier,
+  ) -> Option<&str> {
+    module_ids.get(&module_identifier).map(|id| id.as_str())
   }
 
-  pub fn set_module_id(&mut self, module_identifier: ModuleIdentifier, id: String) {
-    let cgm = self.expect_chunk_graph_module_mut(module_identifier);
-    cgm.id = Some(id);
+  pub fn set_module_id(
+    module_ids: &mut IdentifierMap<String>,
+    module_identifier: ModuleIdentifier,
+    id: String,
+  ) -> Option<String> {
+    module_ids.insert(module_identifier, id)
   }
 
   pub fn get_block_chunk_group<'a>(
@@ -245,8 +248,7 @@ impl ChunkGraph {
     let mut hasher = FxHasher::default();
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
-    let cgm = self.expect_chunk_graph_module(module_identifier);
-    cgm.id.as_ref().dyn_hash(&mut hasher);
+    Self::get_module_id(&compilation.module_ids, module_identifier).dyn_hash(&mut hasher);
     module.source_types().dyn_hash(&mut hasher);
     ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
     mg.get_exports_info(&module_identifier)

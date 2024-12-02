@@ -394,10 +394,7 @@ impl JsPlugin {
             buf2.push("// This entry module used 'module' so it can't be inlined".into());
           }
 
-          let module_id = compilation
-            .get_module_graph()
-            .module_graph_module_by_identifier(module)
-            .map(|module| module.id(&compilation.chunk_graph))
+          let module_id = ChunkGraph::get_module_id(&compilation.module_ids, *module)
             .expect("should have module id");
           let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {

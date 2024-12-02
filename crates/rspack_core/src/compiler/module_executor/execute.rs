@@ -137,17 +137,10 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation.chunk_group_by_ukey.add(entrypoint);
 
     // Assign ids to modules and modules to the chunk
-    let module_graph = compilation.get_module_graph();
-    for m in &modules {
-      let module = module_graph
-        .module_by_identifier(m)
-        .expect("should have module");
-
-      let id = module.identifier();
-
-      chunk_graph.add_module(id);
-      chunk_graph.set_module_id(*m, id.to_string());
-      chunk_graph.connect_chunk_and_module(chunk_ukey, *m);
+    for &m in &modules {
+      chunk_graph.add_module(m);
+      ChunkGraph::set_module_id(&mut compilation.module_ids, m, m.to_string());
+      chunk_graph.connect_chunk_and_module(chunk_ukey, m);
     }
 
     // Webpack uses this trick to make sure process_runtime_requirements access

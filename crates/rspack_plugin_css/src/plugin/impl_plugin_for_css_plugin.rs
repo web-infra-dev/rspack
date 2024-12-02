@@ -14,10 +14,10 @@ use rspack_core::{
   SourceType,
 };
 use rspack_core::{
-  AssetInfo, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, CompilerOptions, DependencyType, LibIdentOptions, ModuleGraph, PublicPath,
-  RuntimeGlobals, SelfModuleFactory,
+  AssetInfo, ChunkGraph, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
+  LibIdentOptions, ModuleGraph, PublicPath, RuntimeGlobals, SelfModuleFactory,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -284,7 +284,7 @@ async fn content_hash(
         compilation
           .code_generation_results
           .get_hash(&m.identifier(), Some(chunk.runtime())),
-        compilation.chunk_graph.get_module_id(m.identifier()),
+        ChunkGraph::get_module_id(&compilation.module_ids, m.identifier()),
       )
     })
     .for_each(|(current, id)| {

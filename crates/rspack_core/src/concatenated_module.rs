@@ -38,13 +38,14 @@ use crate::{
   reserved_names::RESERVED_NAMES, returning_function, runtime_condition_expression,
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
-  ChunkInitFragments, CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationResult, Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState,
-  Context, DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfo, ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector,
-  LibIdentOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleLayer, ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType,
-  SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
+  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
+  DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportInfoProvided, ExportsArgument,
+  ExportsType, FactoryMeta, IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1226,8 +1227,11 @@ impl Module for ConcatenatedModule {
             "var {} = {}({});",
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
-            serde_json::to_string(&compilation.chunk_graph.get_module_id(info.module))
-              .expect("should have module id")
+            serde_json::to_string(
+              ChunkGraph::get_module_id(&compilation.module_ids, info.module)
+                .expect("should have module id")
+            )
+            .expect("should json stringify module id")
           )));
 
           name = info.name.clone();
@@ -1335,10 +1339,11 @@ impl Module for ConcatenatedModule {
           .expect("should have module")
           .update_hash(hasher, compilation, generation_runtime)?,
         ConcatenationEntry::External(e) => {
-          compilation
-            .chunk_graph
-            .get_module_id(e.module(&compilation.get_module_graph()))
-            .dyn_hash(hasher);
+          ChunkGraph::get_module_id(
+            &compilation.module_ids,
+            e.module(&compilation.get_module_graph()),
+          )
+          .dyn_hash(hasher);
         }
       };
     }

@@ -7,10 +7,10 @@ use rspack_collections::Identifier;
 use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, Compilation, FilenameTemplate, GenerateContext,
-  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, RuntimeGlobals, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsedName,
+  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation, FilenameTemplate,
+  GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::infallible::ResultInfallibleExt as _;
@@ -154,7 +154,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.get_module_graph();
-        let chunk_graph = &compilation.chunk_graph;
 
         module
           .get_dependencies()
@@ -171,7 +170,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             if let Some(mgm) = mgm {
               if !dep_modules.contains_key(&mgm.module_identifier) {
                 let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
-                let val = (import_var.clone(), mgm.id(chunk_graph));
+                let val = (
+                  import_var.clone(),
+                  ChunkGraph::get_module_id(&compilation.module_ids, mgm.module_identifier)
+                    .expect("should have module id"),
+                );
 
                 if ModuleGraph::is_async(compilation, &mgm.module_identifier) {
                   promises.push(import_var);

@@ -1,7 +1,7 @@
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ExportsInfo;
-use crate::{ChunkGraph, DependencyId, ModuleIdentifier, ModuleIssuer, ModuleProfile};
+use crate::{DependencyId, ModuleIdentifier, ModuleIssuer, ModuleProfile};
 
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
@@ -40,11 +40,6 @@ impl ModuleGraphModule {
       depth: None,
       optimization_bailout: vec![],
     }
-  }
-
-  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
-    let c = chunk_graph.get_module_id(self.module_identifier);
-    c.unwrap_or_else(|| panic!("{} module id not found", self.module_identifier))
   }
 
   pub fn add_incoming_connection(&mut self, dependency_id: DependencyId) {
