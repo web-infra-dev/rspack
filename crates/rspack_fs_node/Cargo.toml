@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT"
 name        = "rspack_fs_node"
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -14,9 +14,9 @@ async-trait  = { workspace = true }
 futures      = { workspace = true }
 napi         = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive  = { workspace = true }
-rspack_fs    = { version = "0.1.0", path = "../rspack_fs" }
-rspack_napi  = { version = "0.1.0", path = "../rspack_napi" }
-rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
+rspack_fs    = { workspace = true }
+rspack_napi  = { workspace = true }
+rspack_paths = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }

@@ -1,4 +1,5 @@
 #![feature(box_patterns)]
+#![feature(let_chains)]
 
 pub mod asset;
 pub mod config;

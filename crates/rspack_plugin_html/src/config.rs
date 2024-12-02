@@ -114,6 +114,31 @@ impl std::fmt::Debug for TemplateRenderFn {
   }
 }
 
+#[derive(Serialize, Debug, Clone, Copy, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum HtmlChunkSortMode {
+  #[default]
+  Auto,
+  Manual,
+  // TODO: support function
+}
+
+impl FromStr for HtmlChunkSortMode {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.eq("auto") {
+      Ok(HtmlChunkSortMode::Auto)
+    } else if s.eq("manual") {
+      Ok(HtmlChunkSortMode::Manual)
+    } else {
+      Err(anyhow::Error::msg(
+        "chunksSortMode in html config only support 'auto' or 'manual'",
+      ))
+    }
+  }
+}
+
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlRspackPluginOptions {
@@ -139,6 +164,7 @@ pub struct HtmlRspackPluginOptions {
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
   pub exclude_chunks: Option<Vec<String>>,
+  pub chunks_sort_mode: HtmlChunkSortMode,
 
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
@@ -164,6 +190,10 @@ fn default_inject() -> HtmlInject {
   HtmlInject::Head
 }
 
+fn default_chunks_sort_mode() -> HtmlChunkSortMode {
+  HtmlChunkSortMode::Auto
+}
+
 impl Default for HtmlRspackPluginOptions {
   fn default() -> HtmlRspackPluginOptions {
     HtmlRspackPluginOptions {
@@ -177,6 +207,7 @@ impl Default for HtmlRspackPluginOptions {
       script_loading: default_script_loading(),
       chunks: None,
       exclude_chunks: None,
+      chunks_sort_mode: default_chunks_sort_mode(),
       sri: None,
       minify: None,
       title: None,

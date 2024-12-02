@@ -11,8 +11,11 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{JsCompatSource, ToJsCompatSource};
-use crate::{JsChunk, JsCodegenerationResults, JsDependenciesBlockWrapper, JsDependencyWrapper};
+use super::JsCompatSourceOwned;
+use crate::{
+  JsChunk, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
+  JsDependencyWrapper, ToJsCompatSource,
+};
 
 #[derive(Default)]
 #[napi(object)]
@@ -74,11 +77,14 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn original_source(&mut self) -> napi::Result<Either<JsCompatSource, ()>> {
+  pub fn original_source<'a>(
+    &mut self,
+    env: &'a Env,
+  ) -> napi::Result<Either<JsCompatSource<'a>, ()>> {
     let module = self.as_ref()?;
 
     Ok(match module.original_source() {
-      Some(source) => match source.to_js_compat_source().ok() {
+      Some(source) => match source.to_js_compat_source(env).ok() {
         Some(s) => Either::A(s),
         None => Either::B(()),
       },
@@ -397,7 +403,7 @@ pub struct JsExecuteModuleArg {
 #[derive(Default)]
 #[napi(object)]
 pub struct JsRuntimeModule {
-  pub source: Option<JsCompatSource>,
+  pub source: Option<JsCompatSourceOwned>,
   pub module_identifier: String,
   pub constructor_name: String,
   pub name: String,

@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT"
 name        = "rspack_core"
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [dependencies]
 anymap = { workspace = true }
 async-recursion = { workspace = true }
@@ -28,21 +28,21 @@ once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
-rspack_ast = { version = "0.1.0", path = "../rspack_ast" }
-rspack_cacheable = { path = "../rspack_cacheable" }
-rspack_collections = { version = "0.1.0", path = "../rspack_collections" }
-rspack_error = { version = "0.1.0", path = "../rspack_error" }
-rspack_fs = { version = "0.1.0", path = "../rspack_fs" }
-rspack_futures = { version = "0.1.0", path = "../rspack_futures" }
-rspack_hash = { version = "0.1.0", path = "../rspack_hash" }
-rspack_hook = { version = "0.1.0", path = "../rspack_hook" }
-rspack_loader_runner = { version = "0.1.0", path = "../rspack_loader_runner" }
-rspack_macros = { version = "0.1.0", path = "../rspack_macros" }
-rspack_paths = { version = "0.1.0", path = "../rspack_paths" }
-rspack_regex = { version = "0.1.0", path = "../rspack_regex" }
+rspack_ast = { workspace = true }
+rspack_cacheable = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_error = { workspace = true }
+rspack_fs = { workspace = true }
+rspack_futures = { workspace = true }
+rspack_hash = { workspace = true }
+rspack_hook = { workspace = true }
+rspack_loader_runner = { workspace = true }
+rspack_macros = { workspace = true }
+rspack_paths = { workspace = true }
+rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
-rspack_util = { version = "0.1.0", path = "../rspack_util" }
+rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

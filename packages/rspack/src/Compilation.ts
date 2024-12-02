@@ -10,7 +10,7 @@
 import type * as binding from "@rspack/binding";
 import {
 	type ExternalObject,
-	type JsCompatSource,
+	type JsCompatSourceOwned,
 	type JsCompilation,
 	type JsModule,
 	type JsPathData,
@@ -186,6 +186,7 @@ export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
 
 export class Compilation {
 	#inner: JsCompilation;
+	#shutdown: boolean;
 
 	hooks: Readonly<{
 		processAssets: liteTapable.AsyncSeriesHook<Assets>;
@@ -272,6 +273,7 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
+		this.#shutdown = false;
 		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
@@ -603,12 +605,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			| ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
-			| JsCompatSource
-			| ((source: JsCompatSource) => JsCompatSource);
+			| JsCompatSourceOwned
+			| ((source: JsCompatSourceOwned) => JsCompatSourceOwned);
 
 		if (typeof newSourceOrFunction === "function") {
 			compatNewSourceOrFunction = function newSourceFunction(
-				source: JsCompatSource
+				source: JsCompatSourceOwned
 			) {
 				return JsSource.__to_binding(
 					newSourceOrFunction(JsSource.__from_binding(source))
@@ -1226,6 +1228,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	__internal_getInner() {
 		return this.#inner;
+	}
+
+	get __internal__shutdown() {
+		return this.#shutdown;
+	}
+
+	set __internal__shutdown(shutdown) {
+		this.#shutdown = shutdown;
 	}
 
 	seal() {}

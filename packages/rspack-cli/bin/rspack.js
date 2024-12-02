@@ -12,6 +12,9 @@ if (enableCompileCache) {
 	}
 }
 
+// make it easier to identify the process via activity monitor or other tools
+process.title = "rspack-node";
+
 const { RspackCLI } = require("../dist/index");
 
 async function runCLI() {

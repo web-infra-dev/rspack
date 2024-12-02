@@ -25,14 +25,13 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsCompatSource;
 use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ToJsCompatSource;
-use crate::{
-  chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
-};
+use crate::ToJsCompatSource as _;
+use crate::{chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
@@ -72,10 +71,11 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
+    env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
     asset_info_update_or_function: Option<
@@ -90,8 +90,8 @@ impl JsCompilation {
           let new_source = match new_source_or_function {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
-              let js_compat_source: JsCompatSource =
-                new_source_fn.call(original_source.to_js_compat_source()?)?;
+              let js_compat_source =
+                new_source_fn.call(original_source.to_js_compat_source(env)?)?;
               js_compat_source.into()
             }
           };
@@ -147,13 +147,17 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
+  pub fn get_asset_source<'a>(
+    &self,
+    env: &'a Env,
+    name: String,
+  ) -> Result<Option<JsCompatSource<'a>>> {
     let compilation = self.as_ref()?;
 
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
+      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
       .transpose()
   }
 

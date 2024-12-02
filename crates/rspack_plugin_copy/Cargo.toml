@@ -4,7 +4,7 @@ edition     = "2021"
 license     = "MIT"
 name        = "rspack_plugin_copy"
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [dependencies]
 dashmap        = { workspace = true }
 derivative     = { workspace = true }
@@ -13,13 +13,13 @@ glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true, features = ["camino"] }
 regex          = { workspace = true }
-rspack_core    = { version = "0.1.0", path = "../rspack_core" }
-rspack_error   = { version = "0.1.0", path = "../rspack_error" }
-rspack_futures = { version = "0.1.0", path = "../rspack_futures" }
-rspack_hash    = { version = "0.1.0", path = "../rspack_hash" }
-rspack_hook    = { version = "0.1.0", path = "../rspack_hook" }
-rspack_paths   = { version = "0.1.0", path = "../rspack_paths" }
-rspack_util    = { version = "0.1.0", path = "../rspack_util" }
+rspack_core    = { workspace = true }
+rspack_error   = { workspace = true }
+rspack_futures = { workspace = true }
+rspack_hash    = { workspace = true }
+rspack_hook    = { workspace = true }
+rspack_paths   = { workspace = true }
+rspack_util    = { workspace = true }
 rustc-hash     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }

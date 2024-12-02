@@ -20,7 +20,7 @@ use rspack_binding_values::{
   JsFactorizeOutput, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
   JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
   JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ToJsCompatSource,
+  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -1256,7 +1256,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         source: Some(
           module
             .generate(compilation)?
-            .to_js_compat_source()
+            .to_js_compat_source_owned()
             .unwrap_or_else(|err| panic!("Failed to generate runtime module source: {err}")),
         ),
         module_identifier: module.identifier().to_string(),

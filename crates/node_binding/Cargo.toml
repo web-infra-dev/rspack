@@ -5,7 +5,7 @@ license     = "MIT"
 name        = "rspack_node"
 publish     = false
 repository  = "https://github.com/web-infra-dev/rspack"
-version     = "0.1.0"
+version     = "0.2.0"
 [lib]
 crate-type = ["cdylib"]
 
@@ -15,23 +15,23 @@ plugin  = ["rspack_binding_options/plugin"]
 
 [dependencies]
 ropey                    = { workspace = true }
-rspack_allocator         = { version = "0.1.0", path = "../rspack_allocator" }
-rspack_binding_options   = { version = "0.1.0", path = "../rspack_binding_options" }
-rspack_binding_values    = { version = "0.1.0", path = "../rspack_binding_values" }
-rspack_collections       = { version = "0.1.0", path = "../rspack_collections" }
-rspack_core              = { version = "0.1.0", path = "../rspack_core" }
-rspack_error             = { version = "0.1.0", path = "../rspack_error" }
-rspack_fs                = { version = "0.1.0", path = "../rspack_fs" }
-rspack_fs_node           = { version = "0.1.0", path = "../rspack_fs_node" }
-rspack_hash              = { version = "0.1.0", path = "../rspack_hash" }
-rspack_hook              = { version = "0.1.0", path = "../rspack_hook" }
-rspack_napi              = { version = "0.1.0", path = "../rspack_napi" }
-rspack_paths             = { version = "0.1.0", path = "../rspack_paths" }
-rspack_plugin_html       = { version = "0.1.0", path = "../rspack_plugin_html" }
-rspack_plugin_javascript = { version = "0.1.0", path = "../rspack_plugin_javascript" }
-rspack_util              = { version = "0.1.0", path = "../rspack_util" }
+rspack_allocator         = { workspace = true }
+rspack_binding_options   = { workspace = true }
+rspack_binding_values    = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_fs                = { workspace = true }
+rspack_fs_node           = { workspace = true }
+rspack_hash              = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_napi              = { workspace = true }
+rspack_paths             = { workspace = true }
+rspack_plugin_html       = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_util              = { workspace = true }
 
-rspack_tracing = { version = "0.1.0", path = "../rspack_tracing" }
+rspack_tracing = { workspace = true }
 
 async-trait = { workspace = true }
 cow-utils   = { workspace = true }

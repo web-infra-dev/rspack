@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
 use crate::{
-  config::{HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
+  config::{HtmlChunkSortMode, HtmlInject, HtmlRspackPluginOptions, HtmlScriptLoading},
   sri::{add_sri, create_digest_from_asset},
   tag::HtmlPluginTag,
 };
@@ -49,19 +49,33 @@ impl HtmlPluginAssets {
     let mut asset_map = HashMap::new();
     assets.public_path = public_path.to_string();
 
-    let included_assets = compilation
-      .entrypoints
-      .keys()
-      .filter(|&entry_name| {
-        let mut included = true;
-        if let Some(included_chunks) = &config.chunks {
-          included = included_chunks.iter().any(|c| c.eq(entry_name));
-        }
-        if let Some(exclude_chunks) = &config.exclude_chunks {
-          included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
-        }
-        included
-      })
+    let sorted_entry_names: Vec<&String> =
+      if matches!(config.chunks_sort_mode, HtmlChunkSortMode::Manual)
+        && let Some(chunks) = &config.chunks
+      {
+        chunks
+          .iter()
+          .filter(|&name| compilation.entrypoints.contains_key(name))
+          .collect()
+      } else {
+        compilation
+          .entrypoints
+          .keys()
+          .filter(|&entry_name| {
+            let mut included = true;
+            if let Some(included_chunks) = &config.chunks {
+              included = included_chunks.iter().any(|c| c.eq(entry_name));
+            }
+            if let Some(exclude_chunks) = &config.exclude_chunks {
+              included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
+            }
+            included
+          })
+          .collect()
+      };
+
+    let included_assets = sorted_entry_names
+      .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
       .filter_map(|asset_name| {

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, hash::BuildHasherDefault};
 
 use num_bigint::BigUint;
-use rspack_collections::{IdentifierHasher, IdentifierIndexSet, UkeySet};
+use rspack_collections::{IdentifierHasher, IdentifierIndexSet, IdentifierMap, UkeySet};
 use rspack_error::Result;
 use tracing::instrument;
 
@@ -374,17 +374,21 @@ impl CodeSplitter {
     self.outdated_chunk_group_info.insert(cgi_ukey);
 
     let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
+    let group_ukey = cgi.chunk_group;
     cgi.skipped_items = cache_result.skipped_modules.clone();
 
     let chunk_graph = &mut compilation.chunk_graph;
     for module in &cache_result.modules {
       let ordinal = self.get_module_ordinal(*module);
       chunk_graph.connect_chunk_and_module(chunk, *module);
+
       let mask = self.mask_by_chunk.entry(chunk).or_default();
       mask.set_bit(ordinal, true);
-
-      // TODO: correct preorder index
     }
+
+    let group = compilation.chunk_group_by_ukey.expect_get_mut(&group_ukey);
+    group.module_pre_order_indices = cache_result.pre_order_indices.clone();
+    group.module_post_order_indices = cache_result.post_order_indices.clone();
 
     for block in &cache_result.outgoings {
       self.make_chunk_group(
@@ -507,6 +511,7 @@ impl CodeSplitter {
 
         let can_rebuild = cg.parents.len() == 1;
 
+        let group = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
         self.chunk_caches.insert(
           *block_id,
           ChunkCreateData {
@@ -521,6 +526,8 @@ impl CodeSplitter {
                 .into_iter()
                 .map(|m| m.identifier())
                 .collect(),
+              pre_order_indices: group.module_pre_order_indices.clone(),
+              post_order_indices: group.module_post_order_indices.clone(),
               skipped_modules: cgi.skipped_items.clone(),
               outgoings: cgi.outgoing_blocks.clone(),
             }),
@@ -581,6 +588,8 @@ impl CodeSplitter {
 #[derive(Debug, Clone)]
 struct CacheResult {
   pub modules: Vec<ModuleIdentifier>,
+  pub pre_order_indices: IdentifierMap<usize>,
+  pub post_order_indices: IdentifierMap<usize>,
   pub skipped_modules: IdentifierIndexSet,
   pub outgoings: std::collections::HashSet<
     AsyncDependenciesBlockIdentifier,
