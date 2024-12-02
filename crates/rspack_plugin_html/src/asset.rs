@@ -49,34 +49,30 @@ impl HtmlPluginAssets {
     let mut asset_map = HashMap::new();
     assets.public_path = public_path.to_string();
 
-    let filtered_entry_names = compilation
-      .entrypoints
-      .keys()
-      .filter(|&entry_name| {
-        let mut included = true;
-        if let Some(included_chunks) = &config.chunks {
-          included = included_chunks.iter().any(|c| c.eq(entry_name));
-        }
-        if let Some(exclude_chunks) = &config.exclude_chunks {
-          included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
-        }
-        included
-      })
-      .collect::<Vec<_>>();
-
-    let sorted_entry_names = match config.chunks_sort_mode {
-      HtmlChunkSortMode::Auto => filtered_entry_names,
-      HtmlChunkSortMode::Manual => config
-        .chunks
-        .as_ref()
-        .map(|chunks| {
-          chunks
-            .iter()
-            .filter(|&name| compilation.entrypoints.contains_key(name))
-            .collect()
-        })
-        .unwrap_or(filtered_entry_names),
-    };
+    let sorted_entry_names: Vec<&String> =
+      if matches!(config.chunks_sort_mode, HtmlChunkSortMode::Manual)
+        && let Some(chunks) = &config.chunks
+      {
+        chunks
+          .iter()
+          .filter(|&name| compilation.entrypoints.contains_key(name))
+          .collect()
+      } else {
+        compilation
+          .entrypoints
+          .keys()
+          .filter(|&entry_name| {
+            let mut included = true;
+            if let Some(included_chunks) = &config.chunks {
+              included = included_chunks.iter().any(|c| c.eq(entry_name));
+            }
+            if let Some(exclude_chunks) = &config.exclude_chunks {
+              included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
+            }
+            included
+          })
+          .collect()
+      };
 
     let included_assets = sorted_entry_names
       .iter()
