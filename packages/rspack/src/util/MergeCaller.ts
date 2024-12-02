@@ -1,7 +1,6 @@
 type CallFn<D> = (args: D[]) => void;
 
 export default class MergeCaller<D> {
-	private microtask: Promise<void> = Promise.resolve();
 	private callArgs: D[] = [];
 
 	private callFn: CallFn<D>;
@@ -17,7 +16,7 @@ export default class MergeCaller<D> {
 
 	push(...data: D[]) {
 		if (this.callArgs.length === 0) {
-			this.microtask.then(this.finalCall);
+			queueMicrotask(this.finalCall);
 		}
 		this.callArgs.push(...data);
 	}
