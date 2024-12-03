@@ -57,7 +57,7 @@ impl Storage for PackStorage {
     let scope_update = updates.entry(scope).or_default();
     scope_update.insert(key, Some(value));
   }
-  fn remove(&self, scope: &'static str, key: &StorageItemKey) {
+  fn remove(&self, scope: &'static str, key: &[u8]) {
     let mut updates = self.updates.lock().expect("should get lock");
     let scope_update = updates.entry(scope).or_default();
     scope_update.insert(key.to_vec(), None);

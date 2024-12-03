@@ -128,14 +128,15 @@ impl WriteScopeResult {
 pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
-  async fn before_write(&self, name: &'static str, scope: &PackScope) -> Result<()>;
+  fn before_all(&self, scope: &mut PackScope) -> Result<()>;
+  async fn before_write(&self, scope: &PackScope) -> Result<()>;
   async fn after_write(
     &self,
-    name: &'static str,
     scope: &PackScope,
     wrote_files: HashSet<Utf8PathBuf>,
     removed_files: HashSet<Utf8PathBuf>,
   ) -> Result<()>;
+  fn after_all(&self, scope: &mut PackScope) -> Result<()>;
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;

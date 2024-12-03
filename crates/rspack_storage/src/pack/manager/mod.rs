@@ -127,10 +127,14 @@ fn update_scopes(
 }
 
 async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Result<ScopeMap> {
+  for (_, scope) in scopes.iter_mut() {
+    strategy.before_all(scope)?;
+  }
+
   join_all(
     scopes
-      .iter()
-      .map(|(name, scope)| async move { strategy.before_write(name, scope).await })
+      .values()
+      .map(|scope| async move { strategy.before_write(scope).await })
       .collect_vec(),
   )
   .await
@@ -139,8 +143,8 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
 
   let wrote_results = join_all(
     scopes
-      .iter_mut()
-      .map(|(_, scope)| async move {
+      .values_mut()
+      .map(|scope| async move {
         let mut res = WriteScopeResult::default();
         res.extend(strategy.write_packs(scope).await?);
         res.extend(strategy.write_meta(scope).await?);
@@ -156,12 +160,11 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
 
   join_all(
     scopes
-      .iter()
+      .values()
       .zip(wrote_results)
-      .map(|((name, scope), scope_wrote_result)| async move {
+      .map(|(scope, scope_wrote_result)| async move {
         strategy
           .after_write(
-            name,
             scope,
             scope_wrote_result.wrote_files,
             scope_wrote_result.removed_files,
@@ -173,6 +176,10 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
+
+  for (_, scope) in scopes.iter_mut() {
+    strategy.after_all(scope)?;
+  }
 
   Ok(scopes.into_iter().collect())
 }
@@ -213,6 +220,7 @@ mod tests {
   }
 
   async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
+    println!("test cold start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
@@ -261,6 +269,7 @@ mod tests {
   }
 
   async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
+    println!("test hot start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,

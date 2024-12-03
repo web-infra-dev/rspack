@@ -260,21 +260,19 @@ mod tests {
       .update_scope(&mut mock_scope, updates)
       .expect("should update scope");
     strategy
-      .before_write("validate_packs", &mock_scope)
+      .before_write(&mock_scope)
       .await
       .expect("should prepare dirs");
     let files = save_scope(&mut mock_scope, &strategy)
       .await
       .expect("should write scope");
     strategy
-      .after_write(
-        "validate_packs",
-        &mock_scope,
-        files.wrote_files.clone(),
-        files.removed_files,
-      )
+      .after_write(&mock_scope, files.wrote_files.clone(), files.removed_files)
       .await
       .expect("should clean dirs");
+    strategy
+      .after_all(&mut mock_scope)
+      .expect("should modify wrote flags");
 
     let _ = test_valid_packs(scope_path.clone(), &strategy, pack_options.clone())
       .await

@@ -98,11 +98,16 @@ impl PackFs for PackMemoryFs {
   }
 
   async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    self
-      .0
-      .rename(from, to)
-      .await
-      .map_err(|e| PackFsError::from_fs_error(from, PackFsErrorOpt::Move, e))?;
+    if self.exists(from).await? {
+      self
+        .ensure_dir(to.parent().expect("should have parent"))
+        .await?;
+      self
+        .0
+        .rename(from, to)
+        .await
+        .map_err(|e| PackFsError::from_fs_error(from, PackFsErrorOpt::Move, e))?;
+    }
     Ok(())
   }
 }

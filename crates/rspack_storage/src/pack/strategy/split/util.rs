@@ -245,8 +245,13 @@ pub mod test_pack_utils {
     strategy: &SplitPackStrategy,
   ) -> Result<WriteScopeResult> {
     let mut res = WriteScopeResult::default();
+    strategy.before_write(scope).await?;
     res.extend(strategy.write_packs(scope).await?);
     res.extend(strategy.write_meta(scope).await?);
+    strategy
+      .after_write(scope, res.wrote_files.clone(), res.removed_files.clone())
+      .await?;
+    strategy.after_all(scope)?;
     Ok(res)
   }
 }
