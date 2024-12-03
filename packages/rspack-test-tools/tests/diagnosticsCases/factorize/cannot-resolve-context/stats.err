@@ -3,7 +3,7 @@ ERROR in ./index.js
    ╭─[3:0]
  1 │ // should not panic
  2 │ 
- 3 │ require.context("./test", false, /\.test\.js$/);
+ 3 │ require.context("./test", false, //.test/.js$/);
    · ───────────────────────────────────────────────
  4 │ 
    ╰────

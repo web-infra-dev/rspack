@@ -3,6 +3,6 @@ ERROR in ./index.js
    ╭─[1:0]
  1 │ ╭─▶ import.meta.webpackContext('./not-exists', {
  2 │ │     recursive: false,
- 3 │ │     regExp: /\.js$/,
+ 3 │ │     regExp: //.js$/,
  4 │ ╰─▶ });
    ╰────
