@@ -18,8 +18,8 @@ owo-colors         = "3.5.0"
 rspack_collections = { workspace = true }
 rspack_paths       = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
-termcolor          = "1"
+termcolor          = "1.4.1"
 textwrap           = "0.15.2"
-thiserror          = "1"
+thiserror          = "1.0.69"
 
 unicode-width = "0.2.0"

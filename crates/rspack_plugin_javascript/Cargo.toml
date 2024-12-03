@@ -17,7 +17,7 @@ indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
-num-bigint = { version = "0.4.4" }
+num-bigint = { version = "0.4.6" }
 once_cell = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }

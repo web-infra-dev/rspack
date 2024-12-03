@@ -28,60 +28,60 @@ ignored = [
   "rspack_plugin_merge",
 ]
 [workspace.dependencies]
-anyhow             = { version = "1.0.81", features = ["backtrace"] }
+anyhow             = { version = "1.0.94", features = ["backtrace"] }
 anymap             = { version = "=1.0.0-beta.2" }
-async-recursion    = { version = "1.1.0" }
+async-recursion    = { version = "1.1.1" }
 async-scoped       = { version = "0.9.0" }
-async-trait        = { version = "0.1.79" }
-bitflags           = { version = "2.5.0" }
-camino             = { version = "1.1.8" }
+async-trait        = { version = "0.1.83" }
+bitflags           = { version = "2.6.0" }
+camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
 css-module-lexer   = { version = "0.0.15" }
 dashmap            = { version = "5.5.3" }
 derivative         = { version = "2.2.0" }
-either             = { version = "1.10.0" }
-futures            = { version = "0.3.30" }
+either             = { version = "1.13.0" }
+futures            = { version = "0.3.31" }
 glob               = { version = "0.3.1" }
-hashlink           = { version = "0.9.0" }
+hashlink           = { version = "0.9.1" }
 heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
-indexmap           = { version = "2.2.6" }
+indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.60" }
+lightningcss       = { version = "1.0.0-alpha.61" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc           = { version = "0.1.43" }
-mime_guess         = { version = "2.0.4" }
-once_cell          = { version = "1.19.0" }
+mime_guess         = { version = "2.0.5" }
+once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
-paste              = { version = "1.0" }
+paste              = { version = "1.0.15" }
 path-clean         = { version = "1.0.1" }
-pathdiff           = { version = "0.2.1" }
+pathdiff           = { version = "0.2.3" }
 pollster           = { version = "0.4.0" }
-proc-macro2        = { version = "1.0.79" }
-quote              = { version = "1.0.35" }
+proc-macro2        = { version = "1.0.92" }
+quote              = { version = "1.0.37" }
 rayon              = { version = "1.10.0" }
-regex              = { version = "1.10.4" }
+regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
 rspack_resolver    = { version = "0.3.5", features = ["package_json_raw_json_api"] }
 rspack_sources     = { version = "=0.3.5" }
 rustc-hash         = { version = "1.1.0" }
-serde              = { version = "1.0.197" }
-serde_json         = { version = "1.0.115" }
-simd-json          = { version = "0.14.0-rc.2" }
-stacker            = { version = "0.1.15" }
+serde              = { version = "1.0.215" }
+serde_json         = { version = "1.0.133" }
+simd-json          = { version = "0.14.3" }
+stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.58" }
-tokio              = { version = "1.37.0" }
-tracing            = { version = "0.1.40" }
-tracing-subscriber = { version = "0.3.18" }
-unicase            = { version = "2.7.0" }
-url                = { version = "2.5.0" }
+syn                = { version = "2.0.90" }
+tokio              = { version = "1.42.0" }
+tracing            = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.19" }
+unicase            = { version = "2.8.0" }
+url                = { version = "2.5.4" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.0" }
-xxhash-rust        = { version = "0.8.10" }
+xxhash-rust        = { version = "0.8.12" }
 
 # Pinned
 napi        = { version = "3.0.0-alpha.22" }
@@ -89,7 +89,7 @@ napi-build  = { version = "2.1.3" }
 napi-derive = { version = "3.0.0-alpha.21" }
 
 # Serialize and Deserialize
-inventory = { version = "0.1" }
+inventory = { version = "0.3.15" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions

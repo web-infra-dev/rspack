@@ -19,10 +19,10 @@ plugin = [
 [dependencies]
 anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
-base64                   = { version = "0.22" }
+base64                   = { version = "0.22.1" }
 dashmap                  = { workspace = true }
 either                   = { workspace = true }
-jsonc-parser             = { version = "0.26.0", features = ["serde"] }
+jsonc-parser             = { version = "0.26.2", features = ["serde"] }
 rspack_ast               = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
@@ -36,4 +36,4 @@ stacker                  = { workspace = true }
 swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
-url                      = "2.5.0"
+url                      = "2.5.4"

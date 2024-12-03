@@ -40,7 +40,7 @@ tracing     = { workspace = true }
 napi        = { workspace = true }
 napi-derive = { workspace = true }
 
-color-backtrace = "0.6"
+color-backtrace = "0.6.1"
 
 
 [build-dependencies]
