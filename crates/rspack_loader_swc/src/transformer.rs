@@ -29,7 +29,7 @@ macro_rules! either {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Pass + '_ {
   either!(rspack_experiments.import, |options| {
-    swc_plugin_import::plugin_import(options)
+    rspack_swc_plugin_import::plugin_import(options)
   })
 }
 

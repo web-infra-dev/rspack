@@ -31,6 +31,9 @@ ready:
 # Publish Rust crates to crates.io
 release-rust:
     cargo release publish --no-verify --execute --no-confirm
+# Check crate whether have correct fields for publish
+release-check:
+   cargo run -p release-check
 
 # Format Rust, TOML files, and JavaScript code
 fmt:
