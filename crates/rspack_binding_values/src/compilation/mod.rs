@@ -186,7 +186,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .built_modules
+        .built_modules()
         .iter()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
