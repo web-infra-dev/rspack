@@ -194,22 +194,21 @@ impl LightningCssLoader {
         }),
       }));
       let rspack_source_map = SourceMap::new(
-        None,
         mappings,
         source_map
           .get_sources()
           .iter()
-          .map(|source| source.to_string().into())
+          .map(ToString::to_string)
           .collect::<Vec<_>>(),
         source_map
           .get_sources_content()
           .iter()
-          .map(|source| source.to_string().into())
+          .map(ToString::to_string)
           .collect::<Vec<_>>(),
         source_map
           .get_names()
           .iter()
-          .map(|source| source.to_string().into())
+          .map(ToString::to_string)
           .collect::<Vec<_>>(),
       );
       loader_context.finish_with((content.code, rspack_source_map));
