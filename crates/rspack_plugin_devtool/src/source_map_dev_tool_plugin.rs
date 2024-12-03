@@ -1,5 +1,5 @@
 use std::path::{Component, PathBuf};
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
@@ -114,7 +114,7 @@ pub struct SourceMapDevToolPlugin {
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
-  source_root: Option<String>,
+  source_root: Option<Arc<str>>,
   test: Option<AssetConditions>,
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
@@ -178,7 +178,7 @@ impl SourceMapDevToolPlugin {
       options.no_sources,
       options.public_path,
       options.module,
-      options.source_root,
+      options.source_root.map(Arc::from),
       options.test,
       options.include,
       options.exclude,
