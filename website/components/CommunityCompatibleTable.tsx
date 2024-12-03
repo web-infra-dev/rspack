@@ -112,13 +112,13 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'fork-ts-checker-webpack-plugin',
       url: 'https://github.com/TypeStrong/fork-ts-checker-webpack-plugin',
-      status: CompatibleStatus.Compatible,
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['fork-ts-checker-webpack-plugin-desc'],
     },
     {
       name: 'html-webpack-plugin',
       url: 'https://www.npmjs.com/package/html-webpack-plugin',
       status: CompatibleStatus.Compatible,
-      description: i18n[lang]['html-webpack-plugin-desc'],
     },
     {
       name: 'mini-css-extract-plugin',
@@ -236,8 +236,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpackbar',
       url: 'https://www.npmjs.com/package/webpackbar',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['progress-plugin-desc'],
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'progress-bar-webpack-plugin',

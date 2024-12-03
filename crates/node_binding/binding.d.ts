@@ -47,7 +47,7 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
@@ -95,6 +95,7 @@ export declare class JsCompilation {
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
   get entries(): JsEntries
   addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+  get moduleGraph(): JsModuleGraph
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -179,6 +180,12 @@ export declare class JsModule {
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+}
+
+export declare class JsModuleGraph {
+  getModule(jsDependency: JsDependency): JsModule | null
+  getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
+  getIssuer(module: JsModule): JsModule | null
 }
 
 export declare class JsResolver {
@@ -519,7 +526,19 @@ export interface JsCodegenerationResults {
   map: Record<string, Record<string, JsCodegenerationResult>>
 }
 
+/**
+ * Zero copy `JsCompatSource` slice shared between Rust and Node.js if buffer is used.
+ *
+ * It can only be used in non-async context and the lifetime is bound to the fn closure.
+ *
+ * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsCompatSourceOwned` instead.
+ */
 export interface JsCompatSource {
+  source: string | Buffer
+  map?: string
+}
+
+export interface JsCompatSourceOwned {
   source: string | Buffer
   map?: string
 }
@@ -774,7 +793,7 @@ export interface JsRuntimeGlobals {
 }
 
 export interface JsRuntimeModule {
-  source?: JsCompatSource
+  source?: JsCompatSourceOwned
   moduleIdentifier: string
   constructorName: string
   name: string
@@ -1328,6 +1347,7 @@ export interface RawEntryDynamicResult {
 export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
+  nodePrefixForCoreModules?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {
@@ -1336,11 +1356,28 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
+export interface RawExperimentCacheOptionsCommon {
+  type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsPersistent {
+  type: "persistent"
+  snapshot: RawExperimentSnapshotOptions
+  storage: Array<RawStorageOptions>
+}
+
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
   incremental?: RawIncremental
   rspackFuture: RawRspackFuture
+  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+}
+
+export interface RawExperimentSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1432,6 +1469,7 @@ export interface RawHtmlRspackPluginOptions {
   /** entry_chunk_name (only entry chunks are supported) */
   chunks?: Array<string>
   excludeChunks?: Array<string>
+  chunksSortMode: "auto" | "manual"
   sri?: "sha256" | "sha384" | "sha512"
   minify?: boolean
   title?: string
@@ -1551,6 +1589,7 @@ export interface RawLightningCssMinimizerOptions {
   include?: number
   exclude?: number
   draft?: RawDraft
+  drafts?: RawDraft
   nonStandard?: RawNonStandard
   pseudoClasses?: RawLightningCssPseudoClasses
   unusedSymbols: Array<string>
@@ -1697,6 +1736,7 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
   profile: boolean
+  amd?: string
   bail: boolean
   __references: Record<string, any>
 }
@@ -1715,7 +1755,6 @@ export interface RawOutputOptions {
   crossOriginLoading: RawCrossOriginLoading
   cssFilename: JsFilename
   cssChunkFilename: JsFilename
-  cssHeadDataCompression: boolean
   hotUpdateMainFilename: string
   hotUpdateChunkFilename: string
   hotUpdateGlobal: string
@@ -1907,7 +1946,9 @@ export interface RawSourceMapDevToolPluginOptions {
   noSources?: boolean
   publicPath?: string
   sourceRoot?: string
-  test?: (text: string) => boolean
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
 }
 
 export interface RawSplitChunkSizes {
@@ -1937,6 +1978,11 @@ export interface RawSplitChunksOptions {
 
 export interface RawStatsOptions {
   colors: boolean
+}
+
+export interface RawStorageOptions {
+  type: "filesystem"
+  directory: string
 }
 
 export interface RawSwcJsMinimizerOptions {

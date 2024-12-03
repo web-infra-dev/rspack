@@ -196,6 +196,9 @@ const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
 	{ production }: { production: boolean }
 ) => {
+	// IGNORE(experiments.cache): In webpack, cache is undefined by default
+	F(experiments, "cache", () => !production);
+
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default
 	D(experiments, "lazyCompilation", false);
@@ -583,7 +586,6 @@ const applyOutputDefaults = (
 	const uniqueNameId = Template.toIdentifier(output.uniqueName);
 	F(output, "hotUpdateGlobal", () => `webpackHotUpdate${uniqueNameId}`);
 	F(output, "chunkLoadingGlobal", () => `webpackChunk${uniqueNameId}`);
-	D(output, "cssHeadDataCompression", !development);
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	D(output, "compareBeforeEmit", true);

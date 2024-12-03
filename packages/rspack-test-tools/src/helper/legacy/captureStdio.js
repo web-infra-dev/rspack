@@ -1,5 +1,5 @@
 // @ts-nocheck
-const stripAnsi = require("strip-ansi");
+const { stripVTControlCharacters: stripAnsi } = require("node:util");
 
 module.exports = (stdio, tty) => {
 	let logs = [];

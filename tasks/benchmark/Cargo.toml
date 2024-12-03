@@ -1,0 +1,19 @@
+[package]
+description = "rspack benchmark tooling"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_benchmark"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+publish = false
+
+[features]
+default = []
+codspeed = ["criterion2/codspeed"]
+
+[dependencies]
+criterion2 = { default-features = false, version = "2.0.0"}
+
+[[bench]]
+name    = "basic"
+harness = false

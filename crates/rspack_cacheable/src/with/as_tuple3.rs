@@ -34,11 +34,12 @@ where
   }
 }
 
-impl<A, B, C, K, V, H, S: Fallible + ?Sized> SerializeWith<(K, V, H), S> for AsTuple3<A, B, C>
+impl<A, B, C, K, V, H, S> SerializeWith<(K, V, H), S> for AsTuple3<A, B, C>
 where
   A: SerializeWith<K, S>,
   B: SerializeWith<V, S>,
   C: SerializeWith<H, S>,
+  S: Fallible + ?Sized,
 {
   #[inline]
   fn serialize_with(field: &(K, V, H), serializer: &mut S) -> Result<Self::Resolver, S::Error> {
@@ -57,7 +58,7 @@ where
   A: ArchiveWith<K> + DeserializeWith<A::Archived, K, D>,
   B: ArchiveWith<V> + DeserializeWith<B::Archived, V, D>,
   C: ArchiveWith<H> + DeserializeWith<C::Archived, H, D>,
-  D: ?Sized + Fallible,
+  D: Fallible + ?Sized,
 {
   fn deserialize_with(
     field: &ArchivedTuple3<A::Archived, B::Archived, C::Archived>,

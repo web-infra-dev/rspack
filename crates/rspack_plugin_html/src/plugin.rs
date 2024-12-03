@@ -190,7 +190,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let (template_file_name, html) =
       match generate_html(filename, &output_file_name, config, compilation, &hooks).await {
         Ok(content) => {
-          compilation.file_dependencies.extend(content.2);
+          compilation
+            .file_dependencies
+            .extend(content.2.into_iter().map(Into::into));
           (content.0, content.1)
         }
         Err(err) => {

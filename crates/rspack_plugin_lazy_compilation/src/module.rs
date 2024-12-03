@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use cow_utils::CowUtils;
 use rspack_collections::Identifiable;
@@ -158,7 +158,7 @@ impl Module for LazyCompilationProxyModule {
 
     let mut files = FxHashSet::default();
     files.extend(self.create_data.file_dependencies.clone());
-    files.insert(self.resource.to_owned().into());
+    files.insert(Path::new(&self.resource).into());
 
     Ok(BuildResult {
       build_info: BuildInfo {

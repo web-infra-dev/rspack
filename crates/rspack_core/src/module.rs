@@ -1,6 +1,5 @@
 use std::fmt::Display;
 use std::hash::Hash;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
@@ -8,8 +7,9 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::FileSystem;
 use rspack_hash::RspackHashDigest;
+use rspack_paths::ArcPath;
 use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
@@ -32,7 +32,7 @@ pub struct BuildContext {
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn ReadableFileSystem>,
+  pub fs: Arc<dyn FileSystem>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -48,10 +48,10 @@ pub struct BuildInfo {
   pub cacheable: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: HashSet<ArcPath>,
+  pub context_dependencies: HashSet<ArcPath>,
+  pub missing_dependencies: HashSet<ArcPath>,
+  pub build_dependencies: HashSet<ArcPath>,
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
@@ -362,7 +362,7 @@ pub trait Module:
     false
   }
 
-  fn depends_on(&self, modified_file: &HashSet<PathBuf>) -> bool {
+  fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
     if let Some(build_info) = self.build_info() {
       for item in modified_file {
         if build_info.file_dependencies.contains(item)

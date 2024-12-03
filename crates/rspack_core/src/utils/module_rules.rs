@@ -127,18 +127,26 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
-  if let Some(issuer_rule) = &module_rule.issuer
-    && let Some(issuer) = issuer
-    && !issuer_rule.try_match(issuer.into()).await?
-  {
-    return Ok(false);
+  if let Some(issuer_rule) = &module_rule.issuer {
+    match issuer {
+      Some(issuer) => {
+        if !issuer_rule.try_match(issuer.into()).await? {
+          return Ok(false);
+        }
+      }
+      None => return Ok(false),
+    }
   }
 
-  if let Some(issuer_layer_rule) = &module_rule.issuer_layer
-    && let Some(issuer_layer) = issuer_layer
-    && !issuer_layer_rule.try_match(issuer_layer.into()).await?
-  {
-    return Ok(false);
+  if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
+    match issuer_layer {
+      Some(issuer_layer) => {
+        if !issuer_layer_rule.try_match(issuer_layer.into()).await? {
+          return Ok(false);
+        }
+      }
+      None => return Ok(false),
+    };
   }
 
   if let Some(dependency_rule) = &module_rule.dependency

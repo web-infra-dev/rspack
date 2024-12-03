@@ -429,6 +429,7 @@ export type Output = {
 	cssFilename?: CssFilename;
 
 	/**
+	 * @deprecated this config is unused, and will be removed in the future.
 	 * Rspack adds some metadata in CSS to parse CSS modules, and this configuration determines whether to compress these metadata.
 	 *
 	 * The value is `true` in production mode.
@@ -2305,6 +2306,35 @@ export type Optimization = {
 
 //#region Experiments
 /**
+ * Options for caching snapshots and intermediate products during the build process.
+ * @description Controls whether caching is enabled or disabled.
+ * @default true in development mode, false in production mode
+ * @example
+ * // Enable caching
+ * cache: true
+ *
+ * // Disable caching
+ * cache: false
+ */
+export type ExperimentCacheOptions =
+	| boolean
+	| {
+			type: "memory";
+	  }
+	| {
+			type: "persistent";
+			snapshot: {
+				immutablePaths: Array<string | RegExp>;
+				unmanagedPaths: Array<string | RegExp>;
+				managedPaths: Array<string | RegExp>;
+			};
+			storage: {
+				type: "filesystem";
+				directory: string;
+			};
+	  };
+
+/**
  * Options for future Rspack features.
  */
 export type RspackFutureOptions = {
@@ -2470,6 +2500,10 @@ export type Incremental = {
  */
 export type Experiments = {
 	/**
+	 * Enable new cache.
+	 */
+	cache?: ExperimentCacheOptions;
+	/**
 	 * Enable lazy compilation.
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
@@ -2580,6 +2614,13 @@ export type IgnoreWarnings = (
  * Capture a "profile" of the application, including statistics and hints, which can then be dissected using the Analyze tool.
  * */
 export type Profile = boolean;
+//#endregion
+
+//#region amd
+/**
+ * Set the value of `require.amd` and `define.amd`. Or disable AMD support.
+ */
+export type Amd = false | Record<string, any>;
 //#endregion
 
 //#region Bail
@@ -2729,6 +2770,11 @@ export type RspackOptions = {
 	 * Whether to capture a profile of the application.
 	 */
 	profile?: Profile;
+	/**
+	 * Set the value of `require.amd` or `define.amd`.
+	 * Setting `amd` to false will disable rspack's AMD support.
+	 */
+	amd?: Amd;
 	/**
 	 * Whether to fail on the first error.
 	 */

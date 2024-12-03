@@ -144,6 +144,7 @@ pub(crate) fn export_locals_convention(
   res
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn css_modules_exports_to_string<'a>(
   exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
@@ -152,8 +153,39 @@ pub fn css_modules_exports_to_string<'a>(
   ns_obj: &str,
   left: &str,
   right: &str,
+  with_hmr: bool,
 ) -> Result<String> {
-  let mut code = format!("{}{}module.exports = {{\n", ns_obj, left);
+  let (decl_name, exports_string) =
+    stringified_exports(exports, compilation, runtime_requirements, module)?;
+
+  let hmr_code = if with_hmr {
+    Cow::Owned(format!(
+      "// only invalidate when locals change
+var stringified_exports = JSON.stringify({decl_name});
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {{
+  module.hot.invalidate();
+}} else {{
+  module.hot.accept(); 
+}}
+module.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+    ))
+  } else {
+    Cow::Borrowed("")
+  };
+  let mut code =
+    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}module.exports = {decl_name}",);
+  code += right;
+  code += ";\n";
+  Ok(code)
+}
+
+pub fn stringified_exports<'a>(
+  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+  module: &dyn rspack_core::Module,
+) -> Result<(&'static str, String)> {
+  let mut stringified_exports = String::new();
   let module_graph = compilation.get_module_graph();
   for (key, elements) in exports {
     let content = elements
@@ -193,13 +225,20 @@ pub fn css_modules_exports_to_string<'a>(
       })
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
-    writeln!(code, "  {}: {},", json_stringify(&unescape(key)), content)
-      .map_err(|e| error!(e.to_string()))?;
+    writeln!(
+      stringified_exports,
+      "  {}: {},",
+      json_stringify(&unescape(key)),
+      content
+    )
+    .map_err(|e| error!(e.to_string()))?;
   }
-  code += "}";
-  code += right;
-  code += ";\n";
-  Ok(code)
+
+  let decl_name = "exports";
+  Ok((
+    decl_name,
+    format!("var {} = {{\n{}}};", decl_name, stringified_exports),
+  ))
 }
 
 pub fn css_modules_exports_to_concatenate_module_string<'a>(

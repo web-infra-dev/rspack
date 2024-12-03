@@ -1,7 +1,7 @@
 const rspack = require("@rspack/core");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		rules: [
@@ -12,13 +12,16 @@ module.exports = {
 						loader: "sass-loader",
 						options: {
 							// use legacy API to generate source maps
-							api: 'legacy'
+							api: "legacy",
+							sassOptions: {
+								silenceDeprecations: ["legacy-js-api"]
+							}
 						}
 					}
 				],
 				type: "css",
 				generator: {
-					exportsOnly: false,
+					exportsOnly: false
 				}
 			}
 		]

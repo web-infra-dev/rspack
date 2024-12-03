@@ -1,9 +1,11 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  fmt,
+  hash::{Hash, Hasher},
+};
 
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
-use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -21,10 +23,20 @@ pub struct Mutations {
   affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
+impl fmt::Display for Mutations {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "[")?;
+    for mutation in self.iter() {
+      writeln!(f, "{},", mutation)?;
+    }
+    writeln!(f, "]")
+  }
+}
+
 #[derive(Debug)]
 pub enum Mutation {
   ModuleBuild { module: ModuleIdentifier },
-  ModuleRevoke { module: ModuleIdentifier },
+  ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
@@ -32,9 +44,41 @@ pub enum Mutation {
   ChunkRemove { chunk: ChunkUkey },
 }
 
+impl fmt::Display for Mutation {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
+      Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
+      Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
+      Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
+      Mutation::ChunkSplit { from, to } => {
+        write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
+      }
+      Mutation::ChunksIntegrate { to } => write!(f, "integrate chunks to {}", to.as_u32()),
+      Mutation::ChunkRemove { chunk } => write!(f, "remove chunk {}", chunk.as_u32()),
+    }
+  }
+}
+
 impl Mutations {
   pub fn add(&mut self, mutation: Mutation) {
     self.inner.push(mutation);
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
+  // TODO: remove this
+  pub fn swap_modules_with_chunk_graph_cache(&mut self, to: &mut Self) {
+    std::mem::swap(
+      &mut self.modules_with_chunk_graph_cache,
+      &mut to.modules_with_chunk_graph_cache,
+    );
   }
 }
 
@@ -104,7 +148,7 @@ impl Mutations {
           self
             .iter()
             .filter_map(|mutation| match mutation {
-              Mutation::ModuleRevoke { module } => Some(*module),
+              Mutation::ModuleRemove { module } => Some(*module),
               _ => None,
             })
             .collect(),
@@ -255,10 +299,12 @@ fn compute_affected_modules_with_chunk_graph(
   ) -> u64 {
     let module_identifier = module.identifier();
     let mut hasher = FxHasher::default();
-    chunk_graph
+    compilation
+      .chunk_graph
       .get_module_id(module_identifier)
       .hash(&mut hasher);
-    let module_ids: FxIndexSet<_> = module_graph
+    ModuleGraph::is_async(compilation, &module_identifier).hash(&mut hasher);
+    for module_id in module_graph
       .get_ordered_connections(&module_identifier)
       .expect("should have module")
       .into_iter()
@@ -266,10 +312,11 @@ fn compute_affected_modules_with_chunk_graph(
         let connection = module_graph
           .connection_by_dependency_id(dep_id)
           .expect("should have connection");
-        chunk_graph.get_module_id(*connection.module_identifier())
+        compilation
+          .chunk_graph
+          .get_module_id(*connection.module_identifier())
       })
-      .collect();
-    for module_id in module_ids {
+    {
       module_id.hash(&mut hasher);
     }
     for block_id in module.get_blocks() {

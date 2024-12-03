@@ -1,8 +1,10 @@
 [package]
-edition = "2021"
-license = "MIT"
-name    = "rspack_cacheable"
-version = "0.1.0"
+description = "rspack_cacheable"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_cacheable"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
 
 [features]
 noop = []
@@ -17,7 +19,7 @@ json            = { workspace = true }
 lightningcss    = { workspace = true }
 once_cell       = { workspace = true }
 rkyv            = { workspace = true }
-rspack_macros   = { path = "../rspack_macros" }
+rspack_macros   = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources  = { workspace = true }
 serde_json      = { workspace = true }

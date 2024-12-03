@@ -275,11 +275,10 @@ impl CopyRspackPlugin {
       }
       Err(e) => {
         let e: Error = DiagnosticError::from(e.boxed()).into();
-        let rspack_err: Vec<Diagnostic> = vec![e.into()];
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
-          .extend(rspack_err);
+          .push(e.into());
         return None;
       }
     };
@@ -610,10 +609,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("emit assets");
-  compilation.file_dependencies.extend(file_dependencies);
+  compilation
+    .file_dependencies
+    .extend(file_dependencies.into_iter().map(Into::into));
   compilation
     .context_dependencies
-    .extend(context_dependencies);
+    .extend(context_dependencies.into_iter().map(Into::into));
   compilation.extend_diagnostics(std::mem::take(
     diagnostics
       .lock()

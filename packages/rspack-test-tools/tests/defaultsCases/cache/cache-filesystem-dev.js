@@ -27,9 +27,6 @@ module.exports = {
 		+     "moduleIds": "named",
 		+     "nodeEnv": "development",
 		@@ ... @@
-		-     "cssHeadDataCompression": true,
-		+     "cssHeadDataCompression": false,
-		@@ ... @@
 		-     "pathinfo": false,
 		+     "pathinfo": true,
 		@@ ... @@

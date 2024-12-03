@@ -8,6 +8,9 @@ module.exports = {
 		+ Received
 
 		@@ ... @@
+		-     "cache": true,
+		+     "cache": false,
+		@@ ... @@
 		-     "incremental": Object {
 		-       "buildChunkGraph": false,
 		-       "chunksHashes": false,

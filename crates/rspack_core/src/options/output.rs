@@ -36,7 +36,6 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
-  pub css_head_data_compression: bool,
   pub hot_update_main_filename: FilenameTemplate,
   pub hot_update_chunk_filename: FilenameTemplate,
   pub hot_update_global: String,
@@ -379,7 +378,6 @@ impl From<String> for PublicPath {
   }
 }
 
-#[allow(clippy::if_same_then_else)]
 pub fn get_css_chunk_filename_template<'filename>(
   chunk: &'filename Chunk,
   output_options: &'filename OutputOptions,
@@ -395,23 +393,20 @@ pub fn get_css_chunk_filename_template<'filename>(
   }
 }
 
-#[allow(clippy::if_same_then_else)]
-pub fn get_js_chunk_filename_template<'filename>(
-  chunk: &'filename Chunk,
-  output_options: &'filename OutputOptions,
+pub fn get_js_chunk_filename_template(
+  chunk: &Chunk,
+  output_options: &OutputOptions,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> &'filename Filename {
+) -> Filename {
   // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L480
   if let Some(filename_template) = chunk.filename_template() {
-    filename_template
-  } else if chunk.can_be_initial(chunk_group_by_ukey) {
-    &output_options.filename
+    filename_template.clone()
   } else if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    // TODO: Should return output_options.hotUpdateChunkFilename
-    // See https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L484
-    &output_options.chunk_filename
+    output_options.hot_update_chunk_filename.clone().into()
+  } else if chunk.can_be_initial(chunk_group_by_ukey) {
+    output_options.filename.clone()
   } else {
-    &output_options.chunk_filename
+    output_options.chunk_filename.clone()
   }
 }
 
@@ -461,6 +456,7 @@ pub struct LibraryCustomUmdObject {
 pub struct Environment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
+  pub node_prefix_for_core_modules: Option<bool>,
 }
 
 impl Environment {
@@ -470,5 +466,9 @@ impl Environment {
 
   pub fn supports_arrow_function(&self) -> bool {
     self.arrow_function.unwrap_or_default()
+  }
+
+  pub fn supports_node_prefix_for_core_modules(&self) -> bool {
+    self.node_prefix_for_core_modules.unwrap_or_default()
   }
 }

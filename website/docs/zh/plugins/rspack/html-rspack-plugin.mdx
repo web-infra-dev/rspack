@@ -151,6 +151,7 @@ type HtmlRspackPluginOptions = {
   scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
   chunks?: string[];
   excludeChunks?: string[];
+  chunksSortMode?: 'auto' | 'manual';
   sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
@@ -244,6 +245,12 @@ type HtmlRspackPluginOptions = {
       type: '`string[]|undefined`',
       default: 'undefined',
       description: '配置需要跳过注入的 chunk',
+    },
+    {
+      name: '`chunksSortMode`',
+      type: "`'auto'|'manual'`",
+      default: "'auto'",
+      description: '配置 chunk 的排序模式',
     },
     {
       name: '`sri`',

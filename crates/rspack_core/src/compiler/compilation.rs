@@ -2,7 +2,6 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  path::PathBuf,
   sync::{atomic::AtomicU32, Arc},
 };
 
@@ -14,10 +13,11 @@ use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
 use rspack_error::{error, miette::diagnostic, Diagnostic, DiagnosticExt, Result, Severity};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::FileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
+use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -30,6 +30,7 @@ use super::{
 };
 use crate::{
   build_chunk_graph::build_chunk_graph,
+  cache::Cache,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
   get_runtime_key,
@@ -38,12 +39,12 @@ use crate::{
   old_cache::{use_code_splitting_cache, Cache as OldCache, CodeSplittingCache},
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry, EntryData,
-  EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap, LocalFilenameFn,
-  Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier, PathData,
-  ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver, SourceType,
-  Stats,
+  ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
+  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap,
+  LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
+  PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver,
+  SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -167,16 +168,26 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  // artifact for infer_async_modules_plugin
   pub async_modules: IdentifierSet,
+  // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
+  // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
+  // artifact for create_module_hashes
   pub cgm_hash_results: CgmHashResults,
+  // artifact for process_modules_runtime_requirements
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
+  // artifact for process_chunks_runtime_requirements
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
+  // artifact for create_hash
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
-  pub built_modules: IdentifierSet,
+  // artifact for create_chunk_assets
+  pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
+
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
+  pub cache: Arc<dyn Cache>,
   pub old_cache: Arc<OldCache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub incremental: Incremental,
@@ -184,10 +195,10 @@ pub struct Compilation {
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
 
-  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub context_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub missing_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub build_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -195,10 +206,10 @@ pub struct Compilation {
 
   pub module_executor: Option<ModuleExecutor>,
 
-  pub modified_files: HashSet<PathBuf>,
-  pub removed_files: HashSet<PathBuf>,
+  pub modified_files: HashSet<ArcPath>,
+  pub removed_files: HashSet<ArcPath>,
   make_artifact: MakeArtifact,
-  pub input_filesystem: Arc<dyn ReadableFileSystem>,
+  pub input_filesystem: Arc<dyn FileSystem>,
 }
 
 impl Compilation {
@@ -230,11 +241,12 @@ impl Compilation {
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
     records: Option<CompilationRecords>,
+    cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
     module_executor: Option<ModuleExecutor>,
-    modified_files: HashSet<PathBuf>,
-    removed_files: HashSet<PathBuf>,
-    input_filesystem: Arc<dyn ReadableFileSystem>,
+    modified_files: HashSet<ArcPath>,
+    removed_files: HashSet<ArcPath>,
+    input_filesystem: Arc<dyn FileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
@@ -273,9 +285,10 @@ impl Compilation {
       cgm_runtime_requirements_results: Default::default(),
       cgc_runtime_requirements_results: Default::default(),
       chunk_hashes_results: Default::default(),
-      built_modules: Default::default(),
+      chunk_render_results: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
+      cache,
       old_cache,
       incremental,
       code_splitting_cache: Default::default(),
@@ -362,9 +375,9 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -384,9 +397,9 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -410,9 +423,9 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -436,9 +449,9 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -943,30 +956,76 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let results = self
-      .chunk_by_ukey
-      .values()
+    let mutations = self
+      .incremental
+      .mutations_read(IncrementalPasses::CHUNKS_RENDER);
+    let chunks = if let Some(mutations) = mutations {
+      let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
+        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        _ => None,
+      });
+      for removed_chunk in removed_chunks {
+        self.chunk_render_results.remove(&removed_chunk);
+      }
+      self
+        .chunk_render_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      chunks.extend(self.get_chunk_graph_entries());
+      let logger = self.get_logger("rspack.incremental.chunksRender");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
+      chunks
+    } else {
+      self.chunk_by_ukey.keys().copied().collect()
+    };
+    let chunk_render_results = chunks
+      .iter()
       .map(|chunk| async {
-        let mut manifest = Vec::new();
+        let mut manifests = Vec::new();
         let mut diagnostics = Vec::new();
         plugin_driver
           .compilation_hooks
           .render_manifest
-          .call(self, &chunk.ukey(), &mut manifest, &mut diagnostics)
+          .call(self, chunk, &mut manifests, &mut diagnostics)
           .await?;
 
-        Ok((chunk.ukey(), manifest, diagnostics))
+        Ok((
+          *chunk,
+          ChunkRenderResult {
+            manifests,
+            diagnostics,
+          },
+        ))
       })
       .collect::<FuturesResults<Result<_>>>();
+    let chunk_render_results = chunk_render_results
+      .into_inner()
+      .into_iter()
+      .collect::<Result<UkeyMap<_, _>>>()?;
 
-    let chunk_ukey_and_manifest = results.into_inner();
+    let chunk_ukey_and_manifest = if mutations.is_some() {
+      self.chunk_render_results.extend(chunk_render_results);
+      self.chunk_render_results.clone()
+    } else {
+      chunk_render_results
+    };
 
-    for result in chunk_ukey_and_manifest {
-      let (chunk_ukey, manifest, diagnostics) = result?;
+    for (
+      chunk_ukey,
+      ChunkRenderResult {
+        manifests,
+        diagnostics,
+      },
+    ) in chunk_ukey_and_manifest
+    {
       self.extend_diagnostics(diagnostics);
 
-      for file_manifest in manifest {
-        let filename = file_manifest.filename().to_string();
+      for file_manifest in manifests {
+        let filename = file_manifest.filename;
         let current_chunk = self.chunk_by_ukey.expect_get_mut(&chunk_ukey);
 
         current_chunk.set_rendered(true);
@@ -990,10 +1049,6 @@ impl Compilation {
       }
     }
 
-    // TODO: add code_generated_modules in render_runtime_modules
-    for (identifier, _) in self.runtime_modules.iter() {
-      self.code_generated_modules.insert(*identifier);
-    }
     Ok(())
   }
 
@@ -1081,21 +1136,22 @@ impl Compilation {
     }
 
     // take built_modules
-    let revoked_modules = self.make_artifact.take_revoked_modules();
-    let built_modules = self.make_artifact.take_built_modules();
     if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
-        revoked_modules
+        self
+          .make_artifact
+          .revoked_modules
           .iter()
-          .map(|&module| Mutation::ModuleRevoke { module }),
+          .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        built_modules
+        self
+          .make_artifact
+          .built_modules
           .iter()
           .map(|&module| Mutation::ModuleBuild { module }),
       );
     }
-    self.built_modules.extend(built_modules);
 
     let start = logger.time("finish modules");
     plugin_driver
@@ -1123,13 +1179,20 @@ impl Compilation {
       .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
     let modules = if let Some(mutations) = mutations {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
         self.dependencies_diagnostics.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_module_graph(&self.get_module_graph())
+      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1180,6 +1243,9 @@ impl Compilation {
     ) {}
     logger.time_end(start);
 
+    // ModuleGraph is frozen for now on, we have a module graph that won't change
+    // so now we can start to create a chunk graph based on the module graph
+
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
@@ -1221,6 +1287,9 @@ impl Compilation {
       .await?;
     logger.time_end(start);
 
+    // ChunkGraph is frozen for now on, we have a chunk graph that won't change
+    // so now we can start to generate assets based on the chunk graph
+
     let start = logger.time("module ids");
     plugin_driver.compilation_hooks.module_ids.call(self)?;
     logger.time_end(start);
@@ -1237,13 +1306,20 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_HASHES)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
         self.cgm_hash_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesHashes");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1262,13 +1338,20 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_CODEGEN)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
         self.code_generation_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesCodegen");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1281,7 +1364,7 @@ impl Compilation {
       .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ModuleRevoke { module } => Some(*module),
+        Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
       });
       for revoked_module in revoked_modules {
@@ -1289,7 +1372,14 @@ impl Compilation {
           .cgm_runtime_requirements_results
           .remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1299,30 +1389,42 @@ impl Compilation {
         plugin_driver.clone(),
       )
       .await?;
+    let runtime_chunks = self.get_chunk_graph_entries().collect();
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-        Mutation::ChunkRemove { chunk } => Some(*chunk),
+        Mutation::ChunkRemove { chunk } => Some(chunk),
         _ => None,
       });
       for removed_chunk in removed_chunks {
-        self.cgc_runtime_requirements_results.remove(&removed_chunk);
+        self.cgc_runtime_requirements_results.remove(removed_chunk);
       }
-      mutations.get_affected_chunks_with_chunk_graph(self)
+      let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      for affected_chunk in &affected_chunks {
+        self.cgc_runtime_requirements_results.remove(affected_chunk);
+      }
+      for runtime_chunk in &runtime_chunks {
+        self.cgc_runtime_requirements_results.remove(runtime_chunk);
+      }
+      self
+        .cgc_runtime_requirements_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        affected_chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
+      affected_chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
     self
       .process_chunks_runtime_requirements(
         process_runtime_requirements_chunks,
-        plugin_driver.clone(),
-      )
-      .await?;
-    self
-      .process_entries_runtime_requirements(
-        self.get_chunk_graph_entries().into_iter(),
+        runtime_chunks,
         plugin_driver.clone(),
       )
       .await?;
@@ -1340,7 +1442,17 @@ impl Compilation {
       for removed_chunk in removed_chunks {
         self.chunk_hashes_results.remove(&removed_chunk);
       }
-      mutations.get_affected_chunks_with_chunk_graph(self)
+      self
+        .chunk_hashes_results
+        .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len(),
+      ));
+      chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -1418,7 +1530,7 @@ impl Compilation {
     }
   }
 
-  pub fn get_chunk_graph_entries(&self) -> UkeySet<ChunkUkey> {
+  pub fn get_chunk_graph_entries(&self) -> impl Iterator<Item = ChunkUkey> + use<'_> {
     let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
@@ -1427,7 +1539,7 @@ impl Compilation {
       let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
-    entries.chain(async_entries).collect()
+    entries.chain(async_entries)
   }
 
   #[instrument(skip_all)]
@@ -1488,18 +1600,19 @@ impl Compilation {
   pub async fn process_chunks_runtime_requirements(
     &mut self,
     chunks: UkeySet<ChunkUkey>,
+    entries: UkeySet<ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.chunks");
     let mut chunk_requirements = HashMap::default();
-    for chunk_ukey in chunks {
+    for chunk_ukey in chunks.iter().chain(entries.iter()) {
       let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
-        .get_chunk_modules(&chunk_ukey, &self.get_module_graph())
+        .get_chunk_modules(chunk_ukey, &self.get_module_graph())
       {
-        let chunk = self.chunk_by_ukey.expect_get(&chunk_ukey);
+        let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
         if let Some(runtime_requirements) =
           ChunkGraph::get_module_runtime_requirements(self, module.identifier(), chunk.runtime())
         {
@@ -1512,24 +1625,15 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, &chunk_ukey, &mut set)?;
+        .call(self, chunk_ukey, &mut set)?;
 
-      ChunkGraph::set_chunk_runtime_requirements(self, chunk_ukey, set);
+      ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, set);
     }
     logger.time_end(start);
-    Ok(())
-  }
 
-  #[instrument(skip_all)]
-  pub async fn process_entries_runtime_requirements(
-    &mut self,
-    chunk_graph_entries: impl Iterator<Item = ChunkUkey>,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.entries");
-    for entry_ukey in chunk_graph_entries {
-      let entry = self.chunk_by_ukey.expect_get(&entry_ukey);
+    for entry_ukey in &entries {
+      let entry = self.chunk_by_ukey.expect_get(entry_ukey);
       let mut set = RuntimeGlobals::default();
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
@@ -1542,7 +1646,7 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_tree_runtime_requirements
-        .call(self, &entry_ukey, &mut set)
+        .call(self, entry_ukey, &mut set)
         .await?;
 
       process_runtime_requirement_hook(
@@ -1553,7 +1657,7 @@ impl Compilation {
             .runtime_requirement_in_tree
             .call(
               self,
-              &entry_ukey,
+              entry_ukey,
               all_runtime_requirements,
               runtime_requirements,
               runtime_requirements_mut,
@@ -1562,25 +1666,23 @@ impl Compilation {
         },
       )?;
 
-      ChunkGraph::set_tree_runtime_requirements(self, entry_ukey, set);
+      ChunkGraph::set_tree_runtime_requirements(self, *entry_ukey, set);
     }
 
     // NOTE: webpack runs hooks.runtime_module in compilation.add_runtime_module
     // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
     // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
-    for entry_ukey in self.get_chunk_graph_entries() {
+    for entry_ukey in &entries {
       let runtime_module_ids: Vec<_> = self
         .chunk_graph
-        .get_chunk_runtime_modules_iterable(&entry_ukey)
+        .get_chunk_runtime_modules_iterable(entry_ukey)
         .copied()
         .collect();
       for runtime_module_id in runtime_module_ids {
-        self
-          .plugin_driver
-          .clone()
+        plugin_driver
           .compilation_hooks
           .runtime_module
-          .call(self, &runtime_module_id, &entry_ukey)
+          .call(self, &runtime_module_id, entry_ukey)
           .await?;
       }
     }
@@ -1614,7 +1716,7 @@ impl Compilation {
       Ok(())
     }
 
-    let unordered_runtime_chunks = self.get_chunk_graph_entries();
+    let unordered_runtime_chunks: UkeySet<ChunkUkey> = self.get_chunk_graph_entries().collect();
     let start = logger.time("hashing: hash chunks");
     let other_chunks: Vec<_> = create_hash_chunks
       .iter()
@@ -1843,6 +1945,9 @@ impl Compilation {
         Ok((*runtime_module_identifier, source.clone()))
       })
       .collect::<Result<_>>()?;
+    self
+      .code_generated_modules
+      .extend(self.runtime_modules.keys().copied());
     Ok(())
   }
 
@@ -1878,6 +1983,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_module_hashes", skip_all)]
   pub fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
+    let mg = self.get_module_graph();
     let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
       .into_par_iter()
       .map(|module| {
@@ -1892,7 +1998,6 @@ impl Compilation {
         let mut hashes = RuntimeSpecMap::new();
         for runtime in runtimes.into_values() {
           let mut hasher = RspackHash::from(&self.options.output);
-          let mg = self.get_module_graph();
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");
@@ -1959,13 +2064,13 @@ impl Compilation {
     &'a self,
     filename: &Filename<F>,
     mut data: PathData<'b>,
-  ) -> Result<(String, AssetInfo), F::Error> {
-    let mut info = AssetInfo::default();
+    info: &mut AssetInfo,
+  ) -> Result<String, F::Error> {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(&mut info))?;
-    Ok((path, info))
+    let path = filename.render(data, Some(info))?;
+    Ok(path)
   }
 
   pub fn get_asset_path<F: LocalFilenameFn>(
@@ -2018,6 +2123,10 @@ impl Compilation {
   // TODO remove it after code splitting support incremental rebuild
   pub fn has_module_import_export_change(&self) -> bool {
     self.make_artifact.has_module_graph_change
+  }
+
+  pub fn built_modules(&self) -> &IdentifierSet {
+    &self.make_artifact.built_modules
   }
 }
 
@@ -2287,42 +2396,10 @@ pub fn set_depth_if_lower(
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub source: BoxSource,
-  filename: String,
+  pub filename: String,
+  pub has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
   pub info: AssetInfo,
-  // pub identifier: String,
-  // hash?: string;
-  pub(crate) auxiliary: bool,
-  has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
-}
-
-impl RenderManifestEntry {
-  pub fn new(
-    source: BoxSource,
-    filename: String,
-    info: AssetInfo,
-    auxiliary: bool,
-    has_filename: bool,
-  ) -> Self {
-    Self {
-      source,
-      filename,
-      info,
-      auxiliary,
-      has_filename,
-    }
-  }
-
-  pub fn source(&self) -> &BoxSource {
-    &self.source
-  }
-
-  pub fn filename(&self) -> &str {
-    &self.filename
-  }
-
-  pub fn has_filename(&self) -> bool {
-    self.has_filename
-  }
+  pub auxiliary: bool,
 }
 
 fn process_runtime_requirement_hook(

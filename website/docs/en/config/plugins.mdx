@@ -22,10 +22,10 @@ Rspack strives to maintain compatibility with the webpack plugin ecosystem to le
 
 ```js title=rspack.config.js
 const rspack = require('@rspack/core');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   //...
-  plugins: [new ForkTsCheckerWebpackPlugin()],
+  plugins: [new HtmlWebpackPlugin()],
 };
 ```

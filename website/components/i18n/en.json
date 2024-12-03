@@ -4,8 +4,7 @@
   "included": "included",
   "babel-loader-description": "SWC has been used internally to implement babel-loader with most of its conversion capabilities",
   "babel-loader-remark": "Be cautious of the performance impact of babel-loader",
-  "html-webpack-plugin-desc": "Support for this plugin was implemented in v0.3.3, please upgrade the Rspack version to use it",
-  "sentry_webpack-plugin-desc": "Support for the plugin version v1.20.1 and above has been implemented in v0.3.3",
+  "sentry_webpack-plugin-desc": "Support for this plugin >= v1.20.1",
   "copy-plugin-desc": "Use [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead",
   "mini-css-extract-plugin-desc": "Use [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) instead",
   "terser-webpack-plugin-desc": "Rspack provides [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) to deliver better performance",
@@ -24,8 +23,9 @@
   "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
   "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",
   "eslint-webpack-plugin-desc": "Use [eslint-rspack-plugin](https://github.com/rspack-contrib/eslint-rspack-plugin) instead",
-  "circular-dependency-plugin-desc": "Use Eslint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
+  "circular-dependency-plugin-desc": "Use ESLint [import/no-cycle](https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-cycle.md) rule instead",
   "html-webpack-tags-plugin-desc": "Use [html-rspack-tags-plugin](https://github.com/rspack-contrib/html-rspack-tags-plugin) instead",
   "needs-html-webpack-plugin": "This plugin depends on html-webpack-plugin",
-  "webpack-assets-manifest-desc": "Only supports basic usage"
+  "webpack-assets-manifest-desc": "Only supports basic usage",
+  "fork-ts-checker-webpack-plugin-desc": "Use [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) instead"
 }

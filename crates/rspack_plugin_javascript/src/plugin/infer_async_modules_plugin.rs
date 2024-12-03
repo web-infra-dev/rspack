@@ -2,7 +2,7 @@ use linked_hash_set::LinkedHashSet;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
-  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType,
+  ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
   ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
@@ -25,7 +25,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
           Mutation::ModuleBuild { module } => {
             acc.insert(*module);
           }
-          Mutation::ModuleRevoke { module } => {
+          Mutation::ModuleRemove { module } => {
             // we keep the state for the module only if the module revoke first, and then rebuild
             // otherwise we gc its state
             if !acc.contains(module) {
@@ -46,6 +46,8 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   };
 
   let module_graph = compilation.get_module_graph();
+  let modules_len = modules.len();
+  let total_modules_len = module_graph.modules().len();
   let mut sync_modules = LinkedHashSet::new();
   let mut async_modules = LinkedHashSet::new();
   for module_identifier in modules {
@@ -67,6 +69,22 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
   set_sync_modules(compilation, sync_modules, &mut mutations);
   set_async_modules(compilation, async_modules, &mut mutations);
+
+  if compilation
+    .incremental
+    .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
+    && let Some(mutations) = &mutations
+  {
+    let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules_len, total_modules_len,
+    ));
+    logger.log(format!(
+      "{} modules are updated by set_async",
+      mutations.len()
+    ));
+  }
 
   if let Some(compilation_mutations) = compilation.incremental.mutations_write()
     && let Some(mutations) = mutations
@@ -90,6 +108,7 @@ fn set_sync_modules(
       .get_outgoing_connections(&module)
       .iter()
       .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
+      .filter(|&out| &module != out)
       .any(|module| ModuleGraph::is_async(compilation, module))
     {
       // We can't safely reset is_async to false if there are any outgoing module is async

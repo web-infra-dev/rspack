@@ -47,6 +47,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 pub struct RawEnvironment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
+  pub node_prefix_for_core_modules: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -54,6 +55,7 @@ impl From<RawEnvironment> for Environment {
     Self {
       r#const: value.r#const,
       arrow_function: value.arrow_function,
+      node_prefix_for_core_modules: value.node_prefix_for_core_modules,
     }
   }
 }
@@ -76,7 +78,6 @@ pub struct RawOutputOptions {
   pub cross_origin_loading: RawCrossOriginLoading,
   pub css_filename: JsFilename,
   pub css_chunk_filename: JsFilename,
-  pub css_head_data_compression: bool,
   pub hot_update_main_filename: String,
   pub hot_update_chunk_filename: String,
   pub hot_update_global: String,
@@ -135,7 +136,6 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       cross_origin_loading: value.cross_origin_loading.into(),
       css_filename: value.css_filename.into(),
       css_chunk_filename: value.css_chunk_filename.into(),
-      css_head_data_compression: value.css_head_data_compression,
       hot_update_main_filename: value.hot_update_main_filename.into(),
       hot_update_chunk_filename: value.hot_update_chunk_filename.into(),
       hot_update_global: value.hot_update_global,

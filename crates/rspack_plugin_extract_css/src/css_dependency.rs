@@ -1,10 +1,9 @@
-use std::path::PathBuf;
-
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
   DependencyCategory, DependencyId, DependencyRange, ModuleDependency, ModuleGraph,
 };
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet;
 
 use crate::css_module::DEPENDENCY_TYPE;
@@ -29,10 +28,10 @@ pub struct CssDependency {
   range: DependencyRange,
   resource_identifier: String,
   pub(crate) cacheable: bool,
-  pub(crate) file_dependencies: FxHashSet<PathBuf>,
-  pub(crate) context_dependencies: FxHashSet<PathBuf>,
-  pub(crate) missing_dependencies: FxHashSet<PathBuf>,
-  pub(crate) build_dependencies: FxHashSet<PathBuf>,
+  pub(crate) file_dependencies: FxHashSet<ArcPath>,
+  pub(crate) context_dependencies: FxHashSet<ArcPath>,
+  pub(crate) missing_dependencies: FxHashSet<ArcPath>,
+  pub(crate) build_dependencies: FxHashSet<ArcPath>,
 }
 
 impl CssDependency {
@@ -48,10 +47,10 @@ impl CssDependency {
     identifier_index: u32,
     range: DependencyRange,
     cacheable: bool,
-    file_dependencies: FxHashSet<PathBuf>,
-    context_dependencies: FxHashSet<PathBuf>,
-    missing_dependencies: FxHashSet<PathBuf>,
-    build_dependencies: FxHashSet<PathBuf>,
+    file_dependencies: FxHashSet<ArcPath>,
+    context_dependencies: FxHashSet<ArcPath>,
+    missing_dependencies: FxHashSet<ArcPath>,
+    build_dependencies: FxHashSet<ArcPath>,
   ) -> Self {
     let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index);
     Self {

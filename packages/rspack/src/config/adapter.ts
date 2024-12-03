@@ -13,6 +13,7 @@ import {
 	type RawCssModuleGeneratorOptions,
 	type RawCssModuleParserOptions,
 	type RawCssParserOptions,
+	type RawExperiments,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawIncremental,
@@ -56,6 +57,7 @@ import type {
 	CssAutoGeneratorOptions,
 	CssGeneratorOptions,
 	CssParserOptions,
+	ExperimentCacheOptions,
 	GeneratorOptionsByModuleType,
 	Incremental,
 	JavascriptParserOptions,
@@ -121,6 +123,7 @@ export const getRawOptions = (
 		node: getRawNode(options.node),
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		profile: options.profile!,
+		amd: options.amd,
 		// SAFETY: applied default value in `applyRspackOptionsDefaults`.
 		bail: options.bail!,
 		__references: {}
@@ -224,7 +227,6 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
-		cssHeadDataCompression: output.cssHeadDataCompression!,
 		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
 		hotUpdateMainFilename: output.hotUpdateMainFilename!,
 		hotUpdateGlobal: output.hotUpdateGlobal!,
@@ -883,7 +885,8 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
-	const { topLevelAwait, layers, incremental, rspackFuture } = experiments;
+	const { topLevelAwait, layers, incremental, rspackFuture, cache } =
+		experiments;
 	assert(
 		!isNil(topLevelAwait) &&
 			!isNil(rspackFuture) &&
@@ -894,9 +897,32 @@ function getRawExperiments(
 	return {
 		layers,
 		topLevelAwait,
+		cache: getRawExperimentCache(cache),
 		incremental: getRawIncremental(incremental),
 		rspackFuture: getRawRspackFutureOptions(rspackFuture)
 	};
+}
+
+function getRawExperimentCache(
+	cache?: ExperimentCacheOptions
+): RawExperiments["cache"] {
+	if (cache === undefined) {
+		throw new Error("experiment cache can not be undefined");
+	}
+	if (typeof cache === "boolean") {
+		return {
+			type: cache ? "memory" : "disable"
+		};
+	}
+	if (cache.type === "persistent") {
+		const { type, snapshot, storage } = cache;
+		return {
+			type,
+			snapshot,
+			storage: [storage]
+		};
+	}
+	return cache;
 }
 
 function getRawIncremental(

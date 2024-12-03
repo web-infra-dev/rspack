@@ -14,7 +14,7 @@ var applyHandler = function (options) {
 			}
 			while (newTags.length) {
 				var info = newTags.pop();
-				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[1], info[0]);
+				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[0]);
 				chunkModuleIds.forEach(function(id) {
 				    moduleIds.push(id)
 				});

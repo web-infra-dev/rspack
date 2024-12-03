@@ -1261,6 +1261,25 @@ const listenOptions = z.object({
 	ipv6Only: z.boolean().optional()
 });
 
+const experimentCacheOptions = z
+	.object({
+		type: z.enum(["memory"])
+	})
+	.or(
+		z.object({
+			type: z.enum(["persistent"]),
+			snapshot: z.strictObject({
+				immutablePaths: z.string().or(z.instanceof(RegExp)).array(),
+				unmanagedPaths: z.string().or(z.instanceof(RegExp)).array(),
+				managedPaths: z.string().or(z.instanceof(RegExp)).array()
+			}),
+			storage: z.strictObject({
+				type: z.enum(["filesystem"]),
+				directory: z.string()
+			})
+		})
+	);
+
 const lazyCompilationOptions = z.object({
 	backend: z
 		.object({
@@ -1293,6 +1312,7 @@ const incremental = z.strictObject({
 }) satisfies z.ZodType<t.Incremental>;
 
 const experiments = z.strictObject({
+	cache: z.boolean().optional().or(experimentCacheOptions),
 	lazyCompilation: z.boolean().optional().or(lazyCompilationOptions),
 	asyncWebAssembly: z.boolean().optional(),
 	outputModule: z.boolean().optional(),
@@ -1344,6 +1364,10 @@ const ignoreWarnings = z
 const profile = z.boolean() satisfies z.ZodType<t.Profile>;
 //#endregion
 
+//#region Amd
+const amd = z.literal(false).or(z.record(z.any())) satisfies z.ZodType<t.Amd>;
+//#endregion
+
 //#region Bail
 const bail = z.boolean() satisfies z.ZodType<t.Bail>;
 //#endregion
@@ -1388,6 +1412,7 @@ export const rspackOptions = z.strictObject({
 	devServer: devServer.optional(),
 	module: moduleOptions.optional(),
 	profile: profile.optional(),
+	amd: amd.optional(),
 	bail: bail.optional(),
 	performance: performance.optional()
 }) satisfies z.ZodType<t.RspackOptions>;

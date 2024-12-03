@@ -1,9 +1,10 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
+use rspack_paths::ArcPath;
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -27,7 +28,6 @@ impl Compiler {
     let all_old_runtime = old
       .compilation
       .get_chunk_graph_entries()
-      .into_iter()
       .filter_map(|entry_ukey| old.compilation.chunk_by_ukey.get(&entry_ukey))
       .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect();
@@ -49,18 +49,18 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files = HashSet::default();
-      modified_files.extend(changed_files.iter().map(PathBuf::from));
-      let mut removed_files = HashSet::default();
-      removed_files.extend(deleted_files.iter().map(PathBuf::from));
+      let mut modified_files: HashSet<ArcPath> = HashSet::default();
+      modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
+      let mut removed_files: HashSet<ArcPath> = HashSet::default();
+      removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
       all_files.extend(removed_files.clone());
 
       self.old_cache.end_idle();
-      self
-        .old_cache
-        .set_modified_files(all_files.into_iter().collect());
+      // self
+      //   .old_cache
+      //   .set_modified_files(all_files.into_iter().collect());
 
       self.plugin_driver.clear_cache();
 
@@ -71,6 +71,7 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         Some(records),
+        self.cache.clone(),
         self.old_cache.clone(),
         Some(ModuleExecutor::default()),
         modified_files,
@@ -80,6 +81,12 @@ impl Compiler {
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
+      // TODO: remove this
+      if let Some(mutations) = new_compilation.incremental.mutations_write()
+        && let Some(old_mutations) = self.compilation.incremental.mutations_write()
+      {
+        mutations.swap_modules_with_chunk_graph_cache(old_mutations);
+      }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MAKE)
@@ -144,17 +151,26 @@ impl Compiler {
         new_compilation.chunk_hashes_results =
           std::mem::take(&mut self.compilation.chunk_hashes_results);
       }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
+      {
+        new_compilation.chunk_render_results =
+          std::mem::take(&mut self.compilation.chunk_render_results);
+      }
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
+      self.cache.before_compile(&mut self.compilation);
       self.compile().await?;
 
       self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
+    self.cache.after_compile(&self.compilation);
 
     Ok(())
   }

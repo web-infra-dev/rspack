@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_fs::AsyncFileSystem;
+use rspack_fs::FileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
@@ -100,11 +100,11 @@ impl Lockfile {
 #[async_trait]
 #[allow(dead_code)]
 pub trait LockfileAsync {
-  async fn read_from_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
+  async fn read_from_file_async<P: AsRef<Path> + Send, F: FileSystem + Send + Sync + ?Sized>(
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile>;
-  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
+  async fn write_to_file_async<P: AsRef<Path> + Send, F: FileSystem + Send + Sync + ?Sized>(
     &self,
     path: P,
     filesystem: &F,
@@ -113,17 +113,14 @@ pub trait LockfileAsync {
 
 #[async_trait]
 impl LockfileAsync for Lockfile {
-  async fn read_from_file_async<
-    P: AsRef<Path> + Send,
-    F: AsyncFileSystem + Send + Sync + ?Sized,
-  >(
+  async fn read_from_file_async<P: AsRef<Path> + Send, F: FileSystem + Send + Sync + ?Sized>(
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile> {
     let utf8_path = Utf8Path::from_path(path.as_ref())
       .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
     let content = filesystem
-      .read(utf8_path)
+      .async_read(utf8_path)
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, format!("{:?}", e)))?;
     let content_str =
@@ -131,7 +128,7 @@ impl LockfileAsync for Lockfile {
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
   }
 
-  async fn write_to_file_async<P: AsRef<Path> + Send, F: AsyncFileSystem + Send + Sync + ?Sized>(
+  async fn write_to_file_async<P: AsRef<Path> + Send, F: FileSystem + ?Sized>(
     &self,
     path: P,
     filesystem: &F,
@@ -153,13 +150,13 @@ impl LockfileAsync for Lockfile {
 pub struct LockfileCache {
   lockfile: Arc<Mutex<Lockfile>>,
   lockfile_path: Option<PathBuf>,
-  filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+  filesystem: Arc<dyn FileSystem + Send + Sync>,
 }
 
 impl LockfileCache {
   pub fn new(
     lockfile_path: Option<PathBuf>,
-    filesystem: Arc<dyn AsyncFileSystem + Send + Sync>,
+    filesystem: Arc<dyn FileSystem + Send + Sync>,
   ) -> Self {
     LockfileCache {
       lockfile: Arc::new(Mutex::new(Lockfile::new())),

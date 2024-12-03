@@ -1,12 +1,13 @@
 use std::hash::Hash;
 
+use rspack_collections::IdentifierMap;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
   CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -249,7 +250,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
                   external_module.request.clone(),
                   external_module.external_type.clone(),
                   import_dependency.range.clone(),
-                  None,
+                  import_dependency.get_attributes().cloned(),
                 );
 
                 deps_to_replace.push((
@@ -287,9 +288,18 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let mut deps_to_replace = Vec::new();
+    let mut external_connections = Vec::new();
     let module = mg.module_by_identifier(module_id).expect("should have mgm");
     let connections = mg.get_outgoing_connections(module_id);
     let dep_ids = module.get_dependencies();
+
+    let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();
+    connections.iter().for_each(|connection| {
+      module_id_to_connections
+        .entry(*connection.module_identifier())
+        .or_default()
+        .push(connection.dependency_id);
+    });
 
     for dep_id in dep_ids {
       if let Some(export_dep) = mg.dependency_by_id(dep_id) {
@@ -310,6 +320,34 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
 
               if let Some(external_module) = import_module.as_external_module() {
                 if reexport_dep.request == external_module.user_request {
+                  if let Some(connections) =
+                    module_id_to_connections.get(reexport_connection.module_identifier())
+                  {
+                    let non_reexport_star = connections
+                      .iter()
+                      .filter(|c| {
+                        if let Some(dep) = mg.dependency_by_id(c) {
+                          if let Some(dep) = dep
+                            .as_any()
+                            .downcast_ref::<ESMExportImportedSpecifierDependency>()
+                          {
+                            return !self.reexport_star_from_external_module(dep, &mg);
+                          }
+                        }
+
+                        false
+                      })
+                      .count();
+
+                    // If an module's ESMExportImportedSpecifierDependency are all star reexports, it's
+                    // safe to remove the connection to clean up.
+                    if non_reexport_star == 0 {
+                      for c in connections.iter() {
+                        external_connections.push(*c);
+                      }
+                    }
+                  }
+
                   let new_dep = ModernModuleReexportStarExternalDependency::new(
                     reexport_dep.request.as_str().into(),
                     external_module.request.clone(),
@@ -334,6 +372,15 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       importer.remove_dependency_id(*dep);
       importer.add_dependency_id(*new_dep.id());
       mg.add_dependency(boxed_dep);
+    }
+
+    for connection in external_connections.iter() {
+      let importer = mg
+        .module_by_identifier_mut(module_id)
+        .expect("should have module");
+
+      importer.remove_dependency_id(*connection);
+      mg.revoke_connection(connection, true);
     }
   }
 

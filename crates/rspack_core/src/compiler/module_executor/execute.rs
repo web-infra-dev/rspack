@@ -1,8 +1,8 @@
-use std::path::PathBuf;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::oneshot::Sender;
@@ -32,10 +32,10 @@ pub type ExecuteModuleId = u32;
 pub struct ExecuteModuleResult {
   pub error: Option<String>,
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: HashSet<ArcPath>,
+  pub context_dependencies: HashSet<ArcPath>,
+  pub missing_dependencies: HashSet<ArcPath>,
+  pub build_dependencies: HashSet<ArcPath>,
   pub code_generated_modules: IdentifierSet,
   pub assets: HashSet<String>,
   pub id: ExecuteModuleId,
@@ -60,7 +60,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     TaskType::Sync
   }
 
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let Self {
       entry_dep_id,
       layer,
@@ -167,11 +167,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
     compilation
       .process_chunks_runtime_requirements(
         UkeySet::from_iter([chunk_ukey]),
+        UkeySet::from_iter([chunk_ukey]),
         compilation.plugin_driver.clone(),
       )
-      .await?;
-    compilation
-      .process_entries_runtime_requirements(once(chunk_ukey), compilation.plugin_driver.clone())
       .await?;
     let runtime_modules = compilation
       .chunk_graph

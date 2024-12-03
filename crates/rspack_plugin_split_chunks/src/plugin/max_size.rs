@@ -6,7 +6,8 @@ use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::incremental::Mutation;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
+  compare_modules_by_identifier, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
+  DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -83,9 +84,11 @@ fn deterministic_grouping_for_modules(
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
   let module_graph = compilation.get_module_graph();
-  let items = compilation
+  let mut items = compilation
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
+
+  items.sort_unstable_by(|a, b| compare_modules_by_identifier(a, b));
 
   let context = compilation.options.context.as_ref();
 
@@ -178,11 +181,10 @@ fn deterministic_grouping_for_modules(
         group.key = group.nodes.first().map(|n| n.key.clone());
         results.push(group);
         continue;
-      }
-
-      if left <= right {
+      } else {
         let right_nodes = group.nodes.split_off(left);
         let left_nodes = group.nodes;
+
         queue.push(Group::new(right_nodes, None));
         queue.push(Group::new(left_nodes, None));
       }

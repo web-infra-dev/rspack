@@ -48,7 +48,7 @@ impl<T, A, O, D> DeserializeWith<A::Archived, T, D> for AsInner<A>
 where
   T: AsInnerConverter<Inner = O>,
   A: ArchiveWith<O> + DeserializeWith<A::Archived, O, D>,
-  D: ?Sized + Fallible,
+  D: Fallible + ?Sized,
 {
   fn deserialize_with(field: &A::Archived, d: &mut D) -> Result<T, D::Error> {
     Ok(T::from_inner(A::deserialize_with(field, d)?))

@@ -13,9 +13,10 @@ module.exports = {
 
 		@@ ... @@
 		-     "asyncWebAssembly": false,
+		+     "asyncWebAssembly": true,
+		@@ ... @@
 		-     "css": undefined,
 		-     "futureDefaults": false,
-		+     "asyncWebAssembly": true,
 		+     "css": true,
 		+     "futureDefaults": true,
 		@@ ... @@

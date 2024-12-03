@@ -1,6 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::Diagnostic;
+use rspack_paths::ArcPath;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -33,7 +34,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Async
   }
-  async fn async_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
+  async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     if let Some(current_profile) = &self.current_profile {
       current_profile.mark_factory_start();
     }
@@ -161,9 +162,9 @@ pub struct FactorizeResultTask {
   pub current_profile: Option<Box<ModuleProfile>>,
   pub exports_info_related: ExportsInfoRelated,
 
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: HashSet<ArcPath>,
+  pub context_dependencies: HashSet<ArcPath>,
+  pub missing_dependencies: HashSet<ArcPath>,
   pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -183,17 +184,17 @@ impl FactorizeResultTask {
     self
   }
 
-  fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+  fn with_file_dependencies(mut self, files: impl IntoIterator<Item = ArcPath>) -> Self {
     self.file_dependencies = files.into_iter().collect();
     self
   }
 
-  fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+  fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = ArcPath>) -> Self {
     self.context_dependencies = contexts.into_iter().collect();
     self
   }
 
-  fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+  fn with_missing_dependencies(mut self, missing: impl IntoIterator<Item = ArcPath>) -> Self {
     self.missing_dependencies = missing.into_iter().collect();
     self
   }
@@ -204,7 +205,7 @@ impl Task<MakeTaskContext> for FactorizeResultTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Sync
   }
-  async fn sync_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
+  async fn main_run(self: Box<Self>, context: &mut MakeTaskContext) -> TaskResult<MakeTaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,

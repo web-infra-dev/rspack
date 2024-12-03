@@ -7,16 +7,10 @@ const fs = __non_webpack_require__("fs");
 it("should have correct value", async () => {
   expect(globalThis.case3).toBe(parseInt(WATCH_STEP, 10))
   const content = await fs.promises.readFile(__filename, "utf-8")
-  switch (WATCH_STEP) {
-    case "0":
-    case "1":
-    case "2": {
-      expect(isAsyncModule(content, "./case3/index.js"))
-      expect(isAsyncModule(content, "./case3/a.js"))
-      expect(isAsyncModule(content, "./case3/b.js"))
-      expect(isAsyncModule(content, "./case3/c.js"))
-      expect(hasAsyncModuleRuntime(content))
-      break;
-    }
-  }
+  const result = WATCH_STEP === "1";
+  expect(isAsyncModule(content, "./case3/index.js")).toBe(true)
+  expect(isAsyncModule(content, "./case3/a.js")).toBe(true)
+  expect(isAsyncModule(content, "./case3/b.js")).toBe(result)
+  expect(isAsyncModule(content, "./case3/c.js")).toBe(true)
+  expect(hasAsyncModuleRuntime(content)).toBe(true)
 })

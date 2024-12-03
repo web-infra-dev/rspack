@@ -69,12 +69,7 @@ pub fn cacheable(
   args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  let args = syn::parse_macro_input!(args as cacheable::CacheableArgs);
-  if args.with.is_some() {
-    cacheable::impl_cacheable_with(tokens, args)
-  } else {
-    cacheable::impl_cacheable(tokens, args)
-  }
+  cacheable::cacheable(args, tokens)
 }
 
 #[proc_macro_attribute]

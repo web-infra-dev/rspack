@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type {
 	AssetModuleFilename,
@@ -32,6 +33,7 @@ import type {
 	EntryDescription,
 	EntryStatic,
 	Environment,
+	ExperimentCacheOptions,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
@@ -114,6 +116,13 @@ export const getNormalizedRspackOptions = (
 						)(config.entry)
 					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
+			if ("cssHeadDataCompression" in output) {
+				util.deprecate(
+					() => {},
+					"cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future"
+				)();
+			}
+
 			const { library } = output;
 			const libraryAsName = library;
 			const libraryBase =
@@ -137,7 +146,6 @@ export const getNormalizedRspackOptions = (
 				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
-				cssHeadDataCompression: output.cssHeadDataCompression,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				hotUpdateMainFilename: output.hotUpdateMainFilename,
@@ -304,6 +312,7 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
+			cache: experiments.cache,
 			lazyCompilation: optionalNestedConfig(
 				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
@@ -331,6 +340,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
+		amd: config.amd ? JSON.stringify(config.amd) : undefined,
 		bail: config.bail
 	};
 };
@@ -521,7 +531,6 @@ export interface OutputNormalized {
 	environment?: Environment;
 	charset?: boolean;
 	chunkLoadTimeout?: number;
-	cssHeadDataCompression?: boolean;
 	compareBeforeEmit?: boolean;
 }
 
@@ -534,6 +543,7 @@ export interface ModuleOptionsNormalized {
 }
 
 export interface ExperimentsNormalized {
+	cache?: ExperimentCacheOptions;
 	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
@@ -586,5 +596,6 @@ export interface RspackOptionsNormalized {
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	performance?: Performance;
 	profile?: Profile;
+	amd?: string;
 	bail?: Bail;
 }

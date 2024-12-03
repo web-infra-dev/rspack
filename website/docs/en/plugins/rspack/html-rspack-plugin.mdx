@@ -151,6 +151,7 @@ type HtmlRspackPluginOptions = {
   scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
   chunks?: string[];
   excludeChunks?: string[];
+  chunksSortMode?: 'auto' | 'manual';
   sri?: 'sha256' | 'sha384' | 'sha512';
   minify?: boolean;
   favicon?: string;
@@ -245,6 +246,13 @@ type HtmlRspackPluginOptions = {
       type: '`string[]|undefined`',
       default: 'undefined',
       description: 'Allows you to skip some chunks.',
+    },
+    {
+      name: '`chunksSortMode`',
+      type: "`'auto'|'manual'`",
+      default: "'auto'",
+      description:
+        'Allows to control how chunks should be sorted before they are included to the HTML.',
     },
     {
       name: '`sri`',

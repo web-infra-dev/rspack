@@ -3,6 +3,7 @@ mod entries;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::path::Path;
 use std::ptr::NonNull;
 
 use dependencies::JsDependencies;
@@ -25,13 +26,13 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsCompatSource;
+use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ToJsCompatSource;
-use crate::{
-  chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsPathData, JsStats,
-};
+use crate::ToJsCompatSource as _;
+use crate::{chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
@@ -71,10 +72,11 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
+    env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
     asset_info_update_or_function: Option<
@@ -89,8 +91,8 @@ impl JsCompilation {
           let new_source = match new_source_or_function {
             Either::A(new_source) => new_source.into(),
             Either::B(new_source_fn) => {
-              let js_compat_source: JsCompatSource =
-                new_source_fn.call(original_source.to_js_compat_source()?)?;
+              let js_compat_source =
+                new_source_fn.call(original_source.to_js_compat_source(env)?)?;
               js_compat_source.into()
             }
           };
@@ -146,13 +148,17 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
+  pub fn get_asset_source<'a>(
+    &self,
+    env: &'a Env,
+    name: String,
+  ) -> Result<Option<JsCompatSource<'a>>> {
     let compilation = self.as_ref()?;
 
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
+      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
       .transpose()
   }
 
@@ -180,7 +186,7 @@ impl JsCompilation {
 
     Ok(
       compilation
-        .built_modules
+        .built_modules()
         .iter()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
@@ -532,9 +538,10 @@ impl JsCompilation {
   ) -> napi::Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let path_and_asset_info =
-      compilation.get_path_with_info(&filename.into(), data.to_path_data())?;
-    Ok(path_and_asset_info.into())
+    let mut asset_info = AssetInfo::default();
+    let path =
+      compilation.get_path_with_info(&filename.into(), data.to_path_data(), &mut asset_info)?;
+    Ok((path, asset_info).into())
   }
 
   #[napi]
@@ -543,7 +550,7 @@ impl JsCompilation {
 
     compilation
       .file_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -553,7 +560,7 @@ impl JsCompilation {
 
     compilation
       .context_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -563,7 +570,7 @@ impl JsCompilation {
 
     compilation
       .missing_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -573,7 +580,7 @@ impl JsCompilation {
 
     compilation
       .build_dependencies
-      .extend(deps.into_iter().map(Into::into));
+      .extend(deps.into_iter().map(|s| Path::new(&s).into()));
     Ok(())
   }
 
@@ -693,6 +700,12 @@ impl JsCompilation {
         Box::new(RuntimeModuleFromJs::from(runtime_module)),
       )
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
+  }
+
+  #[napi(getter)]
+  pub fn module_graph(&self) -> napi::Result<JsModuleGraph> {
+    let compilation = self.as_ref()?;
+    Ok(JsModuleGraph::new(compilation))
   }
 }
 
