@@ -39,7 +39,7 @@ export class DiagnosticProcessor<
 				errors: true,
 				warnings: true
 			})
-		).replace("\\", "/"); // stats has some win32 paths that path-serializer can not handle
+		).replaceAll("\\", "/"); // stats has some win32 paths that path-serializer can not handle
 
 		if (typeof this._diagnosticOptions.format === "function") {
 			output = this._diagnosticOptions.format(output);
