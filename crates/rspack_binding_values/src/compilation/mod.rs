@@ -650,10 +650,6 @@ impl JsCompilation {
         )
         .await;
 
-      if let Some(err) = res.error {
-        return Err(napi::Error::from_reason(err));
-      }
-
       let js_result = JsExecuteModuleResult {
         cacheable: res.cacheable,
         file_dependencies: res

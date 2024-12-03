@@ -439,7 +439,7 @@ export async function runLoaders(
 								}
 
 								if (res.error) {
-									reject(new Error(err));
+									reject(new Error(res.error));
 								} else {
 									resolve(
 										compiler.__internal__getModuleExecutionResult(res.id)
