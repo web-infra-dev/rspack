@@ -1,8 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::library::JsLibraryOptions;
-use rspack_binding_values::{JsFilename, RawCleanOptions};
-use rspack_core::{CrossOriginLoading, Environment, PathInfo};
+use rspack_binding_values::{JsCleanOptions, JsFilename};
+use rspack_core::{CleanOptions, CrossOriginLoading, Environment, PathInfo};
 use rspack_core::{OutputOptions, TrustedTypes};
 
 #[derive(Debug)]
@@ -66,8 +66,7 @@ pub struct RawOutputOptions {
   pub path: String,
   #[napi(ts_type = "boolean | \"verbose\"")]
   pub pathinfo: Either<bool, String>,
-  #[napi(ts_type = "boolean | JsCleanOptions")]
-  pub clean: RawCleanOptions,
+  pub clean: Either<bool, JsCleanOptions>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
@@ -121,10 +120,15 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       Either::B(s) => PathInfo::String(s),
     };
 
+    let clean = match value.clean {
+      Either::A(b) => CleanOptions::CleanAll(b),
+      Either::B(cop) => cop.to_clean_options(),
+    };
+
     Ok(OutputOptions {
       path: value.path.into(),
       pathinfo,
-      clean: value.clean.to_clean_options(),
+      clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.as_str().into(),

@@ -1,33 +1,6 @@
-use napi::bindgen_prelude::FromNapiValue;
-use napi::Either;
 use napi_derive::napi;
 use rspack_core::CleanOptions;
 use rspack_napi::napi;
-
-/// File clean options
-///
-/// A file filter is an option whether the file should be kept after clean up
-///
-/// TS Type:
-///
-/// ```typescript
-/// // in the future, we should support the following types, just like webpack
-/// // type CleanOptions = boolean | { dry?: boolean, keep?: RegExp | string | ((filename: string) => boolean) }
-///
-/// type CleanOptions = boolean | { keep?: string }
-/// ```
-#[derive(Debug)]
-pub struct RawCleanOptions(Either<bool, JsCleanOptions>);
-
-impl FromNapiValue for RawCleanOptions {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let val = Either::from_napi_value(env, napi_val);
-    Ok(Self(val?))
-  }
-}
 
 /// File clean options
 ///
@@ -53,15 +26,6 @@ impl JsCleanOptions {
       CleanOptions::from(p)
     } else {
       CleanOptions::CleanAll(false)
-    }
-  }
-}
-
-impl RawCleanOptions {
-  pub fn to_clean_options(&self) -> CleanOptions {
-    match &self.0 {
-      Either::A(b) => CleanOptions::CleanAll(*b),
-      Either::B(f) => f.to_clean_options(),
     }
   }
 }
