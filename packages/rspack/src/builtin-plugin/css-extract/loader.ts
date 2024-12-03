@@ -103,6 +103,7 @@ export const pitch: LoaderDefinition["pitch"] = function (request, _, data) {
 	const callback = this.async();
 	const filepath = this.resourcePath;
 	const parseMeta = this.__internal__parseMeta;
+	this.addDependency(filepath);
 
 	let { publicPath } = this._compilation!.outputOptions;
 
