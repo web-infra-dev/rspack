@@ -23,6 +23,18 @@ inputs:
     default: false
     required: false
     type: boolean
+  tos-access-key:
+    required: false
+    type: string
+  tos-secret-key:
+    required: false
+    type: string
+  tos-bucket-name:
+    required: false
+    type: string
+  tos-region:
+    required: false
+    type: string
 
 runs:
   using: composite
@@ -73,10 +85,10 @@ runs:
         restore-keys: |
           node-cache-${{ runner.os }}-pnpm-
       env:
-        ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
-        SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
-        BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
-        REGION: ${{ vars.TOS_REGION }}
+        ACCESS_KEY: ${{ inputs.tos-access-key }}
+        SECRET_KEY: ${{ inputs.tos-secret-key }}
+        BUCKET_NAME: ${{ inputs.tos-bucket-name }}
+        REGION: ${{ inputs.tos-region }}
 
     - name: Install dependencies
       shell: bash

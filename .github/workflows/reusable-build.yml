@@ -98,6 +98,10 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           save-if: ${{ github.ref_name == 'main' }}
+          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
+          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
+          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
+          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
@@ -257,6 +261,10 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           node-version: 20
+          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
+          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
+          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
+          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Run e2e
         uses: ./.github/actions/docker-run
@@ -317,6 +325,10 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           node-version: ${{ matrix.node }}
+          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
+          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
+          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
+          tos-region: ${{ vars.TOS_REGION }}
 
       ### x86_64-unknown-linux-gnu
 
