@@ -1,0 +1,19 @@
+[package]
+name = "release-check"
+description = "check whether crates missing field for publish"
+version = "0.1.0"
+edition = "2021"
+authors.workspace = true
+categories.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+toml = { version = "0.8.9"}
+miette             = { version = "5", features = ["fancy"] }
+thiserror          = "1"
+
+[lints]
+workspace = true
