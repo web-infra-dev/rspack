@@ -2,13 +2,13 @@ mod pack;
 
 use std::sync::Arc;
 
-pub use pack::{PackFs, PackMemoryFs, PackNativeFs, PackOptions, PackStorage, PackStorageOptions};
+pub use pack::{PackFs, PackMemoryFs, PackNativeFs, PackStorage, PackStorageOptions};
 use rspack_error::Result;
 use tokio::sync::oneshot::Receiver;
 
-pub type StorageItemKey = Vec<u8>;
-pub type StorageItemValue = Vec<u8>;
-pub type StorageContent = Vec<(Arc<StorageItemKey>, Arc<StorageItemValue>)>;
+type StorageItemKey = Vec<u8>;
+type StorageItemValue = Vec<u8>;
+type StorageContent = Vec<(Arc<StorageItemKey>, Arc<StorageItemValue>)>;
 
 #[async_trait::async_trait]
 pub trait Storage: std::fmt::Debug + Sync + Send {

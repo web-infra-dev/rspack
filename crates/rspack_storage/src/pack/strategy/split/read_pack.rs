@@ -5,7 +5,10 @@ use rspack_error::Result;
 use rspack_paths::Utf8Path;
 
 use super::SplitPackStrategy;
-use crate::pack::{PackContents, PackKeys, PackReadStrategy};
+use crate::pack::{
+  data::{PackContents, PackKeys},
+  strategy::PackReadStrategy,
+};
 
 #[async_trait]
 impl PackReadStrategy for SplitPackStrategy {
@@ -64,18 +67,15 @@ impl PackReadStrategy for SplitPackStrategy {
 
 #[cfg(test)]
 mod tests {
-
   use std::sync::Arc;
 
   use rspack_error::Result;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::{
-    pack::{
-      strategy::split::util::test_pack_utils::mock_pack_file, PackReadStrategy, SplitPackStrategy,
-    },
-    PackFs, PackMemoryFs,
+  use crate::pack::{
+    fs::{PackFs, PackMemoryFs},
+    strategy::{split::util::test_pack_utils::mock_pack_file, PackReadStrategy, SplitPackStrategy},
   };
 
   async fn test_read_keys_non_exists(strategy: &SplitPackStrategy) -> Result<()> {

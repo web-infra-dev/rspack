@@ -15,10 +15,28 @@ pub enum PackKeysState {
 }
 
 impl PackKeysState {
+  pub fn loaded(&self) -> bool {
+    matches!(self, Self::Value(_))
+  }
+  pub fn set_value(&mut self, value: PackKeys) {
+    *self = PackKeysState::Value(value);
+  }
+  pub fn get_value(&self) -> Option<&PackKeys> {
+    match self {
+      PackKeysState::Value(v) => Some(v),
+      PackKeysState::Pending => None,
+    }
+  }
   pub fn expect_value(&self) -> &PackKeys {
     match self {
       PackKeysState::Value(v) => v,
       PackKeysState::Pending => panic!("pack key is not ready"),
+    }
+  }
+  pub fn take_value(&mut self) -> Option<PackKeys> {
+    match self {
+      PackKeysState::Value(v) => Some(std::mem::take(&mut *v)),
+      _ => None,
     }
   }
 }
@@ -31,10 +49,28 @@ pub enum PackContentsState {
 }
 
 impl PackContentsState {
+  pub fn loaded(&self) -> bool {
+    matches!(self, Self::Value(_))
+  }
+  pub fn set_value(&mut self, value: PackContents) {
+    *self = PackContentsState::Value(value);
+  }
+  pub fn get_value(&self) -> Option<&PackContents> {
+    match self {
+      PackContentsState::Value(v) => Some(v),
+      PackContentsState::Pending => None,
+    }
+  }
   pub fn expect_value(&self) -> &PackContents {
     match self {
       PackContentsState::Value(v) => v,
       PackContentsState::Pending => panic!("pack content is not ready"),
+    }
+  }
+  pub fn take_value(&mut self) -> Option<PackContents> {
+    match self {
+      PackContentsState::Value(v) => Some(std::mem::take(&mut *v)),
+      _ => None,
     }
   }
 }

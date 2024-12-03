@@ -8,19 +8,20 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::pack::{
-  Pack, PackContents, PackContentsState, PackFileMeta, PackFs, PackKeys, PackKeysState,
-  PackReadStrategy, PackScope, ScopeMeta, ScopeMetaState, ScopePacksState, ScopeReadStrategy,
+  data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
+  fs::PackFs,
+  strategy::{PackReadStrategy, ScopeReadStrategy},
 };
 
 #[async_trait]
 impl ScopeReadStrategy for SplitPackStrategy {
   async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
-    if matches!(scope.meta, ScopeMetaState::Pending) {
+    if !scope.meta.loaded() {
       let meta_path = ScopeMeta::get_path(&scope.path);
       let meta = read_scope_meta(&meta_path, self.fs.clone())
         .await?
         .unwrap_or_else(|| ScopeMeta::new(&scope.path, &scope.options));
-      scope.meta = ScopeMetaState::Value(meta);
+      scope.meta.set_value(meta);
     }
     Ok(())
   }
@@ -28,8 +29,8 @@ impl ScopeReadStrategy for SplitPackStrategy {
   async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_meta(scope).await?;
 
-    if matches!(scope.packs, ScopePacksState::Pending) {
-      scope.packs = ScopePacksState::Value(
+    if !scope.packs.loaded() {
+      scope.packs.set_value(
         scope
           .meta
           .expect_value()
@@ -59,7 +60,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
         .get_mut(result.bucket_id)
         .and_then(|packs| packs.get_mut(result.pack_pos))
       {
-        pack.keys = PackKeysState::Value(result.keys);
+        pack.keys.set_value(result.keys);
       }
     }
     Ok(())
@@ -75,7 +76,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
         .get_mut(result.bucket_id)
         .and_then(|packs| packs.get_mut(result.pack_pos))
       {
-        pack.contents = PackContentsState::Value(result.contents);
+        pack.contents.set_value(result.contents);
       }
     }
     Ok(())
@@ -160,7 +161,7 @@ struct ReadKeysResult {
 }
 
 fn read_keys_filter(pack: &Pack, _: &PackFileMeta) -> bool {
-  matches!(pack.keys, PackKeysState::Pending)
+  !pack.keys.loaded()
 }
 
 async fn read_keys(scope: &PackScope, strategy: &SplitPackStrategy) -> Result<Vec<ReadKeysResult>> {
@@ -202,8 +203,7 @@ struct ReadContentsResult {
 }
 
 fn read_contents_filter(pack: &Pack, _: &PackFileMeta) -> bool {
-  matches!(pack.keys, PackKeysState::Value(_))
-    && matches!(pack.contents, PackContentsState::Pending)
+  pack.keys.loaded() && !pack.contents.loaded()
 }
 
 async fn read_contents(
@@ -248,12 +248,13 @@ mod tests {
   use rspack_error::Result;
   use rspack_paths::{Utf8Path, Utf8PathBuf};
 
-  use crate::{
-    pack::{
-      strategy::split::util::test_pack_utils::{mock_meta_file, mock_pack_file},
-      PackFs, PackMemoryFs, PackScope, ScopeMeta, ScopeReadStrategy, SplitPackStrategy,
+  use crate::pack::{
+    data::{PackOptions, PackScope, ScopeMeta},
+    fs::{PackFs, PackMemoryFs},
+    strategy::{
+      split::util::test_pack_utils::{mock_meta_file, mock_pack_file},
+      ScopeReadStrategy, SplitPackStrategy,
     },
-    PackOptions,
   };
 
   async fn mock_scope(path: &Utf8Path, fs: Arc<dyn PackFs>, options: &PackOptions) -> Result<()> {

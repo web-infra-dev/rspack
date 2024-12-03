@@ -1,13 +1,13 @@
 use rspack_error::Result;
 
 mod native;
-pub use native::*;
+pub use native::PackNativeFs;
 
 mod memory;
-pub use memory::*;
+pub use memory::PackMemoryFs;
 
 mod error;
-pub use error::*;
+pub use error::{PackFsError, PackFsErrorOpt};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashSet as HashSet;
 

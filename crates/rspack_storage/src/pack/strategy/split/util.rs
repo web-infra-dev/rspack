@@ -5,9 +5,9 @@ use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
-use crate::{
-  pack::{Pack, PackContents, PackFileMeta, PackKeys, PackScope},
-  PackFs,
+use crate::pack::{
+  data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope},
+  fs::PackFs,
 };
 
 pub type PackIndexList = Vec<(usize, usize)>;
@@ -100,9 +100,10 @@ pub mod test_pack_utils {
   use rspack_paths::Utf8Path;
   use rustc_hash::FxHashMap as HashMap;
 
-  use crate::{
-    pack::{PackScope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
-    PackFs, PackOptions,
+  use crate::pack::{
+    data::{PackOptions, PackScope},
+    fs::PackFs,
+    strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
   };
 
   pub async fn mock_meta_file(

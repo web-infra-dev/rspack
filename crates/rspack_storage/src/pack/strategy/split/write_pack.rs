@@ -9,10 +9,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use super::SplitPackStrategy;
 use crate::{
   pack::{
-    strategy::split::util::get_name, Pack, PackContents, PackContentsState, PackFileMeta, PackKeys,
-    PackKeysState, PackWriteStrategy, ScopeUpdate, UpdatePacksResult,
+    data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions},
+    strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
+    ScopeUpdate,
   },
-  PackOptions, StorageItemKey, StorageItemValue,
+  StorageItemKey, StorageItemValue,
 };
 
 #[async_trait]
@@ -32,7 +33,7 @@ impl PackWriteStrategy for SplitPackStrategy {
       indexed_packs
         .iter()
         .fold(HashMap::default(), |mut acc, (pack_index, (_, pack))| {
-          let PackKeysState::Value(keys) = &pack.keys else {
+          let Some(keys) = pack.keys.get_value() else {
             return acc;
           };
           for key in keys {
@@ -73,17 +74,18 @@ impl PackWriteStrategy for SplitPackStrategy {
     let mut items = dirty_packs
       .iter()
       .fold(HashMap::default(), |mut acc, pack_index| {
-        let (_, old_pack) = indexed_packs
+        let (_, mut old_pack) = indexed_packs
           .remove(pack_index)
           .expect("should have bucket pack");
 
         removed_files.push(old_pack.path.clone());
 
-        let (PackKeysState::Value(keys), PackContentsState::Value(contents)) =
-          (old_pack.keys, old_pack.contents)
+        let (Some(keys), Some(contents)) =
+          (old_pack.keys.take_value(), old_pack.contents.take_value())
         else {
           return acc;
         };
+
         if keys.len() != contents.len() {
           return acc;
         }
@@ -191,8 +193,8 @@ fn create(
   fn create_pack(dir: &Utf8Path, keys: PackKeys, contents: PackContents) -> (PackFileMeta, Pack) {
     let file_name = get_name(&keys, &contents);
     let mut new_pack = Pack::new(dir.join(&file_name));
-    new_pack.keys = PackKeysState::Value(keys);
-    new_pack.contents = PackContentsState::Value(contents);
+    new_pack.keys.set_value(keys);
+    new_pack.contents.set_value(contents);
     (
       PackFileMeta {
         name: file_name,
@@ -263,22 +265,22 @@ mod tests {
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashMap as HashMap;
 
-  use crate::{
-    pack::{
-      strategy::split::util::test_pack_utils::{mock_updates, UpdateVal},
-      Pack, PackContentsState, PackFileMeta, PackKeysState, PackWriteStrategy, SplitPackStrategy,
-      UpdatePacksResult,
+  use crate::pack::{
+    data::{Pack, PackFileMeta, PackOptions},
+    fs::{PackFs, PackMemoryFs},
+    strategy::{
+      split::util::test_pack_utils::{mock_updates, UpdateVal},
+      PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
     },
-    PackFs, PackMemoryFs, PackOptions,
   };
 
   async fn test_write_pack(strategy: &SplitPackStrategy) -> Result<()> {
     let mut pack = Pack::new(Utf8PathBuf::from("/cache/test_write_pack/pack"));
-    pack.keys = PackKeysState::Value(vec![
+    pack.keys.set_value(vec![
       Arc::new("key_1".as_bytes().to_vec()),
       Arc::new("key_2".as_bytes().to_vec()),
     ]);
-    pack.contents = PackContentsState::Value(vec![
+    pack.contents.set_value(vec![
       Arc::new("val_1".as_bytes().to_vec()),
       Arc::new("val_2".as_bytes().to_vec()),
     ]);

@@ -4,7 +4,7 @@ use itertools::Itertools;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::{Pack, PackContentsState, PackKeysState, PackOptions, ScopeMeta};
+use super::{Pack, PackOptions, ScopeMeta};
 use crate::StorageContent;
 
 #[derive(Debug, Default)]
@@ -15,6 +15,12 @@ pub enum ScopeMetaState {
 }
 
 impl ScopeMetaState {
+  pub fn loaded(&self) -> bool {
+    matches!(self, Self::Value(_))
+  }
+  pub fn set_value(&mut self, value: ScopeMeta) {
+    *self = ScopeMetaState::Value(value);
+  }
   pub fn expect_value(&self) -> &ScopeMeta {
     match self {
       ScopeMetaState::Value(v) => v,
@@ -45,6 +51,12 @@ pub enum ScopePacksState {
 }
 
 impl ScopePacksState {
+  pub fn loaded(&self) -> bool {
+    matches!(self, Self::Value(_))
+  }
+  pub fn set_value(&mut self, value: ScopePacks) {
+    *self = ScopePacksState::Value(value);
+  }
   pub fn expect_value(&self) -> &ScopePacks {
     match self {
       ScopePacksState::Value(v) => v,
@@ -109,9 +121,7 @@ impl PackScope {
       .iter()
       .flatten()
       .filter_map(|pack| {
-        if let (PackKeysState::Value(keys), PackContentsState::Value(contents)) =
-          (&pack.keys, &pack.contents)
-        {
+        if let (Some(keys), Some(contents)) = (pack.keys.get_value(), pack.contents.get_value()) {
           if keys.len() == contents.len() {
             return Some(
               keys

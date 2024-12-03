@@ -9,8 +9,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{util::choose_bucket, SplitPackStrategy};
 use crate::pack::{
-  Pack, PackScope, PackWriteStrategy, ScopeMetaState, ScopePacksState, ScopeUpdate,
-  ScopeWriteStrategy, WriteScopeResult,
+  data::{Pack, PackScope},
+  strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
 };
 
 #[async_trait]
@@ -127,8 +127,8 @@ impl ScopeWriteStrategy for SplitPackStrategy {
 
     scope.removed.retain(|r| !remain_files.contains(r));
 
-    scope.packs = ScopePacksState::Value(scope_packs);
-    scope.meta = ScopeMetaState::Value(scope_meta);
+    scope.packs.set_value(scope_packs);
+    scope.meta.set_value(scope_meta);
 
     Ok(())
   }
@@ -177,7 +177,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
       wrote_scope_packs.push(bucket_packs);
     }
 
-    scope.packs = ScopePacksState::Value(wrote_scope_packs);
+    scope.packs.set_value(wrote_scope_packs);
 
     Ok(WriteScopeResult {
       wrote_files,
@@ -273,15 +273,17 @@ mod tests {
   use rspack_error::Result;
   use rspack_paths::Utf8PathBuf;
 
-  use crate::{
-    pack::{
-      strategy::split::util::test_pack_utils::{
+  use crate::pack::{
+    data::{PackOptions, PackScope},
+    fs::PackMemoryFs,
+    strategy::{
+      split::util::test_pack_utils::{
         clean_scope_path, count_bucket_packs, count_scope_packs, get_bucket_pack_sizes,
         mock_updates, save_scope, UpdateVal,
       },
-      PackMemoryFs, PackScope, ScopeReadStrategy, ScopeWriteStrategy, SplitPackStrategy,
+      ScopeReadStrategy, ScopeWriteStrategy,
     },
-    PackOptions,
+    SplitPackStrategy,
   };
 
   async fn test_short_value(

@@ -11,9 +11,10 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::pack::{PackScope, ScopeStrategy, ValidateResult, WriteScopeResult};
+use super::data::{PackOptions, PackScope};
+use super::strategy::{ScopeStrategy, ValidateResult, WriteScopeResult};
+use super::ScopeUpdates;
 use crate::StorageContent;
-use crate::{pack::ScopeUpdates, PackOptions};
 
 type ScopeMap = HashMap<&'static str, PackScope>;
 
@@ -193,8 +194,13 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
-    pack::{ScopeManager, SplitPackStrategy},
-    PackFs, PackMemoryFs, PackOptions, StorageItemKey, StorageItemValue,
+    pack::{
+      data::PackOptions,
+      fs::{PackFs, PackMemoryFs},
+      manager::ScopeManager,
+      strategy::SplitPackStrategy,
+    },
+    StorageItemKey, StorageItemValue,
   };
 
   fn mock_key(id: usize) -> StorageItemKey {

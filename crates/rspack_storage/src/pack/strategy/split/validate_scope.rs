@@ -4,7 +4,10 @@ use itertools::Itertools;
 use rspack_error::{error, Result};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
-use crate::pack::{PackScope, ScopeValidateStrategy, ValidateResult};
+use crate::pack::{
+  data::PackScope,
+  strategy::{ScopeValidateStrategy, ValidateResult},
+};
 
 #[async_trait]
 impl ScopeValidateStrategy for SplitPackStrategy {
@@ -84,15 +87,16 @@ mod tests {
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::{
-    pack::{
-      strategy::split::util::test_pack_utils::{
+  use crate::pack::{
+    data::{PackOptions, PackScope, ScopeMeta},
+    fs::{PackFs, PackMemoryFs},
+    strategy::{
+      split::util::test_pack_utils::{
         flush_file_mtime, mock_meta_file, mock_updates, save_scope, UpdateVal,
       },
-      PackScope, ScopeMeta, ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy,
-      SplitPackStrategy, ValidateResult,
+      ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
+      ValidateResult,
     },
-    PackFs, PackMemoryFs, PackOptions,
   };
 
   async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
