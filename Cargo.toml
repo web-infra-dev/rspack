@@ -59,7 +59,7 @@ parcel_sourcemap   = { version = "2.1.1" }
 paste              = { version = "1.0" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.1" }
-pollster           = { version = "*" }
+pollster           = { version = "0.4.0" }
 proc-macro2        = { version = "1.0.79" }
 quote              = { version = "1.0.35" }
 rayon              = { version = "1.10.0" }
@@ -181,10 +181,10 @@ rspack_plugin_wasm                     = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_web_worker_template      = { version = "0.2.0", path = "crates/rspack_plugin_web_worker_template" }
 rspack_plugin_worker                   = { version = "0.2.0", path = "crates/rspack_plugin_worker" }
 rspack_regex                           = { version = "0.2.0", path = "crates/rspack_regex" }
+rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
-swc_plugin_import                      = { version = "0.2.0", path = "crates/swc_plugin_import" }
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]

@@ -681,7 +681,17 @@ impl Stats<'_> {
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
-    let built = self.compilation.built_modules.contains(&identifier);
+    let built = if executed {
+      self
+        .compilation
+        .module_executor
+        .as_ref()
+        .map(|executor| executor.make_artifact.built_modules.contains(&identifier))
+        .unwrap_or_default()
+    } else {
+      self.compilation.built_modules().contains(&identifier)
+    };
+
     let code_generated = self
       .compilation
       .code_generated_modules
