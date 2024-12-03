@@ -79,6 +79,7 @@ impl ReadableFileSystem for NativeFileSystem {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }
+
   fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
     Box::pin(fut)

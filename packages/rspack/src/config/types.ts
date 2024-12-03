@@ -281,7 +281,7 @@ export type ChunkLoadingGlobal = string;
 export type EnabledLibraryTypes = string[];
 
 /** Whether delete all files in the output directory. */
-export type Clean = boolean;
+export type Clean = boolean | { keep?: string };
 
 /** Output JavaScript files as module type. */
 export type OutputModule = boolean;

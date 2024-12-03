@@ -458,6 +458,9 @@ importers:
       '@babel/types':
         specifier: 7.23.0
         version: 7.23.0
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       csv-to-markdown-table:
         specifier: ^1.3.0
         version: 1.4.1
