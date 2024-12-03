@@ -3417,6 +3417,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "release-check"
+version = "0.1.0"
+dependencies = [
+ "miette 5.10.0",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "rend"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3911,6 +3920,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
+ "rspack_swc_plugin_import",
  "rspack_util",
  "serde",
  "serde_json",
@@ -3918,7 +3928,6 @@ dependencies = [
  "swc",
  "swc_config",
  "swc_core",
- "swc_plugin_import",
  "url",
 ]
 
@@ -4209,6 +4218,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_paths",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
@@ -4697,6 +4707,18 @@ dependencies = [
  "serde",
  "serde_json",
  "simd-json",
+]
+
+[[package]]
+name = "rspack_swc_plugin_import"
+version = "0.2.0"
+dependencies = [
+ "cow-utils",
+ "handlebars",
+ "heck 0.5.0",
+ "rustc-hash 1.1.0",
+ "serde",
+ "swc_core",
 ]
 
 [[package]]
@@ -6339,18 +6361,6 @@ dependencies = [
  "dashmap 5.5.3",
  "swc_atoms",
  "swc_common",
-]
-
-[[package]]
-name = "swc_plugin_import"
-version = "0.2.0"
-dependencies = [
- "cow-utils",
- "handlebars",
- "heck 0.5.0",
- "rustc-hash 1.1.0",
- "serde",
- "swc_core",
 ]
 
 [[package]]

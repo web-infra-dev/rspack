@@ -2,7 +2,6 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  path::PathBuf,
   sync::{atomic::AtomicU32, Arc},
 };
 
@@ -18,6 +17,7 @@ use rspack_fs::FileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
+use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -168,15 +168,23 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 
+  // artifact for infer_async_modules_plugin
   pub async_modules: IdentifierSet,
+  // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
+  // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
+  // artifact for create_module_hashes
   pub cgm_hash_results: CgmHashResults,
+  // artifact for process_modules_runtime_requirements
   pub cgm_runtime_requirements_results: CgmRuntimeRequirementsResults,
+  // artifact for process_chunks_runtime_requirements
   pub cgc_runtime_requirements_results: UkeyMap<ChunkUkey, RuntimeGlobals>,
+  // artifact for create_hash
   pub chunk_hashes_results: UkeyMap<ChunkUkey, ChunkHashesResult>,
+  // artifact for create_chunk_assets
   pub chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult>,
-  pub built_modules: IdentifierSet,
+
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub cache: Arc<dyn Cache>,
@@ -187,10 +195,10 @@ pub struct Compilation {
   pub hash: Option<RspackHashDigest>,
   pub used_chunk_ids: HashSet<String>,
 
-  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
-  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub file_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub context_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub missing_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
+  pub build_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
 
   pub value_cache_versions: ValueCacheVersions,
 
@@ -198,8 +206,8 @@ pub struct Compilation {
 
   pub module_executor: Option<ModuleExecutor>,
 
-  pub modified_files: HashSet<PathBuf>,
-  pub removed_files: HashSet<PathBuf>,
+  pub modified_files: HashSet<ArcPath>,
+  pub removed_files: HashSet<ArcPath>,
   make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
 }
@@ -236,8 +244,8 @@ impl Compilation {
     cache: Arc<dyn Cache>,
     old_cache: Arc<OldCache>,
     module_executor: Option<ModuleExecutor>,
-    modified_files: HashSet<PathBuf>,
-    removed_files: HashSet<PathBuf>,
+    modified_files: HashSet<ArcPath>,
+    removed_files: HashSet<ArcPath>,
     input_filesystem: Arc<dyn FileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
@@ -278,7 +286,6 @@ impl Compilation {
       cgc_runtime_requirements_results: Default::default(),
       chunk_hashes_results: Default::default(),
       chunk_render_results: Default::default(),
-      built_modules: Default::default(),
       code_generated_modules: Default::default(),
       build_time_executed_modules: Default::default(),
       cache,
@@ -368,9 +375,9 @@ impl Compilation {
   pub fn file_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -390,9 +397,9 @@ impl Compilation {
   pub fn context_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -416,9 +423,9 @@ impl Compilation {
   pub fn missing_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -442,9 +449,9 @@ impl Compilation {
   pub fn build_dependencies(
     &self,
   ) -> (
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
-    impl Iterator<Item = &PathBuf>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
+    impl Iterator<Item = &ArcPath>,
   ) {
     let all_files = self
       .make_artifact
@@ -965,6 +972,12 @@ impl Compilation {
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
       chunks.extend(self.get_chunk_graph_entries());
+      let logger = self.get_logger("rspack.incremental.chunksRender");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
       chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1123,21 +1136,22 @@ impl Compilation {
     }
 
     // take built_modules
-    let revoked_modules = self.make_artifact.take_revoked_modules();
-    let built_modules = self.make_artifact.take_built_modules();
     if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
-        revoked_modules
+        self
+          .make_artifact
+          .revoked_modules
           .iter()
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
-        built_modules
+        self
+          .make_artifact
+          .built_modules
           .iter()
           .map(|&module| Mutation::ModuleBuild { module }),
       );
     }
-    self.built_modules.extend(built_modules);
 
     let start = logger.time("finish modules");
     plugin_driver
@@ -1171,7 +1185,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.dependencies_diagnostics.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_module_graph(&self.get_module_graph())
+      let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
+      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1291,7 +1312,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesHashes");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1316,7 +1344,14 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.code_generation_results.remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesCodegen");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1337,7 +1372,14 @@ impl Compilation {
           .cgm_runtime_requirements_results
           .remove(&revoked_module);
       }
-      mutations.get_affected_modules_with_chunk_graph(self)
+      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
+      logger.log(format!(
+        "{} modules are affected, {} in total",
+        modules.len(),
+        self.get_module_graph().modules().len()
+      ));
+      modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1369,6 +1411,12 @@ impl Compilation {
       self
         .cgc_runtime_requirements_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
+      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        affected_chunks.len(),
+        self.chunk_by_ukey.len()
+      ));
       affected_chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1397,7 +1445,14 @@ impl Compilation {
       self
         .chunk_hashes_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      mutations.get_affected_chunks_with_chunk_graph(self)
+      let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
+      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      logger.log(format!(
+        "{} chunks are affected, {} in total",
+        chunks.len(),
+        self.chunk_by_ukey.len(),
+      ));
+      chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
@@ -1928,6 +1983,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_module_hashes", skip_all)]
   pub fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
+    let mg = self.get_module_graph();
     let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
       .into_par_iter()
       .map(|module| {
@@ -1942,7 +1998,6 @@ impl Compilation {
         let mut hashes = RuntimeSpecMap::new();
         for runtime in runtimes.into_values() {
           let mut hasher = RspackHash::from(&self.options.output);
-          let mg = self.get_module_graph();
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");
@@ -2068,6 +2123,10 @@ impl Compilation {
   // TODO remove it after code splitting support incremental rebuild
   pub fn has_module_import_export_change(&self) -> bool {
     self.make_artifact.has_module_graph_change
+  }
+
+  pub fn built_modules(&self) -> &IdentifierSet {
+    &self.make_artifact.built_modules
   }
 }
 

@@ -4,7 +4,7 @@ pub mod storage;
 use std::sync::Arc;
 
 use rspack_fs::FileSystem;
-use rspack_paths::{AssertUtf8, Utf8PathBuf};
+use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
@@ -42,14 +42,8 @@ impl Cache for PersistentCache {
     if compilation.modified_files.is_empty() && compilation.removed_files.is_empty() {
       // inject modified_files and removed_files
       let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths();
-      compilation.modified_files = modified_paths
-        .into_iter()
-        .map(|item| item.into_std_path_buf())
-        .collect();
-      compilation.removed_files = removed_paths
-        .into_iter()
-        .map(|item| item.into_std_path_buf())
-        .collect();
+      compilation.modified_files = modified_paths;
+      compilation.removed_files = removed_paths;
     }
   }
 
@@ -59,27 +53,30 @@ impl Cache for PersistentCache {
     let (_, context_added, context_removed) = compilation.context_dependencies();
     let (_, missing_added, missing_removed) = compilation.missing_dependencies();
     let (_, build_added, build_removed) = compilation.build_dependencies();
-    let modified_paths: HashSet<Utf8PathBuf> = compilation
+    let modified_paths: HashSet<ArcPath> = compilation
       .modified_files
       .iter()
       .chain(file_added)
       .chain(context_added)
       .chain(missing_added)
       .chain(build_added)
-      // TODO remove clone after replace all of PathBuf to Utf8PathBuf
-      .map(|item| item.clone().assert_utf8())
+      .cloned()
       .collect();
-    let removed_paths: HashSet<Utf8PathBuf> = compilation
+    let removed_paths: HashSet<ArcPath> = compilation
       .removed_files
       .iter()
       .chain(file_removed)
       .chain(context_removed)
       .chain(missing_removed)
       .chain(build_removed)
-      .map(|item| item.clone().assert_utf8())
+      .cloned()
       .collect();
-    self.snapshot.remove(removed_paths.iter());
-    self.snapshot.add(modified_paths.iter());
+    self
+      .snapshot
+      .remove(removed_paths.iter().map(|item| item.as_ref()));
+    self
+      .snapshot
+      .add(modified_paths.iter().map(|item| item.as_ref()));
 
     self.storage.idle();
   }

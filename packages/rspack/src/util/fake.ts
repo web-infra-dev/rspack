@@ -6,7 +6,7 @@ export function createFakeCompilationDependencies(
 	getDeps: () => string[],
 	addDeps: (deps: string[]) => void
 ) {
-	const addDepsCaller = new MergeCaller(addDeps, 10);
+	const addDepsCaller = new MergeCaller(addDeps);
 	return {
 		*[Symbol.iterator]() {
 			const deps = getDeps();

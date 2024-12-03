@@ -874,6 +874,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .incremental
       .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
+      let logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
       logger.log(format!(
         "{} chunk group created",
         self.stat_chunk_group_created,

@@ -609,10 +609,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("emit assets");
-  compilation.file_dependencies.extend(file_dependencies);
+  compilation
+    .file_dependencies
+    .extend(file_dependencies.into_iter().map(Into::into));
   compilation
     .context_dependencies
-    .extend(context_dependencies);
+    .extend(context_dependencies.into_iter().map(Into::into));
   compilation.extend_diagnostics(std::mem::take(
     diagnostics
       .lock()

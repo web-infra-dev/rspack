@@ -6,7 +6,6 @@ use std::{
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
-use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -64,6 +63,22 @@ impl fmt::Display for Mutation {
 impl Mutations {
   pub fn add(&mut self, mutation: Mutation) {
     self.inner.push(mutation);
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+
+  // TODO: remove this
+  pub fn swap_modules_with_chunk_graph_cache(&mut self, to: &mut Self) {
+    std::mem::swap(
+      &mut self.modules_with_chunk_graph_cache,
+      &mut to.modules_with_chunk_graph_cache,
+    );
   }
 }
 
@@ -284,10 +299,12 @@ fn compute_affected_modules_with_chunk_graph(
   ) -> u64 {
     let module_identifier = module.identifier();
     let mut hasher = FxHasher::default();
-    chunk_graph
+    compilation
+      .chunk_graph
       .get_module_id(module_identifier)
       .hash(&mut hasher);
-    let module_ids: FxIndexSet<_> = module_graph
+    ModuleGraph::is_async(compilation, &module_identifier).hash(&mut hasher);
+    for module_id in module_graph
       .get_ordered_connections(&module_identifier)
       .expect("should have module")
       .into_iter()
@@ -295,10 +312,11 @@ fn compute_affected_modules_with_chunk_graph(
         let connection = module_graph
           .connection_by_dependency_id(dep_id)
           .expect("should have connection");
-        chunk_graph.get_module_id(*connection.module_identifier())
+        compilation
+          .chunk_graph
+          .get_module_id(*connection.module_identifier())
       })
-      .collect();
-    for module_id in module_ids {
+    {
       module_id.hash(&mut hasher);
     }
     for block_id in module.get_blocks() {

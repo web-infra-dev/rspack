@@ -1135,8 +1135,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						}
 					}
 				);
-			},
-			10
+			}
 		))(this);
 
 	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
