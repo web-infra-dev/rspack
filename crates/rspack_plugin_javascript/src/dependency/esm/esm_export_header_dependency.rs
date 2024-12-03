@@ -1,6 +1,7 @@
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
+  DependencyLocation, DependencyRange, DependencyTemplate, DependencyType, RuntimeSpec,
+  SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 
 // Remove `export` label.
@@ -11,13 +12,19 @@ pub struct ESMExportHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
   range_decl: Option<DependencyRange>,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ESMExportHeaderDependency {
-  pub fn new(range: DependencyRange, range_decl: Option<DependencyRange>) -> Self {
+  pub fn new(
+    range: DependencyRange,
+    range_decl: Option<DependencyRange>,
+    source_map: Option<SharedSourceMap>,
+  ) -> Self {
     Self {
       range,
       range_decl,
+      source_map,
       id: DependencyId::default(),
     }
   }
@@ -28,8 +35,8 @@ impl Dependency for ESMExportHeaderDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn dependency_type(&self) -> &DependencyType {

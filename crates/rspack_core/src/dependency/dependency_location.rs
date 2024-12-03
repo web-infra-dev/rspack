@@ -1,4 +1,7 @@
-use std::{fmt, sync::Arc};
+use std::{
+  fmt::{self, Debug},
+  sync::Arc,
+};
 
 use derivative::Derivative;
 
@@ -7,23 +10,6 @@ use derivative::Derivative;
 pub struct DependencyRange {
   pub end: u32,
   pub start: u32,
-  #[derivative(Debug = "ignore", Hash = "ignore")]
-  source: Option<Arc<dyn SourceLocation>>,
-}
-
-impl DependencyRange {
-  pub fn new(start: u32, end: u32) -> Self {
-    DependencyRange {
-      end,
-      start,
-      source: None,
-    }
-  }
-
-  pub fn with_source(mut self, source: Arc<dyn SourceLocation>) -> Self {
-    self.source = Some(source);
-    self
-  }
 }
 
 impl From<(u32, u32)> for DependencyRange {
@@ -31,7 +17,6 @@ impl From<(u32, u32)> for DependencyRange {
     Self {
       start: range.0,
       end: range.1,
-      source: None,
     }
   }
 }
@@ -41,49 +26,85 @@ impl From<swc_core::common::Span> for DependencyRange {
     Self {
       start: span.lo.0.saturating_sub(1),
       end: span.hi.0.saturating_sub(1),
-      source: None,
     }
   }
 }
 
-impl fmt::Display for DependencyRange {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if let Some(source) = &self.source {
-      let (start, end) = source.look_up_range_pos(self.start, self.end);
+impl DependencyRange {
+  pub fn new(start: u32, end: u32) -> Self {
+    DependencyRange { end, start }
+  }
 
-      if start.line == end.line {
-        if start.column == end.column {
-          return write!(f, "{}:{}", start.line, start.column);
+  pub fn to_loc(&self, source: Option<&Arc<dyn SourceLocation>>) -> DependencyLocation {
+    DependencyLocation::Real(match source {
+      Some(source) => {
+        let (start, end) = source.look_up_range_pos(self.start, self.end);
+
+        if start.line == end.line && start.column == end.column {
+          RealDependencyLocation::new(start, None)
+        } else {
+          RealDependencyLocation::new(start, Some(end))
         }
-
-        return write!(f, "{}:{}-{}", start.line, start.column, end.column);
       }
+      None => RealDependencyLocation::new(
+        SourcePosition {
+          line: self.start as usize,
+          column: self.end as usize,
+        },
+        None,
+      ),
+    })
+  }
+}
 
-      write!(
-        f,
-        "{}:{}-{}:{}",
-        start.line, start.column, end.line, end.column
-      )
+#[derive(Debug, Clone)]
+pub struct RealDependencyLocation {
+  start: SourcePosition,
+  end: Option<SourcePosition>,
+}
+
+impl RealDependencyLocation {
+  pub fn new(start: SourcePosition, end: Option<SourcePosition>) -> Self {
+    Self { start, end }
+  }
+}
+
+impl fmt::Display for RealDependencyLocation {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    if let Some(end) = self.end {
+      if self.start.line == end.line {
+        write!(
+          f,
+          "{}:{}-{}",
+          self.start.line, self.start.column, end.column
+        )
+      } else {
+        write!(
+          f,
+          "{}:{}-{}:{}",
+          self.start.line, self.start.column, end.line, end.column
+        )
+      }
     } else {
-      write!(f, "{}:{}", self.start, self.end)
+      write!(f, "{}:{}", self.start.line, self.start.column)
     }
   }
 }
 
 #[derive(Debug, Clone)]
-pub struct DependencyName {
+pub struct SyntheticDependencyLocation {
   pub name: String,
 }
 
-impl DependencyName {
+impl SyntheticDependencyLocation {
   pub fn new(name: &str) -> Self {
-    DependencyName {
+    SyntheticDependencyLocation {
       name: name.to_string(),
     }
   }
 }
 
-impl fmt::Display for DependencyName {
+impl fmt::Display for SyntheticDependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{}", self.name)
   }
@@ -91,8 +112,8 @@ impl fmt::Display for DependencyName {
 
 #[derive(Debug, Clone)]
 pub enum DependencyLocation {
-  Real(DependencyRange),
-  Synthetic(DependencyName),
+  Real(RealDependencyLocation),
+  Synthetic(SyntheticDependencyLocation),
 }
 
 impl fmt::Display for DependencyLocation {
@@ -107,12 +128,27 @@ impl fmt::Display for DependencyLocation {
 
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
-  pub line: usize,
-  pub column: usize,
+  line: usize,
+  column: usize,
+}
+
+impl From<(u32, u32)> for SourcePosition {
+  fn from(range: (u32, u32)) -> Self {
+    Self {
+      line: range.0 as usize,
+      column: range.1 as usize,
+    }
+  }
 }
 
 pub trait SourceLocation: Send + Sync {
   fn look_up_range_pos(&self, start: u32, end: u32) -> (SourcePosition, SourcePosition);
+}
+
+impl Debug for dyn SourceLocation {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("SourceMap").finish()
+  }
 }
 
 impl SourceLocation for swc_core::common::SourceMap {
@@ -132,3 +168,5 @@ impl SourceLocation for swc_core::common::SourceMap {
     )
   }
 }
+
+pub type SharedSourceMap = Arc<dyn SourceLocation>;

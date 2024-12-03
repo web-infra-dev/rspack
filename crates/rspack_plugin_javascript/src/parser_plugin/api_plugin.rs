@@ -1,6 +1,4 @@
-use rspack_core::{
-  ConstDependency, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt,
-};
+use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency, SpanExt};
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, UnaryExpr};
 
@@ -168,12 +166,12 @@ impl JavascriptParserPlugin for APIPlugin {
         Some(true)
       }
       WEBPACK_MODULE => {
-        let range: DependencyRange = ident.span.into();
         parser
           .presentational_dependencies
           .push(Box::new(ModuleArgumentDependency::new(
             None,
-            range.with_source(parser.source_map.clone()),
+            ident.span.into(),
+            Some(parser.source_map.clone()),
           )));
         Some(true)
       }
@@ -400,12 +398,12 @@ impl JavascriptParserPlugin for APIPlugin {
         .push(Box::new(RuntimeRequirementsDependency::new(
           RuntimeGlobals::MODULE_ID,
         )));
-      let range: DependencyRange = expr.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
           Some("id"),
-          range.with_source(parser.source_map.clone()),
+          expr.span().into(),
+          Some(parser.source_map.clone()),
         )));
       Some(true)
     } else {

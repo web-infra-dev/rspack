@@ -1,6 +1,6 @@
 use rspack_core::{
-  AsDependency, Compilation, DependencyRange, DependencyTemplate, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  AsDependency, Compilation, DependencyLocation, DependencyRange, DependencyTemplate,
+  RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -8,15 +8,24 @@ use rspack_util::ext::DynHash;
 pub struct ModuleArgumentDependency {
   id: Option<&'static str>,
   range: DependencyRange,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(id: Option<&'static str>, range: DependencyRange) -> Self {
-    Self { id, range }
+  pub fn new(
+    id: Option<&'static str>,
+    range: DependencyRange,
+    source_map: Option<SharedSourceMap>,
+  ) -> Self {
+    Self {
+      id,
+      range,
+      source_map,
+    }
   }
 
-  pub fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  pub fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 }
 

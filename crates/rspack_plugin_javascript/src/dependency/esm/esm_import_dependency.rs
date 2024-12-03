@@ -3,7 +3,9 @@ use std::sync::Arc;
 use rspack_collections::IdentifierSet;
 use rspack_core::Compilation;
 use rspack_core::DependencyConditionFn;
+use rspack_core::DependencyLocation;
 use rspack_core::DependencyRange;
+use rspack_core::SharedSourceMap;
 use rspack_core::{
   filter_runtime, import_statement, merge_runtime, AsContextDependency,
   AwaitDependenciesInitFragment, BuildMetaDefaultObject, ConditionalInitFragment, ConnectionState,
@@ -67,6 +69,7 @@ pub struct ESMImportSideEffectDependency {
   pub export_all: bool,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ESMImportSideEffectDependency {
@@ -79,6 +82,7 @@ impl ESMImportSideEffectDependency {
     dependency_type: DependencyType,
     export_all: bool,
     attributes: Option<ImportAttributes>,
+    source_map: Option<SharedSourceMap>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
@@ -92,6 +96,7 @@ impl ESMImportSideEffectDependency {
       export_all,
       attributes,
       resource_identifier,
+      source_map,
     }
   }
 }
@@ -390,8 +395,8 @@ impl Dependency for ESMImportSideEffectDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn range(&self) -> Option<&DependencyRange> {

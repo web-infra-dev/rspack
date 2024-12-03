@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use either::Either;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyLocation,
-  DependencyRange, GroupOptions, SpanExt,
+  AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
+  GroupOptions, SharedSourceMap, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -139,12 +139,10 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
         },
       }
     }
-
+    let source_map: SharedSourceMap = parser.source_map.clone();
     let mut block = AsyncDependenciesBlock::new(
       *parser.module_identifier,
-      Some(DependencyLocation::Real(
-        Into::<DependencyRange>::into(expr.span).with_source(parser.source_map.clone()),
-      )),
+      Some(Into::<DependencyRange>::into(expr.span).to_loc(Some(source_map).as_ref())),
       None,
       deps,
       None,

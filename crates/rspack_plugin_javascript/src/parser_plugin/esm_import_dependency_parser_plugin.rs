@@ -1,6 +1,4 @@
-use rspack_core::{
-  ConstDependency, Dependency, DependencyRange, DependencyType, ImportAttributes, SpanExt,
-};
+use rspack_core::{ConstDependency, Dependency, DependencyType, ImportAttributes, SpanExt};
 use swc_core::atoms::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{
@@ -70,16 +68,16 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let range: DependencyRange = import_decl.span.into();
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
-      range.with_source(parser.source_map.clone()),
+      import_decl.span.into(),
       import_decl.src.span.into(),
       DependencyType::EsmImport,
       false,
       attributes,
+      Some(parser.source_map.clone()),
     );
     parser.dependencies.push(Box::new(dependency));
 
@@ -134,20 +132,20 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-    let range: DependencyRange = ident.span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
-      range.with_source(parser.source_map.clone()),
+      ident.span.into(),
       settings.ids,
       parser.in_tagged_template_tag,
       true,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       parser.properties_in_destructuring.remove(&ident.sym),
       settings.attributes,
+      Some(parser.source_map.clone()),
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -201,20 +199,20 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
-    let range: DependencyRange = span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(call_expr.span_lo()),
-      range.with_source(parser.source_map.clone()),
+      span.into(),
       ids,
       true,
       direct_import,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
       settings.attributes,
+      Some(parser.source_map.clone()),
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));
@@ -265,20 +263,20 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
-    let range: DependencyRange = span.into();
     let dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
       settings.source_order,
       false,
       !parser.is_asi_position(member_expr.span_lo()),
-      range.with_source(parser.source_map.clone()),
+      span.into(),
       ids,
       false,
       false, // x.xx()
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       None,
       settings.attributes,
+      Some(parser.source_map.clone()),
     );
     let dep_id = *dep.id();
     parser.dependencies.push(Box::new(dep));

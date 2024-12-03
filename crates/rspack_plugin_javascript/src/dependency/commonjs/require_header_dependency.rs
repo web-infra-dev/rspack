@@ -1,20 +1,23 @@
-use rspack_core::DependencyId;
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyRange, RuntimeSpec,
+  AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyLocation,
+  DependencyRange, RuntimeSpec,
 };
+use rspack_core::{DependencyId, SharedSourceMap};
 use rspack_core::{DependencyTemplate, RuntimeGlobals, TemplateContext};
 
 #[derive(Debug, Clone)]
 pub struct RequireHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl RequireHeaderDependency {
-  pub fn new(range: DependencyRange) -> Self {
+  pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
     Self {
       id: DependencyId::new(),
       range,
+      source_map,
     }
   }
 }
@@ -24,8 +27,8 @@ impl Dependency for RequireHeaderDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

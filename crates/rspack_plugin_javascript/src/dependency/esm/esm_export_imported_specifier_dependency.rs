@@ -7,13 +7,13 @@ use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
   process_export_info, property_access, property_name, string_of_used_name, AsContextDependency,
   Compilation, ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided, ExportNameOrSpec,
-  ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalInitFragment,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, Template, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided,
+  ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
+  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -44,6 +44,7 @@ pub struct ESMExportImportedSpecifierDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -58,6 +59,7 @@ impl ESMExportImportedSpecifierDependency {
     range: DependencyRange,
     export_presence_mode: ExportPresenceMode,
     attributes: Option<ImportAttributes>,
+    source_map: Option<SharedSourceMap>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
@@ -73,6 +75,7 @@ impl ESMExportImportedSpecifierDependency {
       range,
       export_presence_mode,
       attributes,
+      source_map,
     }
   }
 
@@ -1038,8 +1041,8 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn range(&self) -> Option<&DependencyRange> {

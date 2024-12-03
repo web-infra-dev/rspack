@@ -2,10 +2,10 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   create_exports_object_referenced, export_from_import, get_dependency_used_by_exports_condition,
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
-  DependencyCategory, DependencyCondition, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport, ImportAttributes,
-  JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedByExports,
+  DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
+  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
@@ -32,6 +32,7 @@ pub struct ESMImportSpecifierDependency {
   resource_identifier: String,
   export_presence_mode: ExportPresenceMode,
   attributes: Option<ImportAttributes>,
+  source_map: Option<SharedSourceMap>,
   pub namespace_object_as_context: bool,
 }
 
@@ -50,6 +51,7 @@ impl ESMImportSpecifierDependency {
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<HashSet<Atom>>,
     attributes: Option<ImportAttributes>,
+    source_map: Option<SharedSourceMap>,
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
@@ -70,6 +72,7 @@ impl ESMImportSpecifierDependency {
       referenced_properties_in_destructuring,
       attributes,
       resource_identifier,
+      source_map,
     }
   }
 
@@ -224,8 +227,8 @@ impl Dependency for ESMImportSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn range(&self) -> Option<&DependencyRange> {

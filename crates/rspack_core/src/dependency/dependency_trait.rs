@@ -8,6 +8,7 @@ use swc_core::ecma::atoms::Atom;
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
+use super::DependencyLocation;
 use super::DependencyRange;
 use super::ExportsSpec;
 use super::{DependencyCategory, DependencyId, DependencyType};
@@ -74,7 +75,7 @@ pub trait Dependency:
     ConnectionState::Bool(true)
   }
 
-  fn loc(&self) -> Option<String> {
+  fn loc(&self) -> Option<DependencyLocation> {
     None
   }
 

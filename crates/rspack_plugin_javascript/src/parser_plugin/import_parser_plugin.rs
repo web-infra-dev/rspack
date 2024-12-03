@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, ContextDependency, DependencyLocation, DependencyRange,
-  DynamicImportMode, GroupOptions, ImportAttributes,
+  AsyncDependenciesBlock, ContextDependency, DependencyRange, DynamicImportMode, GroupOptions,
+  ImportAttributes, SharedSourceMap,
 };
 use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
@@ -128,11 +128,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         exports,
         attributes,
       ));
+      let source_map: SharedSourceMap = parser.source_map.clone();
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
-        Some(DependencyLocation::Real(
-          Into::<DependencyRange>::into(node.span).with_source(parser.source_map.clone()),
-        )),
+        Some(Into::<DependencyRange>::into(node.span).to_loc(Some(source_map).as_ref())),
         None,
         vec![dep],
         Some(param.string().clone()),
