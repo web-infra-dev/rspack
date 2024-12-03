@@ -3,6 +3,14 @@ name: pnpm cache
 description: Install Node.js with pnpm global cache
 
 inputs:
+  type:
+    description: "Use github or local or lynx cache"
+    required: true
+    type: string
+    choices:
+      - github
+      - local
+      - lynx
   node-version:
     default: "20"
     required: false
@@ -46,15 +54,29 @@ runs:
         echo "STORE_PATH is $(pnpm store path)"
         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-    - name: Restore pnpm cache
-      id: restore
-      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
-      uses: actions/cache/restore@v4
+    - name: Restore pnpm cache from Github
+      id: restore-from-github
+      if: ${{ inputs.type == 'github' }}
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           node-cache-${{ runner.os }}-pnpm-
+
+    - name: Restore pnpm cache from lynx
+      if: ${{ inputs.type == 'lynx' }}
+      uses: lynx-infra/cache@main
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          node-cache-${{ runner.os }}-pnpm-
+      env:
+        ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+        SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+        BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
+        REGION: ${{ vars.TOS_REGION }}
 
     - name: Install dependencies
       shell: bash
@@ -67,7 +89,7 @@ runs:
 
     - name: Save pnpm cache
       uses: actions/cache/save@v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.type == 'github' && inputs.save-if == 'true' && steps.restore-from-github.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}

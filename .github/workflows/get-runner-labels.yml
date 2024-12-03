@@ -26,12 +26,15 @@ jobs:
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
       LINUX_RUNNER_TYPE: ${{ steps.run.outputs.LINUX_RUNNER_TYPE }}
+      LINUX_CACHE_TYPE: ${{ steps.run.outputs.LINUX_CACHE_TYPE }}
 
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
       MACOS_RUNNER_TYPE: ${{ steps.run.outputs.MACOS_RUNNER_TYPE }}
+      MACOS_CACHE_TYPE: ${{ steps.run.outputs.MACOS_CACHE_TYPE }}
 
       WINDOWS_RUNNER_LABELS: ${{ steps.run.outputs.WINDOWS_RUNNER_LABELS }}
       WINDOWS_RUNNER_TYPE: ${{ steps.run.outputs.WINDOWS_RUNNER_TYPE }}
+      WINDOWS_CACHE_TYPE: ${{ steps.run.outputs.WINDOWS_CACHE_TYPE }}
     steps:
       - id: run
         shell: bash
@@ -41,6 +44,7 @@ jobs:
             MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
             WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
           fi
+
           # set default value
           if [[ -z "$LINUX_RUNNER_LABELS" ]]; then
             LINUX_RUNNER_LABELS='"ubuntu-latest"';
@@ -54,21 +58,30 @@ jobs:
 
           if [[ "$LINUX_RUNNER_LABELS" == rspack-* ]]; then
             LINUX_RUNNER_TYPE="hosted"
+            LINUX_CACHE_TYPE="hosted"
           else
             LINUX_RUNNER_TYPE="github"
+            LINUX_CACHE_TYPE="github"
           fi
-          if [[ "$LINUX_RUNNER_LABELS" == rspack-* ]]; then
+
+          if [[ "$MACOS_RUNNER_LABELS" == rspack-* ]]; then
             MACOS_RUNNER_EPHEMERAL="hosted"
+            MACOS_CACHE_TYPE="hosted"
           else
             MACOS_RUNNER_EPHEMERAL="github"
+            MACOS_CACHE_TYPE="github"
           fi
 
           # set output
           echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
           echo "LINUX_RUNNER_TYPE=$LINUX_RUNNER_TYPE" >> "$GITHUB_OUTPUT"
+          echo "LINUX_CACHE_TYPE=$LINUX_CACHE_TYPE" >> "$GITHUB_OUTPUT"
 
           echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
           echo "MACOS_RUNNER_EPHEMERAL=$MACOS_RUNNER_EPHEMERAL" >> "$GITHUB_OUTPUT"
+          echo "MACOS_CACHE_TYPE=$MACOS_CACHE_TYPE" >> "$GITHUB_OUTPUT"
 
+          # TODO: test
           echo "WINDOWS_RUNNER_LABELS='"volc-windows-2022-medium"'" >> "$GITHUB_OUTPUT"
           echo "WINDOWS_RUNNER_TYPE='k8s'" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_CACHE_TYPE='lynx'" >> "$GITHUB_OUTPUT"

@@ -73,6 +73,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
 
   test-release-linux:
@@ -92,6 +93,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
   test-windows:
     name: Test Windows
@@ -102,6 +104,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
 
   test-release-windows:
@@ -120,6 +123,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
 
   test-mac:
     name: Test Mac
@@ -131,6 +135,7 @@ jobs:
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
 
   test-release-mac:
@@ -148,6 +153,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
 
   cargo-deny:
     name: Check license of dependencies
@@ -196,6 +202,8 @@ jobs:
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
@@ -218,6 +226,8 @@ jobs:
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Run
         run: |
@@ -256,6 +266,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           frozen-lockfile: true
+          type: github
 
   rust_check:
     name: Rust check
@@ -274,6 +285,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
@@ -317,6 +330,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -345,6 +360,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -374,6 +391,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup

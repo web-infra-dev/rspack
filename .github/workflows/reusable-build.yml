@@ -56,6 +56,14 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      cache-type:
+        description: "Use github or local or lynx cache"
+        required: true
+        type: string
+        # choices:
+        #   - github
+        #   - local
+        #   - lynx
 
 jobs:
   build:
@@ -88,6 +96,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           save-if: ${{ github.ref_name == 'main' }}
 
       - name: Install Rust Toolchain
@@ -246,6 +255,7 @@ jobs:
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           node-version: 20
 
       - name: Run e2e
@@ -305,6 +315,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           node-version: ${{ matrix.node }}
 
       ### x86_64-unknown-linux-gnu
