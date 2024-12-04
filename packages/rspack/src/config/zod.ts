@@ -274,7 +274,8 @@ const chunkFormat = z
 const workerPublicPath = z.string() satisfies z.ZodType<t.WorkerPublicPath>;
 
 const trustedTypes = z.strictObject({
-	policyName: z.string().optional()
+	policyName: z.string().optional(),
+	onPolicyCreationFailure: z.enum(["continue", "stop"]).optional()
 }) satisfies z.ZodType<t.TrustedTypes>;
 
 const hashDigest = z.string() satisfies z.ZodType<t.HashDigest>;

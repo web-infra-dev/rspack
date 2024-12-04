@@ -3,7 +3,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -40,6 +40,10 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       get_chunk_runtime_requirements(compilation, &self.chunk.expect("should have chunk"));
     let create_script = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT);
     let create_script_url = runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL);
+    let wrap_policy_creation_in_try_catch = matches!(
+      trusted_types.on_policy_creation_failure,
+      OnPolicyCreationFailure::Continue
+    );
 
     let result = include_str!("runtime/get_trusted_types_policy.js").cow_replace(
       "$policyName$",
@@ -66,10 +70,36 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
         .to_string(),
       );
     }
+    let wrap_policy_creation_try_catch_start = if wrap_policy_creation_in_try_catch {
+      "try {"
+    } else {
+      ""
+    };
+    let wrap_policy_creation_try_catch_end = if wrap_policy_creation_in_try_catch {
+      format!(
+        r#"
+          }} catch (e) {{
+            console.warn('Could not create trusted-types policy {}');
+          }}
+        "#,
+        serde_json::to_string(&trusted_types.policy_name.clone().unwrap_or_default())
+          .expect("invalid json to_string"),
+      )
+    } else {
+      "".to_string()
+    };
     Ok(
       RawSource::from(
         result
           .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
+          .cow_replace(
+            "$wrapPolicyCreationTryCatchStart$",
+            wrap_policy_creation_try_catch_start,
+          )
+          .cow_replace(
+            "$wrapPolicyCreationTryCatchEnd$",
+            &wrap_policy_creation_try_catch_end,
+          )
           .into_owned(),
       )
       .boxed(),

@@ -1695,6 +1695,28 @@ module.exports = {
 };
 ```
 
+### output.trustedTypes.onPolicyCreationFailure
+
+<ApiMeta addedVersion={'1.1.6'} />
+
+- **类型：** `"stop" | "continue"`
+- **默认值：** `"stop"`
+
+确定当 [`require-trusted-types-for 'script'`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) 未能正确执行时，是继续加载还是异常终止。未能正确执行可能是由于策略名称不在 CSP 的 `trusted-types` 列表中或策略名称重复而使得 `trustedTypes.createPolicy(...)` 执行失败。
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    //...
+    trustedTypes: {
+      policyName: 'my-application#webpack',
+      onPolicyCreationFailure: 'continue',
+    },
+  },
+};
+```
+
 ## output.uniqueName
 
 - **类型：** `string`

@@ -70,8 +70,25 @@ impl From<&OutputOptions> for RspackHash {
 }
 
 #[derive(Debug)]
+pub enum OnPolicyCreationFailure {
+  Continue,
+  Stop,
+}
+
+impl From<String> for OnPolicyCreationFailure {
+  fn from(value: String) -> Self {
+    if value == "continue" {
+      Self::Continue
+    } else {
+      Self::Stop
+    }
+  }
+}
+
+#[derive(Debug)]
 pub struct TrustedTypes {
   pub policy_name: Option<String>,
+  pub on_policy_creation_failure: OnPolicyCreationFailure,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]

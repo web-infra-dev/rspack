@@ -6,7 +6,9 @@ __webpack_require__.tt = function () {
             $policyContent$
         };
         if (typeof trustedTypes !== "undefined" && trustedTypes.createPolicy) {
+            $wrapPolicyCreationTryCatchStart$
             policy = trustedTypes.createPolicy("$policyName$", policy);
+            $wrapPolicyCreationTryCatchEnd$
         }
     }
     return policy;
