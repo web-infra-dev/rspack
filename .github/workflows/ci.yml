@@ -97,6 +97,9 @@ jobs:
       runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
       cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+    secrets:
+      TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+      TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
 
   test-release-windows:
     name: Test Release Windows
@@ -115,6 +118,9 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
       cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
+    secrets:
+      TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+      TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
 
   test-mac:
     name: Test Mac

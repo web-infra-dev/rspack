@@ -64,6 +64,17 @@ on:
         #   - github
         #   - local
         #   - lynx
+      tos-access-key:
+        required: false
+        type: string
+      tos-secret-key:
+        required: false
+        type: string
+    secrets:
+      TOS_ACCESS_KEY:
+        required: false
+      TOS_SECRET_KEY:
+        required: false
 
 jobs:
   build:
