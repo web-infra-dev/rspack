@@ -3,43 +3,49 @@ name: Download Artifact
 description: Download file to local or artifact to quickly share files between jobs
 
 inputs:
+  type:
+    description: "Use github or local or lynx cache"
+    required: true
+    type: string
+    choices:
+      - github
+      - local
+      - lynx
   name:
     description: "Artifact name"
     default: "artifact"
   path:
     description: "Destination path"
     required: true
-  try-local-cache:
-    description: "Try use local cache to save artifact"
-    default: false
-    required: false
-    type: boolean
-  link-when-local:
-    description: "Link file instead of copy file"
-    default: false
-    type: boolean
-    required: false
 
 runs:
   using: composite
   steps:
-    - name: Download artifact
+    - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
+      if: ${{ inputs.type == 'github' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
-    - name: Download local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
+    - name: Download artifact from local
+      if: ${{ inputs.type == 'local' }}
       shell: bash
       run: |
         set -e
         save_dir=$HOME/.cache/runner/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
         # download file
-        if [ "${{ inputs.link-when-local }}" = "true" ]; then
-          ln -sf $save_dir/* ${{ inputs.path }}
-          echo "ln -sf $save_dir/* ${{ inputs.path }}"
-        else
-          cp -rf $save_dir/* ${{ inputs.path }}
-          echo "cp -rf $save_dir/* ${{ inputs.path }}"
-        fi
+        ln -sf $save_dir/* ${{ inputs.path }}
+        echo "ln -sf $save_dir/* ${{ inputs.path }}"
+    - name: Download artifact from lynx
+      if: ${{ inputs.type == 'lynx' }}
+      uses: lynx-infra/cache/restore@main
+      with:
+        path: ${{ inputs.path }}
+        key: rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+        restore-keys: |
+          rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+      env:
+        ACCESS_KEY: ${{ inputs.tos-access-key }}
+        SECRET_KEY: ${{ inputs.tos-secret-key }}
+        BUCKET_NAME: ${{ inputs.tos-bucket-name }}
+        REGION: ${{ inputs.tos-region }}

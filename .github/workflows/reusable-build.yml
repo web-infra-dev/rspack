@@ -225,10 +225,9 @@ jobs:
         uses: ./.github/actions/upload-artifact
         if: ${{ steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
+          type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          mv-when-local: true
 
   e2e:
     name: E2E Testing
@@ -251,10 +250,9 @@ jobs:
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
+          type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          link-when-local: true
 
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm-cache
@@ -309,10 +307,9 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/download-artifact
         with:
+          type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          link-when-local: true
 
       - name: Show restored binding
         if: ${{ !inputs.skipable }}

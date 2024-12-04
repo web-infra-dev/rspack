@@ -17,11 +17,6 @@ inputs:
       - github
       - local
       - lynx
-  mv-when-local:
-    description: "Move file instead of copy file"
-    default: false
-    type: boolean
-    required: false
 
 outputs:
   runner-labels:
@@ -41,11 +36,18 @@ runs:
         overwrite: true
 
     - name: Upload artifact
-      uses: lynx-infra/cache@main
+      uses: lynx-infra/cache/save@main
       if: ${{ inputs.type == 'lynx' }}
       with:
-        name: ${{ inputs.name }}
         path: ${{ inputs.path }}
+        key: rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+        restore-keys: |
+          rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+      env:
+        ACCESS_KEY: ${{ inputs.tos-access-key }}
+        SECRET_KEY: ${{ inputs.tos-secret-key }}
+        BUCKET_NAME: ${{ inputs.tos-bucket-name }}
+        REGION: ${{ inputs.tos-region }}
 
     - name: Upload local
       id: upload-local
@@ -64,13 +66,9 @@ runs:
         save_dir="$cache_dir/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"
         rm -rf $save_dir
         mkdir $save_dir
-        if [ "${{ inputs.mv-when-local }}" = "true" ]; then
-          mv -f ${{ inputs.path }} $save_dir
-          echo "mv -f ${{ inputs.path }} $save_dir"
-        else
-          cp -rf ${{ inputs.path }} $save_dir
-          echo "cp -rf ${{ inputs.path }} $save_dir"
-        fi
+
+        mv -f ${{ inputs.path }} $save_dir
+        echo "mv -f ${{ inputs.path }} $save_dir"
 
         # TODO echo machine name as runner labels
         # echo "runner_labels=\"$(uname -n)\"" >> "$GITHUB_OUTPUT"
