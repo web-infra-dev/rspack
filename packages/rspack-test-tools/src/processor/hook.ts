@@ -6,6 +6,7 @@ import {
 	format as prettyFormat
 } from "pretty-format";
 
+import { createSnapshotSerializer as createPathSerializer } from "path-serializer";
 import { type TTestContextOptions, TestContext } from "../test/context";
 import type {
 	ECompilerType,
@@ -16,8 +17,6 @@ import type {
 } from "../type";
 import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
 
-const pathSerializer = require("jest-serializer-path");
-const normalizePaths = pathSerializer.normalizePaths;
 const srcDir = path.resolve(__dirname, "../../tests/fixtures");
 const distDir = path.resolve(__dirname, "../../tests/js/hook");
 
@@ -39,23 +38,18 @@ const internalSerializer = {
 	}
 };
 
-const testPathSerializer = {
-	test(val: unknown) {
-		return typeof val === "string";
-	},
-	print(val: string) {
-		return JSON.stringify(
-			normalizePaths(
-				// @ts-ignore
-				val
-					.split(srcDir)
-					.join("<HOOK_SRC_DIR>")
-					.split(distDir)
-					.join("<HOOK_DIST_DIR>")
-			)
-		);
-	}
-};
+const testPathSerializer = createPathSerializer({
+	replace: [
+		{
+			match: srcDir,
+			mark: "<HOOK_SRC_DIR>"
+		},
+		{
+			match: distDir,
+			mark: "<HOOK_DIST_DIR>"
+		}
+	]
+});
 
 const escapeRegex = true;
 const printFunctionName = false;

@@ -33,6 +33,7 @@
 				"useKeyWithClickEvents": "off"
 			},
 			"complexity": {
+				"useArrowFunction": "off",
 				"noStaticOnlyClass": "off",
 				"noThisInStatic": "off",
 				"noBannedTypes": "off"

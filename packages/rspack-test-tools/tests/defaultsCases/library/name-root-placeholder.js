@@ -41,9 +41,9 @@ module.exports = {
 		+       "export": undefined,
 		+       "name": Object {
 		+         "root": Array [
-		+           "[/name/]",
-		+           "my[/name/]Lib[name]",
-		+           "[/name/]",
+		+           "[\\\\name\\\\]",
+		+           "my[\\\\name\\\\]Lib[name]",
+		+           "[\\\\name\\\\]",
 		+         ],
 		+       },
 		+       "type": "var",

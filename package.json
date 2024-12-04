@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -20,7 +20,7 @@
     "build:cli:release:win": "pnpm --filter @rspack/binding build:release:win && npm run build:js",
     "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
-    "format:rs": "pnpm --filter @rspack/core... build",
+    "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
     "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"x.mjs\" \"x\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
@@ -50,7 +50,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.14.2"
+    "pnpm": "9.14.4"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -81,7 +81,7 @@
     "webpack-cli": "5.1.4",
     "zx": "7.2.3"
   },
-  "packageManager": "pnpm@9.14.2",
+  "packageManager": "pnpm@9.14.4",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",

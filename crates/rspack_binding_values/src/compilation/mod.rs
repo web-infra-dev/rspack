@@ -650,6 +650,7 @@ impl JsCompilation {
           original_module.map(ModuleIdentifier::from),
         )
         .await;
+
       let js_result = JsExecuteModuleResult {
         cacheable: res.cacheable,
         file_dependencies: res

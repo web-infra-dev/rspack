@@ -780,13 +780,12 @@ class Compiler {
 		this.#registers = {
 			registerCompilerThisCompilationTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerThisCompilation,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.thisCompilation;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (native: binding.JsCompilation) {
 						that.deref()!.#createCompilation(native);
 						return queried.call(
@@ -798,13 +797,12 @@ class Compiler {
 			),
 			registerCompilerCompilationTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerCompilation,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.compilation;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						return queried.call(
 							that.deref()!.#compilation!,
@@ -815,13 +813,12 @@ class Compiler {
 			),
 			registerCompilerMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerMake,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.make;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!);
 					};
@@ -829,13 +826,12 @@ class Compiler {
 			),
 			registerCompilerFinishMakeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerFinishMake,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.finishMake;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!);
 					};
@@ -843,13 +839,12 @@ class Compiler {
 			),
 			registerCompilerShouldEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerShouldEmit,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.shouldEmit;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						return queried.call(that.deref()!.#compilation!);
 					};
@@ -857,13 +852,12 @@ class Compiler {
 			),
 			registerCompilerEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerEmit,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.emit;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!);
 					};
@@ -871,13 +865,12 @@ class Compiler {
 			),
 			registerCompilerAfterEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAfterEmit,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.afterEmit;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!);
 					};
@@ -885,13 +878,12 @@ class Compiler {
 			),
 			registerCompilerAssetEmittedTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilerAssetEmitted,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.hooks.assetEmitted;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function ({
 						filename,
 						targetPath,
@@ -915,14 +907,13 @@ class Compiler {
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind
 						.CompilationAdditionalTreeRuntimeRequirements,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilation!.hooks
 							.additionalTreeRuntimeRequirements;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return function ({
 							chunk,
 							runtimeRequirements
@@ -941,13 +932,12 @@ class Compiler {
 			registerCompilationRuntimeRequirementInTree:
 				this.#createHookMapRegisterTaps(
 					binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilation!.hooks.runtimeRequirementInTree;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return function ({
 							chunk: rawChunk,
 							runtimeRequirements
@@ -968,13 +958,12 @@ class Compiler {
 				),
 			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationRuntimeModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.runtimeModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function ({ module, chunk }: binding.JsRuntimeModuleArg) {
 						const originSource = module.source?.source;
 						queried.call(
@@ -991,13 +980,12 @@ class Compiler {
 			),
 			registerCompilationBuildModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationBuildModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.buildModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (m: binding.JsModule) {
 						return queried.call(
 							Module.__from_binding(m, that.deref()!.#compilation)
@@ -1007,13 +995,12 @@ class Compiler {
 			),
 			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationStillValidModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.stillValidModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (m: binding.JsModule) {
 						return queried.call(
 							Module.__from_binding(m, that.deref()!.#compilation)
@@ -1023,13 +1010,12 @@ class Compiler {
 			),
 			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSucceedModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.succeedModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (m: binding.JsModule) {
 						return queried.call(
 							Module.__from_binding(m, that.deref()!.#compilation)
@@ -1039,13 +1025,12 @@ class Compiler {
 			),
 			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationExecuteModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.executeModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function ({
 						entry,
 						id,
@@ -1120,13 +1105,12 @@ class Compiler {
 			),
 			registerCompilationFinishModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationFinishModules,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.finishModules;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!.modules);
 					};
@@ -1134,13 +1118,12 @@ class Compiler {
 			),
 			registerCompilationOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeModules,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.optimizeModules;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						return queried.call(that.deref()!.#compilation!.modules.values());
 					};
@@ -1148,13 +1131,12 @@ class Compiler {
 			),
 			registerCompilationAfterOptimizeModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.afterOptimizeModules;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						queried.call(that.deref()!.#compilation!.modules.values());
 					};
@@ -1162,13 +1144,12 @@ class Compiler {
 			),
 			registerCompilationOptimizeTreeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeTree,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.optimizeTree;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(
 							that.deref()!.#compilation!.chunks,
@@ -1179,13 +1160,12 @@ class Compiler {
 			),
 			registerCompilationOptimizeChunkModulesTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.optimizeChunkModules;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(
 							that.deref()!.#compilation!.chunks,
@@ -1196,13 +1176,12 @@ class Compiler {
 			),
 			registerCompilationChunkHashTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationChunkHash,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.chunkHash;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (chunk: binding.JsChunk) {
 						if (!that.deref()!.options.output.hashFunction) {
 							throw new Error("'output.hashFunction' cannot be undefined");
@@ -1221,13 +1200,12 @@ class Compiler {
 			),
 			registerCompilationChunkAssetTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationChunkAsset,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.chunkAsset;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function ({ chunk, filename }: binding.JsChunkAssetArgs) {
 						return queried.call(
 							Chunk.__from_binding(chunk, that.deref()!.#compilation!),
@@ -1238,13 +1216,12 @@ class Compiler {
 			),
 			registerCompilationProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationProcessAssets,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.processAssets;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise(that.deref()!.#compilation!.assets);
 					};
@@ -1252,13 +1229,12 @@ class Compiler {
 			),
 			registerCompilationAfterProcessAssetsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterProcessAssets,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.afterProcessAssets;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						return queried.call(that.deref()!.#compilation!.assets);
 					};
@@ -1266,13 +1242,12 @@ class Compiler {
 			),
 			registerCompilationSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationSeal,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.seal;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function () {
 						return queried.call();
 					};
@@ -1280,13 +1255,12 @@ class Compiler {
 			),
 			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.CompilationAfterSeal,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilation!.hooks.afterSeal;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function () {
 						return await queried.promise();
 					};
@@ -1295,14 +1269,13 @@ class Compiler {
 			registerNormalModuleFactoryBeforeResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 							.beforeResolve;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (resolveData: binding.JsBeforeResolveArgs) {
 							const normalizedResolveData: ResolveData = {
 								contextInfo: {
@@ -1323,14 +1296,13 @@ class Compiler {
 				),
 			registerNormalModuleFactoryFactorizeTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 						.factorize;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (resolveData: binding.JsFactorizeArgs) {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
@@ -1351,14 +1323,13 @@ class Compiler {
 			),
 			registerNormalModuleFactoryResolveTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryResolve,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 						.resolve;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (resolveData: binding.JsFactorizeArgs) {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
@@ -1380,14 +1351,13 @@ class Compiler {
 			registerNormalModuleFactoryResolveForSchemeTaps:
 				this.#createHookMapRegisterTaps(
 					binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 							.resolveForScheme;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (args: binding.JsResolveForSchemeArgs) {
 							const ret = await queried
 								.for(args.scheme)
@@ -1398,14 +1368,13 @@ class Compiler {
 				),
 			registerNormalModuleFactoryAfterResolveTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 						.afterResolve;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (arg: binding.JsAfterResolveData) {
 						const data: ResolveData = {
 							contextInfo: {
@@ -1425,14 +1394,13 @@ class Compiler {
 			),
 			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
 						.createModule;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (
 						args: binding.JsNormalModuleFactoryCreateModuleArgs
 					) {
@@ -1447,14 +1415,13 @@ class Compiler {
 			registerContextModuleFactoryBeforeResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilationParams!.contextModuleFactory.hooks
 							.beforeResolve;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (
 							bindingData:
 								| false
@@ -1475,14 +1442,13 @@ class Compiler {
 			registerContextModuleFactoryAfterResolveTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function () {
 						return that.deref()!.#compilationParams!.contextModuleFactory.hooks
 							.afterResolve;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (
 							bindingData:
 								| false
@@ -1502,15 +1468,14 @@ class Compiler {
 				),
 			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.JavascriptModulesChunkHash,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function () {
 					return JavascriptModulesPlugin.getCompilationHooks(
 						that.deref()!.#compilation!
 					).chunkHash;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
+
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return function (chunk: binding.JsChunk) {
 						if (!that.deref()!.options.output.hashFunction) {
 							throw new Error("'output.hashFunction' cannot be undefined");
@@ -1530,15 +1495,12 @@ class Compiler {
 			registerHtmlPluginBeforeAssetTagGenerationTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					function () {
 						return HtmlRspackPlugin.getCompilationHooks(
 							that.deref()!.#compilation!
 						).beforeAssetTagGeneration;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (
 							data: binding.JsBeforeAssetTagGenerationData
 						) {
@@ -1556,15 +1518,12 @@ class Compiler {
 				),
 			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function () {
 					return HtmlRspackPlugin.getCompilationHooks(
 						that.deref()!.#compilation!
 					).alterAssetTags;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (data: binding.JsAlterAssetTagsData) {
 						return await queried.promise(data);
 					};
@@ -1572,15 +1531,12 @@ class Compiler {
 			),
 			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function () {
 					return HtmlRspackPlugin.getCompilationHooks(
 						that.deref()!.#compilation!
 					).alterAssetTagGroups;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (data: binding.JsAlterAssetTagGroupsData) {
 						return await queried.promise({
 							...data,
@@ -1597,15 +1553,12 @@ class Compiler {
 			registerHtmlPluginAfterTemplateExecutionTaps:
 				this.#createHookRegisterTaps(
 					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					function () {
 						return HtmlRspackPlugin.getCompilationHooks(
 							that.deref()!.#compilation!
 						).afterTemplateExecution;
 					},
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					function (queried) {
-						// biome-ignore lint/complexity/useArrowFunction: <explanation>
 						return async function (data: binding.JsAfterTemplateExecutionData) {
 							return await queried.promise({
 								...data,
@@ -1621,15 +1574,12 @@ class Compiler {
 				),
 			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function () {
 					return HtmlRspackPlugin.getCompilationHooks(
 						that.deref()!.#compilation!
 					).beforeEmit;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (data: binding.JsBeforeEmitData) {
 						return await queried.promise({
 							...data,
@@ -1645,15 +1595,12 @@ class Compiler {
 			),
 			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
 				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function () {
 					return HtmlRspackPlugin.getCompilationHooks(
 						that.deref()!.#compilation!
 					).afterEmit;
 				},
-				// biome-ignore lint/complexity/useArrowFunction: <explanation>
 				function (queried) {
-					// biome-ignore lint/complexity/useArrowFunction: <explanation>
 					return async function (data: binding.JsAfterEmitData) {
 						return await queried.promise({
 							...data,

@@ -258,7 +258,6 @@ mod tests {
   use rspack_paths::Utf8Path;
 
   use super::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
-
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();

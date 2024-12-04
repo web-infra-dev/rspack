@@ -1,8 +1,7 @@
 import assert from "node:assert";
 import path from "node:path";
 
-import { escapeEOL } from "../helper";
-import { replacePaths } from "../helper/replace-paths";
+import { normalizePlaceholder } from "../helper/expect/placeholder";
 import type {
 	ECompilerType,
 	ITestContext,
@@ -34,13 +33,13 @@ export class DiagnosticProcessor<
 			throw new Error("Stats should exists");
 		}
 		assert(stats.hasErrors() || stats.hasWarnings());
-		let output = replacePaths(
+		let output = normalizePlaceholder(
 			stats.toString({
 				all: false,
 				errors: true,
 				warnings: true
 			})
-		);
+		).replaceAll("\\", "/"); // stats has some win32 paths that path-serializer can not handle
 
 		if (typeof this._diagnosticOptions.format === "function") {
 			output = this._diagnosticOptions.format(output);
@@ -49,7 +48,7 @@ export class DiagnosticProcessor<
 		const errorOutputPath = path.resolve(
 			context.getSource(this._diagnosticOptions.snapshot)
 		);
-		env.expect(escapeEOL(output)).toMatchFileSnapshot(errorOutputPath);
+		env.expect(output).toMatchFileSnapshot(errorOutputPath);
 	}
 
 	static defaultOptions<T extends ECompilerType>(

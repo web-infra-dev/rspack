@@ -236,7 +236,12 @@ const enabledLibraryTypes = z.array(
 	libraryType
 ) satisfies z.ZodType<t.EnabledLibraryTypes>;
 
-const clean = z.boolean() satisfies z.ZodType<t.Clean>;
+const clean = z.union([
+	z.boolean(),
+	z.strictObject({
+		keep: z.string().optional()
+	})
+]) satisfies z.ZodType<t.Clean>;
 
 const outputModule = z.boolean() satisfies z.ZodType<t.OutputModule>;
 

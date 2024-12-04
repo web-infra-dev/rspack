@@ -1,6 +1,4 @@
 const { CssExtractRspackPlugin } = require("@rspack/core");
-const path = require("path");
-const RSPACK_ROOT = path.resolve(__dirname, "../../../..");
 
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
@@ -39,12 +37,7 @@ module.exports = {
 		const statsJson = stats?.toJson(statsOptions);
 		const executedModules = statsJson.modules.filter(i => i.buildTimeExecuted);
 		expect(executedModules.length).toBe(3);
-		const replacePath = (_, str) =>
-			typeof str === "string"
-				? str.split(RSPACK_ROOT).join("<RSPACK_ROOT>")
-				: str;
-		expect(JSON.parse(JSON.stringify(executedModules, replacePath)))
-			.toMatchInlineSnapshot(`
+		expect(JSON.parse(JSON.stringify(executedModules))).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    buildTimeExecuted: true,
@@ -55,10 +48,10 @@ module.exports = {
 		    codeGenerated: true,
 		    errors: 0,
 		    failed: false,
-		    identifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		    identifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		    moduleType: javascript/auto,
 		    name: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
-		    nameForCondition: <RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		    nameForCondition: <TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		    optimizationBailout: Array [
 		      Statement with side_effects in source code at ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css<LINE_COL>-100,
 		    ],
@@ -70,7 +63,7 @@ module.exports = {
 		        moduleId: null,
 		        resolvedModuleId: null,
 		        type: loader import,
-		        userRequest: <RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css.webpack[javascript/auto]!=!!!<RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        userRequest: <TEST_TOOLS_ROOT>/tests/fixtures/css/style.css.webpack[javascript/auto]!=!!!<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		      },
 		    ],
 		    size: 758,
@@ -90,18 +83,18 @@ module.exports = {
 		    codeGenerated: true,
 		    errors: 0,
 		    failed: false,
-		    identifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
-		    issuer: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		    identifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
+		    issuer: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		    issuerName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		    issuerPath: Array [
 		      Object {
-		        identifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        identifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        name: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		      },
 		    ],
 		    moduleType: javascript/auto,
 		    name: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
-		    nameForCondition: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
+		    nameForCondition: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		    optimizationBailout: Array [
 		      Statement with side_effects in source code at ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js<LINE_COL_RANGE>,
 		    ],
@@ -110,26 +103,26 @@ module.exports = {
 		    providedExports: null,
 		    reasons: Array [
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        type: esm import,
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		      },
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        type: esm import specifier,
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		      },
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		        moduleName: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		        resolvedModule: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		        type: cjs self exports reference,
 		        userRequest: self,
 		      },
@@ -151,18 +144,18 @@ module.exports = {
 		    codeGenerated: true,
 		    errors: 0,
 		    failed: false,
-		    identifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
-		    issuer: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		    identifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
+		    issuer: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		    issuerName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		    issuerPath: Array [
 		      Object {
-		        identifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        identifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        name: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		      },
 		    ],
 		    moduleType: javascript/auto,
 		    name: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
-		    nameForCondition: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
+		    nameForCondition: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		    optimizationBailout: Array [
 		      Statement with side_effects in source code at ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js<LINE_COL_RANGE>,
 		    ],
@@ -171,26 +164,26 @@ module.exports = {
 		    providedExports: null,
 		    reasons: Array [
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        type: esm import,
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		      },
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<RSPACK_ROOT>/packages/rspack-test-tools/tests/fixtures/css/style.css,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        type: esm import specifier,
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		      },
 		      Object {
-		        moduleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
+		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		        moduleName: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		        resolvedModule: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
-		        resolvedModuleIdentifier: <RSPACK_ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
+		        resolvedModuleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		        type: cjs self exports reference,
 		        userRequest: self,
 		      },

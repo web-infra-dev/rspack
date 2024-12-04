@@ -20,8 +20,8 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, include_hash, BoxPlugin, CompilerOptions, Logger, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
@@ -73,7 +73,7 @@ impl Compiler {
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
-    output_filesystem: Option<Box<dyn WritableFileSystem + Send + Sync>>,
+    output_filesystem: Option<Box<dyn WritableFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
@@ -264,32 +264,7 @@ impl Compiler {
 
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    if self.options.output.clean {
-      if self.emitted_asset_versions.is_empty() {
-        self
-          .output_filesystem
-          .remove_dir_all(&self.options.output.path)
-          .await?;
-      } else {
-        // clean unused file
-        let assets = self.compilation.assets();
-        let _ = self
-          .emitted_asset_versions
-          .iter()
-          .filter_map(|(filename, _version)| {
-            if !assets.contains_key(filename) {
-              let filename = filename.to_owned();
-              Some(async {
-                let filename = Utf8Path::new(&self.options.output.path).join(filename);
-                let _ = self.output_filesystem.remove_file(&filename).await;
-              })
-            } else {
-              None
-            }
-          })
-          .collect::<FuturesResults<_>>();
-      }
-    }
+    self.run_clean_options().await?;
 
     self
       .plugin_driver
@@ -418,6 +393,58 @@ impl Compiler {
         .call(&self.compilation, filename, &info)
         .await?;
     }
+    Ok(())
+  }
+
+  async fn run_clean_options(&mut self) -> Result<()> {
+    let clean_options = &self.options.output.clean;
+
+    // keep all
+    if let CleanOptions::CleanAll(false) = clean_options {
+      return Ok(());
+    }
+
+    if self.emitted_asset_versions.is_empty() {
+      if let CleanOptions::KeepPath(p) = clean_options {
+        let path_to_keep = self.options.output.path.join(Utf8Path::new(p));
+        trim_dir(
+          &*self.output_filesystem,
+          &self.options.output.path,
+          &path_to_keep,
+        )
+        .await?;
+        return Ok(());
+      }
+
+      // CleanOptions::CleanAll(true) only
+      debug_assert!(matches!(clean_options, CleanOptions::CleanAll(true)));
+
+      self
+        .output_filesystem
+        .remove_dir_all(&self.options.output.path)
+        .await?;
+      return Ok(());
+    }
+
+    let assets = self.compilation.assets();
+    let _ = self
+      .emitted_asset_versions
+      .iter()
+      .filter_map(|(filename, _version)| {
+        if !assets.contains_key(filename) {
+          let filename = filename.to_owned();
+          Some(async {
+            if !clean_options.keep(filename.as_str()) {
+              let filename = Utf8Path::new(&self.options.output.path).join(filename);
+              let _ = self.output_filesystem.remove_file(&filename).await;
+            }
+          })
+        } else {
+          None
+        }
+      })
+      .collect::<FuturesResults<_>>();
+
     Ok(())
   }
 
