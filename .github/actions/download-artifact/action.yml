@@ -3,7 +3,7 @@ name: Download Artifact
 description: Download file to local or artifact to quickly share files between jobs
 
 inputs:
-  type:
+  cache-type:
     description: "Use github, local or lynx cache"
     required: true
     type: string
@@ -23,12 +23,12 @@ runs:
   steps:
     - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ inputs.type == 'github' }}
+      if: ${{ inputs.cache-type == 'github' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download artifact from local
-      if: ${{ inputs.type == 'local' }}
+      if: ${{ inputs.cache-type == 'local' }}
       shell: bash
       run: |
         set -e
@@ -37,7 +37,7 @@ runs:
         ln -sf $save_dir/* ${{ inputs.path }}
         echo "ln -sf $save_dir/* ${{ inputs.path }}"
     - name: Download artifact from lynx
-      if: ${{ inputs.type == 'lynx' }}
+      if: ${{ inputs.cache-type == 'lynx' }}
       uses: lynx-infra/cache/restore@main
       with:
         path: ${{ inputs.path }}

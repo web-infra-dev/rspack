@@ -100,6 +100,6 @@ jobs:
           echo "MACOS_CACHE_TYPE=$MACOS_CACHE_TYPE" >> "$GITHUB_OUTPUT"
 
           # TODO: test
-          echo "WINDOWS_RUNNER_LABELS='"volc-windows-2022-medium"'" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_LABELS='"rspack-windows-2022-large"'" >> "$GITHUB_OUTPUT"
           echo "WINDOWS_RUNNER_TYPE=k8s" >> "$GITHUB_OUTPUT"
           echo "WINDOWS_CACHE_TYPE=lynx" >> "$GITHUB_OUTPUT"

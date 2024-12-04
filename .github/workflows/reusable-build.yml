@@ -233,7 +233,7 @@ jobs:
         uses: ./.github/actions/upload-artifact
         if: ${{ steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
-          type: ${{ inputs.cache-type }}
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
 
@@ -258,7 +258,7 @@ jobs:
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
-          type: ${{ inputs.cache-type }}
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
 
@@ -311,7 +311,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/download-artifact
         with:
-          type: ${{ inputs.cache-type }}
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
 
