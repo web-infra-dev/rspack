@@ -64,17 +64,17 @@ on:
         #   - github
         #   - local
         #   - lynx
-      tos-access-key:
-        required: false
-        type: string
-      tos-secret-key:
-        required: false
-        type: string
     secrets:
       TOS_ACCESS_KEY:
         required: false
       TOS_SECRET_KEY:
         required: false
+
+env:
+  TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+  TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+  TOS_BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
+  TOS_REGION: ${{ vars.TOS_REGION }}
 
 jobs:
   build:
@@ -109,10 +109,6 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           save-if: ${{ github.ref_name == 'main' }}
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
@@ -270,10 +266,6 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           node-version: 20
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Run e2e
         uses: ./.github/actions/docker-run
@@ -333,10 +325,6 @@ jobs:
         with:
           type: ${{ inputs.cache-type }}
           node-version: ${{ matrix.node }}
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       ### x86_64-unknown-linux-gnu
 

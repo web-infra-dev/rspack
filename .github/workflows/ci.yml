@@ -25,6 +25,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
+env:
+  TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+  TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+  TOS_BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
+  TOS_REGION: ${{ vars.TOS_REGION }}
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -284,10 +290,6 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
@@ -333,10 +335,6 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -367,10 +365,6 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
-          tos-access-key: ${{ secrets.TOS_ACCESS_KEY }}
-          tos-secret-key: ${{ secrets.TOS_SECRET_KEY }}
-          tos-bucket-name: ${{ vars.TOS_BUCKET_NAME }}
-          tos-region: ${{ vars.TOS_REGION }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup

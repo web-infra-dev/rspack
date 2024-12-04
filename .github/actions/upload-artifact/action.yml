@@ -44,10 +44,10 @@ runs:
         restore-keys: |
           rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
       env:
-        ACCESS_KEY: ${{ inputs.tos-access-key }}
-        SECRET_KEY: ${{ inputs.tos-secret-key }}
-        BUCKET_NAME: ${{ inputs.tos-bucket-name }}
-        REGION: ${{ inputs.tos-region }}
+        ACCESS_KEY: ${{ env.TOS_ACCESS_KEY }}
+        SECRET_KEY: ${{ env.TOS_SECRET_KEY }}
+        BUCKET_NAME: ${{ env.TOS_BUCKET_NAME }}
+        REGION: ${{ env.TOS_REGION }}
 
     - name: Upload local
       id: upload-local
