@@ -2,7 +2,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage, SourceType,
+  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -55,19 +56,16 @@ impl RuntimeModule for RemoteRuntimeModule {
           continue;
         };
         let name = m.internal_request.as_str();
-        let id = compilation
-          .chunk_graph
-          .get_module_id(m.identifier())
+        let id = ChunkGraph::get_module_id(&compilation.module_ids, m.identifier())
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
-        let external_module_id = compilation
-          .chunk_graph
-          .get_module_id(external_module.identifier())
-          .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
+        let external_module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids, external_module.identifier())
+            .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(
           id,
@@ -117,6 +115,6 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
 struct RemoteData<'a> {
   share_scope: &'a str,
   name: &'a str,
-  external_module_id: &'a str,
+  external_module_id: &'a ModuleId,
   remote_name: &'a str,
 }

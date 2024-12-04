@@ -13,6 +13,7 @@ pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]
 fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  let module_ids = &compilation.module_ids;
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
 
@@ -20,7 +21,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     .chunk_by_ukey
     .values()
     .map(|chunk| chunk as &Chunk)
-    .sorted_unstable_by(|a, b| compare_chunks_natural(chunk_graph, module_graph, a, b))
+    .sorted_unstable_by(|a, b| compare_chunks_natural(chunk_graph, module_graph, module_ids, a, b))
     .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();
 

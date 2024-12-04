@@ -47,9 +47,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
-      let id = compilation
-        .chunk_graph
-        .get_module_id(module)
+      let id = ChunkGraph::get_module_id(&compilation.module_ids, module)
         .map(|s| s.to_string())
         .expect("should have moduleId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
       ids.push(id.clone());

@@ -23,6 +23,7 @@ Object {
     futureDefaults: false,
     incremental: Object {
       buildChunkGraph: false,
+      chunkIds: false,
       chunksHashes: false,
       chunksRender: false,
       chunksRuntimeRequirements: false,
@@ -30,6 +31,7 @@ Object {
       emitAssets: true,
       inferAsyncModules: false,
       make: true,
+      moduleIds: false,
       modulesCodegen: false,
       modulesHashes: false,
       modulesRuntimeRequirements: false,

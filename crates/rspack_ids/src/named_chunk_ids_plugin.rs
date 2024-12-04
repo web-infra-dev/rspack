@@ -51,7 +51,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     chunks,
     |chunk| get_short_chunk_name(chunk, chunk_graph, &context, &self.delimiter, &module_graph),
     |chunk, _| get_long_chunk_name(chunk, chunk_graph, &context, &self.delimiter, &module_graph),
-    |a, b| compare_chunks_natural(chunk_graph, &module_graph, a, b),
+    |a, b| compare_chunks_natural(chunk_graph, &module_graph, &compilation.module_ids, a, b),
     &mut used_ids,
     |chunk, name| {
       chunk_id_to_name.insert(chunk.ukey(), name);

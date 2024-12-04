@@ -1507,6 +1507,8 @@ export interface RawIncremental {
   providedExports: boolean
   dependenciesDiagnostics: boolean
   buildChunkGraph: boolean
+  moduleIds: boolean
+  chunkIds: boolean
   modulesHashes: boolean
   modulesCodegen: boolean
   modulesRuntimeRequirements: boolean

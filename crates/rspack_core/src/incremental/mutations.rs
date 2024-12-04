@@ -38,6 +38,7 @@ pub enum Mutation {
   ModuleBuild { module: ModuleIdentifier },
   ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
+  ModuleSetId { module: ModuleIdentifier },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
@@ -50,6 +51,7 @@ impl fmt::Display for Mutation {
       Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
       Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
+      Mutation::ModuleSetId { module } => write!(f, "set id module {}", module),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
         write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
@@ -143,8 +145,28 @@ impl Mutations {
     self
       .affected_modules_with_chunk_graph
       .get_or_init(|| {
+        let module_graph = compilation.get_module_graph();
+        let mut updated_modules =
+          self.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+        for mutation in self.iter() {
+          match mutation {
+            Mutation::ModuleSetAsync { module } => {
+              updated_modules.insert(*module);
+            }
+            Mutation::ModuleSetId { module } => {
+              updated_modules.insert(*module);
+              updated_modules.extend(
+                module_graph
+                  .get_incoming_connections(module)
+                  .into_iter()
+                  .filter_map(|c| c.original_module_identifier),
+              );
+            }
+            _ => {}
+          }
+        }
         compute_affected_modules_with_chunk_graph(
-          self.get_affected_modules_with_module_graph(&compilation.get_module_graph()),
+          updated_modules,
           self
             .iter()
             .filter_map(|mutation| match mutation {
@@ -291,34 +313,12 @@ fn compute_affected_modules_with_chunk_graph(
   compilation: &Compilation,
 ) -> IdentifierSet {
   #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
-  fn create_chunk_graph_invalidate_key(
+  fn create_block_invalidate_key(
     chunk_graph: &ChunkGraph,
-    module_graph: &ModuleGraph,
     compilation: &Compilation,
     module: &dyn Module,
   ) -> u64 {
-    let module_identifier = module.identifier();
     let mut hasher = FxHasher::default();
-    compilation
-      .chunk_graph
-      .get_module_id(module_identifier)
-      .hash(&mut hasher);
-    ModuleGraph::is_async(compilation, &module_identifier).hash(&mut hasher);
-    for module_id in module_graph
-      .get_ordered_connections(&module_identifier)
-      .expect("should have module")
-      .into_iter()
-      .filter_map(|dep_id| {
-        let connection = module_graph
-          .connection_by_dependency_id(dep_id)
-          .expect("should have connection");
-        compilation
-          .chunk_graph
-          .get_module_id(*connection.module_identifier())
-      })
-    {
-      module_id.hash(&mut hasher);
-    }
     for block_id in module.get_blocks() {
       let Some(chunk_group) =
         chunk_graph.get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
@@ -348,12 +348,8 @@ fn compute_affected_modules_with_chunk_graph(
       let module = module_graph
         .module_by_identifier(module_identifier)
         .expect("should have module");
-      let invalidate_key = create_chunk_graph_invalidate_key(
-        &compilation.chunk_graph,
-        &module_graph,
-        compilation,
-        module.as_ref(),
-      );
+      let invalidate_key =
+        create_block_invalidate_key(&compilation.chunk_graph, compilation, module.as_ref());
       if old_invalidate_key.is_none()
         || matches!(old_invalidate_key, Some(old) if old != invalidate_key)
       {

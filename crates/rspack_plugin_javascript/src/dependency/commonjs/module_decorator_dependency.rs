@@ -1,8 +1,8 @@
 use rspack_core::{
-  create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, Compilation,
-  Dependency, DependencyId, DependencyTemplate, DependencyType, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
+  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -55,9 +55,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     let module_argument = module.get_module_argument();
 
     // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
-    let module_id = compilation
-      .chunk_graph
-      .get_module_id(module.identifier())
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier())
       .map(|s| s.to_string())
       .unwrap_or_default();
 

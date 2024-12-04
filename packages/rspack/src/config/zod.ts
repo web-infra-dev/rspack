@@ -1308,6 +1308,8 @@ const incremental = z.strictObject({
 	providedExports: z.boolean().optional(),
 	dependenciesDiagnostics: z.boolean().optional(),
 	buildChunkGraph: z.boolean().optional(),
+	moduleIds: z.boolean().optional(),
+	chunkIds: z.boolean().optional(),
 	modulesHashes: z.boolean().optional(),
 	modulesCodegen: z.boolean().optional(),
 	modulesRuntimeRequirements: z.boolean().optional(),

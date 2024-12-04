@@ -12,6 +12,13 @@ export class ModuleConcatenationPlugin extends RspackBuiltinPlugin {
 		const logger = compiler.getInfrastructureLogger(
 			"rspack.ModuleConcatenationPlugin"
 		);
+		// TODO: consider introduce `Mutation::Uncacheable` to better handle this
+		if (incremental.moduleIds) {
+			incremental.moduleIds = false;
+			logger.warn(
+				"`optimization.concatenateModules` can't be used with `incremental.moduleIds` as module concatenation is a global effect. `incremental.moduleIds` has been overridden to false."
+			);
+		}
 		if (incremental.modulesHashes) {
 			incremental.modulesHashes = false;
 			logger.warn(
@@ -28,6 +35,24 @@ export class ModuleConcatenationPlugin extends RspackBuiltinPlugin {
 			incremental.modulesRuntimeRequirements = false;
 			logger.warn(
 				"`optimization.concatenateModules` can't be used with `incremental.modulesRuntimeRequirements` as module concatenation is a global effect. `incremental.modulesRuntimeRequirements` has been overridden to false."
+			);
+		}
+		if (incremental.chunksRuntimeRequirements) {
+			incremental.chunksRuntimeRequirements = false;
+			logger.warn(
+				"`optimization.concatenateModules` can't be used with `incremental.chunksRuntimeRequirements` as module concatenation is a global effect. `incremental.chunksRuntimeRequirements` has been overridden to false."
+			);
+		}
+		if (incremental.chunksHashes) {
+			incremental.chunksHashes = false;
+			logger.warn(
+				"`optimization.concatenateModules` can't be used with `incremental.chunksHashes` as module concatenation is a global effect. `incremental.chunksHashes` has been overridden to false."
+			);
+		}
+		if (incremental.chunksRender) {
+			incremental.chunksRender = false;
+			logger.warn(
+				"`optimization.concatenateModules` can't be used with `incremental.chunksRender` as module concatenation is a global effect. `incremental.chunksRender` has been overridden to false."
 			);
 		}
 		return createBuiltinPlugin(this.name, undefined);

@@ -635,7 +635,7 @@ impl Chunk {
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
-      compilation.chunk_graph.get_module_id(*module).hash(hasher);
+      ChunkGraph::get_module_id(&compilation.module_ids, *module).hash(hasher);
       if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
         chunk_group.id(compilation).hash(hasher);
       }

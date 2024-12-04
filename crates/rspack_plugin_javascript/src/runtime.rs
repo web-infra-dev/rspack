@@ -125,9 +125,7 @@ pub fn render_module(
     if need_require {
       args.push(RuntimeGlobals::REQUIRE.to_string());
     }
-    let module_id = compilation
-      .chunk_graph
-      .get_module_id(module.identifier())
+    let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier())
       .expect("should have module_id in render_module");
     sources.add(RawSource::from(
       serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,

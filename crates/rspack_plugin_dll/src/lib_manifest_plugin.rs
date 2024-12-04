@@ -4,7 +4,7 @@ use std::sync::Arc;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource},
-  ApplyContext, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
+  ApplyContext, ChunkGraph, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
   EntryDependency, Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports,
   SourceType,
 };
@@ -142,7 +142,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           _ => None,
         };
 
-        let id = chunk_graph.get_module_id(module.identifier());
+        let id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier());
 
         let build_meta = module.build_meta();
 

@@ -2467,6 +2467,16 @@ export type Incremental = {
 	buildChunkGraph?: boolean;
 
 	/**
+	 * Enable incremental module ids.
+	 */
+	moduleIds?: boolean;
+
+	/**
+	 * Enable incremental chunk ids.
+	 */
+	chunkIds?: boolean;
+
+	/**
 	 * Enable incremental module hashes.
 	 */
 	modulesHashes?: boolean;

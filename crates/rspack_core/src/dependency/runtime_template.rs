@@ -8,8 +8,9 @@ use crate::{
   compile_boolean_matcher_from_lists, contextify, property_access, to_comment, to_normal_comment,
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
   DependencyId, Environment, ExportsArgument, ExportsType, FakeNamespaceObjectMode,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleGraph, ModuleId,
+  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  TemplateContext,
 };
 
 pub fn runtime_condition_expression(
@@ -322,7 +323,7 @@ fn comment(compiler_options: &CompilerOptions, comment_options: CommentOptions) 
 pub fn module_id_expr(
   compiler_options: &CompilerOptions,
   request: &str,
-  module_id: &str,
+  module_id: &ModuleId,
 ) -> String {
   format!(
     "{}{}",
@@ -333,9 +334,9 @@ pub fn module_id_expr(
         ..Default::default()
       }
     ),
-    match module_id.parse::<i32>() {
-      Ok(id) => serde_json::to_string(&id),
-      Err(_) => serde_json::to_string(module_id),
+    match module_id.as_number() {
+      Some(id) => serde_json::to_string(&id),
+      None => serde_json::to_string(module_id),
     }
     .expect("should render module id")
   )
@@ -350,7 +351,7 @@ pub fn module_id(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
   {
     module_id_expr(&compilation.options, request, module_id)
   } else if weak {
@@ -645,7 +646,7 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(

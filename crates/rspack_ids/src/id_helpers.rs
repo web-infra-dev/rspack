@@ -12,9 +12,9 @@ use itertools::{
 };
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_collections::DatabaseItem;
+use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
+  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleId,
   ModuleIdentifier,
 };
 use rspack_util::itoa;
@@ -47,7 +47,7 @@ pub fn get_used_module_ids_and_modules(
     .values()
     .filter(|m| m.need_id())
     .for_each(|module| {
-      let module_id = chunk_graph.get_module_id(module.identifier());
+      let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier());
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
@@ -289,15 +289,15 @@ pub fn assign_deterministic_ids<T: Copy>(
 pub fn assign_ascending_module_ids(
   used_ids: &HashSet<String>,
   modules: Vec<&BoxModule>,
-  chunk_graph: &mut ChunkGraph,
+  module_ids: &mut IdentifierMap<ModuleId>,
 ) {
   let mut next_id = 0;
   let mut assign_id = |module: &BoxModule| {
-    if chunk_graph.get_module_id(module.identifier()).is_none() {
+    if ChunkGraph::get_module_id(module_ids, module.identifier()).is_none() {
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
       }
-      chunk_graph.set_module_id(module.identifier(), next_id.to_string());
+      ChunkGraph::set_module_id(module_ids, module.identifier(), next_id.to_string().into());
       next_id += 1;
     }
   };
@@ -491,6 +491,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
 fn compare_chunks_by_modules(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  module_ids: &IdentifierMap<ModuleId>,
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
@@ -502,8 +503,10 @@ fn compare_chunks_by_modules(
     .zip_longest(b_modules)
     .find_map(|pair| match pair {
       Both(a_module, b_module) => {
-        let a_module_id = chunk_graph.get_module_id(a_module.identifier());
-        let b_module_id = chunk_graph.get_module_id(b_module.identifier());
+        let a_module_id =
+          ChunkGraph::get_module_id(module_ids, a_module.identifier()).map(|s| s.as_str());
+        let b_module_id =
+          ChunkGraph::get_module_id(module_ids, b_module.identifier()).map(|s| s.as_str());
         let ordering = compare_ids(
           a_module_id.unwrap_or_default(),
           b_module_id.unwrap_or_default(),
@@ -530,6 +533,7 @@ fn compare_chunks_by_modules(
 pub fn compare_chunks_natural(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  module_ids: &IdentifierMap<ModuleId>,
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
@@ -543,5 +547,5 @@ pub fn compare_chunks_natural(
     return runtime_ordering;
   }
 
-  compare_chunks_by_modules(chunk_graph, module_graph, a, b)
+  compare_chunks_by_modules(chunk_graph, module_graph, module_ids, a, b)
 }

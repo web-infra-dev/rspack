@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, incremental::IncrementalPasses, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec,
+  chunk_graph_module::ModuleId, fast_set, incremental::IncrementalPasses, ChunkGraph, ChunkKind,
+  Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -119,6 +119,12 @@ impl Compiler {
       }
       if new_compilation
         .incremental
+        .can_read_mutations(IncrementalPasses::MODULE_IDS)
+      {
+        new_compilation.module_ids = std::mem::take(&mut self.compilation.module_ids);
+      }
+      if new_compilation
+        .incremental
         .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
@@ -180,29 +186,30 @@ impl Compiler {
 pub struct CompilationRecords {
   pub old_chunks: Vec<(String, RuntimeSpec)>,
   pub all_old_runtime: RuntimeSpec,
-  pub old_all_modules: IdentifierMap<(RspackHashDigest, String)>,
+  pub old_all_modules: IdentifierMap<(RspackHashDigest, ModuleId)>,
   pub old_runtime_modules: IdentifierMap<String>,
   pub old_hash: Option<RspackHashDigest>,
 }
 
 pub type ChangedModules = (
-  IdentifierMap<(RspackHashDigest, String)>,
+  IdentifierMap<(RspackHashDigest, ModuleId)>,
   IdentifierMap<String>,
 );
 pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
-    .par_iter()
-    .filter_map(|(identifier, cgm)| {
-      let cid = cgm.id.as_deref();
+    .keys()
+    .par_bridge()
+    .filter_map(|identifier| {
+      let cid = ChunkGraph::get_module_id(&compilation.module_ids, *identifier);
       // TODO: Determine how to calc module hash if module related to multiple runtime code
       // gen
       if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)
         && let Some(module_hash) = &code_generation_result.hash
         && let Some(cid) = cid
       {
-        Some((*identifier, (module_hash.clone(), cid.to_string())))
+        Some((*identifier, (module_hash.clone(), cid.clone())))
       } else {
         None
       }

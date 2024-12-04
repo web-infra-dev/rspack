@@ -43,7 +43,7 @@ pub fn get_stats_module_name_and_id<'s, 'c>(
 ) -> (Cow<'s, str>, Option<&'c str>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = compilation.chunk_graph.get_module_id(identifier);
+  let id = ChunkGraph::get_module_id(&compilation.module_ids, identifier).map(|s| s.as_str());
   (name, id)
 }
 
@@ -152,7 +152,7 @@ pub fn get_chunk_relations(
 pub fn get_module_trace(
   module_identifier: Option<Identifier>,
   module_graph: &ModuleGraph,
-  chunk_graph: &ChunkGraph,
+  compilation: &Compilation,
   options: &CompilerOptions,
 ) -> Vec<StatsModuleTrace> {
   let mut module_trace = vec![];
@@ -174,8 +174,7 @@ pub fn get_module_trace(
       name: origin_module
         .readable_identifier(&options.context)
         .to_string(),
-      id: chunk_graph
-        .get_module_id(origin_module.identifier())
+      id: ChunkGraph::get_module_id(&compilation.module_ids, origin_module.identifier())
         .map(|s| s.to_string()),
     };
 
@@ -184,8 +183,7 @@ pub fn get_module_trace(
       name: current_module
         .readable_identifier(&options.context)
         .to_string(),
-      id: chunk_graph
-        .get_module_id(current_module.identifier())
+      id: ChunkGraph::get_module_id(&compilation.module_ids, current_module.identifier())
         .map(|s| s.to_string()),
     };
 

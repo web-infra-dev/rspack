@@ -17,9 +17,9 @@ mod r#struct;
 pub use r#struct::*;
 
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey, Compilation,
-  ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports, SourceType,
-  UsedExports,
+  BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
+  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports,
+  SourceType, UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -337,10 +337,7 @@ impl Stats<'_> {
               let module_id = origin
                 .module_id
                 .map(|identifier| {
-                  self
-                    .compilation
-                    .chunk_graph
-                    .get_module_id(identifier)
+                  ChunkGraph::get_module_id(&self.compilation.module_ids, identifier)
                     .map(|s| s.to_string())
                     .unwrap_or_default()
                 })
@@ -573,7 +570,7 @@ impl Stats<'_> {
         let module_trace = get_module_trace(
           module_identifier,
           &self.compilation.get_module_graph(),
-          &self.compilation.chunk_graph,
+          self.compilation,
           &self.compilation.options,
         );
         StatsError {
@@ -623,7 +620,7 @@ impl Stats<'_> {
         let module_trace = get_module_trace(
           module_identifier,
           &self.compilation.get_module_graph(),
-          &self.compilation.chunk_graph,
+          self.compilation,
           &self.compilation.options,
         );
 
@@ -846,7 +843,7 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        self.compilation.chunk_graph.get_module_id(identifier)
+        ChunkGraph::get_module_id(&self.compilation.module_ids, identifier).map(|s| s.as_str())
       };
       stats.issuer_id = issuer_id.and_then(|i| i);
 

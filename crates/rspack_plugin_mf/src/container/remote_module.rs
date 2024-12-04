@@ -6,8 +6,9 @@ use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{RawSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  ChunkGraph, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
+  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
+  SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_util::source_map::SourceMapKind;
@@ -174,13 +175,14 @@ impl Module for RemoteModule {
     let mut codegen = CodeGenerationResult::default();
     let module_graph = compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
-    let id = module.and_then(|m| compilation.chunk_graph.get_module_id(m.identifier()));
+    let id =
+      module.and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids, m.identifier()));
     codegen.add(SourceType::Remote, RawSource::from_static("").boxed());
     codegen.data.insert(CodeGenerationDataShareInit {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,
-        init: DataInitInfo::ExternalModuleId(id.map(|i| i.to_owned())),
+        init: DataInitInfo::ExternalModuleId(id.cloned()),
       }],
     });
     Ok(codegen)

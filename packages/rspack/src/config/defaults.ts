@@ -215,6 +215,8 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "providedExports", false);
 		D(experiments.incremental, "dependenciesDiagnostics", false);
 		D(experiments.incremental, "buildChunkGraph", false);
+		D(experiments.incremental, "moduleIds", false);
+		D(experiments.incremental, "chunkIds", false);
 		D(experiments.incremental, "modulesHashes", false);
 		D(experiments.incremental, "modulesCodegen", false);
 		D(experiments.incremental, "modulesRuntimeRequirements", false);
