@@ -4696,8 +4696,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.3.4"
-source = "git+https://github.com/web-infra-dev/rspack-sources.git?rev=84edc75ea6cbf238a69fbb3ebe581171d2913486#84edc75ea6cbf238a69fbb3ebe581171d2913486"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "133d9008a7ea8731cbcf7f4b1d19623fab2fca91ed6da55d71d3147700f03515"
 dependencies = [
  "dashmap 5.5.3",
  "dyn-clone",
@@ -4706,6 +4707,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simd-json",
+ "static_assertions",
 ]
 
 [[package]]
