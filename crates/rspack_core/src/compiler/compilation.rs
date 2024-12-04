@@ -69,8 +69,10 @@ define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut 
 define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
+define_hook!(CompilationAdditionalModuleRuntimeRequirements: SyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInChunk: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
@@ -100,8 +102,10 @@ pub struct CompilationHooks {
   pub module_ids: CompilationModuleIdsHook,
   pub chunk_ids: CompilationChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
+  pub additional_module_runtime_requirements: CompilationAdditionalModuleRuntimeRequirementsHook,
   pub runtime_requirement_in_module: CompilationRuntimeRequirementInModuleHook,
   pub additional_chunk_runtime_requirements: CompilationAdditionalChunkRuntimeRequirementsHook,
+  pub runtime_requirement_in_chunk: CompilationRuntimeRequirementInChunkHook,
   pub additional_tree_runtime_requirements: CompilationAdditionalTreeRuntimeRequirementsHook,
   pub runtime_requirement_in_tree: CompilationRuntimeRequirementInTreeHook,
   pub optimize_code_generation: CompilationOptimizeCodeGenerationHook,
@@ -1566,6 +1570,12 @@ impl Compilation {
               let mut runtime_requirements = self
                 .code_generation_results
                 .get_runtime_requirements(&module, Some(runtime));
+
+              plugin_driver
+                .compilation_hooks
+                .additional_module_runtime_requirements
+                .call(self, &module, &mut runtime_requirements)?;
+
               process_runtime_requirement_hook(
                 &mut runtime_requirements,
                 |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
@@ -1626,6 +1636,23 @@ impl Compilation {
         .compilation_hooks
         .additional_chunk_runtime_requirements
         .call(self, chunk_ukey, &mut set)?;
+
+      process_runtime_requirement_hook(
+        &mut set,
+        |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
+          plugin_driver
+            .compilation_hooks
+            .runtime_requirement_in_chunk
+            .call(
+              self,
+              chunk_ukey,
+              all_runtime_requirements,
+              runtime_requirements,
+              runtime_requirements_mut,
+            )?;
+          Ok(())
+        },
+      )?;
 
       ChunkGraph::set_chunk_runtime_requirements(self, *chunk_ukey, set);
     }

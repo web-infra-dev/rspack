@@ -6,7 +6,7 @@ use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
@@ -212,11 +212,11 @@ fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   Ok(Some("the eval-source-map devtool is used.".to_string()))
 }
 
-#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EvalSourceMapDevToolPlugin)]
-async fn eval_source_map_devtool_plugin_additional_tree_runtime_requirements(
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin)]
+fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  _chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+  _module: &ModuleIdentifier,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   if compilation.options.output.trusted_types.is_some() {
@@ -241,8 +241,8 @@ impl Plugin for EvalSourceMapDevToolPlugin {
     ctx
       .context
       .compilation_hooks
-      .additional_tree_runtime_requirements
-      .tap(eval_source_map_devtool_plugin_additional_tree_runtime_requirements::new(self));
+      .additional_module_runtime_requirements
+      .tap(eval_source_map_devtool_plugin_additional_module_runtime_requirements::new(self));
     Ok(())
   }
 }

@@ -10,7 +10,9 @@ use rspack_core::{
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
 };
-use rspack_core::{CompilationAdditionalTreeRuntimeRequirements, RuntimeGlobals};
+use rspack_core::{
+  CompilationAdditionalModuleRuntimeRequirements, ModuleIdentifier, RuntimeGlobals,
+};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -190,17 +192,17 @@ impl Plugin for EvalDevToolModulePlugin {
     ctx
       .context
       .compilation_hooks
-      .additional_tree_runtime_requirements
-      .tap(eval_devtool_plugin_additional_tree_runtime_requirements::new(self));
+      .additional_module_runtime_requirements
+      .tap(eval_devtool_plugin_additional_module_runtime_requirements::new(self));
     Ok(())
   }
 }
 
-#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EvalDevToolModulePlugin)]
-async fn eval_devtool_plugin_additional_tree_runtime_requirements(
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin)]
+fn eval_devtool_plugin_additional_module_runtime_requirements(
   &self,
-  compilation: &mut Compilation,
-  _chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+  _module: &ModuleIdentifier,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> Result<()> {
   if compilation.options.output.trusted_types.is_some() {
