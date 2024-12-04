@@ -1,3 +1,4 @@
+import { normalizePlaceholder } from "../helper/expect/placeholder";
 import type { ECompilerType, ITestContext, TCompilerOptions } from "../type";
 import { BuiltinProcessor } from "./builtin";
 import { type ISnapshotProcessorOptions, SnapshotProcessor } from "./snapshot";
@@ -26,5 +27,9 @@ export class TreeShakingProcessor<
 		options.optimization.providedExports = true;
 		options.optimization.innerGraph = true;
 		options.optimization.usedExports = true;
+	}
+
+	serializeEachFile(content: string): string {
+		return normalizePlaceholder(content);
 	}
 }

@@ -20,7 +20,7 @@
     "build:cli:release:win": "pnpm --filter @rspack/binding build:release:win && npm run build:js",
     "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
-    "format:rs": "pnpm --filter @rspack/core... build",
+    "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
     "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"x.mjs\" \"x\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
