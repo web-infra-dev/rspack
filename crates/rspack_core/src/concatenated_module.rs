@@ -154,8 +154,8 @@ impl ConcatenationEntryExternal {
 }
 
 #[derive(Debug)]
-pub struct ConcatenatedModuleImportInfo {
-  connection: ModuleGraphConnection,
+pub struct ConcatenatedModuleImportInfo<'a> {
+  connection: &'a ModuleGraphConnection,
   source_order: i32,
   range_start: Option<u32>,
 }
@@ -201,8 +201,8 @@ pub struct ExternalModuleInfo {
   pub name: Option<Atom>,
 }
 
-pub struct ConnectionWithRuntimeCondition {
-  pub connection: ModuleGraphConnection,
+pub struct ConnectionWithRuntimeCondition<'a> {
+  pub connection: &'a ModuleGraphConnection,
   pub runtime_condition: RuntimeCondition,
 }
 
@@ -1530,7 +1530,7 @@ impl ConcatenatedModule {
     module_set: &mut IdentifierIndexSet,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    con: ModuleGraphConnection,
+    con: &ModuleGraphConnection,
     runtime_condition: RuntimeCondition,
     exists_entry: &mut IdentifierMap<RuntimeCondition>,
     list: &mut Vec<ConcatenationEntry>,
@@ -1592,21 +1592,17 @@ impl ConcatenatedModule {
     }
   }
 
-  fn get_concatenated_imports(
+  fn get_concatenated_imports<'a>(
     &self,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    mg: &ModuleGraph,
-  ) -> Vec<ConnectionWithRuntimeCondition> {
-    let mut connections = mg
-      .get_outgoing_connections(module_id)
-      .into_iter()
-      .cloned()
-      .collect::<Vec<_>>();
+    mg: &'a ModuleGraph,
+  ) -> Vec<ConnectionWithRuntimeCondition<'a>> {
+    let mut connections = mg.get_outgoing_connections(module_id).collect::<Vec<_>>();
     if module_id == root_module_id {
       for c in mg.get_outgoing_connections(&self.id) {
-        connections.push(c.clone());
+        connections.push(c);
       }
     }
 

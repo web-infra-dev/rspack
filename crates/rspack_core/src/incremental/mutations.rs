@@ -158,7 +158,6 @@ impl Mutations {
               updated_modules.extend(
                 module_graph
                   .get_incoming_connections(module)
-                  .into_iter()
                   .filter_map(|c| c.original_module_identifier),
               );
             }

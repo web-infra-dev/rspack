@@ -268,29 +268,23 @@ impl ChunkGraph {
       .hash(&mut hasher);
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
-    let connections = mg
-      .get_outgoing_connections(&module.identifier())
-      .into_iter()
-      .collect::<Vec<_>>();
-    if !connections.is_empty() {
-      let mut visited_modules = IdentifierSet::default();
-      visited_modules.insert(module.identifier());
-      for connection in connections {
-        let module_identifier = connection.module_identifier();
-        if visited_modules.contains(module_identifier) {
-          continue;
-        }
-        if connection.active_state(&mg, runtime).is_false() {
-          continue;
-        }
-        visited_modules.insert(*module_identifier);
-        let module = mg
-          .module_by_identifier(module_identifier)
-          .expect("should have module")
-          .as_ref();
-        module.get_exports_type(&mg, strict).hash(&mut hasher);
-        self.get_module_graph_hash_without_connections(module, compilation, runtime);
+    let mut visited_modules = IdentifierSet::default();
+    visited_modules.insert(module.identifier());
+    for connection in mg.get_outgoing_connections(&module.identifier()) {
+      let module_identifier = connection.module_identifier();
+      if visited_modules.contains(module_identifier) {
+        continue;
       }
+      if connection.active_state(&mg, runtime).is_false() {
+        continue;
+      }
+      visited_modules.insert(*module_identifier);
+      let module = mg
+        .module_by_identifier(module_identifier)
+        .expect("should have module")
+        .as_ref();
+      module.get_exports_type(&mg, strict).hash(&mut hasher);
+      self.get_module_graph_hash_without_connections(module, compilation, runtime);
     }
     hasher.finish()
   }

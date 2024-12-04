@@ -111,9 +111,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     for module in chunk_graph.get_ordered_chunk_modules(&chunk.ukey(), &module_graph) {
       if self.options.entry_only.unwrap_or_default()
         && !some_in_iterable(
-          module_graph
-            .get_incoming_connections(&module.identifier())
-            .into_iter(),
+          module_graph.get_incoming_connections(&module.identifier()),
           |conn| {
             let dep = module_graph.dependency_by_id(&conn.dependency_id);
 

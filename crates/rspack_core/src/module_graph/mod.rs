@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -789,18 +789,19 @@ impl<'a> ModuleGraph<'a> {
     exports_info.get_export_info(self, export_name)
   }
 
-  pub(crate) fn get_ordered_connections(
+  pub(crate) fn get_ordered_all_dependencies(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<Vec<&DependencyId>> {
+  ) -> impl Iterator<Item = &DependencyId> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
         m.all_dependencies
           .iter()
           .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
-          .collect()
       })
+      .into_iter()
+      .flatten()
   }
 
   pub fn connection_by_dependency_id(
@@ -848,7 +849,7 @@ impl<'a> ModuleGraph<'a> {
 
   pub fn is_optional(&self, module_id: &ModuleIdentifier) -> bool {
     let mut has_connections = false;
-    for connection in self.get_incoming_connections(module_id).iter() {
+    for connection in self.get_incoming_connections(module_id) {
       let Some(dependency) = self
         .dependency_by_id(&connection.dependency_id)
         .and_then(|dep| dep.as_module_dependency())
@@ -886,7 +887,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_outgoing_connections(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashSet<&ModuleGraphConnection> {
+  ) -> impl Iterator<Item = &ModuleGraphConnection> + Clone {
     self
       .module_graph_module_by_identifier(module_id)
       .map(|mgm| {
@@ -894,15 +895,15 @@ impl<'a> ModuleGraph<'a> {
           .outgoing_connections()
           .iter()
           .filter_map(|id| self.connection_by_dependency_id(id))
-          .collect()
       })
-      .unwrap_or_default()
+      .into_iter()
+      .flatten()
   }
 
   pub fn get_incoming_connections(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashSet<&ModuleGraphConnection> {
+  ) -> impl Iterator<Item = &ModuleGraphConnection> + Clone {
     self
       .module_graph_module_by_identifier(module_id)
       .map(|mgm| {
@@ -910,9 +911,9 @@ impl<'a> ModuleGraph<'a> {
           .incoming_connections()
           .iter()
           .filter_map(|id| self.connection_by_dependency_id(id))
-          .collect()
       })
-      .unwrap_or_default()
+      .into_iter()
+      .flatten()
   }
 
   pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
