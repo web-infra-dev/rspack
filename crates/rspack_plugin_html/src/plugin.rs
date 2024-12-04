@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
+use rspack_util::fx_hash::FxDashMap;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -36,7 +36,7 @@ impl HtmlRspackPlugin {
 
   pub fn get_compilation_hooks(
     id: CompilationId,
-  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<HtmlPluginHooks>, BuildFxHasher> {
+  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<HtmlPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -47,7 +47,7 @@ impl HtmlRspackPlugin {
 
   pub fn get_compilation_hooks_mut(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<HtmlPluginHooks>, BuildFxHasher> {
+  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<HtmlPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
   }
 }

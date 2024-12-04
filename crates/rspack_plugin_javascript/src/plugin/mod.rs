@@ -41,7 +41,7 @@ use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
 use rspack_util::diff_mode;
-use rspack_util::fx_hash::{BuildFxHasher, FxDashMap};
+use rspack_util::fx_hash::FxDashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::atoms::Atom;
 use swc_core::common::{FileName, Spanned, SyntaxContext};
@@ -71,28 +71,14 @@ impl RenameModuleCache {
   pub fn get_inlined_info(
     &self,
     ident: &Identifier,
-  ) -> Option<
-    dashmap::mapref::one::Ref<
-      '_,
-      Identifier,
-      WithHash<InlinedModuleInfo>,
-      std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
-    >,
-  > {
+  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<InlinedModuleInfo>>> {
     self.inlined_modules_to_info.get(ident)
   }
 
   pub fn get_non_inlined_idents(
     &self,
     ident: &Identifier,
-  ) -> Option<
-    dashmap::mapref::one::Ref<
-      '_,
-      Identifier,
-      WithHash<Vec<ConcatenatedModuleIdent>>,
-      std::hash::BuildHasherDefault<rspack_collections::IdentifierHasher>,
-    >,
-  > {
+  ) -> Option<dashmap::mapref::one::Ref<'_, Identifier, WithHash<Vec<ConcatenatedModuleIdent>>>> {
     self.non_inlined_modules_through_idents.get(ident)
   }
 }
@@ -120,8 +106,7 @@ pub struct JsPlugin {
 impl JsPlugin {
   pub fn get_compilation_hooks(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>, BuildFxHasher>
-  {
+  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
     let id = compilation.id();
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
@@ -133,12 +118,7 @@ impl JsPlugin {
 
   pub fn get_compilation_hooks_mut(
     compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<
-    '_,
-    CompilationId,
-    Box<JavascriptModulesPluginHooks>,
-    BuildFxHasher,
-  > {
+  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
     COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
   }
 

@@ -20,7 +20,6 @@ plugin = [
 anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
 base64                   = { version = "0.22.1" }
-dashmap                  = { workspace = true }
 either                   = { workspace = true }
 jsonc-parser             = { version = "0.26.2", features = ["serde"] }
 rspack_ast               = { workspace = true }

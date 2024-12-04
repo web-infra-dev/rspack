@@ -1099,14 +1099,13 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
- "rayon",
 ]
 
 [[package]]
 name = "dashmap"
-version = "6.0.1"
+version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -1114,6 +1113,7 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
+ "rayon",
 ]
 
 [[package]]
@@ -1756,11 +1756,12 @@ dependencies = [
 
 [[package]]
 name = "handlebars"
-version = "5.1.2"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d08485b96a0e6393e9e4d1b8d48cf74ad6c063cd905eb33f42c1ce3f0377539b"
+checksum = "fd4ccde012831f9a071a637b0d4e31df31c0f6c525784b35ae76a9ac6bc1e315"
 dependencies = [
  "log",
+ "num-order",
  "pest",
  "pest_derive",
  "serde",
@@ -2878,6 +2879,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-modular"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17bb261bf36fa7d83f4c294f834e91256769097b3cb505d44831e0a179ac647f"
+
+[[package]]
+name = "num-order"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "537b596b97c40fcf8056d153049eb22f481c17ebce72a513ec9286e4986d1bb6"
+dependencies = [
+ "num-modular",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3001,7 +3017,7 @@ dependencies = [
  "phf",
  "phf_codegen",
  "precomputed-hash",
- "rustc-hash 2.0.0",
+ "rustc-hash 2.1.0",
  "smallvec",
  "static-self",
 ]
@@ -3820,7 +3836,7 @@ dependencies = [
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "swc_core",
@@ -3845,7 +3861,7 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
 ]
@@ -3855,7 +3871,7 @@ name = "rspack_cacheable"
 version = "0.2.0"
 dependencies = [
  "camino",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "hashlink",
  "indexmap 2.7.0",
  "inventory",
@@ -3876,14 +3892,14 @@ name = "rspack_cacheable_test"
 version = "0.2.0"
 dependencies = [
  "camino",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "json",
  "lightningcss",
  "once_cell",
  "rspack_cacheable",
  "rspack_resolver",
  "rspack_sources",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "swc_core",
  "ustr-fxhash",
@@ -3893,7 +3909,7 @@ dependencies = [
 name = "rspack_collections"
 version = "0.2.0"
 dependencies = [
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "hashlink",
  "indexmap 2.7.0",
  "rayon",
@@ -3910,7 +3926,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.6.0",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "derivative",
  "dyn-clone",
  "either",
@@ -3943,7 +3959,7 @@ dependencies = [
  "rspack_resolver",
  "rspack_sources",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "sugar_path",
@@ -4036,7 +4052,7 @@ dependencies = [
  "futures-concurrency",
  "rspack_error",
  "rspack_macros",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
 ]
 
 [[package]]
@@ -4051,7 +4067,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4105,7 +4121,7 @@ dependencies = [
  "rspack_paths",
  "rspack_sources",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "tokio",
 ]
@@ -4117,7 +4133,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64 0.22.1",
- "dashmap 5.5.3",
  "either",
  "jsonc-parser 0.26.2",
  "rspack_ast",
@@ -4268,7 +4283,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_regex",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4276,7 +4291,7 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.2.0"
 dependencies = [
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "derivative",
  "futures",
  "glob",
@@ -4290,7 +4305,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "sugar_path",
  "tokio",
  "tracing",
@@ -4315,7 +4330,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "tracing",
  "urlencoding",
@@ -4327,7 +4342,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "derivative",
  "futures",
  "itertools 0.13.0",
@@ -4341,7 +4356,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "simd-json",
  "tracing",
 ]
@@ -4357,7 +4372,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_externals",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "tracing",
@@ -4383,7 +4398,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4428,7 +4443,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "tracing",
@@ -4448,7 +4463,7 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "tracing",
 ]
@@ -4459,7 +4474,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "futures",
  "itertools 0.13.0",
  "path-clean 1.0.1",
@@ -4503,7 +4518,7 @@ dependencies = [
  "async-trait",
  "bitflags 2.6.0",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "either",
  "fast-glob",
  "indexmap 2.7.0",
@@ -4525,7 +4540,7 @@ dependencies = [
  "rspack_paths",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "stacker",
  "sugar_path",
@@ -4560,7 +4575,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tokio",
  "tracing",
 ]
@@ -4578,7 +4593,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "swc_core",
  "tracing",
@@ -4619,7 +4634,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4638,7 +4653,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_plugin_runtime",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "tokio",
@@ -4681,7 +4696,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4692,7 +4707,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4723,7 +4738,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde_json",
  "tracing",
 ]
@@ -4780,7 +4795,7 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.2.0"
 dependencies = [
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "derivative",
  "rayon",
  "regex",
@@ -4791,7 +4806,7 @@ dependencies = [
  "rspack_hook",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4825,7 +4840,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
@@ -4835,7 +4850,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "indexmap 2.7.0",
  "rayon",
  "rspack_collections",
@@ -4886,12 +4901,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44786dd48374dc4b43cff0306e417c1d11016c3dffda5685bb272b6eb4f7ff85"
 dependencies = [
  "cfg-if",
- "dashmap 6.0.1",
+ "dashmap 6.1.0",
  "dunce",
  "indexmap 2.7.0",
  "json-strip-comments",
  "once_cell",
- "rustc-hash 2.0.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "simdutf8",
@@ -4922,7 +4937,7 @@ dependencies = [
  "cow-utils",
  "handlebars",
  "heck 0.5.0",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "swc_core",
 ]
@@ -4944,13 +4959,13 @@ dependencies = [
  "bitflags 2.6.0",
  "concat-string",
  "cow-utils",
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "indexmap 2.7.0",
  "itoa",
  "regex",
  "ropey",
  "rspack_regex",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "sugar_path",
@@ -4973,9 +4988,9 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc-hash"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
+checksum = "c7fb8039b3032c191086b10f11f319a6e99e1e82889c5cc6046f515c9db1d497"
 
 [[package]]
 name = "rustc_version"
@@ -7395,7 +7410,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
- "dashmap 6.0.1",
+ "dashmap 6.1.0",
  "derivative",
  "dunce",
  "filetime",
@@ -7809,7 +7824,7 @@ dependencies = [
  "cfg-if",
  "corosensei",
  "crossbeam-queue",
- "dashmap 6.0.1",
+ "dashmap 6.1.0",
  "derivative",
  "enum-iterator",
  "fnv",
@@ -7842,7 +7857,7 @@ dependencies = [
  "bytes",
  "cfg-if",
  "cooked-waker",
- "dashmap 6.0.1",
+ "dashmap 6.1.0",
  "derivative",
  "futures",
  "getrandom",

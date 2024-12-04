@@ -13,7 +13,6 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
 use base64::prelude::*;
-use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
 use rspack_util::itoa;
@@ -561,8 +560,8 @@ impl IntoSwcComments for SingleThreadedComments {
       (l.take(), t.take())
     };
     SwcComments {
-      leading: Arc::new(DashMap::from_iter(l)),
-      trailing: Arc::new(DashMap::from_iter(t)),
+      leading: Arc::new(FromIterator::<_>::from_iter(l)),
+      trailing: Arc::new(FromIterator::<_>::from_iter(t)),
     }
   }
 }
