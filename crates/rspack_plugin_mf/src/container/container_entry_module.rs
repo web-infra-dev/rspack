@@ -261,7 +261,7 @@ var init = function(shareScope, initScope) {{
     };
     code_generation_result =
       code_generation_result.with_javascript(RawSource::from(source).boxed());
-    code_generation_result.add(SourceType::Expose, RawSource::from("").boxed());
+    code_generation_result.add(SourceType::Expose, RawSource::from_static("").boxed());
     if self.enhanced {
       code_generation_result
         .data

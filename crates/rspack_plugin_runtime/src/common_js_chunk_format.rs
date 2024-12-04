@@ -104,16 +104,16 @@ fn render_chunk(
     "exports.ids = ['{}'];\n",
     &chunk.expect_id().to_string()
   )));
-  sources.add(RawSource::from("exports.modules = "));
+  sources.add(RawSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
-  sources.add(RawSource::from(";\n"));
+  sources.add(RawSource::from_static(";\n"));
   if compilation
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawSource::from("exports.runtime = "));
+    sources.add(RawSource::from_static("exports.runtime = "));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
-    sources.add(RawSource::from(";\n"));
+    sources.add(RawSource::from_static(";\n"));
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
@@ -150,9 +150,9 @@ fn render_chunk(
     )?;
     sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
-      RawSource::from("(function() {\n").boxed(),
+      RawSource::from_static("(function() {\n").boxed(),
       sources.boxed(),
-      RawSource::from("\n})()").boxed(),
+      RawSource::from_static("\n})()").boxed(),
     ])
     .boxed();
     return Ok(());

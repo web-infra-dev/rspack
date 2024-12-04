@@ -149,18 +149,18 @@ fn render(
     // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
     source.add(RawSource::from(external_var_initialization));
   }
-  source.add(RawSource::from("return {\n"));
+  source.add(RawSource::from_static("return {\n"));
   if !is_has_external_modules {
     // setter : { [function(module){},...] },
     let setters = format!("setters: [{}],\n", setters);
     source.add(RawSource::from(setters))
   }
-  source.add(RawSource::from("execute: function() {\n"));
+  source.add(RawSource::from_static("execute: function() {\n"));
   source.add(RawSource::from(format!("{dynamic_export}(")));
   source.add(render_source.source.clone());
-  source.add(RawSource::from(")}\n"));
-  source.add(RawSource::from("}\n"));
-  source.add(RawSource::from("\n})"));
+  source.add(RawSource::from_static(")}\n"));
+  source.add(RawSource::from_static("}\n"));
+  source.add(RawSource::from_static("\n})"));
   render_source.source = source.boxed();
   Ok(())
 }

@@ -210,13 +210,13 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_hmr_manifest {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/jsonp_chunk_loading_with_hmr_manifest.js"
       )));
     }
 
     if with_on_chunk_load {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
       )));
     }

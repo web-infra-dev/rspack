@@ -159,7 +159,7 @@ fn render(
     )));
   }
   source.add(render_source.source.clone());
-  source.add(RawSource::from("\n})"));
+  source.add(RawSource::from_static("\n})"));
   render_source.source = source.boxed();
   Ok(())
 }

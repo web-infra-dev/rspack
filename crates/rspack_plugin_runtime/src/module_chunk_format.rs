@@ -110,17 +110,17 @@ fn render_chunk(
     "export const ids = ['{}'];\n",
     &chunk.expect_id().to_string()
   )));
-  sources.add(RawSource::from("export const modules = "));
+  sources.add(RawSource::from_static("export const modules = "));
   sources.add(render_source.source.clone());
-  sources.add(RawSource::from(";\n"));
+  sources.add(RawSource::from_static(";\n"));
 
   if compilation
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawSource::from("export const runtime = "));
+    sources.add(RawSource::from_static("export const runtime = "));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
-    sources.add(RawSource::from(";\n"));
+    sources.add(RawSource::from_static(";\n"));
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {

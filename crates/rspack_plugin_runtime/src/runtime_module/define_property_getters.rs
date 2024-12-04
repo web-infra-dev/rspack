@@ -23,6 +23,6 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/define_property_getters.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/define_property_getters.js")).boxed())
   }
 }

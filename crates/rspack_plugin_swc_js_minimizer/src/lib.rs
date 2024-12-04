@@ -262,7 +262,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         {
           ConcatSource::new([
             RawSource::from(banner).boxed(),
-            RawSource::from("\n").boxed(),
+            RawSource::from_static("\n").boxed(),
             source
           ]).boxed()
         } else {

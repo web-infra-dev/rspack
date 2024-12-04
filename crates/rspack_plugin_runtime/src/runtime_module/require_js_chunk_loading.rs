@@ -109,7 +109,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_on_chunk_load {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/require_chunk_loading_with_on_chunk_load.js"
       )));
     }
@@ -150,20 +150,20 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_external_install_chunk {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/require_chunk_loading_with_external_install_chunk.js"
       )));
     }
 
     if with_hmr {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/require_chunk_loading_with_hmr.js"
       )));
       source.add(RawSource::from(generate_javascript_hmr_runtime("require")));
     }
 
     if with_hmr_manifest {
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/require_chunk_loading_with_hmr_manifest.js"
       )));
     }

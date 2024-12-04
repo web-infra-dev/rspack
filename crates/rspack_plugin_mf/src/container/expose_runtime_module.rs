@@ -61,7 +61,7 @@ impl RuntimeModule for ExposeRuntimeModule {
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
-      return Ok(RawSource::from("").boxed());
+      return Ok(RawSource::from_static("").boxed());
     };
     let module_map = data.module_map.render(compilation);
     let mut source = format!(

@@ -116,10 +116,10 @@ fn render_chunk(
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
-      source.add(RawSource::from(",".to_string()));
+      source.add(RawSource::from_static(","));
       source.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
     }
-    source.add(RawSource::from(")".to_string()));
+    source.add(RawSource::from_static(")"));
   } else {
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
 
@@ -134,7 +134,7 @@ fn render_chunk(
     source.add(render_source.source.clone());
     let has_entry = chunk.has_entry_module(&compilation.chunk_graph);
     if has_entry || has_runtime_modules {
-      source.add(RawSource::from(","));
+      source.add(RawSource::from_static(","));
       source.add(RawSource::from(format!(
         "function({}) {{\n",
         RuntimeGlobals::REQUIRE
@@ -164,12 +164,12 @@ fn render_chunk(
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-          source.add(RawSource::from("return __webpack_exports__;\n"));
+          source.add(RawSource::from_static("return __webpack_exports__;\n"));
         }
       }
-      source.add(RawSource::from("\n}\n"));
+      source.add(RawSource::from_static("\n}\n"));
     }
-    source.add(RawSource::from("])"));
+    source.add(RawSource::from_static("])"));
   }
   render_source.source = source.boxed();
   Ok(())

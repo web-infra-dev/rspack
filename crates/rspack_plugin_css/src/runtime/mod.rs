@@ -62,7 +62,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading {
-        return Ok(RawSource::from("").boxed());
+        return Ok(RawSource::from_static("").boxed());
       }
 
       let mut source = ConcatSource::default();
@@ -179,7 +179,9 @@ installedChunks[chunkId] = 0;
       }
 
       if with_hmr {
-        source.add(RawSource::from(include_str!("./css_loading_with_hmr.js")));
+        source.add(RawSource::from_static(include_str!(
+          "./css_loading_with_hmr.js"
+        )));
       }
 
       Ok(source.boxed())

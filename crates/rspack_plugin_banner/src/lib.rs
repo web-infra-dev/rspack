@@ -125,14 +125,14 @@ impl BannerPlugin {
     {
       ConcatSource::new([
         old_source,
-        RawSource::from("\n").boxed(),
+        RawSource::from_static("\n").boxed(),
         RawSource::from(comment).boxed(),
       ])
       .boxed()
     } else {
       ConcatSource::new([
         RawSource::from(comment).boxed(),
-        RawSource::from("\n").boxed(),
+        RawSource::from_static("\n").boxed(),
         old_source,
       ])
       .boxed()

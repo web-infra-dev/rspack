@@ -23,6 +23,6 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/node_module_decorator.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/node_module_decorator.js")).boxed())
   }
 }

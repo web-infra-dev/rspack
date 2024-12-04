@@ -93,7 +93,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
     if !with_hmr && !with_loading {
-      return Ok(RawSource::from("").boxed());
+      return Ok(RawSource::from_static("").boxed());
     }
 
     let mut attr = String::default();
