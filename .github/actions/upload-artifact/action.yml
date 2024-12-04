@@ -48,6 +48,7 @@ runs:
         SECRET_KEY: ${{ env.TOS_SECRET_KEY }}
         BUCKET_NAME: ${{ env.TOS_BUCKET_NAME }}
         REGION: ${{ env.TOS_REGION }}
+        ENDPOINT: ${{ env.TOS_ENDPOINT }}
 
     - name: Upload local
       id: upload-local

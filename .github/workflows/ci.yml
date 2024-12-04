@@ -30,6 +30,7 @@ env:
   TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
   TOS_BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
   TOS_REGION: ${{ vars.TOS_REGION }}
+  TOS_ENDPOINT: ${{ vars.TOS_ENDPOINT }}
 
 jobs:
   get-runner-labels:
