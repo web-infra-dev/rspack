@@ -251,6 +251,7 @@ impl Module for LazyCompilationProxyModule {
           false
         ),
         ChunkGraph::get_module_id(&compilation.module_ids, *module)
+          .map(|s| s.as_str())
           .expect("should have module id")
           .cow_replace('"', r#"\""#),
         keep_active,

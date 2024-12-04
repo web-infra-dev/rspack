@@ -25,8 +25,8 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DependencyRange, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve,
-  RuntimeGlobals, RuntimeSpec, SourceType,
+  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleLayer, ModuleType,
+  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -182,7 +182,7 @@ impl ContextModule {
     }
   }
 
-  pub fn get_module_id<'a>(&self, module_ids: &'a IdentifierMap<String>) -> &'a str {
+  pub fn get_module_id<'a>(&self, module_ids: &'a IdentifierMap<ModuleId>) -> &'a ModuleId {
     ChunkGraph::get_module_id(module_ids, self.identifier).expect("module id not found")
   }
 

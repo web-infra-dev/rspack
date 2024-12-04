@@ -9,6 +9,7 @@ pub mod chunk_graph_module;
 pub use chunk_graph_chunk::ChunkGraphChunk;
 pub use chunk_graph_chunk::ChunkSizeOptions;
 pub use chunk_graph_module::ChunkGraphModule;
+pub use chunk_graph_module::ModuleId;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {

@@ -33,6 +33,7 @@ use crate::{
   cache::Cache,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
+  chunk_graph_module::ModuleId,
   get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -177,7 +178,7 @@ pub struct Compilation {
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   // artifact for module_ids
-  pub module_ids: IdentifierMap<String>,
+  pub module_ids: IdentifierMap<ModuleId>,
   // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
   // artifact for create_module_hashes

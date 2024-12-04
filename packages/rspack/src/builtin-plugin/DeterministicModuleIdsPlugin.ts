@@ -1,9 +1,23 @@
-import { BuiltinPluginName } from "@rspack/binding";
+import { type BuiltinPlugin, BuiltinPluginName } from "@rspack/binding";
+import type { Compiler } from "../Compiler";
+import type { Incremental } from "../config";
+import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
-import { create } from "./base";
+export class DeterministicModuleIdsPlugin extends RspackBuiltinPlugin {
+	name = BuiltinPluginName.DeterministicModuleIdsPlugin;
+	affectedHooks = "compilation" as const;
 
-export const DeterministicModuleIdsPlugin = create(
-	BuiltinPluginName.DeterministicModuleIdsPlugin,
-	() => {},
-	"compilation"
-);
+	raw(compiler: Compiler): BuiltinPlugin {
+		const incremental = compiler.options.experiments.incremental as Incremental;
+		const logger = compiler.getInfrastructureLogger(
+			"rspack.DeterministicModuleIdsPlugin"
+		);
+		if (incremental.moduleIds) {
+			incremental.moduleIds = false;
+			logger.warn(
+				"`optimization.moduleIds = 'deterministic'` can't be used with `incremental.moduleIds` as deterministic module ids is a global effect. `incremental.moduleIds` has been overridden to false."
+			);
+		}
+		return createBuiltinPlugin(this.name, undefined);
+	}
+}

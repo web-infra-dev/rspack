@@ -182,7 +182,7 @@ impl Module for RemoteModule {
       items: vec![ShareInitData {
         share_scope: self.share_scope.clone(),
         init_stage: 20,
-        init: DataInitInfo::ExternalModuleId(id.map(|i| i.to_owned())),
+        init: DataInitInfo::ExternalModuleId(id.cloned()),
       }],
     });
     Ok(codegen)

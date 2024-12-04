@@ -325,6 +325,8 @@ export const getNormalizedRspackOptions = (
 							inferAsyncModules: true,
 							providedExports: true,
 							buildChunkGraph: true,
+							moduleIds: true,
+							chunkIds: true,
 							modulesHashes: true,
 							modulesCodegen: true,
 							modulesRuntimeRequirements: true,

@@ -43,7 +43,7 @@ pub fn get_stats_module_name_and_id<'s, 'c>(
 ) -> (Cow<'s, str>, Option<&'c str>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = ChunkGraph::get_module_id(&compilation.module_ids, identifier);
+  let id = ChunkGraph::get_module_id(&compilation.module_ids, identifier).map(|s| s.as_str());
   (name, id)
 }
 

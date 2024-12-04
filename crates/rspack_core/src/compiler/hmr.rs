@@ -9,8 +9,8 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  fast_set, incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler,
-  ModuleExecutor, RuntimeSpec,
+  chunk_graph_module::ModuleId, fast_set, incremental::IncrementalPasses, ChunkGraph, ChunkKind,
+  Compilation, Compiler, ModuleExecutor, RuntimeSpec,
 };
 
 impl Compiler {
@@ -119,6 +119,12 @@ impl Compiler {
       }
       if new_compilation
         .incremental
+        .can_read_mutations(IncrementalPasses::MODULE_IDS)
+      {
+        new_compilation.module_ids = std::mem::take(&mut self.compilation.module_ids);
+      }
+      if new_compilation
+        .incremental
         .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
@@ -180,13 +186,13 @@ impl Compiler {
 pub struct CompilationRecords {
   pub old_chunks: Vec<(String, RuntimeSpec)>,
   pub all_old_runtime: RuntimeSpec,
-  pub old_all_modules: IdentifierMap<(RspackHashDigest, String)>,
+  pub old_all_modules: IdentifierMap<(RspackHashDigest, ModuleId)>,
   pub old_runtime_modules: IdentifierMap<String>,
   pub old_hash: Option<RspackHashDigest>,
 }
 
 pub type ChangedModules = (
-  IdentifierMap<(RspackHashDigest, String)>,
+  IdentifierMap<(RspackHashDigest, ModuleId)>,
   IdentifierMap<String>,
 );
 pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
@@ -203,7 +209,7 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
         && let Some(module_hash) = &code_generation_result.hash
         && let Some(cid) = cid
       {
-        Some((*identifier, (module_hash.clone(), cid.to_string())))
+        Some((*identifier, (module_hash.clone(), cid.clone())))
       } else {
         None
       }

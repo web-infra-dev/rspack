@@ -13,6 +13,7 @@ module.exports = {
 		@@ ... @@
 		-     "incremental": Object {
 		-       "buildChunkGraph": false,
+		-       "chunkIds": false,
 		-       "chunksHashes": false,
 		-       "chunksRender": false,
 		-       "chunksRuntimeRequirements": false,
@@ -20,6 +21,7 @@ module.exports = {
 		-       "emitAssets": true,
 		-       "inferAsyncModules": false,
 		-       "make": true,
+		-       "moduleIds": false,
 		-       "modulesCodegen": false,
 		-       "modulesHashes": false,
 		-       "modulesRuntimeRequirements": false,

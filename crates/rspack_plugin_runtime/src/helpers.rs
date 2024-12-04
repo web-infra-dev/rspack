@@ -22,9 +22,8 @@ pub fn update_hash_for_entry_startup(
     if let Some(module_id) = compilation
       .get_module_graph()
       .module_graph_module_by_identifier(module)
-      .map(|module| {
+      .and_then(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
-          .unwrap_or("null")
       })
     {
       module_id.hash(hasher);
@@ -151,6 +150,7 @@ pub fn generate_entry_startup(
       .module_graph_module_by_identifier(module)
       .map(|module| {
         ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
+          .map(|s| s.as_str())
           .unwrap_or("null")
       })
     {

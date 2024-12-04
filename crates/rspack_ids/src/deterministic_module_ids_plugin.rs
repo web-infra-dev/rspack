@@ -41,7 +41,7 @@ fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
         conflicts += 1;
         return false;
       }
-      ChunkGraph::set_module_id(&mut module_ids, module.identifier(), id.to_string());
+      ChunkGraph::set_module_id(&mut module_ids, module.identifier(), id.to_string().into());
       true
     },
     &[usize::pow(10, max_length)],

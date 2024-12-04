@@ -2,8 +2,8 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, RuntimeModule, RuntimeModuleStage,
-  SourceType,
+  ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
+  RuntimeModuleStage, SourceType,
 };
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -115,6 +115,6 @@ __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, modul
 struct RemoteData<'a> {
   share_scope: &'a str,
   name: &'a str,
-  external_module_id: &'a str,
+  external_module_id: &'a ModuleId,
   remote_name: &'a str,
 }

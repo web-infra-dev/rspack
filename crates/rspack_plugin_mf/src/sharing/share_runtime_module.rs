@@ -4,7 +4,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rustc_hash::FxHashMap;
 
@@ -147,7 +147,7 @@ pub type DataInitStage = i8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataInitInfo {
-  ExternalModuleId(Option<String>),
+  ExternalModuleId(Option<ModuleId>),
   ProvideSharedInfo(ProvideSharedInfo),
 }
 

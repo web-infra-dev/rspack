@@ -1,11 +1,15 @@
 //!  There are methods whose verb is `ChunkGraphModule`
 
+use std::borrow::Borrow;
+use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
+use serde::{Serialize, Serializer};
 use tracing::instrument;
 
 use crate::{
@@ -14,6 +18,54 @@ use crate::{
   RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModuleId {
+  inner: Arc<str>,
+}
+
+impl From<String> for ModuleId {
+  fn from(s: String) -> Self {
+    Self { inner: s.into() }
+  }
+}
+
+impl From<&str> for ModuleId {
+  fn from(s: &str) -> Self {
+    Self { inner: s.into() }
+  }
+}
+
+impl fmt::Display for ModuleId {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.as_str())
+  }
+}
+
+impl Serialize for ModuleId {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    serializer.serialize_str(self.as_str())
+  }
+}
+
+impl Borrow<str> for ModuleId {
+  fn borrow(&self) -> &str {
+    self.as_str()
+  }
+}
+
+impl ModuleId {
+  pub fn as_number(&self) -> Option<i32> {
+    self.inner.parse().ok()
+  }
+
+  pub fn as_str(&self) -> &str {
+    &self.inner
+  }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
@@ -146,18 +198,22 @@ impl ChunkGraph {
   }
 
   pub fn get_module_id(
-    module_ids: &IdentifierMap<String>,
+    module_ids: &IdentifierMap<ModuleId>,
     module_identifier: ModuleIdentifier,
-  ) -> Option<&str> {
-    module_ids.get(&module_identifier).map(|id| id.as_str())
+  ) -> Option<&ModuleId> {
+    module_ids.get(&module_identifier)
   }
 
   pub fn set_module_id(
-    module_ids: &mut IdentifierMap<String>,
+    module_ids: &mut IdentifierMap<ModuleId>,
     module_identifier: ModuleIdentifier,
-    id: String,
-  ) -> Option<String> {
-    module_ids.insert(module_identifier, id)
+    id: ModuleId,
+  ) -> bool {
+    if let Some(old_id) = module_ids.insert(module_identifier, id.clone()) {
+      old_id != id
+    } else {
+      true
+    }
   }
 
   pub fn get_block_chunk_group<'a>(

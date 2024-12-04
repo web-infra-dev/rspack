@@ -2375,6 +2375,8 @@ export type Incremental = {
     providedExports?: boolean;
     dependenciesDiagnostics?: boolean;
     buildChunkGraph?: boolean;
+    moduleIds?: boolean;
+    chunkIds?: boolean;
     modulesHashes?: boolean;
     modulesCodegen?: boolean;
     modulesRuntimeRequirements?: boolean;
@@ -6293,6 +6295,8 @@ export const rspackOptions: z.ZodObject<{
             providedExports: z.ZodOptional<z.ZodBoolean>;
             dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
             buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
+            moduleIds: z.ZodOptional<z.ZodBoolean>;
+            chunkIds: z.ZodOptional<z.ZodBoolean>;
             modulesHashes: z.ZodOptional<z.ZodBoolean>;
             modulesCodegen: z.ZodOptional<z.ZodBoolean>;
             modulesRuntimeRequirements: z.ZodOptional<z.ZodBoolean>;
@@ -6306,6 +6310,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -6319,6 +6325,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -6379,6 +6387,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -6440,6 +6450,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -7166,9 +7178,9 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
-        removeAvailableModules?: boolean | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | t.RspackPluginInstance | "..." | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -7232,9 +7244,9 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
-        removeAvailableModules?: boolean | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | t.RspackPluginInstance | "..." | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -8563,6 +8575,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -8750,9 +8764,9 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
-        removeAvailableModules?: boolean | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | t.RspackPluginInstance | "..." | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;
@@ -9189,6 +9203,8 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
+            moduleIds?: boolean | undefined;
+            chunkIds?: boolean | undefined;
             modulesHashes?: boolean | undefined;
             modulesCodegen?: boolean | undefined;
             modulesRuntimeRequirements?: boolean | undefined;
@@ -9376,9 +9392,9 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
-        removeAvailableModules?: boolean | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | t.RspackPluginInstance | "..." | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
         mergeDuplicateChunks?: boolean | undefined;

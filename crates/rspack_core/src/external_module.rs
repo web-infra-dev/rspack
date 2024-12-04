@@ -308,6 +308,7 @@ impl ExternalModule {
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = ChunkGraph::get_module_id(&compilation.module_ids, self.identifier())
+          .map(|s| s.as_str())
           .expect("should have module id");
         format!(
           "{} = __WEBPACK_EXTERNAL_MODULE_{}__;",

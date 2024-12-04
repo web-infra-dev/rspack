@@ -9,6 +9,8 @@ pub struct RawIncremental {
   pub provided_exports: bool,
   pub dependencies_diagnostics: bool,
   pub build_chunk_graph: bool,
+  pub module_ids: bool,
+  pub chunk_ids: bool,
   pub modules_hashes: bool,
   pub modules_codegen: bool,
   pub modules_runtime_requirements: bool,
@@ -35,6 +37,12 @@ impl From<RawIncremental> for IncrementalPasses {
     }
     if value.build_chunk_graph {
       passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    }
+    if value.module_ids {
+      passes.insert(IncrementalPasses::MODULE_IDS);
+    }
+    if value.chunk_ids {
+      passes.insert(IncrementalPasses::CHUNK_IDS);
     }
     if value.modules_hashes {
       passes.insert(IncrementalPasses::MODULES_HASHES);

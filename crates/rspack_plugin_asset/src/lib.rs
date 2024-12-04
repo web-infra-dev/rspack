@@ -246,10 +246,9 @@ impl AssetParserAndGenerator {
     compilation.get_asset_path_with_info(
       asset_filename_template,
       PathData::default()
-        .module_id_optional(ChunkGraph::get_module_id(
-          &compilation.module_ids,
-          module.id(),
-        ))
+        .module_id_optional(
+          ChunkGraph::get_module_id(&compilation.module_ids, module.id()).map(|s| s.as_str()),
+        )
         .content_hash_optional(contenthash)
         .hash_optional(contenthash)
         .filename(source_file_name),
@@ -267,10 +266,9 @@ impl AssetParserAndGenerator {
     let (public_path, info) = compilation.get_asset_path_with_info(
       template,
       PathData::default()
-        .module_id_optional(ChunkGraph::get_module_id(
-          &compilation.module_ids,
-          module.id(),
-        ))
+        .module_id_optional(
+          ChunkGraph::get_module_id(&compilation.module_ids, module.id()).map(|s| s.as_str()),
+        )
         .content_hash_optional(contenthash)
         .hash_optional(contenthash)
         .filename(source_file_name),

@@ -937,6 +937,8 @@ function getRawIncremental(
 		providedExports: incremental.providedExports!,
 		dependenciesDiagnostics: incremental.dependenciesDiagnostics!,
 		buildChunkGraph: incremental.buildChunkGraph!,
+		moduleIds: incremental.moduleIds!,
+		chunkIds: incremental.chunkIds!,
 		modulesHashes: incremental.modulesHashes!,
 		modulesCodegen: incremental.modulesCodegen!,
 		modulesRuntimeRequirements: incremental.modulesRuntimeRequirements!,

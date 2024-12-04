@@ -8,7 +8,7 @@ use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation, FilenameTemplate,
-  GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, NormalModule,
+  GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleIdentifier, NormalModule,
   ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsedName,
 };
@@ -149,7 +149,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(RuntimeGlobals::EXPORTS);
         runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
-        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &str)>::new();
+        let mut dep_modules = IndexMap::<ModuleIdentifier, (String, &ModuleId)>::new();
         let mut wasm_deps_by_request = IndexMap::<&str, Vec<(Identifier, String, String)>>::new();
         let mut promises: Vec<String> = vec![];
 
@@ -314,8 +314,8 @@ fn render_wasm_name(
     .always_ok()
 }
 
-fn render_import_stmt(import_var: &str, module_id: &str) -> String {
-  let module_id = serde_json::to_string(&module_id).expect("TODO");
+fn render_import_stmt(import_var: &str, module_id: &ModuleId) -> String {
+  let module_id = serde_json::to_string(module_id).expect("TODO");
   format!("var {import_var} = __webpack_require__({module_id});\n",)
 }
 

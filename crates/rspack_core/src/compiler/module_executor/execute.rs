@@ -139,7 +139,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // Assign ids to modules and modules to the chunk
     for &m in &modules {
       chunk_graph.add_module(m);
-      ChunkGraph::set_module_id(&mut compilation.module_ids, m, m.to_string());
+      ChunkGraph::set_module_id(&mut compilation.module_ids, m, m.as_str().into());
       chunk_graph.connect_chunk_and_module(chunk_ukey, m);
     }
 

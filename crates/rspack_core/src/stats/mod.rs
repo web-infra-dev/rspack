@@ -570,7 +570,7 @@ impl Stats<'_> {
         let module_trace = get_module_trace(
           module_identifier,
           &self.compilation.get_module_graph(),
-          &self.compilation,
+          self.compilation,
           &self.compilation.options,
         );
         StatsError {
@@ -620,7 +620,7 @@ impl Stats<'_> {
         let module_trace = get_module_trace(
           module_identifier,
           &self.compilation.get_module_graph(),
-          &self.compilation,
+          self.compilation,
           &self.compilation.options,
         );
 
@@ -843,7 +843,7 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        ChunkGraph::get_module_id(&self.compilation.module_ids, identifier)
+        ChunkGraph::get_module_id(&self.compilation.module_ids, identifier).map(|s| s.as_str())
       };
       stats.issuer_id = issuer_id.and_then(|i| i);
 
