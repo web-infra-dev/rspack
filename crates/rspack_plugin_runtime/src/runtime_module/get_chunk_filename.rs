@@ -6,8 +6,9 @@ use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  Chunk, Chunk, ChunkGraph, ChunkGraph, ChunkUkey, ChunkUkey, Compilation, Compilation, Filename,
+  Filename, FilenameTemplate, FilenameTemplate, NoFilenameFn, PathData, PathData, RuntimeGlobals,
+  RuntimeGlobals, RuntimeModule, RuntimeModule, SourceType, SourceType,
 };
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
@@ -225,20 +226,19 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
       };
 
-      format!(
-        "\"{}\"",
-        compilation
-          .get_path(
-            &fake_filename,
-            PathData::default()
-              .chunk_id(chunk_id)
-              .chunk_hash(&chunk_hash)
-              .chunk_name(&chunk_name)
-              .hash(&full_hash)
-              .content_hash(&content_hash)
-          )
-          .always_ok()
-      )
+      compilation
+        .get_path(
+          &Filename::<NoFilenameFn>::from(
+            serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
+          ),
+          PathData::default()
+            .chunk_id(chunk_id)
+            .chunk_hash(&chunk_hash)
+            .chunk_name(&chunk_name)
+            .hash(&full_hash)
+            .content_hash(&content_hash),
+        )
+        .always_ok()
     });
 
     let mut static_urls = IndexMap::new();
@@ -299,18 +299,20 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           None => format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH),
         };
 
-        let filename = format!(
-          "\"{}\"",
-          compilation.get_path(
-            &fake_filename,
+        let filename = compilation
+          .get_path(
+            &Filename::<NoFilenameFn>::from(
+              serde_json::to_string(fake_filename.render(PathData::default(), None)?.as_str())
+                .expect("invalid json to_string"),
+            ),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())
               .chunk_hash_optional(chunk_hash.as_deref())
               .chunk_name_optional(chunk_name.as_deref())
               .hash(&full_hash)
               .content_hash_optional(content_hash.as_deref()),
-          )?,
-        );
+          )
+          .always_ok();
 
         if let Some(chunk_id) = chunk.id() {
           static_urls
