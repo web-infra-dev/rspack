@@ -4,7 +4,7 @@ description: Download file to local or artifact to quickly share files between j
 
 inputs:
   type:
-    description: "Use github or local or lynx cache"
+    description: "Use github, local or lynx cache"
     required: true
     type: string
     choices:

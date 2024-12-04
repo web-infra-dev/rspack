@@ -12,12 +12,30 @@ on:
       LINUX_RUNNER_LABELS:
         description: "linux runner labels"
         value: ${{ jobs.main.outputs.LINUX_RUNNER_LABELS }}
+      LINUX_RUNNER_TYPE:
+        description: "linux runner type"
+        value: ${{ jobs.main.outputs.LINUX_RUNNER_TYPE }}
+      LINUX_CACHE_TYPE:
+        description: "cache type used for linux runner"
+        value: ${{ jobs.main.outputs.LINUX_CACHE_TYPE }}
       MACOS_RUNNER_LABELS:
         description: "macos runner labels"
         value: ${{ jobs.main.outputs.MACOS_RUNNER_LABELS }}
+      MACOS_RUNNER_TYPE:
+        description: "macos runner type"
+        value: ${{ jobs.main.outputs.MACOS_RUNNER_TYPE }}
+      MACOS_CACHE_TYPE:
+        description: "cache type used for macos runner"
+        value: ${{ jobs.main.outputs.MACOS_CACHE_TYPE }}
       WINDOWS_RUNNER_LABELS:
         description: "windows runner labels"
         value: ${{ jobs.main.outputs.WINDOWS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_TYPE:
+        description: "windows runner type"
+        value: ${{ jobs.main.outputs.WINDOWS_RUNNER_TYPE }}
+      WINDOWS_CACHE_TYPE:
+        description: "cache type used for windows runner"
+        value: ${{ jobs.main.outputs.WINDOWS_CACHE_TYPE }}
 
 jobs:
   main:
@@ -83,5 +101,5 @@ jobs:
 
           # TODO: test
           echo "WINDOWS_RUNNER_LABELS='"volc-windows-2022-medium"'" >> "$GITHUB_OUTPUT"
-          echo "WINDOWS_RUNNER_TYPE='k8s'" >> "$GITHUB_OUTPUT"
-          echo "WINDOWS_CACHE_TYPE='lynx'" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_TYPE=k8s" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_CACHE_TYPE=lynx" >> "$GITHUB_OUTPUT"
