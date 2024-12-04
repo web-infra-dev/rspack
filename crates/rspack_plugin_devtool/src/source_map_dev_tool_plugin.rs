@@ -1,3 +1,4 @@
+use std::hash::Hasher;
 use std::path::{Component, PathBuf};
 use std::sync::{Arc, LazyLock};
 use std::{borrow::Cow, path::Path};
@@ -12,9 +13,10 @@ use rspack_collections::DatabaseItem;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
-  FilenameTemplate, Logger, ModuleIdentifier, PathData, Plugin, PluginContext, SourceType,
+  FilenameTemplate, Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
 use rspack_error::{error, miette::IntoDiagnostic, Result};
+use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
 use rspack_util::{
@@ -405,11 +407,6 @@ impl SourceMapDevToolPlugin {
 
           if let Some(source_map_filename_config) = &self.source_map_filename {
             let chunk = file_to_chunk.get(&filename);
-            let source_type = if css_extension_detected {
-              &SourceType::Css
-            } else {
-              &SourceType::JavaScript
-            };
             let filename = match &self.file_context {
               Some(file_context) => Cow::Owned(
                 relative(Path::new(file_context), Path::new(&filename))
@@ -418,6 +415,11 @@ impl SourceMapDevToolPlugin {
               ),
               None => Cow::Borrowed(&filename),
             };
+
+            let mut hasher = RspackHash::from(&compilation.options.output);
+            hasher.write(source_map_json.as_bytes());
+            let digest = hasher.digest(&compilation.options.output.hash_digest);
+
             let data = PathData::default().filename(&filename);
             let data = match chunk {
               Some(chunk) => data
@@ -427,11 +429,7 @@ impl SourceMapDevToolPlugin {
                   compilation.options.output.hash_digest_length,
                 ))
                 .chunk_name_optional(chunk.name_for_filename_template())
-                .content_hash_optional(
-                  chunk
-                    .content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
-                    .map(|hash| hash.encoded()),
-                ),
+                .content_hash_optional(Some(digest.encoded())),
               None => data,
             };
             let source_map_filename = compilation
