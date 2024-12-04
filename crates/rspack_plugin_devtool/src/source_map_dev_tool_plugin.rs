@@ -1,5 +1,5 @@
 use std::path::{Component, PathBuf};
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
@@ -114,7 +114,7 @@ pub struct SourceMapDevToolPlugin {
   no_sources: bool,
   public_path: Option<String>,
   module: bool,
-  source_root: Option<String>,
+  source_root: Option<Arc<str>>,
   test: Option<AssetConditions>,
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
@@ -178,7 +178,7 @@ impl SourceMapDevToolPlugin {
       options.no_sources,
       options.public_path,
       options.module,
-      options.source_root,
+      options.source_root.map(Arc::from),
       options.test,
       options.include,
       options.exclude,
@@ -340,21 +340,23 @@ impl SourceMapDevToolPlugin {
       if let Some(source_map) = source_map {
         source_map.set_file(Some(filename.clone()));
 
-        let sources = source_map.sources_mut();
-        for source in sources {
-          let module_or_source = source_map_modules
-            .get(source.as_ref())
-            .expect("expected a module or source");
-          let source_name = module_to_source_name
-            .get(module_or_source)
-            .expect("expected a filename at the given index but found None")
-            .clone();
-          *source = Cow::from(source_name);
-        }
+        source_map.set_sources(
+          source_map
+            .sources()
+            .iter()
+            .map(|source| {
+              let module_or_source = source_map_modules
+                .get(source)
+                .expect("expected a module or source");
+              module_to_source_name
+                .get(module_or_source)
+                .expect("expected a filename at the given index but found None")
+                .clone()
+            })
+            .collect::<Vec<_>>(),
+        );
         if self.no_sources {
-          for content in source_map.sources_content_mut() {
-            *content = Default::default();
-          }
+          source_map.set_sources_content([]);
         }
         if let Some(source_root) = &self.source_root {
           source_map.set_source_root(Some(source_root.clone()));

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::hash::Hash;
 
 use dashmap::DashMap;
 use derivative::Derivative;
@@ -100,8 +100,7 @@ fn eval_source_map_devtool_plugin_render_module_content(
       let source = &origin_source.source();
 
       {
-        let sources = map.sources_mut();
-        let modules = sources.iter().map(|source| {
+        let modules = map.sources().iter().map(|source| {
           if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
@@ -144,25 +143,16 @@ fn eval_source_map_devtool_plugin_render_module_content(
               .collect::<Result<Vec<_>>>()?
           }
         };
-        let mut module_filenames =
+        let module_filenames =
           ModuleFilenameHelpers::replace_duplicates(module_filenames, |mut filename, _, n| {
             filename.extend(std::iter::repeat('*').take(n));
             filename
-          })
-          .into_iter()
-          .map(Some)
-          .collect::<Vec<Option<_>>>();
-        for (i, source) in sources.iter_mut().enumerate() {
-          if let Some(filename) = module_filenames[i].take() {
-            *source = Cow::from(filename);
-          }
-        }
+          });
+        map.set_sources(module_filenames);
       }
 
       if self.no_sources {
-        for content in map.sources_content_mut() {
-          *content = Cow::from(String::default());
-        }
+        map.set_sources_content([]);
       }
       map.set_source_root(self.source_root.clone());
       map.set_file(Some(module.identifier().to_string()));
