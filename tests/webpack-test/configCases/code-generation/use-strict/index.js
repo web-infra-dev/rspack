@@ -1,5 +1,5 @@
 "use strict";
-it("should include only one use strict per module", function() {
+it("should include only one use strict per module", function () {
 	require("./harmony-with-strict");
 	require("./harmony-without-strict");
 	require("./harmony-with-strict2");
@@ -17,5 +17,12 @@ it("should include only one use strict per module", function() {
 
 	matches.sort();
 
-	expect(matches).toEqual(["/******/ 	var __webpack_modules__ = ({"]);
+	// expect(matches).toEqual(["/******/ 	var __webpack_modules__ = ({"]);
+	// In Rspack, the output is: `var __webpack_modules__ = ({`
+	// In webpack, the output is: `/******/ 	var __webpack_modules__ = ({`
+	//
+	// It is only output format difference between Rspack and webpack.
+
+	expect(matches).toEqual(["var __webpack_modules__ = ({"]);
+
 });
