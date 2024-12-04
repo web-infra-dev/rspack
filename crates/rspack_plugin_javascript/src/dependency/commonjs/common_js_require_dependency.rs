@@ -1,4 +1,6 @@
-use rspack_core::{module_id, Compilation, DependencyRange, RuntimeSpec};
+use rspack_core::{
+  module_id, Compilation, DependencyLocation, DependencyRange, RuntimeSpec, SharedSourceMap,
+};
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
 use rspack_core::{DependencyType, ModuleDependency};
@@ -11,6 +13,7 @@ pub struct CommonJsRequireDependency {
   optional: bool,
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl CommonJsRequireDependency {
@@ -19,6 +22,7 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
+    source_map: Option<SharedSourceMap>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -26,6 +30,7 @@ impl CommonJsRequireDependency {
       optional,
       range,
       range_expr,
+      source_map,
     }
   }
 }
@@ -35,8 +40,8 @@ impl Dependency for CommonJsRequireDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn category(&self) -> &DependencyCategory {

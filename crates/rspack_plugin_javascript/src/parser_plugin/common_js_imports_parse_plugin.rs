@@ -102,6 +102,7 @@ impl CommonJsImportsParserPlugin {
     let param = parser.evaluate_expression(argument_expr);
     let require_resolve_header_dependency = Box::new(RequireResolveHeaderDependency::new(
       call_expr.callee.span().into(),
+      Some(parser.source_map.clone()),
     ));
 
     if param.is_conditional() {
@@ -185,10 +186,11 @@ impl CommonJsImportsParserPlugin {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members,
-        range.with_source(parser.source_map.clone()),
+        range,
         is_call,
         parser.in_try,
         !parser.is_asi_position(mem_expr.span_lo()),
+        Some(parser.source_map.clone()),
       )
     })
   }
@@ -203,9 +205,10 @@ impl CommonJsImportsParserPlugin {
       let range_expr: DependencyRange = param.range().into();
       let dep = CommonJsRequireDependency::new(
         param.string().to_string(),
-        range_expr.with_source(parser.source_map.clone()),
+        range_expr,
         Some(span.into()),
         parser.in_try,
+        Some(parser.source_map.clone()),
       );
       parser.dependencies.push(Box::new(dep));
       true
@@ -265,7 +268,8 @@ impl CommonJsImportsParserPlugin {
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
-            range.with_source(parser.source_map.clone()),
+            range,
+            Some(parser.source_map.clone()),
           )));
         return Some(true);
       }
@@ -286,7 +290,8 @@ impl CommonJsImportsParserPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(
-          range.with_source(parser.source_map.clone()),
+          range,
+          Some(parser.source_map.clone()),
         )));
     }
     Some(true)

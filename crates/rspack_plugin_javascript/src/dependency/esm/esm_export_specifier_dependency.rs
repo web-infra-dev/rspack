@@ -1,9 +1,9 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyRange, DependencyTemplate, DependencyType, ESMExportInitFragment,
-  ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyType,
+  ESMExportInitFragment, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -12,16 +12,23 @@ use swc_core::ecma::atoms::Atom;
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
+  source_map: Option<SharedSourceMap>,
   pub name: Atom,
   pub value: Atom, // id
 }
 
 impl ESMExportSpecifierDependency {
-  pub fn new(name: Atom, value: Atom, range: DependencyRange) -> Self {
+  pub fn new(
+    name: Atom,
+    value: Atom,
+    range: DependencyRange,
+    source_map: Option<SharedSourceMap>,
+  ) -> Self {
     Self {
       name,
       value,
       range,
+      source_map,
       id: DependencyId::new(),
     }
   }
@@ -32,8 +39,8 @@ impl Dependency for ESMExportSpecifierDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn category(&self) -> &DependencyCategory {

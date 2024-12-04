@@ -40,13 +40,13 @@ fn extract_deps(call_expr: &CallExpr, create_dependency: CreateDependency) -> Ve
 
 impl<'parser> JavascriptParser<'parser> {
   fn create_hmr_expression_handler(&mut self, span: Span) {
-    let range: DependencyRange = span.into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
         Some("hot"),
-        range.with_source(self.source_map.clone()),
+        span.into(),
+        Some(self.source_map.clone()),
       )));
   }
 
@@ -55,13 +55,13 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let range: DependencyRange = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
         Some("hot.accept"),
-        range.with_source(self.source_map.clone()),
+        call_expr.callee.span().into(),
+        Some(self.source_map.clone()),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     if self.build_meta.esm && !call_expr.args.is_empty() {
@@ -75,9 +75,10 @@ impl<'parser> JavascriptParser<'parser> {
       self
         .presentational_dependencies
         .push(Box::new(ESMAcceptDependency::new(
-          range.with_source(self.source_map.clone()),
+          range,
           callback_arg.is_some(),
           dependency_ids,
+          Some(self.source_map.clone()),
         )));
     }
     self.dependencies.extend(dependencies);
@@ -90,13 +91,13 @@ impl<'parser> JavascriptParser<'parser> {
     call_expr: &CallExpr,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
-    let range: DependencyRange = call_expr.callee.span().into();
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
         Some("hot.decline"),
-        range.with_source(self.source_map.clone()),
+        call_expr.callee.span().into(),
+        Some(self.source_map.clone()),
       )));
     let dependencies = extract_deps(call_expr, create_dependency);
     self.dependencies.extend(dependencies);

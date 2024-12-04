@@ -66,7 +66,7 @@ impl CompatibilityPlugin {
       Some(NestedRequireData {
         name: rename,
         update: false,
-        loc: DependencyRange::new(start, end).with_source(parser.source_map.clone()),
+        loc: DependencyRange::new(start, end),
       }),
     );
   }

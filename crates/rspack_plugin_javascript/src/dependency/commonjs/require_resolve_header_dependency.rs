@@ -1,19 +1,22 @@
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyRange, DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyLocation, DependencyRange, DependencyTemplate, RuntimeSpec, SharedSourceMap,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[derive(Debug, Clone)]
 pub struct RequireResolveHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
+  source_map: Option<SharedSourceMap>,
 }
 
 impl RequireResolveHeaderDependency {
-  pub fn new(range: DependencyRange) -> Self {
+  pub fn new(range: DependencyRange, source_map: Option<SharedSourceMap>) -> Self {
     Self {
       id: DependencyId::new(),
       range,
+      source_map,
     }
   }
 }
@@ -23,8 +26,8 @@ impl Dependency for RequireResolveHeaderDependency {
     &self.id
   }
 
-  fn loc(&self) -> Option<String> {
-    Some(self.range.to_string())
+  fn loc(&self) -> Option<DependencyLocation> {
+    Some(self.range.to_loc(self.source_map.as_ref()))
   }
 
   fn could_affect_referencing_module(&self) -> AffectType {

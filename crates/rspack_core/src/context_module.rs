@@ -24,9 +24,9 @@ use crate::{
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DependencyRange, DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode,
-  GroupOptions, ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleLayer, ModuleType,
-  Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
+  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
+  ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleLayer, ModuleType,
+  RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
 static WEBPACK_CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -879,13 +879,17 @@ impl Module for ContextModule {
     if matches!(self.options.context_options.mode, ContextMode::LazyOnce)
       && !context_element_dependencies.is_empty()
     {
-      let loc = DependencyRange::new(
-        self.options.context_options.start,
-        self.options.context_options.end,
-      );
+      let loc = DependencyLocation::Real(RealDependencyLocation::new(
+        (
+          self.options.context_options.start,
+          self.options.context_options.end,
+        )
+          .into(),
+        None,
+      ));
       let mut block = AsyncDependenciesBlock::new(
         (*self.identifier).into(),
-        Some(DependencyLocation::Real(loc)),
+        Some(loc),
         None,
         context_element_dependencies
           .into_iter()

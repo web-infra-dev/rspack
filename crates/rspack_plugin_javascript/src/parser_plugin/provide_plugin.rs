@@ -3,7 +3,7 @@ use itertools::Itertools;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   ApplyContext, CompilerOptions, DependencyRange, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  ParserAndGenerator, ParserOptions, Plugin, PluginContext, SharedSourceMap,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -21,6 +21,7 @@ fn create_provide_dep(
   name: &str,
   value: &ProvideValue,
   range: DependencyRange,
+  source_map: SharedSourceMap,
 ) -> Option<ProvideDependency> {
   if let Some(requests) = value.get(name) {
     let name_identifier = if name.contains(SOURCE_DOT) {
@@ -39,6 +40,7 @@ fn create_provide_dep(
         .iter()
         .map(|s| Atom::from(s.as_str()))
         .collect_vec(),
+      Some(source_map),
     ));
   }
   None
@@ -90,11 +92,11 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let range: DependencyRange = expr.callee.span().into();
     create_provide_dep(
       for_name,
       &self.provide,
-      range.with_source(parser.source_map.clone()),
+      expr.callee.span().into(),
+      parser.source_map.clone(),
     )
     .map(|dep| {
       parser.dependencies.push(Box::new(dep));
@@ -110,11 +112,11 @@ impl JavascriptParserPlugin for ProvidePlugin {
     expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let range: DependencyRange = expr.span().into();
     create_provide_dep(
       for_name,
       &self.provide,
-      range.with_source(parser.source_map.clone()),
+      expr.span().into(),
+      parser.source_map.clone(),
     )
     .map(|dep| {
       parser.dependencies.push(Box::new(dep));
@@ -128,11 +130,11 @@ impl JavascriptParserPlugin for ProvidePlugin {
     ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
-    let range: DependencyRange = ident.span.into();
     create_provide_dep(
       for_name,
       &self.provide,
-      range.with_source(parser.source_map.clone()),
+      ident.span.into(),
+      parser.source_map.clone(),
     )
     .map(|dep| {
       parser.dependencies.push(Box::new(dep));
