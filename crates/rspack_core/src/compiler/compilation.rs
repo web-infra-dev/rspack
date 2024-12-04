@@ -29,7 +29,7 @@ use super::{
   module_executor::ModuleExecutor,
 };
 use crate::{
-  build_chunk_graph::build_chunk_graph,
+  build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
@@ -41,11 +41,11 @@ use crate::{
   to_identifier, BoxDependency, BoxModule, CacheCount, CacheOptions, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesResult, ChunkKind,
   ChunkRenderResult, ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
-  CompilationLogger, CompilationLogging, CompilerOptions, DependencyId, DependencyType, Entry,
-  EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportVarMap,
-  LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial, ModuleIdentifier,
-  PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SharedPluginDriver,
-  SourceType, Stats,
+  CompilationLogger, CompilationLogging, CompilerOptions, DependenciesBlock, DependencyId,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
+  ModuleIdentifier, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpecMap,
+  SharedPluginDriver, SourceType, Stats,
 };
 
 pub type BuildDependency = (
@@ -1253,10 +1253,20 @@ impl Compilation {
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
     // so now we can start to create a chunk graph based on the module graph
+    let _set_active_state = std::time::Instant::now();
+    self.set_active_state_cache();
+    dbg!(_set_active_state.elapsed().as_millis());
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      build_chunk_graph(compilation)?;
+      let code_splitting = std::time::Instant::now();
+      if std::env::var("NEW_CODE_SPLITTING").is_ok() {
+        build_chunk_graph_new(compilation)?;
+      } else {
+        build_chunk_graph(compilation)?;
+      }
+
+      dbg!(code_splitting.elapsed().as_millis());
       Ok(compilation)
     })
     .await?;
@@ -1548,6 +1558,63 @@ impl Compilation {
       entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
     });
     entries.chain(async_entries)
+  }
+
+  fn set_active_state_cache(&mut self) {
+    let entries = self.entry_modules().iter().copied().collect::<Vec<_>>();
+    let mut module_graph = self.get_module_graph_mut();
+    let mut visited = Default::default();
+    for entry in entries {
+      set_active_state_recursive(entry, &mut module_graph, &mut visited);
+    }
+
+    fn set_active_state_recursive(
+      id: ModuleIdentifier,
+      module_graph: &mut ModuleGraph,
+      visited: &mut IdentifierSet,
+    ) {
+      if !visited.insert(id) {
+        return;
+      }
+
+      let m = module_graph
+        .module_by_identifier(&id)
+        .expect("should have module");
+
+      let deps = m.get_dependencies().iter().copied().collect::<Vec<_>>();
+      let blocks = m.get_blocks().iter().copied().collect::<Vec<_>>();
+      for dep in deps {
+        let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
+          continue;
+        };
+
+        set_active_state_recursive(*m, module_graph, visited);
+      }
+
+      for block in blocks {
+        let Some(block) = module_graph.block_by_id(&block) else {
+          continue;
+        };
+
+        let block_deps = block.get_dependencies().iter().copied().collect::<Vec<_>>();
+        for dep in block_deps {
+          let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
+            continue;
+          };
+
+          set_active_state_recursive(*m, module_graph, visited);
+        }
+      }
+      let m = module_graph
+        .module_by_identifier(&id)
+        .expect("should have module");
+
+      let mut chain = IdentifierSet::default();
+      module_graph.set_module_side_effects_connection_state_cache(
+        id,
+        m.get_side_effects_connection_state(module_graph, &mut chain),
+      );
+    }
   }
 
   #[instrument(skip_all)]

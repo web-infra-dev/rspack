@@ -78,6 +78,8 @@ pub struct ModuleGraphPartial {
   export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+
+  module_active_state_cache: HashMap<ModuleIdentifier, ConnectionState>,
 }
 
 #[derive(Debug, Default)]
@@ -1088,5 +1090,28 @@ impl<'a> ModuleGraph<'a> {
         ExportProvided::Null => None,
       }
     })
+  }
+
+  pub fn get_module_side_effects_connection_state_cache(
+    &self,
+    module: ModuleIdentifier,
+  ) -> Option<ConnectionState> {
+    self
+      .loop_partials(|p| p.module_active_state_cache.get(&module))
+      .copied()
+  }
+
+  pub fn set_module_side_effects_connection_state_cache(
+    &mut self,
+    module: ModuleIdentifier,
+    state: ConnectionState,
+  ) {
+    let Some(active_partial) = &mut self.active else {
+      panic!("should have active partial");
+    };
+
+    active_partial
+      .module_active_state_cache
+      .insert(module, state);
   }
 }
