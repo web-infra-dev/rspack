@@ -185,7 +185,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      source.add(RawSource::from(include_str!(
+      source.add(RawSource::from_static(include_str!(
         "runtime/import_scripts_chunk_loading_with_hmr_manifest.js"
       )));
     }

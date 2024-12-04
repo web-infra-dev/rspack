@@ -23,6 +23,6 @@ impl RuntimeModule for RelativeUrlRuntimeModule {
   }
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/relative_url.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/relative_url.js")).boxed())
   }
 }

@@ -23,6 +23,6 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/on_chunk_loaded.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/on_chunk_loaded.js")).boxed())
   }
 }

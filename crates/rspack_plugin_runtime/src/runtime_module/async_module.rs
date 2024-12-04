@@ -18,7 +18,7 @@ impl Default for AsyncRuntimeModule {
 
 impl RuntimeModule for AsyncRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/async_module.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/async_module.js")).boxed())
   }
 
   fn name(&self) -> Identifier {

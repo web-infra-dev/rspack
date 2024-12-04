@@ -23,6 +23,6 @@ impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/make_namespace_object.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/make_namespace_object.js")).boxed())
   }
 }

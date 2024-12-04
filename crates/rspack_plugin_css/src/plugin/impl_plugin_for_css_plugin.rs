@@ -148,7 +148,7 @@ impl CssPlugin {
           let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
           acc.add(start);
           acc.add(cur_source.clone());
-          acc.add(RawSource::from("\n"));
+          acc.add(RawSource::from_static("\n"));
           acc.add(end);
           acc
         },

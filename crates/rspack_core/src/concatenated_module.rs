@@ -1021,14 +1021,14 @@ impl Module for ConcatenatedModule {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
         if should_add_esm_flag {
-          result.add(RawSource::from("// ESM COMPAT FLAG\n"));
+          result.add(RawSource::from_static("// ESM COMPAT FLAG\n"));
           result.add(RawSource::from(define_es_module_flag_statement(
             self.get_exports_argument(),
             &mut runtime_requirements,
           )));
         }
 
-        result.add(RawSource::from("\n// EXPORTS\n"));
+        result.add(RawSource::from_static("\n// EXPORTS\n"));
         result.add(RawSource::from(format!(
           "{}({}, {{{}\n}});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
@@ -1271,7 +1271,7 @@ impl Module for ConcatenatedModule {
       }
 
       if is_conditional {
-        result.add(RawSource::from("\n}"));
+        result.add(RawSource::from_static("\n}"));
       }
     }
 

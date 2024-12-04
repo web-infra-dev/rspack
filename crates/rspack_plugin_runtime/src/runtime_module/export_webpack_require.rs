@@ -23,7 +23,7 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from("export default __webpack_require__;").boxed())
+    Ok(RawSource::from_static("export default __webpack_require__;").boxed())
   }
 
   fn should_isolate(&self) -> bool {

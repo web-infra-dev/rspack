@@ -18,5 +18,5 @@ fn test_rspack_source() {
   }
 
   test_data(Data(RawSource::from("123".as_bytes()).boxed()));
-  test_data(Data(RawSource::from("123").boxed()));
+  test_data(Data(RawSource::from_static("123").boxed()));
 }

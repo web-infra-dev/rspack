@@ -108,7 +108,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {
-      return Ok(RawSource::from("").boxed());
+      return Ok(RawSource::from_static("").boxed());
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()

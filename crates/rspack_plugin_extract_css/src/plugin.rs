@@ -440,18 +440,18 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawSource::from(content.to_string()));
         }
 
-        source.add(RawSource::from("\n"));
+        source.add(RawSource::from_static("\n"));
 
         if need_media {
-          source.add(RawSource::from("}\n"));
+          source.add(RawSource::from_static("}\n"));
         }
 
         if need_supports {
-          source.add(RawSource::from("}\n"));
+          source.add(RawSource::from_static("}\n"));
         }
 
         if module.layer.is_some() {
-          source.add(RawSource::from("}\n"));
+          source.add(RawSource::from_static("}\n"));
         }
       }
     }

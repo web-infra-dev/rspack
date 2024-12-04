@@ -25,6 +25,6 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from(include_str!("runtime/compat_get_default_export.js")).boxed())
+    Ok(RawSource::from_static(include_str!("runtime/compat_get_default_export.js")).boxed())
   }
 }
