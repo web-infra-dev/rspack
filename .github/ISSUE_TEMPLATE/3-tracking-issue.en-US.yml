@@ -8,8 +8,6 @@ body:
     attributes:
       label: What subject does this issue tracking?
       value: |
-        # [Subject]
-
         ```[tasklist]
         ### Tasks
         - [ ] Add a draft title or issue reference here
