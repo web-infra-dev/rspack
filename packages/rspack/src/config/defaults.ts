@@ -719,6 +719,7 @@ const applyOutputDefaults = (
 			() =>
 				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
 		);
+		D(trustedTypes, "onPolicyCreationFailure", "stop");
 	}
 
 	const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {

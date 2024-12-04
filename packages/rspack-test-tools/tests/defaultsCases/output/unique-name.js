@@ -25,6 +25,7 @@ module.exports = {
 		-     "trustedTypes": undefined,
 		-     "uniqueName": "@rspack/test-tools",
 		+     "trustedTypes": Object {
+		+       "onPolicyCreationFailure": "stop",
 		+       "policyName": "@@@Hello_World_",
 		+     },
 		+     "uniqueName": "@@@Hello World!",

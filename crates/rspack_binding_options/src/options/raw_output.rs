@@ -2,19 +2,26 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::library::JsLibraryOptions;
 use rspack_binding_values::{JsCleanOptions, JsFilename};
-use rspack_core::{CleanOptions, CrossOriginLoading, Environment, PathInfo};
+use rspack_core::{
+  CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure, PathInfo,
+};
 use rspack_core::{OutputOptions, TrustedTypes};
 
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawTrustedTypes {
   pub policy_name: Option<String>,
+  pub on_policy_creation_failure: Option<String>,
 }
 
 impl From<RawTrustedTypes> for TrustedTypes {
   fn from(value: RawTrustedTypes) -> Self {
     Self {
       policy_name: value.policy_name,
+      on_policy_creation_failure: match value.on_policy_creation_failure {
+        Some(v) => OnPolicyCreationFailure::from(v),
+        None => OnPolicyCreationFailure::Stop,
+      },
     }
   }
 }

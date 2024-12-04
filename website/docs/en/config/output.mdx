@@ -1703,6 +1703,28 @@ module.exports = {
 };
 ```
 
+### output.trustedTypes.onPolicyCreationFailure
+
+<ApiMeta addedVersion={'1.1.6'} />
+
+- **Type:** `"stop" | "continue"`
+- **Default:** `"stop"`
+
+Determine whether to proceed with loading in anticipation that [`require-trusted-types-for 'script'`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) has not been enforced or to immediately fail when the call to `trustedTypes.createPolicy(...)` fails due to the policy name being absent from the CSP `trusted-types` list or being a duplicate.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  output: {
+    //...
+    trustedTypes: {
+      policyName: 'my-application#webpack',
+      onPolicyCreationFailure: 'continue',
+    },
+  },
+};
+```
+
 ## output.uniqueName
 
 - **Type:** `string`

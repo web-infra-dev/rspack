@@ -2019,6 +2019,7 @@ export interface RawToOptions {
 
 export interface RawTrustedTypes {
   policyName?: string
+  onPolicyCreationFailure?: string
 }
 
 /**

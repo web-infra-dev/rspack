@@ -5857,10 +5857,13 @@ export const rspackOptions: z.ZodObject<{
         enabledChunkLoadingTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>, "many">>;
         trustedTypes: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodLiteral<true>, z.ZodString]>, z.ZodObject<{
             policyName: z.ZodOptional<z.ZodString>;
+            onPolicyCreationFailure: z.ZodOptional<z.ZodEnum<["continue", "stop"]>>;
         }, "strict", z.ZodTypeAny, {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         }, {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         }>]>>;
         sourceMapFilename: z.ZodOptional<z.ZodString>;
         hashDigest: z.ZodOptional<z.ZodString>;
@@ -6003,6 +6006,7 @@ export const rspackOptions: z.ZodObject<{
         enabledChunkLoadingTypes?: string[] | undefined;
         trustedTypes?: string | true | {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         } | undefined;
         sourceMapFilename?: string | undefined;
         hashDigest?: string | undefined;
@@ -6101,6 +6105,7 @@ export const rspackOptions: z.ZodObject<{
         enabledChunkLoadingTypes?: string[] | undefined;
         trustedTypes?: string | true | {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         } | undefined;
         sourceMapFilename?: string | undefined;
         hashDigest?: string | undefined;
@@ -8677,6 +8682,7 @@ export const rspackOptions: z.ZodObject<{
         enabledChunkLoadingTypes?: string[] | undefined;
         trustedTypes?: string | true | {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         } | undefined;
         sourceMapFilename?: string | undefined;
         hashDigest?: string | undefined;
@@ -9302,6 +9308,7 @@ export const rspackOptions: z.ZodObject<{
         enabledChunkLoadingTypes?: string[] | undefined;
         trustedTypes?: string | true | {
             policyName?: string | undefined;
+            onPolicyCreationFailure?: "continue" | "stop" | undefined;
         } | undefined;
         sourceMapFilename?: string | undefined;
         hashDigest?: string | undefined;
@@ -10925,6 +10932,7 @@ type TransformEffect<T> = {
 // @public
 export type TrustedTypes = {
     policyName?: string;
+    onPolicyCreationFailure?: "continue" | "stop";
 };
 
 // @public (undocumented)
