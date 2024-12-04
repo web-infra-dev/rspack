@@ -302,8 +302,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         let filename = compilation
           .get_path(
             &Filename::<NoFilenameFn>::from(
-              serde_json::to_string(fake_filename.render(PathData::default(), None)?.as_str())
-                .expect("invalid json to_string"),
+              serde_json::to_string(
+                fake_filename
+                  .render(
+                    PathData::default()
+                      .chunk_id_optional(chunk_id.as_deref())
+                      .chunk_hash_optional(chunk_hash.as_deref())
+                      .chunk_name_optional(chunk_name.as_deref()),
+                    None,
+                  )?
+                  .as_str(),
+              )
+              .expect("invalid json to_string"),
             ),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())
