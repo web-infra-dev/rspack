@@ -23,6 +23,7 @@ serde_json    = { workspace = true }
 sugar_path    = { workspace = true }
 unicase       = { workspace = true }
 
-swc_core = { workspace = true, features = ["ecma_ast"] }
+swc_config = { workspace = true }
+swc_core   = { workspace = true, features = ["base", "ecma_ast"] }
 
 rspack_regex = { workspace = true }

@@ -4750,6 +4750,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sugar_path",
+ "swc_config",
  "swc_core",
  "unicase",
 ]
