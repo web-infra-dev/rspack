@@ -8,177 +8,79 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-将已存在的单个文件或整个目录复制到产物目录。
+将已存在的单个文件或整个目录拷贝到产物目录。
 
 ```js
 new rspack.CopyRspackPlugin(options);
 ```
 
-- options
+## 示例
 
-  - **类型：**
-
-  ```ts
-  export type CopyRspackPluginOptions = {
-    patterns: (
-      | string // 如果传入字符串，会被视作 { from: `你传入的字符串` }
-      | {
-          from: string;
-          to?:
-            | string
-            | ((pathData: {
-                context: string;
-                absoluteFilename?: string;
-              }) => string); // 默认根据 from 推断
-          context?: string; // 默认 Rspack 配置中的 context
-          toType?: 'dir' | 'file' | 'template'; // 默认根据 from 推断
-          noErrorOnMissing?: boolean; // 默认 false
-          force?: boolean; // 默认 false
-          priority?: number; // 默认 0
-          globOptions?: {
-            caseSensitiveMatch?: boolean; // 默认 true
-            dot?: boolean; // 默认 true
-            ignore?: string[]; // 忽略特定路径
-          };
-          transform?: (
-            input: Buffer,
-            absoluteFilename: string,
-          ) => string | Buffer | Promise<string> | Promise<Buffer>;
-        }
-    )[];
-  };
-  ```
-
-  - **默认值：** `undefined`
-
-  <Table
-    header={[
-      {
-        name: '名称',
-        key: 'name',
-      },
-      {
-        name: '类型',
-        key: 'type',
-      },
-      {
-        name: '默认值',
-        key: 'default',
-      },
-      {
-        name: '描述',
-        key: 'description',
-      },
-    ]}
-    body={[
-      {
-        name: '`from`',
-        type: '`string`',
-        default: 'undefined',
-        description:
-          '复制的源路径，可以是绝对路径、相对路径、glob 查询字符串，可以是文件或目录。若传入相对路径，则是相对于 `context` 配置。',
-      },
-      {
-        name: '`to`',
-        type: '`string | ((pathData: { context: string; absoluteFilename?: string }) => string)`',
-        default: 'undefined',
-        description:
-          "复制的输出路径，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是产物目录。",
-      },
-      {
-        name: '`context`',
-        type: '`string`',
-        default: 'undefined',
-        description: '该配置决定怎样匹配 `from` 路径，以及复制后的结构。',
-      },
-      {
-        name: '`toType`',
-        type: "`'dir'|'file'|'template'`",
-        default: 'undefined',
-        description:
-          '指定 `to` 的类型，可以是目录，文件或 Rspack 的模版名，若不指定则会自动推断。',
-      },
-      {
-        name: '`noErrorOnMissing`',
-        type: '`boolean`',
-        default: 'false',
-        description: '当没有找到对应的文件或目录时，忽略错误。',
-      },
-      {
-        name: '`force`',
-        type: '`boolean`',
-        default: 'false',
-        description: '当产物中已经有相应的文件时，是否覆写。',
-      },
-      {
-        name: '`priority`',
-        type: '`number`',
-        default: '0',
-        description:
-          '当设置 `force` 为 `true` 时，如果匹配到同样的文件，优先级高的会覆写优先级的。',
-      },
-      {
-        name: '`globOptions`',
-        type: '`object`',
-        default: 'undefined',
-        description:
-          'glob 查询选项，`caseSensitiveMatch` 决定是否大小写敏感，`dot` 决定是否匹配以 `.` 开头的文件，`ignore` 是 glob 形式的字符串数组，可以使用该配置忽略部分特定路径。',
-      },
-      {
-        name: '`transform`',
-        type: '`function`',
-        default: 'undefined',
-        description: '允许修改文件内容。',
-      },
-    ]}
-  />
-
-示例：
+- 拷贝一个文件。如果文件不存在，则插件会抛出错误。
 
 ```ts title="rspack.config.js"
 const rspack = require('@rspack/core');
+
 module.exports = {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
-      patterns: [
-        {
-          from: 'file.txt',
-        },
-      ],
+      // `./src/file.txt` -> `./dist/file.txt`
+      patterns: [{ from: 'src/file.txt' }],
     }),
   ],
 };
 ```
 
-以上面的配置运行结果会是：`"dist/file.txt"`。
+- `patterns` 配置可以是一个字符串，或是一个包含多个对象的数组。
 
 ```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
 module.exports = {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
-      patterns: [
-        {
-          from: 'directory',
-        },
-      ],
+      // 这等价于 `patterns: [{ from: 'src/file.txt' }]`
+      patterns: 'src/file.txt',
     }),
   ],
 };
 ```
 
-以上面的配置运行结果会是 `directory` 目录下的所有文件平铺在产物目录中。
+- 拷贝一个目录。如果目录中没有文件，则插件会抛出错误。
 
 ```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
 module.exports = {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
+      // `./dir/**/*` -> `./dist`
+      // 例如 `./dir/foo.txt` -> `./dist/foo.txt`
+      patterns: [{ from: 'dir' }],
+    }),
+  ],
+};
+```
+
+- 使用 glob pattern 来匹配并拷贝文件。
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+const path = require('node:path');
+
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./src/*.json` -> `./dist/*.json`
+      // 例如 `./src/foo.json` -> `./dist/foo.json`
       patterns: [
         {
-          from: 'directory/**/*',
-          to: 'newdirectory',
+          from: '*.json',
+          context: path.join(__dirname, 'src'),
         },
       ],
     }),
@@ -186,4 +88,338 @@ module.exports = {
 };
 ```
 
-以上面的配置运行结果会是 `directory` 目录被移动到产物目录中的 `newdirectory` 目录，例如 `dist/newdirectory/directory/foo`。
+- 使用 `to` 指定目标路径。
+
+```ts title="rspack.config.js"
+const rspack = require('@rspack/core');
+
+module.exports = {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./dir/**/*` -> `./dist/other-dir`
+      // 例如 `./dir/foo.txt` -> `./dist/other-dir/foo.txt`
+      patterns: [{ from: 'dir', to: 'other-dir' }],
+    }),
+  ],
+};
+```
+
+## Options
+
+### from
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+拷贝的源路径，可以是绝对路径、相对路径、glob pattern，可以是文件或目录。若传入相对路径，则是相对于 [context](#context) 选项。
+
+```js title="rspack.config.js"
+const path = require('node:path');
+
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        // 相对路径
+        { from: 'relative/path/to/file.js' },
+        { from: 'relative/path/to/dir' },
+        // 绝对路径
+        { from: path.resolve(__dirname, 'src', 'file.js') },
+        { from: path.resolve(__dirname, 'src', 'dir') },
+        // glob
+        { from: 'dir/**/*' },
+        // 如果绝对路径是 `glob`，我们用 forward slashes 替换 backslashes，
+        // 因为只有 forward slashes 可以用于 `glob`
+        {
+          from: path.posix.join(
+            path.resolve(__dirname, 'src').replace(/\\/g, '/'),
+            '*.txt',
+          ),
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### to
+
+- **类型：**
+
+```ts
+type To =
+  | string
+  | ((pathData: { context: string; absoluteFilename?: string }) => string);
+```
+
+- **默认值：** [output.path](/config/output#outputpath)
+
+拷贝的输出路径，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是 Rspack 的 [output.path](/config/output#outputpath)。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'dir',
+          to: 'relative/path/to/dest/',
+        },
+        {
+          from: 'dir',
+          to: '/absolute/path/to/dest/',
+        },
+        {
+          from: 'dir',
+          to: '[path][name].[contenthash][ext]',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### context
+
+- **类型：** `string`
+- **默认值：** [context](/config/context)
+
+`context` 是一个路径，它会被添加到 `from` 路径的前面，并从结果路径中移除。
+
+```js
+const path = require('node:path');
+
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      // `./src/*.json` -> `./dist/*.json`
+      patterns: [{ from: '*.json', context: path.join(__dirname, 'src') }],
+    }),
+  ],
+};
+```
+
+`context` 可以是一个绝对路径或相对路径。如果它是一个相对路径，则基于 Rspack 的 [context](/config/context) 转换为绝对路径。
+
+只有当 `from` 包含 glob 时，`context` 才应该被显式设置。否则，`context` 会根据 `from` 是文件还是目录来自动设置：
+
+- 如果 `from` 是一个文件，则 `context` 是它的目录。输出路径将是文件名。
+- 如果 `from` 是一个目录，则 `context` 等于 `from`。输出路径将是目录内容的相对路径（包括嵌套内容）。
+
+### toType
+
+- **类型：** `'dir' | 'file' | 'template'`
+- **默认值：** `undefined`
+
+指定 [to](#to) 的类型，可以是目录，文件或 Rspack 的模版名，若不指定则会自动推断。
+
+自动推断的规则：
+
+- `dir`：如果 `to` 没有扩展名，或以 `/` 结尾。
+- `file`：如果 `to` 不是一个目录，并且不是一个模版。
+- `template`：如果 `to` 包含一个 template pattern。
+
+示例：
+
+- `dir`:
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'path/to/file.txt',
+          to: 'directory/with/extension.ext',
+          toType: 'dir',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+- `file`:
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'path/to/file.txt',
+          to: 'file/without/extension',
+          toType: 'file',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+- `template`:
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/',
+          to: 'dest/[name].[contenthash][ext]',
+          toType: 'template',
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### noErrorOnMissing
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+当没有找到对应的文件或目录时，是否忽略错误。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, 'missing-file.txt'),
+          noErrorOnMissing: true,
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### force
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+当产物中已经有同名的文件时，是否覆写该文件。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [{ from: 'file.txt', force: true }],
+    }),
+  ],
+};
+```
+
+### priority
+
+- **类型：** `number`
+- **默认值：** `0`
+
+指定同名文件的优先级。
+
+当设置 [force](#force) 为 `true` 时，如果匹配到同样的文件，优先级高的会覆写优先级低的。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        // 第一个被拷贝
+        {
+          from: 'dir-1/file.txt',
+          to: 'newfile.txt',
+          priority: 5,
+        },
+        // 第二个被拷贝，并覆盖 "dir-1/file.txt"
+        {
+          from: 'dir-2/file.txt',
+          to: 'newfile.txt',
+          force: true,
+          priority: 10,
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### globOptions
+
+- **类型：**
+
+```ts
+type GlobOptions = {
+  // 是否大小写敏感
+  // 默认 true
+  caseSensitiveMatch?: boolean;
+  // 是否匹配以 `.` 开头的文件
+  // 默认 true
+  dot?: boolean;
+  // 忽略特定路径
+  // glob 形式的字符串数组，可以使用该配置忽略部分特定路径
+  ignore?: string[];
+};
+```
+
+- **默认值：** `undefined`
+
+glob 匹配的选项。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'public/**/*',
+          globOptions: {
+            dot: false,
+            caseSensitiveMatch: false,
+            ignore: ['**/file.*', '**/ignored-directory/**'],
+          },
+        },
+      ],
+    }),
+  ],
+};
+```
+
+### transform
+
+- **类型：**
+
+```ts
+type Transform = (
+  content: Buffer,
+  absoluteFrom: string,
+) => string | Buffer | Promise<string> | Promise<Buffer>;
+```
+
+- **默认值：** `undefined`
+
+允许修改文件内容。
+
+```js title="rspack.config.js"
+module.exports = {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/*.png',
+          // `content` 参数是一个 [`Buffer`](https://nodejs.org/api/buffer.html) 对象，
+          // 可以使用 `content.toString()` 转换为字符串。
+          // `absoluteFrom` 参数是一个字符串，是文件被拷贝的绝对路径。
+          transform(content, absoluteFrom) {
+            return optimize(content);
+          },
+        },
+      ],
+    }),
+  ],
+};
+```
