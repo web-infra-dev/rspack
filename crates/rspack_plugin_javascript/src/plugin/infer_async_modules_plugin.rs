@@ -106,7 +106,6 @@ fn set_sync_modules(
     let module_graph = compilation.get_module_graph();
     if module_graph
       .get_outgoing_connections(&module)
-      .iter()
       .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
       .filter(|&out| &module != out)
       .any(|module| ModuleGraph::is_async(compilation, module))
@@ -124,7 +123,6 @@ fn set_sync_modules(
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_incoming_connections(&module)
-        .iter()
         .filter(|con| {
           module_graph
             .dependency_by_id(&con.dependency_id)
@@ -160,7 +158,6 @@ fn set_async_modules(
       let module_graph = compilation.get_module_graph();
       module_graph
         .get_incoming_connections(&module)
-        .iter()
         .filter(|con| {
           module_graph
             .dependency_by_id(&con.dependency_id)

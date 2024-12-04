@@ -223,7 +223,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let mut deps_to_replace = Vec::new();
     let module = mg.module_by_identifier(module_id).expect("should have mgm");
 
-    let connections = mg.get_outgoing_connections(module_id);
+    let connections: HashSet<_> = mg.get_outgoing_connections(module_id).collect();
     let block_ids = module.get_blocks();
 
     for block_id in block_ids {
@@ -290,7 +290,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     let mut deps_to_replace = Vec::new();
     let mut external_connections = Vec::new();
     let module = mg.module_by_identifier(module_id).expect("should have mgm");
-    let connections = mg.get_outgoing_connections(module_id);
+    let connections: HashSet<_> = mg.get_outgoing_connections(module_id).collect();
     let dep_ids = module.get_dependencies();
 
     let mut module_id_to_connections: IdentifierMap<Vec<DependencyId>> = IdentifierMap::default();

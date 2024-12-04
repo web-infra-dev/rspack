@@ -1567,17 +1567,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       map.insert(b.into(), Vec::new());
     }
 
-    let sorted_connections = module_graph
-      .get_ordered_connections(&module)
-      .expect("should have module");
-
     // keep the dependency order sorted by span
     let mut connection_map: IndexMap<
       (DependenciesBlockIdentifier, ModuleIdentifier),
       Vec<DependencyId>,
     > = IndexMap::default();
 
-    for dep_id in sorted_connections {
+    for dep_id in module_graph.get_ordered_all_dependencies(&module) {
       let dep = module_graph
         .dependency_by_id(dep_id)
         .expect("should have dep");
