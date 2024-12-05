@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, from_bytes, to_bytes, with::AsPreset};
-use rspack_sources::{BoxSource, RawStringSource, SourceExt};
+use rspack_sources::{BoxSource, RawBufferSource, RawStringSource, SourceExt};
 
 #[cacheable]
 #[derive(Debug)]
@@ -17,6 +17,6 @@ fn test_rspack_source() {
     );
   }
 
-  test_data(Data(RawStringSource::from("123".as_bytes()).boxed()));
+  test_data(Data(RawBufferSource::from("123".as_bytes()).boxed()));
   test_data(Data(RawStringSource::from_static("123").boxed()));
 }
