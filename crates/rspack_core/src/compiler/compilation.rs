@@ -1262,20 +1262,17 @@ impl Compilation {
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
     // so now we can start to create a chunk graph based on the module graph
-    let _set_active_state = std::time::Instant::now();
     self.set_active_state_cache();
-    dbg!(_set_active_state.elapsed().as_millis());
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      let code_splitting = std::time::Instant::now();
-      if std::env::var("NEW_CODE_SPLITTING").is_ok() {
-        build_chunk_graph_new(compilation)?;
-      } else {
+      let time = std::time::Instant::now();
+      if std::env::var("OLD_CODE_SPLITTING").is_ok() {
         build_chunk_graph(compilation)?;
+      } else {
+        build_chunk_graph_new(compilation)?;
       }
-
-      dbg!(code_splitting.elapsed().as_millis());
+      dbg!(time.elapsed().as_millis());
       Ok(compilation)
     })
     .await?;
@@ -1593,8 +1590,8 @@ impl Compilation {
         .module_by_identifier(&id)
         .expect("should have module");
 
-      let deps = m.get_dependencies().iter().copied().collect::<Vec<_>>();
-      let blocks = m.get_blocks().iter().copied().collect::<Vec<_>>();
+      let deps = m.get_dependencies().to_vec();
+      let blocks = m.get_blocks().to_vec();
       for dep in deps {
         let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
           continue;
@@ -1608,7 +1605,7 @@ impl Compilation {
           continue;
         };
 
-        let block_deps = block.get_dependencies().iter().copied().collect::<Vec<_>>();
+        let block_deps = block.get_dependencies().to_vec();
         for dep in block_deps {
           let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
             continue;
@@ -2442,12 +2439,12 @@ impl AssetInfoRelated {
 pub fn assign_depths(
   assign_map: &mut IdentifierMap<usize>,
   mg: &ModuleGraph,
-  modules: Vec<&ModuleIdentifier>,
+  modules: impl Iterator<Item = &ModuleIdentifier>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
   let mut q = VecDeque::new();
-  for item in modules.iter() {
-    q.push_back((**item, 0));
+  for item in modules {
+    q.push_back((*item, 0));
   }
   while let Some((id, depth)) = q.pop_front() {
     match assign_map.entry(id) {

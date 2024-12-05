@@ -251,6 +251,7 @@ impl Stats<'_> {
     }
 
     sort_modules(&mut modules);
+    // dbg!(&modules);
 
     Ok(f(modules))
   }

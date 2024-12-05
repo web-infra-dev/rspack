@@ -24,12 +24,11 @@ module.exports = {
 		).toMatchInlineSnapshot(`
 		Array [
 		  Object {
-		  "chunkEntry": true,
-		  "chunkId": "751",
+		  "chunkId": "74",
 		  "chunkInitial": true,
-		  "chunkName": "b",
+		  "chunkName": "a",
 		  "details": undefined,
-		  "message": "  × Entrypoints 'b' and 'a' use 'dependOn' to depend on each other in a circular way.\\n",
+		  "message": "  × Entrypoints 'a' and 'b' use 'dependOn' to depend on each other in a circular way.\\n",
 		  "moduleTrace": Array [],
 		  "stack": undefined,
 		},

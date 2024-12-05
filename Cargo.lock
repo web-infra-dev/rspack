@@ -286,7 +286,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
 name = "bindgen"
 version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -307,7 +306,6 @@ dependencies = [
 ]
 
 [[package]]
-=======
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -323,7 +321,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
->>>>>>> 5e3d7f978 (feat: remove available modules)
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
