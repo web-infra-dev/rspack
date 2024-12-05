@@ -23,7 +23,7 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
-num-bigint = "0.4.4"
+num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
@@ -70,7 +70,7 @@ url = { workspace = true }
 ustr = { workspace = true }
 
 [dev-dependencies]
-pretty_assertions = { version = "1.4.0" }
+pretty_assertions = { version = "1.4.1" }
 
 [lints]
 workspace = true
