@@ -34,8 +34,7 @@ fn assign_named_module_ids(
     })
     .collect();
   let mut name_to_items: HashMap<String, IdentifierIndexSet> = HashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<String> = Default::default();
-  invalid_and_repeat_names.insert(String::from(""));
+  let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
