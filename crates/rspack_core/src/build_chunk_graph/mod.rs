@@ -50,6 +50,6 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
 
 #[instrument(skip_all)]
 pub(crate) fn build_chunk_graph_new(compilation: &mut Compilation) -> rspack_error::Result<()> {
-  new_code_splitter::code_split(compilation);
+  new_code_splitter::code_split(compilation)?;
   Ok(())
 }
