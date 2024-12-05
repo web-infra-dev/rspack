@@ -1253,20 +1253,27 @@ impl Compilation {
 
     // ModuleGraph is frozen for now on, we have a module graph that won't change
     // so now we can start to create a chunk graph based on the module graph
-    let _set_active_state = std::time::Instant::now();
     self.set_active_state_cache();
-    dbg!(_set_active_state.elapsed().as_millis());
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      let code_splitting = std::time::Instant::now();
+      let code_splitting_total = std::time::Instant::now();
       if std::env::var("NEW_CODE_SPLITTING").is_ok() {
         build_chunk_graph_new(compilation)?;
       } else {
         build_chunk_graph(compilation)?;
       }
+      dbg!(code_splitting_total.elapsed().as_millis());
 
-      dbg!(code_splitting.elapsed().as_millis());
+      let mut count = 0;
+      for (_, cgc) in compilation
+        .chunk_graph
+        .chunk_graph_chunk_by_chunk_ukey
+        .iter()
+      {
+        count += cgc.modules.len()
+      }
+      dbg!(count);
       Ok(compilation)
     })
     .await?;
@@ -1581,8 +1588,8 @@ impl Compilation {
         .module_by_identifier(&id)
         .expect("should have module");
 
-      let deps = m.get_dependencies().iter().copied().collect::<Vec<_>>();
-      let blocks = m.get_blocks().iter().copied().collect::<Vec<_>>();
+      let deps = m.get_dependencies().to_vec();
+      let blocks = m.get_blocks().to_vec();
       for dep in deps {
         let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
           continue;
@@ -1596,7 +1603,7 @@ impl Compilation {
           continue;
         };
 
-        let block_deps = block.get_dependencies().iter().copied().collect::<Vec<_>>();
+        let block_deps = block.get_dependencies().to_vec();
         for dep in block_deps {
           let Some(m) = module_graph.module_identifier_by_dependency_id(&dep) else {
             continue;
