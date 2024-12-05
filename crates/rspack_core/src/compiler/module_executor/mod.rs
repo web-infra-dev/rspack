@@ -3,6 +3,8 @@ mod entry;
 mod execute;
 mod overwrite;
 
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use dashmap::{mapref::entry::Entry, DashSet};
 pub use execute::ExecuteModuleId;
@@ -34,8 +36,8 @@ pub struct ModuleExecutor {
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
-  assets: DashMap<String, CompilationAsset>,
-  module_assets: IdentifierDashMap<DashSet<String>>,
+  assets: DashMap<Arc<str>, CompilationAsset>,
+  module_assets: IdentifierDashMap<DashSet<Arc<str>>>,
   code_generated_modules: IdentifierDashSet,
   module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,

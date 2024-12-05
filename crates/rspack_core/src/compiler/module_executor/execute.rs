@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
@@ -37,7 +38,7 @@ pub struct ExecuteModuleResult {
   pub missing_dependencies: HashSet<ArcPath>,
   pub build_dependencies: HashSet<ArcPath>,
   pub code_generated_modules: IdentifierSet,
-  pub assets: HashSet<String>,
+  pub assets: HashSet<Arc<str>>,
   pub id: ExecuteModuleId,
 }
 

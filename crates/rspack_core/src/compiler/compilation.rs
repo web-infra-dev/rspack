@@ -162,7 +162,7 @@ pub struct Compilation {
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
-  pub module_assets: IdentifierMap<HashSet<String>>,
+  pub module_assets: IdentifierMap<HashSet<Arc<str>>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -584,8 +584,9 @@ impl Compilation {
     Ok(())
   }
 
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    tracing::trace!("Emit asset {}", filename);
+  pub fn emit_asset<T: Into<Arc<str>>>(&mut self, filename: T, asset: CompilationAsset) {
+    let filename = filename.into();
+    tracing::trace!("Emit asset {}", &filename);
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -628,7 +629,8 @@ impl Compilation {
     }
   }
 
-  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+  pub fn rename_asset<T: Into<Arc<str>>>(&mut self, filename: &str, new_name: T) {
+    let new_name = new_name.into();
     if let Some(asset) = self.assets.remove(filename) {
       self.assets.insert(new_name.clone(), asset);
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
@@ -2161,7 +2163,7 @@ impl Compilation {
   }
 }
 
-pub type CompilationAssets = HashMap<String, CompilationAsset>;
+pub type CompilationAssets = HashMap<Arc<str>, CompilationAsset>;
 
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
