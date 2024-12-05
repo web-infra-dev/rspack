@@ -236,6 +236,7 @@ impl Compiler {
       .compilation
       .extend_diagnostics(plugin_driver_diagnostics);
 
+    self.compilation.collect_logger(logger);
     Ok(())
   }
 

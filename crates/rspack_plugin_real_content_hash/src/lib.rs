@@ -71,6 +71,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   }
   logger.time_end(start);
   if hash_to_asset_names.is_empty() {
+    compilation.collect_logger(logger);
     return Ok(());
   }
   let start = logger.time("create hash regexp");
