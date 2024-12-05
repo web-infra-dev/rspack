@@ -29,9 +29,10 @@ pub struct JsChunk {
 
 impl JsChunk {
   pub fn from(chunk: &rspack_core::Chunk, compilation: &Compilation) -> Self {
-    let mut files = Vec::from_iter(chunk.files().iter().cloned());
+    let mut files = Vec::from_iter(chunk.files().iter().map(ToString::to_string));
     files.sort_unstable();
-    let mut auxiliary_files = Vec::from_iter(chunk.auxiliary_files().iter().cloned());
+    let mut auxiliary_files =
+      Vec::from_iter(chunk.auxiliary_files().iter().map(ToString::to_string));
     auxiliary_files.sort_unstable();
 
     Self {

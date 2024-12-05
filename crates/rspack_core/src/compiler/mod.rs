@@ -378,7 +378,10 @@ impl Compiler {
 
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
-        self.compilation.emitted_assets.insert(filename.to_string());
+        self
+          .compilation
+          .emitted_assets
+          .insert(Arc::from(filename.to_string()));
       }
 
       let info = AssetEmittedInfo {

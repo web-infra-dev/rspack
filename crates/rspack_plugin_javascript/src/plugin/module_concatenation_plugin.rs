@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::VecDeque;
 use std::hash::Hasher;
+use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
@@ -618,7 +619,7 @@ impl ModuleConcatenationPlugin {
       config.runtime.clone(),
       compilation,
     );
-    let new_module_assets: HashSet<String> =
+    let new_module_assets: HashSet<Arc<str>> =
       modules_set.iter().fold(HashSet::default(), |mut acc, id| {
         acc.extend(
           compilation

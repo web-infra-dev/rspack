@@ -93,7 +93,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
     .filter_map(|(name, asset)| {
       asset.get_source().map(|source| {
         (
-          name.as_str(),
+          name.as_ref(),
           AssetData::new(source.clone(), asset.get_info(), &hash_regexp),
         )
       })

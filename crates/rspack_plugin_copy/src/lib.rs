@@ -624,7 +624,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
   copied_result.into_iter().for_each(|(_priority, result)| {
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+    if let Some(exist_asset) = compilation.assets_mut().get_mut(result.filename.as_str()) {
       if !result.force {
         return;
       }

@@ -163,7 +163,7 @@ pub struct Compilation {
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub module_assets: IdentifierMap<HashSet<Arc<str>>>,
-  pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
+  pub emitted_assets: DashSet<Arc<str>, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub plugin_driver: SharedPluginDriver,
@@ -551,7 +551,6 @@ impl Compilation {
     } else {
       self.global_entry.include_dependencies.push(entry_id);
     }
-
     Ok(())
   }
 

@@ -16,7 +16,7 @@ use rspack_napi::{
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{identifier::JsIdentifier, JsCompilation};
+use crate::{identifier::JsIdentifier, JsArcStr, JsCompilation};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef<JsModuleDescriptor>>> = Default::default();
@@ -329,7 +329,7 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
   fn from(stats: rspack_core::StatsAsset) -> Self {
     Self {
       r#type: stats.r#type,
-      name: stats.name,
+      name: stats.name.to_string(),
       size: stats.size,
       chunks: stats.chunks,
       chunk_names: stats.chunk_names,
@@ -715,8 +715,8 @@ pub struct JsStatsSize {
 #[napi(object, object_from_js = false)]
 pub struct JsStatsChunk {
   pub r#type: String,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
+  pub files: Vec<JsArcStr>,
+  pub auxiliary_files: Vec<JsArcStr>,
   pub id: Option<String>,
   pub id_hints: Vec<String>,
   pub hash: Option<String>,
@@ -759,8 +759,12 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
 
     Ok(JsStatsChunk {
       r#type: stats.r#type.to_string(),
-      files: stats.files,
-      auxiliary_files: stats.auxiliary_files,
+      files: stats.files.into_iter().map(JsArcStr::new).collect(),
+      auxiliary_files: stats
+        .auxiliary_files
+        .into_iter()
+        .map(JsArcStr::new)
+        .collect(),
       id: stats.id,
       entry: stats.entry,
       initial: stats.initial,
@@ -810,14 +814,14 @@ impl TryFrom<StatsChunk<'_>> for JsStatsChunk {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroupAsset {
-  pub name: String,
+  pub name: JsArcStr,
   pub size: f64,
 }
 
 impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
   fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
     Self {
-      name: stats.name,
+      name: JsArcStr::new(stats.name),
       size: stats.size as f64,
     }
   }
@@ -856,15 +860,17 @@ impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
 
 #[napi(object, object_from_js = false)]
 pub struct JsStatsChildGroupChildAssets {
-  pub preload: Option<Vec<String>>,
-  pub prefetch: Option<Vec<String>>,
+  pub preload: Option<Vec<JsArcStr>>,
+  pub prefetch: Option<Vec<JsArcStr>>,
 }
 
 impl From<rspack_core::StatschunkGroupChildAssets> for JsStatsChildGroupChildAssets {
   fn from(stats: rspack_core::StatschunkGroupChildAssets) -> Self {
     Self {
-      preload: (!stats.preload.is_empty()).then_some(stats.preload),
-      prefetch: (!stats.prefetch.is_empty()).then_some(stats.prefetch),
+      preload: (!stats.preload.is_empty())
+        .then_some(stats.preload.into_iter().map(JsArcStr::new).collect()),
+      prefetch: (!stats.prefetch.is_empty())
+        .then_some(stats.prefetch.into_iter().map(JsArcStr::new).collect()),
     }
   }
 }

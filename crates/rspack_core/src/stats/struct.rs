@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::fmt::Debug;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::Source;
@@ -90,7 +90,7 @@ pub struct StatsErrorModuleTraceModule {
 #[derive(Debug)]
 pub struct StatsAsset {
   pub r#type: &'static str,
-  pub name: String,
+  pub name: Arc<str>,
   pub size: f64,
   pub chunks: Vec<Option<String>>,
   pub chunk_names: Vec<String>,
@@ -196,8 +196,8 @@ pub struct StatsOriginRecord {
 #[derive(Debug)]
 pub struct StatsChunk<'a> {
   pub r#type: &'static str,
-  pub files: Vec<String>,
-  pub auxiliary_files: Vec<String>,
+  pub files: Vec<Arc<str>>,
+  pub auxiliary_files: Vec<Arc<str>>,
   pub id: Option<String>,
   pub entry: bool,
   pub initial: bool,
@@ -219,7 +219,7 @@ pub struct StatsChunk<'a> {
 
 #[derive(Debug)]
 pub struct StatsChunkGroupAsset {
-  pub name: String,
+  pub name: Arc<str>,
   pub size: usize,
 }
 
@@ -244,8 +244,8 @@ pub struct StatsChunkGroupChildren {
 
 #[derive(Debug)]
 pub struct StatschunkGroupChildAssets {
-  pub preload: Vec<String>,
-  pub prefetch: Vec<String>,
+  pub preload: Vec<Arc<str>>,
+  pub prefetch: Vec<Arc<str>>,
 }
 
 #[derive(Debug)]

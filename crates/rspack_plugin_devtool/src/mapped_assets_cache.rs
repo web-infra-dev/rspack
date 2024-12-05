@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use futures::Future;
 use rspack_core::CompilationAsset;
@@ -6,7 +8,7 @@ use rspack_error::{Error, Result};
 use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
-pub struct MappedAssetsCache(DashMap<String, MappedAsset>);
+pub struct MappedAssetsCache(DashMap<Arc<str>, MappedAsset>);
 
 impl MappedAssetsCache {
   pub fn new() -> Self {
@@ -15,11 +17,11 @@ impl MappedAssetsCache {
 
   pub async fn use_cache<'a, F, R>(
     &self,
-    assets: Vec<(&'a String, &'a CompilationAsset)>,
+    assets: Vec<(&'a Arc<str>, &'a CompilationAsset)>,
     map_assets: F,
   ) -> Result<Vec<MappedAsset>>
   where
-    F: FnOnce(Vec<(String, &'a CompilationAsset)>) -> R,
+    F: FnOnce(Vec<(Arc<str>, &'a CompilationAsset)>) -> R,
     R: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
   {
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(assets.len());
@@ -45,7 +47,7 @@ impl MappedAssetsCache {
         ..
       } = mapped_asset;
       if !asset.info.version.is_empty() {
-        self.0.insert(filename.to_owned(), mapped_asset.clone());
+        self.0.insert(filename.clone(), mapped_asset.clone());
       }
     }
 

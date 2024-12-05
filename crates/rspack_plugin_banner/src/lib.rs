@@ -203,7 +203,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (file, comment) in updates {
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    let _res = compilation.update_asset(file.as_ref(), |old, info| {
       let new = self.update_source(comment, old, self.config.footer);
       Ok((new, info))
     });

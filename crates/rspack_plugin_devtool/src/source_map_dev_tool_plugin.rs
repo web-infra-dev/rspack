@@ -95,7 +95,7 @@ enum SourceMappingUrlCommentRef<'a> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct MappedAsset {
-  pub(crate) asset: (String, CompilationAsset),
+  pub(crate) asset: (Arc<str>, CompilationAsset),
   pub(crate) source_map: Option<(String, CompilationAsset)>,
 }
 
@@ -191,8 +191,8 @@ impl SourceMapDevToolPlugin {
   async fn map_assets(
     &self,
     compilation: &Compilation,
-    file_to_chunk: &HashMap<&String, &Chunk>,
-    raw_assets: Vec<(String, &CompilationAsset)>,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    raw_assets: Vec<(Arc<str>, &CompilationAsset)>,
   ) -> Result<Vec<MappedAsset>> {
     let output_options = &compilation.options.output;
     let map_options = MapOptions::new(self.columns);
@@ -377,7 +377,7 @@ impl SourceMapDevToolPlugin {
 
           let mut asset = compilation
             .assets()
-            .get(&filename)
+            .get(filename.as_ref())
             .unwrap_or_else(|| {
               panic!(
                 "expected to find filename '{}' in compilation.assets, but it was not present",
@@ -406,14 +406,14 @@ impl SourceMapDevToolPlugin {
           };
 
           if let Some(source_map_filename_config) = &self.source_map_filename {
-            let chunk = file_to_chunk.get(&filename);
+            let chunk = file_to_chunk.get(filename.as_ref());
             let filename = match &self.file_context {
               Some(file_context) => Cow::Owned(
-                relative(Path::new(file_context), Path::new(&filename))
+                relative(Path::new(file_context), Path::new(filename.as_ref()))
                   .to_string_lossy()
                   .to_string(),
               ),
-              None => Cow::Borrowed(&filename),
+              None => Cow::Borrowed(filename.as_ref()),
             };
 
             let mut hasher = RspackHash::from(&compilation.options.output);
@@ -494,7 +494,7 @@ impl SourceMapDevToolPlugin {
               source_map_asset_info,
             );
             Ok(MappedAsset {
-              asset: (filename.to_string(), asset),
+              asset: (filename.into(), asset),
               source_map: Some((source_map_filename, source_map_asset)),
             })
           } else {
@@ -541,17 +541,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
-  let mut file_to_chunk: HashMap<&String, &Chunk> = HashMap::default();
+  let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
-  let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
+  let mut file_to_chunk_ukey: HashMap<Arc<str>, ChunkUkey> = HashMap::default();
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey());
     }
     for file in chunk.auxiliary_files() {
       file_to_chunk.insert(file, chunk);
-      file_to_chunk_ukey.insert(file.to_string(), chunk.ukey());
+      file_to_chunk_ukey.insert(file.clone(), chunk.ukey());
     }
   }
 
@@ -575,14 +575,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       asset: (source_filename, mut source_asset),
       source_map,
     } = mapped_asset;
-    if let Some(asset) = compilation.assets_mut().remove(&source_filename) {
+    if let Some(asset) = compilation.assets_mut().remove(source_filename.as_ref()) {
       source_asset.info = asset.info;
       if let Some((ref source_map_filename, _)) = source_map {
         source_asset.info.related.source_map = Some(source_map_filename.clone());
       }
     }
 
-    let chunk_ukey = file_to_chunk_ukey.get(&source_filename);
+    let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
     compilation.emit_asset(source_filename, source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.to_owned(), source_map_asset);

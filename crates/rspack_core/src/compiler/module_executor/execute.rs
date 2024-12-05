@@ -272,8 +272,8 @@ impl Task<MakeTaskContext> for ExecuteTask {
       execute_result.assets.extend(
         module_assets
           .values()
-          .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())
-          .collect::<HashSet<String>>(),
+          .flat_map(|m| m.iter().map(Clone::clone).collect_vec())
+          .collect::<HashSet<_>>(),
       );
     }
     let executed_runtime_modules = runtime_modules

@@ -171,7 +171,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
     let asset = Arc::new(RawSource::from(manifest_json)) as BoxSource;
 
-    manifests.insert(target_path, asset.into());
+    manifests.insert(target_path.into(), asset.into());
   }
 
   for (filename, asset) in manifests {
