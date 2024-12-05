@@ -17,19 +17,21 @@ use dashmap::DashMap;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
 use rspack_util::itoa;
+use rspack_util::swc::minify_file_comments;
 use serde_json::error::Category;
-use swc_config::config_types::BoolOr;
+use swc::config::JsMinifyCommentOption;
+use swc::BoolOr;
 use swc_config::merge::Merge;
 use swc_core::base::config::{
-  BuiltInput, Config, ConfigFile, InputSourceMap, IsModule, JsMinifyCommentOption, Rc, RootMode,
+  BuiltInput, Config, ConfigFile, InputSourceMap, IsModule, Rc, RootMode,
 };
 use swc_core::base::{sourcemap, SwcComments};
-use swc_core::common::comments::{Comment, CommentKind, Comments};
+use swc_core::common::comments::Comments;
 use swc_core::common::errors::{Handler, HANDLER};
+use swc_core::common::SourceFile;
 use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
 };
-use swc_core::common::{BytePos, SourceFile};
 use swc_core::ecma::ast::{EsVersion, Pass, Program};
 use swc_core::ecma::parser::{
   parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
@@ -40,41 +42,6 @@ use swc_core::{
   common::Globals,
 };
 use url::Url;
-
-fn minify_file_comments(
-  comments: &SingleThreadedComments,
-  preserve_comments: BoolOr<JsMinifyCommentOption>,
-) {
-  match preserve_comments {
-    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
-
-    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
-      let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
-        // Preserve license comments.
-        //
-        // See https://github.com/terser/terser/blob/798135e04baddd94fea403cfaab4ba8b22b1b524/lib/output.js#L175-L181
-        vc.retain(|c: &Comment| {
-          c.text.contains("@lic")
-            || c.text.contains("@preserve")
-            || c.text.contains("@copyright")
-            || c.text.contains("@cc_on")
-            || (c.kind == CommentKind::Block && c.text.starts_with('!'))
-        });
-        !vc.is_empty()
-      };
-      let (mut l, mut t) = comments.borrow_all_mut();
-
-      l.retain(preserve_excl);
-      t.retain(preserve_excl);
-    }
-
-    BoolOr::Bool(false) => {
-      let (mut l, mut t) = comments.borrow_all_mut();
-      l.clear();
-      t.clear();
-    }
-  }
-}
 
 fn parse_swcrc(s: &str) -> Result<Rc, Error> {
   fn convert_json_err(e: serde_json::Error) -> Error {
@@ -391,8 +358,16 @@ impl SwcCompiler {
         })
       })
     });
+
     if let Some(comments) = &config.comments {
-      minify_file_comments(comments, config.preserve_comments);
+      // TODO: Wait for https://github.com/swc-project/swc/blob/e6fc5327b1a309eae840fe1ec3a2367adab37430/crates/swc/src/config/mod.rs#L808 to land.
+      let preserve_annotations = match &config.preserve_comments {
+        BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => true,
+        BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => false,
+        BoolOr::Bool(false) => false,
+      };
+
+      minify_file_comments(comments, config.preserve_comments, preserve_annotations);
     };
 
     program
