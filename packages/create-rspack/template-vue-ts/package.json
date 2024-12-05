@@ -15,6 +15,6 @@
     "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
-    "vue-loader": "^17.3.1"
+    "vue-loader": "^17.4.2"
   }
 }
