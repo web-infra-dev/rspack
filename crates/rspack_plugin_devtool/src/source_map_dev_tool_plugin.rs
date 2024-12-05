@@ -208,7 +208,7 @@ impl SourceMapDevToolPlugin {
         };
         let source = if is_match {
           asset.get_source().map(|source| {
-            let source_map = source.map(&map_options);
+            let source_map = source.map(&map_options, &Default::default());
             (file, source, source_map)
           })
         } else {
