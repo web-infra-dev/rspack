@@ -3,7 +3,7 @@ import type { NodeFsStats, ThreadsafeNodeFS } from "@rspack/binding";
 
 import {
 	type IStats,
-	type IntermeidateFileSystem,
+	type IntermediateFileSystem,
 	type OutputFileSystem,
 	mkdirp,
 	rmrf
@@ -136,7 +136,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 }
 
 class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
-	constructor(fs?: IntermeidateFileSystem) {
+	constructor(fs?: IntermediateFileSystem) {
 		super(fs);
 		if (!fs) {
 			return;
@@ -216,7 +216,7 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 		});
 	}
 
-	static __to_binding(fs?: IntermeidateFileSystem) {
+	static __to_binding(fs?: IntermediateFileSystem) {
 		return new this(fs);
 	}
 }

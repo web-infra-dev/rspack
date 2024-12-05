@@ -18,7 +18,7 @@ import ArrayQueue from "./util/ArrayQueue";
 import asyncLib from "./util/asyncLib";
 import type {
 	InputFileSystem,
-	IntermeidateFileSystem,
+	IntermediateFileSystem,
 	WatchFileSystem
 } from "./util/fs";
 
@@ -184,7 +184,7 @@ export class MultiCompiler {
 		}
 	}
 
-	set intermediateFileSystem(value: IntermeidateFileSystem) {
+	set intermediateFileSystem(value: IntermediateFileSystem) {
 		for (const compiler of this.compilers) {
 			compiler.intermediateFileSystem = value;
 		}

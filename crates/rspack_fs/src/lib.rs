@@ -5,8 +5,8 @@ pub use read::ReadableFileSystem;
 
 mod write;
 pub use write::WritableFileSystem;
-mod intermidiate;
-pub use intermidiate::{IntermediateFileSystemExtras, ReadStream, WriteStream};
+mod intermediate;
+pub use intermediate::{IntermediateFileSystemExtras, ReadStream, WriteStream};
 
 mod file_metadata;
 pub use file_metadata::FileMetadata;

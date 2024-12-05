@@ -480,7 +480,7 @@ export type InputFileSystem = {
 	dirname?: (path: string) => string;
 };
 
-export type IntermeidateFileSystem = InputFileSystem &
+export type IntermediateFileSystem = InputFileSystem &
 	OutputFileSystem &
 	IntermediateFileSystemExtras;
 

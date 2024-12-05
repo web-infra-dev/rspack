@@ -872,7 +872,7 @@ export class Compiler {
     // (undocumented)
     inputFileSystem: InputFileSystem | null;
     // (undocumented)
-    intermediateFileSystem: IntermeidateFileSystem | null;
+    intermediateFileSystem: IntermediateFileSystem | null;
     // (undocumented)
     isChild(): boolean;
     // (undocumented)
@@ -2422,6 +2422,9 @@ type InputFileSystem = {
 };
 
 // @public (undocumented)
+type IntermediateFileSystem = InputFileSystem & OutputFileSystem & IntermediateFileSystemExtras;
+
+// @public (undocumented)
 type IntermediateFileSystemExtras = {
     rename: (arg0: PathLike, arg1: PathLike, arg2: (arg0: null | NodeJS.ErrnoException) => void) => void;
     mkdirSync: MkdirSync;
@@ -2430,9 +2433,6 @@ type IntermediateFileSystemExtras = {
     read: Read<Buffer>;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
 };
-
-// @public (undocumented)
-type IntermeidateFileSystem = InputFileSystem & OutputFileSystem & IntermediateFileSystemExtras;
 
 // @public (undocumented)
 type INVALID = {
@@ -3578,9 +3578,7 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 const matchPart: (str: string, test: Matcher) => boolean;
 
 // @public (undocumented)
-type MkdirSync = {
-    (path: PathLike, options: MakeDirectoryOptions): undefined | string;
-};
+type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
 export type Mode = "development" | "production" | "none";
@@ -3755,8 +3753,8 @@ export class MultiCompiler {
     get inputFileSystem(): InputFileSystem;
     set inputFileSystem(value: InputFileSystem);
     // (undocumented)
-    get intermediateFileSystem(): IntermeidateFileSystem;
-    set intermediateFileSystem(value: IntermeidateFileSystem);
+    get intermediateFileSystem(): IntermediateFileSystem;
+    set intermediateFileSystem(value: IntermediateFileSystem);
     // (undocumented)
     get options(): RspackOptionsNormalized_2[] & MultiCompilerOptions;
     // (undocumented)
@@ -4025,9 +4023,7 @@ type OK<T> = {
 const OK: <T>(value: T) => OK<T>;
 
 // @public (undocumented)
-type Open = {
-    (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void): void;
-};
+type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
 
 // @public (undocumented)
 export type Optimization = {
@@ -4641,9 +4637,7 @@ interface ReactConfig {
 }
 
 // @public (undocumented)
-type Read<TBuffer extends ArrayBufferView = Buffer> = {
-    (fd: number, options: ReadAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesRead: number, buffer: TBuffer) => void): void;
-};
+type Read<TBuffer extends ArrayBufferView = Buffer> = (fd: number, options: ReadAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesRead: number, buffer: TBuffer) => void) => void;
 
 // @public (undocumented)
 type ReadAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
@@ -11374,9 +11368,7 @@ class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
 export type WorkerPublicPath = string;
 
 // @public (undocumented)
-type Write<TBuffer extends ArrayBufferView = Buffer> = {
-    (fd: number, content: Buffer, options: WriteAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesWrite: number, buffer: TBuffer) => void): void;
-};
+type Write<TBuffer extends ArrayBufferView = Buffer> = (fd: number, content: Buffer, options: WriteAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesWrite: number, buffer: TBuffer) => void) => void;
 
 // @public (undocumented)
 type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
