@@ -153,11 +153,22 @@ impl_default_to_compat_source!(OriginalSource);
 
 impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
-    if let Some(raw_source) = self.as_any().downcast_ref::<RawStringSource>() {
+    if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
       raw_source.to_js_compat_source(env)
+    } else if let Some(raw_string) = self.as_any().downcast_ref::<RawStringSource>() {
+      raw_string.to_js_compat_source(env)
+    } else if let Some(raw_buffer) = self.as_any().downcast_ref::<RawBufferSource>() {
+      raw_buffer.to_js_compat_source(env)
+    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
+      cached_source.to_js_compat_source(env)
     } else if let Some(cached_source) = self
       .as_any()
       .downcast_ref::<CachedSource<RawStringSource>>()
+    {
+      cached_source.to_js_compat_source(env)
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<RawBufferSource>>()
     {
       cached_source.to_js_compat_source(env)
     } else if let Some(cached_source) = self
@@ -265,11 +276,22 @@ impl_default_to_compat_source!(OriginalSource);
 
 impl ToJsCompatSourceOwned for dyn Source + '_ {
   fn to_js_compat_source_owned(&self) -> Result<JsCompatSourceOwned> {
-    if let Some(raw_source) = self.as_any().downcast_ref::<RawStringSource>() {
+    if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
       raw_source.to_js_compat_source_owned()
+    } else if let Some(raw_string) = self.as_any().downcast_ref::<RawStringSource>() {
+      raw_string.to_js_compat_source_owned()
+    } else if let Some(raw_buffer) = self.as_any().downcast_ref::<RawBufferSource>() {
+      raw_buffer.to_js_compat_source_owned()
+    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
+      cached_source.to_js_compat_source_owned()
     } else if let Some(cached_source) = self
       .as_any()
       .downcast_ref::<CachedSource<RawStringSource>>()
+    {
+      cached_source.to_js_compat_source_owned()
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<RawBufferSource>>()
     {
       cached_source.to_js_compat_source_owned()
     } else if let Some(cached_source) = self
@@ -287,7 +309,7 @@ impl ToJsCompatSourceOwned for dyn Source + '_ {
     } else if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
       source.to_js_compat_source_owned()
     } else {
-      // If it's not a `RawStringSource` related type, then we regards it as a `Source` type.
+      // If it's not a `RawSource` related type, then we regards it as a `Source` type.
       Ok(JsCompatSourceOwned {
         source: Either::A(self.source().to_string()),
         map: to_webpack_map(self)?,
