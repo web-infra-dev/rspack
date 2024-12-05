@@ -1,6 +1,6 @@
 // https://github.com/webpack/webpack/blob/main/lib/WarnCaseSensitiveModulesPlugin.js
 
-use std::{collections::HashMap, hash::BuildHasherDefault};
+use std::collections::HashMap;
 
 use cow_utils::CowUtils;
 use rspack_collections::{Identifier, IdentifierSet};
@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::{FxBuildHasher, FxHashMap};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -52,10 +52,8 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("check case sensitive modules");
   let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
-  let mut not_conflect: FxHashMap<String, Identifier> = HashMap::with_capacity_and_hasher(
-    module_graph.modules().len(),
-    BuildHasherDefault::<FxHasher>::default(),
-  );
+  let mut not_conflect: FxHashMap<String, Identifier> =
+    HashMap::with_capacity_and_hasher(module_graph.modules().len(), FxBuildHasher);
   let mut conflict: FxHashMap<String, IdentifierSet> = FxHashMap::default();
 
   for module in module_graph.modules().values() {
