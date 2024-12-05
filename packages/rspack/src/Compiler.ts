@@ -29,7 +29,10 @@ import {
 import { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import { ThreadsafeWritableNodeFS } from "./FileSystem";
+import {
+	ThreadsafeIntermediateNodeFS,
+	ThreadsafeOutputNodeFS
+} from "./FileSystem";
 import {
 	CodeGenerationResult,
 	ContextModuleFactoryAfterResolveData,
@@ -69,6 +72,7 @@ import type {
 } from "./config";
 import type {
 	InputFileSystem,
+	IntermeidateFileSystem,
 	OutputFileSystem,
 	WatchFileSystem
 } from "./util/fs";
@@ -145,7 +149,7 @@ class Compiler {
 	watching?: Watching;
 
 	inputFileSystem: InputFileSystem | null;
-	intermediateFileSystem: any;
+	intermediateFileSystem: IntermeidateFileSystem | null;
 	outputFileSystem: OutputFileSystem | null;
 	watchFileSystem: WatchFileSystem | null;
 
@@ -1620,7 +1624,8 @@ class Compiler {
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,
-			ThreadsafeWritableNodeFS.__to_binding(this.outputFileSystem!),
+			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
+			ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem!),
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

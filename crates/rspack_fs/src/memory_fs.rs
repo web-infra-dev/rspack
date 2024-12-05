@@ -1,13 +1,17 @@
 use std::{
   collections::{HashMap, HashSet},
-  sync::Mutex,
+  io::{BufRead, Cursor, Read, Seek},
+  sync::{Arc, Mutex},
   time::{SystemTime, UNIX_EPOCH},
 };
 
 use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
-use crate::{Error, FileMetadata, FileSystem, ReadableFileSystem, Result, WritableFileSystem};
+use crate::{
+  Error, FileMetadata, FileSystem, IntermediateFileSystemExtras, ReadStream, ReadableFileSystem,
+  Result, WritableFileSystem, WriteStream,
+};
 
 fn current_time() -> u64 {
   SystemTime::now()
@@ -67,9 +71,9 @@ impl FileType {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MemoryFileSystem {
-  files: Mutex<HashMap<Utf8PathBuf, FileType>>,
+  files: Arc<Mutex<HashMap<Utf8PathBuf, FileType>>>,
 }
 impl FileSystem for MemoryFileSystem {}
 
@@ -134,6 +138,17 @@ impl MemoryFileSystem {
       }
     }
     Ok(res.into_iter().collect())
+  }
+
+  fn _rename_file(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    if !self.contains_file(from)? {
+      return Err(new_error("from dir not exist"));
+    }
+    let mut files = self.files.lock().expect("should get lock");
+    let file = files.remove(from).expect("should have file");
+    files.insert(to.into(), file);
+
+    Ok(())
   }
 }
 #[async_trait::async_trait]
@@ -250,6 +265,90 @@ impl ReadableFileSystem for MemoryFileSystem {
   fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async move { ReadableFileSystem::read(self, file) };
     Box::pin(fut)
+  }
+}
+
+#[async_trait::async_trait]
+impl IntermediateFileSystemExtras for MemoryFileSystem {
+  async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    self._rename_file(from, to)?;
+    Ok(())
+  }
+
+  async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
+    let contents = self.read(file)?;
+    let reader = MemoryReadStream::new(contents);
+    Ok(Box::new(reader))
+  }
+
+  async fn create_write_stream(&self, file: &Utf8Path) -> Result<Box<dyn WriteStream>> {
+    let writer = MemoryWriteStream::new(file, self.clone());
+    Ok(Box::new(writer))
+  }
+}
+
+#[derive(Debug)]
+pub struct MemoryReadStream(Cursor<Vec<u8>>);
+
+impl MemoryReadStream {
+  pub fn new(contents: Vec<u8>) -> Self {
+    Self(Cursor::new(contents))
+  }
+}
+
+#[async_trait::async_trait]
+impl ReadStream for MemoryReadStream {
+  async fn read(&mut self, buf: &mut [u8]) -> Result<()> {
+    self.0.read_exact(buf).map_err(Error::from)
+  }
+
+  async fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> {
+    self.0.read_until(byte, buf).map_err(Error::from)
+  }
+  async fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
+    self.0.read_to_end(buf).map_err(Error::from)
+  }
+  async fn skip(&mut self, offset: usize) -> Result<()> {
+    self.0.seek_relative(offset as i64).map_err(Error::from)
+  }
+  async fn close(&mut self) -> Result<()> {
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct MemoryWriteStream {
+  file: Utf8PathBuf,
+  contents: Vec<u8>,
+  fs: MemoryFileSystem,
+}
+
+impl MemoryWriteStream {
+  pub fn new(file: &Utf8Path, fs: MemoryFileSystem) -> Self {
+    Self {
+      file: file.to_path_buf(),
+      contents: vec![],
+      fs,
+    }
+  }
+}
+
+#[async_trait::async_trait]
+impl WriteStream for MemoryWriteStream {
+  async fn write(&mut self, buf: &[u8]) -> Result<usize> {
+    self.contents.extend(buf);
+    Ok(buf.len())
+  }
+  async fn write_all(&mut self, buf: &[u8]) -> Result<()> {
+    self.contents = buf.to_vec();
+    Ok(())
+  }
+  async fn flush(&mut self) -> Result<()> {
+    self.fs.write(&self.file, &self.contents).await?;
+    Ok(())
+  }
+  async fn close(&mut self) -> Result<()> {
+    Ok(())
   }
 }
 

@@ -44,6 +44,7 @@ impl Rspack {
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
+    intermediate_filesystem: ThreadsafeNodeFS,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
@@ -73,6 +74,11 @@ impl Rspack {
       Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
+      Some(Box::new(
+        NodeFileSystem::new(intermediate_filesystem).map_err(|e| {
+          Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
+        })?,
+      )),
       None,
       Some(resolver_factory),
       Some(loader_resolver_factory),

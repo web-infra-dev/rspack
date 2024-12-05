@@ -4,6 +4,7 @@ use napi_derive::napi;
 use rspack_fs::FileMetadata;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 
+#[derive(Debug)]
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
 pub struct ThreadsafeNodeFS {
   #[napi(ts_type = "(name: string, content: Buffer) => Promise<void> | void")]
@@ -24,6 +25,28 @@ pub struct ThreadsafeNodeFS {
   pub stat: ThreadsafeFunction<String, Either<NodeFsStats, ()>>,
   #[napi(ts_type = "(name: string) => Promise<NodeFsStats | void> | NodeFsStats | void")]
   pub lstat: ThreadsafeFunction<String, Either<NodeFsStats, ()>>,
+  #[napi(ts_type = "(name: string, flags: string) => Promise<number | void> | number | void")]
+  pub open: ThreadsafeFunction<(String, String), Either<i32, ()>>,
+  #[napi(ts_type = "(from: string, to: string) => Promise<void> | void")]
+  pub rename: ThreadsafeFunction<(String, String), ()>,
+  #[napi(ts_type = "(fd: number) => Promise<void> | void")]
+  pub close: ThreadsafeFunction<i32, ()>,
+  #[napi(
+    ts_type = "(fd: number, content: Buffer, position: number) => Promise<number | void> | number | void"
+  )]
+  pub write: ThreadsafeFunction<(i32, Buffer, u32), Either<u32, ()>>,
+  #[napi(ts_type = "(fd: number, content: Buffer) => Promise<number | void> | number | void")]
+  pub write_all: ThreadsafeFunction<(i32, Buffer), ()>,
+  #[napi(
+    ts_type = "(fd: number, length: number, position: number) => Promise<Buffer | void> | Buffer | void"
+  )]
+  pub read: ThreadsafeFunction<(i32, u32, u32), Either<Buffer, ()>>,
+  #[napi(
+    ts_type = "(fd: number, code: number, position: number) => Promise<Buffer | void> | Buffer | void"
+  )]
+  pub read_until: ThreadsafeFunction<(i32, u8, u32), Either<Buffer, ()>>,
+  #[napi(ts_type = "(fd: number, position: number) => Promise<Buffer | void> | Buffer | void")]
+  pub read_to_end: ThreadsafeFunction<(i32, u32), Either<Buffer, ()>>,
 }
 
 #[napi(object, object_to_js = false)]
