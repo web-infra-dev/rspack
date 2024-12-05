@@ -21,6 +21,7 @@ use self::{
   overwrite::OverwriteTask,
 };
 use super::make::cutout::Cutout;
+use super::make::repair::repair;
 use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
 use crate::cache::new_cache;
 use crate::incremental::Mutation;
@@ -74,17 +75,22 @@ impl ModuleExecutor {
     make_artifact.diagnostics = Default::default();
     make_artifact.has_module_graph_change = false;
 
-    let build_dependencies = self
-      .cutout
-      .cutout_artifact(&mut make_artifact, params)
-      .into_iter()
-      .map(|(id, _)| id)
+    // Modules imported by `importModule` are passively loaded.
+    let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
+    let mut build_dependencies_id = build_dependencies
+      .iter()
+      .map(|(id, _)| *id)
       .collect::<HashSet<_>>();
     for mut dep_status in self.request_dep_map.iter_mut() {
-      if build_dependencies.contains(&dep_status.id) {
+      if build_dependencies_id.contains(&dep_status.id) {
         dep_status.should_update = true;
+        build_dependencies_id.remove(&dep_status.id);
       }
     }
+    build_dependencies.retain(|dep| build_dependencies_id.contains(&dep.0));
+    make_artifact = repair(compilation, make_artifact, build_dependencies)
+      .await
+      .unwrap_or_default();
 
     let mut ctx = MakeTaskContext::new(
       compilation,
