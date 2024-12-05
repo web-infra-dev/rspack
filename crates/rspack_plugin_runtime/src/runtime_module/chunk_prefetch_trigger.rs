@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
 use rustc_hash::FxHasher;
@@ -33,7 +33,7 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawSource::from(
+      RawStringSource::from(
         include_str!("runtime/chunk_prefetch_trigger.js")
           .cow_replace(
             "$CHUNK_MAP$",

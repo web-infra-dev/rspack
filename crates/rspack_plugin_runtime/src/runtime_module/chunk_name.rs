@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 
@@ -31,7 +31,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       Ok(
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           "{} = {};",
           RuntimeGlobals::CHUNK_NAME,
           serde_json::to_string(&chunk.name()).expect("Invalid json string")

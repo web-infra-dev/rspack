@@ -12,7 +12,7 @@ use rspack_core::{
   RuntimeGlobals, UsageState,
 };
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource},
+  rspack_sources::{ConcatSource, RawStringSource},
   to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error, error_bail, Result};
@@ -223,7 +223,7 @@ fn render(
       );
     }
     let mut source = ConcatSource::default();
-    source.add(RawSource::from(format!("var {base};\n")));
+    source.add(RawStringSource::from(format!("var {base};\n")));
     source.add(render_source.source.clone());
     render_source.source = source.boxed();
     return Ok(());
@@ -252,29 +252,29 @@ fn render_startup(
     .unwrap_or_default();
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
   } else if self.is_copy(&options) {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "var __webpack_export_target__ = {};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), true)
     )));
     let mut exports = "__webpack_exports__";
     if !export_access.is_empty() {
-      source.add(RawSource::from(format!(
+      source.add(RawStringSource::from(format!(
         "var __webpack_exports_export__ = __webpack_exports__{export_access};\n"
       )));
       exports = "__webpack_exports_export__";
     }
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "for(var __webpack_i__ in {exports}) __webpack_export_target__[__webpack_i__] = {exports}[__webpack_i__];\n"
     )));
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "if({exports}.__esModule) Object.defineProperty(__webpack_export_target__, '__esModule', {{ value: true }});\n"
     )));
   } else {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{} = __webpack_exports__{export_access};\n",
       access_with_init(&full_name_resolved, self.options.prefix.len(), false)
     )));

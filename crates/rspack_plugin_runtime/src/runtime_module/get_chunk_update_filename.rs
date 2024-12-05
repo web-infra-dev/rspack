@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, FilenameTemplate, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_util::infallible::ResultInfallibleExt;
@@ -50,7 +50,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
         )
         .always_ok();
       Ok(
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           "{} = function (chunkId) {{
             return '{}';
          }};

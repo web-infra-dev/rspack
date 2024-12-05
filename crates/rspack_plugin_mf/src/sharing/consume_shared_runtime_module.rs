@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
@@ -106,7 +106,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
     }
     if module_id_to_consume_data_mapping.is_empty() {
-      return Ok(RawSource::from_static("").boxed());
+      return Ok(RawStringSource::from_static("").boxed());
     }
     let module_id_to_consume_data_mapping = module_id_to_consume_data_mapping
       .into_iter()
@@ -127,7 +127,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
       {
         source += "__webpack_require__.f.consumes = __webpack_require__.f.consumes || function() { throw new Error(\"should have __webpack_require__.f.consumes\") }";
       }
-      return Ok(RawSource::from(source).boxed());
+      return Ok(RawStringSource::from(source).boxed());
     }
     source += include_str!("./consumesCommon.js");
     if !initial_consumes.is_empty() {
@@ -138,7 +138,7 @@ __webpack_require__.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, modu
     {
       source += include_str!("./consumesLoading.js");
     }
-    Ok(RawSource::from(source).boxed())
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -5,7 +5,7 @@ use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
 };
 use rspack_sources::{
-  BoxSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 
 use super::AsPreset;
@@ -81,6 +81,6 @@ where
         );
       }
     }
-    Ok(RawSource::from(buffer).boxed())
+    Ok(RawBufferSource::from(buffer).boxed())
   }
 }

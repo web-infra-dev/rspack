@@ -8,7 +8,7 @@ use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
-use rspack_core::rspack_sources::{ConcatSource, RawSource};
+use rspack_core::rspack_sources::{ConcatSource, RawStringSource};
 use rspack_core::ChunkGraph;
 use rspack_core::{
   to_identifier, Compilation, CompilerOptions, GenerateContext, PathData, ResourceData,
@@ -310,7 +310,9 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
-    concate_source.add(RawSource::from(format!("var {identifier} = {content};\n")));
+    concate_source.add(RawStringSource::from(format!(
+      "var {identifier} = {content};\n"
+    )));
     used_identifiers.insert(identifier.clone());
     scope.register_export(unescape(key).as_ref().into(), identifier.into_owned());
   }

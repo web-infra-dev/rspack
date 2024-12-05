@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule,
 };
 
@@ -18,7 +18,7 @@ impl Default for AsyncRuntimeModule {
 
 impl RuntimeModule for AsyncRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from_static(include_str!("runtime/async_module.js")).boxed())
+    Ok(RawStringSource::from_static(include_str!("runtime/async_module.js")).boxed())
   }
 
   fn name(&self) -> Identifier {

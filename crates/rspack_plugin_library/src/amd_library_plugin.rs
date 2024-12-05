@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, FilenameTemplate,
   LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
@@ -125,7 +125,7 @@ fn render(
     .map(|c| format!("{c}."))
     .unwrap_or_default();
   if self.require_as_wrapper {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{amd_container_prefix}require({externals_deps_array}, {fn_start}"
     )));
   } else if let Some(name) = options.name {
@@ -146,20 +146,20 @@ fn render(
           )),
       )
       .always_ok();
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{amd_container_prefix}define('{normalize_name}', {externals_deps_array}, {fn_start}"
     )));
   } else if modules.is_empty() {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{amd_container_prefix}define({fn_start}"
     )));
   } else {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{amd_container_prefix}define({externals_deps_array}, {fn_start}"
     )));
   }
   source.add(render_source.source.clone());
-  source.add(RawSource::from_static("\n})"));
+  source.add(RawStringSource::from_static("\n})"));
   render_source.source = source.boxed();
   Ok(())
 }

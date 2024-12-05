@@ -8,7 +8,7 @@ use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
   CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
   GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
@@ -538,7 +538,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .runtime_requirements
             .insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
         }
-        Ok(RawSource::from(exports).boxed())
+        Ok(RawStringSource::from(exports).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

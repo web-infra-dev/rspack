@@ -9,7 +9,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
 use rspack_error::Result;
-use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_util::ext::{DynHash, IntoAny};
 use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
@@ -235,9 +235,9 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
   for (key, fragments) in keyed_fragments {
     let f = key.merge_fragments(fragments);
     let contents = f.contents(context)?;
-    concat_source.add(RawSource::from(contents.start));
+    concat_source.add(RawStringSource::from(contents.start));
     if let Some(end_content) = contents.end {
-      end_contents.push(RawSource::from(end_content))
+      end_contents.push(RawStringSource::from(end_content))
     }
   }
 

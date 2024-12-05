@@ -18,7 +18,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{
-    MapOptions, RawSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+    MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
 };
@@ -274,7 +274,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           })
           .boxed()
         } else {
-          RawSource::from(result.code).boxed()
+          RawStringSource::from(result.code).boxed()
         };
 
         original.set_source(Some(minimized_source));

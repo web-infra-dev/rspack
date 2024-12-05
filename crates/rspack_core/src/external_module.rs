@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::{
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
-  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
   CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
@@ -409,7 +409,7 @@ if(typeof {global} !== "undefined") return resolve();
       _ => String::new(),
     };
     Ok((
-      RawSource::from(source).boxed(),
+      RawStringSource::from(source).boxed(),
       chunk_init_fragments,
       runtime_requirements,
     ))
@@ -560,7 +560,7 @@ impl Module for ExternalModule {
       "asset" if let Some(request) = request => {
         cgr.add(
           SourceType::JavaScript,
-          RawSource::from(format!(
+          RawStringSource::from(format!(
             "module.exports = {};",
             serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))
@@ -573,7 +573,7 @@ impl Module for ExternalModule {
       "css-import" if let Some(request) = request => {
         cgr.add(
           SourceType::Css,
-          RawSource::from(format!(
+          RawStringSource::from(format!(
             "@import url({});",
             serde_json::to_string(request.primary()).map_err(|e| error!(e.to_string()))?
           ))

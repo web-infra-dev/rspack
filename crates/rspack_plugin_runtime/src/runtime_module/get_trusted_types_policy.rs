@@ -2,7 +2,7 @@ use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
 };
 
@@ -89,7 +89,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
       "".to_string()
     };
     Ok(
-      RawSource::from(
+      RawStringSource::from(
         result
           .cow_replace("$policyContent$", policy_content.join(",\n").as_ref())
           .cow_replace(

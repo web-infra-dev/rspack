@@ -9,7 +9,7 @@ use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{ConcatSource, RawSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
   Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
 };
@@ -148,7 +148,7 @@ impl CssPlugin {
           let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
           acc.add(start);
           acc.add(cur_source.clone());
-          acc.add(RawSource::from_static("\n"));
+          acc.add(RawStringSource::from_static("\n"));
           acc.add(end);
           acc
         },
@@ -179,17 +179,17 @@ impl CssPlugin {
       .lib_ident(LibIdentOptions { context })
       .unwrap_or("None".into());
 
-    start.add(RawSource::from(format!(
+    start.add(RawStringSource::from(format!(
       "/* #region {:?} */\n",
       debug_module_id,
     )));
 
-    start.add(RawSource::from(format!(
+    start.add(RawStringSource::from(format!(
       "/*\n- type: {}\n*/\n",
       module.module_type(),
     )));
 
-    end.add(RawSource::from(format!(
+    end.add(RawStringSource::from(format!(
       "/* #endregion {debug_module_id:?} */\n\n"
     )));
 

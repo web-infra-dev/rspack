@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use rspack_collections::UkeySet;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt},
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
 };
 use rspack_error::Result;
@@ -93,7 +93,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
     if !with_hmr && !with_loading {
-      return Ok(RawSource::from_static("").boxed());
+      return Ok(RawStringSource::from_static("").boxed());
     }
 
     let mut attr = String::default();
@@ -200,6 +200,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       runtime.cow_replace("__WITH_HMT__", "// no hmr")
     };
 
-    Ok(Arc::new(RawSource::from(runtime.into_owned())))
+    Ok(Arc::new(RawStringSource::from(runtime.into_owned())))
   }
 }

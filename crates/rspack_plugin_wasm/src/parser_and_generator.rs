@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use indexmap::IndexMap;
 use rspack_collections::Identifier;
-use rspack_core::rspack_sources::{BoxSource, RawSource, Source, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
   AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation, FilenameTemplate,
@@ -274,9 +274,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             RuntimeGlobals::ASYNC_MODULE,
           );
 
-          RawSource::from(format!("{decl}{async_dependencies}"))
+          RawStringSource::from(format!("{decl}{async_dependencies}"))
         } else {
-          RawSource::from(format!(
+          RawStringSource::from(format!(
             "{imports_code} module.exports = {instantiate_call};"
           ))
         };

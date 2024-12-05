@@ -7,7 +7,7 @@ use cow_utils::CowUtils;
 use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_comment, Chunk, Compilation, CompilationProcessAssets, FilenameTemplate, Logger, PathData,
   Plugin,
 };
@@ -125,14 +125,14 @@ impl BannerPlugin {
     {
       ConcatSource::new([
         old_source,
-        RawSource::from_static("\n").boxed(),
-        RawSource::from(comment).boxed(),
+        RawStringSource::from_static("\n").boxed(),
+        RawStringSource::from(comment).boxed(),
       ])
       .boxed()
     } else {
       ConcatSource::new([
-        RawSource::from(comment).boxed(),
-        RawSource::from_static("\n").boxed(),
+        RawStringSource::from(comment).boxed(),
+        RawStringSource::from_static("\n").boxed(),
         old_source,
       ])
       .boxed()

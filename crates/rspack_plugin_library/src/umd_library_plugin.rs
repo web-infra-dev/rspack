@@ -1,7 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
@@ -213,10 +213,10 @@ fn render(
   };
 
   let mut source = ConcatSource::default();
-  source.add(RawSource::from(
+  source.add(RawStringSource::from(
     "(function webpackUniversalModuleDefinition(root, factory) {\n",
   ));
-  source.add(RawSource::from(format!(
+  source.add(RawStringSource::from(format!(
     r#"{}
       if(typeof exports === 'object' && typeof module === 'object') {{
           module.exports = factory({});
@@ -224,7 +224,7 @@ fn render(
     get_auxiliary_comment("commonjs2", auxiliary_comment),
     externals_require_array("commonjs2", &externals)?
   )));
-  source.add(RawSource::from(format!(
+  source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
           {}
           {define}
@@ -240,7 +240,7 @@ fn render(
     },
   )));
   source.add(render_source.source.clone());
-  source.add(RawSource::from_static("\n})"));
+  source.add(RawStringSource::from_static("\n})"));
   render_source.source = source.boxed();
   Ok(())
 }

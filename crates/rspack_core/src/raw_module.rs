@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_collections::Identifiable;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
-use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
+use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
@@ -40,7 +40,7 @@ impl RawModule {
       blocks: Default::default(),
       dependencies: Default::default(),
       // TODO: useSourceMap, etc...
-      source: RawSource::from(source).boxed(),
+      source: RawStringSource::from(source).boxed(),
       identifier,
       readable_identifier,
       runtime_requirements,

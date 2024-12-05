@@ -2,8 +2,9 @@ use std::{hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawSource, ReplaceSource,
-  Source, SourceExt, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource, RawSource,
+  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -30,13 +31,13 @@ impl<'s> From<JsCompatSource<'s>> for BoxSource {
               source_map,
             })
             .boxed(),
-            None => RawSource::from(string).boxed(),
+            None => RawStringSource::from(string).boxed(),
           }
         } else {
-          RawSource::from(string).boxed()
+          RawStringSource::from(string).boxed()
         }
       }
-      Either::B(buffer) => RawSource::from(buffer.to_vec()).boxed(),
+      Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
     }
   }
 }
@@ -60,13 +61,13 @@ impl From<JsCompatSourceOwned> for BoxSource {
               source_map,
             })
             .boxed(),
-            None => RawSource::from(string).boxed(),
+            None => RawStringSource::from(string).boxed(),
           }
         } else {
-          RawSource::from(string).boxed()
+          RawStringSource::from(string).boxed()
         }
       }
-      Either::B(buffer) => RawSource::from(Vec::<u8>::from(buffer)).boxed(),
+      Either::B(buffer) => RawBufferSource::from(Vec::<u8>::from(buffer)).boxed(),
     }
   }
 }
@@ -83,6 +84,24 @@ impl ToJsCompatSource for RawSource {
       } else {
         Either::A(self.source().to_string())
       },
+      map: to_webpack_map(self)?,
+    })
+  }
+}
+
+impl ToJsCompatSource for RawBufferSource {
+  fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
+    Ok(JsCompatSource {
+      source: Either::B(BufferSlice::from_data(env, self.buffer())?),
+      map: to_webpack_map(self)?,
+    })
+  }
+}
+
+impl ToJsCompatSource for RawStringSource {
+  fn to_js_compat_source(&self, _env: &Env) -> Result<JsCompatSource> {
+    Ok(JsCompatSource {
+      source: Either::A(self.source().to_string()),
       map: to_webpack_map(self)?,
     })
   }
@@ -134,9 +153,12 @@ impl_default_to_compat_source!(OriginalSource);
 
 impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self, env: &Env) -> Result<JsCompatSource> {
-    if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
+    if let Some(raw_source) = self.as_any().downcast_ref::<RawStringSource>() {
       raw_source.to_js_compat_source(env)
-    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<RawStringSource>>()
+    {
       cached_source.to_js_compat_source(env)
     } else if let Some(cached_source) = self
       .as_any()
@@ -153,7 +175,7 @@ impl ToJsCompatSource for dyn Source + '_ {
     } else if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
       source.to_js_compat_source(env)
     } else {
-      // If it's not a `RawSource` related type, then we regards it as a `Source` type.
+      // If it's not a `RawStringSource` related type, then we regards it as a `Source` type.
       Ok(JsCompatSource {
         source: Either::A(self.source().to_string()),
         map: to_webpack_map(self)?,
@@ -174,6 +196,24 @@ impl ToJsCompatSourceOwned for RawSource {
       } else {
         Either::A(self.source().to_string())
       },
+      map: to_webpack_map(self)?,
+    })
+  }
+}
+
+impl ToJsCompatSourceOwned for RawBufferSource {
+  fn to_js_compat_source_owned(&self) -> Result<JsCompatSourceOwned> {
+    Ok(JsCompatSourceOwned {
+      source: Either::B(self.buffer().to_vec().into()),
+      map: to_webpack_map(self)?,
+    })
+  }
+}
+
+impl ToJsCompatSourceOwned for RawStringSource {
+  fn to_js_compat_source_owned(&self) -> Result<JsCompatSourceOwned> {
+    Ok(JsCompatSourceOwned {
+      source: Either::A(self.source().to_string()),
       map: to_webpack_map(self)?,
     })
   }
@@ -225,9 +265,12 @@ impl_default_to_compat_source!(OriginalSource);
 
 impl ToJsCompatSourceOwned for dyn Source + '_ {
   fn to_js_compat_source_owned(&self) -> Result<JsCompatSourceOwned> {
-    if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
+    if let Some(raw_source) = self.as_any().downcast_ref::<RawStringSource>() {
       raw_source.to_js_compat_source_owned()
-    } else if let Some(cached_source) = self.as_any().downcast_ref::<CachedSource<RawSource>>() {
+    } else if let Some(cached_source) = self
+      .as_any()
+      .downcast_ref::<CachedSource<RawStringSource>>()
+    {
       cached_source.to_js_compat_source_owned()
     } else if let Some(cached_source) = self
       .as_any()
@@ -244,7 +287,7 @@ impl ToJsCompatSourceOwned for dyn Source + '_ {
     } else if let Some(source) = self.as_any().downcast_ref::<Arc<dyn Source>>() {
       source.to_js_compat_source_owned()
     } else {
-      // If it's not a `RawSource` related type, then we regards it as a `Source` type.
+      // If it's not a `RawStringSource` related type, then we regards it as a `Source` type.
       Ok(JsCompatSourceOwned {
         source: Either::A(self.source().to_string()),
         map: to_webpack_map(self)?,

@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
 
@@ -51,7 +51,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
           .runtime(chunk.runtime().as_str()),
       )?;
       Ok(
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           "{} = function () {{
             return \"{}\";
          }};

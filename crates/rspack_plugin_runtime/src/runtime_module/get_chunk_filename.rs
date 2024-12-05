@@ -5,7 +5,7 @@ use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, PathData, RuntimeGlobals,
   RuntimeModule, SourceType,
 };
@@ -321,7 +321,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
     Ok(
-      RawSource::from(format!(
+      RawStringSource::from(format!(
         "// This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames not based on template
