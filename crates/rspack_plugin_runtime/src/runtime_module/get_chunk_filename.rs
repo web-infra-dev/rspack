@@ -6,9 +6,8 @@ use rspack_collections::{DatabaseItem, Identifier, UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   get_filename_without_hash_length, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Chunk, Chunk, ChunkGraph, ChunkGraph, ChunkUkey, ChunkUkey, Compilation, Compilation, Filename,
-  Filename, FilenameTemplate, FilenameTemplate, NoFilenameFn, PathData, PathData, RuntimeGlobals,
-  RuntimeGlobals, RuntimeModule, RuntimeModule, SourceType, SourceType,
+  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameTemplate, NoFilenameFn, PathData,
+  RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
