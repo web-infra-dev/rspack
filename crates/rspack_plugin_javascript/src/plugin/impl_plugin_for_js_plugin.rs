@@ -2,7 +2,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, CachedSource, MapCachedSource, SourceExt};
 use rspack_core::{
   get_js_chunk_filename_template, AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
@@ -262,7 +262,7 @@ async fn render_manifest(
       } else {
         self.render_chunk(compilation, chunk_ukey).await?
       };
-      Ok((CachedSource::new(source).boxed(), Vec::new()))
+      Ok((MapCachedSource::new(source).boxed(), Vec::new()))
     })
     .await?;
 

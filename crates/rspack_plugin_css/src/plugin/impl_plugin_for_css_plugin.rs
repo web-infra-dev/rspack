@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, ReplaceSource};
+use rspack_core::rspack_sources::{BoxSource, CachedSource, MapCachedSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
@@ -360,7 +360,7 @@ async fn render_manifest(
         css_import_modules,
         css_modules,
       )?;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
+      Ok((MapCachedSource::new(source).boxed(), diagnostics))
     })
     .await?;
 
