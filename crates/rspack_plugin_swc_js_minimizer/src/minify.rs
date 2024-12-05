@@ -4,7 +4,7 @@ use std::{
 };
 
 use rspack_core::{
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt},
   ModuleType,
 };
 use rspack_error::{error, BatchErrors, DiagnosticKind, TraceableError};
@@ -254,7 +254,7 @@ pub fn minify(
                 .insert(
                   filename.to_string(),
                   ExtractedCommentsInfo {
-                    source: RawSource::from(extracted_comments.join("\n\n")).boxed(),
+                    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
                     comments_file_name: extract_comments.filename.to_string(),
                   },
                 );

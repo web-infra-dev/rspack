@@ -2,7 +2,7 @@ use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 
@@ -48,7 +48,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
       );
 
       Ok(
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           "{} = {};",
           RuntimeGlobals::RUNTIME_ID,
           serde_json::to_string(&id).expect("Invalid json string")

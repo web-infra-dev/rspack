@@ -7,7 +7,7 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   collect_changed_modules,
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{RawStringSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
@@ -334,7 +334,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       filename,
       CompilationAsset::new(
         Some(
-          RawSource::from(
+          RawStringSource::from(
             serde_json::json!({
               "c": c,
               "r": r,

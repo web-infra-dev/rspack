@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
@@ -58,7 +58,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
         )),
     )?;
     Ok(
-      RawSource::from(auto_public_path_template(
+      RawStringSource::from(auto_public_path_template(
         &filename,
         &compilation.options.output,
       ))

@@ -13,7 +13,7 @@ use json::{
 };
 use rspack_core::{
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
   GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec,
   SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
@@ -187,7 +187,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             .insert(RuntimeGlobals::MODULE);
           format!(r#"module.exports = {}"#, json_expr)
         };
-        Ok(RawSource::from(content).boxed())
+        Ok(RawStringSource::from(content).boxed())
       }
       _ => panic!(
         "Unsupported source type: {:?}",

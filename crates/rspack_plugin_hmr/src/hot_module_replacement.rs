@@ -2,7 +2,7 @@ use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule,
 };
 use rspack_util::test::{HOT_TEST_DEFINE_GLOBAL, HOT_TEST_STATUS_CHANGE};
@@ -26,7 +26,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
-      RawSource::from(
+      RawStringSource::from(
         include_str!("runtime/hot_module_replacement.js")
           .cow_replace("$HOT_TEST_GLOBAL$", &HOT_TEST_DEFINE_GLOBAL)
           .cow_replace("$HOT_TEST_STATUS$", &HOT_TEST_STATUS_CHANGE)

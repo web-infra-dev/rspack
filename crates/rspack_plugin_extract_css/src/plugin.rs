@@ -6,7 +6,9 @@ use regex::Regex;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceMap, SourceMapSource, WithoutOriginalOptions},
+  rspack_sources::{
+    ConcatSource, RawStringSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
+  },
   ApplyContext, Chunk, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
   CompilerCompilation, CompilerOptions, Filename, Module, ModuleGraph, ModuleIdentifier,
@@ -374,7 +376,7 @@ despite it was not able to fulfill desired ordering with these modules:
       let header = self.options.pathinfo.then(|| {
         let req_str = readable_identifier.cow_replace("*/", "*_/");
         let req_str_star = "*".repeat(req_str.len());
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           "/*!****{req_str_star}****!*\\\n  !*** {req_str} ***!\n  \\****{req_str_star}****/\n"
         ))
       });
@@ -387,9 +389,9 @@ despite it was not able to fulfill desired ordering with these modules:
           static MEDIA_RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
           let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
-          external_source.add(RawSource::from(new_content.to_string() + "\n"));
+          external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {
-          external_source.add(RawSource::from(content.to_string() + "\n"));
+          external_source.add(RawStringSource::from(content.to_string() + "\n"));
         }
       } else {
         let mut need_supports = false;
@@ -403,18 +405,21 @@ despite it was not able to fulfill desired ordering with these modules:
           && !supports.is_empty()
         {
           need_supports = true;
-          source.add(RawSource::from(format!("@supports ({}) {{\n", supports)));
+          source.add(RawStringSource::from(format!(
+            "@supports ({}) {{\n",
+            supports
+          )));
         }
 
         if let Some(media) = &module.media
           && !media.is_empty()
         {
           need_media = true;
-          source.add(RawSource::from(format!("@media {} {{\n", media)));
+          source.add(RawStringSource::from(format!("@media {} {{\n", media)));
         }
 
         if let Some(layer) = &module.layer {
-          source.add(RawSource::from(format!("@layer {} {{\n", layer)));
+          source.add(RawStringSource::from(format!("@layer {} {{\n", layer)));
         }
 
         let undo_path = get_undo_path(filename, compilation.options.output.path.as_str(), false);
@@ -437,21 +442,21 @@ despite it was not able to fulfill desired ordering with these modules:
             source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
           }))
         } else {
-          source.add(RawSource::from(content.to_string()));
+          source.add(RawStringSource::from(content.to_string()));
         }
 
-        source.add(RawSource::from_static("\n"));
+        source.add(RawStringSource::from_static("\n"));
 
         if need_media {
-          source.add(RawSource::from_static("}\n"));
+          source.add(RawStringSource::from_static("}\n"));
         }
 
         if need_supports {
-          source.add(RawSource::from_static("}\n"));
+          source.add(RawStringSource::from_static("}\n"));
         }
 
         if module.layer.is_some() {
-          source.add(RawSource::from_static("}\n"));
+          source.add(RawStringSource::from_static("}\n"));
         }
       }
     }

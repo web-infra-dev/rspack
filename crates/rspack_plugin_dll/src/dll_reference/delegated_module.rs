@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
-  rspack_sources::{BoxSource, OriginalSource, RawSource, Source},
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source},
   throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
   Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
@@ -177,7 +177,7 @@ impl Module for DelegatedModule {
     let source: BoxSource = if source_map.source_map() || source_map.simple_source_map() {
       Arc::new(OriginalSource::new(str, self.identifier().to_string()))
     } else {
-      let raw_source: RawSource = str.into();
+      let raw_source: RawStringSource = str.into();
       Arc::new(raw_source)
     };
 

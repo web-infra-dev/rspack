@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawSource},
+  rspack_sources::{BoxSource, RawStringSource},
   ApplyContext, ChunkGraph, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
   EntryDependency, Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports,
   SourceType,
@@ -169,7 +169,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
     };
 
-    let asset = Arc::new(RawSource::from(manifest_json)) as BoxSource;
+    let asset = Arc::new(RawStringSource::from(manifest_json)) as BoxSource;
 
     manifests.insert(target_path, asset.into());
   }

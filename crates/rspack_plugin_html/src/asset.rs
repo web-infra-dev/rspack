@@ -12,7 +12,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   parse_to_url,
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
 };
 use rspack_error::{miette, AnyhowError};
@@ -343,7 +343,7 @@ pub fn create_favicon_asset(
     .map(|content| {
       (
         favicon_file_path,
-        CompilationAsset::from(RawSource::from(content).boxed()),
+        CompilationAsset::from(RawBufferSource::from(content).boxed()),
       )
     })
     .map_err(|err| miette::Error::from(AnyhowError::from(err)))
@@ -370,7 +370,7 @@ pub fn create_html_asset(
 
   (
     output_path,
-    CompilationAsset::new(Some(RawSource::from(html).boxed()), asset_info),
+    CompilationAsset::new(Some(RawStringSource::from(html).boxed()), asset_info),
   )
 }
 

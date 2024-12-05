@@ -11,7 +11,7 @@ use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt};
+use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawStringSource, SourceExt};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
@@ -252,7 +252,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           })
           .boxed()
         } else {
-          RawSource::from(output.code).boxed()
+          RawStringSource::from(output.code).boxed()
         };
         let source = if let Some(Some(banner)) = extract_comments_option.map(|option| option.banner)
           && all_extracted_comments
@@ -261,8 +261,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .contains_key(filename)
         {
           ConcatSource::new([
-            RawSource::from(banner).boxed(),
-            RawSource::from_static("\n").boxed(),
+            RawStringSource::from(banner).boxed(),
+            RawStringSource::from_static("\n").boxed(),
             source
           ]).boxed()
         } else {

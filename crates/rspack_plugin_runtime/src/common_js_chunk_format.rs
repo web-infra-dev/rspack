@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -100,25 +100,25 @@ fn render_chunk(
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
   let mut sources = ConcatSource::default();
-  sources.add(RawSource::from(format!(
+  sources.add(RawStringSource::from(format!(
     "exports.ids = ['{}'];\n",
     &chunk.expect_id().to_string()
   )));
-  sources.add(RawSource::from_static("exports.modules = "));
+  sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
-  sources.add(RawSource::from_static(";\n"));
+  sources.add(RawStringSource::from_static(";\n"));
   if compilation
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawSource::from_static("exports.runtime = "));
+    sources.add(RawStringSource::from_static("exports.runtime = "));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
-    sources.add(RawSource::from_static(";\n"));
+    sources.add(RawStringSource::from_static(";\n"));
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey)?;
-    sources.add(RawSource::from(format!(
+    sources.add(RawStringSource::from(format!(
       "// load runtime\nvar {} = require({});\n",
       RuntimeGlobals::REQUIRE,
       json_stringify(&get_relative_path(
@@ -126,7 +126,7 @@ fn render_chunk(
         &runtime_chunk_output_name
       ))
     )));
-    sources.add(RawSource::from(format!(
+    sources.add(RawStringSource::from(format!(
       "{}(exports)\n",
       RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
     )));
@@ -150,9 +150,9 @@ fn render_chunk(
     )?;
     sources.add(startup_render_source.source);
     render_source.source = ConcatSource::new([
-      RawSource::from_static("(function() {\n").boxed(),
+      RawStringSource::from_static("(function() {\n").boxed(),
       sources.boxed(),
-      RawSource::from_static("\n})()").boxed(),
+      RawStringSource::from_static("\n})()").boxed(),
     ])
     .boxed();
     return Ok(());

@@ -10,7 +10,7 @@ use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_util::itoa;
 use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
@@ -310,7 +310,7 @@ impl ContextModule {
   }
 
   fn get_source_for_empty_async_context(&self, compilation: &Compilation) -> BoxSource {
-    RawSource::from(formatdoc! {r#"
+    RawStringSource::from(formatdoc! {r#"
       function webpackEmptyAsyncContext(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
@@ -332,7 +332,7 @@ impl ContextModule {
   }
 
   fn get_source_for_empty_context(&self, compilation: &Compilation) -> BoxSource {
-    RawSource::from(formatdoc! {r#"
+    RawStringSource::from(formatdoc! {r#"
       function webpackEmptyContext(req) {{
         var e = new Error("Cannot find module '" + req + "'");
         e.code = 'MODULE_NOT_FOUND';
@@ -540,7 +540,7 @@ impl ContextModule {
         RuntimeGlobals::HAS_OWN_PROPERTY,
       }
     };
-    source.add(RawSource::from(formatdoc! {r#"
+    source.add(RawStringSource::from(formatdoc! {r#"
       var map = {map};
       {webpack_async_context}
       webpackAsyncContext.keys = {keys};
@@ -613,7 +613,7 @@ impl ContextModule {
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids))
     };
-    RawSource::from(source).boxed()
+    RawStringSource::from(source).boxed()
   }
 
   fn get_async_weak_source(&self, compilation: &Compilation) -> BoxSource {
@@ -659,7 +659,7 @@ impl ContextModule {
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids))
     };
-    RawSource::from(source).boxed()
+    RawStringSource::from(source).boxed()
   }
 
   fn get_sync_weak_source(&self, compilation: &Compilation) -> BoxSource {
@@ -700,7 +700,7 @@ impl ContextModule {
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids))
     };
-    RawSource::from(source).boxed()
+    RawStringSource::from(source).boxed()
   }
 
   fn get_eager_source(&self, compilation: &Compilation) -> BoxSource {
@@ -751,7 +751,7 @@ impl ContextModule {
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
       id = json_stringify(self.get_module_id(&compilation.module_ids))
     };
-    RawSource::from(source).boxed()
+    RawStringSource::from(source).boxed()
   }
 
   fn get_sync_source(&self, compilation: &Compilation) -> BoxSource {
@@ -788,7 +788,7 @@ impl ContextModule {
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       id = json_stringify(self.get_module_id(&compilation.module_ids))
     };
-    RawSource::from(source).boxed()
+    RawStringSource::from(source).boxed()
   }
 }
 

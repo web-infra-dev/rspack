@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, MapOptions, RawStringSource, Source, SourceExt},
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets,
   FilenameTemplate, Logger, ModuleIdentifier, PathData, Plugin, PluginContext,
 };
@@ -471,7 +471,7 @@ impl SourceMapDevToolPlugin {
               asset.source = Some(
                 ConcatSource::new([
                   source.clone(),
-                  RawSource::from(
+                  RawStringSource::from(
                     current_source_mapping_url_comment
                       .cow_replace("[url]", &source_map_url)
                       .into_owned(),
@@ -490,7 +490,7 @@ impl SourceMapDevToolPlugin {
               source_map_asset_info.version = asset.info.version.clone();
             }
             let source_map_asset = CompilationAsset::new(
-              Some(RawSource::from(source_map_json).boxed()),
+              Some(RawStringSource::from(source_map_json).boxed()),
               source_map_asset_info,
             );
             Ok(MappedAsset {
@@ -513,7 +513,7 @@ impl SourceMapDevToolPlugin {
             asset.source = Some(
               ConcatSource::new([
                 source.clone(),
-                RawSource::from(
+                RawStringSource::from(
                   current_source_mapping_url_comment
                     .cow_replace(
                       "[url]",

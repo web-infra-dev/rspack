@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use futures::future::join_all;
 use rspack_core::{
-  rspack_sources::{BoxSource, MapOptions, RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
@@ -166,7 +166,7 @@ fn eval_source_map_devtool_plugin_render_module_content(
         format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
       let module_content =
         simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
-      RawSource::from(format!(
+      RawStringSource::from(format!(
         "eval({});",
         if compilation.options.output.trusted_types.is_some() {
           format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)

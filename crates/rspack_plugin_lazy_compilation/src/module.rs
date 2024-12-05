@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
-  rspack_sources::{RawSource, Source},
+  rspack_sources::{RawStringSource, Source},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
@@ -234,7 +234,7 @@ impl Module for LazyCompilationProxyModule {
         data: &mut codegen_data,
       };
 
-      RawSource::from(format!(
+      RawStringSource::from(format!(
         "{client}
         module.exports = {};
         if (module.hot) {{
@@ -262,7 +262,7 @@ impl Module for LazyCompilationProxyModule {
         keep_active,
       ))
     } else {
-      RawSource::from(format!(
+      RawStringSource::from(format!(
         "{}
         var resolveSelf, onError;
         module.exports = new Promise(function(resolve, reject) {{ resolveSelf = resolve; onError = reject; }});

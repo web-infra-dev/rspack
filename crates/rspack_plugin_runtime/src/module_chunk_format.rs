@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
@@ -107,26 +107,26 @@ fn render_chunk(
   }
 
   let mut sources = ConcatSource::default();
-  sources.add(RawSource::from(format!(
+  sources.add(RawStringSource::from(format!(
     "export const ids = ['{}'];\n",
     &chunk.expect_id().to_string()
   )));
-  sources.add(RawSource::from_static("export const modules = "));
+  sources.add(RawStringSource::from_static("export const modules = "));
   sources.add(render_source.source.clone());
-  sources.add(RawSource::from_static(";\n"));
+  sources.add(RawStringSource::from_static(";\n"));
 
   if compilation
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawSource::from_static("export const runtime = "));
+    sources.add(RawStringSource::from_static("export const runtime = "));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
-    sources.add(RawSource::from_static(";\n"));
+    sources.add(RawStringSource::from_static(";\n"));
   }
 
   if chunk.has_entry_module(&compilation.chunk_graph) {
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey)?;
-    sources.add(RawSource::from(format!(
+    sources.add(RawStringSource::from(format!(
       "import __webpack_require__ from '{}';\n",
       get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
     )));
@@ -194,7 +194,7 @@ fn render_chunk(
       .last()
       .expect("should have last entry module");
     let mut render_source = RenderSource {
-      source: RawSource::from(startup_source.join("\n")).boxed(),
+      source: RawStringSource::from(startup_source.join("\n")).boxed(),
     };
     hooks.render_startup.call(
       compilation,

@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   RuntimeGlobals, SourceType,
@@ -53,9 +53,9 @@ pub fn render_chunk_modules(
     .collect::<Vec<ConcatSource>>();
 
   let mut sources = ConcatSource::default();
-  sources.add(RawSource::from_static("{\n"));
+  sources.add(RawStringSource::from_static("{\n"));
   sources.add(ConcatSource::new(module_sources));
-  sources.add(RawSource::from_static("\n}"));
+  sources.add(RawStringSource::from_static("\n}"));
 
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
@@ -127,17 +127,17 @@ pub fn render_module(
     }
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier())
       .expect("should have module_id in render_module");
-    sources.add(RawSource::from(
+    sources.add(RawStringSource::from(
       serde_json::to_string(&module_id).map_err(|e| error!(e.to_string()))?,
     ));
-    sources.add(RawSource::from_static(": "));
+    sources.add(RawStringSource::from_static(": "));
     if is_diff_mode() {
-      sources.add(RawSource::from(format!(
+      sources.add(RawStringSource::from(format!(
         "\n{}\n",
         to_normal_comment(&format!("start::{}", module.identifier()))
       )));
     }
-    sources.add(RawSource::from(format!(
+    sources.add(RawStringSource::from(format!(
       "(function ({}) {{\n",
       args.join(", ")
     )));
@@ -145,17 +145,17 @@ pub fn render_module(
       && build_info.strict
       && !all_strict
     {
-      sources.add(RawSource::from_static("\"use strict\";\n"));
+      sources.add(RawStringSource::from_static("\"use strict\";\n"));
     }
     sources.add(render_source.source);
-    sources.add(RawSource::from_static("\n\n})"));
+    sources.add(RawStringSource::from_static("\n\n})"));
     if is_diff_mode() {
-      sources.add(RawSource::from(format!(
+      sources.add(RawStringSource::from(format!(
         "\n{}\n",
         to_normal_comment(&format!("end::{}", module.identifier()))
       )));
     }
-    sources.add(RawSource::from_static(",\n"));
+    sources.add(RawStringSource::from_static(",\n"));
   } else {
     sources.add(render_source.source);
   }
@@ -177,12 +177,12 @@ pub fn render_chunk_runtime_modules(
   }
 
   let mut sources = ConcatSource::default();
-  sources.add(RawSource::from(format!(
+  sources.add(RawStringSource::from(format!(
     "function({}) {{\n",
     RuntimeGlobals::REQUIRE
   )));
   sources.add(runtime_modules_sources);
-  sources.add(RawSource::from_static("\n}\n"));
+  sources.add(RawStringSource::from_static("\n}\n"));
   Ok(sources.boxed())
 }
 
@@ -208,12 +208,15 @@ pub fn render_runtime_modules(
         return Ok(());
       }
       if is_diff_mode() {
-        sources.add(RawSource::from(format!(
+        sources.add(RawStringSource::from(format!(
           "/* start::{} */\n",
           module.identifier()
         )));
       } else {
-        sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+        sources.add(RawStringSource::from(format!(
+          "// {}\n",
+          module.identifier()
+        )));
       }
       let supports_arrow_function = compilation
         .options
@@ -221,7 +224,7 @@ pub fn render_runtime_modules(
         .environment
         .supports_arrow_function();
       if module.should_isolate() {
-        sources.add(RawSource::from(if supports_arrow_function {
+        sources.add(RawStringSource::from(if supports_arrow_function {
           "(() => {\n"
         } else {
           "!function() {\n"
@@ -233,14 +236,14 @@ pub fn render_runtime_modules(
         sources.add(module.generate_with_custom(compilation)?);
       }
       if module.should_isolate() {
-        sources.add(RawSource::from(if supports_arrow_function {
+        sources.add(RawStringSource::from(if supports_arrow_function {
           "\n})();\n"
         } else {
           "\n}();\n"
         }));
       }
       if is_diff_mode() {
-        sources.add(RawSource::from(format!(
+        sources.add(RawStringSource::from(format!(
           "/* end::{} */\n",
           module.identifier()
         )));

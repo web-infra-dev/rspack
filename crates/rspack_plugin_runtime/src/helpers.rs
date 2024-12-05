@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_collections::{IdentifierLinkedMap, UkeyIndexSet};
 use rspack_core::{
   get_js_chunk_filename_template,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
   RuntimeGlobals, SourceType,
 };
@@ -220,7 +220,7 @@ pub fn generate_entry_startup(
     }
   }
 
-  RawSource::from(source).boxed()
+  RawStringSource::from(source).boxed()
 }
 
 /**

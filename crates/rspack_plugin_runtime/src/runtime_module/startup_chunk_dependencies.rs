@@ -4,7 +4,7 @@ use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
 };
 
@@ -79,7 +79,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
       };
 
       Ok(
-        RawSource::from(format!(
+        RawStringSource::from(format!(
           r#"var next = {};
         {} = function() {{
           {}

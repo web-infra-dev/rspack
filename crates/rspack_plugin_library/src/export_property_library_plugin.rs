@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   get_entry_runtime, property_access,
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
   LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
@@ -83,7 +83,7 @@ fn render_startup(
   if let Some(export) = options.export {
     let mut s = ConcatSource::default();
     s.add(render_source.source.clone());
-    s.add(RawSource::from(format!(
+    s.add(RawStringSource::from(format!(
       "__webpack_exports__ = __webpack_exports__{};",
       property_access(export, 0)
     )));

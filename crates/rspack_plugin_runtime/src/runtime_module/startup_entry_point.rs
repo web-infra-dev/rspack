@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule,
 };
 
@@ -32,6 +32,6 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     } else {
       include_str!("runtime/startup_entrypoint.js")
     };
-    Ok(RawSource::from(source).boxed())
+    Ok(RawStringSource::from(source).boxed())
   }
 }

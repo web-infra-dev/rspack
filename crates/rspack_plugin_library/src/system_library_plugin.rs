@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   LibraryName, LibraryNonUmdObject, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
@@ -142,25 +142,25 @@ fn render(
     .join(",\n");
   let is_has_external_modules = modules.is_empty();
   let mut source = ConcatSource::default();
-  source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
+  source.add(RawStringSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
   if !is_has_external_modules {
     // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
-    source.add(RawSource::from(external_var_declarations));
+    source.add(RawStringSource::from(external_var_declarations));
     // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
-    source.add(RawSource::from(external_var_initialization));
+    source.add(RawStringSource::from(external_var_initialization));
   }
-  source.add(RawSource::from_static("return {\n"));
+  source.add(RawStringSource::from_static("return {\n"));
   if !is_has_external_modules {
     // setter : { [function(module){},...] },
     let setters = format!("setters: [{}],\n", setters);
-    source.add(RawSource::from(setters))
+    source.add(RawStringSource::from(setters))
   }
-  source.add(RawSource::from_static("execute: function() {\n"));
-  source.add(RawSource::from(format!("{dynamic_export}(")));
+  source.add(RawStringSource::from_static("execute: function() {\n"));
+  source.add(RawStringSource::from(format!("{dynamic_export}(")));
   source.add(render_source.source.clone());
-  source.add(RawSource::from_static(")}\n"));
-  source.add(RawSource::from_static("}\n"));
-  source.add(RawSource::from_static("\n})"));
+  source.add(RawStringSource::from_static(")}\n"));
+  source.add(RawStringSource::from_static("}\n"));
+  source.add(RawStringSource::from_static("\n})"));
   render_source.source = source.boxed();
   Ok(())
 }

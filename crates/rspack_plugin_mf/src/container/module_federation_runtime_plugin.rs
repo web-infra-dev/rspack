@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ApplyContext, BooleanMatcher, Chunk, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilerOptions, Plugin, PluginContext,
   RuntimeGlobals, RuntimeModule, RuntimeModuleStage,
@@ -41,7 +41,7 @@ impl RuntimeModule for FederationRuntimeModule {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
-    Ok(RawSource::from(federation_runtime_template(chunk, compilation)).boxed())
+    Ok(RawStringSource::from(federation_runtime_template(chunk, compilation)).boxed())
   }
 }
 

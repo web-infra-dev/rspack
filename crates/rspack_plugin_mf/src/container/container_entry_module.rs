@@ -5,7 +5,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
   module_update_hash, returning_function,
-  rspack_sources::{RawSource, Source, SourceExt},
+  rspack_sources::{RawStringSource, Source, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
@@ -260,8 +260,8 @@ var init = function(shareScope, initScope) {{
       )
     };
     code_generation_result =
-      code_generation_result.with_javascript(RawSource::from(source).boxed());
-    code_generation_result.add(SourceType::Expose, RawSource::from_static("").boxed());
+      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
     if self.enhanced {
       code_generation_result
         .data

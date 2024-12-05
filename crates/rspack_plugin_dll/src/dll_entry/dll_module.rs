@@ -3,11 +3,11 @@ use std::{borrow::Cow, hash::Hash, sync::Arc};
 use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::RawSource,
-  rspack_sources::Source, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock,
-  Dependency, DependencyId, EntryDependency, FactoryMeta, Module, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::RawStringSource, rspack_sources::Source, AsyncDependenciesBlockIdentifier,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
+  ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId, EntryDependency,
+  FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 
@@ -110,9 +110,11 @@ impl Module for DllModule {
       ..Default::default()
     };
 
-    code_generation_result = code_generation_result.with_javascript(Arc::new(RawSource::from(
-      format!("module.exports = {}", RuntimeGlobals::REQUIRE.name()),
-    )));
+    code_generation_result =
+      code_generation_result.with_javascript(Arc::new(RawStringSource::from(format!(
+        "module.exports = {}",
+        RuntimeGlobals::REQUIRE.name()
+      ))));
 
     Ok(code_generation_result)
   }

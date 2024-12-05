@@ -17,7 +17,9 @@ use rspack_collections::{
 use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableError};
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
-use rspack_sources::{CachedSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt};
+use rspack_sources::{
+  CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
+};
 use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -1022,15 +1024,15 @@ impl Module for ConcatenatedModule {
         runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
 
         if should_add_esm_flag {
-          result.add(RawSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawSource::from(define_es_module_flag_statement(
+          result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
+          result.add(RawStringSource::from(define_es_module_flag_statement(
             self.get_exports_argument(),
             &mut runtime_requirements,
           )));
         }
 
-        result.add(RawSource::from_static("\n// EXPORTS\n"));
-        result.add(RawSource::from(format!(
+        result.add(RawStringSource::from_static("\n// EXPORTS\n"));
+        result.add(RawStringSource::from(format!(
           "{}({}, {{{}\n}});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
           exports_argument,
@@ -1041,7 +1043,7 @@ impl Module for ConcatenatedModule {
 
     // List unused exports
     if !unused_exports.is_empty() {
-      result.add(RawSource::from(format!(
+      result.add(RawStringSource::from(format!(
         "\n// UNUSED EXPORTS: {}\n",
         join_atom(unused_exports.iter(), ", ")
       )));
@@ -1163,7 +1165,7 @@ impl Module for ConcatenatedModule {
       };
 
       if let Some(source) = namespace_object_sources.get(&info.module) {
-        result.add(RawSource::from(source.as_str()));
+        result.add(RawStringSource::from(source.as_str()));
       }
     }
 
@@ -1184,7 +1186,7 @@ impl Module for ConcatenatedModule {
 
       match info {
         ModuleInfo::Concatenated(info) => {
-          result.add(RawSource::from(
+          result.add(RawStringSource::from(
             format!(
               "\n;// CONCATENATED MODULE: {}\n",
               module_readable_identifier
@@ -1202,7 +1204,7 @@ impl Module for ConcatenatedModule {
           name = info.namespace_object_name.clone();
         }
         ModuleInfo::External(info) => {
-          result.add(RawSource::from(format!(
+          result.add(RawStringSource::from(format!(
             "\n// EXTERNAL MODULE: {}\n",
             module_readable_identifier
           )));
@@ -1220,10 +1222,10 @@ impl Module for ConcatenatedModule {
 
           if condition != "true" {
             is_conditional = true;
-            result.add(RawSource::from(format!("if ({}) {{\n", condition)));
+            result.add(RawStringSource::from(format!("if ({}) {{\n", condition)));
           }
 
-          result.add(RawSource::from(format!(
+          result.add(RawStringSource::from(format!(
             "var {} = {}({});",
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
@@ -1240,7 +1242,7 @@ impl Module for ConcatenatedModule {
 
       if info.get_interop_namespace_object_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        result.add(RawSource::from(format!(
+        result.add(RawStringSource::from(format!(
           "\nvar {} = /*#__PURE__*/{}({}, 2);",
           info
             .get_interop_namespace_object_name()
@@ -1252,7 +1254,7 @@ impl Module for ConcatenatedModule {
 
       if info.get_interop_namespace_object2_used() {
         runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-        result.add(RawSource::from(format!(
+        result.add(RawStringSource::from(format!(
           "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_namespace_object2_name()
@@ -1264,7 +1266,7 @@ impl Module for ConcatenatedModule {
 
       if info.get_interop_default_access_used() {
         runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
-        result.add(RawSource::from(format!(
+        result.add(RawStringSource::from(format!(
           "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_default_access_name()
@@ -1275,7 +1277,7 @@ impl Module for ConcatenatedModule {
       }
 
       if is_conditional {
-        result.add(RawSource::from_static("\n}"));
+        result.add(RawStringSource::from_static("\n}"));
       }
     }
 

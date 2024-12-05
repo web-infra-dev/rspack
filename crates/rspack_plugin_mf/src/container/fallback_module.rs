@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::{RawSource, Source, SourceExt},
+  rspack_sources::{RawStringSource, Source, SourceExt},
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
@@ -184,7 +184,7 @@ module.exports = loop();
       ids = json_stringify(&ids),
       require = RuntimeGlobals::REQUIRE,
     );
-    codegen = codegen.with_javascript(RawSource::from(code).boxed());
+    codegen = codegen.with_javascript(RawStringSource::from(code).boxed());
     Ok(codegen)
   }
 

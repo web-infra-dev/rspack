@@ -1,7 +1,7 @@
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule,
 };
 
@@ -25,6 +25,8 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawSource::from_static(include_str!("runtime/create_fake_namespace_object.js")).boxed())
+    Ok(
+      RawStringSource::from_static(include_str!("runtime/create_fake_namespace_object.js")).boxed(),
+    )
   }
 }

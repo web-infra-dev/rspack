@@ -6,7 +6,7 @@ use dashmap::DashMap;
 use derivative::Derivative;
 use rspack_collections::UkeySet;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
 };
@@ -143,7 +143,7 @@ fn eval_devtool_plugin_render_module_content(
 
     let module_content =
       simd_json::to_string(&format!("{source}{footer}")).expect("failed to parse string");
-    RawSource::from(format!(
+    RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {
         format!("{}({})", RuntimeGlobals::CREATE_SCRIPT, module_content)

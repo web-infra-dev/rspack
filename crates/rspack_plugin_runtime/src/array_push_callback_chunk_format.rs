@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
@@ -108,7 +108,7 @@ fn render_chunk(
   let mut source = ConcatSource::default();
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "{}[{}]('{}', ",
       global_object,
       serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
@@ -116,14 +116,14 @@ fn render_chunk(
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
-      source.add(RawSource::from_static(","));
+      source.add(RawStringSource::from_static(","));
       source.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
     }
-    source.add(RawSource::from_static(")"));
+    source.add(RawStringSource::from_static(")"));
   } else {
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
 
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       r#"({}['{}'] = {}['{}'] || []).push([[{}], "#,
       global_object,
       chunk_loading_global,
@@ -134,8 +134,8 @@ fn render_chunk(
     source.add(render_source.source.clone());
     let has_entry = chunk.has_entry_module(&compilation.chunk_graph);
     if has_entry || has_runtime_modules {
-      source.add(RawSource::from_static(","));
-      source.add(RawSource::from(format!(
+      source.add(RawStringSource::from_static(","));
+      source.add(RawStringSource::from(format!(
         "function({}) {{\n",
         RuntimeGlobals::REQUIRE
       )));
@@ -164,12 +164,14 @@ fn render_chunk(
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
         if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-          source.add(RawSource::from_static("return __webpack_exports__;\n"));
+          source.add(RawStringSource::from_static(
+            "return __webpack_exports__;\n",
+          ));
         }
       }
-      source.add(RawSource::from_static("\n}\n"));
+      source.add(RawStringSource::from_static("\n}\n"));
     }
-    source.add(RawSource::from_static("])"));
+    source.add(RawStringSource::from_static("])"));
   }
   render_source.source = source.boxed();
   Ok(())

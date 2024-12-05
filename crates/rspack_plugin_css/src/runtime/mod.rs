@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   basic_function, compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   BooleanMatcher, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
@@ -62,7 +62,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if !with_hmr && !with_loading {
-        return Ok(RawSource::from_static("").boxed());
+        return Ok(RawStringSource::from_static("").boxed());
       }
 
       let mut source = ConcatSource::default();
@@ -72,7 +72,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       // One entry initial chunk maybe is other entry dynamic chunk, so here
       // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
-      source.add(RawSource::from(format!(
+      source.add(RawStringSource::from(format!(
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunk_ids, 0)
       )));
@@ -143,7 +143,7 @@ installedChunks[chunkId] = 0;
         Cow::Borrowed("// no initial css")
       };
 
-      source.add(RawSource::from(
+      source.add(RawStringSource::from(
         include_str!("./css_loading.js")
           .cow_replace(
             "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
@@ -162,7 +162,7 @@ installedChunks[chunkId] = 0;
           &compilation.options.output.global_object,
           &compilation.options.output.chunk_loading_global
         );
-        source.add(RawSource::from(
+        source.add(RawStringSource::from(
           include_str!("./css_loading_with_loading.js")
             .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
             .cow_replace("CSS_MATCHER", &has_css_matcher.render("chunkId"))
@@ -179,7 +179,7 @@ installedChunks[chunkId] = 0;
       }
 
       if with_hmr {
-        source.add(RawSource::from_static(include_str!(
+        source.add(RawStringSource::from_static(include_str!(
           "./css_loading_with_hmr.js"
         )));
       }

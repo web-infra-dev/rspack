@@ -3,7 +3,7 @@ use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, ModuleId, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rustc_hash::FxHashMap;
@@ -112,7 +112,7 @@ impl RuntimeModule for ShareRuntimeModule {
     } else {
       include_str!("./initializeSharing.js")
     };
-    Ok(RawSource::from(format!(
+    Ok(RawStringSource::from(format!(
       r#"
 {share_scope_map} = {{}};
 __webpack_require__.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};

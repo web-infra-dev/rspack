@@ -1,7 +1,7 @@
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkGraph, ChunkUkey, Compilation, DependenciesBlock, ModuleId, RuntimeModule,
   RuntimeModuleStage, SourceType,
 };
@@ -93,7 +93,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     } else {
       include_str!("./remotesLoading.js")
     };
-    Ok(RawSource::from(format!(
+    Ok(RawStringSource::from(format!(
       r#"
 __webpack_require__.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}

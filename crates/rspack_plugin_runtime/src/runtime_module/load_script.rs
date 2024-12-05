@@ -2,7 +2,7 @@ use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 
@@ -83,7 +83,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       "".to_string()
     };
 
-    Ok(RawSource::from(
+    Ok(RawStringSource::from(
       include_str!("runtime/load_script.js")
         .cow_replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",

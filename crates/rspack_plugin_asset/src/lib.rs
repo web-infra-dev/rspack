@@ -5,7 +5,7 @@ use std::{borrow::Cow, hash::Hasher};
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawBufferSource, RawStringSource, SourceExt},
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetInfo, AssetParserDataUrl,
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
@@ -498,7 +498,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let supports_const = compilation.options.output.environment.supports_const();
           let declaration_kind = if supports_const { "const" } else { "var" };
           Ok(
-            RawSource::from(format!(
+            RawStringSource::from(format!(
               r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = {exported_content};"#
             ))
             .boxed(),
@@ -508,7 +508,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .runtime_requirements
             .insert(RuntimeGlobals::MODULE);
 
-          Ok(RawSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
+          Ok(RawStringSource::from(format!(r#"module.exports = {exported_content};"#)).boxed())
         }
       }
       SourceType::Asset => {
@@ -517,7 +517,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             "Inline or Source asset does not have source type `asset`"
           ))
         } else {
-          Ok(RawSource::from(source.buffer().to_vec()).boxed())
+          Ok(RawBufferSource::from(source.buffer().to_vec()).boxed())
         }
       }
       _ => panic!(

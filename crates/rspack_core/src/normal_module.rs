@@ -18,8 +18,8 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, Source, SourceExt,
+  SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::{
   ext::DynHash,
@@ -663,7 +663,7 @@ impl Module for NormalModule {
         let error = error_message.render_report(compilation.options.stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
-          RawSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
+          RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
         code_generation_result.concatenation_scope = concatenation_scope;
       }
@@ -831,7 +831,7 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
     if content.is_buffer() {
-      return Ok(RawSource::from(content.into_bytes()).boxed());
+      return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
@@ -852,7 +852,7 @@ impl NormalModule {
     {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
-    Ok(RawSource::from(content.into_string_lossy()).boxed())
+    Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }
 
   fn clear_diagnostics(&mut self) {

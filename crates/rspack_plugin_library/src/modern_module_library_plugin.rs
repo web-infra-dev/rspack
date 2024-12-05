@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_collections::IdentifierMap;
-use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
   CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
@@ -192,7 +192,7 @@ fn render_startup(
     for (final_name, info_name) in exports_with_property_access.iter() {
       let var_name = format!("__webpack_exports__{}", to_identifier(info_name));
 
-      source.add(RawSource::from(format!(
+      source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
         final_name
       )));
@@ -202,7 +202,7 @@ fn render_startup(
   }
 
   if !exports.is_empty() {
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       "export {{ {} }};\n",
       exports.join(", ")
     )));

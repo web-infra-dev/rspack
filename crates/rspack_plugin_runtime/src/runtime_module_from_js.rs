@@ -4,7 +4,7 @@ use derivative::Derivative;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
-  rspack_sources::{BoxSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule, RuntimeModuleStage,
 };
 
@@ -30,7 +30,7 @@ impl RuntimeModule for RuntimeModuleFromJs {
 
   fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     let res = (self.generator)()?;
-    Ok(RawSource::from(res).boxed())
+    Ok(RawStringSource::from(res).boxed())
   }
 
   fn full_hash(&self) -> bool {

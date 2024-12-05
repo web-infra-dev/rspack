@@ -2,7 +2,7 @@ use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
-  rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   BooleanMatcher, Chunk, ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleStage,
 };
@@ -36,7 +36,7 @@ impl JsonpChunkLoadingRuntimeModule {
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
-    RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
+    RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
 }
 
@@ -78,7 +78,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       source.add(self.generate_base_uri(chunk, compilation));
     }
 
-    source.add(RawSource::from(format!(
+    source.add(RawStringSource::from(format!(
       r#"
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
@@ -120,7 +120,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           .into_owned()
       };
 
-      source.add(RawSource::from(format!(
+      source.add(RawStringSource::from(format!(
         r#"
         {}.j = function (chunkId, promises{}) {{
           {body}
@@ -142,7 +142,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           format!("link.crossOrigin = {}", cross_origin_loading)
         }
       };
-      source.add(RawSource::from(
+      source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
           .cow_replace("$JS_MATCHER$", &js_matcher)
           .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
@@ -185,7 +185,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "#
       };
 
-      source.add(RawSource::from(
+      source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_preload.js")
           .cow_replace("$JS_MATCHER$", &js_matcher)
           .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
@@ -196,7 +196,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      source.add(RawSource::from(
+      source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
           .cow_replace("$GLOBAL_OBJECT$", &compilation.options.output.global_object)
           .cow_replace(
@@ -206,17 +206,19 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           )
           .into_owned(),
       ));
-      source.add(RawSource::from(generate_javascript_hmr_runtime("jsonp")));
+      source.add(RawStringSource::from(generate_javascript_hmr_runtime(
+        "jsonp",
+      )));
     }
 
     if with_hmr_manifest {
-      source.add(RawSource::from_static(include_str!(
+      source.add(RawStringSource::from_static(include_str!(
         "runtime/jsonp_chunk_loading_with_hmr_manifest.js"
       )));
     }
 
     if with_on_chunk_load {
-      source.add(RawSource::from_static(include_str!(
+      source.add(RawStringSource::from_static(include_str!(
         "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
       )));
     }
@@ -226,7 +228,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         r#"{}["{}"]"#,
         &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
       );
-      source.add(RawSource::from(
+      source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_callback.js")
           .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
           .cow_replace(

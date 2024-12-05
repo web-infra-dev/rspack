@@ -28,7 +28,7 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::concatenated_module::find_new_name;
 use rspack_core::reserved_names::RESERVED_NAMES;
 use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
+  BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_core::{
   basic_function, render_init_fragments, ChunkGraph, ChunkGroupUkey, ChunkInitFragments,
@@ -569,7 +569,7 @@ impl JsPlugin {
     };
     let mut sources = ConcatSource::default();
     if iife {
-      sources.add(RawSource::from(if supports_arrow_function {
+      sources.add(RawStringSource::from(if supports_arrow_function {
         "(() => { // webpackBootstrap\n"
       } else {
         "(function() { // webpackBootstrap\n"
@@ -584,12 +584,12 @@ impl JsPlugin {
       })
     {
       if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
-        sources.add(RawSource::from(format!(
+        sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
       } else {
         all_strict = true;
-        sources.add(RawSource::from_static("\"use strict\";\n"));
+        sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
     }
 
@@ -616,20 +616,20 @@ impl JsPlugin {
           chunk_init_fragments.extend(fragments);
           chunk_modules_source
         } else {
-          RawSource::from_static("{}").boxed()
+          RawStringSource::from_static("{}").boxed()
         };
-      sources.add(RawSource::from_static("var __webpack_modules__ = ("));
+      sources.add(RawStringSource::from_static("var __webpack_modules__ = ("));
       sources.add(chunk_modules_source);
-      sources.add(RawSource::from_static(");\n"));
-      sources.add(RawSource::from(
+      sources.add(RawStringSource::from_static(");\n"));
+      sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));
     }
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
-      sources.add(RawSource::from(header));
-      sources.add(RawSource::from(
+      sources.add(RawStringSource::from(header));
+      sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));
     }
@@ -639,7 +639,7 @@ impl JsPlugin {
       .has_chunk_runtime_modules(chunk_ukey)
     {
       sources.add(render_runtime_modules(compilation, chunk_ukey)?);
-      sources.add(RawSource::from(
+      sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));
     }
@@ -651,7 +651,7 @@ impl JsPlugin {
       let mut startup_sources = ConcatSource::default();
 
       if runtime_requirements.contains(RuntimeGlobals::EXPORTS) {
-        startup_sources.add(RawSource::from(format!(
+        startup_sources.add(RawStringSource::from(format!(
           "var {} = {{}};\n",
           RuntimeGlobals::EXPORTS
         )));
@@ -706,37 +706,39 @@ impl JsPlugin {
         };
         let footer;
         if let Some(iife) = iife {
-          startup_sources.add(RawSource::from(format!(
+          startup_sources.add(RawStringSource::from(format!(
             "// This entry need to be wrapped in an IIFE because {iife}\n"
           )));
           if supports_arrow_function {
-            startup_sources.add(RawSource::from_static("(() => {\n"));
+            startup_sources.add(RawStringSource::from_static("(() => {\n"));
             footer = "\n})();\n\n";
           } else {
-            startup_sources.add(RawSource::from_static("!function() {\n"));
+            startup_sources.add(RawStringSource::from_static("!function() {\n"));
             footer = "\n}();\n";
           }
           if inner_strict {
-            startup_sources.add(RawSource::from_static("\"use strict\";\n"));
+            startup_sources.add(RawStringSource::from_static("\"use strict\";\n"));
           }
         } else {
           footer = "\n";
         }
         if exports {
           if m_identifier != last_entry_module {
-            startup_sources.add(RawSource::from(format!("var {exports_argument} = {{}};\n")));
+            startup_sources.add(RawStringSource::from(format!(
+              "var {exports_argument} = {{}};\n"
+            )));
           } else if !webpack_exports_argument {
-            startup_sources.add(RawSource::from(format!(
+            startup_sources.add(RawStringSource::from(format!(
               "var {exports_argument} = {};\n",
               RuntimeGlobals::EXPORTS
             )));
           }
         }
         startup_sources.add(rendered_module);
-        startup_sources.add(RawSource::from(footer));
+        startup_sources.add(RawStringSource::from(footer));
       }
       if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
-        startup_sources.add(RawSource::from(format!(
+        startup_sources.add(RawStringSource::from(format!(
           "{} = {}({});\n",
           RuntimeGlobals::EXPORTS,
           RuntimeGlobals::ON_CHUNKS_LOADED,
@@ -760,7 +762,7 @@ impl JsPlugin {
       .last()
     {
       let mut render_source = RenderSource {
-        source: RawSource::from(startup.join("\n") + "\n").boxed(),
+        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };
       hooks.render_startup.call(
         compilation,
@@ -773,10 +775,12 @@ impl JsPlugin {
     if has_entry_modules
       && runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME)
     {
-      sources.add(RawSource::from_static("return __webpack_exports__;\n"));
+      sources.add(RawStringSource::from_static(
+        "return __webpack_exports__;\n",
+      ));
     }
     if iife {
-      sources.add(RawSource::from_static("})()\n"));
+      sources.add(RawStringSource::from_static("})()\n"));
     }
     let final_source = render_init_fragments(
       sources.boxed(),
@@ -790,7 +794,11 @@ impl JsPlugin {
       .render
       .call(compilation, chunk_ukey, &mut render_source)?;
     Ok(if iife {
-      ConcatSource::new([render_source.source, RawSource::from_static(";").boxed()]).boxed()
+      ConcatSource::new([
+        render_source.source,
+        RawStringSource::from_static(";").boxed(),
+      ])
+      .boxed()
     } else {
       render_source.source
     })
@@ -1112,17 +1120,17 @@ impl JsPlugin {
       })
     {
       if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
-        sources.add(RawSource::from(format!(
+        sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
       } else {
-        sources.add(RawSource::from_static("\"use strict\";\n"));
+        sources.add(RawStringSource::from_static("\"use strict\";\n"));
         all_strict = true;
       }
     }
     let (chunk_modules_source, chunk_init_fragments) =
       render_chunk_modules(compilation, chunk_ukey, &chunk_modules, all_strict)?
-        .unwrap_or_else(|| (RawSource::from_static("{}").boxed(), Vec::new()));
+        .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
     let mut render_source = RenderSource {
       source: chunk_modules_source,
     };
@@ -1142,7 +1150,7 @@ impl JsPlugin {
       .call(compilation, chunk_ukey, &mut render_source)?;
     sources.add(render_source.source);
     if !is_module {
-      sources.add(RawSource::from_static(";"));
+      sources.add(RawStringSource::from_static(";"));
     }
     Ok(sources.boxed())
   }
