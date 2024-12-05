@@ -142,7 +142,7 @@ impl BannerPlugin {
 
 #[plugin_hook(CompilationProcessAssets for BannerPlugin, stage = self.config.stage.unwrap_or(Compilation::PROCESS_ASSETS_STAGE_ADDITIONS))]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.BannerPlugin");
+  let mut logger = compilation.get_logger("rspack.BannerPlugin");
   let start = logger.time("add banner");
   let mut updates = vec![];
 
@@ -211,6 +211,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   logger.time_end(start);
 
+  compilation.collect_logger(logger);
   Ok(())
 }
 

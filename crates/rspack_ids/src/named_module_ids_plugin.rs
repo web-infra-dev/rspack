@@ -204,7 +204,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     .can_read_mutations(IncrementalPasses::MODULE_IDS)
     && let Some(mutations) = &mutations
   {
-    let logger = compilation.get_logger("rspack.incremental.moduleIds");
+    let mut logger = compilation.get_logger("rspack.incremental.moduleIds");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules_len,
@@ -215,6 +215,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
       mutations.len(),
       unnamed_modules_len,
     ));
+    compilation.collect_logger(logger);
   }
 
   if let Some(compilation_mutations) = compilation.incremental.mutations_write()

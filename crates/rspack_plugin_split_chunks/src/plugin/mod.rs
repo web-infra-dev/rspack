@@ -43,7 +43,7 @@ impl SplitChunksPlugin {
   }
 
   fn inner_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let logger = compilation.get_logger(self.name());
+    let mut logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module group map");
     let mut module_group_map = self.prepare_module_group_map(compilation)?;
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
@@ -150,6 +150,7 @@ impl SplitChunksPlugin {
     self.ensure_max_size_fit(compilation, max_size_setting_map)?;
     logger.time_end(start);
 
+    compilation.collect_logger(logger);
     Ok(())
   }
 }

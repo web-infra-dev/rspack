@@ -53,7 +53,7 @@ impl Plugin for RealContentHashPlugin {
 }
 
 fn inner_impl(compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.RealContentHashPlugin");
+  let mut logger = compilation.get_logger("rspack.RealContentHashPlugin");
   let start = logger.time("hash to asset names");
   let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
   for (name, asset) in compilation
@@ -175,6 +175,7 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   }
   logger.time_end(start);
 
+  compilation.collect_logger(logger);
   Ok(())
 }
 

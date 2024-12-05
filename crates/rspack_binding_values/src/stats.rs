@@ -195,76 +195,76 @@ pub struct JsStatsLogging {
   pub trace: Option<Vec<String>>,
 }
 
-impl From<(String, rspack_core::LogType)> for JsStatsLogging {
-  fn from(value: (String, rspack_core::LogType)) -> Self {
+impl From<(String, rspack_core::Log)> for JsStatsLogging {
+  fn from(value: (String, rspack_core::Log)) -> Self {
     match value.1 {
-      rspack_core::LogType::Error { message, trace } => Self {
+      rspack_core::Log::Error { message, trace } => Self {
         name: value.0,
         r#type: "error".to_string(),
         args: Some(vec![message]),
         trace: Some(trace),
       },
-      rspack_core::LogType::Warn { message, trace } => Self {
+      rspack_core::Log::Warn { message, trace } => Self {
         name: value.0,
         r#type: "warn".to_string(),
         args: Some(vec![message]),
         trace: Some(trace),
       },
-      rspack_core::LogType::Info { message } => Self {
+      rspack_core::Log::Info { message } => Self {
         name: value.0,
         r#type: "info".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::Log { message } => Self {
+      rspack_core::Log::Log { message } => Self {
         name: value.0,
         r#type: "log".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::Debug { message } => Self {
+      rspack_core::Log::Debug { message } => Self {
         name: value.0,
         r#type: "debug".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::Trace { message, trace } => Self {
+      rspack_core::Log::Trace { message, trace } => Self {
         name: value.0,
         r#type: "trace".to_string(),
         args: Some(vec![message]),
         trace: Some(trace),
       },
-      rspack_core::LogType::Group { message } => Self {
+      rspack_core::Log::Group { message } => Self {
         name: value.0,
         r#type: "group".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::GroupCollapsed { message } => Self {
+      rspack_core::Log::GroupCollapsed { message } => Self {
         name: value.0,
         r#type: "groupCollapsed".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::GroupEnd => Self {
+      rspack_core::Log::GroupEnd => Self {
         name: value.0,
         r#type: "groupEnd".to_string(),
         args: None,
         trace: None,
       },
-      rspack_core::LogType::Profile { label } => Self {
+      rspack_core::Log::Profile { label } => Self {
         name: value.0,
         r#type: "profile".to_string(),
         args: Some(vec![label.to_string()]),
         trace: None,
       },
-      rspack_core::LogType::ProfileEnd { label } => Self {
+      rspack_core::Log::ProfileEnd { label } => Self {
         name: value.0,
         r#type: "profileEnd".to_string(),
         args: Some(vec![label.to_string()]),
         trace: None,
       },
-      rspack_core::LogType::Time {
+      rspack_core::Log::Time {
         label,
         secs,
         subsec_nanos,
@@ -278,19 +278,19 @@ impl From<(String, rspack_core::LogType)> for JsStatsLogging {
         )]),
         trace: None,
       },
-      rspack_core::LogType::Clear => Self {
+      rspack_core::Log::Clear => Self {
         name: value.0,
         r#type: "clear".to_string(),
         args: None,
         trace: None,
       },
-      rspack_core::LogType::Status { message } => Self {
+      rspack_core::Log::Status { message } => Self {
         name: value.0,
         r#type: "status".to_string(),
         args: Some(vec![message]),
         trace: None,
       },
-      rspack_core::LogType::Cache { label, hit, total } => Self {
+      rspack_core::Log::Cache { label, hit, total } => Self {
         name: value.0,
         r#type: "cache".to_string(),
         args: Some(vec![format!(

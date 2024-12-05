@@ -48,7 +48,7 @@ impl WarnCaseSensitiveModulesPlugin {
 
 #[plugin_hook(CompilationSeal for WarnCaseSensitiveModulesPlugin)]
 async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger(self.name());
+  let mut logger = compilation.get_logger(self.name());
   let start = logger.time("check case sensitive modules");
   let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
@@ -99,6 +99,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
 
   compilation.extend_diagnostics(diagnostics);
   logger.time_end(start);
+  compilation.collect_logger(logger);
   Ok(())
 }
 

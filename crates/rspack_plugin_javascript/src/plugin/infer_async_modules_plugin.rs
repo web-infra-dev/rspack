@@ -75,7 +75,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
     && let Some(mutations) = &mutations
   {
-    let logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
+    let mut logger = compilation.get_logger("rspack.incremental.inferAsyncModules");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules_len, total_modules_len,
@@ -84,6 +84,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       "{} modules are updated by set_async",
       mutations.len()
     ));
+    compilation.collect_logger(logger);
   }
 
   if let Some(compilation_mutations) = compilation.incremental.mutations_write()

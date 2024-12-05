@@ -710,7 +710,7 @@ impl ModuleConcatenationPlugin {
   }
 
   async fn optimize_chunk_modules_impl(&self, compilation: &mut Compilation) -> Result<()> {
-    let logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
+    let mut logger = compilation.get_logger("rspack.ModuleConcatenationPlugin");
     let mut relevant_modules = vec![];
     let mut possible_inners = IdentifierSet::default();
     let start = logger.time("select relevant modules");
@@ -1020,6 +1020,8 @@ impl ModuleConcatenationPlugin {
     for config in concat_configurations {
       Self::process_concatenated_configuration(compilation, config, &mut used_modules).await?;
     }
+
+    compilation.collect_logger(logger);
     Ok(())
   }
 }

@@ -681,7 +681,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     input_entrypoints_and_modules: UkeyIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
     compilation: &mut Compilation,
   ) -> Result<()> {
-    let logger = compilation.get_logger("rspack.buildChunkGraph");
+    let mut logger = compilation.get_logger("rspack.buildChunkGraph");
     let start = logger.time("prepare entrypoints");
     logger.time_end(start);
 
@@ -744,12 +744,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
+    compilation.collect_logger(logger);
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   pub fn split(&mut self, compilation: &mut Compilation) -> Result<()> {
-    let logger = compilation.get_logger("rspack.buildChunkGraph");
+    let mut logger = compilation.get_logger("rspack.buildChunkGraph");
 
     // pop() is used to read from the queue
     // so it need to be reversed to be iterated in
@@ -876,7 +877,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .incremental
       .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
-      let logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
+      let mut logger = compilation.get_logger("rspack.incremental.buildChunkGraph");
       logger.log(format!(
         "{} chunk group created",
         self.stat_chunk_group_created,
@@ -901,9 +902,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         "{} cache missed by incorrect available modules",
         self.stat_cache_miss_by_available_modules,
       ));
+      compilation.collect_logger(logger);
       self.update_cache(compilation);
     }
 
+    compilation.collect_logger(logger);
     Ok(())
   }
 
