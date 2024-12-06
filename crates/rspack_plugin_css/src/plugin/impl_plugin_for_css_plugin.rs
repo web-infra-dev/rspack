@@ -360,7 +360,7 @@ async fn render_manifest(
         css_import_modules,
         css_modules,
       )?;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
+      Ok((source.boxed(), diagnostics))
     })
     .await?;
 

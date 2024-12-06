@@ -650,10 +650,7 @@ impl Module for NormalModule {
             concatenation_scope: concatenation_scope.as_mut(),
           },
         )?;
-        code_generation_result.add(
-          *source_type,
-          MapCachedSource::new(generation_result).boxed(),
-        );
+        code_generation_result.add(*source_type, generation_result.boxed());
       }
       code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)

@@ -638,7 +638,7 @@ async fn render_manifest(
       let (source, diagnostics) = self
         .render_content_asset(chunk, &rendered_modules, &filename, compilation)
         .await;
-      Ok((CachedSource::new(source).boxed(), diagnostics))
+      Ok((source.boxed(), diagnostics))
     })
     .await?;
 

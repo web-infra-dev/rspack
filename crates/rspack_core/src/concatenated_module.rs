@@ -1282,7 +1282,7 @@ impl Module for ConcatenatedModule {
     }
 
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result.add(SourceType::JavaScript, MapCachedSource::new(result).boxed());
+    code_generation_result.add(SourceType::JavaScript, result.boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
     code_generation_result
