@@ -18,7 +18,7 @@ use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
-use rspack_sources::{BoxSource, CachedSource, MapCachedSource, SourceExt};
+use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
@@ -1046,7 +1046,7 @@ impl Compilation {
         self.emit_asset(
           filename.clone(),
           CompilationAsset::new(
-            Some(MapCachedSource::new(file_manifest.source).boxed()),
+            Some(CachedSource::new(file_manifest.source).boxed()),
             file_manifest.info,
           ),
         );
