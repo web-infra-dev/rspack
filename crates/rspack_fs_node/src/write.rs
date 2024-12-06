@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
   Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, Result, WritableFileSystem,
@@ -78,111 +77,96 @@ impl WritableFileSystem for NodeFileSystem {
     fut.await
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      self
-        .0
-        .remove_file
-        .call_with_promise(file)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    let file = file.as_str().to_string();
+    self
+      .0
+      .remove_file
+      .call_with_promise(file)
+      .await
+      .map_err(|e| {
+        Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })
+      .map(|_| ())
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self
-        .0
-        .remove_dir_all
-        .call_with_promise(dir)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    Box::pin(fut)
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.as_str().to_string();
+    self
+      .0
+      .remove_dir_all
+      .call_with_promise(dir)
+      .await
+      .map_err(|e| {
+        Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })
+      .map(|_| ())
   }
 
   // TODO: support read_dir options
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      let res = self.0.read_dir.call_with_promise(dir).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
-      match res {
-        Either::A(files) => Ok(files),
-        Either::B(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call read dir failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let dir = dir.as_str().to_string();
+    let res = self.0.read_dir.call_with_promise(dir).await.map_err(|e| {
+      Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        e.to_string(),
+      ))
+    })?;
+    match res {
+      Either::A(files) => Ok(files),
+      Either::B(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call read dir failed",
+      ))),
+    }
   }
 
   // TODO: support read_file options
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let res = self
-        .0
-        .read_file
-        .call_with_promise(file)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })?;
-
-      match res {
-        Either3::A(data) => Ok(data.to_vec()),
-        Either3::B(str) => Ok(str.into_bytes()),
-        Either3::C(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call read file failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
-  }
-
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let res = self.0.stat.call_with_promise(file).await.map_err(|e| {
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    let file = file.as_str().to_string();
+    let res = self
+      .0
+      .read_file
+      .call_with_promise(file)
+      .await
+      .map_err(|e| {
         Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           e.to_string(),
         ))
       })?;
-      match res {
-        Either::A(stat) => Ok(FileMetadata::from(stat)),
-        Either::B(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call stat failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
+
+    match res {
+      Either3::A(data) => Ok(data.to_vec()),
+      Either3::B(str) => Ok(str.into_bytes()),
+      Either3::C(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call read file failed",
+      ))),
+    }
+  }
+
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    let file = file.as_str().to_string();
+    let res = self.0.stat.call_with_promise(file).await.map_err(|e| {
+      Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        e.to_string(),
+      ))
+    })?;
+    match res {
+      Either::A(stat) => Ok(FileMetadata::from(stat)),
+      Either::B(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call stat failed",
+      ))),
+    }
   }
 }
 
