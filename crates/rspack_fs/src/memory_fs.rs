@@ -211,29 +211,24 @@ impl WritableFileSystem for MemoryFileSystem {
     Ok(())
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { self._remove_file(file) };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    self._remove_file(file)
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { self._remove_dir_all(dir) };
-    Box::pin(fut)
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    self._remove_dir_all(dir)
   }
 
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
-    let fut = async move { self._read_dir(dir) };
-    Box::pin(fut)
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self._read_dir(dir)
   }
 
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { ReadableFileSystem::read(self, file) };
-    Box::pin(fut)
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    ReadableFileSystem::read(self, file)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async move { ReadableFileSystem::metadata(self, file) };
-    Box::pin(fut)
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    ReadableFileSystem::metadata(self, file)
   }
 }
 

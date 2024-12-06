@@ -28,41 +28,32 @@ impl WritableFileSystem for NativeFileSystem {
     fs::write(file, data).map_err(Error::from)
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    tokio::fs::remove_file(file).await.map_err(Error::from)
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     let dir = dir.to_path_buf();
-    let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
-    Box::pin(fut)
+    tokio::fs::remove_dir_all(dir).await.map_err(Error::from)
   }
 
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let dir = dir.to_path_buf();
-    let fut = async move {
-      let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
-      let mut res = vec![];
-      while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
-        res.push(entry.file_name().to_string_lossy().to_string());
-      }
-      Ok(res)
-    };
-    Box::pin(fut)
+    let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
+    let mut res = vec![];
+    while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
   }
 
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    tokio::fs::read(file).await.map_err(Error::from)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async move {
-      let metadata = tokio::fs::metadata(file).await.map_err(Error::from)?;
-      FileMetadata::try_from(metadata)
-    };
-    Box::pin(fut)
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    let metadata = tokio::fs::metadata(file).await.map_err(Error::from)?;
+    FileMetadata::try_from(metadata)
   }
 }
 
