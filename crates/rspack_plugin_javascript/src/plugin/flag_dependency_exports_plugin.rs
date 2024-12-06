@@ -359,12 +359,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
     let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
-    let logger = compilation.get_logger("rspack.incremental.providedExports");
+    let mut logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
       compilation.get_module_graph().modules().len()
     ));
+    compilation.collect_logger(logger);
     modules
   } else {
     compilation

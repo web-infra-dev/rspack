@@ -18,7 +18,7 @@ pub use r#struct::*;
 
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
-  Compilation, ExecutedRuntimeModule, LogType, ModuleGraph, ModuleIdentifier, ProvidedExports,
+  Compilation, ExecutedRuntimeModule, Log, ModuleGraph, ModuleIdentifier, ProvidedExports,
   SourceType, UsedExports,
 };
 
@@ -646,15 +646,12 @@ impl Stats<'_> {
       .collect()
   }
 
-  pub fn get_logging(&self) -> Vec<(String, LogType)> {
+  pub fn get_logging(&self) -> Vec<(String, Log)> {
     self
       .compilation
       .get_logging()
       .iter()
-      .map(|item| {
-        let (name, logs) = item.pair();
-        (name.to_owned(), logs.to_owned())
-      })
+      .map(|(name, logs)| (name.to_owned(), logs.to_owned()))
       .sorted_by(|a, b| a.0.cmp(&b.0))
       .flat_map(|item| item.1.into_iter().map(move |log| (item.0.clone(), log)))
       .collect()

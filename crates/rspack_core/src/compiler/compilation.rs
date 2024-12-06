@@ -798,7 +798,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:code_generation", skip_all)]
   fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
       _ => Some(logger.cache("module code generation cache")),
@@ -825,6 +825,7 @@ impl Compilation {
       logger.cache_end(counter);
     }
 
+    self.collect_logger(logger);
     Ok(())
   }
 
@@ -964,10 +965,10 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let mutations = self
+    let chunks = if let Some(mutations) = self
       .incremental
-      .mutations_read(IncrementalPasses::CHUNKS_RENDER);
-    let chunks = if let Some(mutations) = mutations {
+      .mutations_read(IncrementalPasses::CHUNKS_RENDER)
+    {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(*chunk),
         _ => None,
@@ -980,12 +981,13 @@ impl Compilation {
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       let mut chunks = mutations.get_affected_chunks_with_chunk_graph(self);
       chunks.extend(self.get_chunk_graph_entries());
-      let logger = self.get_logger("rspack.incremental.chunksRender");
+      let mut logger = self.get_logger("rspack.incremental.chunksRender");
       logger.log(format!(
         "{} chunks are affected, {} in total",
         chunks.len(),
         self.chunk_by_ukey.len()
       ));
+      self.collect_logger(logger);
       chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1015,7 +1017,10 @@ impl Compilation {
       .into_iter()
       .collect::<Result<UkeyMap<_, _>>>()?;
 
-    let chunk_ukey_and_manifest = if mutations.is_some() {
+    let chunk_ukey_and_manifest = if self
+      .incremental
+      .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
+    {
       self.chunk_render_results.extend(chunk_render_results);
       self.chunk_render_results.clone()
     } else {
@@ -1116,7 +1121,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
@@ -1177,15 +1182,16 @@ impl Compilation {
     let diagnostics = self.make_artifact.take_diagnostics();
     self.extend_diagnostics(diagnostics);
 
+    self.collect_logger(logger);
     Ok(())
   }
 
   #[tracing::instrument(skip_all)]
   fn collect_dependencies_diagnostics(&mut self) {
-    let mutations = self
+    let modules = if let Some(mutations) = self
       .incremental
-      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-    let modules = if let Some(mutations) = mutations {
+      .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+    {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1194,12 +1200,13 @@ impl Compilation {
         self.dependencies_diagnostics.remove(&revoked_module);
       }
       let modules = mutations.get_affected_modules_with_module_graph(&self.get_module_graph());
-      let logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
+      let mut logger = self.get_logger("rspack.incremental.dependenciesDiagnostics");
       logger.log(format!(
         "{} modules are affected, {} in total",
         modules.len(),
         self.get_module_graph().modules().len()
       ));
+      self.collect_logger(logger);
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1221,7 +1228,10 @@ impl Compilation {
         (*module_identifier, diagnostics)
       })
       .collect();
-    let all_modules_diagnostics = if mutations.is_some() {
+    let all_modules_diagnostics = if self
+      .incremental
+      .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
+    {
       self
         .dependencies_diagnostics
         .extend(dependencies_diagnostics);
@@ -1235,7 +1245,7 @@ impl Compilation {
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     self.other_module_graph = Some(ModuleGraphPartial::default());
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
 
     // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L2809
     plugin_driver.compilation_hooks.seal.call(self).await?;
@@ -1321,12 +1331,13 @@ impl Compilation {
         self.cgm_hash_results.remove(&revoked_module);
       }
       let modules = mutations.get_affected_modules_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.modulesHashes");
+      let mut logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
         "{} modules are affected, {} in total",
         modules.len(),
         self.get_module_graph().modules().len()
       ));
+      self.collect_logger(logger);
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1353,12 +1364,13 @@ impl Compilation {
         self.code_generation_results.remove(&revoked_module);
       }
       let modules = mutations.get_affected_modules_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.modulesCodegen");
+      let mut logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
         "{} modules are affected, {} in total",
         modules.len(),
         self.get_module_graph().modules().len()
       ));
+      self.collect_logger(logger);
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1381,12 +1393,13 @@ impl Compilation {
           .remove(&revoked_module);
       }
       let modules = mutations.get_affected_modules_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
+      let mut logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
       logger.log(format!(
         "{} modules are affected, {} in total",
         modules.len(),
         self.get_module_graph().modules().len()
       ));
+      self.collect_logger(logger);
       modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
@@ -1419,12 +1432,13 @@ impl Compilation {
       self
         .cgc_runtime_requirements_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
-      let logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
+      let mut logger = self.get_logger("rspack.incremental.chunksRuntimeRequirements");
       logger.log(format!(
         "{} chunks are affected, {} in total",
         affected_chunks.len(),
         self.chunk_by_ukey.len()
       ));
+      self.collect_logger(logger);
       affected_chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1454,12 +1468,13 @@ impl Compilation {
         .chunk_hashes_results
         .retain(|chunk, _| self.chunk_by_ukey.contains(chunk));
       let chunks = mutations.get_affected_chunks_with_chunk_graph(self);
-      let logger = self.get_logger("rspack.incremental.chunksHashes");
+      let mut logger = self.get_logger("rspack.incremental.chunksHashes");
       logger.log(format!(
         "{} chunks are affected, {} in total",
         chunks.len(),
         self.chunk_by_ukey.len(),
       ));
+      self.collect_logger(logger);
       chunks
     } else {
       self.chunk_by_ukey.keys().copied().collect()
@@ -1494,6 +1509,7 @@ impl Compilation {
     self.after_seal(plugin_driver).await?;
     logger.time_end(start);
 
+    self.collect_logger(logger);
     Ok(())
   }
 
@@ -1556,7 +1572,7 @@ impl Compilation {
     modules: IdentifierSet,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
     let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RuntimeGlobals>)> = modules
       .into_par_iter()
@@ -1607,6 +1623,7 @@ impl Compilation {
       ChunkGraph::set_module_runtime_requirements(self, module, map);
     }
     logger.time_end(start);
+    self.collect_logger(logger);
     Ok(())
   }
 
@@ -1617,7 +1634,7 @@ impl Compilation {
     entries: UkeySet<ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.chunks");
     let mut chunk_requirements = HashMap::default();
     for chunk_ukey in chunks.iter().chain(entries.iter()) {
@@ -1719,6 +1736,7 @@ impl Compilation {
     }
 
     logger.time_end(start);
+    self.collect_logger(logger);
     Ok(())
   }
 
@@ -1728,7 +1746,7 @@ impl Compilation {
     create_hash_chunks: UkeySet<ChunkUkey>,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
+    let mut logger = self.get_logger("rspack.Compilation");
     let mut compilation_hasher = RspackHash::from(&self.options.output);
 
     fn try_process_chunk_hash_results(
@@ -1960,6 +1978,7 @@ impl Compilation {
       );
     }
     logger.time_end(start);
+    self.collect_logger(logger);
     Ok(())
   }
 
@@ -2123,7 +2142,11 @@ impl Compilation {
   }
 
   pub fn get_logger(&self, name: impl Into<String>) -> CompilationLogger {
-    CompilationLogger::new(name.into(), self.logging.clone())
+    CompilationLogger::new(name.into())
+  }
+
+  pub fn collect_logger(&mut self, logger: CompilationLogger) {
+    self.logging.collect_logger(logger);
   }
 
   pub fn set_dependency_factory(

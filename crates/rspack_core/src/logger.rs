@@ -1,15 +1,12 @@
 use std::{
   backtrace::Backtrace,
-  hash::BuildHasherDefault,
-  sync::Arc,
   time::{Duration, Instant},
 };
 
-use dashmap::DashMap;
-use rustc_hash::FxHasher;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Clone)]
-pub enum LogType {
+pub enum Log {
   Error {
     message: String,
     trace: Vec<String>,
@@ -60,24 +57,24 @@ pub enum LogType {
   },
 }
 
-impl LogType {
+impl Log {
   pub fn to_bit_flag(&self) -> u32 {
     match self {
-      LogType::Error { .. } => 1 << 0,
-      LogType::Warn { .. } => 1 << 1,
-      LogType::Info { .. } => 1 << 2,
-      LogType::Log { .. } => 1 << 3,
-      LogType::Debug { .. } => 1 << 4,
-      LogType::Trace { .. } => 1 << 5,
-      LogType::Group { .. } => 1 << 6,
-      LogType::GroupCollapsed { .. } => 1 << 7,
-      LogType::GroupEnd => 1 << 8,
-      LogType::Profile { .. } => 1 << 9,
-      LogType::ProfileEnd { .. } => 1 << 10,
-      LogType::Time { .. } => 1 << 11,
-      LogType::Clear => 1 << 12,
-      LogType::Status { .. } => 1 << 13,
-      LogType::Cache { .. } => 1 << 14,
+      Log::Error { .. } => 1 << 0,
+      Log::Warn { .. } => 1 << 1,
+      Log::Info { .. } => 1 << 2,
+      Log::Log { .. } => 1 << 3,
+      Log::Debug { .. } => 1 << 4,
+      Log::Trace { .. } => 1 << 5,
+      Log::Group { .. } => 1 << 6,
+      Log::GroupCollapsed { .. } => 1 << 7,
+      Log::GroupEnd => 1 << 8,
+      Log::Profile { .. } => 1 << 9,
+      Log::ProfileEnd { .. } => 1 << 10,
+      Log::Time { .. } => 1 << 11,
+      Log::Clear => 1 << 12,
+      Log::Status { .. } => 1 << 13,
+      Log::Cache { .. } => 1 << 14,
     }
   }
 }
@@ -95,85 +92,85 @@ fn capture_trace() -> Vec<String> {
 }
 
 pub trait Logger {
-  fn raw(&self, log_type: LogType);
+  fn raw(&mut self, log_type: Log);
 
-  fn error(&self, message: impl Into<String>) {
-    self.raw(LogType::Error {
+  fn error(&mut self, message: impl Into<String>) {
+    self.raw(Log::Error {
       message: message.into(),
       trace: capture_trace(),
     })
   }
 
-  fn warn(&self, message: impl Into<String>) {
-    self.raw(LogType::Warn {
+  fn warn(&mut self, message: impl Into<String>) {
+    self.raw(Log::Warn {
       message: message.into(),
       trace: capture_trace(),
     })
   }
 
-  fn info(&self, message: impl Into<String>) {
-    self.raw(LogType::Info {
+  fn info(&mut self, message: impl Into<String>) {
+    self.raw(Log::Info {
       message: message.into(),
     })
   }
 
-  fn log(&self, message: impl Into<String>) {
-    self.raw(LogType::Log {
+  fn log(&mut self, message: impl Into<String>) {
+    self.raw(Log::Log {
       message: message.into(),
     })
   }
 
-  fn debug(&self, message: impl Into<String>) {
-    self.raw(LogType::Debug {
+  fn debug(&mut self, message: impl Into<String>) {
+    self.raw(Log::Debug {
       message: message.into(),
     })
   }
 
-  fn assert(&self, assertion: bool, message: impl Into<String>) {
+  fn assert(&mut self, assertion: bool, message: impl Into<String>) {
     if !assertion {
       self.error(message);
     }
   }
 
-  fn trace(&self) {
-    self.raw(LogType::Trace {
+  fn trace(&mut self) {
+    self.raw(Log::Trace {
       message: "Trace".to_string(),
       trace: capture_trace(),
     })
   }
 
-  fn clear(&self) {
-    self.raw(LogType::Clear)
+  fn clear(&mut self) {
+    self.raw(Log::Clear)
   }
 
-  fn status(&self, message: impl Into<String>) {
-    self.raw(LogType::Status {
+  fn status(&mut self, message: impl Into<String>) {
+    self.raw(Log::Status {
       message: message.into(),
     })
   }
 
-  fn profile(&self, label: &'static str) {
-    self.raw(LogType::Profile { label })
+  fn profile(&mut self, label: &'static str) {
+    self.raw(Log::Profile { label })
   }
 
-  fn profile_end(&self, label: &'static str) {
-    self.raw(LogType::ProfileEnd { label })
+  fn profile_end(&mut self, label: &'static str) {
+    self.raw(Log::ProfileEnd { label })
   }
 
-  fn group(&self, message: impl Into<String>) {
-    self.raw(LogType::Group {
+  fn group(&mut self, message: impl Into<String>) {
+    self.raw(Log::Group {
       message: message.into(),
     })
   }
 
-  fn group_collapsed(&self, message: impl Into<String>) {
-    self.raw(LogType::GroupCollapsed {
+  fn group_collapsed(&mut self, message: impl Into<String>) {
+    self.raw(Log::GroupCollapsed {
       message: message.into(),
     })
   }
 
-  fn group_end(&self) {
-    self.raw(LogType::GroupEnd)
+  fn group_end(&mut self) {
+    self.raw(Log::GroupEnd)
   }
 
   fn time(&self, label: &'static str) -> StartTime {
@@ -183,18 +180,18 @@ pub trait Logger {
     }
   }
 
-  fn time_log(&self, start: &StartTime) {
+  fn time_log(&mut self, start: &StartTime) {
     let elapsed = start.elapsed();
     let secs = elapsed.as_secs();
     let subsec_nanos = elapsed.subsec_nanos();
-    self.raw(LogType::Time {
+    self.raw(Log::Time {
       label: start.label,
       secs,
       subsec_nanos,
     })
   }
 
-  fn time_end(&self, start: StartTime) {
+  fn time_end(&mut self, start: StartTime) {
     self.time_log(&start)
   }
 
@@ -205,10 +202,10 @@ pub trait Logger {
     }
   }
 
-  fn time_aggregate_end(&self, start: StartTimeAggregate) {
+  fn time_aggregate_end(&mut self, start: StartTimeAggregate) {
     let secs = start.duration.as_secs();
     let subsec_nanos = start.duration.subsec_nanos();
-    self.raw(LogType::Time {
+    self.raw(Log::Time {
       label: start.label,
       secs,
       subsec_nanos,
@@ -223,9 +220,9 @@ pub trait Logger {
     }
   }
 
-  fn cache_end(&self, count: CacheCount) {
+  fn cache_end(&mut self, count: CacheCount) {
     if count.total != 0 {
-      self.raw(LogType::Cache {
+      self.raw(Log::Cache {
         label: count.label,
         hit: count.hit,
         total: count.total,
@@ -288,25 +285,72 @@ impl CacheCount {
   }
 }
 
-pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
+#[derive(Debug, Default)]
+pub struct CompilationLogging {
+  loggers: FxHashMap<String, Logs>,
+}
 
+impl CompilationLogging {
+  pub fn collect_logger(&mut self, logger: CompilationLogger) {
+    self
+      .loggers
+      .entry(logger.name)
+      .or_default()
+      .extend(logger.logs);
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&String, &Logs)> {
+    self.loggers.iter()
+  }
+}
+
+#[derive(Debug)]
 pub struct CompilationLogger {
-  logging: CompilationLogging,
+  logs: Logs,
   name: String,
 }
 
 impl CompilationLogger {
-  pub fn new(name: String, logging: CompilationLogging) -> Self {
-    Self { logging, name }
+  pub fn new(name: String) -> Self {
+    Self {
+      logs: Default::default(),
+      name,
+    }
+  }
+
+  pub fn collect_logs(&mut self, logs: Logs) {
+    self.logs.extend(logs);
   }
 }
 
 impl Logger for CompilationLogger {
-  fn raw(&self, log_type: LogType) {
-    if let Some(mut value) = self.logging.get_mut(&self.name) {
-      value.push(log_type);
-    } else {
-      self.logging.insert(self.name.clone(), vec![log_type]);
-    }
+  fn raw(&mut self, log_type: Log) {
+    self.logs.raw(log_type);
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Logs {
+  inner: Vec<Log>,
+}
+
+impl Logger for Logs {
+  fn raw(&mut self, log_type: Log) {
+    self.inner.push(log_type);
+  }
+}
+
+impl IntoIterator for Logs {
+  type Item = Log;
+  type IntoIter = std::vec::IntoIter<Log>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.inner.into_iter()
+  }
+}
+
+impl Extend<Log> for Logs {
+  fn extend<T: IntoIterator<Item = Log>>(&mut self, iter: T) {
+    self.inner.extend(iter)
   }
 }

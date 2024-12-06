@@ -11,7 +11,7 @@ pub struct RemoveEmptyChunksPlugin;
 
 impl RemoveEmptyChunksPlugin {
   fn remove_empty_chunks(&self, compilation: &mut Compilation) {
-    let logger = compilation.get_logger(self.name());
+    let mut logger = compilation.get_logger(self.name());
     let start = logger.time("remove empty chunks");
 
     let chunk_graph = &mut compilation.chunk_graph;
@@ -36,6 +36,7 @@ impl RemoveEmptyChunksPlugin {
     });
 
     logger.time_end(start);
+    compilation.collect_logger(logger);
   }
 }
 

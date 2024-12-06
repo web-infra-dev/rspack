@@ -538,7 +538,7 @@ impl SourceMapDevToolPlugin {
 
 #[plugin_hook(CompilationProcessAssets for SourceMapDevToolPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_DEV_TOOLING)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
+  let mut logger = compilation.get_logger("rspack.SourceMapDevToolPlugin");
 
   // use to read
   let mut file_to_chunk: HashMap<&String, &Chunk> = HashMap::default();
@@ -594,6 +594,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   logger.time_end(start);
+  compilation.collect_logger(logger);
 
   Ok(())
 }

@@ -17,7 +17,7 @@ use regex::Regex;
 use rspack_core::{
   rspack_sources::{RawSource, Source},
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, FilenameTemplate, Logger, PathData, Plugin,
+  CompilationProcessAssets, FilenameTemplate, Logger, Logs, PathData, Plugin,
 };
 use rspack_error::{Diagnostic, DiagnosticError, Error, ErrorExt, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -124,6 +124,7 @@ pub struct RunPatternResult {
   pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
+  pub logs: Logs,
 }
 
 #[plugin]
@@ -163,8 +164,8 @@ impl CopyRspackPlugin {
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &Mutex<Vec<Diagnostic>>,
     compilation: &Compilation,
-    logger: &CompilationLogger,
   ) -> Option<RunPatternResult> {
+    let mut logger = Logs::default();
     // Exclude directories
     if entry.is_dir() {
       return None;
@@ -348,6 +349,7 @@ impl CopyRspackPlugin {
       info: pattern.info.clone(),
       force: pattern.force,
       priority: pattern.priority,
+      logs: logger,
     })
   }
 
@@ -358,7 +360,7 @@ impl CopyRspackPlugin {
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
     diagnostics: &Mutex<Vec<Diagnostic>>,
-    logger: &CompilationLogger,
+    logger: &mut CompilationLogger,
   ) -> Option<Vec<Option<RunPatternResult>>> {
     let orig_from = &pattern.from;
     let normalized_orig_from = Utf8PathBuf::from(orig_from);
@@ -516,7 +518,6 @@ impl CopyRspackPlugin {
               file_dependencies,
               diagnostics,
               compilation,
-              logger,
             )
             .await
           })
@@ -574,7 +575,7 @@ impl CopyRspackPlugin {
 
 #[plugin_hook(CompilationProcessAssets for CopyRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.CopyRspackPlugin");
+  let mut logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
   let file_dependencies = DashSet::default();
   let context_dependencies = DashSet::default();
@@ -592,7 +593,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         &file_dependencies,
         &context_dependencies,
         &diagnostics,
-        &logger,
+        &mut logger,
       )
     })
     .collect::<Vec<_>>()
@@ -624,6 +625,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
   copied_result.into_iter().for_each(|(_priority, result)| {
+    logger.collect_logs(result.logs);
+
     if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
       if !result.force {
         return;
@@ -656,6 +659,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   });
   logger.time_end(start);
 
+  compilation.collect_logger(logger);
   Ok(())
 }
 
