@@ -6,19 +6,20 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerOptions, Context, ModuleIdentifier, ModuleLayer,
-  Resolve,
+  Resolve, ResolverFactory,
 };
 
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
   pub compilation_id: CompilationId,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub context: Context,
   pub dependencies: Vec<BoxDependency>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
+  pub resolver_factory: Arc<ResolverFactory>,
 
   pub file_dependencies: HashSet<ArcPath>,
   pub context_dependencies: HashSet<ArcPath>,

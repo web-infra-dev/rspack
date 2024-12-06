@@ -125,7 +125,10 @@ impl ContextModuleFactory {
       tracing::trace!("resolving context module path {}", options.resource);
 
       let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-        resolve_options: options.resolve_options.clone(),
+        resolve_options: options
+          .resolve_options
+          .clone()
+          .map(|r| Box::new(Arc::unwrap_or_clone(r))),
         resolve_to_context: false,
         dependency_category: options.context_options.category,
       });

@@ -1,9 +1,11 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::{ResolveOptionsWithDependencyType, ResolverFactory};
 
 pub type Externals = Vec<ExternalItem>;
 
@@ -26,6 +28,8 @@ pub struct ExternalItemFnCtx {
   pub context: String,
   pub dependency_type: String,
   pub context_info: ContextInfo,
+  pub resolve_options_with_dependency_type: ResolveOptionsWithDependencyType,
+  pub resolver_factory: Arc<ResolverFactory>,
 }
 
 pub struct ExternalItemFnResult {

@@ -10,6 +10,7 @@ use crate::raw_resolve::{
 };
 
 #[napi]
+#[derive(Debug)]
 pub struct JsResolver {
   resolver_factory: Arc<ResolverFactory>,
   resolver: Arc<Resolver>,

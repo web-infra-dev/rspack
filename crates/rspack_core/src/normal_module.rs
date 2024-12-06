@@ -127,7 +127,7 @@ pub struct NormalModule {
   source: NormalModuleSource,
 
   /// Resolve options derived from [Rule.resolve]
-  resolve_options: Option<Box<Resolve>>,
+  resolve_options: Option<Arc<Resolve>>,
   /// Parser options derived from [Rule.parser]
   parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
@@ -197,7 +197,7 @@ impl NormalModule {
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
-    resolve_options: Option<Box<Resolve>>,
+    resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
   ) -> Self {
     let module_type = module_type.into();
@@ -720,7 +720,7 @@ impl Module for NormalModule {
     Some(Cow::Owned(ident))
   }
 
-  fn get_resolve_options(&self) -> Option<Box<Resolve>> {
+  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
     self.resolve_options.clone()
   }
 

@@ -45,6 +45,7 @@ impl Task<MakeTaskContext> for EntryTask {
         .compiler_options
         .profile
         .then(Box::<ModuleProfile>::default),
+      resolver_factory: context.resolver_factory.clone(),
     })])
   }
 }

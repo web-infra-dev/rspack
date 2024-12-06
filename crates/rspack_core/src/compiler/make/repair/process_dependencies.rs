@@ -109,6 +109,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
         current_profile,
+        resolver_factory: context.resolver_factory.clone(),
       }));
     }
     Ok(res)

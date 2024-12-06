@@ -11,7 +11,7 @@ use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   BoxDependency, CompilationId, CompilerOptions, Context, ExportInfoData, ExportsInfoData,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  ModuleProfile, Resolve,
+  ModuleProfile, Resolve, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -24,9 +24,10 @@ pub struct FactorizeTask {
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
   pub dependencies: Vec<BoxDependency>,
-  pub resolve_options: Option<Box<Resolve>>,
+  pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub resolver_factory: Arc<ResolverFactory>,
 }
 
 #[async_trait::async_trait]
@@ -89,6 +90,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
+      resolver_factory: self.resolver_factory,
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),

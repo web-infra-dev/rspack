@@ -1373,7 +1373,20 @@ export type ExternalItemFunctionData = {
 	request?: string;
 	contextInfo?: {
 		issuer: string;
+		issuerLayer?: string | null;
 	};
+	/**
+	 * Get a resolve function with the current resolver options.
+	 */
+	getResolve?: (
+		options?: ResolveOptions
+	) =>
+		| ((
+				context: string,
+				request: string,
+				callback: (err?: Error, result?: string) => void
+		  ) => void)
+		| ((context: string, request: string) => Promise<string>);
 };
 
 /**
