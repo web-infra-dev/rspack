@@ -12,67 +12,58 @@ import { memoizeFn } from "./util/memoize";
 
 const BUFFER_SIZE = 1000;
 
+const ASYNC_NOOP = async () => {};
+
 const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
-	writeFile() {},
-	removeFile() {},
-	mkdir() {},
-	mkdirp() {},
-	removeDirAll() {},
-	readDir: () => {},
-	readFile: () => {},
-	stat: () => {},
-	lstat: () => {},
-	open: () => {},
-	rename: () => {},
-	close: () => {},
-	write: () => {},
-	writeAll: () => {},
-	read: () => {},
-	readUntil: () => {},
-	readToEnd: () => {}
+	writeFile: ASYNC_NOOP,
+	removeFile: ASYNC_NOOP,
+	mkdir: ASYNC_NOOP,
+	mkdirp: ASYNC_NOOP,
+	removeDirAll: ASYNC_NOOP,
+	readDir: ASYNC_NOOP,
+	readFile: ASYNC_NOOP,
+	stat: ASYNC_NOOP,
+	lstat: ASYNC_NOOP,
+	open: ASYNC_NOOP,
+	rename: ASYNC_NOOP,
+	close: ASYNC_NOOP,
+	write: ASYNC_NOOP,
+	writeAll: ASYNC_NOOP,
+	read: ASYNC_NOOP,
+	readUntil: ASYNC_NOOP,
+	readToEnd: ASYNC_NOOP
 };
 
 class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
-	writeFile!: (name: string, content: Buffer) => Promise<void> | void;
-	removeFile!: (name: string) => Promise<void> | void;
-	mkdir!: (name: string) => Promise<void> | void;
-	mkdirp!: (name: string) => Promise<string | void> | string | void;
-	removeDirAll!: (name: string) => Promise<string | void> | string | void;
-	readDir!: (name: string) => Promise<string[] | void> | string[] | void;
-	readFile!: (
-		name: string
-	) => Promise<Buffer | string | void> | Buffer | string | void;
-	stat!: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void;
-	lstat!: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void;
-	open!: (
-		name: string,
-		flags: string
-	) => Promise<number | void> | number | void;
-	rename!: (from: string, to: string) => Promise<void> | void;
-	close!: (fd: number) => Promise<void> | void;
+	writeFile!: (name: string, content: Buffer) => Promise<void>;
+	removeFile!: (name: string) => Promise<void>;
+	mkdir!: (name: string) => Promise<void>;
+	mkdirp!: (name: string) => Promise<string | void>;
+	removeDirAll!: (name: string) => Promise<string | void>;
+	readDir!: (name: string) => Promise<string[] | void>;
+	readFile!: (name: string) => Promise<Buffer | string | void>;
+	stat!: (name: string) => Promise<NodeFsStats | void>;
+	lstat!: (name: string) => Promise<NodeFsStats | void>;
+	open!: (name: string, flags: string) => Promise<number | void>;
+	rename!: (from: string, to: string) => Promise<void>;
+	close!: (fd: number) => Promise<void>;
 	write!: (
 		fd: number,
 		content: Buffer,
 		position: number
-	) => Promise<number | void> | number | void;
-	writeAll!: (
-		fd: number,
-		content: Buffer
-	) => Promise<number | void> | number | void;
+	) => Promise<number | void>;
+	writeAll!: (fd: number, content: Buffer) => Promise<number | void>;
 	read!: (
 		fd: number,
 		length: number,
 		position: number
-	) => Promise<Buffer | void> | Buffer | void;
+	) => Promise<Buffer | void>;
 	readUntil!: (
 		fd: number,
 		code: number,
 		position: number
-	) => Promise<Buffer | void> | Buffer | void;
-	readToEnd!: (
-		fd: number,
-		position: number
-	) => Promise<Buffer | void> | Buffer | void;
+	) => Promise<Buffer | void>;
+	readToEnd!: (fd: number, position: number) => Promise<Buffer | void>;
 
 	constructor(fs?: OutputFileSystem) {
 		Object.assign(this, NOOP_FILESYSTEM);

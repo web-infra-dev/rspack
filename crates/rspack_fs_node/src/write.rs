@@ -29,7 +29,7 @@ impl WritableFileSystem for NodeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
     let fut = async {
       let dir = dir.as_str().to_string();
-      self.0.mkdir.call(dir).await.map_err(|e| {
+      self.0.mkdir.call_with_promise(dir).await.map_err(|e| {
         Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           e.to_string(),
@@ -46,7 +46,7 @@ impl WritableFileSystem for NodeFileSystem {
       self
         .0
         .mkdirp
-        .call(dir)
+        .call_with_promise(dir)
         .await
         .map_err(|e| {
           Error::Io(std::io::Error::new(
@@ -66,7 +66,7 @@ impl WritableFileSystem for NodeFileSystem {
       self
         .0
         .write_file
-        .call((file, data.into()))
+        .call_with_promise((file, data.into()))
         .await
         .map_err(|e| {
           Error::Io(std::io::Error::new(
@@ -84,7 +84,7 @@ impl WritableFileSystem for NodeFileSystem {
       self
         .0
         .remove_file
-        .call(file)
+        .call_with_promise(file)
         .await
         .map_err(|e| {
           Error::Io(std::io::Error::new(
@@ -103,7 +103,7 @@ impl WritableFileSystem for NodeFileSystem {
       self
         .0
         .remove_dir_all
-        .call(dir)
+        .call_with_promise(dir)
         .await
         .map_err(|e| {
           Error::Io(std::io::Error::new(
@@ -120,7 +120,7 @@ impl WritableFileSystem for NodeFileSystem {
   fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
     let fut = async {
       let dir = dir.as_str().to_string();
-      let res = self.0.read_dir.call(dir).await.map_err(|e| {
+      let res = self.0.read_dir.call_with_promise(dir).await.map_err(|e| {
         Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           e.to_string(),
@@ -141,12 +141,17 @@ impl WritableFileSystem for NodeFileSystem {
   fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
     let fut = async {
       let file = file.as_str().to_string();
-      let res = self.0.read_file.call(file).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      let res = self
+        .0
+        .read_file
+        .call_with_promise(file)
+        .await
+        .map_err(|e| {
+          Error::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+          ))
+        })?;
 
       match res {
         Either3::A(data) => Ok(data.to_vec()),
@@ -163,7 +168,7 @@ impl WritableFileSystem for NodeFileSystem {
   fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
     let fut = async {
       let file = file.as_str().to_string();
-      let res = self.0.stat.call(file).await.map_err(|e| {
+      let res = self.0.stat.call_with_promise(file).await.map_err(|e| {
         Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           e.to_string(),
@@ -187,12 +192,17 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
     let fut = async {
       let from = from.as_str().to_string();
       let to = to.as_str().to_string();
-      self.0.rename.call((from, to)).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })
+      self
+        .0
+        .rename
+        .call_with_promise((from, to))
+        .await
+        .map_err(|e| {
+          Error::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+          ))
+        })
     };
     fut.await
   }
@@ -219,7 +229,7 @@ impl NodeReadStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call((file.as_str().to_string(), "r".to_string()))
+      .call_with_promise((file.as_str().to_string(), "r".to_string()))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -245,7 +255,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read
-      .call((self.fd, length as u32, self.pos as u32))
+      .call_with_promise((self.fd, length as u32, self.pos as u32))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -271,7 +281,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_until
-      .call((self.fd, byte, self.pos as u32))
+      .call_with_promise((self.fd, byte, self.pos as u32))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -296,7 +306,7 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_to_end
-      .call((self.fd, self.pos as u32))
+      .call_with_promise((self.fd, self.pos as u32))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -322,7 +332,7 @@ impl ReadStream for NodeReadStream {
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
-    self.fs.close.call(self.fd).await.map_err(|e| {
+    self.fs.close.call_with_promise(self.fd).await.map_err(|e| {
       Error::Io(std::io::Error::new(
         std::io::ErrorKind::Other,
         e.to_string(),
@@ -342,7 +352,7 @@ impl NodeWriteStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call((file.as_str().to_string(), "w+".to_string()))
+      .call_with_promise((file.as_str().to_string(), "w+".to_string()))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -367,7 +377,7 @@ impl WriteStream for NodeWriteStream {
     let res = self
       .fs
       .write
-      .call((self.fd, buf.to_vec().into(), self.pos as u32))
+      .call_with_promise((self.fd, buf.to_vec().into(), self.pos as u32))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -391,7 +401,7 @@ impl WriteStream for NodeWriteStream {
     self
       .fs
       .write_all
-      .call((self.fd, buf.to_vec().into()))
+      .call_with_promise((self.fd, buf.to_vec().into()))
       .await
       .map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -404,7 +414,7 @@ impl WriteStream for NodeWriteStream {
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
-    self.fs.close.call(self.fd).await.map_err(|e| {
+    self.fs.close.call_with_promise(self.fd).await.map_err(|e| {
       Error::Io(std::io::Error::new(
         std::io::ErrorKind::Other,
         e.to_string(),
