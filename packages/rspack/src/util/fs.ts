@@ -81,7 +81,7 @@ interface IDirent {
 
 export interface OutputFileSystem {
 	writeFile: (
-		arg0: string,
+		arg0: string | number,
 		arg1: string | Buffer,
 		arg2: (arg0?: null | NodeJS.ErrnoException) => void
 	) => void;
@@ -478,6 +478,96 @@ export type InputFileSystem = {
 	join?: (path1: string, path2: string) => string;
 	relative?: (from: string, to: string) => string;
 	dirname?: (path: string) => string;
+};
+
+export type IntermediateFileSystem = InputFileSystem &
+	OutputFileSystem &
+	IntermediateFileSystemExtras;
+
+export type WriteStreamOptions = {
+	flags?: string;
+	encoding?:
+		| "ascii"
+		| "utf8"
+		| "utf-8"
+		| "utf16le"
+		| "utf-16le"
+		| "ucs2"
+		| "ucs-2"
+		| "latin1"
+		| "binary"
+		| "base64"
+		| "base64url"
+		| "hex";
+	fd?: any;
+	mode?: number;
+};
+
+export type MakeDirectoryOptions = {
+	recursive?: boolean;
+	mode?: string | number;
+};
+
+export type MkdirSync = (
+	path: PathLike,
+	options: MakeDirectoryOptions
+) => undefined | string;
+
+export type ReadAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
+	offset?: number;
+	length?: number;
+	position?: null | number | bigint;
+	buffer?: TBuffer;
+};
+
+export type Read<TBuffer extends ArrayBufferView = Buffer> = (
+	fd: number,
+	options: ReadAsyncOptions<TBuffer>,
+	callback: (
+		err: null | NodeJS.ErrnoException,
+		bytesRead: number,
+		buffer: TBuffer
+	) => void
+) => void;
+
+export type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
+	offset?: number;
+	length?: number;
+	position?: null | number | bigint;
+	buffer?: TBuffer;
+};
+
+export type Write<TBuffer extends ArrayBufferView = Buffer> = (
+	fd: number,
+	content: Buffer,
+	options: WriteAsyncOptions<TBuffer>,
+	callback: (
+		err: null | NodeJS.ErrnoException,
+		bytesWrite: number,
+		buffer: TBuffer
+	) => void
+) => void;
+
+export type Open = (
+	file: PathLike,
+	flags: undefined | string | number,
+	callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void
+) => void;
+
+export type IntermediateFileSystemExtras = {
+	rename: (
+		arg0: PathLike,
+		arg1: PathLike,
+		arg2: (arg0: null | NodeJS.ErrnoException) => void
+	) => void;
+	mkdirSync: MkdirSync;
+	write: Write<Buffer>;
+	open: Open;
+	read: Read<Buffer>;
+	close: (
+		arg0: number,
+		arg1: (arg0: null | NodeJS.ErrnoException) => void
+	) => void;
 };
 
 export function rmrf(

@@ -872,7 +872,7 @@ export class Compiler {
     // (undocumented)
     inputFileSystem: InputFileSystem | null;
     // (undocumented)
-    intermediateFileSystem: any;
+    intermediateFileSystem: IntermediateFileSystem | null;
     // (undocumented)
     isChild(): boolean;
     // (undocumented)
@@ -2422,6 +2422,19 @@ type InputFileSystem = {
 };
 
 // @public (undocumented)
+type IntermediateFileSystem = InputFileSystem & OutputFileSystem & IntermediateFileSystemExtras;
+
+// @public (undocumented)
+type IntermediateFileSystemExtras = {
+    rename: (arg0: PathLike, arg1: PathLike, arg2: (arg0: null | NodeJS.ErrnoException) => void) => void;
+    mkdirSync: MkdirSync;
+    write: Write<Buffer>;
+    open: Open;
+    read: Read<Buffer>;
+    close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
+};
+
+// @public (undocumented)
 type INVALID = {
     status: "aborted";
 };
@@ -3534,6 +3547,12 @@ type LStatSync = {
 };
 
 // @public (undocumented)
+type MakeDirectoryOptions = {
+    recursive?: boolean;
+    mode?: string | number;
+};
+
+// @public (undocumented)
 type MakeReadonly<T> = T extends Map<infer K, infer V> ? ReadonlyMap<K, V> : T extends Set<infer V> ? ReadonlySet<V> : T extends [infer Head, ...infer Tail] ? readonly [Head, ...Tail] : T extends Array<infer V> ? ReadonlyArray<V> : T extends BuiltIn ? T : Readonly<T>;
 
 // @public (undocumented)
@@ -3557,6 +3576,9 @@ const matchObject: (obj: MatchObject, str: string) => boolean;
 
 // @public (undocumented)
 const matchPart: (str: string, test: Matcher) => boolean;
+
+// @public (undocumented)
+type MkdirSync = (path: PathLike, options: MakeDirectoryOptions) => undefined | string;
 
 // @public
 export type Mode = "development" | "production" | "none";
@@ -3731,8 +3753,8 @@ export class MultiCompiler {
     get inputFileSystem(): InputFileSystem;
     set inputFileSystem(value: InputFileSystem);
     // (undocumented)
-    get intermediateFileSystem(): void;
-    set intermediateFileSystem(value: void);
+    get intermediateFileSystem(): IntermediateFileSystem;
+    set intermediateFileSystem(value: IntermediateFileSystem);
     // (undocumented)
     get options(): RspackOptionsNormalized_2[] & MultiCompilerOptions;
     // (undocumented)
@@ -4001,6 +4023,9 @@ type OK<T> = {
 const OK: <T>(value: T) => OK<T>;
 
 // @public (undocumented)
+type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
+
+// @public (undocumented)
 export type Optimization = {
     moduleIds?: "named" | "natural" | "deterministic";
     chunkIds?: "natural" | "named" | "deterministic";
@@ -4181,7 +4206,7 @@ export interface OutputFileSystem {
     // (undocumented)
     unlink: (arg0: string, arg1: (arg0?: null | NodeJS.ErrnoException) => void) => void;
     // (undocumented)
-    writeFile: (arg0: string, arg1: string | Buffer, arg2: (arg0?: null | NodeJS.ErrnoException) => void) => void;
+    writeFile: (arg0: string | number, arg1: string | Buffer, arg2: (arg0?: null | NodeJS.ErrnoException) => void) => void;
 }
 
 // @public
@@ -4610,6 +4635,17 @@ interface ReactConfig {
     // @deprecated
     useBuiltins?: boolean;
 }
+
+// @public (undocumented)
+type Read<TBuffer extends ArrayBufferView = Buffer> = (fd: number, options: ReadAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesRead: number, buffer: TBuffer) => void) => void;
+
+// @public (undocumented)
+type ReadAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
+    offset?: number;
+    length?: number;
+    position?: null | number | bigint;
+    buffer?: TBuffer;
+};
 
 // @public (undocumented)
 type Readdir = {
@@ -11174,6 +11210,17 @@ class WebWorkerTemplatePlugin extends RspackBuiltinPlugin {
 
 // @public
 export type WorkerPublicPath = string;
+
+// @public (undocumented)
+type Write<TBuffer extends ArrayBufferView = Buffer> = (fd: number, content: Buffer, options: WriteAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesWrite: number, buffer: TBuffer) => void) => void;
+
+// @public (undocumented)
+type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
+    offset?: number;
+    length?: number;
+    position?: null | number | bigint;
+    buffer?: TBuffer;
+};
 
 // @public (undocumented)
 namespace z {

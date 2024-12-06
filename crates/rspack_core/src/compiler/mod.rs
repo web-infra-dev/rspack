@@ -54,6 +54,7 @@ pub struct CompilerHooks {
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Box<dyn WritableFileSystem>,
+  pub intermediate_filesystem: Box<dyn WritableFileSystem>,
   pub input_filesystem: Arc<dyn FileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
@@ -69,11 +70,13 @@ pub struct Compiler {
 
 impl Compiler {
   #[instrument(skip_all)]
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
     output_filesystem: Option<Box<dyn WritableFileSystem>>,
+    intermediate_filesystem: Option<Box<dyn WritableFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
@@ -109,6 +112,8 @@ impl Compiler {
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
     let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
+    let intermediate_filesystem =
+      intermediate_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
 
     Self {
       options: options.clone(),
@@ -127,6 +132,7 @@ impl Compiler {
         input_filesystem.clone(),
       ),
       output_filesystem,
+      intermediate_filesystem,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,

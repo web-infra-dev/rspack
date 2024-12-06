@@ -211,7 +211,7 @@ export declare class RawExternalItemFnCtx {
 }
 
 export declare class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
+  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -2136,4 +2136,12 @@ export interface ThreadsafeNodeFS {
   readFile: (name: string) => Promise<Buffer | string | void> | Buffer | string | void
   stat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
   lstat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
+  open: (name: string, flags: string) => Promise<number | void> | number | void
+  rename: (from: string, to: string) => Promise<void> | void
+  close: (fd: number) => Promise<void> | void
+  write: (fd: number, content: Buffer, position: number) => Promise<number | void> | number | void
+  writeAll: (fd: number, content: Buffer) => Promise<number | void> | number | void
+  read: (fd: number, length: number, position: number) => Promise<Buffer | void> | Buffer | void
+  readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void> | Buffer | void
+  readToEnd: (fd: number, position: number) => Promise<Buffer | void> | Buffer | void
 }
