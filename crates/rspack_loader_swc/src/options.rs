@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable,
+  with::{AsRefStr, AsRefStrConverter},
+};
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
@@ -74,16 +78,30 @@ pub struct SwcLoaderJsOptions {
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
+#[cacheable(with=AsRefStr)]
 #[derive(Debug)]
 pub(crate) struct SwcCompilerOptionsWithAdditional {
+  raw_options: String,
   pub(crate) swc_options: Options,
   pub(crate) rspack_experiments: RspackExperiments,
 }
 
+impl AsRefStrConverter for SwcCompilerOptionsWithAdditional {
+  fn as_str(&self) -> &str {
+    &self.raw_options
+  }
+  fn from_str(s: &str) -> Self {
+    s.try_into()
+      .expect("failed to generate SwcCompilerOptionsWithAdditional")
+  }
+}
+
 const SOURCE_MAP_INLINE: &str = "inline";
 
-impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
-  fn from(value: SwcLoaderJsOptions) -> Self {
+impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
+  type Error = serde_json::Error;
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    let option: SwcLoaderJsOptions = serde_json::from_str(value)?;
     let SwcLoaderJsOptions {
       source_maps,
       source_map,
@@ -100,7 +118,7 @@ impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
       is_module,
       schema,
       rspack_experiments,
-    } = value;
+    } = option;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
       source_maps = source_map
@@ -110,7 +128,8 @@ impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
         source_maps = Some(SourceMapsConfig::Bool(true))
       }
     }
-    SwcCompilerOptionsWithAdditional {
+    Ok(SwcCompilerOptionsWithAdditional {
+      raw_options: value.into(),
       swc_options: Options {
         config: Config {
           env,
@@ -130,6 +149,6 @@ impl From<SwcLoaderJsOptions> for SwcCompilerOptionsWithAdditional {
         ..Default::default()
       },
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
-    }
+    })
   }
 }

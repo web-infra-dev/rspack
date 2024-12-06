@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId,
   DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, RuntimeSpec,
@@ -7,6 +8,7 @@ use rspack_util::atom::Atom;
 
 use crate::utils::escape_css;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssSelfReferenceLocalIdentReplacement {
   pub local_ident: String,
@@ -14,6 +16,7 @@ pub struct CssSelfReferenceLocalIdentReplacement {
   pub end: u32,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssSelfReferenceLocalIdentDependency {
   id: DependencyId,
@@ -31,6 +34,7 @@ impl CssSelfReferenceLocalIdentDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for CssSelfReferenceLocalIdentDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -65,12 +69,14 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CssSelfReferenceLocalIdentDependency {
   fn request(&self) -> &str {
     "self"
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for CssSelfReferenceLocalIdentDependency {
   fn apply(
     &self,

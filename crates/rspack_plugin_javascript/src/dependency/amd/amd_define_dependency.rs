@@ -1,4 +1,8 @@
 use bitflags::bitflags;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset},
+};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals, RuntimeSpec, TemplateContext,
@@ -158,6 +162,7 @@ impl Branch {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AmdDefineDependency {
   id: DependencyId,
@@ -165,6 +170,7 @@ pub struct AmdDefineDependency {
   array_range: Option<(u32, u32)>,
   function_range: Option<(u32, u32)>,
   object_range: Option<(u32, u32)>,
+  #[cacheable(with=AsOption<AsPreset>)]
   named_module: Option<Atom>,
   local_module: Option<LocalModule>,
 }
@@ -194,6 +200,7 @@ impl AmdDefineDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for AmdDefineDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -241,6 +248,7 @@ impl AmdDefineDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for AmdDefineDependency {
   fn apply(
     &self,

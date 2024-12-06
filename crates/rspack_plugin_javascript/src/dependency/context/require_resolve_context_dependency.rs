@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, Compilation, ContextDependency, ContextOptions,
   ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyRange,
@@ -7,6 +8,7 @@ use rspack_error::Diagnostic;
 
 use super::{context_dependency_template_as_id, create_resource_identifier_for_context_dependency};
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct RequireResolveContextDependency {
   id: DependencyId,
@@ -31,6 +33,7 @@ impl RequireResolveContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for RequireResolveContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -91,6 +94,7 @@ impl ContextDependency for RequireResolveContextDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for RequireResolveContextDependency {
   fn apply(
     &self,

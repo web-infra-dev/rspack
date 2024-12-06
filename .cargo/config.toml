@@ -27,7 +27,8 @@ rustflags = [
   "-Wclippy::empty_structs_with_brackets",
   "-Wclippy::rc_buffer",
   "-Wclippy::rc_mutex",
-  "-Wclippy::same_name_method",
+  # https://github.com/bitflags/bitflags/issues/424
+  # "-Wclippy::same_name_method",
 
   "-Aclippy::default_constructed_unit_structs",
   "--cfg", "tokio_unstable"

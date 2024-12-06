@@ -61,6 +61,7 @@ impl ProvideOptions {
   }
 }
 
+#[rspack_cacheable::cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum ProvideVersion {
   Version(String),

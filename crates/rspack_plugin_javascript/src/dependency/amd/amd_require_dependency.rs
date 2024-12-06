@@ -1,9 +1,11 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   block_promise, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, RuntimeGlobals,
   RuntimeSpec,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AMDRequireDependency {
   id: DependencyId,
@@ -37,6 +39,7 @@ impl AMDRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for AMDRequireDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -55,6 +58,7 @@ impl Dependency for AMDRequireDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for AMDRequireDependency {
   fn apply(
     &self,

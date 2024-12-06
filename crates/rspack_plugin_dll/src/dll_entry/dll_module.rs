@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
@@ -14,6 +15,7 @@ use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use super::dll_entry_dependency::DllEntryDependency;
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug, Default)]
 pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
@@ -52,6 +54,7 @@ impl DllModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for DllModule {
   impl_module_meta_info!();

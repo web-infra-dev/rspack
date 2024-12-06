@@ -1,7 +1,10 @@
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_util::atom::Atom;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct LocalModule {
+  #[cacheable(with=AsPreset)]
   name: Atom,
   idx: usize,
   used: bool,

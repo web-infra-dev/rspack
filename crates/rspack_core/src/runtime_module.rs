@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_sources::{BoxSource, Source};
 
@@ -43,6 +44,7 @@ pub trait CustomSourceRuntimeModule {
 
 pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RuntimeModuleStage {
   Normal,  // Runtime modules without any dependencies to other runtime modules

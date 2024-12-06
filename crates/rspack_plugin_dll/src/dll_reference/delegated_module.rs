@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
@@ -19,6 +20,7 @@ use crate::{DllManifestContentItem, DllManifestContentItemExports};
 pub type SourceRequest = String;
 
 #[impl_source_map_config]
+#[cacheable]
 #[derive(Debug, Default)]
 pub struct DelegatedModule {
   source_request: SourceRequest,
@@ -54,6 +56,7 @@ impl DelegatedModule {
   }
 }
 
+#[cacheable_dyn]
 #[async_trait]
 impl Module for DelegatedModule {
   impl_module_meta_info!();

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
   DependencyTemplate, RuntimeSpec, TemplateContext, TemplateReplaceSource,
@@ -5,6 +6,7 @@ use rspack_core::{
 
 use super::local_module::LocalModule;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct LocalModuleDependency {
   id: DependencyId,
@@ -28,6 +30,7 @@ impl LocalModuleDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for LocalModuleDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -38,6 +41,7 @@ impl Dependency for LocalModuleDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for LocalModuleDependency {
   fn apply(
     &self,

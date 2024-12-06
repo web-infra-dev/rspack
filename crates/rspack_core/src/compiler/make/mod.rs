@@ -20,12 +20,16 @@ pub struct MakeArtifact {
   pub has_module_graph_change: bool,
   pub built_modules: IdentifierSet,
   pub revoked_modules: IdentifierSet,
+  // Field to mark whether artifact has been initialized.
+  // Only Default::default() is false, `update_module_graph` will set this field to true
+  // Persistent cache will update MakeArtifact when this is false.
+  pub initialized: bool,
 
   // data
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
-  entry_dependencies: HashSet<DependencyId>,
+  pub entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
   pub missing_dependencies: FileCounter,
@@ -142,6 +146,7 @@ pub async fn update_module_graph(
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
+  artifact.initialized = true;
   let mut cutout = Cutout::default();
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
   artifact = repair(compilation, artifact, build_dependencies).await?;

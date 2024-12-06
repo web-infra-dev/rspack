@@ -17,6 +17,7 @@ indexmap      = { workspace = true }
 itoa          = { version = "1.0.14" }
 regex         = { workspace = true }
 ropey         = { workspace = true }
+rspack_cacheable = { workspace = true }
 rustc-hash    = { workspace = true }
 serde         = { workspace = true }
 serde_json    = { workspace = true }

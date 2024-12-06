@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 use rspack_core::{BuildMeta, LibraryType};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
@@ -10,11 +14,12 @@ mod lib_manifest_plugin;
 
 pub type DllManifestContent = HashMap<String, DllManifestContentItem>;
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub enum DllManifestContentItemExports {
   #[default]
   True,
-  Vec(Vec<Atom>),
+  Vec(#[cacheable(with=AsVec<AsPreset>)] Vec<Atom>),
 }
 
 impl Serialize for DllManifestContentItemExports {
@@ -35,6 +40,7 @@ impl Serialize for DllManifestContentItemExports {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DllManifestContentItem {

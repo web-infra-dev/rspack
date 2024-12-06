@@ -23,6 +23,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 ropey = { workspace = true }
 rspack_ast = { workspace = true }
+rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core = { workspace = true }
 rspack_error = { workspace = true }

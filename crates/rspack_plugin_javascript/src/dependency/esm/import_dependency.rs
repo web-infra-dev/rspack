@@ -1,3 +1,7 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset, AsVec},
+};
 use rspack_core::{
   create_exports_object_referenced, module_namespace_promise, Compilation, DependencyRange,
   DependencyType, ExportsType, ExtendedReferencedExport, ImportAttributes, ModuleGraph,
@@ -52,11 +56,14 @@ pub fn create_import_dependency_referenced_exports(
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportDependency {
   id: DependencyId,
+  #[cacheable(with=AsPreset)]
   pub request: Atom,
   pub range: DependencyRange,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   referenced_exports: Option<Vec<Atom>>,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
@@ -82,6 +89,7 @@ impl ImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ImportDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -120,6 +128,7 @@ impl Dependency for ImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ImportDependency {
   fn request(&self) -> &str {
     &self.request
@@ -134,6 +143,7 @@ impl ModuleDependency for ImportDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ImportDependency {
   fn apply(
     &self,

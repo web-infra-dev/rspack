@@ -4,9 +4,11 @@ use std::{
 };
 
 use derivative::Derivative;
+use rspack_cacheable::cacheable;
 
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
+#[cacheable]
 #[derive(Derivative)]
 #[derivative(Debug, Clone, Hash)]
 pub struct DependencyRange {
@@ -63,6 +65,7 @@ impl DependencyRange {
 
 /// Represents the real location of a dependency in a source file, including both start and optional end positions.
 /// These positions are described in terms of lines and columns in the source code.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct RealDependencyLocation {
   start: SourcePosition,
@@ -98,6 +101,7 @@ impl fmt::Display for RealDependencyLocation {
 }
 
 /// Represents a synthetic dependency location, such as a generated dependency.
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct SyntheticDependencyLocation {
   pub name: String,
@@ -117,6 +121,7 @@ impl fmt::Display for SyntheticDependencyLocation {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
@@ -134,6 +139,7 @@ impl fmt::Display for DependencyLocation {
 }
 
 /// Represents a position in the source file, including the line number and column number.
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
   line: usize,

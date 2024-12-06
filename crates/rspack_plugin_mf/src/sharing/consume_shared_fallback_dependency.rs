@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ConsumeSharedFallbackDependency {
   id: DependencyId,
@@ -18,6 +20,7 @@ impl ConsumeSharedFallbackDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for ConsumeSharedFallbackDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -36,6 +39,7 @@ impl Dependency for ConsumeSharedFallbackDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ConsumeSharedFallbackDependency {
   fn request(&self) -> &str {
     &self.request

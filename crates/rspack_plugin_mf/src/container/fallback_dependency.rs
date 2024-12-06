@@ -1,8 +1,10 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
   DependencyType, ModuleDependency,
 };
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct FallbackDependency {
   id: DependencyId,
@@ -21,6 +23,7 @@ impl FallbackDependency {
   }
 }
 
+#[cacheable_dyn]
 impl Dependency for FallbackDependency {
   fn id(&self) -> &DependencyId {
     &self.id
@@ -43,6 +46,7 @@ impl Dependency for FallbackDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for FallbackDependency {
   fn request(&self) -> &str {
     &self.resource_identifier

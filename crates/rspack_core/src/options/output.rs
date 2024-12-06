@@ -3,6 +3,7 @@ use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError}
 
 use derivative::Derivative;
 use regex::Regex;
+use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
@@ -91,6 +92,7 @@ pub struct TrustedTypes {
   pub on_policy_creation_failure: OnPolicyCreationFailure,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
@@ -124,6 +126,7 @@ impl From<&ChunkLoading> for &str {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
@@ -312,6 +315,7 @@ impl<'a> PathData<'a> {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, MergeFrom)]
 pub enum PublicPath {
   Filename(Filename),
@@ -428,6 +432,7 @@ pub fn get_js_chunk_filename_template(
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
@@ -443,6 +448,7 @@ pub type LibraryType = String;
 
 pub type LibraryExport = Vec<String>;
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
@@ -451,18 +457,21 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryName {
   NonUmdObject(LibraryNonUmdObject),
   UmdObject(LibraryCustomUmdObject),
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryNonUmdObject {
   Array(Vec<String>),
   String(String),
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,

@@ -73,16 +73,3 @@ impl AsStringConverter for PathBuf {
     Ok(PathBuf::from(s))
   }
 }
-
-// for Box<str>
-impl AsStringConverter for Box<str> {
-  fn to_string(&self) -> Result<String, SerializeError> {
-    Ok(str::to_string(self))
-  }
-  fn from_str(s: &str) -> Result<Self, DeserializeError>
-  where
-    Self: Sized,
-  {
-    Ok(s.into())
-  }
-}

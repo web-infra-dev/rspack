@@ -6,6 +6,10 @@ use std::{
 };
 
 pub use camino::{Utf8Component, Utf8Components, Utf8Path, Utf8PathBuf, Utf8Prefix};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsRefStr, AsRefStrConverter},
+};
 
 pub trait AssertUtf8 {
   type Output;
@@ -42,6 +46,7 @@ impl<'a> AssertUtf8 for &'a Path {
   }
 }
 
+#[cacheable(with=AsRefStr, hashable)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ArcPath(Arc<Path>);
 
@@ -86,6 +91,15 @@ impl From<&ArcPath> for ArcPath {
 impl Borrow<Path> for ArcPath {
   fn borrow(&self) -> &Path {
     &self.0
+  }
+}
+
+impl AsRefStrConverter for ArcPath {
+  fn as_str(&self) -> &str {
+    self.0.to_str().expect("expect utf8 str")
+  }
+  fn from_str(s: &str) -> Self {
+    Self::from(Path::new(s))
   }
 }
 

@@ -1,3 +1,4 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
   Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType, InitFragmentKey,
@@ -6,6 +7,7 @@ use rspack_core::{
 };
 use rspack_util::ext::DynHash;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
@@ -23,12 +25,14 @@ impl ModuleDecoratorDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for ModuleDecoratorDependency {
   fn request(&self) -> &str {
     "self"
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModuleDecoratorDependency {
   fn apply(
     &self,
@@ -90,6 +94,7 @@ impl DependencyTemplate for ModuleDecoratorDependency {
 
 impl AsContextDependency for ModuleDecoratorDependency {}
 
+#[cacheable_dyn]
 impl Dependency for ModuleDecoratorDependency {
   fn id(&self) -> &DependencyId {
     &self.id

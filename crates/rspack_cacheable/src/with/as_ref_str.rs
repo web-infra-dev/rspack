@@ -87,3 +87,16 @@ impl AsRefStrConverter for Arc<str> {
     }
   }
 }
+
+// for Box<str>
+impl AsRefStrConverter for Box<str> {
+  fn as_str(&self) -> &str {
+    self
+  }
+  fn from_str(s: &str) -> Self
+  where
+    Self: Sized,
+  {
+    s.into()
+  }
+}

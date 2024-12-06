@@ -1,13 +1,13 @@
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyTemplate, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, ModuleDependency, ModuleGraph,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ModuleDependency, ModuleGraph,
 };
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet;
 
-use crate::css_module::DEPENDENCY_TYPE;
-
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CssDependency {
   pub(crate) id: DependencyId,
@@ -77,6 +77,7 @@ impl CssDependency {
 impl AsDependencyTemplate for CssDependency {}
 impl AsContextDependency for CssDependency {}
 
+#[cacheable_dyn]
 impl Dependency for CssDependency {
   fn resource_identifier(&self) -> Option<&str> {
     Some(&self.resource_identifier)
@@ -87,7 +88,7 @@ impl Dependency for CssDependency {
   }
 
   fn dependency_type(&self) -> &rspack_core::DependencyType {
-    &DEPENDENCY_TYPE
+    &DependencyType::ExtractCSS
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -120,6 +121,7 @@ impl Dependency for CssDependency {
   }
 }
 
+#[cacheable_dyn]
 impl ModuleDependency for CssDependency {
   fn request(&self) -> &str {
     &self.identifier

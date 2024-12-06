@@ -15,6 +15,7 @@ rustc-hash  = { workspace = true }
 tokio       = { workspace = true }
 tracing     = { workspace = true }
 
+rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }

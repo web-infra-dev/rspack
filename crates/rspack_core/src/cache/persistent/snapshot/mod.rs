@@ -29,6 +29,7 @@ pub struct Snapshot {
   storage: Arc<dyn Storage>,
 }
 
+// TODO remove all of `.expect()` to return error
 impl Snapshot {
   pub fn new(options: SnapshotOptions, fs: Arc<dyn FileSystem>, storage: Arc<dyn Storage>) -> Self {
     Self {

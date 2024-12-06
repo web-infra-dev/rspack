@@ -1,13 +1,17 @@
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsDependency, Compilation, DependencyLocation, DependencyRange, DependencyTemplate,
   RuntimeGlobals, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
+  #[cacheable(with=Skip)]
   id: Option<&'static str>,
   range: DependencyRange,
+  #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
 }
 
@@ -29,6 +33,7 @@ impl ModuleArgumentDependency {
   }
 }
 
+#[cacheable_dyn]
 impl DependencyTemplate for ModuleArgumentDependency {
   fn apply(
     &self,

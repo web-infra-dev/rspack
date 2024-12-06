@@ -10,3 +10,4 @@ version     = "0.2.0"
 
 [dependencies]
 camino = { workspace = true }
+rspack_cacheable = { workspace = true }

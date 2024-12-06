@@ -10,10 +10,11 @@ async-trait           = { workspace = true }
 cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }
-indexmap              = { version = "=1.9.3", features = ["serde-1"] }
+indexmap              = { workspace = true }
 once_cell             = { workspace = true }
 rayon                 = { workspace = true }
 regex                 = { workspace = true }
+rspack_cacheable      = { workspace = true }
 rspack_collections    = { workspace = true }
 rspack_core           = { workspace = true }
 rspack_error          = { workspace = true }

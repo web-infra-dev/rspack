@@ -30,6 +30,7 @@ pub struct ContainerPluginOptions {
   pub enhanced: bool,
 }
 
+#[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Serialize)]
 pub struct ExposeOptions {
   pub name: Option<String>,

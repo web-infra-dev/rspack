@@ -16,6 +16,7 @@ pub struct ExposeRuntimeModule {
 }
 
 impl ExposeRuntimeModule {
+  #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
     Self::with_default(Identifier::from("webpack/runtime/initialize_exposes"), None)
   }

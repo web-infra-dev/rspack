@@ -71,6 +71,7 @@ rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.215" }
 serde_json         = { version = "1.0.133" }
 simd-json          = { version = "0.14.0-rc.2" }
+smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
 syn                = { version = "2.0.90" }
