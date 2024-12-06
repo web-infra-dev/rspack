@@ -14,7 +14,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{get_long_module_name, get_short_module_name};
 
-pub fn assign_named_module_ids(
+#[tracing::instrument(skip_all)]
+fn assign_named_module_ids(
   modules: IdentifierSet,
   context: &str,
   module_graph: &ModuleGraph,
@@ -33,7 +34,7 @@ pub fn assign_named_module_ids(
     })
     .collect();
   let mut name_to_items: HashMap<String, IdentifierIndexSet> = HashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<String> = Default::default();
+  let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
