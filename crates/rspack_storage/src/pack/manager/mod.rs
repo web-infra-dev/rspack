@@ -190,13 +190,14 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::{Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
     pack::{
       data::PackOptions,
-      fs::{PackFs, PackMemoryFs},
+      fs::{PackBridgeFS, PackFS},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
@@ -225,7 +226,7 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
+  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
     println!("test cold start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
@@ -274,7 +275,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
     println!("test hot start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
@@ -322,11 +323,11 @@ mod tests {
     let scope1_mtime = fs
       .metadata(root.join("scope1/cache_meta").as_path())
       .await?
-      .mtime;
+      .mtime_ms;
     let scope2_meta = fs
       .metadata(root.join("scope2/cache_meta").as_path())
       .await?
-      .mtime;
+      .mtime_ms;
 
     // wait for updating files
     rx.await
@@ -336,20 +337,20 @@ mod tests {
     assert_ne!(
       fs.metadata(root.join("scope1/cache_meta").as_path())
         .await?
-        .mtime,
+        .mtime_ms,
       scope1_mtime
     );
     assert_ne!(
       fs.metadata(root.join("scope2/cache_meta").as_path())
         .await?
-        .mtime,
+        .mtime_ms,
       scope2_meta
     );
 
     Ok(())
   }
 
-  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
+  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
     let options = Arc::new(PackOptions {
       // different bucket size
       bucket_size: 100,
@@ -392,7 +393,7 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
     test_cold_start(&root, &temp, fs.clone()).await?;

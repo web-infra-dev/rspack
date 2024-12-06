@@ -199,7 +199,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     let mut writer = self.fs.write_file(&path).await?;
 
     writer
-      .line(
+      .write_line(
         format!(
           "{} {} {}",
           meta.bucket_size, meta.pack_size, meta.last_modified
@@ -219,7 +219,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
             .join(" ")
         })
         .unwrap_or_default();
-      writer.line(&line).await?;
+      writer.write_line(&line).await?;
     }
 
     writer.flush().await?;
@@ -271,11 +271,12 @@ mod tests {
   use std::{collections::HashMap, sync::Arc};
 
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
 
   use crate::pack::{
     data::{PackOptions, PackScope},
-    fs::PackMemoryFs,
+    fs::PackBridgeFS,
     strategy::{
       split::util::test_pack_utils::{
         clean_scope_path, count_bucket_packs, count_scope_packs, get_bucket_pack_sizes,
@@ -476,7 +477,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_write_single_bucket_scope() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     let strategy = SplitPackStrategy::new(
       Utf8PathBuf::from("/cache/test_write_scope"),
       Utf8PathBuf::from("/temp/test_write_scope"),
@@ -500,7 +501,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_write_multi_bucket_scope() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     let strategy = SplitPackStrategy::new(
       Utf8PathBuf::from("/cache/test_write_scope"),
       Utf8PathBuf::from("/temp/test_write_scope"),
@@ -522,7 +523,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_write_big_bucket_scope() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     let strategy = SplitPackStrategy::new(
       Utf8PathBuf::from("/cache/test_write_scope"),
       Utf8PathBuf::from("/temp/test_write_scope"),

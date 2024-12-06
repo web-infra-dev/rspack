@@ -19,17 +19,17 @@ impl PackReadStrategy for SplitPackStrategy {
 
     let mut reader = self.fs.read_file(path).await?;
     let key_lengths: Vec<usize> = reader
-      .line()
+      .read_line()
       .await?
       .split(" ")
       .map(|item| item.parse::<usize>().expect("should have meta info"))
       .collect();
 
-    reader.line().await?;
+    reader.read_line().await?;
 
     let mut keys = vec![];
     for key_len in key_lengths {
-      keys.push(Arc::new(reader.bytes(key_len).await?));
+      keys.push(Arc::new(reader.read(key_len).await?));
     }
     Ok(Some(keys))
   }
@@ -41,14 +41,14 @@ impl PackReadStrategy for SplitPackStrategy {
 
     let mut reader = self.fs.read_file(path).await?;
     let total_key_length = reader
-      .line()
+      .read_line()
       .await?
       .split(" ")
       .map(|item| item.parse::<usize>().expect("should have meta info"))
       .sum::<usize>();
 
     let content_lengths: Vec<usize> = reader
-      .line()
+      .read_line()
       .await?
       .split(" ")
       .map(|item| item.parse::<usize>().expect("should have meta info"))
@@ -58,7 +58,7 @@ impl PackReadStrategy for SplitPackStrategy {
 
     let mut res = vec![];
     for len in content_lengths {
-      res.push(Arc::new(reader.bytes(len).await?));
+      res.push(Arc::new(reader.read(len).await?));
     }
 
     Ok(Some(res))
@@ -70,11 +70,12 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::pack::{
-    fs::{PackFs, PackMemoryFs},
+    fs::{PackBridgeFS, PackFS},
     strategy::{split::util::test_pack_utils::mock_pack_file, PackReadStrategy, SplitPackStrategy},
   };
 
@@ -124,7 +125,7 @@ mod tests {
   #[cfg_attr(miri, ignore)]
   async fn should_read_pack() {
     let dir = Utf8PathBuf::from("/cache/test_read_pack");
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     fs.remove_dir(&dir).await.expect("should clean dir");
     let strategy = SplitPackStrategy::new(dir.clone(), Utf8PathBuf::from("/temp"), fs.clone());
     mock_pack_file(&dir.join("./mock_pack"), "mock", 20, fs)

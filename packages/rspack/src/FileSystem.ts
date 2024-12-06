@@ -13,23 +13,23 @@ import { memoizeFn } from "./util/memoize";
 const BUFFER_SIZE = 1000;
 
 const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
-	writeFile() { },
-	removeFile() { },
-	mkdir() { },
-	mkdirp() { },
-	removeDirAll() { },
-	readDir: () => { },
-	readFile: () => { },
-	stat: () => { },
-	lstat: () => { },
-	open: () => { },
-	rename: () => { },
-	close: () => { },
-	write: () => { },
-	writeAll: () => { },
-	read: () => { },
-	readUntil: () => { },
-	readToEnd: () => { }
+	writeFile() {},
+	removeFile() {},
+	mkdir() {},
+	mkdirp() {},
+	removeDirAll() {},
+	readDir: () => {},
+	readFile: () => {},
+	stat: () => {},
+	lstat: () => {},
+	open: () => {},
+	rename: () => {},
+	close: () => {},
+	write: () => {},
+	writeAll: () => {},
+	read: () => {},
+	readUntil: () => {},
+	readToEnd: () => {}
 };
 
 class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
@@ -116,8 +116,6 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 				return res && ThreadsafeOutputNodeFS.__to_binding_stat(res);
 			};
 		});
-		// TODO: intermediate file system
-		this.renameFile = NOOP_FILESYSTEM.renameFile;
 	}
 
 	static __to_binding(fs?: OutputFileSystem) {

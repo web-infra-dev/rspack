@@ -144,7 +144,7 @@ impl PackWriteStrategy for SplitPackStrategy {
 
     // key meta line
     writer
-      .line(
+      .write_line(
         keys
           .iter()
           .map(|key| key.len().to_string())
@@ -156,7 +156,7 @@ impl PackWriteStrategy for SplitPackStrategy {
 
     // content meta line
     writer
-      .line(
+      .write_line(
         contents
           .iter()
           .map(|content| content.len().to_string())
@@ -167,11 +167,11 @@ impl PackWriteStrategy for SplitPackStrategy {
       .await?;
 
     for key in keys {
-      writer.bytes(key).await?;
+      writer.write(key).await?;
     }
 
     for content in contents {
-      writer.bytes(content).await?;
+      writer.write(content).await?;
     }
 
     writer.flush().await?;
@@ -262,12 +262,13 @@ mod tests {
 
   use itertools::Itertools;
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::pack::{
     data::{Pack, PackFileMeta, PackOptions},
-    fs::{PackFs, PackMemoryFs},
+    fs::{PackBridgeFS, PackFS},
     strategy::{
       split::util::test_pack_utils::{mock_updates, UpdateVal},
       PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
@@ -294,12 +295,12 @@ mod tests {
           .expect("should get temp path"),
       )
       .await?;
-    assert_eq!(reader.line().await?, "5 5");
-    assert_eq!(reader.line().await?, "5 5");
-    assert_eq!(reader.bytes(5).await?, "key_1".as_bytes());
-    assert_eq!(reader.bytes(5).await?, "key_2".as_bytes());
-    assert_eq!(reader.bytes(5).await?, "val_1".as_bytes());
-    assert_eq!(reader.bytes(5).await?, "val_2".as_bytes());
+    assert_eq!(reader.read_line().await?, "5 5");
+    assert_eq!(reader.read_line().await?, "5 5");
+    assert_eq!(reader.read(5).await?, "key_1".as_bytes());
+    assert_eq!(reader.read(5).await?, "key_2".as_bytes());
+    assert_eq!(reader.read(5).await?, "val_1".as_bytes());
+    assert_eq!(reader.read(5).await?, "val_2".as_bytes());
     Ok(())
   }
 
@@ -428,7 +429,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_write_pack() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     fs.remove_dir(&Utf8PathBuf::from("/cache/test_write_pack"))
       .await
       .expect("should clean dir");
@@ -446,7 +447,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_update_packs() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     fs.remove_dir(&Utf8PathBuf::from("/cache/test_update_packs"))
       .await
       .expect("should clean dir");

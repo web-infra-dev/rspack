@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, Result, WritableFileSystem,
-  WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream, Result,
+  WritableFileSystem, WriteStream,
 };
 use rspack_paths::Utf8Path;
 
@@ -179,28 +179,6 @@ impl WritableFileSystem for NodeFileSystem {
     };
     Box::pin(fut)
   }
-
-  fn rename<'a>(
-    &'a self,
-    from: &'a Utf8Path,
-    to: &'a Utf8Path,
-  ) -> BoxFuture<'a, rspack_fs::Result<()>> {
-    let fut = async {
-      self
-        .0
-        .rename_file
-        .call((from.as_str().to_string(), to.as_str().to_string()))
-        .await
-        .map_err(|e| {
-          rspack_fs::Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    Box::pin(fut)
-  }
 }
 
 #[async_trait]
@@ -229,6 +207,8 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
     Ok(Box::new(writer))
   }
 }
+
+impl IntermediateFileSystem for NodeFileSystem {}
 
 #[derive(Debug)]
 pub struct NodeReadStream {
@@ -262,8 +242,7 @@ impl NodeReadStream {
 
 #[async_trait::async_trait]
 impl ReadStream for NodeReadStream {
-  async fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-    let length = buf.len();
+  async fn read(&mut self, length: usize) -> Result<Vec<u8>> {
     let buffer = self
       .fs
       .read
@@ -279,8 +258,7 @@ impl ReadStream for NodeReadStream {
     match buffer {
       Either::A(buffer) => {
         self.pos += buffer.len();
-        buf.copy_from_slice(&buffer);
-        Ok(())
+        Ok(buffer.to_vec())
       }
       Either::B(_) => Err(Error::Io(std::io::Error::new(
         std::io::ErrorKind::Other,
@@ -289,7 +267,7 @@ impl ReadStream for NodeReadStream {
     }
   }
 
-  async fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> {
+  async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
     let buffer = self
       .fs
       .read_until
@@ -305,8 +283,7 @@ impl ReadStream for NodeReadStream {
     match buffer {
       Either::A(buffer) => {
         self.pos += buffer.len() + 1;
-        buf.copy_from_slice(&buffer);
-        Ok(buffer.len())
+        Ok(buffer.to_vec())
       }
       Either::B(_) => Err(Error::Io(std::io::Error::new(
         std::io::ErrorKind::Other,
@@ -314,7 +291,7 @@ impl ReadStream for NodeReadStream {
       ))),
     }
   }
-  async fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
+  async fn read_to_end(&mut self) -> Result<Vec<u8>> {
     let buffer = self
       .fs
       .read_to_end
@@ -330,8 +307,7 @@ impl ReadStream for NodeReadStream {
     match buffer {
       Either::A(buffer) => {
         self.pos += buffer.len();
-        buf.copy_from_slice(&buffer);
-        Ok(buffer.len())
+        Ok(buffer.to_vec())
       }
       Either::B(_) => Err(Error::Io(std::io::Error::new(
         std::io::ErrorKind::Other,
@@ -385,6 +361,11 @@ impl NodeWriteStream {
 
 #[async_trait::async_trait]
 impl WriteStream for NodeWriteStream {
+  async fn write_line(&mut self, line: &str) -> Result<()> {
+    self.write(line.as_bytes()).await?;
+    self.write(b"\n").await?;
+    Ok(())
+  }
   async fn write(&mut self, buf: &[u8]) -> Result<usize> {
     let res = self
       .fs

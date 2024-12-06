@@ -16,18 +16,18 @@ use util::{get_name, walk_dir};
 use super::ScopeStrategy;
 use crate::pack::{
   data::{PackContents, PackKeys, PackScope, ScopeMeta},
-  fs::PackFs,
+  fs::PackFS,
 };
 
 #[derive(Debug, Clone)]
 pub struct SplitPackStrategy {
-  pub fs: Arc<dyn PackFs>,
+  pub fs: Arc<dyn PackFS>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
 }
 
 impl SplitPackStrategy {
-  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn PackFs>) -> Self {
+  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn PackFS>) -> Self {
     Self {
       fs,
       root: Arc::new(root),
@@ -117,7 +117,7 @@ impl SplitPackStrategy {
 
     let meta = self.fs.metadata(path).await?;
     hasher.write_u64(meta.size);
-    hasher.write_u64(meta.mtime);
+    hasher.write_u64(meta.mtime_ms);
 
     Ok(format!("{:016x}", hasher.finish()))
   }

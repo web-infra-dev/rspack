@@ -1,5 +1,5 @@
 use rspack_error::{
-  miette::{self, MietteError},
+  miette::{self},
   thiserror::{self, Error},
   Error,
 };
@@ -37,13 +37,6 @@ pub struct PackFsError {
 }
 
 impl PackFsError {
-  pub fn from_io_error(file: &Utf8Path, opt: PackFsErrorOpt, error: std::io::Error) -> Self {
-    Self {
-      file: file.to_string(),
-      inner: MietteError::IoError(error).into(),
-      opt,
-    }
-  }
   pub fn from_fs_error(file: &Utf8Path, opt: PackFsErrorOpt, error: rspack_fs::Error) -> Self {
     Self {
       file: file.to_string(),

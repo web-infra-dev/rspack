@@ -9,7 +9,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::pack::{
   data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-  fs::PackFs,
+  fs::PackFS,
   strategy::{PackReadStrategy, ScopeReadStrategy},
 };
 
@@ -87,7 +87,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
   }
 }
 
-async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<Option<ScopeMeta>> {
+async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
   }
@@ -95,7 +95,7 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<Option<
   let mut reader = fs.read_file(path).await?;
 
   let option_items = reader
-    .line()
+    .read_line()
     .await?
     .split(" ")
     .map(|item| {
@@ -117,7 +117,7 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<Option<
   for _ in 0..bucket_size {
     packs.push(
       reader
-        .line()
+        .read_line()
         .await?
         .split(" ")
         .filter(|i| !i.is_empty())
@@ -246,18 +246,19 @@ mod tests {
 
   use itertools::Itertools;
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::{Utf8Path, Utf8PathBuf};
 
   use crate::pack::{
     data::{PackOptions, PackScope, ScopeMeta},
-    fs::{PackFs, PackMemoryFs},
+    fs::{PackBridgeFS, PackFS},
     strategy::{
       split::util::test_pack_utils::{mock_meta_file, mock_pack_file},
       ScopeReadStrategy, SplitPackStrategy,
     },
   };
 
-  async fn mock_scope(path: &Utf8Path, fs: Arc<dyn PackFs>, options: &PackOptions) -> Result<()> {
+  async fn mock_scope(path: &Utf8Path, fs: Arc<dyn PackFS>, options: &PackOptions) -> Result<()> {
     mock_meta_file(&ScopeMeta::get_path(path), fs.clone(), options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
@@ -326,7 +327,7 @@ mod tests {
     Ok(())
   }
 
-  async fn clean_scope_path(scope: &PackScope, strategy: &SplitPackStrategy, fs: Arc<dyn PackFs>) {
+  async fn clean_scope_path(scope: &PackScope, strategy: &SplitPackStrategy, fs: Arc<dyn PackFS>) {
     fs.remove_dir(&scope.path).await.expect("should remove dir");
     fs.remove_dir(
       &strategy
@@ -340,7 +341,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_read_scope() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     let strategy = SplitPackStrategy::new(
       Utf8PathBuf::from("/cache"),
       Utf8PathBuf::from("/temp"),

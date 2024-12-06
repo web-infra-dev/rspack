@@ -84,12 +84,13 @@ mod tests {
   use std::sync::Arc;
 
   use rspack_error::Result;
+  use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::pack::{
     data::{PackOptions, PackScope, ScopeMeta},
-    fs::{PackFs, PackMemoryFs},
+    fs::{PackBridgeFS, PackFS},
     strategy::{
       split::util::test_pack_utils::{
         flush_file_mtime, mock_meta_file, mock_updates, save_scope, UpdateVal,
@@ -179,7 +180,7 @@ mod tests {
   async fn test_invalid_packs_changed(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn PackFs>,
+    fs: Arc<dyn PackFS>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
@@ -203,7 +204,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_validate_scope_meta() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     fs.remove_dir(&Utf8PathBuf::from("/cache/test_meta_valid"))
       .await
       .expect("should clean dir");
@@ -243,7 +244,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn should_validate_scope_packs() {
-    let fs = Arc::new(PackMemoryFs::default());
+    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
     fs.remove_dir(&Utf8PathBuf::from("/cache/test_packs_valid"))
       .await
       .expect("should clean dir");

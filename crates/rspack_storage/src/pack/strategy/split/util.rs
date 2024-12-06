@@ -7,7 +7,7 @@ use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use crate::pack::{
   data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope},
-  fs::PackFs,
+  fs::PackFS,
 };
 
 pub type PackIndexList = Vec<(usize, usize)>;
@@ -67,12 +67,12 @@ pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
   num % total
 }
 
-pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<HashSet<Utf8PathBuf>> {
+pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<HashSet<Utf8PathBuf>> {
   let mut files = HashSet::default();
   let mut stack = vec![root.to_owned()];
   while let Some(path) = stack.pop() {
     let meta = fs.metadata(&path).await?;
-    if meta.is_dir {
+    if meta.is_directory {
       stack.append(
         &mut fs
           .read_dir(&path)
@@ -102,13 +102,13 @@ pub mod test_pack_utils {
 
   use crate::pack::{
     data::{PackOptions, PackScope},
-    fs::PackFs,
+    fs::PackFS,
     strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
   };
 
   pub async fn mock_meta_file(
     path: &Utf8Path,
-    fs: Arc<dyn PackFs>,
+    fs: Arc<dyn PackFS>,
     options: &PackOptions,
     pack_count: usize,
   ) -> Result<()> {
@@ -120,7 +120,7 @@ pub mod test_pack_utils {
       .expect("should get current time")
       .as_millis() as u64;
     writer
-      .line(format!("{} {} {}", options.bucket_size, options.pack_size, current).as_str())
+      .write_line(format!("{} {} {}", options.bucket_size, options.pack_size, current).as_str())
       .await?;
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];
@@ -130,7 +130,7 @@ pub mod test_pack_utils {
         let pack_size = 100;
         pack_meta_list.push(format!("{},{},{}", pack_name, pack_hash, pack_size));
       }
-      writer.line(pack_meta_list.join(" ").as_str()).await?;
+      writer.write_line(pack_meta_list.join(" ").as_str()).await?;
     }
 
     writer.flush().await?;
@@ -142,7 +142,7 @@ pub mod test_pack_utils {
     path: &Utf8Path,
     unique_id: &str,
     item_count: usize,
-    fs: Arc<dyn PackFs>,
+    fs: Arc<dyn PackFS>,
   ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
@@ -154,16 +154,16 @@ pub mod test_pack_utils {
       contents.push(format!("val_{}_{}", unique_id, i).as_bytes().to_vec());
     }
     writer
-      .line(keys.iter().map(|k| k.len()).join(" ").as_str())
+      .write_line(keys.iter().map(|k| k.len()).join(" ").as_str())
       .await?;
     writer
-      .line(contents.iter().map(|k| k.len()).join(" ").as_str())
+      .write_line(contents.iter().map(|k| k.len()).join(" ").as_str())
       .await?;
     for key in keys {
-      writer.bytes(&key).await?;
+      writer.write(&key).await?;
     }
     for content in contents {
-      writer.bytes(&content).await?;
+      writer.write(&content).await?;
     }
     writer.flush().await?;
     Ok(())
@@ -222,7 +222,7 @@ pub mod test_pack_utils {
   pub async fn clean_scope_path(
     scope: &PackScope,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn PackFs>,
+    fs: Arc<dyn PackFS>,
   ) {
     fs.remove_dir(&scope.path).await.expect("should remove dir");
     fs.remove_dir(
@@ -234,9 +234,9 @@ pub mod test_pack_utils {
     .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn PackFs>) -> Result<()> {
-    let content = fs.read_file(path).await?.remain().await?;
-    fs.write_file(path).await?.write(&content).await?;
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+    let content = fs.read_file(path).await?.read_to_end().await?;
+    fs.write_file(path).await?.write_all(&content).await?;
 
     Ok(())
   }
