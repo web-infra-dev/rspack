@@ -13,3 +13,9 @@ mimalloc = { workspace = true, features = ["local_dynamic_tls"] }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 mimalloc = { workspace = true }
+
+# [target.'cfg(target_os = "linux")'.dependencies]
+# snmalloc-rs = { version = "0.3.6", features = ["local_dynamic_tls"] }
+
+# [target.'cfg(not(target_os = "linux"))'.dependencies]
+# snmalloc-rs = { version = "0.3.6" }
