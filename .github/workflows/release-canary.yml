@@ -28,28 +28,38 @@ jobs:
         array:
           - target: x86_64-unknown-linux-gnu
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
           - target: aarch64-unknown-linux-gnu
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
           - target: x86_64-unknown-linux-musl
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
           - target: aarch64-unknown-linux-musl
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
           - target: x86_64-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
           - target: aarch64-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
           - target: x86_64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+            cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: false
+      cache-type: ${{ matrix.array.cache-type }}
 
   release:
     name: Release Canary
@@ -64,6 +74,8 @@ jobs:
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7
