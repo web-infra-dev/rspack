@@ -26,55 +26,45 @@ impl NodeFileSystem {
 #[async_trait]
 impl WritableFileSystem for NodeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self.0.mkdir.call_with_promise(dir).await.map_err(|e| {
+    let dir = dir.as_str().to_string();
+    self.0.mkdir.call_with_promise(dir).await.map_err(|e| {
+      Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        e.to_string(),
+      ))
+    })
+  }
+
+  async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.as_str().to_string();
+    self
+      .0
+      .mkdirp
+      .call_with_promise(dir)
+      .await
+      .map_err(|e| {
         Error::Io(std::io::Error::new(
           std::io::ErrorKind::Other,
           e.to_string(),
         ))
       })
-    };
-
-    fut.await
-  }
-
-  async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self
-        .0
-        .mkdirp
-        .call_with_promise(dir)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    fut.await
+      .map(|_| ())
   }
 
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let data = data.to_vec();
-      self
-        .0
-        .write_file
-        .call_with_promise((file, data.into()))
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-    };
-    fut.await
+    let file = file.as_str().to_string();
+    let data = data.to_vec();
+    self
+      .0
+      .write_file
+      .call_with_promise((file, data.into()))
+      .await
+      .map_err(|e| {
+        Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })
   }
 
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
@@ -173,22 +163,19 @@ impl WritableFileSystem for NodeFileSystem {
 #[async_trait]
 impl IntermediateFileSystemExtras for NodeFileSystem {
   async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let from = from.as_str().to_string();
-      let to = to.as_str().to_string();
-      self
-        .0
-        .rename
-        .call_with_promise((from, to))
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-    };
-    fut.await
+    let from = from.as_str().to_string();
+    let to = to.as_str().to_string();
+    self
+      .0
+      .rename
+      .call_with_promise((from, to))
+      .await
+      .map_err(|e| {
+        Error::Io(std::io::Error::new(
+          std::io::ErrorKind::Other,
+          e.to_string(),
+        ))
+      })
   }
 
   async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
