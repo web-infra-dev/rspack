@@ -3,7 +3,6 @@ use std::{
   io::{BufRead, BufReader, BufWriter, Read, Write},
 };
 
-use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
@@ -57,6 +56,7 @@ impl WritableFileSystem for NativeFileSystem {
   }
 }
 
+#[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).map_err(Error::from)
@@ -77,9 +77,8 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(path.assert_utf8())
   }
 
-  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    tokio::fs::read(file).await.map_err(Error::from)
   }
 }
 
