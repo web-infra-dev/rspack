@@ -148,6 +148,10 @@ impl Chunk {
     self.groups.remove(chunk_group)
   }
 
+  pub fn get_number_of_groups(&self) -> usize {
+    self.groups.len()
+  }
+
   pub fn runtime(&self) -> &RuntimeSpec {
     &self.runtime
   }

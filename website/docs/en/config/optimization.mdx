@@ -54,8 +54,11 @@ The following string values are supported:
 
 | option            | description                                                                                                                                    |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'natural'`       | Use numeric ids in order of usage.                                                                                                             |
 | `'named'`         | Readable ids for better debugging.                                                                                                             |
 | `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
+| `'size'`          | Use numeric ids to make the initial download package smaller.                                                                                  |
+| `'total-size'`    | Use numeric ids to make the overall download package smaller.                                                                                  |
 
 ```js title=rspack.config.js
 module.exports = {
