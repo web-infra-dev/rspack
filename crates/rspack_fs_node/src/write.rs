@@ -3,8 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
-  dunce, Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, ReadableFileSystem, Result,
-  WritableFileSystem, WriteStream,
+  dunce, Error, FileMetadata, FileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 use rspack_paths::{AssertUtf8, Utf8Path};
 
@@ -28,6 +28,8 @@ impl std::fmt::Debug for NodeFileSystem {
     f.debug_struct("AsyncNodeWritableFileSystem").finish()
   }
 }
+
+impl FileSystem for NodeFileSystem {}
 
 impl NodeFileSystem {
   pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
