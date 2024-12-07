@@ -3,12 +3,23 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, Result, WritableFileSystem,
-  WriteStream,
+  dunce, Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, ReadableFileSystem, Result,
+  WritableFileSystem, WriteStream,
 };
-use rspack_paths::Utf8Path;
+use rspack_paths::{AssertUtf8, Utf8Path};
 
 use crate::node::ThreadsafeNodeFS;
+
+fn map_error_to_fs_error(e: rspack_error::Error) -> Error {
+  Error::Io(std::io::Error::new(
+    std::io::ErrorKind::Other,
+    e.to_string(),
+  ))
+}
+
+fn new_fs_error(msg: &str) -> Error {
+  Error::Io(std::io::Error::new(std::io::ErrorKind::Other, msg))
+}
 
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
 
@@ -186,6 +197,51 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
   async fn create_write_stream(&self, file: &Utf8Path) -> Result<Box<dyn WriteStream>> {
     let writer = NodeWriteStream::try_new(file, self.0.clone()).await?;
     Ok(Box::new(writer))
+  }
+}
+
+#[async_trait::async_trait]
+impl ReadableFileSystem for NodeFileSystem {
+  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    let res = futures::executor::block_on(self.0.read_file.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either3::A(buf) => Ok(buf.into()),
+      Either3::B(s) => Ok(s.into()),
+      Either3::C(_) => Err(new_fs_error("input file system call read failed")),
+    }
+  }
+
+  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let res = futures::executor::block_on(self.0.stat.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(new_fs_error("input file system call metadata failed")),
+    }
+  }
+
+  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata(path)
+  }
+
+  fn canonicalize(&self, path: &Utf8Path) -> Result<rspack_paths::Utf8PathBuf> {
+    let path = dunce::canonicalize(path)?;
+    Ok(path.assert_utf8())
+  }
+
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    let res = self
+      .0
+      .read_file
+      .call_with_promise(file.to_string())
+      .await
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either3::A(buf) => Ok(buf.into()),
+      Either3::B(s) => Ok(s.into()),
+      Either3::C(_) => Err(new_fs_error("input file system call async_read failed")),
+    }
   }
 }
 
