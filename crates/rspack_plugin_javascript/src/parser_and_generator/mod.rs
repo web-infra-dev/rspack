@@ -247,33 +247,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     }
 
-    // let inner_graph = if compiler_options.optimization.inner_graph {
-    //   ast.transform(|program, context| {
-    //     let unresolved_ctxt = SyntaxContext::empty().apply_mark(context.unresolved_mark);
-    //     let top_level_ctxt = SyntaxContext::empty().apply_mark(context.top_level_mark);
-    //     let mut plugin = InnerGraphPlugin::new(
-    //       &mut dependencies,
-    //       unresolved_ctxt,
-    //       top_level_ctxt,
-    //       &mut usage_span_record,
-    //       &import_map,
-    //       module_identifier,
-    //       program.comments.take(),
-    //       &path_ignored_spans,
-    //     );
-    //     plugin.enable();
-    //     // program.visit_with(&mut plugin);
-    //     program.comments = plugin.comments.take();
-    //     Some(plugin)
-    //   })
-    // } else {
-    //   None
-    // };
-
-    // if let Some(mut inner_graph) = inner_graph {
-    //   inner_graph.infer_dependency_usage();
-    // }
-
     Ok(
       ParseResult {
         source,
