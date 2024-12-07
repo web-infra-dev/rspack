@@ -2,6 +2,7 @@ import assert from "node:assert";
 import {
 	type JsLibraryName,
 	type JsLibraryOptions,
+	type RawAssetGeneratorDataUrlFnCtx,
 	type RawAssetGeneratorOptions,
 	type RawAssetInlineGeneratorOptions,
 	type RawAssetParserDataUrl,
@@ -29,6 +30,7 @@ import {
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
+import { Module } from "../Module";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
@@ -826,7 +828,12 @@ function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 		} as const;
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
-		return dataUrl;
+		return (source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => {
+			return dataUrl(source, {
+				...context,
+				module: Module.__from_binding(context.module)
+			});
+		};
 	}
 	throw new Error(
 		`unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`

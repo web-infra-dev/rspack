@@ -1098,9 +1098,9 @@ export interface RawAliasOptionItem {
   redirect: Array<string | false>
 }
 
-export interface RawAssetGeneratorDataUrlFnArgs {
+export interface RawAssetGeneratorDataUrlFnCtx {
   filename: string
-  content: string
+  module: JsModule
 }
 
 export interface RawAssetGeneratorDataUrlOptions {
@@ -1112,11 +1112,11 @@ export interface RawAssetGeneratorOptions {
   emit?: boolean
   filename?: JsFilename
   publicPath?: "auto" | JsFilename
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
 export interface RawAssetInlineGeneratorOptions {
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
 export interface RawAssetParserDataUrl {
