@@ -1244,7 +1244,9 @@ const optimizationSplitChunksOptions = z.strictObject({
 
 const optimization = z.strictObject({
 	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
-	chunkIds: z.enum(["natural", "named", "deterministic"]).optional(),
+	chunkIds: z
+		.enum(["natural", "named", "deterministic", "size", "total-size"])
+		.optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),

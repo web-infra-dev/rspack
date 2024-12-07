@@ -409,7 +409,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'OccurrenceChunkIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'OccurrenceModuleIdsPlugin',
