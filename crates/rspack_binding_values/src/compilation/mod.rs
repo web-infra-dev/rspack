@@ -8,6 +8,7 @@ use std::ptr::NonNull;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
+use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::rspack_sources::BoxSource;
@@ -126,7 +127,7 @@ impl JsCompilation {
 
     for (filename, asset) in compilation.assets() {
       assets.push(JsAsset {
-        name: filename.clone(),
+        name: filename.to_string(),
         info: asset.info.clone().into(),
       });
     }
@@ -138,7 +139,7 @@ impl JsCompilation {
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
-    match compilation.assets().get(&name) {
+    match compilation.assets().get(name.as_str()) {
       Some(asset) => Ok(Some(JsAsset {
         name,
         info: asset.info.clone().into(),
@@ -157,7 +158,7 @@ impl JsCompilation {
 
     compilation
       .assets()
-      .get(&name)
+      .get(name.as_str())
       .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
       .transpose()
   }
@@ -273,7 +274,7 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     let source: BoxSource = source.into();
-    match compilation.assets_mut().entry(name) {
+    match compilation.assets_mut().entry(name.into()) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::from(source));
@@ -288,31 +289,28 @@ impl JsCompilation {
 
     compilation
       .assets_mut()
-      .entry(name)
+      .entry(name.into())
       .and_modify(|a| a.set_source(None));
     Ok(())
   }
 
   #[napi]
-  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
+  pub fn get_asset_filenames(&self, env: Env) -> Result<Vec<JsString>> {
     let compilation = self.as_ref()?;
 
-    Ok(
-      compilation
-        .assets()
-        .iter()
-        .filter(|(_, asset)| asset.get_source().is_some())
-        .map(|(filename, _)| filename)
-        .cloned()
-        .collect(),
-    )
+    compilation
+      .assets()
+      .iter()
+      .filter(|(_, asset)| asset.get_source().is_some())
+      .map(|(filename, _)| env.create_string(filename.as_ref()))
+      .collect()
   }
 
   #[napi]
   pub fn has_asset(&self, name: String) -> Result<bool> {
     let compilation = self.as_ref()?;
 
-    Ok(compilation.assets().contains_key(&name))
+    Ok(compilation.assets().contains_key(name.as_str()))
   }
 
   #[napi]
@@ -334,7 +332,7 @@ impl JsCompilation {
       .module_assets
       .entry(ModuleIdentifier::from(module))
       .or_default()
-      .insert(filename);
+      .insert(filename.into());
     Ok(())
   }
 
@@ -673,7 +671,11 @@ impl JsCompilation {
           .into_iter()
           .map(|d| d.to_string_lossy().to_string())
           .collect(),
-        assets: res.assets.into_iter().collect(),
+        assets: res
+          .assets
+          .into_iter()
+          .map(|asset| asset.to_string())
+          .collect(),
         id: res.id,
       };
       Ok(js_result)

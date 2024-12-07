@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::hash::BuildHasherDefault;
+use std::sync::Arc;
 use std::{fmt::Debug, hash::Hash};
 
 use indexmap::IndexMap;
@@ -65,8 +66,8 @@ pub struct Chunk {
   prevent_integration: bool,
   groups: UkeySet<ChunkGroupUkey>,
   runtime: RuntimeSpec,
-  files: HashSet<String>,
-  auxiliary_files: HashSet<String>,
+  files: HashSet<Arc<str>>,
+  auxiliary_files: HashSet<Arc<str>>,
   chunk_reason: Option<String>,
   rendered: bool,
 }
@@ -156,24 +157,24 @@ impl Chunk {
     self.runtime = runtime;
   }
 
-  pub fn files(&self) -> &HashSet<String> {
+  pub fn files(&self) -> &HashSet<Arc<str>> {
     &self.files
   }
 
-  pub fn add_file(&mut self, file: String) {
-    self.files.insert(file);
+  pub fn add_file<T: Into<Arc<str>>>(&mut self, file: T) {
+    self.files.insert(file.into());
   }
 
   pub fn remove_file(&mut self, file: &str) -> bool {
     self.files.remove(file)
   }
 
-  pub fn auxiliary_files(&self) -> &HashSet<String> {
+  pub fn auxiliary_files(&self) -> &HashSet<Arc<str>> {
     &self.auxiliary_files
   }
 
-  pub fn add_auxiliary_file(&mut self, auxiliary_file: String) {
-    self.auxiliary_files.insert(auxiliary_file);
+  pub fn add_auxiliary_file<T: Into<Arc<str>>>(&mut self, auxiliary_file: T) {
+    self.auxiliary_files.insert(auxiliary_file.into());
   }
 
   pub fn remove_auxiliary_file(&mut self, auxiliary_file: &str) -> bool {

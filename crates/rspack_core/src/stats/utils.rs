@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -75,7 +75,7 @@ pub fn get_chunk_group_oreded_child_assets(
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
-) -> Vec<String> {
+) -> Vec<Arc<str>> {
   ordered_children
     .get(&ChunkGroupOrderKey::Preload)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
