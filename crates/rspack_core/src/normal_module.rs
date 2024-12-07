@@ -22,7 +22,7 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, Source, SourceExt,
+  BoxSource, MapCachedSource, OriginalSource, RawBufferSource, RawStringSource, Source, SourceExt,
   SourceMap, SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::{
@@ -661,7 +661,7 @@ impl Module for NormalModule {
             concatenation_scope: concatenation_scope.as_mut(),
           },
         )?;
-        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+        code_generation_result.add(*source_type, generation_result.boxed());
       }
       code_generation_result.concatenation_scope = concatenation_scope;
       Ok(code_generation_result)

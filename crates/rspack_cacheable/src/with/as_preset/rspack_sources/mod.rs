@@ -41,7 +41,7 @@ where
     field: &BoxSource,
     serializer: &mut S,
   ) -> Result<Self::Resolver, SerializeError> {
-    let map = match field.map(&Default::default()) {
+    let map = match field.map(&Default::default(), &Default::default()) {
       Some(map) => Some(
         map
           .to_json()

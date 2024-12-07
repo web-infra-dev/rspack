@@ -319,7 +319,7 @@ impl ToJsCompatSourceOwned for dyn Source + '_ {
 }
 
 fn to_webpack_map(source: &dyn Source) -> Result<Option<String>> {
-  let map = source.map(&MapOptions::default());
+  let map = source.map(&MapOptions::default(), &Default::default());
 
   map
     .map(|m| m.to_json())

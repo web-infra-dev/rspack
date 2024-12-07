@@ -262,7 +262,7 @@ async fn render_manifest(
       } else {
         self.render_chunk(compilation, chunk_ukey).await?
       };
-      Ok((CachedSource::new(source).boxed(), Vec::new()))
+      Ok((source.boxed(), Vec::new()))
     })
     .await?;
 

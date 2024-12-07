@@ -4943,9 +4943,9 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d52f5aa6afd8cc49a3e3f796a00918d11d97ed5043d0881165d8fc1aca1ae8c"
+source = "git+https://github.com/web-infra-dev/rspack-sources?rev=30b24267f406a03ce8d958a9acf2f8db9d50913c#30b24267f406a03ce8d958a9acf2f8db9d50913c"
 dependencies = [
+ "bumpalo",
  "dashmap 5.5.3",
  "dyn-clone",
  "memchr",

@@ -12,8 +12,8 @@ fn test_rspack_source() {
     let new_data: Data = from_bytes(&bytes, &()).unwrap();
     assert_eq!(data.0.buffer(), new_data.0.buffer());
     assert_eq!(
-      data.0.map(&Default::default()),
-      new_data.0.map(&Default::default())
+      data.0.map(&Default::default(), &Default::default()),
+      new_data.0.map(&Default::default(), &Default::default())
     );
   }
 

@@ -22,7 +22,7 @@ use rspack_error::{Diagnosable, Diagnostic, DiagnosticKind, Result, TraceableErr
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_hook::define_hook;
 use rspack_sources::{
-  CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  ConcatSource, MapCachedSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
 use rustc_hash::FxHasher;
@@ -1290,7 +1290,7 @@ impl Module for ConcatenatedModule {
     }
 
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
+    code_generation_result.add(SourceType::JavaScript, result.boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
     code_generation_result

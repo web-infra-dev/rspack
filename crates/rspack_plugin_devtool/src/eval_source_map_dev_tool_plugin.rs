@@ -95,7 +95,9 @@ fn eval_source_map_devtool_plugin_render_module_content(
   if let Some(cached_source) = self.cache.get(&origin_source) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
+  } else if let Some(mut map) =
+    origin_source.map(&MapOptions::new(self.columns), &Default::default())
+  {
     let source = {
       let source = &origin_source.source();
 
