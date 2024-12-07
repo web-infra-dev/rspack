@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation};
+use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, ModuleIdentifier};
 
 use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
@@ -67,6 +67,32 @@ pub fn get_chunk_group(ukey: u32, js_compilation: &JsCompilation) -> JsChunkGrou
 
   let cg = chunk_group(ukey, compilation);
   JsChunkGroup::from_chunk_group(cg, compilation)
+}
+
+#[napi(js_name = "__chunk_group_inner_get_module_pre_order_index")]
+pub fn get_module_pre_order_index(
+  ukey: u32,
+  js_compilation: &JsCompilation,
+  module_identifier: String,
+) -> Option<u32> {
+  let compilation = unsafe { js_compilation.inner.as_ref() };
+
+  let cg = chunk_group(ukey, compilation);
+  cg.module_pre_order_index(&ModuleIdentifier::from(module_identifier))
+    .map(|v| v as u32)
+}
+
+#[napi(js_name = "__chunk_group_inner_get_module_post_order_index")]
+pub fn get_module_post_order_index(
+  ukey: u32,
+  js_compilation: &JsCompilation,
+  module_identifier: String,
+) -> Option<u32> {
+  let compilation = unsafe { js_compilation.inner.as_ref() };
+
+  let cg = chunk_group(ukey, compilation);
+  cg.module_post_order_index(&ModuleIdentifier::from(module_identifier))
+    .map(|v| v as u32)
 }
 
 #[napi(js_name = "__entrypoint_inner_get_runtime_chunk")]

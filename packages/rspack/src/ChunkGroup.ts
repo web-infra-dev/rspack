@@ -2,10 +2,13 @@ import {
 	type JsChunkGroup,
 	type JsChunkGroupOrigin,
 	type JsCompilation,
-	__chunk_group_inner_get_chunk_group
+	__chunk_group_inner_get_chunk_group,
+	__chunk_group_inner_get_module_post_order_index,
+	__chunk_group_inner_get_module_pre_order_index
 } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
+import type { Module } from "./Module";
 
 export class ChunkGroup {
 	#inner: JsChunkGroup;
@@ -44,6 +47,22 @@ export class ChunkGroup {
 
 	isInitial(): boolean {
 		return this.#inner.isInitial;
+	}
+
+	getModulePreOrderIndex(module: Module) {
+		return __chunk_group_inner_get_module_pre_order_index(
+			this.#inner.__inner_ukey,
+			this.#innerCompilation,
+			module.identifier()
+		);
+	}
+
+	getModulePostOrderIndex(module: Module) {
+		return __chunk_group_inner_get_module_post_order_index(
+			this.#inner.__inner_ukey,
+			this.#innerCompilation,
+			module.identifier()
+		);
 	}
 
 	get chunks(): ReadonlyArray<Chunk> {
