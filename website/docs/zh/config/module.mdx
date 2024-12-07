@@ -434,7 +434,7 @@ module.exports = {
 
 #### module.generator.asset.dataUrl
 
-- **类型：** `Object | (options: { content: string, filename: string }) => string`
+- **类型：** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **默认值：** `{}`
 
 仅对模块类型为 `asset` 或 `'asset/inline'` 的模块生效。

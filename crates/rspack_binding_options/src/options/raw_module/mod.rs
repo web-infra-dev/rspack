@@ -2,12 +2,12 @@ use std::fmt::Formatter;
 use std::{collections::HashMap, sync::Arc};
 
 use derive_more::Debug;
-use napi::bindgen_prelude::Either3;
+use napi::bindgen_prelude::{Buffer, Either3};
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::JsFilename;
+use rspack_binding_values::{JsFilename, JsModuleWrapper};
 use rspack_core::{
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetGeneratorDataUrlOptions,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
@@ -500,7 +500,7 @@ pub struct RawAssetGeneratorOptions {
   pub public_path: Option<JsFilename>,
   #[debug(skip)]
   #[napi(
-    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)"
   )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
@@ -523,7 +523,7 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
 pub struct RawAssetInlineGeneratorOptions {
   #[debug(skip)]
   #[napi(
-    ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
+    ts_type = "RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)"
   )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
 }
@@ -559,22 +559,26 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
 
 type RawAssetGeneratorDataUrl = Either<
   RawAssetGeneratorDataUrlOptions,
-  ThreadsafeFunction<RawAssetGeneratorDataUrlFnArgs, String>,
+  ThreadsafeFunction<(Buffer, RawAssetGeneratorDataUrlFnCtx), String>,
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
-#[derive(Debug, Clone)]
 #[napi(object)]
-pub struct RawAssetGeneratorDataUrlFnArgs {
+pub struct RawAssetGeneratorDataUrlFnCtx {
   pub filename: String,
-  pub content: String,
+  #[napi(ts_type = "JsModule")]
+  pub module: JsModuleWrapper,
 }
 
-impl From<AssetGeneratorDataUrlFnArgs> for RawAssetGeneratorDataUrlFnArgs {
-  fn from(value: AssetGeneratorDataUrlFnArgs) -> Self {
+impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
+  fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
     Self {
       filename: value.filename,
-      content: value.content,
+      module: JsModuleWrapper::new(
+        value.module,
+        value.compilation.id(),
+        Some(value.compilation),
+      ),
     }
   }
 }
@@ -584,7 +588,9 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
     use pollster::block_on;
     match value.0 {
       Either::A(a) => Self::Options(a.into()),
-      Either::B(b) => Self::Func(Arc::new(move |ctx| block_on(b.call(ctx.into())))),
+      Either::B(b) => Self::Func(Arc::new(move |source, ctx| {
+        block_on(b.call((source.into(), ctx.into())))
+      })),
     }
   }
 }
