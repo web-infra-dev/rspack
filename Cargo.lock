@@ -4011,7 +4011,6 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "dunce",
- "futures",
  "rspack_error",
  "rspack_paths",
  "tokio",

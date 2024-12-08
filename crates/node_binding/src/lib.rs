@@ -39,6 +39,7 @@ pub struct Rspack {
 #[napi]
 impl Rspack {
   #[napi(constructor)]
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     env: Env,
     options: RawOptions,
@@ -66,16 +67,13 @@ impl Rspack {
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
     let input_file_system = input_filesystem.map(|fs| {
-      let binding: Arc<dyn FileSystem> = Arc::new(
-        NodeFileSystem::new(fs)
-          .map_err(|e| Error::from_reason(format!("Failed to create readable filesystem: {e}",)))
-          .unwrap(),
-      );
+      let binding: Arc<dyn FileSystem> =
+        Arc::new(NodeFileSystem::new(fs).expect("Failed to create readable filesystem"));
       binding
     });
 
     if let Some(fs) = &input_file_system {
-      (*resolver_factory_reference).input_filesystem = fs.clone();
+      resolver_factory_reference.input_filesystem = fs.clone();
     }
 
     let resolver_factory =
