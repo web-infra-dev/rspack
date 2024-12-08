@@ -47,6 +47,7 @@ pub struct ThreadsafeNodeFS {
 pub struct NodeFsStats {
   pub is_file: bool,
   pub is_directory: bool,
+  pub is_symlink: bool,
   pub atime_ms: u32,
   pub mtime_ms: u32,
   pub ctime_ms: u32,
@@ -59,7 +60,7 @@ impl From<NodeFsStats> for FileMetadata {
     Self {
       is_file: value.is_file,
       is_directory: value.is_directory,
-      is_symlink: false,
+      is_symlink: value.is_symlink,
       atime_ms: value.atime_ms as u64,
       mtime_ms: value.mtime_ms as u64,
       ctime_ms: value.ctime_ms as u64,

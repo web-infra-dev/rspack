@@ -39,6 +39,7 @@ function __to_binding_stat(stat: IStats): NodeFsStats {
 	return {
 		isFile: stat.isFile(),
 		isDirectory: stat.isDirectory(),
+		isSymlink: stat.isSymbolicLink(),
 		atimeMs: stat.atimeMs,
 		mtimeMs: stat.atimeMs,
 		ctimeMs: stat.atimeMs,

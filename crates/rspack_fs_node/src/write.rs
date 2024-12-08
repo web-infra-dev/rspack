@@ -194,7 +194,14 @@ impl ReadableFileSystem for NodeFileSystem {
   }
 
   fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.metadata(path)
+    let res = futures::executor::block_on(self.0.lstat.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(new_fs_error(
+        "input file system call symlink_metadata failed",
+      )),
+    }
   }
 
   fn canonicalize(&self, path: &Utf8Path) -> Result<rspack_paths::Utf8PathBuf> {
