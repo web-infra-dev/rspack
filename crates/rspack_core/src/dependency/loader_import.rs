@@ -22,6 +22,14 @@ impl LoaderImportDependency {
       id: DependencyId::new(),
     }
   }
+
+  pub fn new_with_id(id: DependencyId, request: String, context: Context) -> Self {
+    Self {
+      request,
+      context,
+      id,
+    }
+  }
 }
 
 impl AsDependencyTemplate for LoaderImportDependency {}

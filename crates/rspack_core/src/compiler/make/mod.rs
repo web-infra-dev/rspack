@@ -1,4 +1,4 @@
-mod cutout;
+pub mod cutout;
 pub mod repair;
 
 use rspack_collections::IdentifierSet;
