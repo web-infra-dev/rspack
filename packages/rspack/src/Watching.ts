@@ -59,6 +59,16 @@ export class Watching {
 		this.handler = handler;
 		this.suspended = false;
 
+		// The default aggregateTimeout of watchpack is 200ms,
+		// using smaller values can improve HMR performance
+		if (typeof this.watchOptions.aggregateTimeout !== "number") {
+			this.watchOptions.aggregateTimeout = 5;
+		}
+		// Ignore watching files in node_modules to reduce memory usage and make startup faster
+		if (this.watchOptions.ignored === undefined) {
+			this.watchOptions.ignored = /[\\/](?:\.git|node_modules)[\\/]/;
+		}
+
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
 		});

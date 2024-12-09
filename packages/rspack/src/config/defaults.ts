@@ -48,8 +48,7 @@ import type {
 	ResolveOptions,
 	RspackFutureOptions,
 	RuleSetRules,
-	SnapshotOptions,
-	WatchOptions
+	SnapshotOptions
 } from "./types";
 
 export const applyRspackOptionsDefaults = (
@@ -81,9 +80,6 @@ export const applyRspackOptionsDefaults = (
 
 	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
-
-	applyWatchOptionsDefaults(options.watchOptions);
-
 	D(options, "profile", false);
 	// IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
 	D(options, "bail", false);
@@ -895,16 +891,6 @@ const applyPerformanceDefaults = (
 	D(performance, "maxAssetSize", 250000);
 	D(performance, "maxEntrypointSize", 250000);
 	F(performance, "hints", () => (production ? "warning" : false));
-};
-
-const applyWatchOptionsDefaults = (watchOptions: WatchOptions) => {
-	// The default aggregateTimeout of watchpack is 200ms,
-	// using smaller values can improve hmr performance
-	// IGNORE(watchOptions.aggregateTimeout): Rspack uses different value
-	D(watchOptions, "aggregateTimeout", 5);
-	// Ignore watching files in node_modules to reduce memory usage and make startup faster
-	// IGNORE(watchOptions.ignored): Rspack uses different value
-	D(watchOptions, "ignored", /[\\/](?:\.git|node_modules)[\\/]/);
 };
 
 const applyOptimizationDefaults = (
