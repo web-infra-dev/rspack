@@ -8,7 +8,6 @@ use rspack_napi::OneShotRef;
 #[napi]
 pub struct JsChunk {
   pub(crate) chunk_ukey: ChunkUkey,
-  compilation_id: CompilationId,
   compilation: NonNull<Compilation>,
 }
 
@@ -197,6 +196,8 @@ pub struct JsChunkWrapper {
   compilation: NonNull<Compilation>,
 }
 
+unsafe impl Send for JsChunkWrapper {}
+
 impl JsChunkWrapper {
   pub fn new(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Self {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -240,7 +241,6 @@ impl ToNapiValue for JsChunkWrapper {
         std::collections::hash_map::Entry::Vacant(entry) => {
           let js_module = JsChunk {
             chunk_ukey: val.chunk_ukey,
-            compilation_id: val.compilation_id,
             compilation: val.compilation,
           };
           let r = entry.insert(OneShotRef::new(env, js_module)?);

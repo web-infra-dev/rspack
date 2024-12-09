@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
-use rspack_binding_values::{JsChunk, JsModuleWrapper};
+use rspack_binding_values::{JsChunkWrapper, JsModuleWrapper};
+use rspack_collections::DatabaseItem;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
 pub(super) type RawChunkOptionName =
-  Either3<String, bool, ThreadsafeFunction<RawChunkOptionNameCtx, Option<String>>>;
+  Either3<String, bool, ThreadsafeFunction<JsChunkOptionNameCtx, Option<String>>>;
 
 #[inline]
 pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
@@ -15,16 +16,17 @@ pub(super) fn default_chunk_option_name() -> ChunkNameGetter {
 }
 
 #[napi(object, object_from_js = false)]
-pub struct RawChunkOptionNameCtx {
+pub struct JsChunkOptionNameCtx {
   #[napi(ts_type = "JsModule")]
   pub module: JsModuleWrapper,
-  pub chunks: Vec<JsChunk>,
+  #[napi(ts_type = "JsChunk[]")]
+  pub chunks: Vec<JsChunkWrapper>,
   pub cache_group_key: String,
 }
 
-impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
+impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
   fn from(value: ChunkNameGetterFnCtx<'a>) -> Self {
-    RawChunkOptionNameCtx {
+    JsChunkOptionNameCtx {
       module: JsModuleWrapper::new(
         value.module,
         value.compilation.id(),

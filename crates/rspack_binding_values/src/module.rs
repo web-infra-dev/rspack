@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsChunk, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
+  JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
   JsDependencyWrapper, ToJsCompatSource,
 };
 
