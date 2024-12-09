@@ -167,6 +167,15 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
+      if let Some(module) = compilation.module_by_identifier(module_identifier) {
+        if module
+          .chunk_condition(&new_chunk, compilation)
+          .is_some_and(|conditon| !conditon)
+        {
+          continue;
+        }
+      }
+
       // First, we remove modules from old chunks
 
       // Remove module from old chunks
