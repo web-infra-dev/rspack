@@ -1,28 +1,46 @@
+use std::ptr::NonNull;
+
 use napi_derive::napi;
-use rspack_core::{ChunkUkey, SourceType};
+use rspack_core::{ChunkUkey, Compilation, SourceType};
 use rspack_napi::napi::Result;
 
 use crate::{JsChunk, JsCompilation, JsModuleWrapper};
 
-#[napi(
-  js_name = "__chunk_graph_inner_get_chunk_modules",
-  ts_return_type = "JsModule[]"
-)]
-pub fn get_chunk_modules(
-  js_chunk_ukey: u32,
-  js_compilation: &JsCompilation,
-) -> Vec<JsModuleWrapper> {
-  let compilation = unsafe { js_compilation.inner.as_ref() };
+#[napi]
+pub struct JsChunkGraph {
+  compilation: NonNull<Compilation>,
+}
 
-  let module_graph = compilation.get_module_graph();
-  let modules = compilation
-    .chunk_graph
-    .get_chunk_modules(&ChunkUkey::from(js_chunk_ukey), &module_graph);
+impl JsChunkGraph {
+  pub fn new(compilation: &Compilation) -> Self {
+    #[allow(clippy::unwrap_used)]
+    JsChunkGraph {
+      compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+    }
+  }
 
-  return modules
-    .iter()
-    .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
-    .collect::<Vec<_>>();
+  fn as_ref(&self) -> napi::Result<&'static Compilation> {
+    let compilation = unsafe { self.compilation.as_ref() };
+    Ok(compilation)
+  }
+}
+
+#[napi]
+impl JsChunkGraph {
+  #[napi(ts_return_type = "JsModule[]")]
+  pub fn get_chunk_modules(&self, js_chunk_ukey: u32) -> Vec<JsModuleWrapper> {
+    let compilation = unsafe { js_compilation.inner.as_ref() };
+
+    let module_graph = compilation.get_module_graph();
+    let modules = compilation
+      .chunk_graph
+      .get_chunk_modules(&ChunkUkey::from(js_chunk_ukey), &module_graph);
+
+    return modules
+      .iter()
+      .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)))
+      .collect::<Vec<_>>();
+  }
 }
 
 #[napi(

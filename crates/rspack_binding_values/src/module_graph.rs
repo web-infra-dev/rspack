@@ -15,7 +15,7 @@ pub struct JsModuleGraph {
 impl JsModuleGraph {
   pub fn new(compilation: &Compilation) -> Self {
     #[allow(clippy::unwrap_used)]
-    JsModuleGraph {
+    Self {
       compilation: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
     }
   }

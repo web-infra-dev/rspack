@@ -1316,11 +1316,10 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
     chunk_ukey: &ChunkUkey,
     file: &str,
   ) -> rspack_error::Result<()> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     self
       .function
       .call_with_sync(JsChunkAssetArgs {
-        chunk: JsChunk::from(chunk, compilation),
+        chunk: JsChunkWrapper::new(chunk_ukey, compilation),
         filename: file.to_string(),
       })
       .await

@@ -36,12 +36,7 @@ impl JsModule {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-        let module = module.as_ref();
-        self.module = {
-          #[allow(clippy::unwrap_used)]
-          NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap()
-        };
-        Ok(module)
+        Ok(module.as_ref())
       } else {
         Err(napi::Error::from_reason(format!(
           "Unable to access module with id = {} now. The module have been removed on the Rust side.",
