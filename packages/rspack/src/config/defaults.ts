@@ -900,8 +900,10 @@ const applyPerformanceDefaults = (
 const applyWatchOptionsDefaults = (watchOptions: WatchOptions) => {
 	// The default aggregateTimeout of watchpack is 200ms,
 	// using smaller values can improve hmr performance
+	// IGNORE(watchOptions.aggregateTimeout): Rspack uses different value
 	D(watchOptions, "aggregateTimeout", 5);
 	// Ignore watching files in node_modules to reduce memory usage and make startup faster
+	// IGNORE(watchOptions.ignored): Rspack uses different value
 	D(watchOptions, "ignored", /[\\/](?:\.git|node_modules)[\\/]/);
 };
 

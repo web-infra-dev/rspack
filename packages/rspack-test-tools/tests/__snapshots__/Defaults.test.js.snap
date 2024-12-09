@@ -488,6 +488,9 @@ Object {
   stats: Object {},
   target: web,
   watch: false,
-  watchOptions: Object {},
+  watchOptions: Object {
+    aggregateTimeout: 5,
+    ignored: /\\[\\\\\\\\/\\]\\(\\?:\\\\\\.git\\|node_modules\\)\\[\\\\\\\\/\\]/,
+  },
 }
 `;
