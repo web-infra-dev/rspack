@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
 use rustc_hash::FxHashMap;
 
-use crate::JsChunk;
+use crate::JsChunkWrapper;
 
 static RUNTIME_GLOBAL_MAP: LazyLock<(
   FxHashMap<RuntimeGlobals, String>,
@@ -91,9 +91,10 @@ static RUNTIME_GLOBAL_MAP: LazyLock<(
   (to_js_map, from_js_map)
 });
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsAdditionalTreeRuntimeRequirementsArg {
-  pub chunk: JsChunk,
+  #[napi(js_name = "JsChunk")]
+  pub chunk: JsChunkWrapper,
   pub runtime_requirements: JsRuntimeGlobals,
 }
 
@@ -142,9 +143,10 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRuntimeRequirementInTreeArg {
-  pub chunk: JsChunk,
+  #[napi(js_name = "JsChunk")]
+  pub chunk: JsChunkWrapper,
   pub runtime_requirements: JsRuntimeGlobals,
 }
 

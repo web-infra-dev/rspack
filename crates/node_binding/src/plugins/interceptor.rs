@@ -14,13 +14,13 @@ use rspack_binding_values::{
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunk, JsChunkAssetArgs, JsCompilationWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
-  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
-  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsExecuteModuleArg, JsFactorizeArgs,
-  JsFactorizeOutput, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
-  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals,
-  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsChunk, JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
+  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
+  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
+  JsCreateData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModuleWrapper,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -1191,9 +1191,8 @@ impl CompilationAdditionalTreeRuntimeRequirements
     chunk_ukey: &ChunkUkey,
     runtime_requirements: &mut RuntimeGlobals,
   ) -> rspack_error::Result<()> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsAdditionalTreeRuntimeRequirementsArg {
-      chunk: JsChunk::from(chunk, compilation),
+      chunk: JsChunkWrapper::new(chunk_ukey, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*runtime_requirements),
     };
     let result = self.function.call_with_sync(arg).await?;
@@ -1218,9 +1217,8 @@ impl CompilationRuntimeRequirementInTree for CompilationRuntimeRequirementInTree
     _runtime_requirements: &RuntimeGlobals,
     runtime_requirements_mut: &mut RuntimeGlobals,
   ) -> rspack_error::Result<Option<()>> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsRuntimeRequirementInTreeArg {
-      chunk: JsChunk::from(chunk, compilation),
+      chunk: JsChunkWrapper::new(chunk_ukey, compilation),
       runtime_requirements: JsRuntimeGlobals::from(*all_runtime_requirements),
     };
     let result = self.function.blocking_call_with_sync(arg)?;
@@ -1245,12 +1243,12 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     &self,
     compilation: &mut Compilation,
     m: &ModuleIdentifier,
-    c: &ChunkUkey,
+    chunk_ukey: &ChunkUkey,
   ) -> rspack_error::Result<()> {
     let Some(module) = compilation.runtime_modules.get(m) else {
       return Ok(());
     };
-    let chunk = compilation.chunk_by_ukey.expect_get(c);
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(
@@ -1267,7 +1265,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
           .cow_replace("webpack/runtime/", "")
           .into_owned(),
       },
-      chunk: JsChunk::from(chunk, compilation),
+      chunk: JsChunkWrapper::new(chunk_ukey, compilation),
     };
     if let Some(module) = self.function.call_with_sync(arg).await?
       && let Some(source) = module.source
@@ -1294,10 +1292,9 @@ impl CompilationChunkHash for CompilationChunkHashTap {
     chunk_ukey: &ChunkUkey,
     hasher: &mut RspackHash,
   ) -> rspack_error::Result<()> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let result = self
       .function
-      .call_with_sync(JsChunk::from(chunk, compilation))
+      .call_with_sync(JsChunkWrapper::new(chunk_ukey, compilation))
       .await?;
     result.hash(hasher);
     Ok(())
@@ -1661,10 +1658,9 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
     chunk_ukey: &ChunkUkey,
     hasher: &mut RspackHash,
   ) -> rspack_error::Result<()> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let result = self
       .function
-      .call_with_sync(JsChunk::from(chunk, compilation))
+      .call_with_sync(JsChunkWrapper::new(chunk_ukey, compilation))
       .await?;
     result.hash(hasher);
     Ok(())

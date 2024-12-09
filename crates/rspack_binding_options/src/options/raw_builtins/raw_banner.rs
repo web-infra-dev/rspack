@@ -6,10 +6,11 @@ use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct RawBannerContentFnCtx {
   pub hash: String,
-  pub chunk: JsChunk,
+  #[napi(js_name = "JsChunk")]
+  pub chunk: JsChunkWrapper,
   pub filename: String,
 }
 
@@ -17,7 +18,7 @@ impl<'a> From<BannerContentFnCtx<'a>> for RawBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
-      chunk: JsChunk::from(value.chunk, value.compilation),
+      chunk: JsChunkWrapper::new(value.chunk.ukey(), value.compilation),
       filename: value.filename.to_string(),
     }
   }

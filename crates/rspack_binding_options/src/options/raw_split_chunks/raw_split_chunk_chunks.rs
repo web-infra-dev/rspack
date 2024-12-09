@@ -16,8 +16,8 @@ pub fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks::ChunkFil
       let js_str = js_str.into_string();
       rspack_plugin_split_chunks::create_chunk_filter_from_str(&js_str)
     }
-    Either3::C(f) => {
-      Arc::new(move |chunk, compilation| block_on(f.call(JsChunk::from(chunk, compilation))))
-    }
+    Either3::C(f) => Arc::new(move |chunk, compilation| {
+      block_on(f.call(JsChunkWrapper::new(chunk.ukey(), compilation)))
+    }),
   }
 }

@@ -13,7 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsChunk, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
+  JsChunk, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
   JsDependencyWrapper, ToJsCompatSource,
 };
 
@@ -404,10 +404,11 @@ pub struct JsRuntimeModule {
   pub name: String,
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsRuntimeModuleArg {
   pub module: JsRuntimeModule,
-  pub chunk: JsChunk,
+  #[napi(js_name = "JsChunk")]
+  pub chunk: JsChunkWrapper,
 }
 
 type GenerateFn = ThreadsafeFunction<(), String>;

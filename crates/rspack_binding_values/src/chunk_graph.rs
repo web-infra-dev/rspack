@@ -1,8 +1,8 @@
 use std::ptr::NonNull;
 
+use napi::Result;
 use napi_derive::napi;
 use rspack_core::{Compilation, SourceType};
-use rspack_napi::Result;
 
 use crate::{JsChunk, JsChunkWrapper, JsModuleWrapper};
 

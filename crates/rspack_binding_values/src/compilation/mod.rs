@@ -9,7 +9,7 @@ use std::ptr::NonNull;
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::ChunkUkey;
@@ -26,13 +26,14 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsChunkWrapper;
 use crate::JsCompatSource;
 use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ToJsCompatSource as _;
-use crate::{chunk::JsChunk, JsAsset, JsAssetInfo, JsChunkGroup, JsPathData, JsStats};
+use crate::ToJsCompatSource;
+use crate::{JsAsset, JsAssetInfo, JsChunkGroup, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
@@ -212,15 +213,15 @@ impl JsCompilation {
     )
   }
 
-  #[napi]
-  pub fn get_chunks(&self) -> Result<Vec<JsChunk>> {
+  #[napi(ts_return_type = "JsChunk[]")]
+  pub fn get_chunks(&self) -> Result<Vec<JsChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .chunk_by_ukey
-        .values()
-        .map(|c| JsChunk::from(c, compilation))
+        .keys()
+        .map(|ukey| JsChunkWrapper::new(*ukey, compilation))
         .collect::<Vec<_>>(),
     )
   }
@@ -232,15 +233,15 @@ impl JsCompilation {
     Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
-  #[napi]
-  pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunk>> {
+  #[napi(ts_return_type = "JsChunk")]
+  pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(compilation.named_chunks.get(&name).and_then(|c| {
       compilation
         .chunk_by_ukey
         .get(c)
-        .map(|c| JsChunk::from(c, compilation))
+        .map(|chunk| JsChunkWrapper::new(chunk.ukey(), compilation))
     }))
   }
 

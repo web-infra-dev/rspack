@@ -33,7 +33,7 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for RawChunkOptionNameCtx {
       chunks: value
         .chunks
         .iter()
-        .map(|chunk| JsChunk::from(chunk, value.compilation))
+        .map(|chunk| JsChunkWrapper::new(chunk.ukey(), value.compilation))
         .collect(),
       cache_group_key: value.cache_group_key.to_string(),
     }
