@@ -170,7 +170,7 @@ impl SplitChunksPlugin {
       if let Some(module) = compilation.module_by_identifier(module_identifier) {
         if module
           .chunk_condition(&new_chunk, compilation)
-          .is_some_and(|conditon| !conditon)
+          .is_some_and(|condition| !condition)
         {
           continue;
         }

@@ -389,7 +389,7 @@ impl SplitChunksPlugin {
             if let Some(module) = compilation.module_by_identifier(&module.module) {
               if module
                 .chunk_condition(&new_part_ukey, compilation)
-                .is_some_and(|conditon| !conditon)
+                .is_some_and(|condition| !condition)
               {
                 return;
               }
