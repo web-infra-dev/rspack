@@ -58,31 +58,27 @@ module.exports = {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
-- **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
+- **类型：** `RegExp`, `string`, `string[]`
+- **默认值：** `undefined`
 
-监听时排除匹配到的路径。监听大量文件可能会导致 CPU 或内存使用率过高。
-
-Rspack 从 v1.2.0 开始，默认排除 `node_modules` 和 `.git` 目录下的文件。这意味着当这些目录下的文件发生变化时，不会触发重新构建。
-
-如果你希望监听 `node_modules` 目录，可以设置为仅排除 `.git` 目录：
+监听时排除匹配到的路径。监听大量文件可能会导致 CPU 或内存使用率过高，建议使用正则表达式排除像 `node_modules` 和 `.git` 这样的大文件夹：
 
 ```js title=rspack.config.js
 module.exports = {
   //...
   watchOptions: {
-    ignored: /\.git/,
+    ignored: /[\\/](?:\.git|node_modules)[\\/]/,
   },
 };
 ```
 
-`ignored` 可以使用 glob 匹配：
+此外，可以使用 glob 匹配：
 
 ```js title=rspack.config.js
 module.exports = {
   //...
   watchOptions: {
-    ignored: '**/.git',
+    ignored: '**/node_modules',
   },
 };
 ```
@@ -93,7 +89,7 @@ module.exports = {
 module.exports = {
   //...
   watchOptions: {
-    ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
+    ignored: ['**/files/**/*.js', '**/node_modules'],
   },
 };
 ```

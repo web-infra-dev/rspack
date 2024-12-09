@@ -58,31 +58,27 @@ module.exports = {
 
 ### watchOptions.ignored
 
-- **Type:** `RegExp | string | string[]`
-- **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
+- **Type:** `RegExp`, `string`, `string[]`
+- **Default:** `undefined`
 
-The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
-
-Since Rspack v1.2.0, `node_modules` and `.git` directories are excluded by default. This means that changes to files in these directories will not trigger a rebuild.
-
-If you want to watch the `node_modules` directory, you can set it to only exclude the `.git` directory:
+The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage, it is recommended to exclude a huge folder like `node_modules` and `.git` using a regular expression:
 
 ```js title=rspack.config.js
 module.exports = {
   //...
   watchOptions: {
-    ignored: /\.git/,
+    ignored: /[\\/](?:\.git|node_modules)[\\/]/,
   },
 };
 ```
 
-`ignored` can use glob matching:
+Alternatively, a glob pattern may be used:
 
 ```js title=rspack.config.js
 module.exports = {
   //...
   watchOptions: {
-    ignored: '**/.git',
+    ignored: '**/node_modules',
   },
 };
 ```
@@ -93,7 +89,7 @@ It is also possible to use multiple glob patterns:
 module.exports = {
   //...
   watchOptions: {
-    ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
+    ignored: ['**/files/**/*.js', '**/node_modules'],
   },
 };
 ```
