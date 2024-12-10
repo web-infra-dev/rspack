@@ -188,7 +188,14 @@ impl Rspack {
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
-    JsCompilationWrapper::cleanup_last_compilation(compilation.id());
+    let compilation_id = compilation.id();
+
+    JsCompilationWrapper::cleanup_last_compilation(compilation_id);
+    JsModuleWrapper::cleanup_last_compilation(compilation_id);
+    JsChunkWrapper::cleanup_last_compilation(compilation_id);
+    JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
+    JsDependencyWrapper::cleanup_last_compilation(compilation_id);
+    JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

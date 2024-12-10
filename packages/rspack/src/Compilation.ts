@@ -384,7 +384,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.childrenCounters = {};
 		this.children = [];
 
-		this.chunkGraph = new ChunkGraph(this);
+		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
 	}
 
@@ -412,7 +412,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				new Map(
 					Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 						n,
-						Entrypoint.__from_binding(e, this.#inner)
+						Entrypoint.__from_binding(e)
 					])
 				)
 		);
@@ -420,9 +420,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
 		return memoizeValue(() =>
-			this.#inner.chunkGroups.map(cg =>
-				ChunkGroup.__from_binding(cg, this.#inner)
-			)
+			this.#inner.chunkGroups.map(binding => ChunkGroup.__from_binding(binding))
 		);
 	}
 
@@ -439,8 +437,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const chunk = this.#inner.getNamedChunkGroup(property) || undefined;
-					return chunk && ChunkGroup.__from_binding(chunk, this.#inner);
+					const binding = this.#inner.getNamedChunkGroup(property);
+					return ChunkGroup.__from_binding(binding);
 				}
 			}
 		});
@@ -477,8 +475,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			},
 			get: (property: unknown) => {
 				if (typeof property === "string") {
-					const chunk = this.#inner.getNamedChunk(property) || undefined;
-					return chunk && Chunk.__from_binding(chunk, this.#inner);
+					const binding = this.#inner.getNamedChunk(property);
+					return Chunk.__from_binding(binding);
 				}
 			}
 		});
@@ -1145,7 +1143,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
 		runtimeModule.attach(this, chunk, this.chunkGraph);
 		this.#inner.addRuntimeModule(
-			chunk.__internal__innerUkey(),
+			Chunk.__to_binding(chunk),
 			RuntimeModule.__to_binding(this, runtimeModule)
 		);
 	}
@@ -1217,7 +1215,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	__internal__getChunks(): Chunk[] {
 		return this.#inner
 			.getChunks()
-			.map(c => Chunk.__from_binding(c, this.#inner));
+			.map(binding => Chunk.__from_binding(binding));
 	}
 
 	/**

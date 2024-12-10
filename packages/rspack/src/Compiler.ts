@@ -923,10 +923,7 @@ class Compiler {
 							runtimeRequirements
 						}: binding.JsAdditionalTreeRuntimeRequirementsArg) {
 							const set = __from_binding_runtime_globals(runtimeRequirements);
-							queried.call(
-								Chunk.__from_binding(chunk, that.deref()!.#compilation!),
-								set
-							);
+							queried.call(Chunk.__from_binding(chunk), set);
 							return {
 								runtimeRequirements: __to_binding_runtime_globals(set)
 							};
@@ -943,14 +940,11 @@ class Compiler {
 
 					function (queried) {
 						return function ({
-							chunk: rawChunk,
+							chunk: chunkBinding,
 							runtimeRequirements
 						}: binding.JsRuntimeRequirementInTreeArg) {
 							const set = __from_binding_runtime_globals(runtimeRequirements);
-							const chunk = Chunk.__from_binding(
-								rawChunk,
-								that.deref()!.#compilation!
-							);
+							const chunk = Chunk.__from_binding(chunkBinding);
 							for (const r of set) {
 								queried.for(r).call(chunk, set);
 							}
@@ -970,10 +964,7 @@ class Compiler {
 				function (queried) {
 					return function ({ module, chunk }: binding.JsRuntimeModuleArg) {
 						const originSource = module.source?.source;
-						queried.call(
-							module,
-							Chunk.__from_binding(chunk, that.deref()!.#compilation!)
-						);
+						queried.call(module, Chunk.__from_binding(chunk));
 						const newSource = module.source?.source;
 						if (newSource && newSource !== originSource) {
 							return module;
@@ -1191,10 +1182,7 @@ class Compiler {
 							throw new Error("'output.hashFunction' cannot be undefined");
 						}
 						const hash = createHash(that.deref()!.options.output.hashFunction!);
-						queried.call(
-							Chunk.__from_binding(chunk, that.deref()!.#compilation!),
-							hash
-						);
+						queried.call(Chunk.__from_binding(chunk), hash);
 						const digestResult = hash.digest(
 							that.deref()!.options.output.hashDigest
 						);
@@ -1211,10 +1199,7 @@ class Compiler {
 
 				function (queried) {
 					return function ({ chunk, filename }: binding.JsChunkAssetArgs) {
-						return queried.call(
-							Chunk.__from_binding(chunk, that.deref()!.#compilation!),
-							filename
-						);
+						return queried.call(Chunk.__from_binding(chunk), filename);
 					};
 				}
 			),
@@ -1485,10 +1470,7 @@ class Compiler {
 							throw new Error("'output.hashFunction' cannot be undefined");
 						}
 						const hash = createHash(that.deref()!.options.output.hashFunction!);
-						queried.call(
-							Chunk.__from_binding(chunk, that.deref()!.#compilation!),
-							hash
-						);
+						queried.call(Chunk.__from_binding(chunk), hash);
 						const digestResult = hash.digest(
 							that.deref()!.options.output.hashDigest
 						);

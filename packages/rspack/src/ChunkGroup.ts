@@ -1,84 +1,82 @@
-import {
-	type JsChunkGroup,
-	type JsChunkGroupOrigin,
-	type JsCompilation,
-	__chunk_group_inner_get_chunk_group
-} from "@rspack/binding";
+import type { JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
+import { Module } from "./Module";
+
+const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
 
 export class ChunkGroup {
+	declare readonly chunks: ReadonlyArray<Chunk>;
+	declare readonly index?: number;
+	declare readonly name?: string;
+	declare readonly origins: ReadonlyArray<ChunkGroupOrigin>;
+
 	#inner: JsChunkGroup;
-	#innerCompilation: JsCompilation;
 
-	static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation) {
-		return new ChunkGroup(chunk, compilation);
-	}
-
-	protected constructor(inner: JsChunkGroup, compilation: JsCompilation) {
-		this.#inner = inner;
-		this.#innerCompilation = compilation;
-	}
-
-	getFiles(): ReadonlyArray<string> {
-		const files = new Set<string>();
-
-		for (const chunk of this.#inner.chunks) {
-			for (const file of chunk.files) {
-				files.add(file);
-			}
+	static __from_binding(binding: JsChunkGroup) {
+		let chunkGroup = CHUNK_GROUP_MAPPINGS.get(binding);
+		if (chunkGroup) {
+			return chunkGroup;
 		}
-
-		return Array.from(files);
+		chunkGroup = new ChunkGroup(binding);
+		CHUNK_GROUP_MAPPINGS.set(binding, chunkGroup);
+		return chunkGroup;
 	}
 
-	getParents(): ReadonlyArray<ChunkGroup> {
-		return this.#inner.__inner_parents.map(parent => {
-			const cg = __chunk_group_inner_get_chunk_group(
-				parent,
-				this.#innerCompilation
-			);
-			return ChunkGroup.__from_binding(cg, this.#innerCompilation);
+	protected constructor(inner: JsChunkGroup) {
+		this.#inner = inner;
+
+		Object.defineProperties(this, {
+			chunks: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.chunks.map(binding =>
+						Chunk.__from_binding(binding)
+					);
+				}
+			},
+			index: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.index;
+				}
+			},
+			name: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.name;
+				}
+			},
+			origins: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.origins.map(origin => ({
+						module: origin.module
+							? Module.__from_binding(origin.module)
+							: undefined,
+						request: origin.request
+					}));
+				}
+			}
 		});
 	}
 
+	getFiles(): ReadonlyArray<string> {
+		return this.#inner.getFiles();
+	}
+
+	getParents(): ReadonlyArray<ChunkGroup> {
+		return this.#inner
+			.getParents()
+			.map(binding => ChunkGroup.__from_binding(binding));
+	}
+
 	isInitial(): boolean {
-		return this.#inner.isInitial;
+		return this.#inner.isInitial();
 	}
+}
 
-	get chunks(): ReadonlyArray<Chunk> {
-		return this.#inner.chunks.map(c =>
-			Chunk.__from_binding(c, this.#innerCompilation)
-		);
-	}
-
-	get index(): Readonly<number | undefined> {
-		return this.#inner.index;
-	}
-
-	get name(): Readonly<string | undefined> {
-		return this.#inner.name;
-	}
-
-	get origins(): ReadonlyArray<JsChunkGroupOrigin> {
-		return this.#inner.origins;
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__innerUkey() {
-		return this.#inner.__inner_ukey;
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__innerCompilation() {
-		return this.#innerCompilation;
-	}
+interface ChunkGroupOrigin {
+	module?: Module;
+	request?: string;
 }
