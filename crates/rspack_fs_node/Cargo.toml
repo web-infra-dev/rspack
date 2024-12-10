@@ -11,7 +11,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 async-trait  = { workspace = true }
-futures      = { workspace = true }
 napi         = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive  = { workspace = true }
 rspack_error = { workspace = true }
