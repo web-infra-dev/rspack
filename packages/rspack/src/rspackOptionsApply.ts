@@ -56,6 +56,7 @@ import {
 	NaturalModuleIdsPlugin,
 	NoEmitOnErrorsPlugin,
 	NodeTargetPlugin,
+	OccurrenceChunkIdsPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
 	RuntimeChunkPlugin,
@@ -334,6 +335,18 @@ export class RspackOptionsApply {
 				}
 				case "deterministic": {
 					new DeterministicChunkIdsPlugin().apply(compiler);
+					break;
+				}
+				case "size": {
+					new OccurrenceChunkIdsPlugin({
+						prioritiseInitial: true
+					}).apply(compiler);
+					break;
+				}
+				case "total-size": {
+					new OccurrenceChunkIdsPlugin({
+						prioritiseInitial: false
+					}).apply(compiler);
 					break;
 				}
 				default:
