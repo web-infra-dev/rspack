@@ -374,6 +374,7 @@ impl SplitChunksPlugin {
             .chunk_by_ukey
             .get_many_mut([&new_chunk_ukey, &old_chunk])
             .expect("split_from_original_chunks failed");
+          let new_part_ukey = new_part.ukey();
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
           if let Some(mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
@@ -383,12 +384,21 @@ impl SplitChunksPlugin {
           }
 
           group.nodes.iter().for_each(|module| {
-            compilation.chunk_graph.add_chunk(new_part.ukey());
+            compilation.chunk_graph.add_chunk(new_part_ukey);
+
+            if let Some(module) = compilation.module_by_identifier(&module.module) {
+              if module
+                .chunk_condition(&new_part_ukey, compilation)
+                .is_some_and(|condition| !condition)
+              {
+                return;
+              }
+            }
 
             // Add module to new chunk
             compilation
               .chunk_graph
-              .connect_chunk_and_module(new_part.ukey(), module.module);
+              .connect_chunk_and_module(new_part_ukey, module.module);
             // Remove module from used chunks
             compilation
               .chunk_graph
