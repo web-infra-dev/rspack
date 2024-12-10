@@ -2344,13 +2344,13 @@ export type ExperimentCacheOptions =
 	| {
 			type: "persistent";
 			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
+				immutablePaths?: Array<string | RegExp>;
+				unmanagedPaths?: Array<string | RegExp>;
+				managedPaths?: Array<string | RegExp>;
 			};
 			storage: {
 				type: "filesystem";
-				directory: string;
+				directory?: string;
 			};
 	  };
 

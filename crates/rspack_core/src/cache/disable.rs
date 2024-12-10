@@ -7,8 +7,9 @@ use crate::make::MakeArtifact;
 #[derive(Debug)]
 pub struct DisableCache;
 
+#[async_trait::async_trait]
 impl Cache for DisableCache {
-  fn before_make(&self, make_artifact: &mut MakeArtifact) {
+  async fn before_make(&self, make_artifact: &mut MakeArtifact) {
     *make_artifact = Default::default();
   }
 }

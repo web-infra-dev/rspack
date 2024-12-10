@@ -1379,7 +1379,7 @@ export interface RawExperimentCacheOptionsCommon {
 export interface RawExperimentCacheOptionsPersistent {
   type: "persistent"
   snapshot: RawExperimentSnapshotOptions
-  storage: Array<RawStorageOptions>
+  storage: RawStorageOptions
 }
 
 export interface RawExperiments {

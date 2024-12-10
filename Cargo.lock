@@ -3961,6 +3961,7 @@ dependencies = [
  "rspack_regex",
  "rspack_resolver",
  "rspack_sources",
+ "rspack_storage",
  "rspack_util",
  "rustc-hash 2.1.0",
  "serde",

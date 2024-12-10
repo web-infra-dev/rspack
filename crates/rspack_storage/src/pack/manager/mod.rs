@@ -50,7 +50,8 @@ impl ScopeManager {
     self.queue.add_task(Box::pin(async move {
       let mut scopes_lock = scopes.lock().await;
       let old_scopes = std::mem::take(&mut *scopes_lock);
-      let _ = match save_scopes(old_scopes, strategy.as_ref()).await {
+      let res = save_scopes(old_scopes, strategy.as_ref()).await;
+      let _ = match res {
         Ok(new_scopes) => {
           let _ = std::mem::replace(&mut *scopes_lock, new_scopes);
           tx.send(Ok(()))
@@ -141,7 +142,6 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
-
   let wrote_results = join_all(
     scopes
       .values_mut()
@@ -158,7 +158,6 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .collect::<Result<Vec<WriteScopeResult>>>()?
   .into_iter()
   .collect_vec();
-
   join_all(
     scopes
       .values()
@@ -177,11 +176,9 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
-
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;
   }
-
   Ok(scopes.into_iter().collect())
 }
 
@@ -227,7 +224,6 @@ mod tests {
   }
 
   async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
-    println!("test cold start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
@@ -276,7 +272,6 @@ mod tests {
   }
 
   async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
-    println!("test hot start");
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,

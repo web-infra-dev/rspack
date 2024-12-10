@@ -4,7 +4,7 @@ pub mod persistent;
 
 use std::{fmt::Debug, sync::Arc};
 
-use rspack_fs::FileSystem;
+use rspack_fs::{FileSystem, IntermediateFileSystem};
 
 use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
 use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOptions};
@@ -21,25 +21,28 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 /// * This API does not need to cooperate with the js side.
 ///
 /// We can consider change to Hook when we need to open the API to js side.
+#[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
-  fn before_compile(&self, _compilation: &mut Compilation) {}
+  async fn before_compile(&self, _compilation: &mut Compilation) {}
   fn after_compile(&self, _compilation: &Compilation) {}
 
-  fn before_make(&self, _make_artifact: &mut MakeArtifact) {}
+  async fn before_make(&self, _make_artifact: &mut MakeArtifact) {}
   fn after_make(&self, _make_artifact: &MakeArtifact) {}
 }
 
 pub fn new_cache(
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn FileSystem>,
+  intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
 ) -> Arc<dyn Cache> {
   match &compiler_option.experiments.cache {
     ExperimentCacheOptions::Disabled => Arc::new(DisableCache),
     ExperimentCacheOptions::Memory => Arc::new(MemoryCache),
     ExperimentCacheOptions::Persistent(option) => Arc::new(PersistentCache::new(
       option,
-      input_filesystem,
       compiler_option.clone(),
+      input_filesystem,
+      intermediate_filesystem,
     )),
   }
 }

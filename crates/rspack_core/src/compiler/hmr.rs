@@ -77,6 +77,8 @@ impl Compiler {
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
+        self.intermediate_filesystem.clone(),
+        self.output_filesystem.clone(),
       );
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
@@ -169,7 +171,7 @@ impl Compiler {
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
-      self.cache.before_compile(&mut self.compilation);
+      self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
 
       self.old_cache.begin_idle();

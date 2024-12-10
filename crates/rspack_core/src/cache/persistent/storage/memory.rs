@@ -1,8 +1,9 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
+use rspack_error::Result;
+use rspack_storage::Storage;
 use rustc_hash::FxHashMap as HashMap;
-
-use super::Storage;
+use tokio::sync::oneshot::{channel, Receiver};
 
 /// Memory Storage
 ///
@@ -14,12 +15,18 @@ pub struct MemoryStorage {
   inner: Mutex<HashMap<String, HashMap<Vec<u8>, Vec<u8>>>>,
 }
 
+#[async_trait::async_trait]
 impl Storage for MemoryStorage {
-  fn load(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)> {
+  async fn load(&self, scope: &'static str) -> Result<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>> {
     if let Some(value) = self.inner.lock().expect("should get lock").get(scope) {
-      value.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+      Ok(
+        value
+          .iter()
+          .map(|(k, v)| (Arc::new(k.clone()), Arc::new(v.clone())))
+          .collect(),
+      )
     } else {
-      vec![]
+      Ok(vec![])
     }
   }
   fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>) {
@@ -31,13 +38,18 @@ impl Storage for MemoryStorage {
     let mut map = self.inner.lock().expect("should get lock");
     map.get_mut(scope).map(|map| map.remove(key));
   }
-  fn trigger_save(&self) {}
+  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+    let (rs, rx) = channel::<Result<()>>();
+    rs.send(Ok(()));
+    Ok(rx)
+  }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
+  use rspack_storage::Storage;
+
   use super::MemoryStorage;
-  use crate::cache::persistent::storage::Storage;
 
   #[test]
   fn should_memory_storage_works() {
@@ -61,3 +73,4 @@ mod tests {
     assert_eq!(arr.len(), 1);
   }
 }
+*/

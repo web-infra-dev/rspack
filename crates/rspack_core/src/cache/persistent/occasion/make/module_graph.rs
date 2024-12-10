@@ -17,7 +17,7 @@ use crate::{
   ModuleGraphPartial,
 };
 
-const SCOPE: &str = "occasion::make::module_graph";
+const SCOPE: &str = "occasion_make_module_graph";
 
 /// The value struct of current storage scope
 #[cacheable]
@@ -122,14 +122,14 @@ pub fn save_module_graph(
   }
 }
 
-pub fn recovery_module_graph(
+pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
 ) -> Result<(ModuleGraphPartial, HashSet<BuildDependency>), DeserializeError> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
-  for (_, v) in storage.load(SCOPE) {
+  for (_, v) in storage.load(SCOPE).await.unwrap_or_default() {
     let mut node: Node =
       from_bytes(&v, context).expect("unexpected module graph deserialize failed");
     for (dep, parent_block) in node.dependencies {
@@ -168,7 +168,7 @@ pub fn recovery_module_graph(
     }
   }
 
-  tracing::info!("recovery {} module", mg.modules().len());
+  println!("recovery {} module", mg.modules().len());
   let make_failed_dependencies = need_check_dep
     .iter()
     .filter_map(|(dep_id, module_identifier)| {
@@ -180,6 +180,6 @@ pub fn recovery_module_graph(
       }
     })
     .collect::<HashSet<_>>();
-  tracing::info!("recovery failed {} deps", make_failed_dependencies.len());
+  println!("recovery failed {} deps", make_failed_dependencies.len());
   Ok((partial, make_failed_dependencies))
 }

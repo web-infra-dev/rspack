@@ -6,13 +6,14 @@ use std::sync::Arc;
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
-use rspack_fs::FileSystem;
+use rspack_fs::{FileSystem, IntermediateFileSystem};
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
+use storage::create_storage;
 
 use self::{
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{MemoryStorage, Storage, StorageOptions},
+  storage::{Storage, StorageOptions},
 };
 use super::Cache;
 use crate::{make::MakeArtifact, Compilation, CompilerOptions};
@@ -20,7 +21,7 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions};
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
   pub snapshot: SnapshotOptions,
-  pub storage: Vec<StorageOptions>,
+  pub storage: StorageOptions,
 }
 
 /// Persistent cache implementation
@@ -34,10 +35,11 @@ pub struct PersistentCache {
 impl PersistentCache {
   pub fn new(
     option: &PersistentCacheOptions,
-    input_filesystem: Arc<dyn FileSystem>,
     compiler_options: Arc<CompilerOptions>,
+    input_filesystem: Arc<dyn FileSystem>,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
-    let storage = Arc::new(MemoryStorage::default());
+    let storage = create_storage(option.storage.clone(), intermediate_filesystem);
     let context = Arc::new(CacheableContext {
       options: compiler_options,
       input_filesystem: input_filesystem.clone(),
@@ -51,11 +53,13 @@ impl PersistentCache {
   }
 }
 
+#[async_trait::async_trait]
 impl Cache for PersistentCache {
-  fn before_compile(&self, compilation: &mut Compilation) {
+  async fn before_compile(&self, compilation: &mut Compilation) {
     if compilation.modified_files.is_empty() && compilation.removed_files.is_empty() {
       // inject modified_files and removed_files
-      let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths();
+      let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths().await;
+      println!("snapshot {:?} {:?}", modified_paths, removed_paths);
       compilation.modified_files = modified_paths;
       compilation.removed_files = removed_paths;
     }
@@ -95,10 +99,17 @@ impl Cache for PersistentCache {
     self.storage.trigger_save();
   }
 
-  fn before_make(&self, make_artifact: &mut MakeArtifact) {
+  async fn before_make(&self, make_artifact: &mut MakeArtifact) {
     if !make_artifact.initialized {
-      if let Ok(artifact) = self.make_occasion.recovery() {
-        *make_artifact = artifact;
+      println!("not init");
+      //      if let Ok(artifact) = self.make_occasion.recovery().await {
+      //        *make_artifact = artifact;
+      //      }
+      match self.make_occasion.recovery().await {
+        Ok(artifact) => *make_artifact = artifact,
+        Err(err) => {
+          println!("recovery error with {err:?}")
+        }
       }
     }
   }

@@ -64,22 +64,22 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "MakeOccasion::recovery", skip_all)]
-  pub fn recovery(&self) -> Result<MakeArtifact, DeserializeError> {
+  pub async fn recovery(&self) -> Result<MakeArtifact, DeserializeError> {
     let mut artifact = MakeArtifact::default();
 
     let (file_dependencies, context_dependencies, missing_dependencies, build_dependencies) =
-      dependencies::recovery_dependencies_info(&self.storage)?;
+      dependencies::recovery_dependencies_info(&self.storage).await?;
     artifact.file_dependencies = file_dependencies;
     artifact.context_dependencies = context_dependencies;
     artifact.missing_dependencies = missing_dependencies;
     artifact.build_dependencies = build_dependencies;
 
-    let (make_failed_dependencies, make_failed_module) = meta::recovery_meta(&self.storage)?;
+    let (make_failed_dependencies, make_failed_module) = meta::recovery_meta(&self.storage).await?;
     artifact.make_failed_dependencies = make_failed_dependencies;
     artifact.make_failed_module = make_failed_module;
 
     let (partial, make_failed_dependencies) =
-      module_graph::recovery_module_graph(&self.storage, &self.context)?;
+      module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
     artifact
       .make_failed_dependencies

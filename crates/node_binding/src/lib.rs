@@ -6,7 +6,7 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
@@ -71,10 +71,10 @@ impl Rspack {
       compiler_options,
       plugins,
       rspack_binding_options::buildtime_plugins::buildtime_plugins(),
-      Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
+      Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
-      Some(Box::new(
+      Some(Arc::new(
         NodeFileSystem::new(intermediate_filesystem).map_err(|e| {
           Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
         })?,

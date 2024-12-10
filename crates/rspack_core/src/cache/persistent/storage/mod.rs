@@ -1,7 +1,11 @@
 // TODO add #[cfg(test)]
 mod memory;
 
+use std::sync::Arc;
+
 pub use memory::MemoryStorage;
+use rspack_fs::IntermediateFileSystem;
+pub use rspack_storage::{PackBridgeFS, PackStorage, PackStorageOptions, Storage};
 
 /// Storage Options
 ///
@@ -10,14 +14,14 @@ pub use memory::MemoryStorage;
 #[derive(Debug, Clone)]
 pub enum StorageOptions {
   // TODO change to FileSystem(configuration)
-  FileSystem,
+  FileSystem(PackStorageOptions),
 }
 
-// TODO: add batch set/remove
-pub trait Storage: std::fmt::Debug + Sync + Send {
-  fn load(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)>;
-  // using immutable reference to support concurrency
-  fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>);
-  fn remove(&self, scope: &str, key: &[u8]);
-  fn trigger_save(&self);
+pub fn create_storage(
+  options: StorageOptions,
+  fs: Arc<dyn IntermediateFileSystem>,
+) -> Arc<dyn Storage> {
+  match options {
+    StorageOptions::FileSystem(o) => Arc::new(PackStorage::new(o, Arc::new(PackBridgeFS(fs)))),
+  }
 }

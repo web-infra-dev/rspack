@@ -25,7 +25,7 @@ pub struct RawExperimentCacheOptionsPersistent {
   //  pub build_dependencies: Vec<String>,
   //  pub version: String,
   pub snapshot: RawExperimentSnapshotOptions,
-  pub storage: Vec<RawStorageOptions>,
+  pub storage: RawStorageOptions,
 }
 
 pub fn normalize_raw_experiment_cache_options(
@@ -34,11 +34,7 @@ pub fn normalize_raw_experiment_cache_options(
   match options {
     Either::A(persistent_options) => ExperimentCacheOptions::Persistent(PersistentCacheOptions {
       snapshot: persistent_options.snapshot.into(),
-      storage: persistent_options
-        .storage
-        .into_iter()
-        .map(Into::into)
-        .collect(),
+      storage: persistent_options.storage.into(),
     }),
     Either::B(options) => match options.r#type.as_str() {
       "disable" => ExperimentCacheOptions::Disabled,

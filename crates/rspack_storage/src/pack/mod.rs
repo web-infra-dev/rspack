@@ -26,17 +26,17 @@ pub struct PackStorage {
   updates: Mutex<ScopeUpdates>,
 }
 
+#[derive(Debug, Clone)]
 pub struct PackStorageOptions {
-  root: PathBuf,
-  temp_root: PathBuf,
-  fs: Arc<dyn PackFS>,
-  bucket_size: usize,
-  pack_size: usize,
-  expire: u64,
+  pub root: PathBuf,
+  pub temp_root: PathBuf,
+  pub bucket_size: usize,
+  pub pack_size: usize,
+  pub expire: u64,
 }
 
 impl PackStorage {
-  pub fn new(options: PackStorageOptions) -> Self {
+  pub fn new(options: PackStorageOptions, fs: Arc<dyn PackFS>) -> Self {
     Self {
       manager: ScopeManager::new(
         Arc::new(PackOptions {
@@ -47,7 +47,7 @@ impl PackStorage {
         Arc::new(SplitPackStrategy::new(
           options.root.assert_utf8(),
           options.temp_root.assert_utf8(),
-          options.fs,
+          fs,
         )),
       ),
       updates: Default::default(),
@@ -58,7 +58,9 @@ impl PackStorage {
 #[async_trait::async_trait]
 impl Storage for PackStorage {
   async fn load(&self, name: &'static str) -> Result<StorageContent> {
-    self.manager.load(name).await
+    let res = self.manager.load(name).await;
+    println!("get all {name:?} {res:?}");
+    res
   }
   fn set(&self, scope: &'static str, key: StorageItemKey, value: StorageItemValue) {
     let mut updates = self.updates.lock().expect("should get lock");

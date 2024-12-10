@@ -98,6 +98,7 @@ impl ModuleExecutor {
       new_cache(
         compilation.options.clone(),
         compilation.input_filesystem.clone(),
+        compilation.intermediate_filesystem.clone(),
       ),
     );
     let (event_sender, event_receiver) = unbounded_channel();

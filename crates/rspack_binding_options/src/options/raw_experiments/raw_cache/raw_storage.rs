@@ -1,5 +1,7 @@
+use std::path::PathBuf;
+
 use napi_derive::napi;
-use rspack_core::cache::persistent::storage::StorageOptions;
+use rspack_core::cache::persistent::storage::{PackStorageOptions, StorageOptions};
 
 #[derive(Debug, Default)]
 #[napi(object)]
@@ -10,7 +12,19 @@ pub struct RawStorageOptions {
 }
 
 impl From<RawStorageOptions> for StorageOptions {
-  fn from(_value: RawStorageOptions) -> Self {
-    StorageOptions::FileSystem
+  fn from(value: RawStorageOptions) -> Self {
+    match value.r#type.as_str() {
+      "filesystem" => {
+        let root: PathBuf = value.directory.into();
+        StorageOptions::FileSystem(PackStorageOptions {
+          temp_root: root.join(".temp"),
+          root,
+          bucket_size: 1024,
+          pack_size: 1024,
+          expire: 7 * 24 * 60 * 60 * 1000,
+        })
+      }
+      s => panic!("unsupport storage type {s}"),
+    }
   }
 }

@@ -20,7 +20,6 @@ impl TaskQueue {
           future.await
         }
       });
-
       tx
     }))
   }
