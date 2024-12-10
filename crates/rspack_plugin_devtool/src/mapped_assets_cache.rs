@@ -39,6 +39,10 @@ impl MappedAssetsCache {
     mapped_asstes.extend(map_assets(vanilla_assets).await?);
 
     self.0.clear();
+    dbg!(mapped_asstes
+      .iter()
+      .map(|a| { a.asset.0.clone() })
+      .collect::<Vec<String>>());
     for mapped_asset in &mapped_asstes {
       let MappedAsset {
         asset: (filename, asset),
