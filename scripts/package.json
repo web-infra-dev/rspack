@@ -17,8 +17,8 @@
     "fs-extra": "^11.2.0",
     "typescript": "^5.6.3",
     "jest-environment-jsdom": "^29.7.0",
-    "glob":"^10.3.10",
-    "semver": "^7.6.2",
+    "glob":"^10.4.5",
+    "semver": "^7.6.3",
     "zx": "7.2.3"
   }
 }
