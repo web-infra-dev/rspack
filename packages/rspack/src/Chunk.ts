@@ -114,7 +114,7 @@ export class Chunk {
 			auxiliaryFiles: {
 				enumerable: true,
 				get: () => {
-					return binding.auxiliaryFiles;
+					return new Set(binding.auxiliaryFiles);
 				}
 			}
 		});
