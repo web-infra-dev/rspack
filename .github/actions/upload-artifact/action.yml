@@ -3,22 +3,20 @@ name: Upload Artifact
 description: Upload file to local or artifact to quickly share files between jobs
 
 inputs:
+  cache-type:
+    description: "Use github or local or lynx cache"
+    required: true
+    type: string
+    choices:
+      - github
+      - local
+      - lynx
   name:
     description: "Artifact name"
     default: "artifact"
   path:
     description: "A file, directory or wildcard pattern that describes what to upload"
     required: true
-  try-local-cache:
-    description: "Try use local cache to save artifact"
-    default: false
-    required: false
-    type: boolean
-  mv-when-local:
-    description: "Move file instead of copy file"
-    default: false
-    type: boolean
-    required: false
 
 outputs:
   runner-labels:
@@ -30,15 +28,29 @@ runs:
   steps:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
+      if: ${{ inputs.cache-type == 'github' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
         if-no-files-found: error
         overwrite: true
+
+    - name: Upload artifact
+      uses: lynx-infra/cache/save@main
+      if: ${{ inputs.cache-type == 'lynx' }}
+      with:
+        path: ${{ inputs.path }}
+        key: rust-artifact-${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}
+      env:
+        ACCESS_KEY: ${{ env.TOS_ACCESS_KEY }}
+        SECRET_KEY: ${{ env.TOS_SECRET_KEY }}
+        BUCKET_NAME: ${{ env.TOS_BUCKET_NAME }}
+        REGION: ${{ env.TOS_REGION }}
+        ENDPOINT: ${{ env.TOS_ENDPOINT }}
+
     - name: Upload local
       id: upload-local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
+      if: ${{ inputs.cache-type == 'local' }}
       shell: bash
       run: |
         set -e
@@ -53,13 +65,9 @@ runs:
         save_dir="$cache_dir/${{ github.repository_id }}-${{ github.sha }}-${{ inputs.name }}"
         rm -rf $save_dir
         mkdir $save_dir
-        if [ "${{ inputs.mv-when-local }}" = "true" ]; then
-          mv -f ${{ inputs.path }} $save_dir
-          echo "mv -f ${{ inputs.path }} $save_dir"
-        else
-          cp -rf ${{ inputs.path }} $save_dir
-          echo "cp -rf ${{ inputs.path }} $save_dir"
-        fi
+
+        mv -f ${{ inputs.path }} $save_dir
+        echo "mv -f ${{ inputs.path }} $save_dir"
 
         # TODO echo machine name as runner labels
         # echo "runner_labels=\"$(uname -n)\"" >> "$GITHUB_OUTPUT"
