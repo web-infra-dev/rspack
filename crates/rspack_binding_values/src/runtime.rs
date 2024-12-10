@@ -93,7 +93,7 @@ static RUNTIME_GLOBAL_MAP: LazyLock<(
 
 #[napi(object, object_from_js = false)]
 pub struct JsAdditionalTreeRuntimeRequirementsArg {
-  #[napi(js_name = "JsChunk")]
+  #[napi(ts_type = "JsChunk")]
   pub chunk: JsChunkWrapper,
   pub runtime_requirements: JsRuntimeGlobals,
 }
@@ -145,7 +145,7 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
 
 #[napi(object, object_from_js = false)]
 pub struct JsRuntimeRequirementInTreeArg {
-  #[napi(js_name = "JsChunk")]
+  #[napi(ts_type = "JsChunk")]
   pub chunk: JsChunkWrapper,
   pub runtime_requirements: JsRuntimeGlobals,
 }

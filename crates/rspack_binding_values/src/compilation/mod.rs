@@ -12,7 +12,6 @@ use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
-use rspack_core::ChunkUkey;
 use rspack_core::Compilation;
 use rspack_core::CompilationAsset;
 use rspack_core::CompilationId;
@@ -26,6 +25,8 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
+use crate::JsChunk;
+use crate::JsChunkGraph;
 use crate::JsChunkGroupWrapper;
 use crate::JsChunkWrapper;
 use crate::JsCompatSource;
@@ -390,7 +391,7 @@ impl JsCompilation {
     )
   }
 
-  #[napi(getter, ts_return_type = "JsChunkGroup")]
+  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
   pub fn chunk_groups(&self) -> Result<Vec<JsChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
@@ -692,14 +693,14 @@ impl JsCompilation {
   #[napi]
   pub fn add_runtime_module(
     &mut self,
-    chunk_ukey: u32,
+    chunk: &JsChunk,
     runtime_module: JsAddingRuntimeModule,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
     compilation
       .add_runtime_module(
-        &ChunkUkey::from(chunk_ukey),
+        &chunk.chunk_ukey,
         Box::new(RuntimeModuleFromJs::from(runtime_module)),
       )
       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))
@@ -709,6 +710,12 @@ impl JsCompilation {
   pub fn module_graph(&self) -> napi::Result<JsModuleGraph> {
     let compilation = self.as_ref()?;
     Ok(JsModuleGraph::new(compilation))
+  }
+
+  #[napi(getter)]
+  pub fn chunk_graph(&self) -> napi::Result<JsChunkGraph> {
+    let compilation = self.as_ref()?;
+    Ok(JsChunkGraph::new(compilation))
   }
 }
 

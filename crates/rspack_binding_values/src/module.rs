@@ -407,7 +407,7 @@ pub struct JsRuntimeModule {
 #[napi(object, object_from_js = false)]
 pub struct JsRuntimeModuleArg {
   pub module: JsRuntimeModule,
-  #[napi(js_name = "JsChunk")]
+  #[napi(ts_type = "JsChunk")]
   pub chunk: JsChunkWrapper,
 }
 

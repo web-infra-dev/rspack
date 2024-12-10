@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Env, JsString};
+use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
@@ -44,21 +44,21 @@ impl JsChunkGroup {
   }
 
   #[napi(getter)]
-  pub fn index(&self) -> napi::Result<Option<u32>> {
+  pub fn index(&self) -> napi::Result<Either<u32, ()>> {
     let (_, chunk_graph) = self.as_ref()?;
-    Ok(chunk_graph.index)
+    Ok(match chunk_graph.index {
+      Some(index) => Either::A(index),
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
-  pub fn name(&self) -> napi::Result<Option<&str>> {
+  pub fn name(&self) -> napi::Result<Either<&str, ()>> {
     let (_, chunk_graph) = self.as_ref()?;
-    Ok(chunk_graph.name())
-  }
-
-  #[napi(getter)]
-  pub fn is_initial(&self) -> napi::Result<bool> {
-    let (_, chunk_graph) = self.as_ref()?;
-    Ok(chunk_graph.is_initial())
+    Ok(match chunk_graph.name() {
+      Some(name) => Either::A(name),
+      None => Either::B(()),
+    })
   }
 
   #[napi(getter)]
@@ -87,6 +87,12 @@ impl JsChunkGroup {
 
 #[napi]
 impl JsChunkGroup {
+  #[napi]
+  pub fn is_initial(&self) -> napi::Result<bool> {
+    let (_, chunk_graph) = self.as_ref()?;
+    Ok(chunk_graph.is_initial())
+  }
+
   #[napi(ts_return_type = "JsChunkGroup[]")]
   pub fn get_parents(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
     let (compilation, chunk_graph) = self.as_ref()?;
@@ -94,7 +100,7 @@ impl JsChunkGroup {
       chunk_graph
         .parents
         .iter()
-        .map(|ukey| JsChunkGroupWrapper::new(*ukey, &compilation))
+        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
     )
   }
@@ -104,6 +110,24 @@ impl JsChunkGroup {
     let (compilation, chunk_graph) = self.as_ref()?;
     let chunk_ukey = chunk_graph.get_runtime_chunk(&compilation.chunk_group_by_ukey);
     Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+  }
+
+  #[napi]
+  pub fn get_files(&self) -> napi::Result<Vec<&String>> {
+    let (compilation, chunk_graph) = self.as_ref()?;
+    Ok(
+      chunk_graph
+        .chunks
+        .iter()
+        .filter_map(|chunk_ukey| {
+          compilation
+            .chunk_by_ukey
+            .get(chunk_ukey)
+            .map(|chunk| chunk.files().iter())
+        })
+        .flatten()
+        .collect::<Vec<_>>(),
+    )
   }
 }
 

@@ -10,7 +10,7 @@ use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOption
 #[napi(object, object_from_js = false)]
 pub struct JsBannerContentFnCtx {
   pub hash: String,
-  #[napi(js_name = "JsChunk")]
+  #[napi(ts_type = "JsChunk")]
   pub chunk: JsChunkWrapper,
   pub filename: String,
 }

@@ -46,6 +46,47 @@ export declare class EntryOptionsDto {
 }
 export type EntryOptionsDTO = EntryOptionsDto
 
+export declare class JsChunk {
+  get name(): string | undefined
+  get id(): string | undefined
+  get ids(): Array<string>
+  get idNameHints(): Array<string>
+  get filenameTemplate(): string | undefined
+  get cssFilenameTemplate(): string | undefined
+  get files(): Array<string>
+  get runtime(): Array<string>
+  get hash(): string | undefined
+  get contentHash(): Record<string, string>
+  get renderedHash(): string | undefined
+  get chunkReason(): string | undefined
+  get auxiliaryFiles(): Array<string>
+  isOnlyInitial(): boolean
+  canBeInitial(): boolean
+  hasRuntime(): boolean
+  getAllAsyncChunks(): JsChunk[]
+  getAllInitialChunks(): JsChunk[]
+  getAllReferencedChunks(): JsChunk[]
+  groups(): JsChunkGroup[]
+}
+
+export declare class JsChunkGraph {
+  getChunkModules(chunk: JsChunk): JsModule[]
+  getChunkEntryModules(chunk: JsChunk): JsModule[]
+  getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
+  getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
+}
+
+export declare class JsChunkGroup {
+  get chunks(): JsChunk[]
+  get index(): number | undefined
+  get name(): string | undefined
+  get origins(): Array<JsChunkGroupOrigin>
+  isInitial(): boolean
+  getParents(): JsChunkGroup[]
+  getRuntimeChunk(): JsChunk
+  getFiles(): Array<string>
+}
+
 export declare class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
@@ -54,11 +95,11 @@ export declare class JsCompilation {
   get modules(): Array<JsModule>
   get builtModules(): Array<JsModule>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
-  getChunks(): Array<JsChunk>
+  getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk | null
+  getNamedChunk(name: string): JsChunk
   getNamedChunkGroupKeys(): Array<string>
-  getNamedChunkGroup(name: string): JsChunkGroup | null
+  getNamedChunkGroup(name: string): JsChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
@@ -68,7 +109,7 @@ export declare class JsCompilation {
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): Record<string, JsChunkGroup>
-  get chunkGroups(): Array<JsChunkGroup>
+  get chunkGroups(): JsChunkGroup[]
   get hash(): string | null
   dependencies(): JsDependencies
   pushDiagnostic(diagnostic: JsRspackDiagnostic): void
@@ -94,8 +135,9 @@ export declare class JsCompilation {
   rebuildModule(moduleIdentifiers: Array<string>, f: any): void
   importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
   get entries(): JsEntries
-  addRuntimeModule(chunkUkey: number, runtimeModule: JsAddingRuntimeModule): void
+  addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
+  get chunkGraph(): JsChunkGraph
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -218,30 +260,6 @@ export declare class Rspack {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
-
-export declare function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
-
-export declare function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, jsCompilation: JsCompilation): JsModule[]
-
-export declare function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, jsCompilation: JsCompilation): JsModule[]
-
-export declare function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, jsCompilation: JsCompilation): JsModule[]
-
-export declare function __chunk_group_inner_get_chunk_group(ukey: number, jsCompilation: JsCompilation): JsChunkGroup
-
-export declare function __chunk_inner_can_be_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
-
-export declare function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
-
-export declare function __chunk_inner_get_all_initial_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
-
-export declare function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>
-
-export declare function __chunk_inner_has_runtime(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
-
-export declare function __chunk_inner_is_only_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
-
-export declare function __entrypoint_inner_get_runtime_chunk(ukey: number, jsCompilation: JsCompilation): JsChunk
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -444,6 +462,12 @@ export interface JsAssetInfoRelated {
   sourceMap?: string
 }
 
+export interface JsBannerContentFnCtx {
+  hash: string
+  chunk: JsChunk
+  filename: string
+}
+
 export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
@@ -485,42 +509,20 @@ export interface JsCacheGroupTestCtx {
   module: JsModule
 }
 
-export interface JsChunk {
-  __inner_ukey: number
-  __inner_groups: Array<number>
-  name?: string
-  id?: string
-  ids: Array<string>
-  idNameHints: Array<string>
-  filenameTemplate?: string
-  cssFilenameTemplate?: string
-  files: Array<string>
-  runtime: Array<string>
-  hash?: string
-  contentHash: Record<string, string>
-  renderedHash?: string
-  chunkReason?: string
-  auxiliaryFiles: Array<string>
-}
-
 export interface JsChunkAssetArgs {
   chunk: JsChunk
   filename: string
 }
 
-export interface JsChunkGroup {
-  __inner_parents: Array<number>
-  __inner_ukey: number
-  chunks: Array<JsChunk>
-  index?: number
-  name?: string
-  isInitial: boolean
-  origins: Array<JsChunkGroupOrigin>
-}
-
 export interface JsChunkGroupOrigin {
   module?: JsModule | undefined
   request?: string
+}
+
+export interface JsChunkOptionNameCtx {
+  module: JsModule
+  chunks: JsChunk[]
+  cacheGroupKey: string
 }
 
 /**
@@ -1138,12 +1140,6 @@ export interface RawAssetResourceGeneratorOptions {
   publicPath?: "auto" | JsFilename
 }
 
-export interface RawBannerContentFnCtx {
-  hash: string
-  chunk: JsChunk
-  filename: string
-}
-
 export interface RawBannerPluginOptions {
   banner: string | ((...args: any[]) => any)
   entryOnly?: boolean
@@ -1195,12 +1191,6 @@ export interface RawCacheOptions {
   cacheLocation: string
   name: string
   version: string
-}
-
-export interface RawChunkOptionNameCtx {
-  module: JsModule
-  chunks: Array<JsChunk>
-  cacheGroupKey: string
 }
 
 export interface RawConsumeOptions {

@@ -1,27 +1,30 @@
-import {
-	type JsChunkGroup,
-	type JsCompilation,
-	__entrypoint_inner_get_runtime_chunk
-} from "@rspack/binding";
+import { type JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
 import { ChunkGroup } from "./ChunkGroup";
 
+const ENTRYPOINT_MAPPINGS = new WeakMap<JsChunkGroup, Entrypoint>();
+
 export class Entrypoint extends ChunkGroup {
-	static __from_binding(chunk: JsChunkGroup, compilation: JsCompilation) {
-		return new Entrypoint(chunk, compilation);
+	#inner: JsChunkGroup;
+
+	static __from_binding(binding: JsChunkGroup): Entrypoint {
+		let entrypoint = ENTRYPOINT_MAPPINGS.get(binding);
+		if (entrypoint) {
+			return entrypoint;
+		}
+		entrypoint = new Entrypoint(binding);
+		ENTRYPOINT_MAPPINGS.set(binding, entrypoint);
+		return entrypoint;
 	}
 
-	protected constructor(inner: JsChunkGroup, compilation: JsCompilation) {
-		super(inner, compilation);
+	protected constructor(binding: JsChunkGroup) {
+		super(binding);
+		this.#inner = binding;
 	}
 
 	getRuntimeChunk(): Readonly<Chunk | null> {
-		const c = __entrypoint_inner_get_runtime_chunk(
-			this.__internal__innerUkey(),
-			this.__internal__innerCompilation()
-		);
-		if (c) return Chunk.__from_binding(c, this.__internal__innerCompilation());
-		return null;
+		const chunkBinding = this.#inner.getRuntimeChunk();
+		return chunkBinding ? Chunk.__from_binding(chunkBinding) : null;
 	}
 }
