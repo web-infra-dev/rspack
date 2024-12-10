@@ -20,4 +20,5 @@ mod memory_fs;
 pub use memory_fs::{MemoryFileSystem, MemoryReadStream, MemoryWriteStream};
 
 mod error;
+pub use dunce;
 pub use error::{Error, Result};

@@ -78,7 +78,7 @@ impl Compiler {
     output_filesystem: Option<Box<dyn WritableFileSystem>>,
     intermediate_filesystem: Option<Box<dyn WritableFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
-    input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
+    input_filesystem: Option<Arc<dyn FileSystem>>,
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,

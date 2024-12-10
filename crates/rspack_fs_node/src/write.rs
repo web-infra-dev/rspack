@@ -1,15 +1,25 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::future::BoxFuture;
 use napi::{bindgen_prelude::Either3, Either};
 use rspack_fs::{
-  Error, FileMetadata, IntermediateFileSystemExtras, ReadStream, Result, WritableFileSystem,
-  WriteStream,
+  dunce, Error, FileMetadata, FileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
-use rspack_paths::Utf8Path;
+use rspack_paths::{AssertUtf8, Utf8Path};
 
 use crate::node::ThreadsafeNodeFS;
+
+fn map_error_to_fs_error(e: rspack_error::Error) -> Error {
+  Error::Io(std::io::Error::new(
+    std::io::ErrorKind::Other,
+    e.to_string(),
+  ))
+}
+
+fn new_fs_error(msg: &str) -> Error {
+  Error::Io(std::io::Error::new(std::io::ErrorKind::Other, msg))
+}
 
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
 
@@ -19,6 +29,8 @@ impl std::fmt::Debug for NodeFileSystem {
   }
 }
 
+impl FileSystem for NodeFileSystem {}
+
 impl NodeFileSystem {
   pub fn new(tsfs: ThreadsafeNodeFS) -> napi::Result<Self> {
     Ok(Self(Arc::new(tsfs)))
@@ -27,174 +39,126 @@ impl NodeFileSystem {
 #[async_trait]
 impl WritableFileSystem for NodeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self.0.mkdir.call(dir).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })
-    };
-
-    fut.await
+    let dir = dir.as_str().to_string();
+    self
+      .0
+      .mkdir
+      .call_with_promise(dir)
+      .await
+      .map_err(map_error_to_fs_error)
   }
 
   async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self
-        .0
-        .mkdirp
-        .call(dir)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    fut.await
+    let dir = dir.as_str().to_string();
+    self
+      .0
+      .mkdirp
+      .call_with_promise(dir)
+      .await
+      .map_err(map_error_to_fs_error)
+      .map(|_| ())
   }
 
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let data = data.to_vec();
-      self
-        .0
-        .write_file
-        .call((file, data.into()))
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-    };
-    fut.await
+    let file = file.as_str().to_string();
+    let data = data.to_vec();
+    self
+      .0
+      .write_file
+      .call_with_promise((file, data.into()))
+      .await
+      .map_err(map_error_to_fs_error)
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      self
-        .0
-        .remove_file
-        .call(file)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    let file = file.as_str().to_string();
+    self
+      .0
+      .remove_file
+      .call_with_promise(file)
+      .await
+      .map_err(map_error_to_fs_error)
+      .map(|_| ())
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      self
-        .0
-        .remove_dir_all
-        .call(dir)
-        .await
-        .map_err(|e| {
-          Error::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-          ))
-        })
-        .map(|_| ())
-    };
-    Box::pin(fut)
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.as_str().to_string();
+    self
+      .0
+      .remove_dir_all
+      .call_with_promise(dir)
+      .await
+      .map_err(map_error_to_fs_error)
+      .map(|_| ())
   }
 
   // TODO: support read_dir options
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
-    let fut = async {
-      let dir = dir.as_str().to_string();
-      let res = self.0.read_dir.call(dir).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
-      match res {
-        Either::A(files) => Ok(files),
-        Either::B(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call read dir failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let dir = dir.as_str().to_string();
+    let res = self
+      .0
+      .read_dir
+      .call_with_promise(dir)
+      .await
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(files) => Ok(files),
+      Either::B(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call read dir failed",
+      ))),
+    }
   }
 
   // TODO: support read_file options
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let res = self.0.read_file.call(file).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    let file = file.as_str().to_string();
+    let res = self
+      .0
+      .read_file
+      .call_with_promise(file)
+      .await
+      .map_err(map_error_to_fs_error)?;
 
-      match res {
-        Either3::A(data) => Ok(data.to_vec()),
-        Either3::B(str) => Ok(str.into_bytes()),
-        Either3::C(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call read file failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
+    match res {
+      Either3::A(data) => Ok(data.to_vec()),
+      Either3::B(str) => Ok(str.into_bytes()),
+      Either3::C(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call read file failed",
+      ))),
+    }
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async {
-      let file = file.as_str().to_string();
-      let res = self.0.stat.call(file).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
-      match res {
-        Either::A(stat) => Ok(FileMetadata::from(stat)),
-        Either::B(_) => Err(Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          "output file system call stat failed",
-        ))),
-      }
-    };
-    Box::pin(fut)
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    let file = file.as_str().to_string();
+    let res = self
+      .0
+      .stat
+      .call_with_promise(file)
+      .await
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(stat) => Ok(FileMetadata::from(stat)),
+      Either::B(_) => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "output file system call stat failed",
+      ))),
+    }
   }
 }
 
 #[async_trait]
 impl IntermediateFileSystemExtras for NodeFileSystem {
   async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    let fut = async {
-      let from = from.as_str().to_string();
-      let to = to.as_str().to_string();
-      self.0.rename.call((from, to)).await.map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })
-    };
-    fut.await
+    let from = from.as_str().to_string();
+    let to = to.as_str().to_string();
+    self
+      .0
+      .rename
+      .call_with_promise((from, to))
+      .await
+      .map_err(map_error_to_fs_error)
   }
 
   async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
@@ -205,6 +169,58 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
   async fn create_write_stream(&self, file: &Utf8Path) -> Result<Box<dyn WriteStream>> {
     let writer = NodeWriteStream::try_new(file, self.0.clone()).await?;
     Ok(Box::new(writer))
+  }
+}
+
+#[async_trait::async_trait]
+impl ReadableFileSystem for NodeFileSystem {
+  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    let res = futures::executor::block_on(self.0.read_file.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either3::A(buf) => Ok(buf.into()),
+      Either3::B(s) => Ok(s.into()),
+      Either3::C(_) => Err(new_fs_error("input file system call read failed")),
+    }
+  }
+
+  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let res = futures::executor::block_on(self.0.stat.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(new_fs_error("input file system call metadata failed")),
+    }
+  }
+
+  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let res = futures::executor::block_on(self.0.lstat.call_with_promise(path.to_string()))
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either::A(stats) => Ok(stats.into()),
+      Either::B(_) => Err(new_fs_error(
+        "input file system call symlink_metadata failed",
+      )),
+    }
+  }
+
+  fn canonicalize(&self, path: &Utf8Path) -> Result<rspack_paths::Utf8PathBuf> {
+    let path = dunce::canonicalize(path)?;
+    Ok(path.assert_utf8())
+  }
+
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    let res = self
+      .0
+      .read_file
+      .call_with_promise(file.to_string())
+      .await
+      .map_err(map_error_to_fs_error)?;
+    match res {
+      Either3::A(buf) => Ok(buf.into()),
+      Either3::B(s) => Ok(s.into()),
+      Either3::C(_) => Err(new_fs_error("input file system call async_read failed")),
+    }
   }
 }
 
@@ -219,14 +235,9 @@ impl NodeReadStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call((file.as_str().to_string(), "r".to_string()))
+      .call_with_promise((file.as_str().to_string(), "r".to_string()))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match res {
       Either::A(fd) => Ok(Self { fd, pos: 0, fs }),
@@ -245,14 +256,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read
-      .call((self.fd, length as u32, self.pos as u32))
+      .call_with_promise((self.fd, length as u32, self.pos as u32))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match buffer {
       Either::A(buffer) => {
@@ -271,14 +277,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_until
-      .call((self.fd, byte, self.pos as u32))
+      .call_with_promise((self.fd, byte, self.pos as u32))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match buffer {
       Either::A(buffer) => {
@@ -296,14 +297,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_to_end
-      .call((self.fd, self.pos as u32))
+      .call_with_promise((self.fd, self.pos as u32))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match buffer {
       Either::A(buffer) => {
@@ -322,12 +318,12 @@ impl ReadStream for NodeReadStream {
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
-    self.fs.close.call(self.fd).await.map_err(|e| {
-      Error::Io(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        e.to_string(),
-      ))
-    })
+    self
+      .fs
+      .close
+      .call_with_promise(self.fd)
+      .await
+      .map_err(map_error_to_fs_error)
   }
 }
 
@@ -342,14 +338,9 @@ impl NodeWriteStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call((file.as_str().to_string(), "w+".to_string()))
+      .call_with_promise((file.as_str().to_string(), "w+".to_string()))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match res {
       Either::A(fd) => Ok(Self { fd, pos: 0, fs }),
@@ -367,14 +358,9 @@ impl WriteStream for NodeWriteStream {
     let res = self
       .fs
       .write
-      .call((self.fd, buf.to_vec().into(), self.pos as u32))
+      .call_with_promise((self.fd, buf.to_vec().into(), self.pos as u32))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })?;
+      .map_err(map_error_to_fs_error)?;
 
     match res {
       Either::A(size) => {
@@ -391,24 +377,19 @@ impl WriteStream for NodeWriteStream {
     self
       .fs
       .write_all
-      .call((self.fd, buf.to_vec().into()))
+      .call_with_promise((self.fd, buf.to_vec().into()))
       .await
-      .map_err(|e| {
-        Error::Io(std::io::Error::new(
-          std::io::ErrorKind::Other,
-          e.to_string(),
-        ))
-      })
+      .map_err(map_error_to_fs_error)
   }
   async fn flush(&mut self) -> Result<()> {
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
-    self.fs.close.call(self.fd).await.map_err(|e| {
-      Error::Io(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        e.to_string(),
-      ))
-    })
+    self
+      .fs
+      .close
+      .call_with_promise(self.fd)
+      .await
+      .map_err(map_error_to_fs_error)
   }
 }

@@ -6,13 +6,14 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
+use rspack_fs::FileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
@@ -38,6 +39,7 @@ pub struct Rspack {
 #[napi]
 impl Rspack {
   #[napi(constructor)]
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     env: Env,
     options: RawOptions,
@@ -45,6 +47,7 @@ impl Rspack {
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: ThreadsafeNodeFS,
+    input_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
@@ -63,6 +66,16 @@ impl Rspack {
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
+    let input_file_system = input_filesystem.map(|fs| {
+      let binding: Arc<dyn FileSystem> =
+        Arc::new(NodeFileSystem::new(fs).expect("Failed to create readable filesystem"));
+      binding
+    });
+
+    if let Some(fs) = &input_file_system {
+      resolver_factory_reference.input_filesystem = fs.clone();
+    }
+
     let resolver_factory =
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
     let loader_resolver_factory = (*resolver_factory_reference)
@@ -79,7 +92,7 @@ impl Rspack {
           Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
         })?,
       )),
-      None,
+      input_file_system,
       Some(resolver_factory),
       Some(loader_resolver_factory),
     );
