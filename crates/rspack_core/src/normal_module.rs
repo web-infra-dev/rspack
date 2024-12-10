@@ -769,6 +769,12 @@ impl Module for NormalModule {
     module_graph: &ModuleGraph,
     module_chain: &mut IdentifierSet,
   ) -> ConnectionState {
+    if let Some(state) =
+      module_graph.get_module_side_effects_connection_state_cache(self.identifier())
+    {
+      return state;
+    }
+
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
       return ConnectionState::Bool(!side_effect_free);
     }

@@ -9,6 +9,7 @@ version     = "0.2.0"
 anymap = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
+bit-set = "0.8.0"
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }

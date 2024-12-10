@@ -7,9 +7,11 @@ use crate::{incremental::IncrementalPasses, Compilation};
 
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
+pub(crate) mod new_code_splitter;
 
 #[instrument(skip_all)]
 pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
+  let _now = std::time::Instant::now();
   let enable_incremental = compilation
     .incremental
     .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -44,5 +46,12 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
     compilation.code_splitting_cache.code_splitter = splitter;
   }
 
+  dbg!(_now.elapsed().as_millis());
+  Ok(())
+}
+
+#[instrument(skip_all)]
+pub(crate) fn build_chunk_graph_new(compilation: &mut Compilation) -> rspack_error::Result<()> {
+  new_code_splitter::code_split(compilation)?;
   Ok(())
 }
