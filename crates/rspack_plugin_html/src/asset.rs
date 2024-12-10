@@ -79,7 +79,10 @@ impl HtmlPluginAssets {
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = compilation
+          .assets()
+          .get(asset_name.as_str())
+          .expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {
