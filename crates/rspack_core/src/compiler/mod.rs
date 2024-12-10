@@ -5,7 +5,7 @@ mod module_executor;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::{FileSystem, NativeFileSystem, WritableFileSystem};
+use rspack_fs::{FileSystem, IntermediateFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -54,7 +54,7 @@ pub struct CompilerHooks {
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Box<dyn WritableFileSystem>,
-  pub intermediate_filesystem: Box<dyn WritableFileSystem>,
+  pub intermediate_filesystem: Box<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn FileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
@@ -76,7 +76,7 @@ impl Compiler {
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
     output_filesystem: Option<Box<dyn WritableFileSystem>>,
-    intermediate_filesystem: Option<Box<dyn WritableFileSystem>>,
+    intermediate_filesystem: Option<Box<dyn IntermediateFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api

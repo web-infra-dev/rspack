@@ -129,7 +129,7 @@ pub fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
-  for (_, v) in storage.get_all(SCOPE) {
+  for (_, v) in storage.load(SCOPE) {
     let mut node: Node =
       from_bytes(&v, context).expect("unexpected module graph deserialize failed");
     for (dep, parent_block) in node.dependencies {
