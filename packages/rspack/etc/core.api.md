@@ -487,6 +487,10 @@ class ChunkGraph {
     getChunkModulesIterable(chunk: Chunk): Iterable<Module>;
     // (undocumented)
     getChunkModulesIterableBySourceType(chunk: Chunk, sourceType: string): Iterable<Module>;
+    // (undocumented)
+    getModuleChunks(module: Module): Chunk[];
+    // (undocumented)
+    getModuleChunksIterable(module: Module): Iterable<Chunk>;
 }
 
 // @public (undocumented)

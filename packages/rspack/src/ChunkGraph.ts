@@ -49,4 +49,16 @@ export class ChunkGraph {
 			)
 			.map(binding => Module.__from_binding(binding));
 	}
+
+	getModuleChunks(module: Module): Chunk[] {
+		return this.#inner
+			.getModuleChunks(Module.__to_binding(module))
+			.map(binding => Chunk.__from_binding(binding));
+	}
+
+	getModuleChunksIterable(module: Module): Iterable<Chunk> {
+		return this.#inner
+			.getModuleChunks(Module.__to_binding(module))
+			.map(binding => Chunk.__from_binding(binding));
+	}
 }

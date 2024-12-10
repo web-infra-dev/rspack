@@ -4,7 +4,7 @@ use napi::Result;
 use napi_derive::napi;
 use rspack_core::{Compilation, SourceType};
 
-use crate::{JsChunk, JsChunkWrapper, JsModuleWrapper};
+use crate::{JsChunk, JsChunkWrapper, JsModule, JsModuleWrapper};
 
 #[napi]
 pub struct JsChunkGraph {
@@ -101,6 +101,20 @@ impl JsChunkGraph {
           &compilation.get_module_graph(),
         )
         .map(|module| JsModuleWrapper::new(module, compilation.id(), Some(compilation)))
+        .collect(),
+    )
+  }
+
+  #[napi(ts_return_type = "JsChunk[]")]
+  pub fn get_module_chunks(&self, module: &JsModule) -> Result<Vec<JsChunkWrapper>> {
+    let compilation = self.as_ref()?;
+
+    Ok(
+      compilation
+        .chunk_graph
+        .get_module_chunks(module.identifier)
+        .iter()
+        .map(|chunk| JsChunkWrapper::new(*chunk, compilation))
         .collect(),
     )
   }
