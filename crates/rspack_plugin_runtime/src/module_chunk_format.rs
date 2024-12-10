@@ -109,7 +109,7 @@ fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "export const ids = ['{}'];\n",
-    &chunk.expect_id().to_string()
+    &chunk.expect_id(&compilation.chunk_ids)
   )));
   sources.add(RawStringSource::from_static("export const modules = "));
   sources.add(render_source.source.clone());

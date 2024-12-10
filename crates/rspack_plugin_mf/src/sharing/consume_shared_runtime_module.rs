@@ -86,7 +86,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
       chunk_to_module_mapping.insert(
         chunk
-          .id()
+          .id(&compilation.chunk_ids)
           .map(ToOwned::to_owned)
           .expect("should have chunkId at <ConsumeSharedRuntimeModule as RuntimeModule>::generate"),
         ids,

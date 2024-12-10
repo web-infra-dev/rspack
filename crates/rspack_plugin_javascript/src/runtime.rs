@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use rspack_core::chunk_graph_chunk::ChunkId;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
@@ -253,7 +254,7 @@ pub fn render_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
+pub fn stringify_chunks_to_array(chunks: &HashSet<ChunkId>) -> String {
   let mut v = Vec::from_iter(chunks.iter());
   v.sort_unstable();
 

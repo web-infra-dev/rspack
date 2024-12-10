@@ -301,7 +301,7 @@ impl JsPlugin {
               compilation
                 .chunk_by_ukey
                 .expect_get(chunk_ukey)
-                .expect_id()
+                .expect_id(&compilation.chunk_ids)
                 .to_string()
             })
             .collect::<Vec<_>>();
