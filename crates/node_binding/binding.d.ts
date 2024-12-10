@@ -1081,6 +1081,7 @@ export interface JsTap {
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
+  isSymlink: boolean
   atimeMs: number
   mtimeMs: number
   ctimeMs: number

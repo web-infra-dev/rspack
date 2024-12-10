@@ -87,17 +87,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 			const statFn = util.promisify(fs.stat.bind(fs));
 			return async (filePath: string) => {
 				const res = await statFn(filePath);
-				return (
-					res && {
-						isFile: res.isFile(),
-						isDirectory: res.isDirectory(),
-						atimeMs: res.atimeMs,
-						mtimeMs: res.atimeMs,
-						ctimeMs: res.atimeMs,
-						birthtimeMs: res.birthtimeMs,
-						size: res.size
-					}
-				);
+				return res && ThreadsafeOutputNodeFS.__to_binding_stat(res);
 			};
 		});
 		this.lstat = memoizeFn(() => {
@@ -117,6 +107,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
 		return {
 			isFile: stat.isFile(),
 			isDirectory: stat.isDirectory(),
+			isSymlink: stat.isSymbolicLink(),
 			atimeMs: stat.atimeMs,
 			mtimeMs: stat.atimeMs,
 			ctimeMs: stat.atimeMs,
