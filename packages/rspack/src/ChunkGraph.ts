@@ -1,4 +1,4 @@
-import { JsChunkGraph } from "@rspack/binding";
+import type { JsChunkGraph } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
 import { Module } from "./Module";

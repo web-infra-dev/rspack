@@ -1,4 +1,4 @@
-import { type JsChunk } from "@rspack/binding";
+import type { JsChunk } from "@rspack/binding";
 
 import { ChunkGroup } from "./ChunkGroup";
 
