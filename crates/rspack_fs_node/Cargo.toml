@@ -14,6 +14,7 @@ async-trait  = { workspace = true }
 futures      = { workspace = true }
 napi         = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive  = { workspace = true }
+rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_napi  = { workspace = true }
 rspack_paths = { workspace = true }
