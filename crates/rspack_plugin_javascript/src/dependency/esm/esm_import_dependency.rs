@@ -404,7 +404,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    Some(self.range.to_loc(self.source_map.as_ref()))
+    self.range.to_loc(self.source_map.as_ref())
   }
 
   fn range(&self) -> Option<&DependencyRange> {

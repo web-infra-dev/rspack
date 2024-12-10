@@ -8,16 +8,15 @@ use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
   render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
-  Compilation, DependenciesBlock, DependencyId, GenerateContext, Module, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType, SpanExt,
-  TemplateContext, TemplateReplaceSource,
+  Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
+  SourceType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::itoa;
 use swc_core::common::comments::Comments;
 use swc_core::common::input::SourceFileInput;
-use swc_core::common::{FileName, Span, SyntaxContext};
+use swc_core::common::{FileName, SyntaxContext};
 use swc_core::ecma::ast;
 use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
 use swc_node_comments::SwcComments;
@@ -241,7 +240,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .side_effects_item
           .take()
           .and_then(|item| -> Option<_> {
-            let msg = span_to_location(item.span, &source.source())?;
+            let source = source.source();
+            let msg = Into::<DependencyRange>::into(item.span)
+              .to_loc(Some(source.as_ref()))?
+              .to_string();
             Some(SideEffectsBailoutItem { msg, ty: item.ty })
           })
       });
@@ -346,36 +348,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some(format!("Module uses {bailout}").into());
     }
     None
-  }
-}
-
-// Todo(shulaoda): check if this can be removed
-fn span_to_location(span: Span, source: &str) -> Option<String> {
-  let r = ropey::Rope::from_str(source);
-  let start = span.real_lo();
-  let end = span.real_hi();
-  let start_char_offset = r.try_byte_to_char(start as usize).ok()?;
-  let start_line = r.char_to_line(start_char_offset);
-  let start_column = start_char_offset - r.line_to_char(start_line);
-
-  let end_char_offset = r.try_byte_to_char(end as usize).ok()?;
-  let end_line = r.char_to_line(end_char_offset);
-  let end_column = end_char_offset - r.line_to_char(end_line);
-  if start_line == end_line {
-    Some(format!(
-      "{}:{}-{}",
-      itoa!(start_line + 1),
-      itoa!(start_column),
-      itoa!(end_column)
-    ))
-  } else {
-    Some(format!(
-      "{}:{}-{}:{}",
-      itoa!(start_line + 1),
-      itoa!(start_column),
-      itoa!(end_line + 1),
-      itoa!(end_column)
-    ))
   }
 }
 
