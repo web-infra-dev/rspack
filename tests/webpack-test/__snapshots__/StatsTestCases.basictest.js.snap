@@ -293,12 +293,12 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
-"asset app.3518bd440aeb4968-1.js 52 bytes [emitted] [immutable] (name: app)
+"asset app.5501e020a5583695-1.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 205 bytes [orphan] 3 modules
 ./entry-1.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset app.ea5b13fce9af654d-2.js 52 bytes [emitted] [immutable] (name: app)
+asset app.f6d28aa27785dd40-2.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 212 bytes [orphan] 3 modules
 ./entry-2.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -456,8 +456,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset 47e3b6ce5f97aa39.js 10.4 KiB [emitted] [immutable] (name: main)
-asset 0eabef8a2caed302.js 167 bytes [emitted] [immutable]"
+"asset 32f0040e97401a22.js 10.4 KiB [emitted] [immutable] (name: main)
+asset fa63d87b0520feaf.js 167 bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
@@ -540,19 +540,19 @@ Rspack x.x.x compiled with 2 warnings"
 `;
 
 exports[`StatsTestCases should print correct stats for issue-7577 1`] = `
-"asset a-runtime~main-5175c0b04f45ecd3.js 3.69 KiB [emitted] [immutable] (name: runtime~main)
+"asset a-runtime~main-afa3b3ca9d13c976.js 3.69 KiB [emitted] [immutable] (name: runtime~main)
 asset a-main-f9892dc0f961d982.js 387 bytes [emitted] [immutable] (name: main)
-asset a-all-a_js-2907035577382be1.js 128 bytes [emitted] [immutable] (id hint: all)
-Entrypoint main 4.19 KiB = a-runtime~main-5175c0b04f45ecd3.js 3.69 KiB a-all-a_js-2907035577382be1.js 128 bytes a-main-f9892dc0f961d982.js 387 bytes
+asset a-all-a_js-c5e9a60a93fca8e7.js 128 bytes [emitted] [immutable] (id hint: all)
+Entrypoint main 4.19 KiB = a-runtime~main-afa3b3ca9d13c976.js 3.69 KiB a-all-a_js-c5e9a60a93fca8e7.js 128 bytes a-main-f9892dc0f961d982.js 387 bytes
 runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset b-runtime~main-f130384ef7bd3eeb.js 4.38 KiB [emitted] [immutable] (name: runtime~main)
-asset b-all-b_js-b919ab3b8ffc37f5.js 453 bytes [emitted] [immutable] (id hint: all)
+asset b-runtime~main-fe8d7b2736c6ee6b.js 4.38 KiB [emitted] [immutable] (name: runtime~main)
+asset b-all-b_js-21ec1ff4bd0d701e.js 453 bytes [emitted] [immutable] (id hint: all)
 asset b-main-a97968a81f0fafdb.js 420 bytes [emitted] [immutable] (name: main)
-asset b-vendors-node_modules_vendor_js-5fbe5e4f804941dc.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 5.41 KiB = b-runtime~main-f130384ef7bd3eeb.js 4.38 KiB b-vendors-node_modules_vendor_js-5fbe5e4f804941dc.js 173 bytes b-all-b_js-b919ab3b8ffc37f5.js 453 bytes b-main-a97968a81f0fafdb.js 420 bytes
+asset b-vendors-node_modules_vendor_js-b7a19993a8749c9c.js 173 bytes [emitted] [immutable] (id hint: vendors)
+Entrypoint main 5.41 KiB = b-runtime~main-fe8d7b2736c6ee6b.js 4.38 KiB b-vendors-node_modules_vendor_js-b7a19993a8749c9c.js 173 bytes b-all-b_js-21ec1ff4bd0d701e.js 453 bytes b-main-a97968a81f0fafdb.js 420 bytes
 runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
   ./b.js 17 bytes [built] [code generated]
@@ -560,12 +560,12 @@ cacheable modules 40 bytes
 Rspack x.x.x compiled successfully in X.23
 
 assets by chunk 862 bytes (id hint: all)
-  asset c-all-b_js-5b962d1a9637e7e9.js 480 bytes [emitted] [immutable] (id hint: all)
-  asset c-all-c_js-006eb746a1813a72.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-a06fec7048612524.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+  asset c-all-b_js-ee8ed41862a518cb.js 480 bytes [emitted] [immutable] (id hint: all)
+  asset c-all-c_js-b149372834cd415d.js 382 bytes [emitted] [immutable] (id hint: all)
+asset c-runtime~main-9d02d33ce841b9f9.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-e071146c113b212b.js 643 bytes [emitted] [immutable] (name: main)
-asset c-vendors-node_modules_vendor_js-5fbe5e4f804941dc.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-a06fec7048612524.js 11.1 KiB c-all-c_js-006eb746a1813a72.js 382 bytes c-main-e071146c113b212b.js 643 bytes
+asset c-vendors-node_modules_vendor_js-b7a19993a8749c9c.js 173 bytes [emitted] [immutable] (id hint: vendors)
+Entrypoint main 12.1 KiB = c-runtime~main-9d02d33ce841b9f9.js 11.1 KiB c-all-c_js-b149372834cd415d.js 382 bytes c-main-e071146c113b212b.js 643 bytes
 runtime modules 9.7 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
