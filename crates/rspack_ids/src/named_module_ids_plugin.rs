@@ -36,9 +36,12 @@ fn assign_named_module_ids(
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    // If the short module id is conflict, then we need to rename all the conflicting modules to long module id
     if items.len() > 1 {
       invalid_and_repeat_names.insert(name);
-    } else if let Some(item) = used_ids.get(name.as_str()) {
+    }
+    // Also rename the conflicting modules in used_ids
+    else if let Some(item) = used_ids.get(name.as_str()) {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
     }
@@ -65,6 +68,7 @@ fn assign_named_module_ids(
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    // Also rename the conflicting modules in used_ids
     if let Some(item) = used_ids.get(name.as_str()) {
       items.insert(*item);
     }

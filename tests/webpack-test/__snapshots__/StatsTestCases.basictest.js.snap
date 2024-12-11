@@ -1457,8 +1457,8 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   asset production-a.js 10.6 KiB [emitted] (name: a)
   asset production-b.js 10.6 KiB [emitted] (name: b)
   asset production-dx_js.js 952 bytes [emitted]
-  asset production-dw_js-_5cba0.js 928 bytes [emitted]
-  asset production-dw_js-_5cba1.js 928 bytes [emitted]
+  asset production-dw_js-_b3b00.js 928 bytes [emitted]
+  asset production-dw_js-_b3b01.js 928 bytes [emitted]
   asset production-dy_js.js 921 bytes [emitted]
   asset production-dz_js.js 921 bytes [emitted]
   asset production-c.js 45 bytes [emitted] (name: c)
@@ -1487,11 +1487,11 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   chunk (runtime: c) production-c.js (c) 9 bytes [entry] [rendered]
     ./c.js 9 bytes [built] [code generated]
       [no exports used]
-  chunk (runtime: a) production-dw_js-_5cba0.js 168 bytes [rendered]
+  chunk (runtime: a) production-dw_js-_b3b00.js 168 bytes [rendered]
     ./dw.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
-  chunk (runtime: b) production-dw_js-_5cba1.js 168 bytes [rendered]
+  chunk (runtime: b) production-dw_js-_b3b01.js 168 bytes [rendered]
     ./dw.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
