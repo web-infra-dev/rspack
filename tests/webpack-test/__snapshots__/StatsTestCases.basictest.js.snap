@@ -1726,7 +1726,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
 "asset main.js 9.98 KiB [emitted] (name: main)
 asset 0.js 578 bytes [emitted]
-runtime modules 7.27 KiB 9 modules
+runtime modules 7.26 KiB 9 modules
 cacheable modules 967 bytes
   modules by path ./components/src/ 501 bytes
     orphan modules 315 bytes [orphan]

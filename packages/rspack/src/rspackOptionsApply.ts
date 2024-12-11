@@ -327,6 +327,7 @@ export class RspackOptionsApply {
 			switch (chunkIds) {
 				case "natural": {
 					new NaturalChunkIdsPlugin().apply(compiler);
+					break;
 				}
 				case "named": {
 					new NamedChunkIdsPlugin().apply(compiler);
