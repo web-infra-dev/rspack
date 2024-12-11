@@ -13,6 +13,7 @@ use napi::bindgen_prelude::*;
 use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
+use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod compiler;
@@ -46,7 +47,7 @@ impl Rspack {
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
     output_filesystem: ThreadsafeNodeFS,
-    intermediate_filesystem: ThreadsafeNodeFS,
+    intermediate_filesystem: Option<ThreadsafeNodeFS>,
     mut resolver_factory_reference: Reference<JsResolverFactory>,
   ) -> Result<Self> {
     tracing::info!("raw_options: {:#?}", &options);
@@ -69,6 +70,16 @@ impl Rspack {
       (*resolver_factory_reference).get_resolver_factory(compiler_options.resolve.clone());
     let loader_resolver_factory = (*resolver_factory_reference)
       .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
+
+    let intermediate_filesystem: Option<Box<dyn IntermediateFileSystem>> =
+      if let Some(fs) = intermediate_filesystem {
+        Some(Box::new(NodeFileSystem::new(fs).map_err(|e| {
+          Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
+        })?))
+      } else {
+        None
+      };
+
     let rspack = rspack_core::Compiler::new(
       compiler_path,
       compiler_options,
@@ -77,11 +88,7 @@ impl Rspack {
       Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
-      Some(Box::new(
-        NodeFileSystem::new(intermediate_filesystem).map_err(|e| {
-          Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
-        })?,
-      )),
+      intermediate_filesystem,
       None,
       Some(resolver_factory),
       Some(loader_resolver_factory),

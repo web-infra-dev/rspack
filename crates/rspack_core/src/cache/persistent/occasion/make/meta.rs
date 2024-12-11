@@ -47,7 +47,7 @@ pub fn save_meta(
 pub fn recovery_meta(
   storage: &Arc<dyn Storage>,
 ) -> Result<(HashSet<BuildDependency>, IdentifierSet), DeserializeError> {
-  let Some((_, value)) = storage.get_all(SCOPE).pop() else {
+  let Some((_, value)) = storage.load(SCOPE).pop() else {
     return Err(DeserializeError::MessageError("can not get meta data"));
   };
   let meta: Meta = from_bytes(&value, &())?;

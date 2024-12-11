@@ -4956,6 +4956,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_storage"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "cow-utils",
+ "futures",
+ "itertools 0.13.0",
+ "pollster",
+ "rayon",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_paths",
+ "rustc-hash 2.1.0",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_swc_plugin_import"
 version = "0.2.0"
 dependencies = [
