@@ -146,47 +146,64 @@ impl NamedChunkIdsPlugin {
 
 #[plugin_hook(CompilationChunkIds for NamedChunkIdsPlugin)]
 fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
-  if let Some(mutations) = compilation
+  let more_chunks = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::CHUNK_IDS)
   {
-    let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
-      Mutation::ChunkRemove { chunk } => Some(*chunk),
-      _ => None,
-    });
-    for removed_chunk in removed_chunks {
-      compilation.chunk_ids.remove(&removed_chunk);
+    let mut affected_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    for mutation in mutations.iter() {
+      match mutation {
+        Mutation::ChunkRemove { chunk } => {
+          compilation.chunk_ids.remove(&chunk);
+        }
+        Mutation::ModuleSetId { module } => {
+          affected_chunks.extend(compilation.chunk_graph.get_module_chunks(*module));
+        }
+        _ => {}
+      }
     }
     compilation
       .chunk_ids
       .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
-  }
+    affected_chunks
+  } else {
+    UkeySet::default()
+  };
 
-  // Use chunk name as default chunk id
-  for chunk in compilation.chunk_by_ukey.values_mut() {
-    if let Some(name) = chunk.name() {
-      chunk.set_id(&mut compilation.chunk_ids, name);
-    }
-  }
-
-  let chunks: UkeySet<ChunkUkey> = compilation
+  let mut chunks: UkeySet<ChunkUkey> = compilation
     .chunk_by_ukey
     .values()
     .filter(|chunk| chunk.id(&compilation.chunk_ids).is_none())
     .map(|chunk| chunk.ukey())
     .collect();
+  chunks.extend(more_chunks);
   let chunks_len = chunks.len();
+
+  let mut mutations = compilation
+    .incremental
+    .can_write_mutations()
+    .then(Mutations::default);
+
+  // Use chunk name as default chunk id
+  chunks.retain(|chunk_ukey| {
+    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    if let Some(chunk_name) = chunk.name() {
+      if ChunkGraph::set_chunk_id(&mut compilation.chunk_ids, *chunk_ukey, chunk_name.into())
+        && let Some(mutations) = &mut mutations
+      {
+        mutations.add(Mutation::ChunkSetId { chunk: *chunk_ukey });
+      }
+      return false;
+    }
+    true
+  });
+  let named_chunks_len = chunks_len - chunks.len();
 
   let mut chunk_ids = std::mem::take(&mut compilation.chunk_ids);
   let mut used_ids: FxHashMap<ChunkId, ChunkUkey> = chunk_ids
     .iter()
     .map(|(&chunk, id)| (id.clone(), chunk))
     .collect();
-
-  let mut mutations = compilation
-    .incremental
-    .can_write_mutations()
-    .then(Mutations::default);
 
   let unnamed_chunks = assign_named_chunk_ids(
     chunks,
@@ -227,8 +244,9 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
       compilation.chunk_by_ukey.len(),
     ));
     logger.log(format!(
-      "{} chunks are updated by set_chunk_id, with {} unnamed chunks",
+      "{} chunks are updated by set_chunk_id, with {} chunks using name as id, and {} unnamed chunks",
       mutations.len(),
+      named_chunks_len,
       unnamed_chunks.len(),
     ));
   }
