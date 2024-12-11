@@ -434,7 +434,7 @@ Generator options for `asset` modules.
 
 #### module.generator.asset.dataUrl
 
-- **Type:** `Object | (options: { content: string, filename: string }) => string`
+- **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **Default:** `{}`
 
 Only for modules with module type `'asset'` or `'asset/inline'`.
