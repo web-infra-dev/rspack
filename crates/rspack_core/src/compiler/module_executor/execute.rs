@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
@@ -37,7 +38,7 @@ pub struct ExecuteModuleResult {
   pub missing_dependencies: HashSet<ArcPath>,
   pub build_dependencies: HashSet<ArcPath>,
   pub code_generated_modules: IdentifierSet,
-  pub assets: HashSet<String>,
+  pub assets: HashSet<Arc<str>>,
   pub id: ExecuteModuleId,
 }
 
@@ -271,8 +272,8 @@ impl Task<MakeTaskContext> for ExecuteTask {
       execute_result.assets.extend(
         module_assets
           .values()
-          .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())
-          .collect::<HashSet<String>>(),
+          .flat_map(|m| m.iter().map(Clone::clone).collect_vec())
+          .collect::<HashSet<_>>(),
       );
     }
     let executed_runtime_modules = runtime_modules

@@ -65,7 +65,7 @@ pub struct Compiler {
   pub old_cache: Arc<OldCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
-  pub emitted_asset_versions: HashMap<String, String>,
+  pub emitted_asset_versions: HashMap<Arc<str>, String>,
 }
 
 impl Compiler {
@@ -294,7 +294,7 @@ impl Compiler {
           .incremental
           .contains(IncrementalPasses::EMIT_ASSETS)
         {
-          new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+          new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
         }
 
         if let Some(old_version) = self.emitted_asset_versions.get(filename) {
@@ -386,7 +386,10 @@ impl Compiler {
 
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
-        self.compilation.emitted_assets.insert(filename.to_string());
+        self
+          .compilation
+          .emitted_assets
+          .insert(Arc::from(filename.to_string()));
       }
 
       let info = AssetEmittedInfo {
@@ -440,10 +443,11 @@ impl Compiler {
       .iter()
       .filter_map(|(filename, _version)| {
         if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
+          let filename = filename.clone();
           Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
+            let filename = filename;
+            if !clean_options.keep(filename.as_ref()) {
+              let filename = Utf8Path::new(&self.options.output.path).join(filename.as_ref());
               let _ = self.output_filesystem.remove_file(&filename).await;
             }
           })
