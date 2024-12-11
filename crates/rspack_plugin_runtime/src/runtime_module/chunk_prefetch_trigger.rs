@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
 use rspack_core::{
+  chunk_graph_chunk::ChunkId,
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   Compilation, RuntimeModule, RuntimeModuleStage,
@@ -16,11 +17,11 @@ use rustc_hash::FxHasher;
 pub struct ChunkPrefetchTriggerRuntimeModule {
   id: Identifier,
   #[cacheable(with=AsMap)]
-  chunk_map: IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
+  chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
 }
 
 impl ChunkPrefetchTriggerRuntimeModule {
-  pub fn new(chunk_map: IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>) -> Self {
+  pub fn new(chunk_map: IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>) -> Self {
     Self::with_default(
       Identifier::from("webpack/runtime/chunk_prefetch_trigger"),
       chunk_map,

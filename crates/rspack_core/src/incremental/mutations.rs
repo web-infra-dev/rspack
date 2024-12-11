@@ -39,6 +39,7 @@ pub enum Mutation {
   ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
   ModuleSetId { module: ModuleIdentifier },
+  ChunkSetId { chunk: ChunkUkey },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
@@ -52,6 +53,7 @@ impl fmt::Display for Mutation {
       Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
       Mutation::ModuleSetId { module } => write!(f, "set id module {}", module),
+      Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
         write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
@@ -326,7 +328,7 @@ fn compute_affected_modules_with_chunk_graph(
       };
       for chunk in &chunk_group.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.id().hash(&mut hasher);
+        chunk.id(&compilation.chunk_ids).hash(&mut hasher);
       }
     }
     hasher.finish()

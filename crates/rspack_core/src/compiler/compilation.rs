@@ -34,6 +34,7 @@ use crate::{
   cache::Cache,
   cgm_hash_results::CgmHashResults,
   cgm_runtime_requirement_results::CgmRuntimeRequirementsResults,
+  chunk_graph_chunk::ChunkId,
   chunk_graph_module::ModuleId,
   get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
@@ -181,6 +182,8 @@ pub struct Compilation {
   pub dependencies_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   // artifact for module_ids
   pub module_ids: IdentifierMap<ModuleId>,
+  // artifact for chunk_ids
+  pub chunk_ids: UkeyMap<ChunkUkey, ChunkId>,
   // artifact for code_generation
   pub code_generation_results: CodeGenerationResults,
   // artifact for create_module_hashes
@@ -201,7 +204,6 @@ pub struct Compilation {
   pub incremental: Incremental,
 
   pub hash: Option<RspackHashDigest>,
-  pub used_chunk_ids: HashSet<String>,
 
   pub file_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
@@ -289,6 +291,7 @@ impl Compilation {
       async_modules: Default::default(),
       dependencies_diagnostics: Default::default(),
       module_ids: Default::default(),
+      chunk_ids: Default::default(),
       code_generation_results: Default::default(),
       cgm_hash_results: Default::default(),
       cgm_runtime_requirements_results: Default::default(),
@@ -301,8 +304,8 @@ impl Compilation {
       old_cache,
       incremental,
       code_splitting_cache: Default::default(),
+
       hash: None,
-      used_chunk_ids: Default::default(),
 
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
@@ -1502,6 +1505,7 @@ impl Compilation {
       entrypoint_ukey: &ChunkGroupUkey,
       chunk_group_by_ukey: &ChunkGroupByUkey,
       chunk_by_ukey: &ChunkByUkey,
+      chunk_ids: &UkeyMap<ChunkUkey, ChunkId>,
       chunk_graph: &mut ChunkGraph,
     ) {
       let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
@@ -1517,7 +1521,7 @@ impl Compilation {
         runtime,
         chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),
       ) {
-        chunk_graph.set_runtime_id(runtime, chunk.id().map(ToOwned::to_owned));
+        chunk_graph.set_runtime_id(runtime, chunk.id(chunk_ids).map(|id| id.to_string()));
       }
     }
     for i in self.entrypoints.iter() {
@@ -1525,6 +1529,7 @@ impl Compilation {
         i.1,
         &self.chunk_group_by_ukey,
         &self.chunk_by_ukey,
+        &self.chunk_ids,
         &mut self.chunk_graph,
       )
     }
@@ -1533,6 +1538,7 @@ impl Compilation {
         i,
         &self.chunk_group_by_ukey,
         &self.chunk_by_ukey,
+        &self.chunk_ids,
         &mut self.chunk_graph,
       )
     }
@@ -1862,11 +1868,16 @@ impl Compilation {
         .filter(|(_, (_, remaining))| *remaining != 0)
         .map(|(chunk_ukey, _)| self.chunk_by_ukey.expect_get(chunk_ukey))
         .collect();
-      circular.sort_unstable_by(|a, b| a.id().cmp(&b.id()));
+      circular.sort_unstable_by(|a, b| a.id(&self.chunk_ids).cmp(&b.id(&self.chunk_ids)));
       runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey()));
       let circular_names = circular
         .iter()
-        .map(|chunk| chunk.name().or(chunk.id()).unwrap_or("no id chunk"))
+        .map(|chunk| {
+          chunk
+            .name()
+            .or(chunk.id(&self.chunk_ids).map(|id| id.as_str()))
+            .unwrap_or("no id chunk")
+        })
         .join(", ");
       self.push_diagnostic(diagnostic!(severity = Severity::Warn, "Circular dependency between chunks with runtime ({})\nThis prevents using hashes of each other and should be avoided.", circular_names).boxed().into());
     }

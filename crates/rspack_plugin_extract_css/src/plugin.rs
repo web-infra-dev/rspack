@@ -328,7 +328,10 @@ Conflicting order. Following module has been added:
  * {}
 despite it was not able to fulfill desired ordering with these modules:
 {}"#,
-            chunk.name().unwrap_or(chunk.id().unwrap_or_default()),
+            chunk
+              .name()
+              .or_else(|| chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+              .unwrap_or_default(),
             fallback_module.readable_identifier(&compilation.options.context),
             conflict
               .reasons
@@ -619,12 +622,12 @@ async fn render_manifest(
   let filename = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk_id_optional(chunk.id())
+      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
       .chunk_hash_optional(chunk.rendered_hash(
         &compilation.chunk_hashes_results,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template())
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
         &compilation.chunk_hashes_results,
         &SOURCE_TYPE[0],

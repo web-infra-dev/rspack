@@ -184,7 +184,7 @@ async fn content_hash(
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
-    chunk.id().hash(&mut hasher);
+    chunk.id(&compilation.chunk_ids).hash(&mut hasher);
   }
 
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
@@ -280,8 +280,8 @@ async fn render_manifest(
         &compilation.chunk_hashes_results,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_id_optional(chunk.id())
-      .chunk_name_optional(chunk.name_for_filename_template())
+      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
         &compilation.chunk_hashes_results,
         &SourceType::JavaScript,
