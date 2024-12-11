@@ -3947,6 +3947,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
+ "ropey",
  "rspack_ast",
  "rspack_cacheable",
  "rspack_collections",
