@@ -40,17 +40,22 @@ impl JsChunk {
 
   #[napi(getter)]
   pub fn id(&self) -> napi::Result<Either<&str, ()>> {
-    let (_, chunk) = self.as_ref()?;
-    Ok(match chunk.id() {
-      Some(id) => Either::A(id),
+    let (compilation, chunk) = self.as_ref()?;
+    Ok(match chunk.id(&compilation.chunk_ids) {
+      Some(id) => Either::A(id.as_str()),
       None => Either::B(()),
     })
   }
 
   #[napi(getter)]
   pub fn ids(&self) -> napi::Result<Vec<&str>> {
-    let (_, chunk) = self.as_ref()?;
-    Ok(chunk.id().map(|id| vec![id]).unwrap_or_default())
+    let (compilation, chunk) = self.as_ref()?;
+    Ok(
+      chunk
+        .id(&compilation.chunk_ids)
+        .map(|id| vec![id.as_str()])
+        .unwrap_or_default(),
+    )
   }
 
   #[napi(getter)]
