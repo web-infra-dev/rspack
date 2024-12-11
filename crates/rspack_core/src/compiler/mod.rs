@@ -52,6 +52,7 @@ pub struct CompilerHooks {
 
 #[derive(Debug)]
 pub struct Compiler {
+  pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Box<dyn WritableFileSystem>,
   pub intermediate_filesystem: Box<dyn WritableFileSystem>,
@@ -72,6 +73,7 @@ impl Compiler {
   #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    compiler_path: String,
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
@@ -116,6 +118,7 @@ impl Compiler {
       intermediate_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
 
     Self {
+      compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
         options,
