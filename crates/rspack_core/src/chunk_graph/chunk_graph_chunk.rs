@@ -7,6 +7,7 @@ use std::sync::Arc;
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use rspack_cacheable::cacheable;
 use rspack_collections::{
   DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet, UkeyMap,
 };
@@ -28,6 +29,7 @@ pub struct ChunkSizeOptions {
   pub entry_chunk_multiplicator: Option<f64>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkId {
   inner: Arc<str>,
