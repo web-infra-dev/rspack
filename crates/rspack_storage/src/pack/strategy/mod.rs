@@ -30,7 +30,7 @@ pub trait ScopeStrategy:
 #[async_trait]
 pub trait RootStrategy {
   async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
-  async fn write_root_meta(&self) -> Result<()>;
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
   async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult>;
 }
 

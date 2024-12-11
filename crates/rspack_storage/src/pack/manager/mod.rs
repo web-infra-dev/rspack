@@ -12,7 +12,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
-use super::data::{PackOptions, PackScope};
+use super::data::{PackOptions, PackScope, RootMeta, RootMetaState};
 use super::strategy::{ScopeStrategy, ValidateResult, WriteScopeResult};
 use super::ScopeUpdates;
 use crate::StorageContent;
@@ -24,6 +24,7 @@ pub struct ScopeManager {
   pub strategy: Arc<dyn ScopeStrategy>,
   pub options: Arc<PackOptions>,
   pub scopes: Arc<Mutex<ScopeMap>>,
+  pub root_meta: Arc<Mutex<RootMetaState>>,
   pub queue: TaskQueue,
   pub expire: u64,
 }
@@ -36,6 +37,7 @@ impl ScopeManager {
       scopes: Default::default(),
       queue: TaskQueue::new(),
       expire,
+      root_meta: Default::default(),
     }
   }
 
@@ -43,22 +45,36 @@ impl ScopeManager {
     let options = self.options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
+    let root_meta = self.root_meta.clone();
     block_on(async move {
-      update_scopes(
+      match update_scopes(
         &mut *scopes.lock().await,
         updates,
         options.clone(),
         strategy.as_ref(),
-      )
+      ) {
+        Ok(_) => {
+          *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new()));
+          Ok(())
+        }
+        Err(e) => Err(Error::from(e)),
+      }
     })?;
 
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
+    let root_meta = self.root_meta.clone();
     let (tx, rx) = oneshot::channel();
     self.queue.add_task(Box::pin(async move {
       let mut scopes_lock = scopes.lock().await;
+      let root_meta = root_meta
+        .lock()
+        .await
+        .expect_value()
+        .clone()
+        .expect("should have root meta");
       let old_scopes = std::mem::take(&mut *scopes_lock);
-      let res = save_scopes(old_scopes, strategy.as_ref()).await;
+      let res = save_scopes(old_scopes, &root_meta, strategy.as_ref()).await;
       let _ = match res {
         Ok(new_scopes) => {
           let _ = std::mem::replace(&mut *scopes_lock, new_scopes);
@@ -77,7 +93,7 @@ impl ScopeManager {
       .entry(name)
       .or_insert_with(|| PackScope::new(self.strategy.get_path(name), self.options.clone()));
 
-    match validate_scope(scope, self.strategy.as_ref(), self.expire).await {
+    match self.validate_scope(scope).await {
       Ok(validated) => match validated {
         ValidateResult::Valid => {
           self.strategy.ensure_contents(scope).await?;
@@ -98,29 +114,29 @@ impl ScopeManager {
       }
     }
   }
-}
 
-async fn validate_scope(
-  scope: &mut PackScope,
-  strategy: &dyn ScopeStrategy,
-  expire: u64,
-) -> Result<ValidateResult> {
-  if let Some(root_meta) = strategy.read_root_meta().await? {
-    let validated = strategy.validate_root(&root_meta, expire).await?;
-    if validated.is_valid() {
-      strategy.ensure_meta(scope).await?;
-      let validated = strategy.validate_meta(scope).await?;
+  async fn validate_scope(&self, scope: &mut PackScope) -> Result<ValidateResult> {
+    let mut root_meta = self.root_meta.lock().await;
+    if matches!(*root_meta, RootMetaState::Pending) {
+      *root_meta = RootMetaState::Value(self.strategy.read_root_meta().await?);
+    }
+    if let Some(root_meta) = root_meta.expect_value() {
+      let validated = self.strategy.validate_root(root_meta, self.expire).await?;
       if validated.is_valid() {
-        strategy.ensure_keys(scope).await?;
-        strategy.validate_packs(scope).await
+        self.strategy.ensure_meta(scope).await?;
+        let validated = self.strategy.validate_meta(scope).await?;
+        if validated.is_valid() {
+          self.strategy.ensure_keys(scope).await?;
+          self.strategy.validate_packs(scope).await
+        } else {
+          Ok(validated)
+        }
       } else {
         Ok(validated)
       }
     } else {
-      Ok(validated)
+      Ok(ValidateResult::NotExists)
     }
-  } else {
-    Ok(ValidateResult::NotExists)
   }
 }
 
@@ -150,7 +166,11 @@ fn update_scopes(
   Ok(())
 }
 
-async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Result<ScopeMap> {
+async fn save_scopes(
+  mut scopes: ScopeMap,
+  root_meta: &RootMeta,
+  strategy: &dyn ScopeStrategy,
+) -> Result<ScopeMap> {
   for (_, scope) in scopes.iter_mut() {
     strategy.before_all(scope)?;
   }
@@ -201,7 +221,7 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
 
-  strategy.write_root_meta().await?;
+  strategy.write_root_meta(root_meta).await?;
 
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;
@@ -295,6 +315,8 @@ mod tests {
     assert_eq!(manager.load("scope2").await?.len(), 100);
     assert!(fs.exists(root.join("scope1/scope_meta").as_path()).await?);
     assert!(fs.exists(root.join("scope2/scope_meta").as_path()).await?);
+
+    assert!(fs.exists(root.join("storage_meta").as_path()).await?);
     Ok(())
   }
 

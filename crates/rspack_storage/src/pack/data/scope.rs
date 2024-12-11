@@ -4,8 +4,24 @@ use itertools::Itertools;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::{Pack, PackOptions, ScopeMeta};
+use super::{Pack, PackOptions, RootMeta, ScopeMeta};
 use crate::StorageContent;
+
+#[derive(Debug, Default)]
+pub enum RootMetaState {
+  #[default]
+  Pending,
+  Value(Option<RootMeta>),
+}
+
+impl RootMetaState {
+  pub fn expect_value(&self) -> &Option<RootMeta> {
+    match self {
+      RootMetaState::Value(v) => v,
+      RootMetaState::Pending => panic!("should have scope meta"),
+    }
+  }
+}
 
 #[derive(Debug, Default)]
 pub enum ScopeMetaState {

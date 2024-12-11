@@ -12,7 +12,7 @@ pub struct PackFileMeta {
   pub wrote: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RootMeta {
   pub last_modified: u64,
 }

@@ -146,15 +146,15 @@ impl RootStrategy for SplitPackStrategy {
 
     Ok(Some(RootMeta { last_modified }))
   }
-  async fn write_root_meta(&self) -> Result<()> {
-    let root_meta = RootMeta::new();
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
     let meta_path = RootMeta::get_path(&self.root);
-    self
-      .fs
-      .write_file(&meta_path)
-      .await?
+
+    let mut writer = self.fs.write_file(&meta_path).await?;
+
+    writer
       .write_all(root_meta.last_modified.to_string().as_bytes())
       .await?;
+    writer.flush().await?;
     Ok(())
   }
   async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult> {

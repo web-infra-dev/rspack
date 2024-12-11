@@ -23,10 +23,11 @@ mod test_storage_dev {
   fn create_pack_options(
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
+    version: &str,
     fs: Arc<dyn PackFS>,
   ) -> PackStorageOptions {
     PackStorageOptions {
-      version: "xxx".to_string(),
+      version: version.to_string(),
       root: root.into(),
       temp_root: temp_root.into(),
       fs,
@@ -74,7 +75,7 @@ mod test_storage_dev {
     assert_eq!(storage.load("test_scope").await?.len(), 1000);
 
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
+    assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
   }
 
@@ -105,7 +106,7 @@ mod test_storage_dev {
     assert_eq!(storage.load("test_scope").await?.len(), 998);
 
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
+    assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
   }
 
@@ -149,6 +150,7 @@ mod test_storage_dev {
         Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
+    let version = "xxx".to_string();
 
     for ((root, temp_root), fs) in cases {
       let root = root.assert_utf8();
@@ -159,25 +161,25 @@ mod test_storage_dev {
         .expect("should remove temp root");
 
       let _ = test_initial_dev(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
 
       let _ = test_recovery_modify(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
 
       let _ = test_recovery_final(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
