@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Display};
 
+use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
@@ -39,7 +40,9 @@ pub struct ChunkGroup {
   pub parents: UkeySet<ChunkGroupUkey>,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
-  pub(crate) children: UkeySet<ChunkGroupUkey>,
+
+  // keep order for children
+  pub(crate) children: IndexSet<ChunkGroupUkey>,
   async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,

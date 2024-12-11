@@ -1133,7 +1133,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     self.stat_processed_blocks += 1;
 
-    let chunk_group_info = self.chunk_group_infos.expect_get(&item.chunk_group_info);
+    let chunk_group_info: &ChunkGroupInfo =
+      self.chunk_group_infos.expect_get(&item.chunk_group_info);
 
     let runtime = chunk_group_info.runtime.clone();
 
@@ -1539,7 +1540,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       return modules.clone();
     }
 
-    self.extract_block_modules(module.get_root_block(compilation), runtime, compilation);
+    self.extract_block_modules(
+      module.get_root_block(&compilation.get_module_graph()),
+      runtime,
+      compilation,
+    );
     self
       .block_modules_runtime_map
       .get::<OptionalRuntimeSpec>(&runtime.cloned().into())
@@ -1938,11 +1943,10 @@ pub(crate) enum DependenciesBlockIdentifier {
 }
 
 impl DependenciesBlockIdentifier {
-  pub fn get_root_block<'a>(&'a self, compilation: &'a Compilation) -> ModuleIdentifier {
+  pub fn get_root_block<'a>(&'a self, module_graph: &'a ModuleGraph) -> ModuleIdentifier {
     match self {
       DependenciesBlockIdentifier::Module(m) => *m,
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *compilation
-        .get_module_graph()
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(id) => *module_graph
         .block_by_id(id)
         .expect("should have block")
         .parent(),
