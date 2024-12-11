@@ -70,10 +70,10 @@
     "zod-validation-error": "3.4.0"
   },
   "dependencies": {
-    "@module-federation/runtime-tools": "0.5.1",
+    "@module-federation/runtime-tools": "0.8.2",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001616"
+    "caniuse-lite": "^1.0.30001687"
   },
   "peerDependencies": {
     "@swc/helpers": ">=0.5.1"
