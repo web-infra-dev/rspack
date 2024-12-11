@@ -229,6 +229,10 @@ export declare function __chunk_graph_inner_get_chunk_modules_iterable_by_source
 
 export declare function __chunk_group_inner_get_chunk_group(ukey: number, jsCompilation: JsCompilation): JsChunkGroup
 
+export declare function __chunk_group_inner_get_module_post_order_index(ukey: number, jsCompilation: JsCompilation, moduleIdentifier: string): number | null
+
+export declare function __chunk_group_inner_get_module_pre_order_index(ukey: number, jsCompilation: JsCompilation, moduleIdentifier: string): number | null
+
 export declare function __chunk_inner_can_be_initial(jsChunkUkey: number, jsCompilation: JsCompilation): boolean
 
 export declare function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, jsCompilation: JsCompilation): Array<JsChunk>

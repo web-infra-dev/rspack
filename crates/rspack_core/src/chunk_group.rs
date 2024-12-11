@@ -76,6 +76,14 @@ impl ChunkGroup {
     self.parents.iter()
   }
 
+  pub fn module_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+    // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
+    self
+      .module_pre_order_indices
+      .get(module_identifier)
+      .copied()
+  }
+
   pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
