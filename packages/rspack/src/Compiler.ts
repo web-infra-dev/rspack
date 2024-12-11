@@ -1621,6 +1621,7 @@ class Compiler {
 		};
 
 		this.#instance = new instanceBinding.Rspack(
+			this.compilerPath,
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,

@@ -37,9 +37,11 @@ pub struct Rspack {
 
 #[napi]
 impl Rspack {
+  #[allow(clippy::too_many_arguments)]
   #[napi(constructor)]
   pub fn new(
     env: Env,
+    compiler_path: String,
     options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
@@ -68,6 +70,7 @@ impl Rspack {
     let loader_resolver_factory = (*resolver_factory_reference)
       .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
     let rspack = rspack_core::Compiler::new(
+      compiler_path,
       compiler_options,
       plugins,
       rspack_binding_options::buildtime_plugins::buildtime_plugins(),
