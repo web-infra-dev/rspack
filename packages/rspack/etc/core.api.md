@@ -180,6 +180,9 @@ export type AssetInlineGeneratorOptions = {
 export type AssetModuleFilename = Filename;
 
 // @public
+export type AssetModuleOutputPath = Filename;
+
+// @public
 export type AssetParserDataUrl = AssetParserDataUrlOptions;
 
 // @public
@@ -196,6 +199,7 @@ export type AssetParserOptions = {
 export type AssetResourceGeneratorOptions = {
     emit?: boolean;
     filename?: Filename;
+    outputPath?: AssetModuleOutputPath;
     publicPath?: PublicPath;
 };
 
@@ -5253,6 +5257,7 @@ declare namespace rspackExports {
         AssetGeneratorDataUrlFunction,
         AssetGeneratorDataUrl,
         AssetInlineGeneratorOptions,
+        AssetModuleOutputPath,
         AssetResourceGeneratorOptions,
         AssetGeneratorOptions,
         CssGeneratorExportsConvention,
@@ -10380,6 +10385,7 @@ declare namespace t {
         AssetGeneratorDataUrlFunction,
         AssetGeneratorDataUrl,
         AssetInlineGeneratorOptions,
+        AssetModuleOutputPath,
         AssetResourceGeneratorOptions,
         AssetGeneratorOptions,
         CssGeneratorExportsConvention,
