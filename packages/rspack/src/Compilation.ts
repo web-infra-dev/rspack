@@ -237,6 +237,7 @@ export class Compilation {
 		runtimeModule: liteTapable.SyncHook<[JsRuntimeModule, Chunk], void>;
 		seal: liteTapable.SyncHook<[], void>;
 		afterSeal: liteTapable.AsyncSeriesHook<[], void>;
+		needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
 	}>;
 	name?: string;
 	startTime?: number;
@@ -270,6 +271,8 @@ export class Compilation {
 			buildMeta: Record<string, unknown>;
 		}
 	>;
+
+	needAdditionalPass: boolean;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
@@ -373,7 +376,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			),
 			runtimeModule: new liteTapable.SyncHook(["module", "chunk"]),
 			seal: new liteTapable.SyncHook([]),
-			afterSeal: new liteTapable.AsyncSeriesHook([])
+			afterSeal: new liteTapable.AsyncSeriesHook([]),
+			needAdditionalPass: new liteTapable.SyncBailHook([])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -383,6 +387,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.logging = new Map();
 		this.childrenCounters = {};
 		this.children = [];
+		this.needAdditionalPass = false;
 
 		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
