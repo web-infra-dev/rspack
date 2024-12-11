@@ -331,9 +331,6 @@ mod tests {
   async fn should_read_scope() {
     for strategy in create_strategies("read_scope") {
       clean_strategy(&strategy).await;
-      // mock_root_meta_file(&RootMeta::get_path(&strategy.root), strategy.fs.as_ref())
-      //   .await
-      //   .expect("should mock root meta");
       let options = Arc::new(PackOptions {
         bucket_size: 1,
         pack_size: 16,
