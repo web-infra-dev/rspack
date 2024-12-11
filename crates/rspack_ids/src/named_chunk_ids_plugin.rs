@@ -154,7 +154,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
-          compilation.chunk_ids.remove(&chunk);
+          compilation.chunk_ids.remove(chunk);
         }
         Mutation::ModuleSetId { module } => {
           affected_chunks.extend(compilation.chunk_graph.get_module_chunks(*module));
