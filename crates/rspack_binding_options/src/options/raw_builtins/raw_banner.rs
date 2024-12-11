@@ -1,29 +1,31 @@
 use derivative::Derivative;
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_conditions, JsChunk, RawAssetConditions};
+use rspack_binding_values::{into_asset_conditions, JsChunkWrapper, RawAssetConditions};
+use rspack_collections::DatabaseItem;
 use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
-#[napi(object)]
-pub struct RawBannerContentFnCtx {
+#[napi(object, object_from_js = false)]
+pub struct JsBannerContentFnCtx {
   pub hash: String,
-  pub chunk: JsChunk,
+  #[napi(ts_type = "JsChunk")]
+  pub chunk: JsChunkWrapper,
   pub filename: String,
 }
 
-impl<'a> From<BannerContentFnCtx<'a>> for RawBannerContentFnCtx {
+impl<'a> From<BannerContentFnCtx<'a>> for JsBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
-      chunk: JsChunk::from(value.chunk, value.compilation),
+      chunk: JsChunkWrapper::new(value.chunk.ukey(), value.compilation),
       filename: value.filename.to_string(),
     }
   }
 }
 
-type RawBannerContent = Either<String, ThreadsafeFunction<RawBannerContentFnCtx, String>>;
+type RawBannerContent = Either<String, ThreadsafeFunction<JsBannerContentFnCtx, String>>;
 struct RawBannerContentWrapper(RawBannerContent);
 
 impl TryFrom<RawBannerContentWrapper> for BannerContent {

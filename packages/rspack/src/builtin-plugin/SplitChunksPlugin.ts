@@ -80,13 +80,7 @@ function toRawSplitChunksOptions(
 
 	function getChunks(chunks: any) {
 		if (typeof chunks === "function") {
-			return (chunk: JsChunk) =>
-				chunks(
-					Chunk.__from_binding(
-						chunk,
-						compiler._lastCompilation!.__internal_getInner()
-					)
-				);
+			return (chunk: JsChunk) => chunks(Chunk.__from_binding(chunk));
 		}
 		return chunks;
 	}
