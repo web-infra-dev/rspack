@@ -26,6 +26,7 @@ mod test_storage_dev {
     fs: Arc<dyn PackFS>,
   ) -> PackStorageOptions {
     PackStorageOptions {
+      version: "xxx".to_string(),
       root: root.into(),
       temp_root: temp_root.into(),
       fs,
@@ -73,7 +74,7 @@ mod test_storage_dev {
     assert_eq!(storage.load("test_scope").await?.len(), 1000);
 
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("test_scope/cache_meta")).await?);
+    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
     Ok(())
   }
 
@@ -104,7 +105,7 @@ mod test_storage_dev {
     assert_eq!(storage.load("test_scope").await?.len(), 998);
 
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("test_scope/cache_meta")).await?);
+    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
     Ok(())
   }
 

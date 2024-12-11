@@ -33,6 +33,7 @@ pub struct PackStorageOptions {
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,
+  pub version: String,
 }
 
 impl PackStorage {
@@ -42,13 +43,13 @@ impl PackStorage {
         Arc::new(PackOptions {
           bucket_size: options.bucket_size,
           pack_size: options.pack_size,
-          expire: options.expire,
         }),
         Arc::new(SplitPackStrategy::new(
-          options.root.assert_utf8(),
-          options.temp_root.assert_utf8(),
+          options.root.join(&options.version).assert_utf8(),
+          options.temp_root.join(&options.version).assert_utf8(),
           options.fs,
         )),
+        options.expire,
       ),
       updates: Default::default(),
     }

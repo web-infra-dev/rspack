@@ -326,7 +326,6 @@ mod tests {
     let options = PackOptions {
       bucket_size: 1,
       pack_size: 2000,
-      expire: 100000,
     };
 
     // half pack

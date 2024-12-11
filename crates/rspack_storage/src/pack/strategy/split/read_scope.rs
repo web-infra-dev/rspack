@@ -105,13 +105,12 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<
     })
     .collect::<Result<Vec<usize>>>()?;
 
-  if option_items.len() < 3 {
+  if option_items.len() < 2 {
     return Err(error!("option meta not match"));
   }
 
   let bucket_size = option_items[0];
   let pack_size = option_items[1];
-  let last_modified = option_items[2] as u64;
 
   let mut packs = vec![];
   for _ in 0..bucket_size {
@@ -148,7 +147,6 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<
     path: path.to_path_buf(),
     bucket_size,
     pack_size,
-    last_modified,
     packs,
   }))
 }
@@ -253,14 +251,14 @@ mod tests {
     fs::PackFS,
     strategy::{
       split::util::test_pack_utils::{
-        clean_strategy, create_strategies, mock_meta_file, mock_pack_file,
+        clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
       },
       ScopeReadStrategy, SplitPackStrategy,
     },
   };
 
   async fn mock_scope(path: &Utf8Path, fs: &dyn PackFS, options: &PackOptions) -> Result<()> {
-    mock_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
+    mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
         let unique_id = format!("{}_{}", bucket_id, pack_no);
@@ -333,10 +331,12 @@ mod tests {
   async fn should_read_scope() {
     for strategy in create_strategies("read_scope") {
       clean_strategy(&strategy).await;
+      // mock_root_meta_file(&RootMeta::get_path(&strategy.root), strategy.fs.as_ref())
+      //   .await
+      //   .expect("should mock root meta");
       let options = Arc::new(PackOptions {
         bucket_size: 1,
         pack_size: 16,
-        expire: 60000,
       });
       let mut scope = PackScope::new(strategy.get_path("scope_name"), options.clone());
 

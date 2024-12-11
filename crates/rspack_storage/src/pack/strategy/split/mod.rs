@@ -5,7 +5,11 @@ mod validate_scope;
 mod write_pack;
 mod write_scope;
 
-use std::{hash::Hasher, sync::Arc};
+use std::{
+  hash::Hasher,
+  sync::Arc,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 use futures::{future::join_all, TryFutureExt};
 use rspack_error::{error, Result};
@@ -13,9 +17,9 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use util::{get_name, walk_dir};
 
-use super::ScopeStrategy;
+use super::{RootStrategy, ScopeStrategy, ValidateResult};
 use crate::pack::{
-  data::{PackContents, PackKeys, PackScope, ScopeMeta},
+  data::{PackContents, PackKeys, PackScope, RootMeta, ScopeMeta},
   fs::PackFS,
 };
 
@@ -120,6 +124,49 @@ impl SplitPackStrategy {
     hasher.write_u64(meta.mtime_ms);
 
     Ok(format!("{:016x}", hasher.finish()))
+  }
+}
+
+#[async_trait::async_trait]
+impl RootStrategy for SplitPackStrategy {
+  async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
+    let meta_path = RootMeta::get_path(&self.root);
+    if !self.fs.exists(&meta_path).await? {
+      return Ok(None);
+    }
+
+    let last_modified = self
+      .fs
+      .read_file(&meta_path)
+      .await?
+      .read_line()
+      .await?
+      .parse::<u64>()
+      .map_err(|e| error!("parse option meta failed: {}", e))?;
+
+    Ok(Some(RootMeta { last_modified }))
+  }
+  async fn write_root_meta(&self) -> Result<()> {
+    let root_meta = RootMeta::new();
+    let meta_path = RootMeta::get_path(&self.root);
+    self
+      .fs
+      .write_file(&meta_path)
+      .await?
+      .write_all(root_meta.last_modified.to_string().as_bytes())
+      .await?;
+    Ok(())
+  }
+  async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult> {
+    let current_time = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .expect("get current time failed")
+      .as_millis() as u64;
+    if current_time - root_meta.last_modified > expire {
+      Ok(ValidateResult::invalid("cache expired"))
+    } else {
+      Ok(ValidateResult::Valid)
+    }
   }
 }
 

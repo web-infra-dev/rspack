@@ -26,6 +26,7 @@ mod test_storage_build {
     fs: Arc<dyn PackFS>,
   ) -> PackStorageOptions {
     PackStorageOptions {
+      version: "xxx".to_string(),
       root: root.into(),
       temp_root: temp_root.into(),
       fs,
@@ -52,7 +53,7 @@ mod test_storage_build {
     }
     let rx = storage.trigger_save()?;
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("test_scope/cache_meta")).await?);
+    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
     Ok(())
   }
 
@@ -72,7 +73,7 @@ mod test_storage_build {
     storage.remove("test_scope", format!("key_{:0>3}", 333).as_bytes().as_ref());
     let rx = storage.trigger_save()?;
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("test_scope/cache_meta")).await?);
+    assert!(fs.exists(&root.join("xxx/test_scope/scope_meta")).await?);
     Ok(())
   }
 

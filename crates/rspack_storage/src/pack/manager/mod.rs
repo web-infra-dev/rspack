@@ -25,15 +25,17 @@ pub struct ScopeManager {
   pub options: Arc<PackOptions>,
   pub scopes: Arc<Mutex<ScopeMap>>,
   pub queue: TaskQueue,
+  pub expire: u64,
 }
 
 impl ScopeManager {
-  pub fn new(options: Arc<PackOptions>, strategy: Arc<dyn ScopeStrategy>) -> Self {
+  pub fn new(options: Arc<PackOptions>, strategy: Arc<dyn ScopeStrategy>, expire: u64) -> Self {
     ScopeManager {
       strategy,
       options,
       scopes: Default::default(),
       queue: TaskQueue::new(),
+      expire,
     }
   }
 
@@ -75,17 +77,21 @@ impl ScopeManager {
       .entry(name)
       .or_insert_with(|| PackScope::new(self.strategy.get_path(name), self.options.clone()));
 
-    match validate_scope(scope, self.strategy.as_ref()).await {
-      Ok(validated) => {
-        if validated.is_valid() {
+    match validate_scope(scope, self.strategy.as_ref(), self.expire).await {
+      Ok(validated) => match validated {
+        ValidateResult::Valid => {
           self.strategy.ensure_contents(scope).await?;
           Ok(scope.get_contents())
-          // Ok(vec![])
-        } else {
+        }
+        ValidateResult::NotExists => {
+          scope.clear();
+          Ok(vec![])
+        }
+        ValidateResult::Invalid(_) => {
           scope.clear();
           Err(error!(validated.to_string()))
         }
-      }
+      },
       Err(e) => {
         scope.clear();
         Err(Error::from(e))
@@ -97,14 +103,24 @@ impl ScopeManager {
 async fn validate_scope(
   scope: &mut PackScope,
   strategy: &dyn ScopeStrategy,
+  expire: u64,
 ) -> Result<ValidateResult> {
-  strategy.ensure_meta(scope).await?;
-  let validated = strategy.validate_meta(scope).await?;
-  if validated.is_valid() {
-    strategy.ensure_keys(scope).await?;
-    strategy.validate_packs(scope).await
+  if let Some(root_meta) = strategy.read_root_meta().await? {
+    let validated = strategy.validate_root(&root_meta, expire).await?;
+    if validated.is_valid() {
+      strategy.ensure_meta(scope).await?;
+      let validated = strategy.validate_meta(scope).await?;
+      if validated.is_valid() {
+        strategy.ensure_keys(scope).await?;
+        strategy.validate_packs(scope).await
+      } else {
+        Ok(validated)
+      }
+    } else {
+      Ok(validated)
+    }
   } else {
-    Ok(validated)
+    Ok(ValidateResult::NotExists)
   }
 }
 
@@ -185,6 +201,8 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
 
+  strategy.write_root_meta().await?;
+
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;
   }
@@ -237,7 +255,6 @@ mod tests {
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -245,7 +262,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options, strategy);
+    let manager = ScopeManager::new(options, strategy, 60000_u64);
 
     // start with empty
     assert!(manager.load("scope1").await?.is_empty());
@@ -267,8 +284,8 @@ mod tests {
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
-    assert!(!(fs.exists(root.join("scope1/cache_meta").as_path()).await?));
-    assert!(!(fs.exists(root.join("scope2/cache_meta").as_path()).await?));
+    assert!(!(fs.exists(root.join("scope1/scope_meta").as_path()).await?));
+    assert!(!(fs.exists(root.join("scope2/scope_meta").as_path()).await?));
 
     // wait for saving to files
     rx.await
@@ -276,8 +293,8 @@ mod tests {
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
-    assert!(fs.exists(root.join("scope1/cache_meta").as_path()).await?);
-    assert!(fs.exists(root.join("scope2/cache_meta").as_path()).await?);
+    assert!(fs.exists(root.join("scope1/scope_meta").as_path()).await?);
+    assert!(fs.exists(root.join("scope2/scope_meta").as_path()).await?);
     Ok(())
   }
 
@@ -285,7 +302,6 @@ mod tests {
     let options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -293,7 +309,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options, strategy);
+    let manager = ScopeManager::new(options, strategy, 60000_u64);
 
     // read from files
     assert_eq!(manager.load("scope1").await?.len(), 100);
@@ -326,11 +342,11 @@ mod tests {
     assert_eq!(update_items.len(), 50);
     assert_eq!(manager.load("scope2").await?.len(), 50);
     let scope1_mtime = fs
-      .metadata(root.join("scope1/cache_meta").as_path())
+      .metadata(root.join("scope1/scope_meta").as_path())
       .await?
       .mtime_ms;
     let scope2_meta = fs
-      .metadata(root.join("scope2/cache_meta").as_path())
+      .metadata(root.join("scope2/scope_meta").as_path())
       .await?
       .mtime_ms;
 
@@ -340,13 +356,13 @@ mod tests {
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 50);
     assert_ne!(
-      fs.metadata(root.join("scope1/cache_meta").as_path())
+      fs.metadata(root.join("scope1/scope_meta").as_path())
         .await?
         .mtime_ms,
       scope1_mtime
     );
     assert_ne!(
-      fs.metadata(root.join("scope2/cache_meta").as_path())
+      fs.metadata(root.join("scope2/scope_meta").as_path())
         .await?
         .mtime_ms,
       scope2_meta
@@ -360,7 +376,6 @@ mod tests {
       // different bucket size
       bucket_size: 100,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -368,7 +383,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options.clone(), strategy.clone());
+    let manager = ScopeManager::new(options.clone(), strategy.clone(), 60000_u64);
     // should report error when invalid failed
     assert_eq!(
       manager.load("scope1").await.unwrap_err().to_string(),
@@ -391,7 +406,7 @@ mod tests {
     assert_eq!(manager.load("scope1").await?.len(), 100);
 
     // will override cache files to new one
-    let manager2 = ScopeManager::new(options, strategy);
+    let manager2 = ScopeManager::new(options, strategy, 60000_u64);
     assert_eq!(manager2.load("scope1").await?.len(), 100);
 
     Ok(())

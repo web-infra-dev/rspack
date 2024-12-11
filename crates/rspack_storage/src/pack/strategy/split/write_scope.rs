@@ -199,13 +199,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     let mut writer = self.fs.write_file(&path).await?;
 
     writer
-      .write_line(
-        format!(
-          "{} {} {}",
-          meta.bucket_size, meta.pack_size, meta.last_modified
-        )
-        .as_str(),
-      )
+      .write_line(format!("{} {}", meta.bucket_size, meta.pack_size).as_str())
       .await?;
 
     for bucket_id in 0..meta.bucket_size {
@@ -478,7 +472,6 @@ mod tests {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
         pack_size: 32,
-        expire: 1000000,
       });
       let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
       clean_strategy(&strategy).await;
@@ -498,7 +491,6 @@ mod tests {
       let options = Arc::new(PackOptions {
         bucket_size: 10,
         pack_size: 32,
-        expire: 1000000,
       });
       let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
       clean_strategy(&strategy).await;
@@ -516,7 +508,6 @@ mod tests {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
         pack_size: 2000,
-        expire: 1000000,
       });
       let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
       clean_strategy(&strategy).await;

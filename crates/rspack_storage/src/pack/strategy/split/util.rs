@@ -110,7 +110,21 @@ pub mod test_pack_utils {
     PackBridgeFS,
   };
 
-  pub async fn mock_meta_file(
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn PackFS) -> Result<()> {
+    fs.ensure_dir(path.parent().expect("should have parent"))
+      .await?;
+    let mut writer = fs.write_file(path).await?;
+    let current = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .expect("should get current time")
+      .as_millis() as u64;
+    writer.write_all(current.to_string().as_bytes()).await?;
+    writer.flush().await?;
+
+    Ok(())
+  }
+
+  pub async fn mock_scope_meta_file(
     path: &Utf8Path,
     fs: &dyn PackFS,
     options: &PackOptions,
@@ -119,12 +133,8 @@ pub mod test_pack_utils {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
-    let current = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("should get current time")
-      .as_millis() as u64;
     writer
-      .write_line(format!("{} {} {}", options.bucket_size, options.pack_size, current).as_str())
+      .write_line(format!("{} {}", options.bucket_size, options.pack_size).as_str())
       .await?;
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];
