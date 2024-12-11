@@ -197,8 +197,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-filter-warnings-plugin',
       url: 'https://github.com/mattlewis92/webpack-filter-warnings-plugin',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['webpack-filter-warnings-plugin-desc'],
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'speed-measure-webpack-plugin',
