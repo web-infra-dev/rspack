@@ -1608,7 +1608,9 @@ class Compiler {
 			this.#builtinPlugins,
 			this.#registers,
 			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-			ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem!),
+			this.intermediateFileSystem
+				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
+				: undefined,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

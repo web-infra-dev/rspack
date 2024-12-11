@@ -84,7 +84,7 @@ impl Snapshot {
     let mut deleted_path = HashSet::default();
 
     // TODO use multi thread
-    for (key, value) in self.storage.get_all(SCOPE) {
+    for (key, value) in self.storage.load(SCOPE) {
       let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
       let strategy: Strategy =
         from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");

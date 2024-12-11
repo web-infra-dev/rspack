@@ -3,8 +3,8 @@
 
 /* -- banner.d.ts -- */
 export type JsFilename =
-	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+  | string
+  | ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
@@ -1365,7 +1365,7 @@ export interface RawEvalDevToolModulePluginOptions {
 }
 
 export interface RawExperimentCacheOptionsCommon {
-  type: "disable"|"memory"
+  type: "disable" | "memory"
 }
 
 export interface RawExperimentCacheOptionsPersistent {
@@ -1383,9 +1383,9 @@ export interface RawExperiments {
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string|RegExp>
-  unmanagedPaths: Array<string|RegExp>
-  managedPaths: Array<string|RegExp>
+  immutablePaths: Array<string | RegExp>
+  unmanagedPaths: Array<string | RegExp>
+  managedPaths: Array<string | RegExp>
 }
 
 export interface RawExposeOptions {
@@ -2028,7 +2028,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger"| "console", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "console", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,
