@@ -43,6 +43,7 @@ import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
 import type { JsDependency } from '@rspack/binding';
+import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -1964,6 +1965,20 @@ export interface ExperimentsNormalized {
 }
 
 // @public (undocumented)
+class ExportsInfo {
+    // (undocumented)
+    static __from_binding(binding: JsExportsInfo): ExportsInfo;
+    // (undocumented)
+    getUsed(name: string | string[], runtime: RuntimeSpec): UsageStateType;
+    // (undocumented)
+    isModuleUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    isUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    setUsedInUnknownWay(runtime: RuntimeSpec): boolean;
+}
+
+// @public (undocumented)
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
 // @public (undocumented)
@@ -3708,6 +3723,8 @@ type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes
 class ModuleGraph {
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
+    // (undocumented)
+    getExportsInfo(module: Module): ExportsInfo;
     // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
@@ -9752,6 +9769,9 @@ enum RuntimeModuleStage {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
+type RuntimeSpec = string | string[] | undefined;
+
+// @public (undocumented)
 type SafeParseError<Input> = {
     success: false;
     error: ZodError<Input>;
@@ -10875,6 +10895,9 @@ export type UmdNamedDefine = boolean;
 
 // @public
 export type UniqueName = string;
+
+// @public
+type UsageStateType = 0 | 1 | 2 | 3 | 4;
 
 // @public (undocumented)
 export const util: {
