@@ -85,6 +85,6 @@ impl JsModuleGraph {
   pub fn get_exports_info(&self, module: &JsModule) -> napi::Result<JsExportsInfo> {
     let (compilation, module_graph) = self.as_ref()?;
     let exports_info = module_graph.get_exports_info(&module.identifier);
-    Ok(JsExportsInfo::new(exports_info, &compilation))
+    Ok(JsExportsInfo::new(exports_info, compilation))
   }
 }
