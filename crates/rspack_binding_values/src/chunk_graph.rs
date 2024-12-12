@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use napi::Result;
 use napi_derive::napi;
-use rspack_core::{Compilation, SourceType};
+use rspack_core::{ChunkGraph, Compilation, SourceType};
 
 use crate::{JsChunk, JsChunkWrapper, JsModule, JsModuleWrapper};
 
@@ -116,6 +116,15 @@ impl JsChunkGraph {
         .iter()
         .map(|chunk| JsChunkWrapper::new(*chunk, compilation))
         .collect(),
+    )
+  }
+
+  #[napi]
+  pub fn get_module_id(&self, js_module: &JsModule) -> napi::Result<Option<&str>> {
+    let compilation = self.as_ref()?;
+    Ok(
+      ChunkGraph::get_module_id(&compilation.module_ids, js_module.identifier)
+        .map(|module_id| module_id.as_str()),
     )
   }
 }
