@@ -6,11 +6,7 @@ mod validate_scope;
 mod write_pack;
 mod write_scope;
 
-use std::{
-  hash::Hasher,
-  sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::{hash::Hasher, sync::Arc};
 
 use handle_file::{clean_root, clean_scopes, clean_versions};
 use itertools::Itertools;
@@ -21,7 +17,7 @@ use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy, ValidateResult};
 use crate::pack::{
-  data::{PackContents, PackKeys, PackScope, RootMeta, RootOptions},
+  data::{current_time, PackContents, PackKeys, PackScope, RootMeta, RootOptions},
   fs::PackFS,
 };
 
@@ -102,11 +98,8 @@ impl RootStrategy for SplitPackStrategy {
     Ok(())
   }
   async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult> {
-    let current_time = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("get current time failed")
-      .as_millis() as u64;
-    if current_time - root_meta.last_modified > expire {
+    let now = current_time();
+    if now - root_meta.last_modified > expire {
       Ok(ValidateResult::invalid("cache expired"))
     } else {
       Ok(ValidateResult::Valid)

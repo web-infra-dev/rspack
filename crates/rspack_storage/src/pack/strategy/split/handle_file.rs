@@ -1,7 +1,4 @@
-use std::{
-  sync::Arc,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Arc;
 
 use futures::{future::join_all, TryFutureExt};
 use rspack_error::{error, Result};
@@ -9,7 +6,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  pack::data::{PackScope, RootMeta, RootOptions, ScopeMeta},
+  pack::data::{current_time, PackScope, RootMeta, RootOptions, ScopeMeta},
   PackFS,
 };
 
@@ -151,10 +148,7 @@ async fn remove_expired_version(
     .await?
     .parse::<u64>()
     .map_err(|e| error!("parse option meta failed: {}", e))?;
-  let current = SystemTime::now()
-    .duration_since(UNIX_EPOCH)
-    .expect("should get current time")
-    .as_millis() as u64;
+  let current = current_time();
 
   if current - last_modified > expire {
     fs.remove_dir(root_dir).await

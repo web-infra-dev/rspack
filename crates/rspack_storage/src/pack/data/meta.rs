@@ -23,15 +23,19 @@ impl RootMeta {
   pub fn new(scopes: HashSet<String>) -> Self {
     Self {
       scopes,
-      last_modified: SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("get current time failed")
-        .as_millis() as u64,
+      last_modified: current_time(),
     }
   }
   pub fn get_path(dir: &Utf8Path) -> Utf8PathBuf {
     dir.join("storage_meta")
   }
+}
+
+pub fn current_time() -> u64 {
+  SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .expect("should get current time")
+    .as_millis() as u64
 }
 
 #[derive(Debug, Default)]

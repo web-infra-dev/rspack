@@ -65,10 +65,7 @@ pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
 
 #[cfg(test)]
 pub mod test_pack_utils {
-  use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-  };
+  use std::sync::Arc;
 
   use itertools::Itertools;
   use rspack_error::Result;
@@ -78,7 +75,7 @@ pub mod test_pack_utils {
 
   use crate::{
     pack::{
-      data::{PackOptions, PackScope},
+      data::{current_time, PackOptions, PackScope},
       fs::PackFS,
       strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
     },
@@ -89,10 +86,7 @@ pub mod test_pack_utils {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
-    let current = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("should get current time")
-      .as_millis() as u64;
+    let current = current_time();
     writer.write_all(current.to_string().as_bytes()).await?;
     writer.flush().await?;
 
