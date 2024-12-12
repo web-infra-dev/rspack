@@ -373,7 +373,10 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JavascriptModulesPlugin',
-    status: SupportStatus.FullySupported,
+    status: SupportStatus.partiallySupported,
+    notes: {
+      en: 'Static `getCompilationHooks()` method does not return all hooks',
+    },
   },
   {
     name: 'LibManifestPlugin',
