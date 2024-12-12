@@ -43,6 +43,7 @@ import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
 import type { JsDependency } from '@rspack/binding';
+import { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -1960,6 +1961,20 @@ export interface ExperimentsNormalized {
 }
 
 // @public (undocumented)
+class ExportsInfo {
+    // (undocumented)
+    static __from_binding(binding: JsExportsInfo): ExportsInfo;
+    // (undocumented)
+    static __to_binding(module: ExportsInfo): JsExportsInfo;
+    // (undocumented)
+    isModuleUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    isUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    setUsedInUnknownWay(runtime: RuntimeSpec): boolean;
+}
+
+// @public (undocumented)
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
 // @public (undocumented)
@@ -3704,6 +3719,8 @@ type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes
 class ModuleGraph {
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
+    // (undocumented)
+    getExportsInfo(module: Module): ExportsInfo;
     // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
@@ -9746,6 +9763,9 @@ enum RuntimeModuleStage {
 
 // @public (undocumented)
 type RuntimePlugins = string[];
+
+// @public (undocumented)
+type RuntimeSpec = string | string[] | undefined;
 
 // @public (undocumented)
 type SafeParseError<Input> = {

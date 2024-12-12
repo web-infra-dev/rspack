@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
-use crate::{JsDependency, JsModule, JsModuleWrapper};
+use crate::{JsDependency, JsExportsInfo, JsModule, JsModuleWrapper};
 
 #[napi]
 pub struct JsModuleGraph {
@@ -79,5 +79,12 @@ impl JsModuleGraph {
       issuer
         .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
     )
+  }
+
+  #[napi]
+  pub fn get_exports_info(&self, module: &JsModule) -> napi::Result<JsExportsInfo> {
+    let (compilation, module_graph) = self.as_ref()?;
+    let exports_info = module_graph.get_exports_info(&module.identifier);
+    Ok(JsExportsInfo::new(exports_info, &compilation))
   }
 }
