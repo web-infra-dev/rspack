@@ -184,7 +184,7 @@ const coreTeam: Member[] = [
   },
 ];
 
-export const RandomMemberList = ({ list = coreTeam }: { list: Member[] }) => {
+export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
   const randomList = list.sort(() => Math.random() - 0.5);
   return (
     <NoSSR>
