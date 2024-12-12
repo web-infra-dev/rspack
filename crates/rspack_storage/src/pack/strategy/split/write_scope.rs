@@ -7,7 +7,11 @@ use rspack_error::{error, Result};
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::{util::choose_bucket, SplitPackStrategy};
+use super::{
+  handle_file::{move_temp_files, redirect_to_path, remove_files},
+  util::choose_bucket,
+  SplitPackStrategy,
+};
 use crate::pack::{
   data::{Pack, PackScope},
   strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
@@ -20,7 +24,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
   }
 
   async fn before_write(&self, scope: &PackScope) -> Result<()> {
-    let temp_path = self.get_temp_path(&scope.path)?;
+    let temp_path = redirect_to_path(&scope.path, &self.root, &self.temp_root)?;
     self.fs.remove_dir(&temp_path).await?;
     self.fs.ensure_dir(&temp_path).await?;
     self.fs.ensure_dir(&scope.path).await?;
@@ -29,13 +33,12 @@ impl ScopeWriteStrategy for SplitPackStrategy {
 
   async fn after_write(
     &self,
-    scope: &PackScope,
+    _scope: &PackScope,
     wrote_files: HashSet<Utf8PathBuf>,
     removed_files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
-    self.remove_files(removed_files).await?;
-    self.move_temp_files(wrote_files).await?;
-    self.remove_unrelated_files(scope).await?;
+    remove_files(removed_files, self.fs.clone()).await?;
+    move_temp_files(wrote_files, self.fs.clone(), &self.root, &self.temp_root).await?;
     self.fs.remove_dir(&self.temp_root).await?;
     Ok(())
   }
@@ -134,9 +137,6 @@ impl ScopeWriteStrategy for SplitPackStrategy {
   }
 
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
-    if !scope.loaded() {
-      return Err(error!("scope not loaded, run `load` first"));
-    }
     let removed_files = std::mem::take(&mut scope.removed);
     let packs = scope.packs.take_value().expect("should have scope packs");
     let meta = scope.meta.expect_value_mut();
@@ -186,11 +186,8 @@ impl ScopeWriteStrategy for SplitPackStrategy {
   }
 
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
-    if !scope.loaded() {
-      return Err(error!("scope not loaded, run `load` first"));
-    }
     let meta = scope.meta.expect_value();
-    let path = self.get_temp_path(&meta.path)?;
+    let path = redirect_to_path(&meta.path, &self.root, &self.temp_root)?;
     self
       .fs
       .ensure_dir(path.parent().expect("should have parent"))
@@ -233,7 +230,11 @@ async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> Result<String> 
   }
   strategy.write_pack(pack).await?;
   let hash = strategy
-    .get_pack_hash(&strategy.get_temp_path(&pack.path)?, keys, contents)
+    .get_pack_hash(
+      &redirect_to_path(&pack.path, &strategy.root, &strategy.temp_root)?,
+      keys,
+      contents,
+    )
     .await?;
   Ok(hash)
 }

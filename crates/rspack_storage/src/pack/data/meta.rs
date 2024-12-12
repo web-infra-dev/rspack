@@ -1,6 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashSet as HashSet;
 
 use super::options::PackOptions;
 
@@ -15,11 +16,13 @@ pub struct PackFileMeta {
 #[derive(Debug, Default, Clone)]
 pub struct RootMeta {
   pub last_modified: u64,
+  pub scopes: HashSet<String>,
 }
 
 impl RootMeta {
-  pub fn new() -> Self {
+  pub fn new(scopes: HashSet<String>) -> Self {
     Self {
+      scopes,
       last_modified: SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("get current time failed")

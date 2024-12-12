@@ -6,7 +6,9 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
 
-use super::data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta};
+use super::data::{
+  Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
+};
 use crate::{StorageItemKey, StorageItemValue};
 
 pub struct UpdatePacksResult {
@@ -32,6 +34,12 @@ pub trait RootStrategy {
   async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
   async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult>;
+  async fn clean_unused(
+    &self,
+    root_meta: &RootMeta,
+    scopes: &HashMap<String, PackScope>,
+    root_options: &RootOptions,
+  ) -> Result<()>;
 }
 
 #[async_trait]

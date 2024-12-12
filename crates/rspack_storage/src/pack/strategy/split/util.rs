@@ -1,14 +1,10 @@
-use std::{hash::Hasher, sync::Arc};
+use std::hash::Hasher;
 
 use itertools::Itertools;
 use rspack_error::Result;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHasher;
 
-use crate::pack::{
-  data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope},
-  fs::PackFS,
-};
+use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
 
 pub type PackIndexList = Vec<(usize, usize)>;
 pub type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
@@ -65,27 +61,6 @@ pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
 pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
   let num = key.iter().fold(0_usize, |acc, i| acc + *i as usize);
   num % total
-}
-
-pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<HashSet<Utf8PathBuf>> {
-  let mut files = HashSet::default();
-  let mut stack = vec![root.to_owned()];
-  while let Some(path) = stack.pop() {
-    let meta = fs.metadata(&path).await?;
-    if meta.is_directory {
-      stack.append(
-        &mut fs
-          .read_dir(&path)
-          .await?
-          .into_iter()
-          .map(|name| path.join(name))
-          .collect::<Vec<_>>(),
-      );
-    } else {
-      files.insert(path);
-    }
-  }
-  Ok(files)
 }
 
 #[cfg(test)]

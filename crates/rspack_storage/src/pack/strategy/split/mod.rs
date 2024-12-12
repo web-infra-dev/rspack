@@ -1,3 +1,4 @@
+mod handle_file;
 mod read_pack;
 mod read_scope;
 mod util;
@@ -11,15 +12,16 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
-use futures::{future::join_all, TryFutureExt};
+use handle_file::{clean_root, clean_scopes, clean_versions};
+use itertools::Itertools;
 use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
-use util::{get_name, walk_dir};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy, ValidateResult};
 use crate::pack::{
-  data::{PackContents, PackKeys, PackScope, RootMeta, ScopeMeta},
+  data::{PackContents, PackKeys, PackScope, RootMeta, RootOptions},
   fs::PackFS,
 };
 
@@ -37,76 +39,6 @@ impl SplitPackStrategy {
       root: Arc::new(root),
       temp_root: Arc::new(temp_root),
     }
-  }
-
-  pub async fn move_temp_files(&self, files: HashSet<Utf8PathBuf>) -> Result<()> {
-    let mut candidates = vec![];
-    for to in files {
-      let from = self.get_temp_path(&to)?;
-      candidates.push((from, to));
-    }
-
-    let tasks = candidates.into_iter().map(|(from, to)| {
-      let fs = self.fs.clone();
-      tokio::spawn(async move { fs.move_file(&from, &to).await })
-        .map_err(|e| error!("move temp files failed: {}", e))
-    });
-
-    join_all(tasks)
-      .await
-      .into_iter()
-      .collect::<Result<Vec<Result<()>>>>()?;
-
-    Ok(())
-  }
-
-  pub async fn remove_files(&self, files: HashSet<Utf8PathBuf>) -> Result<()> {
-    let tasks = files.into_iter().map(|path| {
-      let fs = self.fs.to_owned();
-      tokio::spawn(async move { fs.remove_file(&path).await })
-        .map_err(|e| error!("remove files failed: {}", e))
-    });
-
-    join_all(tasks)
-      .await
-      .into_iter()
-      .collect::<Result<Vec<Result<()>>>>()?;
-
-    Ok(())
-  }
-
-  pub async fn remove_unrelated_files(&self, scope: &PackScope) -> Result<()> {
-    let scope_root = &scope.path;
-    let scope_meta_file = ScopeMeta::get_path(scope_root);
-    // let scope_related_files = vec![ScopeMeta::get_path(&scope_root)];
-    let mut scope_files = scope
-      .packs
-      .expect_value()
-      .iter()
-      .flatten()
-      .map(|pack| &pack.path)
-      .collect::<HashSet<_>>();
-
-    scope_files.insert(&scope_meta_file);
-
-    let all_files = walk_dir(scope_root, self.fs.clone()).await?;
-    let mut unrelated_files = HashSet::default();
-    for file in all_files {
-      if !scope_files.contains(&file) {
-        unrelated_files.insert(file);
-      }
-    }
-
-    self.remove_files(unrelated_files).await?;
-
-    Ok(())
-  }
-
-  pub fn get_temp_path(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    let relative_path = path
-      .strip_prefix(&*self.root)
-      .map_err(|e| error!("get relative path failed: {}", e))?;
-    Ok(self.temp_root.join(relative_path))
   }
 
   pub async fn get_pack_hash(
@@ -135,16 +67,23 @@ impl RootStrategy for SplitPackStrategy {
       return Ok(None);
     }
 
-    let last_modified = self
-      .fs
-      .read_file(&meta_path)
-      .await?
+    let mut reader = self.fs.read_file(&meta_path).await?;
+    let last_modified = reader
       .read_line()
       .await?
       .parse::<u64>()
       .map_err(|e| error!("parse option meta failed: {}", e))?;
+    let scopes = reader
+      .read_line()
+      .await?
+      .split(',')
+      .map(|s| s.to_string())
+      .collect::<HashSet<_>>();
 
-    Ok(Some(RootMeta { last_modified }))
+    Ok(Some(RootMeta {
+      last_modified,
+      scopes,
+    }))
   }
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
     let meta_path = RootMeta::get_path(&self.root);
@@ -152,8 +91,13 @@ impl RootStrategy for SplitPackStrategy {
     let mut writer = self.fs.write_file(&meta_path).await?;
 
     writer
-      .write_all(root_meta.last_modified.to_string().as_bytes())
+      .write_line(root_meta.last_modified.to_string().as_str())
       .await?;
+
+    writer
+      .write_line(root_meta.scopes.iter().join(",").as_str())
+      .await?;
+
     writer.flush().await?;
     Ok(())
   }
@@ -167,6 +111,25 @@ impl RootStrategy for SplitPackStrategy {
     } else {
       Ok(ValidateResult::Valid)
     }
+  }
+
+  async fn clean_unused(
+    &self,
+    root_meta: &RootMeta,
+    scopes: &HashMap<String, PackScope>,
+    root_options: &RootOptions,
+  ) -> Result<()> {
+    if !root_options.clean {
+      return Ok(());
+    }
+
+    let _ = tokio::try_join!(
+      clean_scopes(scopes, self.fs.clone()),
+      clean_root(&self.root, root_meta, self.fs.clone()),
+      clean_versions(root_options, self.fs.clone())
+    );
+
+    Ok(())
   }
 }
 

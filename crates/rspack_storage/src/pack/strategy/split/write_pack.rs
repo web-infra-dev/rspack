@@ -6,7 +6,7 @@ use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use super::SplitPackStrategy;
+use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions},
@@ -133,7 +133,7 @@ impl PackWriteStrategy for SplitPackStrategy {
   }
 
   async fn write_pack(&self, pack: &Pack) -> Result<()> {
-    let path = self.get_temp_path(&pack.path)?;
+    let path = redirect_to_path(&pack.path, &self.root, &self.temp_root)?;
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
     if keys.len() != contents.len() {
@@ -267,7 +267,10 @@ mod tests {
   use crate::pack::{
     data::{Pack, PackFileMeta, PackOptions},
     strategy::{
-      split::util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+      split::{
+        handle_file::redirect_to_path,
+        util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+      },
       PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
     },
   };
@@ -287,11 +290,11 @@ mod tests {
 
     let mut reader = strategy
       .fs
-      .read_file(
-        &strategy
-          .get_temp_path(&pack.path)
-          .expect("should get temp path"),
-      )
+      .read_file(&redirect_to_path(
+        &pack.path,
+        &strategy.root,
+        &strategy.temp_root,
+      )?)
       .await?;
     assert_eq!(reader.read_line().await?, "5 5");
     assert_eq!(reader.read_line().await?, "5 5");

@@ -34,6 +34,7 @@ mod test_storage_error {
       bucket_size: 10,
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
+      clean: true,
     }
   }
 
