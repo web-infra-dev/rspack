@@ -2,10 +2,10 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::{atomic::AtomicU32, Arc, LazyLock},
 };
 
-use dashmap::DashSet;
+use dashmap::{DashMap, DashSet};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -13,7 +13,10 @@ use rspack_cacheable::cacheable;
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
-use rspack_error::{error, miette::diagnostic, Diagnostic, DiagnosticExt, Result, Severity};
+use rspack_error::{
+  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
+  Severity,
+};
 use rspack_fs::FileSystem;
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -22,6 +25,7 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use tokio::sync::Mutex;
 use tracing::instrument;
 
 use super::{
@@ -139,6 +143,10 @@ impl Default for CompilationId {
 type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
+
+static MAKE_LOCK_BY_COMPILATION_ID: LazyLock<DashMap<CompilationId, Mutex<()>>> =
+  LazyLock::new(|| DashMap::default());
+
 #[derive(Debug)]
 pub struct Compilation {
   /// get_compilation_hooks(compilation.id)
@@ -218,6 +226,8 @@ pub struct Compilation {
   pub removed_files: HashSet<ArcPath>,
   pub make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
+
+  in_finish_make_stage: bool,
 }
 
 impl Compilation {
@@ -319,6 +329,8 @@ impl Compilation {
       modified_files,
       removed_files,
       input_filesystem,
+
+      in_finish_make_stage: false,
     }
   }
 
@@ -535,23 +547,58 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
-    let entry_id = *entry.id();
-    self.get_module_graph_mut().add_dependency(entry);
-    if let Some(name) = options.name.clone() {
-      if let Some(data) = self.entries.get_mut(&name) {
-        data.include_dependencies.push(entry_id);
-      } else {
-        let data = EntryData {
-          dependencies: vec![],
-          include_dependencies: vec![entry_id],
-          options,
-        };
-        self.entries.insert(name, data);
-      }
-    } else {
-      self.global_entry.include_dependencies.push(entry_id);
+  pub async fn add_include(&mut self, entries: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+    let _ = MAKE_LOCK_BY_COMPILATION_ID
+      .entry(self.id)
+      .or_insert(Mutex::new(()))
+      .lock();
+
+    if !self.in_finish_make_stage {
+      return Err(
+        InternalError::new(
+          "You can only call `add_include` during the finish make stage".to_string(),
+          RspackSeverity::Error,
+        )
+        .into(),
+      );
     }
+
+    for (entry, options) in entries {
+      let entry_id = *entry.id();
+      self.get_module_graph_mut().add_dependency(entry);
+      if let Some(name) = options.name.clone() {
+        if let Some(data) = self.entries.get_mut(&name) {
+          data.include_dependencies.push(entry_id);
+        } else {
+          let data = EntryData {
+            dependencies: vec![],
+            include_dependencies: vec![entry_id],
+            options,
+          };
+          self.entries.insert(name, data);
+        }
+      } else {
+        self.global_entry.include_dependencies.push(entry_id);
+      }
+    }
+
+    // Recheck entry and clean useless entry
+    // This should before finish_modules hook is called, ensure providedExports effects on new added modules
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
 
     Ok(())
   }
@@ -774,6 +821,9 @@ impl Compilation {
 
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact).await?;
+
+    self.in_finish_make_stage = true;
+
     Ok(())
   }
 
@@ -1119,23 +1169,22 @@ impl Compilation {
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
-    // Recheck entry and clean useless entry
-    // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
+    if MAKE_LOCK_BY_COMPILATION_ID
+      .entry(self.id)
+      .or_insert(Mutex::new(()))
+      .try_lock()
+      .is_err()
+    {
+      return Err(
+        InternalError::new(
+          "Must wait for add_include to finish within the finish make stage".to_string(),
+          RspackSeverity::Error,
+        )
+        .into(),
+      );
+    }
+
+    self.in_finish_make_stage = false;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
