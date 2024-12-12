@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::Storage;
 use crate::FileCounter;
 
-const SCOPE: &str = "occasion::make::dependencies";
+const SCOPE: &str = "occasion_make_dependencies";
 
 /// Dependency type
 #[cacheable]
@@ -109,39 +109,46 @@ pub fn save_dependencies_info(
     })
 }
 
-pub fn recovery_dependencies_info(
+pub async fn recovery_dependencies_info(
   storage: &Arc<dyn Storage>,
 ) -> Result<(FileCounter, FileCounter, FileCounter, FileCounter), DeserializeError> {
   let file_dep = Mutex::new(HashMap::default());
   let context_dep = Mutex::new(HashMap::default());
   let missing_dep = Mutex::new(HashMap::default());
   let build_dep = Mutex::new(HashMap::default());
-  storage.load(SCOPE).into_par_iter().try_for_each(|(k, v)| {
-    let count = usize::from_ne_bytes(
-      v.try_into()
-        .map_err(|_| DeserializeError::MessageError("deserialize count failed"))?,
-    );
-    let Dependency { r#type, path } = from_bytes(&k, &())?;
-    match r#type {
-      DepType::File => file_dep
-        .lock()
-        .expect("should get file dep")
-        .insert(path, count),
-      DepType::Context => context_dep
-        .lock()
-        .expect("should get context dep")
-        .insert(path, count),
-      DepType::Missing => missing_dep
-        .lock()
-        .expect("should get missing dep")
-        .insert(path, count),
-      DepType::Build => build_dep
-        .lock()
-        .expect("should get build dep")
-        .insert(path, count),
-    };
-    Ok(())
-  })?;
+  storage
+    .load(SCOPE)
+    .await
+    .unwrap_or_default()
+    .into_par_iter()
+    .try_for_each(|(k, v)| {
+      let count = usize::from_ne_bytes(
+        v.as_ref()
+          .clone()
+          .try_into()
+          .map_err(|_| DeserializeError::MessageError("deserialize count failed"))?,
+      );
+      let Dependency { r#type, path } = from_bytes(&k, &())?;
+      match r#type {
+        DepType::File => file_dep
+          .lock()
+          .expect("should get file dep")
+          .insert(path, count),
+        DepType::Context => context_dep
+          .lock()
+          .expect("should get context dep")
+          .insert(path, count),
+        DepType::Missing => missing_dep
+          .lock()
+          .expect("should get missing dep")
+          .insert(path, count),
+        DepType::Build => build_dep
+          .lock()
+          .expect("should get build dep")
+          .insert(path, count),
+      };
+      Ok(())
+    })?;
 
   Ok((
     FileCounter::new(file_dep.into_inner().expect("into_inner should be success")),

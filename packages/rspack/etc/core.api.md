@@ -280,27 +280,27 @@ interface BaseModuleConfig {
 
 // @public (undocumented)
 interface BaseResolveRequest {
-     // (undocumented)
+    	// (undocumented)
     __innerRequest?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_relativePath?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_request?: string;
-     // (undocumented)
+    	// (undocumented)
     context?: object;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileData?: JsonObject;
-     // (undocumented)
+    	// (undocumented)
     descriptionFilePath?: string;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileRoot?: string;
-     // (undocumented)
+    	// (undocumented)
     fullySpecified?: boolean;
-     // (undocumented)
+    	// (undocumented)
     ignoreSymlinks?: boolean;
-     // (undocumented)
+    	// (undocumented)
     path: string | false;
-     // (undocumented)
+    	// (undocumented)
     relativePath?: string;
 }
 
@@ -1895,11 +1895,13 @@ interface ExecuteModuleContext {
     __webpack_require__: (id: string) => any;
 }
 
-// @public
-export type ExperimentCacheOptions = boolean | {
+// @public (undocumented)
+export type ExperimentCacheNormalized = boolean | {
     type: "memory";
 } | {
     type: "persistent";
+    buildDependencies: string[];
+    version: string;
     snapshot: {
         immutablePaths: Array<string | RegExp>;
         unmanagedPaths: Array<string | RegExp>;
@@ -1908,6 +1910,24 @@ export type ExperimentCacheOptions = boolean | {
     storage: {
         type: "filesystem";
         directory: string;
+    };
+};
+
+// @public
+export type ExperimentCacheOptions = boolean | {
+    type: "memory";
+} | {
+    type: "persistent";
+    buildDependencies?: string[];
+    version?: string;
+    snapshot?: {
+        immutablePaths?: Array<string | RegExp>;
+        unmanagedPaths?: Array<string | RegExp>;
+        managedPaths?: Array<string | RegExp>;
+    };
+    storage: {
+        type: "filesystem";
+        directory?: string;
     };
 };
 
@@ -1944,7 +1964,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     asyncWebAssembly?: boolean;
     // (undocumented)
-    cache?: ExperimentCacheOptions;
+    cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
     // (undocumented)
@@ -2181,11 +2201,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -2678,14 +2698,14 @@ type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
 type JsonObject = { [index: string]: JsonValue } & {
-     [index: string]:
-      | undefined
-      | null
-      | string
-      | number
-      | boolean
-      | JsonObject
-      | JsonValue[];
+    	[index: string]:
+    		| undefined
+    		| null
+    		| string
+    		| number
+    		| boolean
+    		| JsonObject
+    		| JsonValue[];
 };
 
 // @public (undocumented)
@@ -4343,19 +4363,19 @@ interface ParseContext {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-     // (undocumented)
+    	// (undocumented)
     directory: boolean;
-     // (undocumented)
+    	// (undocumented)
     file: boolean;
-     // (undocumented)
+    	// (undocumented)
     fragment: string;
-     // (undocumented)
+    	// (undocumented)
     internal: boolean;
-     // (undocumented)
+    	// (undocumented)
     module: boolean;
-     // (undocumented)
+    	// (undocumented)
     query: string;
-     // (undocumented)
+    	// (undocumented)
     request: string;
 }
 
@@ -4625,13 +4645,13 @@ type RawCreateParams = {
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -5145,6 +5165,7 @@ declare namespace rspackExports {
         EntryDescriptionNormalized,
         OutputNormalized,
         ModuleOptionsNormalized,
+        ExperimentCacheNormalized,
         ExperimentsNormalized,
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
@@ -6186,51 +6207,57 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         }>, z.ZodObject<{
             type: z.ZodEnum<["persistent"]>;
-            snapshot: z.ZodObject<{
-                immutablePaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-                unmanagedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-                managedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-            }, "strict", z.ZodTypeAny, {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
+            buildDependencies: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+            version: z.ZodOptional<z.ZodString>;
+            snapshot: z.ZodOptional<z.ZodObject<{
+                immutablePaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+                unmanagedPaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+                managedPaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+            }, "strip", z.ZodTypeAny, {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
             }, {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            }>;
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            }>>;
             storage: z.ZodObject<{
                 type: z.ZodEnum<["filesystem"]>;
-                directory: z.ZodString;
+                directory: z.ZodOptional<z.ZodString>;
             }, "strict", z.ZodTypeAny, {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             }, {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             }>;
         }, "strip", z.ZodTypeAny, {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         }, {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         }>]>]>;
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
@@ -6416,15 +6443,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -6479,15 +6508,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -8497,15 +8528,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -9097,15 +9130,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -9866,25 +9901,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 

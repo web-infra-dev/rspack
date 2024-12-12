@@ -10,7 +10,12 @@ pub struct RawStorageOptions {
 }
 
 impl From<RawStorageOptions> for StorageOptions {
-  fn from(_value: RawStorageOptions) -> Self {
-    StorageOptions::FileSystem
+  fn from(value: RawStorageOptions) -> Self {
+    match value.r#type.as_str() {
+      "filesystem" => StorageOptions::FileSystem {
+        directory: value.directory.into(),
+      },
+      s => panic!("unsupport storage type {s}"),
+    }
   }
 }
