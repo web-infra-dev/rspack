@@ -22,7 +22,7 @@ pub struct Mutations {
   affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
   // we need the cache to check the affected modules (with chunk graph) is really affected or not
   // because usually people will still enable splitChunks for dev mode, and that will cause lots of
-  // chunks can't reuse from the preivous compilation by incremental build chunk graph (code splitting),
+  // chunks can't reuse from the previous compilation by incremental build chunk graph (code splitting),
   // and affect lots of modules, but actually most of the affected modules are not really affected, which
   // can be detected by this cache.
   // An alternative way is to give chunk a chunk identifier, but currently I don't have a good idea to
