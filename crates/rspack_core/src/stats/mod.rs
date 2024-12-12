@@ -119,7 +119,11 @@ impl Stats<'_> {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
         asset.chunks = chunks
           .par_iter()
-          .map(|chunk| chunk.id().map(ToOwned::to_owned))
+          .map(|chunk| {
+            chunk
+              .id(&self.compilation.chunk_ids)
+              .map(|id| id.to_string())
+          })
           .collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
@@ -137,7 +141,11 @@ impl Stats<'_> {
       if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
         asset.auxiliary_chunks = auxiliary_chunks
           .par_iter()
-          .map(|chunk| chunk.id().map(ToOwned::to_owned))
+          .map(|chunk| {
+            chunk
+              .id(&self.compilation.chunk_ids)
+              .map(|id| id.to_string())
+          })
           .collect();
         asset.auxiliary_chunks.sort_unstable();
         asset.auxiliary_chunk_names = auxiliary_chunks
@@ -297,13 +305,7 @@ impl Stats<'_> {
 
         let (parents, children, siblings) = options
           .chunk_relations
-          .then(|| {
-            get_chunk_relations(
-              c,
-              &self.compilation.chunk_group_by_ukey,
-              &self.compilation.chunk_by_ukey,
-            )
-          })
+          .then(|| get_chunk_relations(c, self.compilation))
           .map_or((None, None, None), |(parents, children, siblings)| {
             (Some(parents), Some(children), Some(siblings))
           });
@@ -311,7 +313,13 @@ impl Stats<'_> {
         let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
         for order in &orders {
           if let Some(order_chlidren) = c.get_child_ids_by_order(order, self.compilation) {
-            children_by_order.insert(order.clone(), order_chlidren);
+            children_by_order.insert(
+              order.clone(),
+              order_chlidren
+                .into_iter()
+                .map(|id| id.to_string())
+                .collect(),
+            );
           }
         }
 
@@ -366,7 +374,7 @@ impl Stats<'_> {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c.id().map(ToOwned::to_owned),
+          id: c.id(&self.compilation.chunk_ids).map(|id| id.to_string()),
           id_hints,
           names: c.name().map(|n| vec![n.to_owned()]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
@@ -421,8 +429,8 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(c)
-          .id()
-          .map(ToOwned::to_owned)
+          .id(&self.compilation.chunk_ids)
+          .map(|id| id.to_string())
       })
       .collect();
 
@@ -586,7 +594,7 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id().map(ToOwned::to_owned)),
+          chunk_id: chunk.and_then(|c| c.id(&self.compilation.chunk_ids).map(|id| id.to_string())),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -637,7 +645,7 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id().map(ToOwned::to_owned)),
+          chunk_id: chunk.and_then(|c| c.id(&self.compilation.chunk_ids).map(|id| id.to_string())),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -861,8 +869,8 @@ impl Stats<'_> {
               .compilation
               .chunk_by_ukey
               .expect_get(k)
-              .id()
-              .map(ToOwned::to_owned)
+              .id(&self.compilation.chunk_ids)
+              .map(|id| id.to_string())
           })
           .collect()
       };
@@ -1134,8 +1142,8 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(k)
-          .id()
-          .map(ToOwned::to_owned)
+          .id(&self.compilation.chunk_ids)
+          .map(|id| id.to_string())
       })
       .collect();
     chunks.sort_unstable();

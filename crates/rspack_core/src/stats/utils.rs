@@ -94,20 +94,19 @@ pub fn get_chunk_group_oreded_child_assets(
 
 pub fn get_chunk_relations(
   chunk: &Chunk,
-  chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
+  compilation: &Compilation,
 ) -> (Vec<String>, Vec<String>, Vec<String>) {
   let mut parents = HashSet::default();
   let mut children = HashSet::default();
   let mut siblings = HashSet::default();
 
   for cg in chunk.groups() {
-    if let Some(cg) = chunk_group_by_ukey.get(cg) {
+    if let Some(cg) = compilation.chunk_group_by_ukey.get(cg) {
       for p in &cg.parents {
-        if let Some(pg) = chunk_group_by_ukey.get(p) {
+        if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = chunk_by_ukey.get(c)
-              && let Some(id) = c.id()
+            if let Some(c) = compilation.chunk_by_ukey.get(c)
+              && let Some(id) = c.id(&compilation.chunk_ids)
             {
               parents.insert(id.to_string());
             }
@@ -116,10 +115,10 @@ pub fn get_chunk_relations(
       }
 
       for p in &cg.children {
-        if let Some(pg) = chunk_group_by_ukey.get(p) {
+        if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
-            if let Some(c) = chunk_by_ukey.get(c)
-              && let Some(id) = c.id()
+            if let Some(c) = compilation.chunk_by_ukey.get(c)
+              && let Some(id) = c.id(&compilation.chunk_ids)
             {
               children.insert(id.to_string());
             }
@@ -128,9 +127,9 @@ pub fn get_chunk_relations(
       }
 
       for c in &cg.chunks {
-        if let Some(c) = chunk_by_ukey.get(c)
-          && c.id() != chunk.id()
-          && let Some(id) = c.id()
+        if let Some(c) = compilation.chunk_by_ukey.get(c)
+          && c.id(&compilation.chunk_ids) != chunk.id(&compilation.chunk_ids)
+          && let Some(id) = c.id(&compilation.chunk_ids)
         {
           siblings.insert(id.to_string());
         }

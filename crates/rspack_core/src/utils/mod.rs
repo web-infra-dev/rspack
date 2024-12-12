@@ -1,10 +1,8 @@
-use std::{cmp::Ordering, fmt::Display};
+use std::cmp::Ordering;
 
-use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_util::comparators::compare_ids;
 use rspack_util::comparators::compare_numbers;
-use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   BoxModule, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph,
@@ -94,24 +92,6 @@ pub fn join_string_component(mut components: Vec<String>) -> String {
       )
     }
   }
-}
-
-pub fn stringify_map<T: Display>(map: &HashMap<String, T>) -> String {
-  format!(
-    r#"{{{}}}"#,
-    map
-      .keys()
-      .sorted_unstable()
-      .fold(String::new(), |prev, cur| {
-        prev
-          + format!(
-            r#"{}: {},"#,
-            serde_json::to_string(cur).expect("json stringify failed"),
-            map.get(cur).expect("get key from map")
-          )
-          .as_str()
-      })
-  )
 }
 
 pub fn sort_group_by_index(

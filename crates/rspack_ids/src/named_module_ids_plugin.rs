@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -33,14 +31,17 @@ fn assign_named_module_ids(
       (item, name)
     })
     .collect();
-  let mut name_to_items: HashMap<String, IdentifierIndexSet> = HashMap::default();
+  let mut name_to_items: FxHashMap<String, IdentifierIndexSet> = FxHashMap::default();
   let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    // If the short module id is conflict, then we need to rename all the conflicting modules to long module id
     if items.len() > 1 {
       invalid_and_repeat_names.insert(name);
-    } else if let Some(item) = used_ids.get(name.as_str()) {
+    }
+    // Also rename the conflicting modules in used_ids
+    else if let Some(item) = used_ids.get(name.as_str()) {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
     }
@@ -67,12 +68,13 @@ fn assign_named_module_ids(
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    // Also rename the conflicting modules in used_ids
     if let Some(item) = used_ids.get(name.as_str()) {
       items.insert(*item);
     }
   }
 
-  let name_to_items_keys = name_to_items.keys().cloned().collect::<HashSet<_>>();
+  let name_to_items_keys = name_to_items.keys().cloned().collect::<FxHashSet<_>>();
   let mut unnamed_items = vec![];
 
   for (name, mut items) in name_to_items {
@@ -187,9 +189,10 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   if !unnamed_modules.is_empty() {
     let mut next_id = 0;
     for module in unnamed_modules {
-      let id = next_id.to_string();
+      let mut id = next_id.to_string();
       while used_ids.contains_key(id.as_str()) {
         next_id += 1;
+        id = next_id.to_string();
       }
       if ChunkGraph::set_module_id(&mut module_ids, module, id.into())
         && let Some(mutations) = &mut mutations

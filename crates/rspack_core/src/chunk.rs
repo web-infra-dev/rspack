@@ -9,6 +9,7 @@ use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
+use crate::chunk_graph_chunk::ChunkId;
 use crate::{
   compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph, ChunkGroupOrderKey,
   RenderManifestEntry,
@@ -58,7 +59,6 @@ pub struct Chunk {
   // - The name of chunks create by dynamic import is `None` unless users use
   // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
   name: Option<String>,
-  id: Option<String>,
   id_name_hints: HashSet<String>,
   filename_template: Option<Filename>,
   css_filename_template: Option<Filename>,
@@ -108,12 +108,23 @@ impl Chunk {
     self.css_filename_template = filename_template;
   }
 
-  pub fn id(&self) -> Option<&str> {
-    self.id.as_deref()
+  pub fn id<'a>(&self, chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>) -> Option<&'a ChunkId> {
+    ChunkGraph::get_chunk_id(chunk_ids, &self.ukey)
   }
 
-  pub fn set_id(&mut self, id: Option<String>) {
-    self.id = id;
+  pub fn expect_id<'a>(&self, chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>) -> &'a ChunkId {
+    self
+      .id(chunk_ids)
+      .expect("Should set id before calling expect_id")
+  }
+
+  pub fn set_id(
+    &self,
+    chunk_ids: &mut UkeyMap<ChunkUkey, ChunkId>,
+    id: impl Into<ChunkId>,
+  ) -> bool {
+    let id = id.into();
+    ChunkGraph::set_chunk_id(chunk_ids, self.ukey, id)
   }
 
   pub fn prevent_integration(&self) -> bool {
@@ -263,7 +274,6 @@ impl Chunk {
       filename_template: None,
       css_filename_template: None,
       ukey: ChunkUkey::new(),
-      id: None,
       id_name_hints: Default::default(),
       prevent_integration: false,
       files: Default::default(),
@@ -578,18 +588,14 @@ impl Chunk {
     chunks
   }
 
-  pub fn expect_id(&self) -> &str {
-    self
-      .id
-      .as_ref()
-      .expect("Should set id before calling expect_id")
-  }
-
-  pub fn name_for_filename_template(&self) -> Option<&str> {
+  pub fn name_for_filename_template<'a>(
+    &'a self,
+    chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>,
+  ) -> Option<&'a str> {
     if self.name.is_some() {
       self.name.as_deref()
     } else {
-      self.id.as_deref()
+      self.id(chunk_ids).map(|id| id.as_str())
     }
   }
 
@@ -602,7 +608,7 @@ impl Chunk {
   }
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
-    self.id.hash(hasher);
+    self.id(&compilation.chunk_ids).hash(hasher);
     for module in compilation
       .chunk_graph
       .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
@@ -716,16 +722,20 @@ impl Chunk {
     &self,
     order: &ChunkGroupOrderKey,
     compilation: &Compilation,
-  ) -> Option<Vec<String>> {
+  ) -> Option<Vec<ChunkId>> {
     self
       .get_children_of_type_in_order(order, compilation, true)
       .map(|order_children| {
         order_children
           .iter()
           .flat_map(|(_, child_chunks)| {
-            child_chunks
-              .iter()
-              .filter_map(|chunk_ukey| compilation.chunk_by_ukey.expect_get(chunk_ukey).id.clone())
+            child_chunks.iter().filter_map(|chunk_ukey| {
+              compilation
+                .chunk_by_ukey
+                .expect_get(chunk_ukey)
+                .id(&compilation.chunk_ids)
+                .cloned()
+            })
           })
           .collect_vec()
       })
@@ -735,7 +745,8 @@ impl Chunk {
     &self,
     include_direct_children: bool,
     compilation: &Compilation,
-  ) -> HashMap<ChunkGroupOrderKey, IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>> {
+  ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
+  {
     let mut result = HashMap::default();
 
     fn add_child_ids_by_orders_to_map(
@@ -743,13 +754,13 @@ impl Chunk {
       order: &ChunkGroupOrderKey,
       result: &mut HashMap<
         ChunkGroupOrderKey,
-        IndexMap<String, Vec<String>, BuildHasherDefault<FxHasher>>,
+        IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
       >,
       compilation: &Compilation,
     ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
-        chunk.id.clone(),
+        chunk.id(&compilation.chunk_ids).cloned(),
         chunk.get_child_ids_by_order(order, compilation),
       ) {
         result

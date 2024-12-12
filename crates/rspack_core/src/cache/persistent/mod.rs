@@ -92,7 +92,7 @@ impl Cache for PersistentCache {
       .snapshot
       .add(modified_paths.iter().map(|item| item.as_ref()));
 
-    self.storage.idle();
+    self.storage.trigger_save();
   }
 
   fn before_make(&self, make_artifact: &mut MakeArtifact) {

@@ -3,12 +3,11 @@ use std::{
   io::{BufRead, BufReader, BufWriter, Read, Write},
 };
 
-use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, FileSystem, IntermediateFileSystemExtras, ReadStream, ReadableFileSystem,
-  Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, FileSystem, IntermediateFileSystem, IntermediateFileSystemExtras,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 #[derive(Debug)]
@@ -28,44 +27,36 @@ impl WritableFileSystem for NativeFileSystem {
     fs::write(file, data).map_err(Error::from)
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { tokio::fs::remove_file(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    tokio::fs::remove_file(file).await.map_err(Error::from)
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     let dir = dir.to_path_buf();
-    let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
-    Box::pin(fut)
+    tokio::fs::remove_dir_all(dir).await.map_err(Error::from)
   }
 
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let dir = dir.to_path_buf();
-    let fut = async move {
-      let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
-      let mut res = vec![];
-      while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
-        res.push(entry.file_name().to_string_lossy().to_string());
-      }
-      Ok(res)
-    };
-    Box::pin(fut)
+    let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
+    let mut res = vec![];
+    while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
   }
 
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    tokio::fs::read(file).await.map_err(Error::from)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async move {
-      let metadata = tokio::fs::metadata(file).await.map_err(Error::from)?;
-      FileMetadata::try_from(metadata)
-    };
-    Box::pin(fut)
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    let metadata = tokio::fs::metadata(file).await.map_err(Error::from)?;
+    FileMetadata::try_from(metadata)
   }
 }
 
+#[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(path).map_err(Error::from)
@@ -86,9 +77,8 @@ impl ReadableFileSystem for NativeFileSystem {
     Ok(path.assert_utf8())
   }
 
-  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { tokio::fs::read(file).await.map_err(Error::from) };
-    Box::pin(fut)
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    tokio::fs::read(file).await.map_err(Error::from)
   }
 }
 
@@ -109,6 +99,8 @@ impl IntermediateFileSystemExtras for NativeFileSystem {
   }
 }
 
+impl IntermediateFileSystem for NativeFileSystem {}
+
 #[derive(Debug)]
 pub struct NativeReadStream(BufReader<File>);
 
@@ -121,15 +113,24 @@ impl NativeReadStream {
 
 #[async_trait::async_trait]
 impl ReadStream for NativeReadStream {
-  async fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-    self.0.read_exact(buf).map_err(Error::from)
+  async fn read(&mut self, length: usize) -> Result<Vec<u8>> {
+    let mut buf = vec![0u8; length];
+    self.0.read_exact(&mut buf).map_err(Error::from)?;
+    Ok(buf)
   }
 
-  async fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> {
-    self.0.read_until(byte, buf).map_err(Error::from)
+  async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
+    let mut buf = vec![];
+    self.0.read_until(byte, &mut buf).map_err(Error::from)?;
+    if buf.last().is_some_and(|b| b == &byte) {
+      buf.pop();
+    }
+    Ok(buf)
   }
-  async fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
-    self.0.read_to_end(buf).map_err(Error::from)
+  async fn read_to_end(&mut self) -> Result<Vec<u8>> {
+    let mut buf = vec![];
+    self.0.read_to_end(&mut buf).map_err(Error::from)?;
+    Ok(buf)
   }
   async fn skip(&mut self, offset: usize) -> Result<()> {
     self.0.seek_relative(offset as i64).map_err(Error::from)
@@ -144,7 +145,7 @@ pub struct NativeWriteStream(BufWriter<File>);
 
 impl NativeWriteStream {
   pub fn try_new(file: &Utf8Path) -> Result<Self> {
-    let file = File::open(file).map_err(Error::from)?;
+    let file = File::create_new(file).map_err(Error::from)?;
     Ok(Self(BufWriter::new(file)))
   }
 }

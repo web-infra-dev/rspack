@@ -133,6 +133,7 @@ class Compiler {
 		afterCompile: liteTapable.AsyncSeriesHook<[Compilation]>;
 		finishMake: liteTapable.AsyncSeriesHook<[Compilation]>;
 		entryOption: liteTapable.SyncBailHook<[string, EntryNormalized], any>;
+		additionalPass: liteTapable.AsyncSeriesHook<[]>;
 	};
 
 	webpack: typeof rspack;
@@ -221,7 +222,8 @@ class Compiler {
 			beforeCompile: new liteTapable.AsyncSeriesHook(["params"]),
 			afterCompile: new liteTapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new liteTapable.AsyncSeriesHook(["compilation"]),
-			entryOption: new liteTapable.SyncBailHook(["context", "entry"])
+			entryOption: new liteTapable.SyncBailHook(["context", "entry"]),
+			additionalPass: new liteTapable.AsyncSeriesHook([])
 		};
 
 		this.webpack = rspack;
@@ -430,20 +432,62 @@ class Compiler {
 		}
 		const startTime = Date.now();
 		this.running = true;
-		const doRun = () => {
-			const finalCallback = (err: Error | null, stats?: Stats) => {
-				this.idle = true;
-				this.cache.beginIdle();
-				this.idle = true;
-				this.running = false;
+
+		const finalCallback = (err: Error | null, stats?: Stats) => {
+			this.idle = true;
+			this.cache.beginIdle();
+			this.idle = true;
+			this.running = false;
+			if (err) {
+				this.hooks.failed.call(err);
+			}
+			if (callback) {
+				callback(err, stats);
+			}
+			this.hooks.afterDone.call(stats!);
+		};
+
+		const onCompiled = (
+			err: Error | null,
+			_compilation: Compilation | undefined
+		) => {
+			if (err) {
+				return finalCallback(err);
+			}
+
+			const compilation = _compilation!;
+
+			if (compilation.hooks.needAdditionalPass.call()) {
+				compilation.needAdditionalPass = true;
+
+				compilation.startTime = startTime;
+				compilation.endTime = Date.now();
+				const stats = new Stats(compilation);
+				this.hooks.done.callAsync(stats, err => {
+					if (err) {
+						return finalCallback(err);
+					}
+
+					this.hooks.additionalPass.callAsync(err => {
+						if (err) return finalCallback(err);
+						this.compile(onCompiled);
+					});
+				});
+				return;
+			}
+
+			compilation.startTime = startTime;
+			compilation.endTime = Date.now();
+			const stats = new Stats(compilation);
+			this.hooks.done.callAsync(stats, err => {
 				if (err) {
-					this.hooks.failed.call(err);
+					return finalCallback(err);
 				}
-				if (callback) {
-					callback(err, stats);
-				}
-				this.hooks.afterDone.call(stats!);
-			};
+				return finalCallback(null, stats);
+			});
+		};
+
+		const run = () => {
 			this.hooks.beforeRun.callAsync(this, err => {
 				if (err) {
 					return finalCallback(err);
@@ -452,21 +496,7 @@ class Compiler {
 					if (err) {
 						return finalCallback(err);
 					}
-
-					this.compile(err => {
-						if (err) {
-							return finalCallback(err);
-						}
-						this.#compilation!.startTime = startTime;
-						this.#compilation!.endTime = Date.now();
-						const stats = new Stats(this.#compilation!);
-						this.hooks.done.callAsync(stats, err => {
-							if (err) {
-								return finalCallback(err);
-							}
-							return finalCallback(null, stats);
-						});
-					});
+					this.compile(onCompiled);
 				});
 			});
 		};
@@ -474,12 +504,11 @@ class Compiler {
 		if (this.idle) {
 			this.cache.endIdle(err => {
 				if (err) return callback(err);
-
 				this.idle = false;
-				doRun();
+				run();
 			});
 		} else {
-			doRun();
+			run();
 		}
 	}
 
@@ -1603,11 +1632,14 @@ class Compiler {
 		};
 
 		this.#instance = new instanceBinding.Rspack(
+			this.compilerPath,
 			rawOptions,
 			this.#builtinPlugins,
 			this.#registers,
 			ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-			ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem!),
+			this.intermediateFileSystem
+				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
+				: undefined,
 			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 

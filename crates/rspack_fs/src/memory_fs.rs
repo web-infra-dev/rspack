@@ -5,12 +5,11 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
-use futures::future::BoxFuture;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, FileSystem, IntermediateFileSystemExtras, ReadStream, ReadableFileSystem,
-  Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, FileSystem, IntermediateFileSystem, IntermediateFileSystemExtras,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 fn current_time() -> u64 {
@@ -211,38 +210,37 @@ impl WritableFileSystem for MemoryFileSystem {
     Ok(())
   }
 
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { self._remove_file(file) };
-    Box::pin(fut)
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    self._remove_file(file)
   }
 
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>> {
-    let fut = async move { self._remove_dir_all(dir) };
-    Box::pin(fut)
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    self._remove_dir_all(dir)
   }
 
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>> {
-    let fut = async move { self._read_dir(dir) };
-    Box::pin(fut)
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    self._read_dir(dir)
   }
 
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { ReadableFileSystem::read(self, file) };
-    Box::pin(fut)
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    ReadableFileSystem::read(self, file)
   }
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>> {
-    let fut = async move { ReadableFileSystem::metadata(self, file) };
-    Box::pin(fut)
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    ReadableFileSystem::metadata(self, file)
   }
 }
 
+#[async_trait::async_trait]
 impl ReadableFileSystem for MemoryFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(FileType::File { content, .. }) => Ok(content.clone()),
-      _ => Err(new_error("file not exist")),
+      _ => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "file not exist",
+      ))),
     }
   }
 
@@ -250,7 +248,10 @@ impl ReadableFileSystem for MemoryFileSystem {
     let files = self.files.lock().expect("should get lock");
     match files.get(path) {
       Some(ft) => Ok(ft.metadata().clone()),
-      None => Err(new_error("file not exist")),
+      None => Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        "file not exist",
+      ))),
     }
   }
 
@@ -262,9 +263,9 @@ impl ReadableFileSystem for MemoryFileSystem {
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }
-  fn async_read<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>> {
-    let fut = async move { ReadableFileSystem::read(self, file) };
-    Box::pin(fut)
+
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    ReadableFileSystem::read(self, file)
   }
 }
 
@@ -287,6 +288,8 @@ impl IntermediateFileSystemExtras for MemoryFileSystem {
   }
 }
 
+impl IntermediateFileSystem for MemoryFileSystem {}
+
 #[derive(Debug)]
 pub struct MemoryReadStream(Cursor<Vec<u8>>);
 
@@ -298,15 +301,24 @@ impl MemoryReadStream {
 
 #[async_trait::async_trait]
 impl ReadStream for MemoryReadStream {
-  async fn read(&mut self, buf: &mut [u8]) -> Result<()> {
-    self.0.read_exact(buf).map_err(Error::from)
+  async fn read(&mut self, length: usize) -> Result<Vec<u8>> {
+    let mut buf = vec![0u8; length];
+    self.0.read_exact(&mut buf).map_err(Error::from)?;
+    Ok(buf)
   }
 
-  async fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> {
-    self.0.read_until(byte, buf).map_err(Error::from)
+  async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
+    let mut buf = vec![];
+    self.0.read_until(byte, &mut buf).map_err(Error::from)?;
+    if buf.last().is_some_and(|b| b == &byte) {
+      buf.pop();
+    }
+    Ok(buf)
   }
-  async fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
-    self.0.read_to_end(buf).map_err(Error::from)
+  async fn read_to_end(&mut self) -> Result<Vec<u8>> {
+    let mut buf = vec![];
+    self.0.read_to_end(&mut buf).map_err(Error::from)?;
+    Ok(buf)
   }
   async fn skip(&mut self, offset: usize) -> Result<()> {
     self.0.seek_relative(offset as i64).map_err(Error::from)

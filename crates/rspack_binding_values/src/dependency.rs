@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::bindgen_prelude::ToNapiValue;
+use napi::{bindgen_prelude::ToNapiValue, Either};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
@@ -178,3 +178,5 @@ impl ToNapiValue for JsDependencyWrapper {
     })
   }
 }
+
+pub type JsRuntimeSpec = Either<String, Vec<String>>;

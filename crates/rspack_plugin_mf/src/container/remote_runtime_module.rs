@@ -83,7 +83,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk
-          .id()
+          .id(&compilation.chunk_ids)
           .expect("should have chunkId at <RemoteRuntimeModule as RuntimeModule>::generate"),
         remotes,
       );

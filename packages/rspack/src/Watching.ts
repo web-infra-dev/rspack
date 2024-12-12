@@ -59,10 +59,14 @@ export class Watching {
 		this.handler = handler;
 		this.suspended = false;
 
-		// The default aggregateTimeout of WatchPack is 200ms,
-		// using smaller values can improve hmr performance
+		// The default aggregateTimeout of watchpack is 200ms,
+		// using smaller values can improve HMR performance
 		if (typeof this.watchOptions.aggregateTimeout !== "number") {
 			this.watchOptions.aggregateTimeout = 5;
+		}
+		// Ignore watching files in node_modules to reduce memory usage and make startup faster
+		if (this.watchOptions.ignored === undefined) {
+			this.watchOptions.ignored = /[\\/](?:\.git|node_modules)[\\/]/;
 		}
 
 		process.nextTick(() => {
@@ -266,18 +270,40 @@ export class Watching {
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
-			if (err) return this._done(err, null);
+			if (err) return this._done(err);
 
 			const canRebuild =
 				!this.#initial && (modifiedFiles?.size || deleteFiles?.size);
 
-			const onCompile = (err: Error | null) => {
-				if (err) return this._done(err, null);
-				// if (this.invalid) return this._done(null);
+			const onCompiled = (
+				err: Error | null,
+				_compilation: Compilation | undefined
+			) => {
+				if (err) return this._done(err);
+
+				const compilation = _compilation!;
+
+				const needAdditionalPass = compilation.hooks.needAdditionalPass.call();
+				if (needAdditionalPass) {
+					compilation.needAdditionalPass = true;
+
+					compilation.startTime = this.startTime;
+					compilation.endTime = Date.now();
+					const stats = new Stats(compilation);
+					this.compiler.hooks.done.callAsync(stats, err => {
+						if (err) return this._done(err, compilation);
+
+						this.compiler.hooks.additionalPass.callAsync(err => {
+							if (err) return this._done(err, compilation);
+							this.compiler.compile(onCompiled);
+						});
+					});
+					return;
+				}
 				this._done(null, this.compiler._lastCompilation!);
 			};
 
-			this.compiler.compile(onCompile);
+			this.compiler.compile(onCompiled);
 			if (!canRebuild) {
 				this.#initial = false;
 			}
@@ -288,9 +314,7 @@ export class Watching {
 	 * The reason why this is _done instead of #done, is that in Webpack,
 	 * it will rewrite this function to another function
 	 */
-	private _done(error: Error, compilation: null): void;
-	private _done(error: null, compilation: Compilation): void;
-	private _done(error: Error | null, compilation: Compilation | null) {
+	private _done(error: Error | null, compilation?: Compilation) {
 		this.running = false;
 		let stats: undefined | Stats = undefined;
 

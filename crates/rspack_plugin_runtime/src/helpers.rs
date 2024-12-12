@@ -41,7 +41,7 @@ pub fn update_hash_for_entry_startup(
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          chunk.id().hash(hasher);
+          chunk.id(&compilation.chunk_ids).hash(hasher);
         }
       }
     }
@@ -174,7 +174,7 @@ pub fn generate_entry_startup(
           .iter()
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id().to_string()
+            chunk.expect_id(&compilation.chunk_ids).clone()
           })
           .collect::<HashSet<_>>(),
       );
@@ -258,12 +258,12 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
   compilation.get_path(
     &filename,
     PathData::default()
-      .chunk_id_optional(chunk.id())
+      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
       .chunk_hash_optional(chunk.rendered_hash(
         &compilation.chunk_hashes_results,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template())
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
         &compilation.chunk_hashes_results,
         &SourceType::JavaScript,

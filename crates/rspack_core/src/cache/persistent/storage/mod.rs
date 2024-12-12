@@ -15,9 +15,9 @@ pub enum StorageOptions {
 
 // TODO: add batch set/remove
 pub trait Storage: std::fmt::Debug + Sync + Send {
-  fn get_all(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)>;
+  fn load(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)>;
   // using immutable reference to support concurrency
   fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>);
   fn remove(&self, scope: &str, key: &[u8]);
-  fn idle(&self);
+  fn trigger_save(&self);
 }
