@@ -1967,6 +1967,8 @@ class ExportsInfo {
     // (undocumented)
     static __to_binding(module: ExportsInfo): JsExportsInfo;
     // (undocumented)
+    getUsed(name: string | string[], runtime: RuntimeSpec): UsageStateType;
+    // (undocumented)
     isModuleUsed(runtime: RuntimeSpec): boolean;
     // (undocumented)
     isUsed(runtime: RuntimeSpec): boolean;
@@ -10891,6 +10893,9 @@ export type UmdNamedDefine = boolean;
 
 // @public
 export type UniqueName = string;
+
+// @public (undocumented)
+type UsageStateType = 0 | 1 | 2 | 3 | 4;
 
 // @public (undocumented)
 export const util: {

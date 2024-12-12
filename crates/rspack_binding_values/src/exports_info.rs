@@ -2,7 +2,7 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{Compilation, ExportsInfo, ModuleGraph, RuntimeSpec};
+use rspack_core::{Compilation, ExportsInfo, ModuleGraph, RuntimeSpec, UsedName};
 
 use crate::JsRuntimeSpec;
 
@@ -74,6 +74,31 @@ impl JsExportsInfo {
       self
         .exports_info
         .set_used_in_unknown_way(&mut module_graph, runtime.as_ref()),
+    )
+  }
+
+  #[napi(
+    ts_args_type = "name: string | string[], runtime: string | string[] | undefined",
+    ts_return_type = " 0 | 1 | 2 | 3 | 4"
+  )]
+  pub fn get_used(
+    &self,
+    js_name: Either<String, Vec<String>>,
+    js_runtime: Option<JsRuntimeSpec>,
+  ) -> napi::Result<u32> {
+    let module_graph = self.as_ref()?;
+    let name = match js_name {
+      Either::A(s) => UsedName::Str(s.into()),
+      Either::B(v) => UsedName::Vec(v.into_iter().map(Into::into).collect::<Vec<_>>()),
+    };
+    let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
+      Either::A(str) => vec![str].into_iter().map(Arc::from).collect(),
+      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+    });
+    Ok(
+      self
+        .exports_info
+        .get_used(&module_graph, name, runtime.as_ref()) as u32,
     )
   }
 }
