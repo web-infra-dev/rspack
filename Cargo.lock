@@ -4860,6 +4860,7 @@ name = "rspack_plugin_warn_sensitive_module"
 version = "0.2.0"
 dependencies = [
  "cow-utils",
+ "rayon",
  "rspack_collections",
  "rspack_core",
  "rspack_error",

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use cow_utils::CowUtils;
+use rayon::prelude::*;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_core::{
   ApplyContext, Compilation, CompilationSeal, CompilerOptions, Logger, ModuleGraph, Plugin,
@@ -52,33 +53,39 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
   let start = logger.time("check case sensitive modules");
   let mut diagnostics: Vec<Diagnostic> = vec![];
   let module_graph = compilation.get_module_graph();
-  let mut not_conflect: FxHashMap<String, Identifier> =
-    HashMap::with_capacity_and_hasher(module_graph.modules().len(), FxBuildHasher);
-  let mut conflict: FxHashMap<String, IdentifierSet> = FxHashMap::default();
 
-  for module in module_graph.modules().values() {
-    // Ignore `data:` URLs, because it's not a real path
-    if let Some(normal_module) = module.as_normal_module() {
-      if normal_module
-        .resource_resolved_data()
-        .encoded_content
-        .is_some()
-      {
-        continue;
+  let lower_identifier_mappings = module_graph
+    .modules()
+    .values()
+    .par_bridge()
+    .filter_map(|module| {
+      if let Some(normal_module) = module.as_normal_module() {
+        if normal_module
+          .resource_resolved_data()
+          .encoded_content
+          .is_some()
+        {
+          return None;
+        }
       }
-    }
+      let identifier = module.identifier();
+      Some((identifier, identifier.as_str().cow_to_lowercase()))
+    })
+    .collect::<Vec<_>>();
 
-    let identifier = module.identifier();
-    let lower_identifier = identifier.cow_to_lowercase();
+  let mut not_conflect: FxHashMap<&str, Identifier> =
+    HashMap::with_capacity_and_hasher(module_graph.modules().len(), FxBuildHasher);
+  let mut conflict: FxHashMap<&str, IdentifierSet> = FxHashMap::default();
+  for (identifier, lower_identifier) in &lower_identifier_mappings {
     if let Some(prev_identifier) = not_conflect.remove(lower_identifier.as_ref()) {
       conflict.insert(
-        lower_identifier.into_owned(),
-        IdentifierSet::from_iter([prev_identifier, identifier]),
+        lower_identifier.as_ref(),
+        IdentifierSet::from_iter([prev_identifier, *identifier]),
       );
     } else if let Some(set) = conflict.get_mut(lower_identifier.as_ref()) {
-      set.insert(identifier);
+      set.insert(*identifier);
     } else {
-      not_conflect.insert(lower_identifier.into_owned(), identifier);
+      not_conflect.insert(lower_identifier.as_ref(), *identifier);
     }
   }
 
