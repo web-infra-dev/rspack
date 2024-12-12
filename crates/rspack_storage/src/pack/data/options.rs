@@ -1,18 +1,14 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use rspack_paths::Utf8PathBuf;
 
 #[derive(Debug)]
 pub struct PackOptions {
   pub bucket_size: usize,
   pub pack_size: usize,
-  pub expire: u64,
 }
 
-impl PackOptions {
-  pub fn is_expired(&self, last_modified: &u64) -> bool {
-    let current_time = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("get current time failed")
-      .as_millis() as u64;
-    current_time - last_modified > self.expire
-  }
+#[derive(Debug)]
+pub struct RootOptions {
+  pub root: Utf8PathBuf,
+  pub expire: u64,
+  pub clean: bool,
 }

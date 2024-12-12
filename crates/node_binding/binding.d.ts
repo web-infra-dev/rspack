@@ -75,6 +75,7 @@ export declare class JsChunkGraph {
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
+  getModuleId(jsModule: JsModule): string | null
 }
 
 export declare class JsChunkGroup {
@@ -205,6 +206,13 @@ export declare class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export declare class JsExportsInfo {
+  isUsed(runtime: string | string[] | undefined): boolean
+  isModuleUsed(runtime: string | string[] | undefined): boolean
+  setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
+  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+}
+
 export declare class JsModule {
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
@@ -229,6 +237,7 @@ export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
+  getExportsInfo(module: JsModule): JsExportsInfo
 }
 
 export declare class JsResolver {
@@ -2028,7 +2037,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger"| "console", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

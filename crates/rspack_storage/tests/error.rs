@@ -23,15 +23,18 @@ mod test_storage_error {
   fn create_pack_options(
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
+    version: &str,
     fs: Arc<dyn PackFS>,
   ) -> PackStorageOptions {
     PackStorageOptions {
+      version: version.to_string(),
       root: root.into(),
       temp_root: temp_root.into(),
       fs,
       bucket_size: 10,
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
+      clean: true,
     }
   }
 
@@ -54,7 +57,7 @@ mod test_storage_error {
     assert_eq!(storage.load("test_scope").await?.len(), 1000);
 
     rx.await.expect("should save")?;
-    assert!(fs.exists(&root.join("test_scope/cache_meta")).await?);
+    assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
   }
 
@@ -64,7 +67,7 @@ mod test_storage_error {
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
-    let meta_file = root.join("test_scope/cache_meta");
+    let meta_file = root.join("test_scope/scope_meta");
     let meta_content = fs.read_file(&meta_file).await?.read_to_end().await?;
 
     // mock
@@ -114,7 +117,7 @@ mod test_storage_error {
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
-    let meta_file = root.join("test_scope/cache_meta");
+    let meta_file = root.join("test_scope/scope_meta");
     let first_pack_file = root.join(&get_first_pack("test_scope", &meta_file, fs.as_ref()).await?);
     let first_pack_content = fs.read_file(&first_pack_file).await?.read_to_end().await?;
 
@@ -163,6 +166,7 @@ mod test_storage_error {
         Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
+    let version = "xxx".to_string();
 
     for ((root, temp_root), fs) in cases {
       let root = root.assert_utf8();
@@ -173,33 +177,33 @@ mod test_storage_error {
         .expect("should remove temp root");
 
       let _ = test_initial_error(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
 
       let _ = test_recovery_invalid_meta(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
 
       let _ = test_recovery_remove_pack(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));
 
       let _ = test_recovery_modified_pack(
-        &root,
+        &root.join(&version),
         fs.clone(),
-        create_pack_options(&root, &temp_root, fs.clone()),
+        create_pack_options(&root, &temp_root, &version, fs.clone()),
       )
       .await
       .map_err(|e| panic!("{}", e));

@@ -310,7 +310,9 @@ impl ReadStream for MemoryReadStream {
   async fn read_until(&mut self, byte: u8) -> Result<Vec<u8>> {
     let mut buf = vec![];
     self.0.read_until(byte, &mut buf).map_err(Error::from)?;
-    buf.pop();
+    if buf.last().is_some_and(|b| b == &byte) {
+      buf.pop();
+    }
     Ok(buf)
   }
   async fn read_to_end(&mut self) -> Result<Vec<u8>> {

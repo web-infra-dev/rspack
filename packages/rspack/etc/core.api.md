@@ -43,6 +43,7 @@ import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
 import type { JsDependency } from '@rspack/binding';
+import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLibraryOptions } from '@rspack/binding';
@@ -280,27 +281,27 @@ interface BaseModuleConfig {
 
 // @public (undocumented)
 interface BaseResolveRequest {
-     // (undocumented)
+    	// (undocumented)
     __innerRequest?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_relativePath?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_request?: string;
-     // (undocumented)
+    	// (undocumented)
     context?: object;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileData?: JsonObject;
-     // (undocumented)
+    	// (undocumented)
     descriptionFilePath?: string;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileRoot?: string;
-     // (undocumented)
+    	// (undocumented)
     fullySpecified?: boolean;
-     // (undocumented)
+    	// (undocumented)
     ignoreSymlinks?: boolean;
-     // (undocumented)
+    	// (undocumented)
     path: string | false;
-     // (undocumented)
+    	// (undocumented)
     relativePath?: string;
 }
 
@@ -491,6 +492,8 @@ class ChunkGraph {
     getModuleChunks(module: Module): Chunk[];
     // (undocumented)
     getModuleChunksIterable(module: Module): Iterable<Chunk>;
+    // (undocumented)
+    getModuleId(module: Module): string | null;
 }
 
 // @public (undocumented)
@@ -1964,6 +1967,20 @@ export interface ExperimentsNormalized {
 }
 
 // @public (undocumented)
+class ExportsInfo {
+    // (undocumented)
+    static __from_binding(binding: JsExportsInfo): ExportsInfo;
+    // (undocumented)
+    getUsed(name: string | string[], runtime: RuntimeSpec): UsageStateType;
+    // (undocumented)
+    isModuleUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    isUsed(runtime: RuntimeSpec): boolean;
+    // (undocumented)
+    setUsedInUnknownWay(runtime: RuntimeSpec): boolean;
+}
+
+// @public (undocumented)
 type ExportsPresence = "error" | "warn" | "auto" | false;
 
 // @public (undocumented)
@@ -2181,11 +2198,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -2678,14 +2695,14 @@ type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
 type JsonObject = { [index: string]: JsonValue } & {
-     [index: string]:
-      | undefined
-      | null
-      | string
-      | number
-      | boolean
-      | JsonObject
-      | JsonValue[];
+    	[index: string]:
+    		| undefined
+    		| null
+    		| string
+    		| number
+    		| boolean
+    		| JsonObject
+    		| JsonValue[];
 };
 
 // @public (undocumented)
@@ -3709,6 +3726,8 @@ class ModuleGraph {
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
     // (undocumented)
+    getExportsInfo(module: Module): ExportsInfo;
+    // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
     getModule(dependency: Dependency): Module | null;
@@ -4343,19 +4362,19 @@ interface ParseContext {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-     // (undocumented)
+    	// (undocumented)
     directory: boolean;
-     // (undocumented)
+    	// (undocumented)
     file: boolean;
-     // (undocumented)
+    	// (undocumented)
     fragment: string;
-     // (undocumented)
+    	// (undocumented)
     internal: boolean;
-     // (undocumented)
+    	// (undocumented)
     module: boolean;
-     // (undocumented)
+    	// (undocumented)
     query: string;
-     // (undocumented)
+    	// (undocumented)
     request: string;
 }
 
@@ -4625,13 +4644,13 @@ type RawCreateParams = {
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -9752,6 +9771,9 @@ enum RuntimeModuleStage {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
+type RuntimeSpec = string | string[] | undefined;
+
+// @public (undocumented)
 type SafeParseError<Input> = {
     success: false;
     error: ZodError<Input>;
@@ -9866,25 +9888,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 
@@ -10875,6 +10897,9 @@ export type UmdNamedDefine = boolean;
 
 // @public
 export type UniqueName = string;
+
+// @public
+type UsageStateType = 0 | 1 | 2 | 3 | 4;
 
 // @public (undocumented)
 export const util: {
