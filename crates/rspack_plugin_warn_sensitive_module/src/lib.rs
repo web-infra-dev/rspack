@@ -91,7 +91,7 @@ async fn seal(&self, compilation: &mut Compilation) -> Result<()> {
 
   // sort by module identifier, guarantee the warning order
   let mut case_map_vec = conflict.into_iter().collect::<Vec<_>>();
-  case_map_vec.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+  case_map_vec.sort_unstable_by(|a, b| a.0.cmp(b.0));
 
   for (_, set) in case_map_vec {
     let mut case_modules = set.iter().copied().collect::<Vec<_>>();
