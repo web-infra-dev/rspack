@@ -61,4 +61,8 @@ export class ChunkGraph {
 			.getModuleChunks(Module.__to_binding(module))
 			.map(binding => Chunk.__from_binding(binding));
 	}
+
+	getModuleId(module: Module): string | null {
+		return this.#inner.getModuleId(Module.__to_binding(module));
+	}
 }
