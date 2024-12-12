@@ -100,6 +100,8 @@ impl ScopeManager {
   }
 
   pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
+    self.strategy.before_load().await?;
+
     if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
       let loaded = self.strategy.read_root_meta().await?;
       if let Some(meta) = &loaded {

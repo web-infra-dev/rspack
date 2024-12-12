@@ -27,10 +27,24 @@ pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn PackFS>) -> R
 
 pub async fn move_temp_files(
   files: HashSet<Utf8PathBuf>,
-  fs: Arc<dyn PackFS>,
   src: &Utf8Path,
   dist: &Utf8Path,
+  fs: Arc<dyn PackFS>,
 ) -> Result<()> {
+  let lock_file = src.join("move.lock");
+  let mut lock_writer = fs.write_file(&lock_file).await?;
+  lock_writer
+    .write_all(
+      files
+        .iter()
+        .map(|path| path.to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+        .as_bytes(),
+    )
+    .await?;
+  lock_writer.flush().await?;
+
   let mut candidates = vec![];
   for to in files {
     let from = redirect_to_path(&to, src, dist)?;
@@ -48,6 +62,28 @@ pub async fn move_temp_files(
     .into_iter()
     .collect::<Result<Vec<Result<()>>>>()?;
 
+  fs.remove_file(&lock_file).await?;
+
+  Ok(())
+}
+
+pub async fn recovery_move_lock(
+  src: &Utf8Path,
+  dist: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let lock_file = src.join("move.lock");
+  if !fs.exists(&lock_file).await? {
+    return Ok(());
+  }
+  let mut lock_reader = fs.read_file(&lock_file).await?;
+  let files = String::from_utf8(lock_reader.read_to_end().await?)
+    .map_err(|e| error!("parse utf8 failed: {}", e))?
+    .split("\n")
+    .map(Utf8PathBuf::from)
+    .collect::<HashSet<_>>();
+
+  move_temp_files(files, src, dist, fs).await?;
   Ok(())
 }
 
