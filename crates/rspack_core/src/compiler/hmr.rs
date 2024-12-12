@@ -83,6 +83,16 @@ impl Compiler {
         self.input_filesystem.clone(),
       );
 
+      println!(
+        "new compilation code generation results: {}",
+        new_compilation
+          .code_generation_results
+          .clone()
+          .into_inner()
+          .1
+          .len()
+      );
+
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
       // TODO: remove this

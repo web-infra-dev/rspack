@@ -188,7 +188,7 @@ export class RspackCLI {
 					item => item instanceof rspackCore.ProgressPlugin
 				);
 				if (!installed) {
-					(item.plugins ??= []).push(new rspackCore.ProgressPlugin());
+					// (item.plugins ??= []).push(new rspackCore.ProgressPlugin());
 				}
 			}
 
