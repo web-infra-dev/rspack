@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{any::Any, io::Write};
 
 use swc_core::{
   common::{
@@ -8,6 +8,8 @@ use swc_core::{
   },
   ecma::codegen::{text_writer::WriteJs, Result},
 };
+
+use super::gen_string_from_debug;
 
 ///
 /// -----
@@ -24,8 +26,11 @@ pub struct JsWriter<'a, W: Write> {
   new_line: &'a str,
   srcmap: Option<&'a mut Vec<(BytePos, LineCol)>>,
   srcmap_done: FxHashSet<(BytePos, u32, u32)>,
-  span_map: Option<&'a mut HashMap<Span, Span>>,
+  span_map: Option<&'a mut HashMap<String, Span>>,
+  span_map0: Option<&'a mut HashMap<Span, Span>>,
+
   cursor: u32,
+  whitespace: u32,
   /// Used to avoid including whitespaces created by indention.
   pending_srcmap: Option<BytePos>,
   wr: W,
@@ -37,7 +42,8 @@ impl<'a, W: Write> JsWriter<'a, W> {
     new_line: &'a str,
     wr: W,
     srcmap: Option<&'a mut Vec<(BytePos, LineCol)>>,
-    span_map: Option<&'a mut HashMap<Span, Span>>,
+    span_map: Option<&'a mut HashMap<String, Span>>,
+    span_map0: Option<&'a mut HashMap<Span, Span>>,
   ) -> Self {
     JsWriter {
       indent: Default::default(),
@@ -45,11 +51,13 @@ impl<'a, W: Write> JsWriter<'a, W> {
       line_start: true,
       line_count: 0,
       line_pos: Default::default(),
+      whitespace: 0,
       new_line,
       srcmap,
       wr,
       cursor: 1,
       span_map,
+      span_map0,
       pending_srcmap: Default::default(),
       srcmap_done: Default::default(),
     }
@@ -69,6 +77,20 @@ impl<'a, W: Write> JsWriter<'a, W> {
 
   #[inline]
   fn raw_write(&mut self, data: &str) -> Result {
+    let mut count = 0;
+    for x in data.chars() {
+      if x.is_whitespace() {
+        count += 1;
+      } else {
+        break;
+      }
+    }
+
+    if count != 0 {
+      self.whitespace += count as u32;
+    } else {
+      self.whitespace = 0;
+    }
     self.cursor = self.cursor + data.as_bytes().len() as u32;
     self.wr.write_all(data.as_bytes())?;
 
@@ -286,9 +308,25 @@ impl<W: Write> WriteJs for JsWriter<'_, W> {
   }
 
   #[inline]
-  fn write_span_map(&mut self, orignal_span: Span, gen_span: Span) -> Result {
-    if let Some(ref mut span_map) = self.span_map {
-      span_map.insert(orignal_span, gen_span);
+  fn write_span_map(
+    &mut self,
+    ptr: *const dyn Any,
+    original_span: Span,
+    mut gen_span: Span,
+  ) -> Result {
+    gen_span.hi = gen_span.hi - BytePos(self.whitespace);
+    if original_span.lo == BytePos(0) && original_span.hi == BytePos(0) {
+      let buf = gen_string_from_debug(&ptr);
+
+      self
+        .span_map
+        .as_mut()
+        .map(|span_map| span_map.insert(buf, gen_span));
+    } else {
+      self
+        .span_map0
+        .as_mut()
+        .map(|span_map| span_map.insert(original_span, gen_span));
     }
 
     Ok(())

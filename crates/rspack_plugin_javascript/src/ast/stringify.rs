@@ -89,6 +89,7 @@ pub fn print(
   let mut src_map_buf = vec![];
 
   let mut span_map = Default::default();
+  let mut span_map0 = Default::default();
 
   let src = {
     let mut buf = vec![];
@@ -99,6 +100,7 @@ pub fn print(
         &mut buf,
         source_map_config.enable.then_some(&mut src_map_buf),
         Some(&mut span_map),
+        Some(&mut span_map0),
       )) as Box<dyn WriteJs>;
 
       if minify {
@@ -122,7 +124,10 @@ pub fn print(
     unsafe { String::from_utf8_unchecked(buf) }
   };
 
-  let mut repairer = AstSpanRepairer { span_map };
+  let mut repairer = AstSpanRepairer {
+    span_map,
+    span_map0,
+  };
 
   node.visit_mut_with(&mut repairer);
 
