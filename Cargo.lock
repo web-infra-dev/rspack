@@ -2582,7 +2582,7 @@ dependencies = [
  "supports-hyperlinks",
  "supports-unicode",
  "terminal_size",
- "textwrap 0.16.1",
+ "textwrap",
  "thiserror 1.0.69",
  "unicode-width 0.1.12",
 ]
@@ -3918,7 +3918,7 @@ dependencies = [
  "rspack_paths",
  "swc_core",
  "termcolor",
- "textwrap 0.15.2",
+ "textwrap",
  "thiserror 1.0.69",
  "unicode-width 0.2.0",
 ]
@@ -6791,17 +6791,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "411c5bf740737c7918b8b1fe232dca4dc9f8e754b8ad5e20966814001ed0ac6b"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "textwrap"
-version = "0.15.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7b3e525a49ec206798b40326a44121291b530c963cfb01018f63e135bac543d"
-dependencies = [
- "smawk",
- "unicode-linebreak",
- "unicode-width 0.1.12",
 ]
 
 [[package]]
