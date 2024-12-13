@@ -1030,7 +1030,7 @@ chunk {909} (runtime: main) main.js (main) 524 bytes (javascript) 6.82 KiB (runt
   ./modules/f.js [544] 1 bytes {909} [dependent] [built] [code generated]
 chunk {919} (runtime: main) chunk.js (chunk) 4 bytes <{909}> [rendered]
   > [10] ./index.js 3:8-4:19
-  > 9:4-10:15
+  > [10] ./index.js 9:4-10:15
   ./modules/a.js [839] 1 bytes {295} {37} {405} {919} [built] [code generated]
   ./modules/b.js [836] 1 bytes {295} {37} {919} [built] [code generated]
   ./modules/c.js [115] 1 bytes {405} {919} [built] [code generated]
