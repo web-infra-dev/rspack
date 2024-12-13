@@ -204,12 +204,7 @@ pub async fn clean_root(root: &Utf8Path, root_meta: &RootMeta, fs: Arc<dyn PackF
   Ok(())
 }
 
-async fn remove_expired_version(
-  version: &str,
-  dir: &Utf8Path,
-  expire: u64,
-  fs: Arc<dyn PackFS>,
-) -> Result<()> {
+async fn remove_expired_version(version: &str, dir: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
   // do not remove hidden dirs and lock files
   if version.starts_with(".") || version.contains(".lock") {
     return Ok(());
@@ -228,28 +223,37 @@ async fn remove_expired_version(
 
   // remove direcotires of expired versions
   let mut reader = fs.read_file(&meta).await?;
-  let last_modified = reader
+  let expire_time = reader
     .read_line()
     .await?
     .parse::<u64>()
     .map_err(|e| error!("parse option meta failed: {}", e))?;
   let current = current_time();
 
-  if current - last_modified > expire {
+  if current > expire_time {
     fs.remove_dir(dir).await
   } else {
     Ok(())
   }
 }
 
-pub async fn clean_versions(root_options: &RootOptions, fs: Arc<dyn PackFS>) -> Result<()> {
+pub async fn clean_versions(
+  root: &Utf8Path,
+  root_options: &RootOptions,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
   let dirs = fs.read_dir(&root_options.root).await?;
-  let tasks = dirs.into_iter().map(|version| {
+  let tasks = dirs.into_iter().filter_map(|version| {
     let version_dir = root_options.root.join(&version);
-    let fs = fs.clone();
-    let expire = root_options.expire;
-    tokio::spawn(async move { remove_expired_version(&version, &version_dir, expire, fs).await })
-      .map_err(|e| error!("remove expired version failed: {}", e))
+    if version_dir == root {
+      None
+    } else {
+      let fs = fs.clone();
+      Some(
+        tokio::spawn(async move { remove_expired_version(&version, &version_dir, fs).await })
+          .map_err(|e| error!("remove expired version failed: {}", e)),
+      )
+    }
   });
 
   join_all(tasks)

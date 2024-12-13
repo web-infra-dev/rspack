@@ -65,6 +65,7 @@ impl ScopeManager {
               .filter(|(_, scope)| scope.loaded())
               .map(|(name, _)| name.clone())
               .collect::<HashSet<_>>(),
+            self.root_options.expire,
           )));
           Ok(())
         }
@@ -173,10 +174,7 @@ impl ScopeManager {
     };
 
     // scope exists, validate it
-    let validated = self
-      .strategy
-      .validate_root(root_meta, self.root_options.expire)
-      .await?;
+    let validated = self.strategy.validate_root(root_meta).await?;
     if validated.is_valid() {
       self.strategy.ensure_meta(scope).await?;
       let validated = self.strategy.validate_meta(scope).await?;
