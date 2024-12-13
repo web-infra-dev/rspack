@@ -1,7 +1,7 @@
 const rspack = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+const common = {
 	target: 'web',
 	node: {
 		__dirname: false,
@@ -25,3 +25,37 @@ module.exports = {
 		css: true
 	}
 };
+
+module.exports = [
+	{
+		...common,
+		plugins: [
+			new rspack.DefinePlugin({
+				EXPORTS_ONLY: false
+			})
+		]
+	},
+	{
+		...common,
+		plugins: [
+			new rspack.DefinePlugin({
+				EXPORTS_ONLY: true
+			})
+		],
+		module: {
+			generator: {
+				"css/auto": {
+					localIdentName: "[path][name]-[local]",
+					exportsOnly: true,
+				}
+			}
+		},
+		optimization: {
+			minimize: true,
+			concatenateModules: true,
+			minimizer: [
+				new rspack.LightningCssMinimizerRspackPlugin(),
+			]
+		},
+	}
+]
