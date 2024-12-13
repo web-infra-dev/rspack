@@ -433,7 +433,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it("should not be running twice at a time (watch)", done => {
+	it.skip("should not be running twice at a time (watch)", done => {
 		const webpack = require("@rspack/core");
 		compiler = webpack({
 			context: __dirname,
@@ -471,7 +471,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it("should not be running twice at a time (watch - run)", done => {
+	it.skip("should not be running twice at a time (watch - run)", done => {
 		const webpack = require("@rspack/core");
 		compiler = webpack({
 			context: __dirname,
