@@ -1177,11 +1177,12 @@ const optimizationRuntimeChunk = z
 		})
 	) satisfies z.ZodType<t.OptimizationRuntimeChunk>;
 
-const optimizationSplitChunksNameFunction = z.function().args(
-	z.instanceof(Module).optional()
-	// FIXME: z.array(z.instanceof(Chunk)).optional(), z.string()
-	// FIXME: Chunk[],   															cacheChunkKey
-) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
+const optimizationSplitChunksNameFunction = z
+	.function()
+	.args(z.instanceof(Module), z.array(z.instanceof(Chunk)), z.string())
+	.returns(
+		z.string().optional()
+	) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
 
 const optimizationSplitChunksName = z
 	.string()

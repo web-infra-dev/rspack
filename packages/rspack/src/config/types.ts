@@ -2078,7 +2078,11 @@ export type OptimizationRuntimeChunk =
 			name?: string | ((value: { name: string }) => string);
 	  };
 
-export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+export type OptimizationSplitChunksNameFunction = (
+	module: Module,
+	chunks: Chunk[],
+	cacheGroupKey: string
+) => string | undefined;
 
 type OptimizationSplitChunksName =
 	| string
