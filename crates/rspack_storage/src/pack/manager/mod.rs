@@ -141,6 +141,11 @@ impl ScopeManager {
           self.strategy.ensure_contents(scope).await?;
           Ok(scope.get_contents())
         }
+        // create empty scope if not exists
+        ValidateResult::NotExists => {
+          self.clear_scope(name).await;
+          Ok(vec![])
+        }
         // clear scope if invalid
         ValidateResult::Invalid(_) => {
           self.clear_scope(name).await;
@@ -159,12 +164,12 @@ impl ScopeManager {
     let root_meta_guard = self.root_meta.lock().await;
     // no root, no scope
     let Some(root_meta) = root_meta_guard.expect_value() else {
-      return Ok(ValidateResult::invalid("root meta not exists"));
+      return Ok(ValidateResult::NotExists);
     };
     // no scope, need to create a new one
     let mut scopes_guard = self.scopes.lock().await;
     let Some(scope) = scopes_guard.get_mut(name) else {
-      return Ok(ValidateResult::invalid("scope not found in root meta"));
+      return Ok(ValidateResult::NotExists);
     };
 
     // scope exists, validate it
