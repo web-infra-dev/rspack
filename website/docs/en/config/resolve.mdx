@@ -73,6 +73,28 @@ module.exports = {
 };
 ```
 
+## resolve.exportsFields
+
+- **Type:** `string[]`
+- **Default:** `["exports"]`
+
+Customize the `exports` field in package.json. e.g.
+
+```json
+// lib/package.json
+{
+  "name": "lib",
+  "testExports": {
+    ".": "./test.js"
+  },
+  "exports": {
+    ".": "./index.js"
+  }
+}
+```
+
+When this configuration is `["testExports", "exports"]`, the result of `import value from 'lib'` is `lib/test.js`.
+
 ## resolve.extensions
 
 - **Type:** `string[]`
@@ -251,28 +273,6 @@ module.exports = {
   },
 };
 ```
-
-## resolve.exportsFields
-
-- **Type:** `string[]`
-- **Default:** `["exports"]`
-
-Customize the `exports` field in package.json. e.g.
-
-```json
-// lib/package.json
-{
-  "name": "lib",
-  "testExports": {
-    ".": "./test.js"
-  },
-  "exports": {
-    ".": "./index.js"
-  }
-}
-```
-
-When this configuration is `["testExports", "exports"]`, the result of `import value from 'lib'` is `lib/test.js`.
 
 ## resolve.modules
 

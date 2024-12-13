@@ -73,6 +73,28 @@ module.exports = {
 };
 ```
 
+## resolve.exportsFields
+
+- **类型：** `string[]`
+- **默认值：** `["exports"]`
+
+自定义 package.json 中的 exports 字段，例如：
+
+```json
+// lib/package.json
+{
+  "name": "lib",
+  "testExports": {
+    ".": "./test.js"
+  },
+  "exports": {
+    ".": "./index.js"
+  }
+}
+```
+
+则当配置为 `["testExports", "exports"]` 时, `import value from 'lib'` 的结果为 `lib/test.js`。
+
 ## resolve.extensions
 
 - **类型：** `string[]`
@@ -251,28 +273,6 @@ module.exports = {
   },
 };
 ```
-
-## resolve.exportsFields
-
-- **类型：** `string[]`
-- **默认值：** `["exports"]`
-
-自定义 package.json 中的 exports 字段，例如：
-
-```json
-// lib/package.json
-{
-  "name": "lib",
-  "testExports": {
-    ".": "./test.js"
-  },
-  "exports": {
-    ".": "./index.js"
-  }
-}
-```
-
-则当配置为 `["testExports", "exports"]` 时, `import value from 'lib'` 的结果为 `lib/test.js`。
 
 ## resolve.modules
 
