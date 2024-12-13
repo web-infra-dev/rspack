@@ -1,0 +1,13 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# WarnCaseSensitiveModulesPlugin
+
+<ApiMeta addedVersion={'1.2.0'} />
+
+检测并就区分大小写的模块命名冲突发出警告。
+
+当在具有其他大小写语义的文件系统上进行编译时，如果存在多个名称仅大小写不同的模块，可能会导致出现意外的错误行为。
+
+```js
+new rspack.WarnCaseSensitiveModulesPlugin();
+```
