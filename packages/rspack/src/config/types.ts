@@ -2208,7 +2208,7 @@ export type Optimization = {
 	/**
 	 * Which algorithm to use when choosing chunk ids.
 	 */
-	chunkIds?: "natural" | "named" | "deterministic";
+	chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
 
 	/**
 	 * Whether to minimize the bundle.
@@ -2343,14 +2343,16 @@ export type ExperimentCacheOptions =
 	  }
 	| {
 			type: "persistent";
-			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
+			buildDependencies?: string[];
+			version?: string;
+			snapshot?: {
+				immutablePaths?: Array<string | RegExp>;
+				unmanagedPaths?: Array<string | RegExp>;
+				managedPaths?: Array<string | RegExp>;
 			};
 			storage: {
 				type: "filesystem";
-				directory: string;
+				directory?: string;
 			};
 	  };
 

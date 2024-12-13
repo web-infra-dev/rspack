@@ -88,7 +88,14 @@ export const applyRspackOptionsDefaults = (
 	// but Rspack currently does not support this option
 	F(options, "cache", () => development);
 
-	applyExperimentsDefaults(options.experiments, { production });
+	applyExperimentsDefaults(options.experiments, {
+		production,
+		development
+	});
+
+	if (options.cache === false) {
+		options.experiments.cache = false;
+	}
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -194,10 +201,10 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (
 	experiments: ExperimentsNormalized,
-	{ production }: { production: boolean }
+	{ production, development }: { production: boolean; development: boolean }
 ) => {
 	// IGNORE(experiments.cache): In webpack, cache is undefined by default
-	F(experiments, "cache", () => !production);
+	F(experiments, "cache", () => development);
 
 	D(experiments, "futureDefaults", false);
 	// IGNORE(experiments.lazyCompilation): In webpack, lazyCompilation is undefined by default

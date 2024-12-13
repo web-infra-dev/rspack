@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_dev {
   use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
@@ -140,6 +139,7 @@ mod test_storage_dev {
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_dev() {
     let cases = [
       (

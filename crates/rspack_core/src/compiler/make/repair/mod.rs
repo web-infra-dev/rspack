@@ -6,7 +6,7 @@ pub mod process_dependencies;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::FileSystem;
+use rspack_fs::{FileSystem, IntermediateFileSystem, WritableFileSystem};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
@@ -25,6 +25,8 @@ pub struct MakeTaskContext {
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn FileSystem>,
+  pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
+  pub output_fs: Arc<dyn WritableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
@@ -48,6 +50,8 @@ impl MakeTaskContext {
       old_cache: compilation.old_cache.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
       fs: compilation.input_filesystem.clone(),
+      intermediate_fs: compilation.intermediate_filesystem.clone(),
+      output_fs: compilation.output_filesystem.clone(),
       artifact,
     }
   }
@@ -77,6 +81,8 @@ impl MakeTaskContext {
       Default::default(),
       Default::default(),
       self.fs.clone(),
+      self.intermediate_fs.clone(),
+      self.output_fs.clone(),
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.swap_make_artifact(&mut self.artifact);
