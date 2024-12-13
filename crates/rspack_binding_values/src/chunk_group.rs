@@ -69,7 +69,7 @@ impl JsChunkGroup {
 
     for origin in origins {
       js_origins.push(JsChunkGroupOrigin {
-        module: origin.module_id.and_then(|module_id| {
+        module: origin.module.and_then(|module_id| {
           compilation.module_by_identifier(&module_id).map(|module| {
             JsModuleWrapper::new(module.as_ref(), self.compilation_id, Some(compilation))
           })

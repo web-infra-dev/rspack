@@ -330,10 +330,10 @@ impl Stats<'_> {
           .flat_map(|ukey| {
             let chunk_group = chunk_group_by_ukey.expect_get(ukey);
             chunk_group.origins().iter().map(|origin| {
-              let module_identifier = origin.module_id;
+              let module_identifier = origin.module;
 
               let module_name = origin
-                .module_id
+                .module
                 .map(|identifier| {
                   module_graph
                     .module_by_identifier(&identifier)
@@ -343,7 +343,7 @@ impl Stats<'_> {
                 .unwrap_or_default();
 
               let module_id = origin
-                .module_id
+                .module
                 .map(|identifier| {
                   ChunkGraph::get_module_id(&self.compilation.module_ids, identifier)
                     .map(|s| s.to_string())
