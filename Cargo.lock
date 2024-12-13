@@ -3543,7 +3543,6 @@ dependencies = [
 name = "release-check"
 version = "0.1.0"
 dependencies = [
- "backtrace",
  "miette",
  "thiserror 1.0.69",
  "toml",
@@ -3907,7 +3906,6 @@ name = "rspack_error"
 version = "0.2.0"
 dependencies = [
  "anyhow",
- "backtrace",
  "cow-utils",
  "derivative",
  "futures",
