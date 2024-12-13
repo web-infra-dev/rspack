@@ -101,9 +101,12 @@ impl CssPlugin {
           "Conflicting order".into(),
           format!(
             "chunk {}\nConflicting order between {} and {}",
-            chunk
-              .name()
-              .unwrap_or(chunk.id().expect("should have chunk id")),
+            chunk.name().unwrap_or(
+              chunk
+                .id(&compilation.chunk_ids)
+                .expect("should have chunk id")
+                .as_str()
+            ),
             failed_module.readable_identifier(&compilation.options.context),
             selected_module.readable_identifier(&compilation.options.context)
           ),
@@ -333,12 +336,12 @@ async fn render_manifest(
   let output_path = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk_id_optional(chunk.id())
+      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
       .chunk_hash_optional(chunk.rendered_hash(
         &compilation.chunk_hashes_results,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template())
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
         &compilation.chunk_hashes_results,
         &SourceType::Css,

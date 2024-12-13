@@ -9,8 +9,9 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  chunk_graph_module::ModuleId, fast_set, incremental::IncrementalPasses, ChunkGraph, ChunkKind,
-  Compilation, Compiler, ModuleExecutor, RuntimeSpec,
+  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
+  incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
+  RuntimeSpec,
 };
 
 impl Compiler {
@@ -32,10 +33,13 @@ impl Compiler {
       .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect();
 
-    let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
+    let mut old_chunks: Vec<(ChunkId, RuntimeSpec)> = vec![];
     for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
       if chunk.kind() != ChunkKind::HotUpdate {
-        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime().clone()));
+        old_chunks.push((
+          chunk.expect_id(&old.compilation.chunk_ids).clone(),
+          chunk.runtime().clone(),
+        ));
       }
     }
 
@@ -125,6 +129,12 @@ impl Compiler {
       }
       if new_compilation
         .incremental
+        .can_read_mutations(IncrementalPasses::CHUNK_IDS)
+      {
+        new_compilation.chunk_ids = std::mem::take(&mut self.compilation.chunk_ids);
+      }
+      if new_compilation
+        .incremental
         .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
         new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
@@ -184,7 +194,7 @@ impl Compiler {
 
 #[derive(Debug)]
 pub struct CompilationRecords {
-  pub old_chunks: Vec<(String, RuntimeSpec)>,
+  pub old_chunks: Vec<(ChunkId, RuntimeSpec)>,
   pub all_old_runtime: RuntimeSpec,
   pub old_all_modules: IdentifierMap<(RspackHashDigest, ModuleId)>,
   pub old_runtime_modules: IdentifierMap<String>,

@@ -17,7 +17,7 @@ import {
 	type LoggerConsole,
 	createConsoleLogger
 } from "../logging/createConsoleLogger";
-import type { InputFileSystem, IntermediateFileSystem } from "../util/fs";
+import type { InputFileSystem } from "../util/fs";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
 
@@ -52,7 +52,7 @@ export default class NodeEnvironmentPlugin {
 		);
 		compiler.inputFileSystem = inputFileSystem;
 		compiler.outputFileSystem = fs;
-		compiler.intermediateFileSystem = fs as unknown as IntermediateFileSystem;
+		compiler.intermediateFileSystem = null;
 		compiler.watchFileSystem = new NodeWatchFileSystem(inputFileSystem);
 		compiler.hooks.beforeRun.tap("NodeEnvironmentPlugin", compiler => {
 			if (compiler.inputFileSystem === inputFileSystem) {

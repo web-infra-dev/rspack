@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use futures::future::BoxFuture;
 use rspack_paths::Utf8Path;
 
 use super::{FileMetadata, Result};
@@ -27,16 +26,16 @@ pub trait WritableFileSystem: Debug + Send + Sync {
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()>;
 
   /// Removes a file from the filesystem.
-  fn remove_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()>;
 
   /// Removes a directory at this path, after removing all its contents. Use carefully.
-  fn remove_dir_all<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<()>>;
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()>;
 
   /// Returns a list of all files in a directory.
-  fn read_dir<'a>(&'a self, dir: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<String>>>;
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>>;
 
   /// Read the entire contents of a file into a bytes vector.
-  fn read_file<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<Vec<u8>>>;
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>>;
 
-  fn stat<'a>(&'a self, file: &'a Utf8Path) -> BoxFuture<'a, Result<FileMetadata>>;
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata>;
 }

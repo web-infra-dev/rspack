@@ -2391,9 +2391,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.167"
+version = "0.2.168"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09d6582e104315a817dff97f75133544b2e094ee22447d2acf4a74e189ba06fc"
+checksum = "5aaeb2981e0606ca11d79718f8bb01164f1d6ed75080182d3abf017e6d244b6d"
 
 [[package]]
 name = "libloading"
@@ -4011,7 +4011,6 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "dunce",
- "futures",
  "rspack_error",
  "rspack_paths",
  "tokio",
@@ -4022,10 +4021,10 @@ name = "rspack_fs_node"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "futures",
  "napi",
  "napi-build",
  "napi-derive",
+ "rspack_error",
  "rspack_fs",
  "rspack_napi",
  "rspack_paths",
@@ -4954,6 +4953,23 @@ dependencies = [
  "serde_json",
  "simd-json",
  "static_assertions",
+]
+
+[[package]]
+name = "rspack_storage"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "cow-utils",
+ "futures",
+ "itertools 0.13.0",
+ "pollster",
+ "rayon",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_paths",
+ "rustc-hash 2.1.0",
+ "tokio",
 ]
 
 [[package]]

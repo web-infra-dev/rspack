@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
+  chunk_graph_chunk::ChunkId,
   collect_changed_modules,
   rspack_sources::{RawStringSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkKind, ChunkUkey, Compilation,
@@ -135,18 +136,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (chunk_id, old_runtime) in &old_chunks {
     let mut new_modules = vec![];
     let mut new_runtime_modules = vec![];
-    let mut chunk_id = chunk_id.to_string();
+    let mut chunk_id = chunk_id.clone();
     let mut new_runtime = all_old_runtime.clone();
     let mut removed_from_runtime = all_old_runtime.clone();
     let current_chunk = compilation
       .chunk_by_ukey
       .iter()
-      .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
+      .find(|(_, chunk)| chunk.expect_id(&compilation.chunk_ids).eq(&chunk_id))
       .map(|(_, chunk)| chunk);
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
 
     if let Some(current_chunk) = current_chunk {
-      chunk_id = current_chunk.expect_id().to_string();
+      chunk_id = current_chunk.expect_id(&compilation.chunk_ids).clone();
       new_runtime = Default::default();
       // intersectRuntime
       for old_runtime in all_old_runtime.iter() {
@@ -182,7 +183,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     for removed in removed_from_runtime {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
-        info.removed_chunk_ids.insert(chunk_id.to_string());
+        info.removed_chunk_ids.insert(chunk_id.clone());
       }
       // TODO:
       // for (const module of remainingModules) {}
@@ -190,7 +191,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
-      hot_update_chunk.set_id(Some(chunk_id.to_string()));
+      hot_update_chunk.set_id(&mut compilation.chunk_ids, chunk_id.clone());
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
         current_chunk.runtime().clone()
       } else {
@@ -265,8 +266,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .get_path(
               &compilation.options.output.hot_update_chunk_filename,
               PathData::default()
-                .chunk_id_optional(hot_update_chunk.id())
-                .chunk_name_optional(hot_update_chunk.name_for_filename_template())
+                .chunk_id_optional(
+                  hot_update_chunk
+                    .id(&compilation.chunk_ids)
+                    .map(|id| id.as_str()),
+                )
+                .chunk_name_optional(
+                  hot_update_chunk.name_for_filename_template(&compilation.chunk_ids),
+                )
                 .hash_optional(
                   old_hash
                     .as_ref()
@@ -294,7 +301,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime.as_ref()) {
-          info.updated_chunk_ids.insert(chunk_id.to_string());
+          info.updated_chunk_ids.insert(chunk_id.clone());
         }
       });
     }
@@ -312,8 +319,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     completely_removed_modules.into_iter().collect();
 
   for (_, content) in hot_update_main_content_by_runtime {
-    let c: Vec<String> = content.updated_chunk_ids.into_iter().collect();
-    let r: Vec<String> = content.removed_chunk_ids.into_iter().collect();
+    let c: Vec<ChunkId> = content.updated_chunk_ids.into_iter().collect();
+    let r: Vec<ChunkId> = content.removed_chunk_ids.into_iter().collect();
     let m: Vec<String> = completely_removed_modules_array
       .iter()
       .map(|x| x.to_owned())
@@ -445,8 +452,8 @@ impl Plugin for HotModuleReplacementPlugin {
 #[derive(Default)]
 struct HotUpdateContent {
   runtime: RuntimeSpec,
-  updated_chunk_ids: HashSet<String>,
-  removed_chunk_ids: HashSet<String>,
+  updated_chunk_ids: HashSet<ChunkId>,
+  removed_chunk_ids: HashSet<ChunkId>,
   _removed_modules: IdentifierSet,
 }
 

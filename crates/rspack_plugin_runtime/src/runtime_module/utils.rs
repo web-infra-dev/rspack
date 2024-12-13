@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  get_js_chunk_filename_template, stringify_map, Chunk, ChunkLoading, ChunkUkey, Compilation,
-  PathData, SourceType,
+  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey,
+  Compilation, PathData, SourceType,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -14,7 +14,7 @@ pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
   compilation: &Compilation,
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
-) -> HashSet<String> {
+) -> HashSet<ChunkId> {
   match chunk {
     Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
       Some(chunk) => {
@@ -24,10 +24,10 @@ pub fn get_initial_chunk_ids(
           .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id().to_string()
+            chunk.expect_id(&compilation.chunk_ids).clone()
           })
           .collect::<HashSet<_>>();
-        js_chunks.insert(chunk.expect_id().to_string());
+        js_chunks.insert(chunk.expect_id(&compilation.chunk_ids).clone());
         js_chunks
       }
       None => HashSet::default(),
@@ -36,7 +36,7 @@ pub fn get_initial_chunk_ids(
   }
 }
 
-pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
+pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
   let mut v = Vec::from_iter(chunks.iter());
   v.sort_unstable();
 
@@ -130,12 +130,12 @@ pub fn get_output_dir(
   let output_dir = compilation.get_path(
     &filename,
     PathData::default()
-      .chunk_id_optional(chunk.id())
+      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
       .chunk_hash_optional(chunk.rendered_hash(
         &compilation.chunk_hashes_results,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template())
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
         &compilation.chunk_hashes_results,
         &SourceType::JavaScript,
@@ -163,9 +163,9 @@ pub fn is_enabled_for_chunk(
   chunk_loading == expected
 }
 
-pub fn unquoted_stringify(chunk: &Chunk, str: &str) -> String {
-  if let Some(chunk_id) = chunk.id() {
-    if str.len() >= 5 && str == chunk_id {
+pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
+  if let Some(chunk_id) = chunk_id {
+    if str.len() >= 5 && str == chunk_id.as_str() {
       return "\" + chunkId + \"".to_string();
     }
   }
@@ -177,6 +177,7 @@ pub fn stringify_dynamic_chunk_map<F>(
   f: F,
   chunks: &UkeyIndexSet<ChunkUkey>,
   chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
+  compilation: &Compilation,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,
@@ -188,16 +189,16 @@ where
 
   for chunk_ukey in chunks.iter() {
     if let Some(chunk) = chunk_map.get(chunk_ukey) {
-      if let Some(chunk_id) = chunk.id() {
+      if let Some(chunk_id) = chunk.id(&compilation.chunk_ids) {
         if let Some(value) = f(chunk) {
-          if value == *chunk_id {
+          if value.as_str() == chunk_id.as_str() {
             use_id = true;
           } else {
             result.insert(
-              chunk_id.to_owned(),
+              chunk_id.as_str(),
               serde_json::to_string(&value).expect("invalid json to_string"),
             );
-            last_key = Some(chunk_id);
+            last_key = Some(chunk_id.as_str());
             entries += 1;
           }
         }
@@ -252,6 +253,24 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
     format!("{{ {} }}[chunkId]", content)
   };
   format!("if ({}) return {};", condition, filename)
+}
+
+fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
+  format!(
+    r#"{{{}}}"#,
+    map
+      .keys()
+      .sorted_unstable()
+      .fold(String::new(), |prev, cur| {
+        prev
+          + format!(
+            r#"{}: {},"#,
+            serde_json::to_string(cur).expect("json stringify failed"),
+            map.get(cur).expect("get key from map")
+          )
+          .as_str()
+      })
+  )
 }
 
 #[test]

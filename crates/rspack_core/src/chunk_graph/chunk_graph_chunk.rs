@@ -1,10 +1,18 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
+use std::borrow::Borrow;
+use std::fmt;
+use std::sync::Arc;
+
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_cacheable::cacheable;
+use rspack_collections::{
+  DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet, UkeyMap,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use serde::{Serialize, Serializer};
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule,
@@ -19,6 +27,51 @@ pub struct ChunkSizeOptions {
   pub chunk_overhead: Option<f64>,
   // multiplicator for initial chunks
   pub entry_chunk_multiplicator: Option<f64>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ChunkId {
+  inner: Arc<str>,
+}
+
+impl From<String> for ChunkId {
+  fn from(s: String) -> Self {
+    Self { inner: s.into() }
+  }
+}
+
+impl From<&str> for ChunkId {
+  fn from(s: &str) -> Self {
+    Self { inner: s.into() }
+  }
+}
+
+impl fmt::Display for ChunkId {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.as_str())
+  }
+}
+
+impl Serialize for ChunkId {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    serializer.serialize_str(self.as_str())
+  }
+}
+
+impl Borrow<str> for ChunkId {
+  fn borrow(&self) -> &str {
+    self.as_str()
+  }
+}
+
+impl ChunkId {
+  pub fn as_str(&self) -> &str {
+    &self.inner
+  }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -550,7 +603,10 @@ impl ChunkGraph {
       .iter()
     {
       let chunk = compilation.chunk_by_ukey.expect_get(c);
-      map.insert(chunk.expect_id().to_string(), filter(c, compilation));
+      map.insert(
+        chunk.expect_id(&compilation.chunk_ids).to_string(),
+        filter(c, compilation),
+      );
     }
 
     map
@@ -911,5 +967,24 @@ impl ChunkGraph {
         None
       })
       .unwrap_or(module.source_types().iter().copied().collect())
+  }
+
+  pub fn get_chunk_id<'a>(
+    chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>,
+    chunk_ukey: &ChunkUkey,
+  ) -> Option<&'a ChunkId> {
+    chunk_ids.get(chunk_ukey)
+  }
+
+  pub fn set_chunk_id(
+    chunk_ids: &mut UkeyMap<ChunkUkey, ChunkId>,
+    chunk_ukey: ChunkUkey,
+    id: ChunkId,
+  ) -> bool {
+    if let Some(old_id) = chunk_ids.insert(chunk_ukey, id.clone()) {
+      old_id != id
+    } else {
+      true
+    }
   }
 }

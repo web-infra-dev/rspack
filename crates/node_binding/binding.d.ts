@@ -75,6 +75,7 @@ export declare class JsChunkGraph {
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
+  getModuleId(jsModule: JsModule): string | null
 }
 
 export declare class JsChunkGroup {
@@ -205,6 +206,13 @@ export declare class JsEntries {
   values(): Array<EntryDataDto>
 }
 
+export declare class JsExportsInfo {
+  isUsed(runtime: string | string[] | undefined): boolean
+  isModuleUsed(runtime: string | string[] | undefined): boolean
+  setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
+  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
+}
+
 export declare class JsModule {
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
@@ -229,6 +237,7 @@ export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
+  getExportsInfo(module: JsModule): JsExportsInfo
 }
 
 export declare class JsResolver {
@@ -254,7 +263,7 @@ export declare class RawExternalItemFnCtx {
 }
 
 export declare class Rspack {
-  constructor(options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS, resolverFactoryReference: JsResolverFactory)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -1084,6 +1093,7 @@ export interface JsTap {
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
+  isSymlink: boolean
   atimeMs: number
   mtimeMs: number
   ctimeMs: number
@@ -2118,21 +2128,21 @@ export interface RegisterJsTaps {
 }
 
 export interface ThreadsafeNodeFS {
-  writeFile: (name: string, content: Buffer) => Promise<void> | void
-  removeFile: (name: string) => Promise<void> | void
-  mkdir: (name: string) => Promise<void> | void
-  mkdirp: (name: string) => Promise<string | void> | string | void
-  removeDirAll: (name: string) => Promise<string | void> | string | void
-  readDir: (name: string) => Promise<string[] | void> | string[] | void
-  readFile: (name: string) => Promise<Buffer | string | void> | Buffer | string | void
-  stat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
-  lstat: (name: string) => Promise<NodeFsStats | void> | NodeFsStats | void
-  open: (name: string, flags: string) => Promise<number | void> | number | void
-  rename: (from: string, to: string) => Promise<void> | void
-  close: (fd: number) => Promise<void> | void
-  write: (fd: number, content: Buffer, position: number) => Promise<number | void> | number | void
-  writeAll: (fd: number, content: Buffer) => Promise<number | void> | number | void
-  read: (fd: number, length: number, position: number) => Promise<Buffer | void> | Buffer | void
-  readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void> | Buffer | void
-  readToEnd: (fd: number, position: number) => Promise<Buffer | void> | Buffer | void
+  writeFile: (name: string, content: Buffer) => Promise<void>
+  removeFile: (name: string) => Promise<void>
+  mkdir: (name: string) => Promise<void>
+  mkdirp: (name: string) => Promise<string | void>
+  removeDirAll: (name: string) => Promise<string | void>
+  readDir: (name: string) => Promise<string[] | void>
+  readFile: (name: string) => Promise<Buffer | string | void>
+  stat: (name: string) => Promise<NodeFsStats | void>
+  lstat: (name: string) => Promise<NodeFsStats | void>
+  open: (name: string, flags: string) => Promise<number | void>
+  rename: (from: string, to: string) => Promise<void>
+  close: (fd: number) => Promise<void>
+  write: (fd: number, content: Buffer, position: number) => Promise<number | void>
+  writeAll: (fd: number, content: Buffer) => Promise<number | void>
+  read: (fd: number, length: number, position: number) => Promise<Buffer | void>
+  readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
+  readToEnd: (fd: number, position: number) => Promise<Buffer | void>
 }
