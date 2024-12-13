@@ -111,7 +111,9 @@ pub trait Dependency:
     create_exports_object_referenced()
   }
 
-  fn could_affect_referencing_module(&self) -> AffectType;
+  fn could_affect_referencing_module(&self) -> AffectType {
+    AffectType::True
+  }
 }
 
 impl dyn Dependency + '_ {
