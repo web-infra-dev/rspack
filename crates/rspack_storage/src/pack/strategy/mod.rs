@@ -78,7 +78,6 @@ pub struct InvalidDetail {
 
 #[derive(Debug)]
 pub enum ValidateResult {
-  NotExists,
   Valid,
   Invalid(InvalidDetail),
 }
@@ -104,7 +103,6 @@ impl ValidateResult {
 impl std::fmt::Display for ValidateResult {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      ValidateResult::NotExists => write!(f, "validation failed due to not exists"),
       ValidateResult::Valid => write!(f, "validation passed"),
       ValidateResult::Invalid(e) => {
         let mut pack_info_lines = e

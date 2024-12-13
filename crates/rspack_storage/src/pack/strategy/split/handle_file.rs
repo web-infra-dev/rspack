@@ -27,27 +27,23 @@ pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn PackFS>) -> R
 
 pub async fn move_temp_files(
   files: HashSet<Utf8PathBuf>,
-  src: &Utf8Path,
-  dist: &Utf8Path,
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
   fs: Arc<dyn PackFS>,
 ) -> Result<()> {
-  let lock_file = src.join("move.lock");
+  let lock_file = root.join("move.lock");
   let mut lock_writer = fs.write_file(&lock_file).await?;
+  let mut contents = vec![temp_root.to_string()];
+  contents.extend(files.iter().map(|path| path.to_string()));
+
   lock_writer
-    .write_all(
-      files
-        .iter()
-        .map(|path| path.to_string())
-        .collect::<Vec<_>>()
-        .join("\n")
-        .as_bytes(),
-    )
+    .write_all(contents.join("\n").as_bytes())
     .await?;
   lock_writer.flush().await?;
 
   let mut candidates = vec![];
   for to in files {
-    let from = redirect_to_path(&to, src, dist)?;
+    let from = redirect_to_path(&to, root, temp_root)?;
     candidates.push((from, to));
   }
 
@@ -68,22 +64,38 @@ pub async fn move_temp_files(
 }
 
 pub async fn recovery_move_lock(
-  src: &Utf8Path,
-  dist: &Utf8Path,
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
   fs: Arc<dyn PackFS>,
 ) -> Result<()> {
-  let lock_file = src.join("move.lock");
+  let lock_file = root.join("move.lock");
   if !fs.exists(&lock_file).await? {
     return Ok(());
   }
   let mut lock_reader = fs.read_file(&lock_file).await?;
-  let files = String::from_utf8(lock_reader.read_to_end().await?)
-    .map_err(|e| error!("parse utf8 failed: {}", e))?
-    .split("\n")
-    .map(Utf8PathBuf::from)
-    .collect::<HashSet<_>>();
+  let lock_file_content = String::from_utf8(lock_reader.read_to_end().await?)
+    .map_err(|e| error!("parse utf8 failed: {}", e))?;
+  let files = lock_file_content.split("\n").collect::<Vec<_>>();
+  fs.remove_file(&lock_file).await?;
 
-  move_temp_files(files, src, dist, fs).await?;
+  if files.is_empty() {
+    return Err(error!("incomplete storage due to empty `move.lock`"));
+  }
+  if files.first().is_some_and(|root| root.eq(temp_root)) {
+    return Err(error!(
+      "incomplete storage due to `mock.lock` from an unexpected directory"
+    ));
+  }
+  move_temp_files(
+    files[1..]
+      .iter()
+      .map(Utf8PathBuf::from)
+      .collect::<HashSet<_>>(),
+    root,
+    temp_root,
+    fs,
+  )
+  .await?;
   Ok(())
 }
 
@@ -98,7 +110,13 @@ pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<HashSet<Ut
           .read_dir(&path)
           .await?
           .into_iter()
-          .map(|name| path.join(name))
+          .filter_map(|name| {
+            if name.starts_with(".") {
+              None
+            } else {
+              Some(path.join(name))
+            }
+          })
           .collect::<Vec<_>>(),
       );
     } else {
@@ -152,12 +170,29 @@ pub async fn clean_scopes(scopes: &HashMap<String, PackScope>, fs: Arc<dyn PackF
   Ok(())
 }
 
+async fn remove_unused_scope(name: &str, dir: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  // do not remove hidden dirs
+  if name.starts_with(".") {
+    return Ok(());
+  }
+
+  // do not remove files
+  if !(fs.metadata(dir).await?.is_directory) {
+    return Ok(());
+  }
+
+  fs.remove_dir(dir).await?;
+
+  Ok(())
+}
+
 pub async fn clean_root(root: &Utf8Path, root_meta: &RootMeta, fs: Arc<dyn PackFS>) -> Result<()> {
   let dirs = fs.read_dir(root).await?;
   let tasks = dirs.difference(&root_meta.scopes).map(|name| {
-    let dir = root.join(name);
     let fs = fs.clone();
-    tokio::spawn(async move { fs.remove_dir(&dir).await })
+    let scope_dir = root.join(name);
+    let scope_name = name.clone();
+    tokio::spawn(async move { remove_unused_scope(&scope_name, &scope_dir, fs).await })
       .map_err(|e| error!("remove unused scope failed: {}", e))
   });
 
@@ -170,14 +205,28 @@ pub async fn clean_root(root: &Utf8Path, root_meta: &RootMeta, fs: Arc<dyn PackF
 }
 
 async fn remove_expired_version(
-  root_dir: &Utf8Path,
+  version: &str,
+  dir: &Utf8Path,
   expire: u64,
   fs: Arc<dyn PackFS>,
 ) -> Result<()> {
-  let meta = RootMeta::get_path(root_dir);
-  if !fs.exists(&meta).await? {
-    return fs.remove_dir(root_dir).await;
+  // do not remove hidden dirs and lock files
+  if version.starts_with(".") || version.contains(".lock") {
+    return Ok(());
   }
+
+  // do not remove files
+  if !(fs.metadata(dir).await?.is_directory) {
+    return Ok(());
+  }
+
+  // remove unknown directories
+  let meta = RootMeta::get_path(dir);
+  if !fs.exists(&meta).await? {
+    return fs.remove_dir(dir).await;
+  }
+
+  // remove direcotires of expired versions
   let mut reader = fs.read_file(&meta).await?;
   let last_modified = reader
     .read_line()
@@ -187,7 +236,7 @@ async fn remove_expired_version(
   let current = current_time();
 
   if current - last_modified > expire {
-    fs.remove_dir(root_dir).await
+    fs.remove_dir(dir).await
   } else {
     Ok(())
   }
@@ -195,11 +244,11 @@ async fn remove_expired_version(
 
 pub async fn clean_versions(root_options: &RootOptions, fs: Arc<dyn PackFS>) -> Result<()> {
   let dirs = fs.read_dir(&root_options.root).await?;
-  let tasks = dirs.iter().map(|name| {
-    let version_dir = root_options.root.join(name);
+  let tasks = dirs.into_iter().map(|version| {
+    let version_dir = root_options.root.join(&version);
     let fs = fs.clone();
     let expire = root_options.expire;
-    tokio::spawn(async move { remove_expired_version(&version_dir, expire, fs).await })
+    tokio::spawn(async move { remove_expired_version(&version, &version_dir, expire, fs).await })
       .map_err(|e| error!("remove expired version failed: {}", e))
   });
 
