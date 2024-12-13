@@ -13,16 +13,26 @@ use crate::{
 pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn PackFS>) -> Result<()> {
   let tasks = files.into_iter().map(|path| {
     let fs = fs.clone();
-    tokio::spawn(async move { fs.remove_file(&path).await })
-      .map_err(|e| error!("remove files failed: {}", e))
+    tokio::spawn(async move { fs.remove_file(&path).await }).map_err(|e| error!("{e}"))
   });
 
-  join_all(tasks)
+  let res = join_all(tasks)
     .await
     .into_iter()
-    .collect::<Result<Vec<Result<()>>>>()?;
+    .collect::<Result<Vec<_>>>()?;
 
-  Ok(())
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
+
+  if errors.is_empty() {
+    Ok(())
+  } else {
+    Err(error!("remove files failed:\n{}", errors.join("\n")))
+  }
 }
 
 pub async fn move_temp_files(
@@ -49,18 +59,28 @@ pub async fn move_temp_files(
 
   let tasks = candidates.into_iter().map(|(from, to)| {
     let fs = fs.clone();
-    tokio::spawn(async move { fs.move_file(&from, &to).await })
-      .map_err(|e| error!("move temp files failed: {}", e))
+    tokio::spawn(async move { fs.move_file(&from, &to).await }).map_err(|e| error!("{e}"))
   });
 
-  join_all(tasks)
+  let res = join_all(tasks)
     .await
     .into_iter()
     .collect::<Result<Vec<Result<()>>>>()?;
 
-  fs.remove_file(&lock_file).await?;
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
 
-  Ok(())
+  if errors.is_empty() {
+    fs.remove_file(&lock_file).await?;
+
+    Ok(())
+  } else {
+    Err(error!("move temp files failed:\n{}", errors.join("\n")))
+  }
 }
 
 pub async fn recovery_move_lock(
@@ -81,9 +101,9 @@ pub async fn recovery_move_lock(
   if files.is_empty() {
     return Err(error!("incomplete storage due to empty `move.lock`"));
   }
-  if files.first().is_some_and(|root| root.eq(temp_root)) {
+  if files.first().is_some_and(|root| !root.eq(temp_root)) {
     return Err(error!(
-      "incomplete storage due to `mock.lock` from an unexpected directory"
+      "incomplete storage due to `move.lock` from an unexpected directory"
     ));
   }
   move_temp_files(
@@ -162,12 +182,20 @@ async fn clean_scope(scope: &PackScope, fs: Arc<dyn PackFS>) -> Result<()> {
 pub async fn clean_scopes(scopes: &HashMap<String, PackScope>, fs: Arc<dyn PackFS>) -> Result<()> {
   let clean_scope_tasks = scopes.values().map(|scope| clean_scope(scope, fs.clone()));
 
-  join_all(clean_scope_tasks)
-    .await
-    .into_iter()
-    .collect::<Result<Vec<()>>>()?;
+  let res = join_all(clean_scope_tasks).await;
 
-  Ok(())
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
+
+  if errors.is_empty() {
+    Ok(())
+  } else {
+    Err(error!("clean scopes failed:\n{}", errors.join("\n")))
+  }
 }
 
 async fn remove_unused_scope(name: &str, dir: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
@@ -193,15 +221,29 @@ pub async fn clean_root(root: &Utf8Path, root_meta: &RootMeta, fs: Arc<dyn PackF
     let scope_dir = root.join(name);
     let scope_name = name.clone();
     tokio::spawn(async move { remove_unused_scope(&scope_name, &scope_dir, fs).await })
-      .map_err(|e| error!("remove unused scope failed: {}", e))
+      .map_err(|e| error!("{e}"))
   });
 
-  join_all(tasks)
+  let res = join_all(tasks)
     .await
     .into_iter()
-    .collect::<Result<Vec<Result<()>>>>()?;
+    .collect::<Result<Vec<_>>>()?;
 
-  Ok(())
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
+
+  if errors.is_empty() {
+    Ok(())
+  } else {
+    Err(error!(
+      "remove unused scopes failed:\n{}",
+      errors.join("\n")
+    ))
+  }
 }
 
 async fn remove_expired_version(version: &str, dir: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
@@ -251,15 +293,29 @@ pub async fn clean_versions(
       let fs = fs.clone();
       Some(
         tokio::spawn(async move { remove_expired_version(&version, &version_dir, fs).await })
-          .map_err(|e| error!("remove expired version failed: {}", e)),
+          .map_err(|e| error!("{e}")),
       )
     }
   });
 
-  join_all(tasks)
+  let res = join_all(tasks)
     .await
     .into_iter()
-    .collect::<Result<Vec<Result<()>>>>()?;
+    .collect::<Result<Vec<_>>>()?;
 
-  Ok(())
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
+
+  if errors.is_empty() {
+    Ok(())
+  } else {
+    Err(error!(
+      "remove expired versions failed:\n{}",
+      errors.join("\n")
+    ))
+  }
 }

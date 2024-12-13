@@ -263,6 +263,8 @@ async fn save_scopes(
   .into_iter()
   .collect_vec();
 
+  strategy.write_root_meta(root_meta).await?;
+
   join_all(
     scopes
       .values()
@@ -281,8 +283,6 @@ async fn save_scopes(
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
-
-  strategy.write_root_meta(root_meta).await?;
 
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;
