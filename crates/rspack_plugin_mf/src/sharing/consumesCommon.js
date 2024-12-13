@@ -107,7 +107,16 @@ var parseRange = function(str) {
     if (items.length === 1) {
       const items = str
         .trim()
-        .split(/(?<=[-0-9A-Za-z])\s+/g)
+        .split('').reduce((pre, cur) => {
+			    const lastIdx = pre.length-1;
+			    const t = pre[lastIdx] || '';
+			    if(/\s/.test(cur) && /[-0-9A-Za-z]/.test(t[t.length-1])){
+			      pre.push('')
+			    }else{
+			      pre[lastIdx] = t+cur
+			    }
+			    return pre
+			  }, ['']).filter(t=>t)
         .map(parseSimple);
       return combine(items, 2);
     }
