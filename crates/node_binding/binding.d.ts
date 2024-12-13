@@ -2037,7 +2037,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger"| "console", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

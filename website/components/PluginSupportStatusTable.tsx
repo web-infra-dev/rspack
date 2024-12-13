@@ -373,8 +373,9 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JavascriptModulesPlugin',
-    status: SupportStatus.partiallySupported,
+    status: SupportStatus.PartiallySupported,
     notes: {
+      zh: '静态方法 `getCompilationHooks()` 的返回值未支持所有 hook',
       en: 'Static `getCompilationHooks()` method does not return all hooks',
     },
   },
