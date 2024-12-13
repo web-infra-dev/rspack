@@ -315,6 +315,7 @@ export declare enum BuiltinPluginName {
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
   EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
@@ -1729,6 +1730,10 @@ export interface RawNodeOption {
 
 export interface RawNonStandard {
   deepSelectorCombinator: boolean
+}
+
+export interface RawOccurrenceChunkIdsPluginOptions {
+  prioritiseInitial?: boolean
 }
 
 export interface RawOptimizationOptions {

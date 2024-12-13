@@ -4084,7 +4084,7 @@ type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0
 // @public (undocumented)
 export type Optimization = {
     moduleIds?: "named" | "natural" | "deterministic";
-    chunkIds?: "natural" | "named" | "deterministic";
+    chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
     minimize?: boolean;
     minimizer?: Array<"..." | Plugin_2>;
     mergeDuplicateChunks?: boolean;
@@ -6918,7 +6918,7 @@ export const rspackOptions: z.ZodObject<{
     snapshot: z.ZodOptional<z.ZodObject<{}, "strict", z.ZodTypeAny, {}, {}>>;
     optimization: z.ZodOptional<z.ZodObject<{
         moduleIds: z.ZodOptional<z.ZodEnum<["named", "natural", "deterministic"]>>;
-        chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic"]>>;
+        chunkIds: z.ZodOptional<z.ZodEnum<["natural", "named", "deterministic", "size", "total-size"]>>;
         minimize: z.ZodOptional<z.ZodBoolean>;
         minimizer: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodLiteral<"...">, z.ZodUnion<[z.ZodType<t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction, z.ZodTypeDef, t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction>, z.ZodUnion<[z.ZodLiteral<false>, z.ZodLiteral<0>, z.ZodLiteral<"">, z.ZodNull, z.ZodUndefined]>]>]>, "many">>;
         mergeDuplicateChunks: z.ZodOptional<z.ZodBoolean>;
@@ -7182,7 +7182,7 @@ export const rspackOptions: z.ZodObject<{
             automaticNameDelimiter?: string | undefined;
         } | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        chunkIds?: "size" | "named" | "natural" | "deterministic" | "total-size" | undefined;
         removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | "..." | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
@@ -7248,7 +7248,7 @@ export const rspackOptions: z.ZodObject<{
             automaticNameDelimiter?: string | undefined;
         } | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        chunkIds?: "size" | "named" | "natural" | "deterministic" | "total-size" | undefined;
         removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | "..." | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
@@ -8684,7 +8684,7 @@ export const rspackOptions: z.ZodObject<{
             automaticNameDelimiter?: string | undefined;
         } | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        chunkIds?: "size" | "named" | "natural" | "deterministic" | "total-size" | undefined;
         removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | "..." | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
@@ -9286,7 +9286,7 @@ export const rspackOptions: z.ZodObject<{
             automaticNameDelimiter?: string | undefined;
         } | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
-        chunkIds?: "named" | "natural" | "deterministic" | undefined;
+        chunkIds?: "size" | "named" | "natural" | "deterministic" | "total-size" | undefined;
         removeAvailableModules?: boolean | undefined;
         minimize?: boolean | undefined;
         minimizer?: (false | "" | 0 | "..." | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
