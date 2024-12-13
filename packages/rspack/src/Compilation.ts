@@ -58,6 +58,8 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import { EntryOptions } from "./builtin-plugin";
+import WebpackError from "./lib/WebpackError";
 export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -259,6 +261,7 @@ export class Compilation {
 			return null;
 		}
 	};
+	needAdditionalPass: boolean;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side, using the Module identifier for association.
@@ -271,8 +274,7 @@ export class Compilation {
 			buildMeta: Record<string, unknown>;
 		}
 	>;
-
-	needAdditionalPass: boolean;
+	#addIncludeDispatcher: AddIncludeDispatcher;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
@@ -391,6 +393,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
+
+		this.#addIncludeDispatcher = new AddIncludeDispatcher(
+			inner.addInclude.bind(inner)
+		);
 	}
 
 	get hash(): Readonly<string | null> {
@@ -1153,6 +1159,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
+	addInclude(
+		context: string,
+		dependency: Dependency,
+		options: EntryOptions,
+		callback: (err?: null | WebpackError, module?: Module) => void
+	) {
+		this.#addIncludeDispatcher.call(context, dependency, options, callback);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
@@ -1259,6 +1274,48 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
+}
+
+class AddIncludeDispatcher {
+	#inner: binding.JsCompilation["addInclude"];
+	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
+		[];
+	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+
+	#execute() {
+		const args = this.#args;
+		this.#args = [];
+		const cbs = this.#cbs;
+		this.#cbs = [];
+		this.#inner(args, results => {
+			for (let i = 0; i < results.length; i++) {
+				const [errMsg, moduleBinding] = results[i];
+				const cb = cbs[i];
+				cb(
+					errMsg ? new WebpackError(errMsg) : null,
+					Module.__from_binding(moduleBinding)
+				);
+			}
+		});
+	}
+
+	constructor(binding: binding.JsCompilation["addInclude"]) {
+		this.#inner = binding;
+	}
+
+	call(
+		context: string,
+		dependency: Dependency,
+		options: EntryOptions,
+		callback: (err?: null | WebpackError, module?: Module) => void
+	) {
+		if (this.#args.length === 0) {
+			queueMicrotask(this.#execute);
+		}
+
+		this.#args.push([context, { request: "xxx" }, options as any]);
+		this.#cbs.push(callback);
+	}
 }
 
 export class EntryData {

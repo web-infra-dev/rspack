@@ -724,7 +724,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (args: [string, JsModule][]) => void"
+    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (results: [string, JsModule][]) => void"
   )]
   pub fn add_include(
     &mut self,
@@ -760,12 +760,16 @@ impl JsCompilation {
         .iter()
         .map(|(dependency, _)| *dependency.id())
         .collect::<Vec<_>>();
-      compilation
-        .add_include(args)
-        .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
-      let args = dependency_ids
+      if let Err(e) = compilation.add_include(args).await {
+        let results = dependency_ids
+          .iter()
+          .map(|_| (Either::A(format!("{e}")), Either::A(())))
+          .collect::<Vec<_>>();
+        return Ok(JsAddIncludeCallbackArgs(results));
+      }
+
+      let results = dependency_ids
         .into_iter()
         .map(|dependency_id| {
           let module_graph = compilation.get_module_graph();
@@ -795,7 +799,7 @@ impl JsCompilation {
         })
         .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
 
-      Ok(JsAddIncludeCallbackArgs(args))
+      Ok(JsAddIncludeCallbackArgs(results))
     })
   }
 }
