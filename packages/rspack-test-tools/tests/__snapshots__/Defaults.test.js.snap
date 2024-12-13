@@ -18,7 +18,7 @@ Object {
   },
   experiments: Object {
     asyncWebAssembly: false,
-    cache: true,
+    cache: false,
     css: undefined,
     futureDefaults: false,
     incremental: Object {

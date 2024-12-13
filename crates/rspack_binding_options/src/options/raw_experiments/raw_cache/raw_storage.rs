@@ -15,7 +15,7 @@ impl From<RawStorageOptions> for StorageOptions {
       "filesystem" => StorageOptions::FileSystem {
         directory: value.directory.into(),
       },
-      s => panic!("unsupport storage type {s}"),
+      s => panic!("unsupported storage type {s}"),
     }
   }
 }
