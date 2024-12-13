@@ -180,3 +180,8 @@ impl ToNapiValue for JsDependencyWrapper {
 }
 
 pub type JsRuntimeSpec = Either<String, Vec<String>>;
+
+#[napi(object)]
+pub struct RawDependency {
+  pub request: String,
+}

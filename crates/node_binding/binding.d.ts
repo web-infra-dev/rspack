@@ -140,6 +140,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
+  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (args: [string, JsModule][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -1316,6 +1317,10 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+}
+
+export interface RawDependency {
+  request: string
 }
 
 export interface RawDllEntryPluginOptions {

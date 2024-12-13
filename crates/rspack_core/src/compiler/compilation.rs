@@ -146,7 +146,7 @@ type ValueCacheVersions = HashMap<String, String>;
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
 static MAKE_LOCK_BY_COMPILATION_ID: LazyLock<DashMap<CompilationId, Mutex<()>>> =
-  LazyLock::new(|| DashMap::default());
+  LazyLock::new(DashMap::default);
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -229,7 +229,7 @@ pub struct Compilation {
   pub make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
 
-  in_finish_make_stage: bool,
+  in_finish_make: bool,
 }
 
 impl Compilation {
@@ -333,7 +333,7 @@ impl Compilation {
       removed_files,
       input_filesystem,
 
-      in_finish_make_stage: false,
+      in_finish_make: false,
     }
   }
 
@@ -550,13 +550,14 @@ impl Compilation {
     Ok(())
   }
 
-  pub async fn add_include(&mut self, entries: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
+  pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
     let _ = MAKE_LOCK_BY_COMPILATION_ID
       .entry(self.id)
       .or_insert(Mutex::new(()))
-      .lock();
+      .lock()
+      .await;
 
-    if !self.in_finish_make_stage {
+    if !self.in_finish_make {
       return Err(
         InternalError::new(
           "You can only call `add_include` during the finish make stage".to_string(),
@@ -566,7 +567,7 @@ impl Compilation {
       );
     }
 
-    for (entry, options) in entries {
+    for (entry, options) in args {
       let entry_id = *entry.id();
       self.get_module_graph_mut().add_dependency(entry);
       if let Some(name) = options.name.clone() {
@@ -602,7 +603,6 @@ impl Compilation {
       )],
     )
     .await?;
-
     Ok(())
   }
 
@@ -825,7 +825,7 @@ impl Compilation {
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact).await?;
 
-    self.in_finish_make_stage = true;
+    self.in_finish_make = true;
 
     Ok(())
   }
@@ -1187,7 +1187,7 @@ impl Compilation {
       );
     }
 
-    self.in_finish_make_stage = false;
+    self.in_finish_make = false;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
