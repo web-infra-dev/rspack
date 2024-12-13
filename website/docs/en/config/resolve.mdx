@@ -181,16 +181,15 @@ Customize the `imports` field in package.json which are used to provide the inte
 
 e.g.
 
-```
-// package.json
+```json title="package.json"
 {
   "name": "lib",
   "imports": {
     "#foo": "./src/foo.js",
     "#common/*": "./src/common/*.js"
-  }
+  },
   "testImports": {
-    "#foo": "./src/test/foo.js",
+    "#foo": "./src/test/foo.js"
   }
 }
 ```
@@ -200,21 +199,41 @@ When this configuration is ["testImports", "imports"], the result of `import val
 ## resolve.mainFields
 
 - **Type:** `string[]`
-- **Default:**
-  - `target` is `["browser", "module", "main"]` when it is web
-  - `["module", "main"]` for others
+- **Default:** Based on the [target](/config/target) option
 
-Try to parse the fields in package.json, e.g.
+When importing from an npm package, for example `import React from 'react'`, `resolve.mainFields` is used to determine which fields in `package.json` are resolved.
 
-```json
-// package.json
+If `target` is `'web'`, `'webworker'`, or not specified, the default value is `["browser", "module", "main"]`.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFields: ['browser', 'module', 'main'],
+  },
+};
+```
+
+For any other `target` (including `'node'`), the default value is `["module", "main"]`.
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFields: ['module', 'main'],
+  },
+};
+```
+
+For example, consider an arbitrary library called `foo` with a `package.json` that contains the following fields:
+
+```json title="package.json"
 {
-  "name": "lib",
-  "module": "es/index.js"
+  "name": "foo",
+  "browser": "./dist/browser.js",
+  "module": "./dist/module.js"
 }
 ```
 
-then `import value from 'lib'` results in `lib/es/index.js`.
+When `import foo from 'foo'`, Rspack resolves to the module in the `browser` field, because the `browser` field has the highest priority in `mainFields` array.
 
 ## resolve.mainFiles
 
@@ -222,6 +241,16 @@ then `import value from 'lib'` results in `lib/es/index.js`.
 - **default:** `["index"]`
 
 The filename suffix when resolving directories, e.g. `require('. /dir/')` will try to resolve `'. /dir/index'`.
+
+Can configure multiple filename suffixes:
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFiles: ['index', 'main'],
+  },
+};
+```
 
 ## resolve.exportsFields
 
