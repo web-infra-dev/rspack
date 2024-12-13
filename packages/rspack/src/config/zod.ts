@@ -1296,14 +1296,26 @@ const experimentCacheOptions = z
 	.or(
 		z.object({
 			type: z.enum(["persistent"]),
-			snapshot: z.strictObject({
-				immutablePaths: z.string().or(z.instanceof(RegExp)).array(),
-				unmanagedPaths: z.string().or(z.instanceof(RegExp)).array(),
-				managedPaths: z.string().or(z.instanceof(RegExp)).array()
-			}),
+			buildDependencies: z.string().array().optional(),
+			version: z.string().optional(),
+			snapshot: z
+				.object({
+					immutablePaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					unmanagedPaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
+				})
+				.optional(),
 			storage: z.strictObject({
 				type: z.enum(["filesystem"]),
-				directory: z.string()
+				directory: z.string().optional()
 			})
 		})
 	);

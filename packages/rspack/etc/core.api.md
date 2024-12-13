@@ -1899,11 +1899,13 @@ interface ExecuteModuleContext {
     __webpack_require__: (id: string) => any;
 }
 
-// @public
-export type ExperimentCacheOptions = boolean | {
+// @public (undocumented)
+export type ExperimentCacheNormalized = boolean | {
     type: "memory";
 } | {
     type: "persistent";
+    buildDependencies: string[];
+    version: string;
     snapshot: {
         immutablePaths: Array<string | RegExp>;
         unmanagedPaths: Array<string | RegExp>;
@@ -1912,6 +1914,24 @@ export type ExperimentCacheOptions = boolean | {
     storage: {
         type: "filesystem";
         directory: string;
+    };
+};
+
+// @public
+export type ExperimentCacheOptions = boolean | {
+    type: "memory";
+} | {
+    type: "persistent";
+    buildDependencies?: string[];
+    version?: string;
+    snapshot?: {
+        immutablePaths?: Array<string | RegExp>;
+        unmanagedPaths?: Array<string | RegExp>;
+        managedPaths?: Array<string | RegExp>;
+    };
+    storage: {
+        type: "filesystem";
+        directory?: string;
     };
 };
 
@@ -1948,7 +1968,7 @@ export interface ExperimentsNormalized {
     // (undocumented)
     asyncWebAssembly?: boolean;
     // (undocumented)
-    cache?: ExperimentCacheOptions;
+    cache?: ExperimentCacheNormalized;
     // (undocumented)
     css?: boolean;
     // (undocumented)
@@ -5170,6 +5190,7 @@ declare namespace rspackExports {
         EntryDescriptionNormalized,
         OutputNormalized,
         ModuleOptionsNormalized,
+        ExperimentCacheNormalized,
         ExperimentsNormalized,
         IgnoreWarningsNormalized,
         OptimizationRuntimeChunkNormalized,
@@ -6211,51 +6232,57 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         }>, z.ZodObject<{
             type: z.ZodEnum<["persistent"]>;
-            snapshot: z.ZodObject<{
-                immutablePaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-                unmanagedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-                managedPaths: z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">;
-            }, "strict", z.ZodTypeAny, {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
+            buildDependencies: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+            version: z.ZodOptional<z.ZodString>;
+            snapshot: z.ZodOptional<z.ZodObject<{
+                immutablePaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+                unmanagedPaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+                managedPaths: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, "many">>;
+            }, "strip", z.ZodTypeAny, {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
             }, {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            }>;
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            }>>;
             storage: z.ZodObject<{
                 type: z.ZodEnum<["filesystem"]>;
-                directory: z.ZodString;
+                directory: z.ZodOptional<z.ZodString>;
             }, "strict", z.ZodTypeAny, {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             }, {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             }>;
         }, "strip", z.ZodTypeAny, {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         }, {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         }>]>]>;
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
@@ -6441,15 +6468,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -6504,15 +6533,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -8437,15 +8468,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -9037,15 +9070,17 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
-            snapshot: {
-                immutablePaths: (string | RegExp)[];
-                unmanagedPaths: (string | RegExp)[];
-                managedPaths: (string | RegExp)[];
-            };
             storage: {
                 type: "filesystem";
-                directory: string;
+                directory?: string | undefined;
             };
+            version?: string | undefined;
+            snapshot?: {
+                immutablePaths?: (string | RegExp)[] | undefined;
+                unmanagedPaths?: (string | RegExp)[] | undefined;
+                managedPaths?: (string | RegExp)[] | undefined;
+            } | undefined;
+            buildDependencies?: string[] | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
