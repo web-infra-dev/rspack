@@ -344,8 +344,8 @@ impl Compiler {
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
-      let (filename, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(filename);
+      let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
+      let file_path = output_path.join(target_file);
       self
         .output_filesystem
         .create_dir_all(
@@ -360,9 +360,9 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(filename, &asset.info.content_hash)
-            || include_hash(filename, &asset.info.chunk_hash)
-            || include_hash(filename, &asset.info.full_hash));
+          && (include_hash(target_file, &asset.info.content_hash)
+            || include_hash(target_file, &asset.info.chunk_hash)
+            || include_hash(target_file, &asset.info.full_hash));
       }
 
       let stat = match self
