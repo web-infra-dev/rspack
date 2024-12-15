@@ -1022,9 +1022,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.2.3"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eed5fff0d93c7559121e9c72bf9c242295869396255071ff2cb1617147b608c5"
+checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
 dependencies = [
  "quote",
  "syn 2.0.90",
@@ -2684,7 +2684,7 @@ checksum = "04aea9dbe75cd1a1abecf8a66fba1e694c12ce6e6e4e11824dc274e141a6c251"
 dependencies = [
  "anyhow",
  "bitflags 2.6.0",
- "ctor 0.2.3",
+ "ctor 0.2.9",
  "napi-build",
  "napi-sys",
  "serde",
