@@ -115,10 +115,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "anymap"
-version = "1.0.0-beta.2"
+name = "anymap3"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f1f8f5a6f3d50d89e3797d7593a50f96bb2aaa20ca0cc7be1fb673232c91d72"
+checksum = "170433209e817da6aae2c51aa0dd443009a613425dd041ebfb2492d1c4c11a25"
 
 [[package]]
 name = "arbitrary"
@@ -3841,7 +3841,7 @@ dependencies = [
 name = "rspack_core"
 version = "0.2.0"
 dependencies = [
- "anymap",
+ "anymap3",
  "async-recursion",
  "async-trait",
  "bitflags 2.6.0",
@@ -4035,7 +4035,7 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.2.0"
 dependencies = [
- "anymap",
+ "anymap3",
  "async-trait",
  "derivative",
  "once_cell",
@@ -4449,7 +4449,7 @@ dependencies = [
 name = "rspack_plugin_javascript"
 version = "0.2.0"
 dependencies = [
- "anymap",
+ "anymap3",
  "async-trait",
  "bitflags 2.6.0",
  "cow-utils",
