@@ -33,7 +33,11 @@ pub fn normalize_raw_experiment_cache_options(
 ) -> ExperimentCacheOptions {
   match options {
     Either::A(persistent_options) => ExperimentCacheOptions::Persistent(PersistentCacheOptions {
-      build_dependencies: persistent_options.build_dependencies,
+      build_dependencies: persistent_options
+        .build_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect(),
       version: persistent_options.version,
       snapshot: persistent_options.snapshot.into(),
       storage: persistent_options.storage.into(),
