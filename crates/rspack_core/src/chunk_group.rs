@@ -17,7 +17,7 @@ use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
 pub struct OriginRecord {
-  pub module_id: Option<ModuleIdentifier>,
+  pub module: Option<ModuleIdentifier>,
   pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
 }
@@ -304,13 +304,13 @@ impl ChunkGroup {
     request: Option<String>,
   ) {
     self.origins.push(OriginRecord {
-      module_id,
+      module: module_id,
       loc,
       request,
     });
   }
 
-  pub fn origins(&self) -> &Vec<OriginRecord> {
+  pub fn origins(&self) -> &[OriginRecord] {
     &self.origins
   }
 

@@ -315,6 +315,7 @@ export declare enum BuiltinPluginName {
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
   EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
@@ -1379,8 +1380,10 @@ export interface RawExperimentCacheOptionsCommon {
 
 export interface RawExperimentCacheOptionsPersistent {
   type: "persistent"
+  buildDependencies: Array<string>
+  version: string
   snapshot: RawExperimentSnapshotOptions
-  storage: Array<RawStorageOptions>
+  storage: RawStorageOptions
 }
 
 export interface RawExperiments {
@@ -1727,6 +1730,10 @@ export interface RawNodeOption {
 
 export interface RawNonStandard {
   deepSelectorCombinator: boolean
+}
+
+export interface RawOccurrenceChunkIdsPluginOptions {
+  prioritiseInitial?: boolean
 }
 
 export interface RawOptimizationOptions {

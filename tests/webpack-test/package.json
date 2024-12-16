@@ -66,7 +66,7 @@
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
-    "@swc/helpers": "0.5.13",
+    "@swc/helpers": "0.5.15",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",

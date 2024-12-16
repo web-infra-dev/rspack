@@ -1280,8 +1280,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
-    let mut add_origin = None;
-
     let cgi = if let Some(cgi) = cgi {
       let cgi = self.chunk_group_infos.expect_get(cgi);
       let module_graph = compilation.get_module_graph();
@@ -1335,7 +1333,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
             let cgi = self.chunk_group_infos.expect_get(cgi);
-            add_origin = Some((cgi.chunk_group, loc, request));
+
+            compilation
+              .chunk_group_by_ukey
+              .expect_get_mut(&cgi.chunk_group)
+              .add_origin(Some(module_id), loc, request);
+
             compilation
               .chunk_graph
               .connect_block_and_chunk_group(block_id, cgi.chunk_group);
@@ -1435,7 +1438,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             cgi = item_chunk_group_info;
           }
 
-          add_origin = Some((cgi.chunk_group, loc.clone(), request));
+          compilation
+            .chunk_group_by_ukey
+            .expect_get_mut(&cgi.chunk_group)
+            .add_origin(Some(module_id), loc, request);
 
           compilation
             .chunk_graph
@@ -1515,13 +1521,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .chunk_group_by_ukey
         .expect_get_mut(&item_chunk_group);
       item_chunk_group.add_async_entrypoint(entrypoint);
-    }
-
-    if let Some((chunk_group_ukey, loc, request)) = add_origin {
-      let chunk_group = compilation
-        .chunk_group_by_ukey
-        .expect_get_mut(&chunk_group_ukey);
-      chunk_group.add_origin(None, loc, request);
     }
   }
 
