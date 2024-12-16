@@ -17,7 +17,7 @@ use rspack_error::{
   error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
   Severity,
 };
-use rspack_fs::FileSystem;
+use rspack_fs::{FileSystem, IntermediateFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
@@ -226,6 +226,9 @@ pub struct Compilation {
   pub make_artifact: MakeArtifact,
   pub input_filesystem: Arc<dyn FileSystem>,
 
+  pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  pub output_filesystem: Arc<dyn WritableFileSystem>,
+
   in_finish_make: bool,
   make_lock: Mutex<()>,
 }
@@ -265,6 +268,8 @@ impl Compilation {
     modified_files: HashSet<ArcPath>,
     removed_files: HashSet<ArcPath>,
     input_filesystem: Arc<dyn FileSystem>,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+    output_filesystem: Arc<dyn WritableFileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
@@ -330,6 +335,9 @@ impl Compilation {
       modified_files,
       removed_files,
       input_filesystem,
+
+      intermediate_filesystem,
+      output_filesystem,
 
       in_finish_make: false,
       make_lock: Mutex::default(),

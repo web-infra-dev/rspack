@@ -46,8 +46,12 @@ impl Snapshot {
     // TODO merge package version file
     for path in paths {
       // TODO check path exists
+      let utf8_path = path.assert_utf8();
+      if self.fs.metadata(utf8_path).is_err() {
+        continue;
+      }
       // TODO directory check all sub file
-      let path_str = path.assert_utf8().as_str();
+      let path_str = utf8_path.as_str();
       if self.options.is_immutable_path(path_str) {
         continue;
       }
@@ -78,13 +82,13 @@ impl Snapshot {
     }
   }
 
-  pub fn calc_modified_paths(&self) -> (HashSet<ArcPath>, HashSet<ArcPath>) {
+  pub async fn calc_modified_paths(&self) -> (HashSet<ArcPath>, HashSet<ArcPath>) {
     let mut helper = StrategyHelper::new(self.fs.clone());
     let mut modified_path = HashSet::default();
     let mut deleted_path = HashSet::default();
 
     // TODO use multi thread
-    for (key, value) in self.storage.load(SCOPE) {
+    for (key, value) in self.storage.load(SCOPE).await.unwrap_or_default() {
       let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
       let strategy: Strategy =
         from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
@@ -108,7 +112,7 @@ mod tests {
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 
-  use super::super::MemoryStorage;
+  use super::super::storage::MemoryStorage;
   use super::{PathMatcher, Snapshot, SnapshotOptions};
 
   macro_rules! p {
@@ -177,7 +181,7 @@ mod tests {
       .await
       .unwrap();
 
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths();
+    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await;
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
     assert!(modified_paths.contains(p!("/file1")));
@@ -191,7 +195,7 @@ mod tests {
     .await
     .unwrap();
     snapshot.add([p!("/file1")].into_iter());
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths();
+    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await;
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
     assert!(!modified_paths.contains(p!("/file1")));

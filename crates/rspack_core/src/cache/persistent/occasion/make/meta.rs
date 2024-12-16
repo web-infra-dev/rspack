@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 use super::Storage;
 use crate::{BuildDependency, DEPENDENCY_ID};
 
-const SCOPE: &str = "occasion::make::meta";
+const SCOPE: &str = "occasion_make_meta";
 
 /// The value struct of current storage scope
 #[cacheable]
@@ -44,10 +44,10 @@ pub fn save_meta(
   Ok(())
 }
 
-pub fn recovery_meta(
+pub async fn recovery_meta(
   storage: &Arc<dyn Storage>,
 ) -> Result<(HashSet<BuildDependency>, IdentifierSet), DeserializeError> {
-  let Some((_, value)) = storage.load(SCOPE).pop() else {
+  let Some((_, value)) = storage.load(SCOPE).await.unwrap_or_default().pop() else {
     return Err(DeserializeError::MessageError("can not get meta data"));
   };
   let meta: Meta = from_bytes(&value, &())?;

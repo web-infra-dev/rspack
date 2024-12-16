@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_error {
   use std::{path::PathBuf, sync::Arc};
 
@@ -155,6 +154,7 @@ mod test_storage_error {
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_error() {
     let cases = [
       (

@@ -56,6 +56,7 @@ import {
 	NaturalModuleIdsPlugin,
 	NoEmitOnErrorsPlugin,
 	NodeTargetPlugin,
+	OccurrenceChunkIdsPlugin,
 	RealContentHashPlugin,
 	RemoveEmptyChunksPlugin,
 	RuntimeChunkPlugin,
@@ -64,7 +65,6 @@ import {
 	SizeLimitsPlugin,
 	SourceMapDevToolPlugin,
 	SplitChunksPlugin,
-	WarnCaseSensitiveModulesPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
@@ -337,6 +337,18 @@ export class RspackOptionsApply {
 					new DeterministicChunkIdsPlugin().apply(compiler);
 					break;
 				}
+				case "size": {
+					new OccurrenceChunkIdsPlugin({
+						prioritiseInitial: true
+					}).apply(compiler);
+					break;
+				}
+				case "total-size": {
+					new OccurrenceChunkIdsPlugin({
+						prioritiseInitial: false
+					}).apply(compiler);
+					break;
+				}
 				default:
 					throw new Error(`chunkIds: ${chunkIds} is not implemented`);
 			}
@@ -360,8 +372,6 @@ export class RspackOptionsApply {
 		if (options.performance) {
 			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
-
-		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
 		if (options.cache) {
 			new MemoryCachePlugin().apply(compiler);

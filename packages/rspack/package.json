@@ -49,8 +49,8 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@swc/core": "1.7.40",
-    "@swc/types": "0.1.12",
+    "@swc/core": "1.10.1",
+    "@swc/types": "0.1.17",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",

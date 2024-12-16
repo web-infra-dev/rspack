@@ -1,0 +1,13 @@
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# WarnCaseSensitiveModulesPlugin
+
+<ApiMeta addedVersion={'1.2.0'} />
+
+Detect and warn about case-sensitive module naming conflicts.
+
+When compiling on a file system with other case semantics, if there are multiple modules whose names differ only in casing, it may lead to unexpected error behaviors.
+
+```js
+new rspack.WarnCaseSensitiveModulesPlugin();
+```

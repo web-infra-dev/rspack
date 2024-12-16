@@ -134,7 +134,7 @@ function resolveRustTraceOptions(value: string): RustTraceOptions {
 			layer === "chrome"
 				? parsed.get("output") || defaultRustTraceChromeOutput
 				: parsed.get("output") || defaultRustTraceLoggerOutput;
-		if (layer !== "chrome" && layer !== "logger" && layer !== "console") {
+		if (layer !== "chrome" && layer !== "logger") {
 			throw new Error(
 				`${layer} is not a valid layer, should be chrome or logger`
 			);
