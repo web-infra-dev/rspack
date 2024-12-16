@@ -9,13 +9,13 @@ mod test_storage_error {
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
-      .join("./rspack_test/storage/test_storage_error")
+      .join("rspack_test/storage/test_storage_error")
       .join(p);
     (base.join("cache"), base.join("temp"))
   }
 
   pub fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
-    let base = PathBuf::from("/test_storage_error/").join(p);
+    let base = PathBuf::from("/rspack_test/storage/test_storage_error/").join(p);
     (base.join("cache"), base.join("temp"))
   }
 
@@ -158,11 +158,11 @@ mod test_storage_error {
   async fn test_error() {
     let cases = [
       (
-        get_native_path("test_recovery_native"),
+        get_native_path("test_error_native"),
         Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
       ),
       (
-        get_memory_path("test_recovery_memory"),
+        get_memory_path("test_error_memory"),
         Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];

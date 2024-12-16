@@ -8,7 +8,7 @@ mod write_scope;
 
 use std::{hash::Hasher, sync::Arc};
 
-use handle_file::{clean_root, clean_scopes, clean_versions};
+use handle_file::{clean_root, clean_scopes, clean_versions, recovery_move_lock};
 use itertools::Itertools;
 use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -17,7 +17,7 @@ use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy, ValidateResult};
 use crate::pack::{
-  data::{current_time, PackContents, PackKeys, PackScope, RootMeta, RootOptions},
+  data::{current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions},
   fs::PackFS,
 };
 
@@ -57,6 +57,10 @@ impl SplitPackStrategy {
 
 #[async_trait::async_trait]
 impl RootStrategy for SplitPackStrategy {
+  async fn before_load(&self) -> Result<()> {
+    recovery_move_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
+    Ok(())
+  }
   async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
     let meta_path = RootMeta::get_path(&self.root);
     if !self.fs.exists(&meta_path).await? {
@@ -64,7 +68,7 @@ impl RootStrategy for SplitPackStrategy {
     }
 
     let mut reader = self.fs.read_file(&meta_path).await?;
-    let last_modified = reader
+    let expire_time = reader
       .read_line()
       .await?
       .parse::<u64>()
@@ -77,8 +81,9 @@ impl RootStrategy for SplitPackStrategy {
       .collect::<HashSet<_>>();
 
     Ok(Some(RootMeta {
-      last_modified,
+      expire_time,
       scopes,
+      from: RootMetaFrom::File,
     }))
   }
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
@@ -87,7 +92,7 @@ impl RootStrategy for SplitPackStrategy {
     let mut writer = self.fs.write_file(&meta_path).await?;
 
     writer
-      .write_line(root_meta.last_modified.to_string().as_str())
+      .write_line(root_meta.expire_time.to_string().as_str())
       .await?;
 
     writer
@@ -97,12 +102,16 @@ impl RootStrategy for SplitPackStrategy {
     writer.flush().await?;
     Ok(())
   }
-  async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult> {
-    let now = current_time();
-    if now - root_meta.last_modified > expire {
-      Ok(ValidateResult::invalid("cache expired"))
-    } else {
+  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
+    if matches!(root_meta.from, RootMetaFrom::New) {
       Ok(ValidateResult::Valid)
+    } else {
+      let now = current_time();
+      if now > root_meta.expire_time {
+        Ok(ValidateResult::invalid("cache expired"))
+      } else {
+        Ok(ValidateResult::Valid)
+      }
     }
   }
 
@@ -119,7 +128,7 @@ impl RootStrategy for SplitPackStrategy {
     let _ = tokio::try_join!(
       clean_scopes(scopes, self.fs.clone()),
       clean_root(&self.root, root_meta, self.fs.clone()),
-      clean_versions(root_options, self.fs.clone())
+      clean_versions(&self.root, root_options, self.fs.clone())
     );
 
     Ok(())

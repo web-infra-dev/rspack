@@ -14,16 +14,25 @@ pub struct PackFileMeta {
 }
 
 #[derive(Debug, Default, Clone)]
+pub enum RootMetaFrom {
+  #[default]
+  New,
+  File,
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct RootMeta {
-  pub last_modified: u64,
+  pub expire_time: u64,
   pub scopes: HashSet<String>,
+  pub from: RootMetaFrom,
 }
 
 impl RootMeta {
-  pub fn new(scopes: HashSet<String>) -> Self {
+  pub fn new(scopes: HashSet<String>, expire: u64) -> Self {
     Self {
       scopes,
-      last_modified: current_time(),
+      expire_time: current_time() + expire,
+      from: RootMetaFrom::New,
     }
   }
   pub fn get_path(dir: &Utf8Path) -> Utf8PathBuf {
