@@ -104,6 +104,13 @@ jobs:
           echo 'codegen-units = 64' >> Cargo.toml
           echo 'incremental = false' >> Cargo.toml
 
+      - name: Trim paths
+        shell: bash
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo '[unstable]' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
       - name: Check local cache
         id: check_cache
         if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
