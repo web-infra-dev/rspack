@@ -47,11 +47,11 @@ use crate::{
   ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationExportsFinalNames, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoOrTemporaryDataHashKey,
-  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
-  Module, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleType, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt,
-  Template, UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType,
+  FactoryMeta, IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
+  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -1888,7 +1888,7 @@ impl ConcatenatedModule {
     as_call: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Binding {
     let info = module_to_info_map
       .get(info_id)
@@ -2048,8 +2048,8 @@ impl ConcatenatedModule {
     }
 
     let exports_info = mg.get_exports_info(&info.id());
-    // webpack use get_exports_info here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
-    // But in our arch, there is no way to modify module graph during code_generation phase
+    // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
+    // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
     let export_info = exports_info.get_export_info_without_mut_module_graph(mg, &export_name[0]);
     let export_info_hash_key = export_info.as_hash_key();
 

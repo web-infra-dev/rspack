@@ -311,17 +311,20 @@ impl ExportsInfo {
     new_info_id
   }
 
+  // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
+  // You can use this when you can't or don't want to use `&mut ModuleGraph`.
+  // Currently this function is used to finding a reexport's target.
   pub fn get_export_info_without_mut_module_graph(
     &self,
     mg: &ModuleGraph,
     name: &Atom,
-  ) -> ExportInfoOrTemporaryData {
+  ) -> MaybeDynamicTargetExportInfo {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_info_id = exports_info.exports.get(name);
     if let Some(export_info_id) = export_info_id {
-      return ExportInfoOrTemporaryData::ExportInfo(*export_info_id);
+      return MaybeDynamicTargetExportInfo::Static(*export_info_id);
     }
     if let Some(redirect_id) = redirect_id {
       return redirect_id.get_export_info_without_mut_module_graph(mg, name);
@@ -329,8 +332,8 @@ impl ExportsInfo {
 
     let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
     let data = ExportInfoData::new(Some(name.clone()), Some(other_export_info));
-    ExportInfoOrTemporaryData::TemporaryData {
-      dynamic_export_name: name.clone(),
+    MaybeDynamicTargetExportInfo::Dynamic {
+      export_name: name.clone(),
       other_export_info: other_exports_info_id,
       data,
     }
@@ -1223,13 +1226,13 @@ impl ExportInfo {
     &self,
     mg: &ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let data = self.as_export_info(mg);
     if !data.target_is_set || data.target.is_empty() {
       return None;
     }
-    let hash_key = ExportInfoOrTemporaryDataHashKey::ExportInfo(*self);
+    let hash_key = MaybeDynamicTargetExportInfoHashKey::ExportInfo(*self);
     if already_visited.contains(&hash_key) {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }
@@ -1435,7 +1438,7 @@ impl ExportInfo {
     &self,
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-    visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> FindTargetRetEnum {
     self
       .as_export_info(mg)
@@ -1674,7 +1677,7 @@ impl ExportInfoData {
     &self,
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-    visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> FindTargetRetEnum {
     if !self.target_is_set || self.target.is_empty() {
       return FindTargetRetEnum::Undefined;
@@ -1745,7 +1748,7 @@ impl ExportInfoData {
     &self,
     mg: &ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let max_target = self.get_max_target();
     let mut values = max_target
@@ -1792,37 +1795,46 @@ impl ExportInfoData {
   }
 }
 
+// The reture value of `get_export_info_without_mut_module_graph`, when a module's exportType
+// is undefined, FlagDependencyExportsPlugin can't analyze the exports statically. In webpack,
+// it's possiable to add a exportInfo with `provided: null` by `get_export_info` in some
+// optimization plugins:
+//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/ExportsInfo.js#L1367 called by SideEffectsFlagPlugin
+//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/optimize/ConcatenatedModule.js#L399 called by ModuleConcatenationPlugin
+// So the Dynamic variant is used to represent this situation without mutate the ModuleGraph,
+// and the Static variant represents the most situation which FlagDependencyExportsPlugin can
+// analyze the exports statically.
 #[derive(Debug)]
-pub enum ExportInfoOrTemporaryData {
-  ExportInfo(ExportInfo),
-  TemporaryData {
-    dynamic_export_name: Atom,
+pub enum MaybeDynamicTargetExportInfo {
+  Static(ExportInfo),
+  Dynamic {
+    export_name: Atom,
     other_export_info: ExportInfo,
     data: ExportInfoData,
   },
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-pub enum ExportInfoOrTemporaryDataHashKey {
+pub enum MaybeDynamicTargetExportInfoHashKey {
   ExportInfo(ExportInfo),
   TemporaryData {
-    dynamic_export_name: Atom,
+    export_name: Atom,
     other_export_info: ExportInfo,
   },
 }
 
-impl ExportInfoOrTemporaryData {
-  pub fn as_hash_key(&self) -> ExportInfoOrTemporaryDataHashKey {
+impl MaybeDynamicTargetExportInfo {
+  pub fn as_hash_key(&self) -> MaybeDynamicTargetExportInfoHashKey {
     match self {
-      ExportInfoOrTemporaryData::ExportInfo(export_info) => {
-        ExportInfoOrTemporaryDataHashKey::ExportInfo(*export_info)
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
+        MaybeDynamicTargetExportInfoHashKey::ExportInfo(*export_info)
       }
-      ExportInfoOrTemporaryData::TemporaryData {
-        dynamic_export_name,
+      MaybeDynamicTargetExportInfo::Dynamic {
+        export_name,
         other_export_info,
         ..
-      } => ExportInfoOrTemporaryDataHashKey::TemporaryData {
-        dynamic_export_name: dynamic_export_name.clone(),
+      } => MaybeDynamicTargetExportInfoHashKey::TemporaryData {
+        export_name: export_name.clone(),
         other_export_info: *other_export_info,
       },
     }
@@ -1830,8 +1842,8 @@ impl ExportInfoOrTemporaryData {
 
   pub fn provided<'a>(&'a self, mg: &'a ModuleGraph) -> Option<&'a ExportInfoProvided> {
     match self {
-      ExportInfoOrTemporaryData::ExportInfo(export_info) => export_info.provided(mg),
-      ExportInfoOrTemporaryData::TemporaryData { data, .. } => data.provided.as_ref(),
+      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.provided(mg),
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided.as_ref(),
     }
   }
 
@@ -1847,13 +1859,13 @@ impl ExportInfoOrTemporaryData {
     &self,
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-    visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> FindTargetRetEnum {
     match self {
-      ExportInfoOrTemporaryData::ExportInfo(export_info) => {
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
         export_info.find_target_impl(mg, valid_target_module_filter, visited)
       }
-      ExportInfoOrTemporaryData::TemporaryData { data, .. } => {
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
         data.find_target_impl(mg, valid_target_module_filter, visited)
       }
     }
@@ -1863,13 +1875,13 @@ impl ExportInfoOrTemporaryData {
     &self,
     mg: &ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     match self {
-      ExportInfoOrTemporaryData::ExportInfo(export_info) => {
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
         export_info.get_target_impl(mg, resolve_filter, already_visited)
       }
-      ExportInfoOrTemporaryData::TemporaryData { data, .. } => {
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
         if !data.target_is_set || data.target.is_empty() {
           return None;
         }
@@ -1888,7 +1900,7 @@ pub type ResolveFilterFnTy = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) 
 
 fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
-  already_visited: &mut HashSet<ExportInfoOrTemporaryDataHashKey>,
+  already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   resolve_filter: ResolveFilterFnTy,
   mg: &ModuleGraph,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
