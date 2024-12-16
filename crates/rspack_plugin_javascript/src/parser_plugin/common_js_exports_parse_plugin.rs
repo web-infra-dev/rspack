@@ -120,7 +120,7 @@ fn is_lit_truthy_literal(lit: &Lit) -> bool {
   }
 }
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   fn is_exports_member_expr_start<E: ExprLike>(&mut self, expr: &E) -> bool {
     fn walk_each<E: ExprLike>(parser: &mut JavascriptParser, expr: &E) -> bool {
       if parser.is_exports_expr(expr) {

@@ -299,12 +299,12 @@ impl PluginCssExtract {
     (result, conflicts)
   }
 
-  async fn render_content_asset<'comp>(
+  async fn render_content_asset(
     &self,
     chunk: &Chunk,
     rendered_modules: &[&dyn Module],
     filename: &str,
-    compilation: &'comp Compilation,
+    compilation: &'_ Compilation,
   ) -> (BoxSource, Vec<Diagnostic>) {
     let module_graph = compilation.get_module_graph();
     // mini-extract-plugin has different conflict order in some cases,

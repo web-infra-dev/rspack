@@ -10,7 +10,7 @@ pub struct Inline<T = AsCacheable> {
   _inner: T,
 }
 
-impl<'a, T, F> ArchiveWith<&'a F> for Inline<T>
+impl<T, F> ArchiveWith<&F> for Inline<T>
 where
   T: ArchiveWith<F>,
 {
@@ -23,7 +23,7 @@ where
   }
 }
 
-impl<'a, T, F, S> SerializeWith<&'a F, S> for Inline<T>
+impl<T, F, S> SerializeWith<&F, S> for Inline<T>
 where
   T: SerializeWith<F, S>,
   S: Fallible + ?Sized,

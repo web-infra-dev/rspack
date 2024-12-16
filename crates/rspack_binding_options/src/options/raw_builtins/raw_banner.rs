@@ -15,7 +15,7 @@ pub struct JsBannerContentFnCtx {
   pub filename: String,
 }
 
-impl<'a> From<BannerContentFnCtx<'a>> for JsBannerContentFnCtx {
+impl From<BannerContentFnCtx<'_>> for JsBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
