@@ -6,7 +6,9 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
 
-use super::data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope};
+use super::data::{
+  Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
+};
 use crate::{StorageItemKey, StorageItemValue};
 
 pub struct UpdatePacksResult {
@@ -17,8 +19,27 @@ pub struct UpdatePacksResult {
 
 #[async_trait]
 pub trait ScopeStrategy:
-  ScopeReadStrategy + ScopeWriteStrategy + ScopeValidateStrategy + std::fmt::Debug + Sync + Send
+  RootStrategy
+  + ScopeReadStrategy
+  + ScopeWriteStrategy
+  + ScopeValidateStrategy
+  + std::fmt::Debug
+  + Sync
+  + Send
 {
+}
+
+#[async_trait]
+pub trait RootStrategy {
+  async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
+  async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult>;
+  async fn clean_unused(
+    &self,
+    root_meta: &RootMeta,
+    scopes: &HashMap<String, PackScope>,
+    root_options: &RootOptions,
+  ) -> Result<()>;
 }
 
 #[async_trait]
@@ -56,6 +77,7 @@ pub struct InvalidDetail {
 
 #[derive(Debug)]
 pub enum ValidateResult {
+  NotExists,
   Valid,
   Invalid(InvalidDetail),
 }
@@ -81,6 +103,7 @@ impl ValidateResult {
 impl std::fmt::Display for ValidateResult {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
+      ValidateResult::NotExists => write!(f, "validation failed due to not exists"),
       ValidateResult::Valid => write!(f, "validation passed"),
       ValidateResult::Invalid(e) => {
         let mut pack_info_lines = e

@@ -6,7 +6,7 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
@@ -71,9 +71,9 @@ impl Rspack {
     let loader_resolver_factory = (*resolver_factory_reference)
       .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
 
-    let intermediate_filesystem: Option<Box<dyn IntermediateFileSystem>> =
+    let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
-        Some(Box::new(NodeFileSystem::new(fs).map_err(|e| {
+        Some(Arc::new(NodeFileSystem::new(fs).map_err(|e| {
           Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
         })?))
       } else {
@@ -85,7 +85,7 @@ impl Rspack {
       compiler_options,
       plugins,
       rspack_binding_options::buildtime_plugins::buildtime_plugins(),
-      Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
+      Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
       intermediate_filesystem,
@@ -246,7 +246,7 @@ static GLOBAL_TRACE_STATE: Mutex<TraceState> = Mutex::new(TraceState::Off);
 #[napi]
 pub fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = "\"chrome\" | \"logger\"| \"console\"")] layer: String,
+  #[napi(ts_arg_type = "\"chrome\" | \"logger\"")] layer: String,
   output: String,
 ) {
   let mut state = GLOBAL_TRACE_STATE
@@ -255,10 +255,6 @@ pub fn register_global_trace(
   if matches!(&*state, TraceState::Off) {
     let guard = match layer.as_str() {
       "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(&filter, &output),
-      "console" => {
-        rspack_tracing::enable_tracing_by_env_with_tokio_console();
-        None
-      }
       "logger" => {
         rspack_tracing::enable_tracing_by_env(&filter, &output);
         None

@@ -2,25 +2,28 @@ mod cacheable_context;
 mod occasion;
 pub mod snapshot;
 pub mod storage;
+mod version;
 use std::sync::Arc;
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
-use rspack_fs::FileSystem;
+use rspack_fs::{FileSystem, IntermediateFileSystem, Result};
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{MemoryStorage, Storage, StorageOptions},
+  storage::{create_storage, Storage, StorageOptions},
 };
 use super::Cache;
 use crate::{make::MakeArtifact, Compilation, CompilerOptions};
 
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
+  pub build_dependencies: Vec<String>,
+  pub version: String,
   pub snapshot: SnapshotOptions,
-  pub storage: Vec<StorageOptions>,
+  pub storage: StorageOptions,
 }
 
 /// Persistent cache implementation
@@ -33,29 +36,39 @@ pub struct PersistentCache {
 
 impl PersistentCache {
   pub fn new(
+    compiler_path: &String,
     option: &PersistentCacheOptions,
-    input_filesystem: Arc<dyn FileSystem>,
     compiler_options: Arc<CompilerOptions>,
-  ) -> Self {
-    let storage = Arc::new(MemoryStorage::default());
+    input_filesystem: Arc<dyn FileSystem>,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  ) -> Result<Self> {
+    let version = version::get_version(
+      compiler_options.context.as_ref(),
+      input_filesystem.clone(),
+      &option.build_dependencies,
+      vec![compiler_path, &option.version],
+    )?;
+    let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
     let context = Arc::new(CacheableContext {
       options: compiler_options,
       input_filesystem: input_filesystem.clone(),
     });
     let make_occasion = MakeOccasion::new(storage.clone(), context);
-    Self {
+    Ok(Self {
       snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
       storage,
       make_occasion,
-    }
+    })
   }
 }
 
+#[async_trait::async_trait]
 impl Cache for PersistentCache {
-  fn before_compile(&self, compilation: &mut Compilation) {
+  async fn before_compile(&self, compilation: &mut Compilation) {
     if compilation.modified_files.is_empty() && compilation.removed_files.is_empty() {
       // inject modified_files and removed_files
-      let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths();
+      let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths().await;
+      tracing::info!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files = modified_paths;
       compilation.removed_files = removed_paths;
     }
@@ -92,13 +105,17 @@ impl Cache for PersistentCache {
       .snapshot
       .add(modified_paths.iter().map(|item| item.as_ref()));
 
-    self.storage.trigger_save();
+    // TODO listen for storage finish in build mode
+    let _ = self.storage.trigger_save();
   }
 
-  fn before_make(&self, make_artifact: &mut MakeArtifact) {
+  async fn before_make(&self, make_artifact: &mut MakeArtifact) {
     if !make_artifact.initialized {
-      if let Ok(artifact) = self.make_occasion.recovery() {
-        *make_artifact = artifact;
+      match self.make_occasion.recovery().await {
+        Ok(artifact) => *make_artifact = artifact,
+        Err(err) => {
+          tracing::warn!("recovery error with {err:?}")
+        }
       }
     }
   }

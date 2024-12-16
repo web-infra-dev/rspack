@@ -1,14 +1,10 @@
-use std::{hash::Hasher, sync::Arc};
+use std::hash::Hasher;
 
 use itertools::Itertools;
 use rspack_error::Result;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHasher;
 
-use crate::pack::{
-  data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope},
-  fs::PackFS,
-};
+use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
 
 pub type PackIndexList = Vec<(usize, usize)>;
 pub type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
@@ -67,33 +63,9 @@ pub fn choose_bucket(key: &[u8], total: &usize) -> usize {
   num % total
 }
 
-pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<HashSet<Utf8PathBuf>> {
-  let mut files = HashSet::default();
-  let mut stack = vec![root.to_owned()];
-  while let Some(path) = stack.pop() {
-    let meta = fs.metadata(&path).await?;
-    if meta.is_directory {
-      stack.append(
-        &mut fs
-          .read_dir(&path)
-          .await?
-          .into_iter()
-          .map(|name| path.join(name))
-          .collect::<Vec<_>>(),
-      );
-    } else {
-      files.insert(path);
-    }
-  }
-  Ok(files)
-}
-
 #[cfg(test)]
 pub mod test_pack_utils {
-  use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-  };
+  use std::sync::Arc;
 
   use itertools::Itertools;
   use rspack_error::Result;
@@ -103,14 +75,25 @@ pub mod test_pack_utils {
 
   use crate::{
     pack::{
-      data::{PackOptions, PackScope},
+      data::{current_time, PackOptions, PackScope},
       fs::PackFS,
       strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
     },
     PackBridgeFS,
   };
 
-  pub async fn mock_meta_file(
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn PackFS) -> Result<()> {
+    fs.ensure_dir(path.parent().expect("should have parent"))
+      .await?;
+    let mut writer = fs.write_file(path).await?;
+    let current = current_time();
+    writer.write_all(current.to_string().as_bytes()).await?;
+    writer.flush().await?;
+
+    Ok(())
+  }
+
+  pub async fn mock_scope_meta_file(
     path: &Utf8Path,
     fs: &dyn PackFS,
     options: &PackOptions,
@@ -119,12 +102,8 @@ pub mod test_pack_utils {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
-    let current = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .expect("should get current time")
-      .as_millis() as u64;
     writer
-      .write_line(format!("{} {} {}", options.bucket_size, options.pack_size, current).as_str())
+      .write_line(format!("{} {}", options.bucket_size, options.pack_size).as_str())
       .await?;
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];

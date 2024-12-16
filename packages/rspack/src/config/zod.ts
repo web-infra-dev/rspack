@@ -1244,7 +1244,9 @@ const optimizationSplitChunksOptions = z.strictObject({
 
 const optimization = z.strictObject({
 	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
-	chunkIds: z.enum(["natural", "named", "deterministic"]).optional(),
+	chunkIds: z
+		.enum(["natural", "named", "deterministic", "size", "total-size"])
+		.optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
@@ -1296,14 +1298,26 @@ const experimentCacheOptions = z
 	.or(
 		z.object({
 			type: z.enum(["persistent"]),
-			snapshot: z.strictObject({
-				immutablePaths: z.string().or(z.instanceof(RegExp)).array(),
-				unmanagedPaths: z.string().or(z.instanceof(RegExp)).array(),
-				managedPaths: z.string().or(z.instanceof(RegExp)).array()
-			}),
+			buildDependencies: z.string().array().optional(),
+			version: z.string().optional(),
+			snapshot: z
+				.object({
+					immutablePaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					unmanagedPaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
+				})
+				.optional(),
 			storage: z.strictObject({
 				type: z.enum(["filesystem"]),
-				directory: z.string()
+				directory: z.string().optional()
 			})
 		})
 	);

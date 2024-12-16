@@ -40,6 +40,7 @@ import {
 	createRawModuleRuleUses
 } from "./adapterRuleUse";
 import type {
+	ExperimentCacheNormalized,
 	ExperimentsNormalized,
 	ModuleOptionsNormalized,
 	OutputNormalized,
@@ -57,7 +58,6 @@ import type {
 	CssAutoGeneratorOptions,
 	CssGeneratorOptions,
 	CssParserOptions,
-	ExperimentCacheOptions,
 	GeneratorOptionsByModuleType,
 	Incremental,
 	JavascriptParserOptions,
@@ -904,7 +904,7 @@ function getRawExperiments(
 }
 
 function getRawExperimentCache(
-	cache?: ExperimentCacheOptions
+	cache?: ExperimentCacheNormalized
 ): RawExperiments["cache"] {
 	if (cache === undefined) {
 		throw new Error("experiment cache can not be undefined");
@@ -912,14 +912,6 @@ function getRawExperimentCache(
 	if (typeof cache === "boolean") {
 		return {
 			type: cache ? "memory" : "disable"
-		};
-	}
-	if (cache.type === "persistent") {
-		const { type, snapshot, storage } = cache;
-		return {
-			type,
-			snapshot,
-			storage: [storage]
 		};
 	}
 	return cache;

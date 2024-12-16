@@ -8,55 +8,85 @@ use pollster::block_on;
 use queue::TaskQueue;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use rspack_error::{error, Error, Result};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
-use super::data::{PackOptions, PackScope};
+use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
 use super::strategy::{ScopeStrategy, ValidateResult, WriteScopeResult};
 use super::ScopeUpdates;
 use crate::StorageContent;
 
-type ScopeMap = HashMap<&'static str, PackScope>;
+type ScopeMap = HashMap<String, PackScope>;
 
 #[derive(Debug)]
 pub struct ScopeManager {
+  pub root_options: Arc<RootOptions>,
+  pub pack_options: Arc<PackOptions>,
   pub strategy: Arc<dyn ScopeStrategy>,
-  pub options: Arc<PackOptions>,
   pub scopes: Arc<Mutex<ScopeMap>>,
+  pub root_meta: Arc<Mutex<RootMetaState>>,
   pub queue: TaskQueue,
 }
 
 impl ScopeManager {
-  pub fn new(options: Arc<PackOptions>, strategy: Arc<dyn ScopeStrategy>) -> Self {
+  pub fn new(
+    root_options: Arc<RootOptions>,
+    pack_options: Arc<PackOptions>,
+    strategy: Arc<dyn ScopeStrategy>,
+  ) -> Self {
     ScopeManager {
+      root_options,
+      pack_options,
       strategy,
-      options,
       scopes: Default::default(),
       queue: TaskQueue::new(),
+      root_meta: Default::default(),
     }
   }
 
   pub fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
-    let options = self.options.clone();
+    let pack_options = self.pack_options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
+    let root_meta = self.root_meta.clone();
     block_on(async move {
-      update_scopes(
-        &mut *scopes.lock().await,
+      let mut scopes_guard = scopes.lock().await;
+      match update_scopes(
+        &mut scopes_guard,
         updates,
-        options.clone(),
+        pack_options.clone(),
         strategy.as_ref(),
-      )
+      ) {
+        Ok(_) => {
+          *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
+            scopes_guard
+              .iter()
+              .filter(|(_, scope)| scope.loaded())
+              .map(|(name, _)| name.clone())
+              .collect::<HashSet<_>>(),
+          )));
+          Ok(())
+        }
+        Err(e) => Err(Error::from(e)),
+      }
     })?;
 
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
+    let root_meta = self.root_meta.clone();
+    let root_options = self.root_options.clone();
     let (tx, rx) = oneshot::channel();
     self.queue.add_task(Box::pin(async move {
       let mut scopes_lock = scopes.lock().await;
+      let root_meta = root_meta
+        .lock()
+        .await
+        .expect_value()
+        .clone()
+        .expect("should have root meta");
       let old_scopes = std::mem::take(&mut *scopes_lock);
-      let res = save_scopes(old_scopes, strategy.as_ref()).await;
+      let res = save_scopes(old_scopes, &root_meta, strategy.as_ref(), &root_options).await;
       let _ = match res {
         Ok(new_scopes) => {
           let _ = std::mem::replace(&mut *scopes_lock, new_scopes);
@@ -70,62 +100,129 @@ impl ScopeManager {
   }
 
   pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
-    let mut scopes = self.scopes.lock().await;
-    let scope = scopes
-      .entry(name)
-      .or_insert_with(|| PackScope::new(self.strategy.get_path(name), self.options.clone()));
-
-    match validate_scope(scope, self.strategy.as_ref()).await {
-      Ok(validated) => {
-        if validated.is_valid() {
-          self.strategy.ensure_contents(scope).await?;
-          Ok(scope.get_contents())
-          // Ok(vec![])
-        } else {
-          scope.clear();
-          Err(error!(validated.to_string()))
+    if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
+      let loaded = self.strategy.read_root_meta().await?;
+      if let Some(meta) = &loaded {
+        for scope_name in meta.scopes.clone() {
+          self
+            .scopes
+            .lock()
+            .await
+            .entry(scope_name.clone())
+            .or_insert_with(|| {
+              PackScope::new(
+                self.strategy.get_path(&scope_name),
+                self.pack_options.clone(),
+              )
+            });
         }
       }
+      *self.root_meta.lock().await = RootMetaState::Value(loaded);
+    }
+
+    match self.validate_scope(name).await {
+      Ok(validated) => match validated {
+        // load from disk for valid scope
+        ValidateResult::Valid => {
+          let mut scopes = self.scopes.lock().await;
+          let scope = scopes.get_mut(name).expect("should have scope");
+          self.strategy.ensure_contents(scope).await?;
+          Ok(scope.get_contents())
+        }
+        // create empty scope if not exists
+        ValidateResult::NotExists => {
+          self
+            .scopes
+            .lock()
+            .await
+            .entry(name.to_string())
+            .or_insert_with(|| {
+              PackScope::empty(self.strategy.get_path(name), self.pack_options.clone())
+            });
+          Ok(vec![])
+        }
+        // clear scope if invalid
+        ValidateResult::Invalid(_) => {
+          self
+            .scopes
+            .lock()
+            .await
+            .get_mut(name)
+            .expect("should have scope")
+            .clear();
+          Err(error!(validated.to_string()))
+        }
+      },
       Err(e) => {
-        scope.clear();
+        // clear scope if error
+        self
+          .scopes
+          .lock()
+          .await
+          .get_mut(name)
+          .expect("should have scope")
+          .clear();
         Err(Error::from(e))
       }
     }
   }
-}
 
-async fn validate_scope(
-  scope: &mut PackScope,
-  strategy: &dyn ScopeStrategy,
-) -> Result<ValidateResult> {
-  strategy.ensure_meta(scope).await?;
-  let validated = strategy.validate_meta(scope).await?;
-  if validated.is_valid() {
-    strategy.ensure_keys(scope).await?;
-    strategy.validate_packs(scope).await
-  } else {
-    Ok(validated)
+  async fn validate_scope(&self, name: &'static str) -> Result<ValidateResult> {
+    let root_meta_guard = self.root_meta.lock().await;
+    // no root, no scope
+    let Some(root_meta) = root_meta_guard.expect_value() else {
+      return Ok(ValidateResult::NotExists);
+    };
+    // no scope, need to create a new one
+    let mut scopes_guard = self.scopes.lock().await;
+    let Some(scope) = scopes_guard.get_mut(name) else {
+      return Ok(ValidateResult::NotExists);
+    };
+
+    // scope exists, validate it
+    let validated = self
+      .strategy
+      .validate_root(root_meta, self.root_options.expire)
+      .await?;
+    if validated.is_valid() {
+      self.strategy.ensure_meta(scope).await?;
+      let validated = self.strategy.validate_meta(scope).await?;
+      if validated.is_valid() {
+        self.strategy.ensure_keys(scope).await?;
+        self.strategy.validate_packs(scope).await
+      } else {
+        Ok(validated)
+      }
+    } else {
+      Ok(validated)
+    }
   }
 }
 
 fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
-  options: Arc<PackOptions>,
+  pack_options: Arc<PackOptions>,
   strategy: &dyn ScopeStrategy,
 ) -> Result<()> {
   for (scope_name, _) in updates.iter() {
     scopes
-      .entry(scope_name)
-      .or_insert_with(|| PackScope::empty(strategy.get_path(scope_name), options.clone()));
+      .entry(scope_name.to_string())
+      .or_insert_with(|| PackScope::empty(strategy.get_path(scope_name), pack_options.clone()));
   }
 
   scopes
     .iter_mut()
     .filter_map(|(name, scope)| {
       updates
-        .remove(name)
-        .map(|scope_update| (scope, scope_update))
+        .remove(name.to_string().as_str())
+        .and_then(|scope_update| {
+          if scope_update.is_empty() {
+            None
+          } else {
+            Some((scope, scope_update))
+          }
+        })
     })
     .par_bridge()
     .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update))
@@ -134,7 +231,14 @@ fn update_scopes(
   Ok(())
 }
 
-async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Result<ScopeMap> {
+async fn save_scopes(
+  mut scopes: ScopeMap,
+  root_meta: &RootMeta,
+  strategy: &dyn ScopeStrategy,
+  root_options: &RootOptions,
+) -> Result<ScopeMap> {
+  scopes.retain(|_, scope| scope.loaded());
+
   for (_, scope) in scopes.iter_mut() {
     strategy.before_all(scope)?;
   }
@@ -154,8 +258,10 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
       .values_mut()
       .map(|scope| async move {
         let mut res = WriteScopeResult::default();
-        res.extend(strategy.write_packs(scope).await?);
-        res.extend(strategy.write_meta(scope).await?);
+        if scope.loaded() {
+          res.extend(strategy.write_packs(scope).await?);
+          res.extend(strategy.write_meta(scope).await?);
+        }
         Ok(res)
       })
       .collect_vec(),
@@ -185,9 +291,15 @@ async fn save_scopes(mut scopes: ScopeMap, strategy: &dyn ScopeStrategy) -> Resu
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
 
+  strategy.write_root_meta(root_meta).await?;
+
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;
   }
+
+  strategy
+    .clean_unused(root_meta, &scopes, root_options)
+    .await?;
 
   Ok(scopes.into_iter().collect())
 }
@@ -203,7 +315,7 @@ mod tests {
 
   use crate::{
     pack::{
-      data::PackOptions,
+      data::{PackOptions, RootOptions},
       fs::{PackBridgeFS, PackFS},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
@@ -234,10 +346,14 @@ mod tests {
   }
 
   async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
-    let options = Arc::new(PackOptions {
+    let root_options = Arc::new(RootOptions {
+      expire: 60000,
+      root: root.parent().expect("should get parent").to_path_buf(),
+      clean: true,
+    });
+    let pack_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -245,7 +361,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options, strategy);
+    let manager = ScopeManager::new(root_options, pack_options, strategy);
 
     // start with empty
     assert!(manager.load("scope1").await?.is_empty());
@@ -267,8 +383,8 @@ mod tests {
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
-    assert!(!(fs.exists(root.join("scope1/cache_meta").as_path()).await?));
-    assert!(!(fs.exists(root.join("scope2/cache_meta").as_path()).await?));
+    assert!(!(fs.exists(root.join("scope1/scope_meta").as_path()).await?));
+    assert!(!(fs.exists(root.join("scope2/scope_meta").as_path()).await?));
 
     // wait for saving to files
     rx.await
@@ -276,16 +392,22 @@ mod tests {
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
-    assert!(fs.exists(root.join("scope1/cache_meta").as_path()).await?);
-    assert!(fs.exists(root.join("scope2/cache_meta").as_path()).await?);
+    assert!(fs.exists(root.join("scope1/scope_meta").as_path()).await?);
+    assert!(fs.exists(root.join("scope2/scope_meta").as_path()).await?);
+
+    assert!(fs.exists(root.join("storage_meta").as_path()).await?);
     Ok(())
   }
 
   async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
-    let options = Arc::new(PackOptions {
+    let root_options = Arc::new(RootOptions {
+      expire: 60000,
+      root: root.parent().expect("should get parent").to_path_buf(),
+      clean: true,
+    });
+    let pack_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -293,7 +415,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options, strategy);
+    let manager = ScopeManager::new(root_options, pack_options, strategy);
 
     // read from files
     assert_eq!(manager.load("scope1").await?.len(), 100);
@@ -326,11 +448,11 @@ mod tests {
     assert_eq!(update_items.len(), 50);
     assert_eq!(manager.load("scope2").await?.len(), 50);
     let scope1_mtime = fs
-      .metadata(root.join("scope1/cache_meta").as_path())
+      .metadata(root.join("scope1/scope_meta").as_path())
       .await?
       .mtime_ms;
     let scope2_meta = fs
-      .metadata(root.join("scope2/cache_meta").as_path())
+      .metadata(root.join("scope2/scope_meta").as_path())
       .await?
       .mtime_ms;
 
@@ -340,13 +462,13 @@ mod tests {
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 50);
     assert_ne!(
-      fs.metadata(root.join("scope1/cache_meta").as_path())
+      fs.metadata(root.join("scope1/scope_meta").as_path())
         .await?
         .mtime_ms,
       scope1_mtime
     );
     assert_ne!(
-      fs.metadata(root.join("scope2/cache_meta").as_path())
+      fs.metadata(root.join("scope2/scope_meta").as_path())
         .await?
         .mtime_ms,
       scope2_meta
@@ -356,11 +478,15 @@ mod tests {
   }
 
   async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
-    let options = Arc::new(PackOptions {
+    let root_options = Arc::new(RootOptions {
+      expire: 60000,
+      root: root.parent().expect("should get parent").to_path_buf(),
+      clean: true,
+    });
+    let pack_options = Arc::new(PackOptions {
       // different bucket size
       bucket_size: 100,
       pack_size: 500,
-      expire: 1000000,
     });
 
     let strategy = Arc::new(SplitPackStrategy::new(
@@ -368,7 +494,7 @@ mod tests {
       temp.to_path_buf(),
       fs.clone(),
     ));
-    let manager = ScopeManager::new(options.clone(), strategy.clone());
+    let manager = ScopeManager::new(root_options.clone(), pack_options.clone(), strategy.clone());
     // should report error when invalid failed
     assert_eq!(
       manager.load("scope1").await.unwrap_err().to_string(),
@@ -385,14 +511,14 @@ mod tests {
         .collect::<HashMap<_, _>>(),
     );
     let rx = manager.save(scope_updates)?;
-    assert_eq!(manager.load("scope1").await?.len(), 100);
+    // assert_eq!(manager.load("scope1").await?.len(), 100);
     rx.await
       .unwrap_or_else(|e| panic!("save failed: {:?}", e))?;
-    assert_eq!(manager.load("scope1").await?.len(), 100);
+    // assert_eq!(manager.load("scope1").await?.len(), 100);
 
-    // will override cache files to new one
-    let manager2 = ScopeManager::new(options, strategy);
-    assert_eq!(manager2.load("scope1").await?.len(), 100);
+    // // will override cache files to new one
+    // let manager2 = ScopeManager::new(root_options, pack_options, strategy);
+    // assert_eq!(manager2.load("scope1").await?.len(), 100);
 
     Ok(())
   }

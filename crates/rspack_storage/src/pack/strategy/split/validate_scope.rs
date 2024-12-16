@@ -22,10 +22,6 @@ impl ScopeValidateStrategy for SplitPackStrategy {
       return Ok(ValidateResult::invalid("`options.packSize` changed"));
     }
 
-    if scope.options.is_expired(&meta.last_modified) {
-      return Ok(ValidateResult::invalid("expired"));
-    }
-
     return Ok(ValidateResult::Valid);
   }
 
@@ -88,12 +84,12 @@ mod tests {
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::pack::{
-    data::{PackOptions, PackScope, ScopeMeta},
+    data::{PackOptions, PackScope, RootMeta, ScopeMeta},
     fs::PackFS,
     strategy::{
       split::util::test_pack_utils::{
-        clean_strategy, create_strategies, flush_file_mtime, mock_meta_file, mock_updates,
-        save_scope, UpdateVal,
+        clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
+        mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
       },
       ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
       ValidateResult,
@@ -104,7 +100,6 @@ mod tests {
     let same_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 100,
-      expire: 100000,
     });
     let mut scope = PackScope::new(scope_path, same_options);
     strategy.ensure_meta(&mut scope).await?;
@@ -121,7 +116,6 @@ mod tests {
     let bucket_changed_options = Arc::new(PackOptions {
       bucket_size: 1,
       pack_size: 100,
-      expire: 100000,
     });
     let mut scope = PackScope::new(scope_path.clone(), bucket_changed_options.clone());
     strategy.ensure_meta(&mut scope).await?;
@@ -134,7 +128,6 @@ mod tests {
     let max_size_changed_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 99,
-      expire: 100000,
     });
     let mut scope = PackScope::new(scope_path.clone(), max_size_changed_options.clone());
     strategy.ensure_meta(&mut scope).await?;
@@ -143,23 +136,6 @@ mod tests {
       validated.to_string(),
       "validation failed due to `options.packSize` changed"
     );
-
-    Ok(())
-  }
-
-  async fn test_invalid_expired(
-    scope_path: Utf8PathBuf,
-    strategy: &SplitPackStrategy,
-  ) -> Result<()> {
-    let expired_options = Arc::new(PackOptions {
-      bucket_size: 10,
-      pack_size: 100,
-      expire: 0,
-    });
-    let mut scope = PackScope::new(scope_path.clone(), expired_options.clone());
-    strategy.ensure_meta(&mut scope).await?;
-    let validated: ValidateResult = strategy.validate_meta(&mut scope).await?;
-    assert_eq!(validated.to_string(), "validation failed due to expired");
 
     Ok(())
   }
@@ -186,7 +162,7 @@ mod tests {
   ) -> Result<()> {
     let mut scope = PackScope::new(scope_path, options);
     for file in files {
-      if !file.to_string().contains("cache_meta") {
+      if !file.to_string().contains("scope_meta") {
         flush_file_mtime(&file, fs.clone()).await?;
       }
     }
@@ -206,13 +182,19 @@ mod tests {
   async fn should_validate_scope_meta() {
     for strategy in create_strategies("valid_scope_meta") {
       clean_strategy(&strategy).await;
+      mock_root_meta_file(
+        &RootMeta::get_path(strategy.root.as_ref()),
+        strategy.fs.as_ref(),
+      )
+      .await
+      .expect("should mock root meta file");
+
       let scope_path = strategy.get_path("scope_meta");
       let pack_options = Arc::new(PackOptions {
         bucket_size: 10,
         pack_size: 100,
-        expire: 100000,
       });
-      mock_meta_file(
+      mock_scope_meta_file(
         &ScopeMeta::get_path(&scope_path),
         strategy.fs.as_ref(),
         pack_options.as_ref(),
@@ -228,10 +210,6 @@ mod tests {
       let _ = test_invalid_option_changed(scope_path.clone(), &strategy)
         .await
         .map_err(|e| panic!("{}", e));
-
-      let _ = test_invalid_expired(scope_path.clone(), &strategy)
-        .await
-        .map_err(|e| panic!("{}", e));
     }
   }
 
@@ -240,11 +218,17 @@ mod tests {
   async fn should_validate_scope_packs() {
     for strategy in create_strategies("validate_scope_packs") {
       clean_strategy(&strategy).await;
+      mock_root_meta_file(
+        &RootMeta::get_path(strategy.root.as_ref()),
+        strategy.fs.as_ref(),
+      )
+      .await
+      .expect("should mock root meta file");
+
       let scope_path = strategy.get_path("scope_packs");
       let pack_options = Arc::new(PackOptions {
         bucket_size: 10,
         pack_size: 100,
-        expire: 100000,
       });
       let mut mock_scope = PackScope::empty(scope_path.clone(), pack_options.clone());
       let updates = mock_updates(0, 100, 30, UpdateVal::Value("val".to_string()));

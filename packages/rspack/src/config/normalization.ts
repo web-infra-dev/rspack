@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type {
@@ -33,7 +34,6 @@ import type {
 	EntryDescription,
 	EntryStatic,
 	Environment,
-	ExperimentCacheOptions,
 	Externals,
 	ExternalsPresets,
 	ExternalsType,
@@ -312,7 +312,33 @@ export const getNormalizedRspackOptions = (
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
 			...experiments,
-			cache: experiments.cache,
+			cache: optionalNestedConfig(experiments.cache, cache => {
+				if (typeof cache === "boolean") {
+					return cache;
+				}
+				if (cache.type === "memory") {
+					return cache;
+				}
+				const snapshot = cache.snapshot || {};
+				return {
+					type: "persistent",
+					buildDependencies: cache.buildDependencies || [],
+					version: cache.version || "",
+					snapshot: {
+						immutablePaths: nestedArray(snapshot.immutablePaths, p => [...p]),
+						unmanagedPaths: nestedArray(snapshot.unmanagedPaths, p => [...p]),
+						managedPaths: optionalNestedArray(snapshot.managedPaths, p => [
+							...p
+						]) || [/\/node_modules\//]
+					},
+					storage: {
+						type: "filesystem",
+						directory:
+							cache.storage.directory ||
+							path.join(config.context || process.cwd(), "node_modules/.cache")
+					}
+				};
+			}),
 			lazyCompilation: optionalNestedConfig(
 				experiments.lazyCompilation,
 				options => (options === true ? {} : options)
@@ -544,8 +570,28 @@ export interface ModuleOptionsNormalized {
 	noParse?: NoParseOption;
 }
 
+export type ExperimentCacheNormalized =
+	| boolean
+	| {
+			type: "memory";
+	  }
+	| {
+			type: "persistent";
+			buildDependencies: string[];
+			version: string;
+			snapshot: {
+				immutablePaths: Array<string | RegExp>;
+				unmanagedPaths: Array<string | RegExp>;
+				managedPaths: Array<string | RegExp>;
+			};
+			storage: {
+				type: "filesystem";
+				directory: string;
+			};
+	  };
+
 export interface ExperimentsNormalized {
-	cache?: ExperimentCacheOptions;
+	cache?: ExperimentCacheNormalized;
 	lazyCompilation?: false | LazyCompilationOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;

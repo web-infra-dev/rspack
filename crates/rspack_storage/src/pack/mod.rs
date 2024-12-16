@@ -8,7 +8,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 
-use data::PackOptions;
+use data::{PackOptions, RootOptions};
 pub use fs::{PackBridgeFS, PackFS};
 use manager::ScopeManager;
 use rspack_error::Result;
@@ -33,20 +33,26 @@ pub struct PackStorageOptions {
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,
+  pub version: String,
+  pub clean: bool,
 }
 
 impl PackStorage {
   pub fn new(options: PackStorageOptions) -> Self {
     Self {
       manager: ScopeManager::new(
+        Arc::new(RootOptions {
+          root: options.root.clone().assert_utf8(),
+          expire: options.expire,
+          clean: options.clean,
+        }),
         Arc::new(PackOptions {
           bucket_size: options.bucket_size,
           pack_size: options.pack_size,
-          expire: options.expire,
         }),
         Arc::new(SplitPackStrategy::new(
-          options.root.assert_utf8(),
-          options.temp_root.assert_utf8(),
+          options.root.join(&options.version).assert_utf8(),
+          options.temp_root.join(&options.version).assert_utf8(),
           options.fs,
         )),
       ),

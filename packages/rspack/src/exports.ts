@@ -103,6 +103,7 @@ export { DynamicEntryPlugin } from "./builtin-plugin";
 export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
 export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
+export { WarnCaseSensitiveModulesPlugin } from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
 	DllReferencePlugin,
