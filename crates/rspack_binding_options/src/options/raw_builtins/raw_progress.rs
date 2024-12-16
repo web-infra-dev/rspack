@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use derivative::Derivative;
+use derive_more::Debug;
 use napi::Either;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_progress::{ProgressPluginDisplayOptions, ProgressPluginOptions};
 
 type HandlerFn = ThreadsafeFunction<(f64, String, Vec<String>), ()>;
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawProgressPluginOptions {
   // the prefix name of progress bar
@@ -22,7 +21,7 @@ pub struct RawProgressPluginOptions {
   // the progress characters
   pub progress_chars: Option<String>,
   // the handler for progress event
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(ts_type = "(percent: number, msg: string, items: string[]) => void")]
   pub handler: Option<HandlerFn>,
 }

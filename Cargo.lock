@@ -1253,6 +1253,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+ "unicode-xid",
+]
+
+[[package]]
 name = "diatomic-waker"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3694,7 +3715,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derivative",
+ "derive_more",
  "glob",
  "napi",
  "napi-derive",
@@ -3847,7 +3868,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cow-utils",
  "dashmap 6.1.0",
- "derivative",
+ "derive_more",
  "dyn-clone",
  "either",
  "futures",
@@ -3908,7 +3929,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "cow-utils",
- "derivative",
+ "derive_more",
  "futures",
  "miette",
  "once_cell",
@@ -3998,7 +4019,7 @@ name = "rspack_loader_lightningcss"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "derivative",
+ "derive_more",
  "lightningcss",
  "parcel_sourcemap",
  "rspack_cacheable",
@@ -4037,7 +4058,7 @@ version = "0.2.0"
 dependencies = [
  "anymap3",
  "async-trait",
- "derivative",
+ "derive_more",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4223,7 +4244,7 @@ name = "rspack_plugin_copy"
 version = "0.2.0"
 dependencies = [
  "dashmap 6.1.0",
- "derivative",
+ "derive_more",
  "futures",
  "glob",
  "lazy_static",
@@ -4275,7 +4296,7 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
- "derivative",
+ "derive_more",
  "futures",
  "itertools 0.13.0",
  "rayon",
@@ -4316,7 +4337,7 @@ name = "rspack_plugin_dynamic_entry"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "derivative",
+ "derive_more",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -4436,7 +4457,7 @@ dependencies = [
 name = "rspack_plugin_ignore"
 version = "0.2.0"
 dependencies = [
- "derivative",
+ "derive_more",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -4627,7 +4648,7 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.2.0"
 dependencies = [
- "derivative",
+ "derive_more",
  "indexmap 2.7.0",
  "once_cell",
  "rayon",
@@ -4668,7 +4689,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derivative",
+ "derive_more",
  "indexmap 2.7.0",
  "itertools 0.13.0",
  "rspack_cacheable",
@@ -4723,7 +4744,7 @@ dependencies = [
 name = "rspack_plugin_size_limits"
 version = "0.2.0"
 dependencies = [
- "derivative",
+ "derive_more",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -4737,7 +4758,7 @@ name = "rspack_plugin_split_chunks"
 version = "0.2.0"
 dependencies = [
  "dashmap 6.1.0",
- "derivative",
+ "derive_more",
  "rayon",
  "regex",
  "rspack_collections",

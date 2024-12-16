@@ -10,7 +10,7 @@ version     = "0.2.0"
 
 [dependencies]
 dashmap            = { workspace = true }
-derivative         = { workspace = true }
+derive_more        = { workspace = true, features = ["debug"] }
 rayon              = { workspace = true }
 regex              = { workspace = true }
 rspack_collections = { workspace = true }

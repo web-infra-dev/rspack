@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
-use derivative::Derivative;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
@@ -216,8 +215,7 @@ impl std::fmt::Display for CrossOriginLoading {
   }
 }
 
-#[derive(Derivative, Default, Clone, Copy)]
-#[derivative(Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
   pub chunk_name: Option<&'a str>,

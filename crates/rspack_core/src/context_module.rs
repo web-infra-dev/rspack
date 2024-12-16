@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::{borrow::Cow, hash::Hash};
 
 use cow_utils::CowUtils;
-use derivative::Derivative;
+use derive_more::Debug;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
@@ -161,8 +161,7 @@ pub type ResolveContextModuleDependencies =
 
 #[impl_source_map_config]
 #[cacheable]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -171,7 +170,7 @@ pub struct ContextModule {
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
 }

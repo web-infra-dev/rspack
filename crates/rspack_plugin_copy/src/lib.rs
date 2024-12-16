@@ -10,7 +10,7 @@ use std::{
 };
 
 use dashmap::DashSet;
-use derivative::Derivative;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
@@ -91,11 +91,10 @@ pub enum ToOption {
   Fn(ToFn),
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct CopyPattern {
   pub from: String,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub to: Option<ToOption>,
   pub context: Option<Utf8PathBuf>,
   pub to_type: Option<ToType>,
@@ -104,7 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub transform: Option<Transformer>,
 }
 

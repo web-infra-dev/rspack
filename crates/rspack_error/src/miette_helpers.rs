@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use derivative::Derivative;
+use derive_more::Debug;
 use miette::Diagnostic;
 use once_cell::sync::OnceCell;
 use thiserror::Error;
@@ -94,12 +94,11 @@ impl miette::Diagnostic for WithHelp {
 }
 
 /// Wrap diagnostic with label.
-#[derive(Error, Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Error)]
 #[error("{err}")]
 pub(crate) struct WithLabel {
   err: Error,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   labels: Option<Vec<miette::LabeledSpan>>,
 }
 

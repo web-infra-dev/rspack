@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_core::{Chunk, Compilation, Module, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -138,10 +138,9 @@ impl DerefMut for SplitChunkSizes {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct FallbackCacheGroup {
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks_filter: ChunkFilter,
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,

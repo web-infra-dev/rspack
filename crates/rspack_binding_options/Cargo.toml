@@ -15,7 +15,7 @@ ignored = ["tracing"]
 [dependencies]
 async-trait                            = { workspace = true }
 cow-utils                              = { workspace = true }
-derivative                             = { workspace = true }
+derive_more                            = { workspace = true, features = ["debug"] }
 glob                                   = { workspace = true }
 napi                                   = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive                            = { workspace = true }

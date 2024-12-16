@@ -9,7 +9,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use derivative::Derivative;
+use derive_more::Debug;
 use regex::Regex;
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{Identifiable, Identifier};
@@ -19,10 +19,9 @@ use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct LoaderItem<Context> {
-  #[derivative(Debug(format_with = "fmt_loader"))]
+  #[debug("{}", loader.identifier())]
   loader: Arc<dyn Loader<Context>>,
   /// Loader identifier
   request: Identifier,
@@ -30,10 +29,13 @@ pub struct LoaderItem<Context> {
   /// The absolute path is used to represent a loader stayed on the JS side.
   /// `$` split chain may be used to represent a composed loader chain from the JS side.
   /// Virtual path with a builtin protocol to represent a loader from the native side. e.g "builtin:".
+  #[allow(dead_code)]
   path: Utf8PathBuf,
   /// Query of a loader, starts with `?`
+  #[allow(dead_code)]
   query: Option<String>,
   /// Fragment of a loader, starts with `#`.
+  #[allow(dead_code)]
   fragment: Option<String>,
   /// Data shared between pitching and normal
   data: serde_json::Value,
@@ -181,13 +183,6 @@ where
     // noop
     Ok(())
   }
-}
-
-pub fn fmt_loader<T>(
-  loader: &Arc<dyn Loader<T>>,
-  fmt: &mut std::fmt::Formatter<'_>,
-) -> Result<(), std::fmt::Error> {
-  write!(fmt, "{}", loader.identifier())
 }
 
 impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
