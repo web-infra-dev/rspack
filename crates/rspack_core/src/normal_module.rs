@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  fmt::Debug,
   hash::{BuildHasherDefault, Hash},
   ptr::NonNull,
   sync::{
@@ -10,7 +9,7 @@ use std::{
 };
 
 use dashmap::DashMap;
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsMap, AsOption, AsPreset, Skip},
@@ -98,8 +97,7 @@ pub struct NormalModuleHooks {
 
 #[impl_source_map_config]
 #[cacheable]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct NormalModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -124,7 +122,7 @@ pub struct NormalModule {
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build

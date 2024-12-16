@@ -3,7 +3,7 @@ use std::{borrow::Cow, hash::Hash};
 
 use cow_utils::CowUtils;
 use dashmap::DashMap;
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_collections::UkeySet;
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
@@ -25,11 +25,10 @@ use crate::{
   module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
 };
 
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+#[derive(Clone, Debug)]
 pub struct EvalDevToolModulePluginOptions {
   pub namespace: Option<String>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
   pub source_url_comment: Option<String>,
 }
@@ -37,12 +36,11 @@ pub struct EvalDevToolModulePluginOptions {
 const EVAL_DEV_TOOL_MODULE_PLUGIN_NAME: &str = "rspack.EvalDevToolModulePlugin";
 
 #[plugin]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct EvalDevToolModulePlugin {
   namespace: String,
   source_url_comment: String,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   module_filename_template: ModuleFilenameTemplate,
   cache: DashMap<BoxSource, BoxSource>,
 }

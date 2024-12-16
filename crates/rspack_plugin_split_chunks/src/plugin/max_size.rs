@@ -370,10 +370,12 @@ impl SplitChunksPlugin {
             new_chunk_ukey
           };
 
-          let [new_part, chunk] = compilation
+          let [Some(new_part), Some(chunk)] = compilation
             .chunk_by_ukey
             .get_many_mut([&new_chunk_ukey, &old_chunk])
-            .expect("split_from_original_chunks failed");
+          else {
+            panic!("split_from_original_chunks failed")
+          };
           let new_part_ukey = new_part.ukey();
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
           if let Some(mutations) = compilation.incremental.mutations_write() {

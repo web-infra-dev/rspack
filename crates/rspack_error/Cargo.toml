@@ -10,7 +10,7 @@ version     = "0.2.0"
 [dependencies]
 anyhow             = { workspace = true, features = ["backtrace"] }
 cow-utils          = { workspace = true }
-derivative         = { workspace = true }
+derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
 miette             = { version = "7.2.0", features = ["fancy"] }
 once_cell          = { workspace = true }

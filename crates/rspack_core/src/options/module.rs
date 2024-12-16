@@ -5,7 +5,6 @@ use std::{
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
-use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
@@ -702,14 +701,12 @@ pub struct ModuleRule {
   pub effect: ModuleRuleEffect,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub layer: Option<String>,
-  #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
@@ -728,21 +725,20 @@ impl Default for ModuleRuleUse {
   }
 }
 
-fn fmt_use(
-  r#use: &ModuleRuleUse,
-  f: &mut std::fmt::Formatter,
-) -> std::result::Result<(), std::fmt::Error> {
-  match r#use {
-    ModuleRuleUse::Array(array_use) => write!(
-      f,
-      "{}",
-      array_use
-        .iter()
-        .map(|l| &*l.loader)
-        .collect::<Vec<_>>()
-        .join("!")
-    ),
-    ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
+impl Debug for ModuleRuleUse {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+    match self {
+      ModuleRuleUse::Array(array_use) => write!(
+        f,
+        "{}",
+        array_use
+          .iter()
+          .map(|l| &*l.loader)
+          .collect::<Vec<_>>()
+          .join("!")
+      ),
+      ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
+    }
   }
 }
 

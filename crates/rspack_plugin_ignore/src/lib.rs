@@ -1,6 +1,4 @@
-use std::fmt::Debug;
-
-use derivative::Derivative;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
   ApplyContext, BeforeResolveResult, CompilerOptions, ContextModuleFactoryBeforeResolve,
@@ -17,12 +15,11 @@ pub enum CheckResourceContent {
   Fn(CheckResourceFn),
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct IgnorePluginOptions {
   pub resource_reg_exp: Option<RspackRegex>,
   pub context_reg_exp: Option<RspackRegex>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub check_resource: Option<CheckResourceContent>,
 }
 

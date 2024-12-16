@@ -3,15 +3,13 @@ use std::{
   sync::Arc,
 };
 
-use derivative::Derivative;
 use rspack_cacheable::cacheable;
 use rspack_util::itoa;
 
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
-#[derive(Derivative)]
-#[derivative(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct DependencyRange {
   pub end: u32,
   pub start: u32,

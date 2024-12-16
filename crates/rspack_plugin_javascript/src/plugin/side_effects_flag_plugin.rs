@@ -84,7 +84,7 @@ pub struct SideEffectsFlagPluginVisitor<'a> {
   comments: Option<&'a dyn Comments>,
 }
 
-impl<'a> Debug for SideEffectsFlagPluginVisitor<'a> {
+impl Debug for SideEffectsFlagPluginVisitor<'_> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("SideEffectsFlagPluginVisitor")
       .field("unresolved_ctxt", &self.unresolved_ctxt)
@@ -116,7 +116,7 @@ impl<'a> SideEffectsFlagPluginVisitor<'a> {
   }
 }
 
-impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
+impl Visit for SideEffectsFlagPluginVisitor<'_> {
   noop_visit_type!();
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
@@ -212,7 +212,7 @@ impl<'a> Visit for SideEffectsFlagPluginVisitor<'a> {
   }
 }
 
-impl<'a> SideEffectsFlagPluginVisitor<'a> {
+impl SideEffectsFlagPluginVisitor<'_> {
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {

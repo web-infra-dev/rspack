@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
-use derivative::Derivative;
+use derive_more::Debug;
 use napi::bindgen_prelude::Either3;
 use napi::Either;
 use napi_derive::napi;
@@ -491,15 +491,14 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
   }
 }
 
-#[derive(Derivative, Default)]
-#[derivative(Debug)]
+#[derive(Default, Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawAssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<JsFilename>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(
     ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
   )]
@@ -519,11 +518,10 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
   }
 }
 
-#[derive(Derivative, Default)]
-#[derivative(Debug)]
+#[derive(Default, Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawAssetInlineGeneratorOptions {
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(
     ts_type = "RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)"
   )]

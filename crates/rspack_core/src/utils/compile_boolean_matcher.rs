@@ -19,10 +19,7 @@ impl BooleanMatcher {
 }
 
 fn to_simple_string(input: &str) -> String {
-  if input
-    .parse::<f64>()
-    .map_or(false, |n| input == n.to_string())
-  {
+  if input.parse::<f64>().is_ok_and(|n| input == n.to_string()) {
     input.to_string()
   } else {
     serde_json::to_string(input).unwrap_or_default()

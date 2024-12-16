@@ -943,7 +943,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   pub fn evaluate_expression(&mut self, expr: &Expr) -> BasicEvaluatedExpression {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated,

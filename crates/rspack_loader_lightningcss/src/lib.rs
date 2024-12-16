@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use config::Config;
-use derivative::Derivative;
+use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
   printer::{PrinterOptions, PseudoClasses},
@@ -25,11 +25,10 @@ pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static, 'static>)>;
 
 #[cacheable]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct LightningCssLoader {
   id: Identifier,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[cacheable(with=Skip)]
   visitors: Option<Mutex<Vec<LightningcssLoaderVisitor>>>,
   config: Config,

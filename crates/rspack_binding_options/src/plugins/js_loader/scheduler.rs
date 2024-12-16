@@ -18,14 +18,12 @@ pub(crate) fn loader_should_yield(
     s @ LoaderState::Init | s @ LoaderState::ProcessResource | s @ LoaderState::Finished => {
       panic!("Unexpected loader runner state: {s:?}")
     }
-    LoaderState::Pitching | LoaderState::Normal => {
-      return Ok(Some(
-        !loader_context
-          .current_loader()
-          .request()
-          .starts_with(BUILTIN_LOADER_PREFIX),
-      ))
-    }
+    LoaderState::Pitching | LoaderState::Normal => Ok(Some(
+      !loader_context
+        .current_loader()
+        .request()
+        .starts_with(BUILTIN_LOADER_PREFIX),
+    )),
   }
 }
 

@@ -12,7 +12,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
-derivative = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
 dyn-clone = "1.0.17"
 either = { workspace = true }
 futures = { workspace = true }

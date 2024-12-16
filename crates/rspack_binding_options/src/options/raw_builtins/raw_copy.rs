@@ -1,5 +1,5 @@
 use cow_utils::CowUtils;
-use derivative::Derivative;
+use derive_more::Debug;
 use napi::{bindgen_prelude::Buffer, Either};
 use napi_derive::napi;
 use rspack_core::rspack_sources::RawSource;
@@ -22,12 +22,11 @@ pub struct RawToOptions {
   pub absolute_filename: String,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug, Clone)]
+#[derive(Debug, Clone)]
 #[napi(object, object_to_js = false)]
 pub struct RawCopyPattern {
   pub from: String,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(
     ts_type = "string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)"
   )]
@@ -39,7 +38,7 @@ pub struct RawCopyPattern {
   pub priority: i32,
   pub glob_options: RawCopyGlobOptions,
   pub info: Option<RawInfo>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(
     ts_type = "(input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>"
   )]

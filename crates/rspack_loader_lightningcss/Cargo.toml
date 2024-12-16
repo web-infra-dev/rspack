@@ -9,7 +9,7 @@ version     = "0.2.0"
 
 [dependencies]
 async-trait          = { workspace = true }
-derivative           = { workspace = true }
+derive_more          = { workspace = true, features = ["debug"] }
 lightningcss         = { workspace = true, features = ["sourcemap", "browserslist", "visitor", "into_owned"] }
 parcel_sourcemap     = { workspace = true }
 rspack_cacheable     = { workspace = true }
