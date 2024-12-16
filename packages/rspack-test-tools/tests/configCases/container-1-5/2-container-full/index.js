@@ -12,17 +12,21 @@ if (globalThis.__FEDERATION__) {
 }
 
 let warnings = [];
-let oldWarn;
+let nativeLog;
 
 beforeEach(done => {
-	oldWarn = console.warn;
-	console.warn = m => warnings.push(m);
+	nativeLog = console.log;
+	console.log = m => {
+		if (m && m.includes('Warn')) {
+			warnings.push(m);
+		}
+	}
 	done();
 });
 
 afterEach(done => {
 	expectWarning();
-	console.warn = oldWarn;
+	console.log = nativeLog;
 	done();
 });
 
@@ -32,14 +36,14 @@ const expectWarning = (regexp, index) => {
 	} else {
 		expect(warnings[index]).toMatch(regexp);
 	}
-	warnings.length = 0;
+	warnings = [];
 };
 
 it("should load the component from container", () => {
 	return import("./App").then(({ default: App }) => {
 		expectWarning(
 			/Version 8 from main of shared singleton module react does not satisfy the requirement of main which needs \^2/,
-			1
+			0
 		);
 		const rendered = App();
 		expect(rendered).toBe(
