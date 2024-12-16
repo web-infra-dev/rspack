@@ -1315,10 +1315,12 @@ const experimentCacheOptions = z
 					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
 				})
 				.optional(),
-			storage: z.strictObject({
-				type: z.enum(["filesystem"]),
-				directory: z.string().optional()
-			})
+			storage: z
+				.object({
+					type: z.enum(["filesystem"]),
+					directory: z.string().optional()
+				})
+				.optional()
 		})
 	);
 

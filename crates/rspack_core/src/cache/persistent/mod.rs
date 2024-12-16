@@ -3,7 +3,7 @@ mod occasion;
 pub mod snapshot;
 pub mod storage;
 mod version;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
@@ -20,7 +20,7 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions};
 
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
-  pub build_dependencies: Vec<String>,
+  pub build_dependencies: Vec<PathBuf>,
   pub version: String,
   pub snapshot: SnapshotOptions,
   pub storage: StorageOptions,
@@ -43,7 +43,6 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Result<Self> {
     let version = version::get_version(
-      compiler_options.context.as_ref(),
       input_filesystem.clone(),
       &option.build_dependencies,
       vec![compiler_path, &option.version],
