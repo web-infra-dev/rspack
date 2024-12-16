@@ -13,7 +13,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -382,13 +382,14 @@ pub struct AssetGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-pub struct AssetGeneratorDataUrlFnArgs {
+pub struct AssetGeneratorDataUrlFnCtx<'a> {
   pub filename: String,
-  pub content: String,
+  pub module: &'a dyn Module,
+  pub compilation: &'a Compilation,
 }
 
 pub type AssetGeneratorDataUrlFn =
-  Arc<dyn Fn(AssetGeneratorDataUrlFnArgs) -> Result<String> + Sync + Send>;
+  Arc<dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> Result<String> + Sync + Send>;
 
 #[cacheable]
 pub enum AssetGeneratorDataUrl {
