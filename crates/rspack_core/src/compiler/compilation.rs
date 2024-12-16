@@ -220,6 +220,7 @@ pub struct Compilation {
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
+  make_lock: Option<Mutex<()>>,
 
   pub modified_files: HashSet<ArcPath>,
   pub removed_files: HashSet<ArcPath>,
@@ -228,9 +229,6 @@ pub struct Compilation {
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
-
-  in_finish_make: bool,
-  make_lock: Mutex<()>,
 }
 
 impl Compilation {
@@ -335,12 +333,10 @@ impl Compilation {
       modified_files,
       removed_files,
       input_filesystem,
+      make_lock: Default::default(),
 
       intermediate_filesystem,
       output_filesystem,
-
-      in_finish_make: false,
-      make_lock: Mutex::default(),
     }
   }
 
@@ -558,17 +554,18 @@ impl Compilation {
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
-    let guard = self.make_lock.lock().await;
-
-    if !self.in_finish_make {
-      return Err(
-        InternalError::new(
-          "You can only call `add_include` during the finish make stage".to_string(),
-          RspackSeverity::Error,
-        )
-        .into(),
-      );
-    }
+    let guard = match &self.make_lock {
+      Some(mutex) => mutex.lock().await,
+      None => {
+        return Err(
+          InternalError::new(
+            "You can only call `add_include` during the finish make stage".to_string(),
+            RspackSeverity::Error,
+          )
+          .into(),
+        );
+      }
+    };
 
     for (entry, options) in args {
       let entry_id = *entry.id();
@@ -842,7 +839,7 @@ impl Compilation {
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact).await?;
 
-    self.in_finish_make = true;
+    self.make_lock = Some(Default::default());
 
     Ok(())
   }
@@ -1189,15 +1186,17 @@ impl Compilation {
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
-    self.in_finish_make = false;
-    if self.make_lock.try_lock().is_err() {
-      return Err(
-        InternalError::new(
-          "Must wait for add_include to finish within the finish make stage".to_string(),
-          RspackSeverity::Error,
-        )
-        .into(),
-      );
+    if let Some(mutex) = &self.make_lock {
+      if mutex.try_lock().is_err() {
+        return Err(
+          InternalError::new(
+            "Must wait for add_include to finish within the finish make stage".to_string(),
+            RspackSeverity::Error,
+          )
+          .into(),
+        );
+      }
+      self.make_lock = None;
     }
 
     // sync assets to compilation from module_executor
