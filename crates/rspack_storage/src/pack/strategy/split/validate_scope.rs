@@ -87,9 +87,15 @@ mod tests {
     data::{PackOptions, PackScope, RootMeta, ScopeMeta},
     fs::PackFS,
     strategy::{
-      split::util::test_pack_utils::{
-        clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
-        mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+      split::{
+        handle_file::prepare_scope,
+        util::{
+          flag_scope_wrote,
+          test_pack_utils::{
+            clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
+            mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+          },
+        },
       },
       ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
       ValidateResult,
@@ -235,20 +241,24 @@ mod tests {
       strategy
         .update_scope(&mut mock_scope, updates)
         .expect("should update scope");
-      strategy
-        .before_write(&mock_scope)
-        .await
-        .expect("should prepare dirs");
-      let files = save_scope(&mut mock_scope, &strategy)
+
+      prepare_scope(
+        &mock_scope.path,
+        &strategy.root,
+        &strategy.temp_root,
+        strategy.fs.clone(),
+      )
+      .await
+      .expect("should prepare dirs");
+      let changed = save_scope(&mut mock_scope, &strategy)
         .await
         .expect("should write scope");
       strategy
-        .after_write(&mock_scope, files.wrote_files.clone(), files.removed_files)
+        .merge_changed(changed.clone())
         .await
-        .expect("should clean dirs");
-      strategy
-        .after_all(&mut mock_scope)
-        .expect("should modify wrote flags");
+        .expect("should merge changed");
+
+      flag_scope_wrote(&mut mock_scope);
 
       let _ = test_valid_packs(scope_path.clone(), &strategy, pack_options.clone())
         .await
@@ -259,7 +269,7 @@ mod tests {
         &strategy,
         strategy.fs.clone(),
         pack_options.clone(),
-        files.wrote_files,
+        changed.wrote_files,
       )
       .await
       .map_err(|e| panic!("{}", e));

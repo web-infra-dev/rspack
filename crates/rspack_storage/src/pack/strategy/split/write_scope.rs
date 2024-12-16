@@ -4,12 +4,13 @@ use futures::TryFutureExt;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rspack_error::{error, Result};
-use rspack_paths::Utf8PathBuf;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
-  handle_file::{move_temp_files, redirect_to_path, remove_files},
-  util::choose_bucket,
+  handle_file::{
+    move_files, prepare_scope_dirs, redirect_to_path, remove_files, remove_lock, write_lock,
+  },
+  util::{choose_bucket, flag_scope_wrote},
   SplitPackStrategy,
 };
 use crate::pack::{
@@ -19,37 +20,51 @@ use crate::pack::{
 
 #[async_trait]
 impl ScopeWriteStrategy for SplitPackStrategy {
-  fn before_all(&self, _: &mut PackScope) -> Result<()> {
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+    prepare_scope_dirs(scopes, &self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
 
-  async fn before_write(&self, scope: &PackScope) -> Result<()> {
-    let temp_path = redirect_to_path(&scope.path, &self.root, &self.temp_root)?;
-    self.fs.remove_dir(&temp_path).await?;
-    self.fs.ensure_dir(&temp_path).await?;
-    self.fs.ensure_dir(&scope.path).await?;
-    Ok(())
-  }
+  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
+    // remove files with `.lock`
+    write_lock(
+      "remove.lock",
+      &changed.wrote_files,
+      &self.root,
+      &self.temp_root,
+      self.fs.clone(),
+    )
+    .await?;
+    remove_files(changed.removed_files, self.fs.clone()).await?;
+    remove_lock("remove.lock", &self.root, self.fs.clone()).await?;
 
-  async fn after_write(
-    &self,
-    _scope: &PackScope,
-    wrote_files: HashSet<Utf8PathBuf>,
-    removed_files: HashSet<Utf8PathBuf>,
-  ) -> Result<()> {
-    remove_files(removed_files, self.fs.clone()).await?;
-    move_temp_files(wrote_files, &self.root, &self.temp_root, self.fs.clone()).await?;
+    // move files with `.lock`
+    write_lock(
+      "move.lock",
+      &changed.wrote_files,
+      &self.root,
+      &self.temp_root,
+      self.fs.clone(),
+    )
+    .await?;
+    move_files(
+      changed.wrote_files,
+      &self.root,
+      &self.temp_root,
+      self.fs.clone(),
+    )
+    .await?;
+    remove_lock("move.lock", &self.root, self.fs.clone()).await?;
+
     self.fs.remove_dir(&self.temp_root).await?;
     Ok(())
   }
 
-  fn after_all(&self, scope: &mut PackScope) -> Result<()> {
-    let scope_meta = scope.meta.expect_value_mut();
-    for bucket in scope_meta.packs.iter_mut() {
-      for pack in bucket {
-        pack.wrote = true;
-      }
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+    for scope in scopes.values_mut() {
+      flag_scope_wrote(scope);
     }
+
     Ok(())
   }
 

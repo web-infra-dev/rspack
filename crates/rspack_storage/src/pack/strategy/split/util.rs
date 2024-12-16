@@ -9,6 +9,15 @@ use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
 pub type PackIndexList = Vec<(usize, usize)>;
 pub type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
 
+pub fn flag_scope_wrote(scope: &mut PackScope) {
+  let scope_meta = scope.meta.expect_value_mut();
+  for bucket in scope_meta.packs.iter_mut() {
+    for pack in bucket {
+      pack.wrote = true;
+    }
+  }
+}
+
 pub fn get_indexed_packs<'a>(
   scope: &'a PackScope,
   filter: Option<&dyn Fn(&'a Pack, &'a PackFileMeta) -> bool>,
@@ -73,11 +82,15 @@ pub mod test_pack_utils {
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
+  use super::flag_scope_wrote;
   use crate::{
     pack::{
       data::{current_time, PackOptions, PackScope},
       fs::PackFS,
-      strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
+      strategy::{
+        split::handle_file::prepare_scope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy,
+        WriteScopeResult,
+      },
     },
     PackBridgeFS,
   };
@@ -226,15 +239,21 @@ pub mod test_pack_utils {
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
   ) -> Result<WriteScopeResult> {
-    let mut res = WriteScopeResult::default();
-    strategy.before_write(scope).await?;
-    res.extend(strategy.write_packs(scope).await?);
-    res.extend(strategy.write_meta(scope).await?);
-    strategy
-      .after_write(scope, res.wrote_files.clone(), res.removed_files.clone())
-      .await?;
-    strategy.after_all(scope)?;
-    Ok(res)
+    prepare_scope(
+      &scope.path,
+      &strategy.root,
+      &strategy.temp_root,
+      strategy.fs.clone(),
+    )
+    .await?;
+
+    let mut changed = WriteScopeResult::default();
+    changed.extend(strategy.write_packs(scope).await?);
+    changed.extend(strategy.write_meta(scope).await?);
+    strategy.merge_changed(changed.clone()).await?;
+    flag_scope_wrote(scope);
+
+    Ok(changed)
   }
 
   pub fn get_native_path(p: &str) -> Utf8PathBuf {
