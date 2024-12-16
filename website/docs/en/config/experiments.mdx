@@ -466,6 +466,10 @@ Specifies an array of paths in `snapshot.managedPaths` that are not managed by t
 
 #### cache.storage
 
+- **Type:** `{ type: 'filesystem', directory: string }`
+
+- **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
+
 Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
 
 ```js title="rspack.config.js"

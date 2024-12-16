@@ -465,6 +465,10 @@ module.exports = {
 
 #### cache.storage
 
+- **类型：** `{ type: 'filesystem', directory: string }`
+
+- **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
+
 配置缓存存储，目前仅支持文件系统存储，可以通过 `directory` 设置缓存路径，默认为 `node_modules/.cache/rspack`。
 
 ```js title="rspack.config.js"
