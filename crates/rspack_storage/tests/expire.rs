@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_expire {
   use std::{path::PathBuf, sync::Arc};
 
@@ -120,6 +119,7 @@ mod test_storage_expire {
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_version_expire() {
     let cases = [
       (

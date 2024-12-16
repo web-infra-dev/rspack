@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_build {
   use std::{collections::HashMap, path::PathBuf, sync::Arc};
 

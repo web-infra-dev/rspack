@@ -1,5 +1,4 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_lock {
   use std::{
     path::PathBuf,
@@ -158,6 +157,7 @@ mod test_storage_lock {
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_consume_lock() {
     let cases = [
       (
@@ -207,6 +207,7 @@ mod test_storage_lock {
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_consume_lock_failed() {
     let cases = [
       (
