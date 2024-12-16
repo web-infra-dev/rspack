@@ -5,7 +5,7 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { remove } = require("./helpers/remove");
@@ -28,7 +28,7 @@ function copyDiff(src, dest, initial) {
 			if (/^DELETE\s*$/.test(content.toString("utf-8"))) {
 				fs.unlinkSync(destFile);
 			} else if (/^DELETE_DIRECTORY\s*$/.test(content.toString("utf-8"))) {
-				rimraf.sync(destFile);
+				rimrafSync(destFile);
 			} else {
 				fs.writeFileSync(destFile, content);
 				if (initial) {
@@ -105,8 +105,8 @@ const describeCases = config => {
 							})
 							.map(name => ({ name }));
 
-						beforeAll(done => {
-							rimraf(tempDirectory, done);
+						beforeAll(() => {
+							rimrafSync(tempDirectory);
 						});
 
 						it(
@@ -120,7 +120,7 @@ const describeCases = config => {
 									testName
 								);
 
-								rimraf.sync(outputDirectory);
+								rimrafSync(outputDirectory);
 
 								let options = {};
 								const configPath = path.join(
