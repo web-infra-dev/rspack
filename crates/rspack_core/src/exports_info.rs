@@ -1795,9 +1795,9 @@ impl ExportInfoData {
   }
 }
 
-// The reture value of `get_export_info_without_mut_module_graph`, when a module's exportType
+// The return value of `get_export_info_without_mut_module_graph`, when a module's exportType
 // is undefined, FlagDependencyExportsPlugin can't analyze the exports statically. In webpack,
-// it's possiable to add a exportInfo with `provided: null` by `get_export_info` in some
+// it's possible to add a exportInfo with `provided: null` by `get_export_info` in some
 // optimization plugins:
 //   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/ExportsInfo.js#L1367 called by SideEffectsFlagPlugin
 //   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/optimize/ConcatenatedModule.js#L399 called by ModuleConcatenationPlugin
