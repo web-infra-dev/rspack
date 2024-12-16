@@ -60,7 +60,7 @@
     "jest-snapshot": "29.7.0",
     "jsdom": "^25.0.0",
     "memfs": "4.14.0",
-    "mkdirp": "0.5.6",
+    "mkdirp": "3.0.1",
     "path-serializer": "0.3.4",
     "pretty-format": "29.7.0",
     "rimraf": "^5.0.10",
