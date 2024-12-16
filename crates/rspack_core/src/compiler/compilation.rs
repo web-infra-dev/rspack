@@ -2,10 +2,10 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc, LazyLock},
+  sync::{atomic::AtomicU32, Arc},
 };
 
-use dashmap::{DashMap, DashSet};
+use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -145,9 +145,6 @@ type ValueCacheVersions = HashMap<String, String>;
 
 static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 
-static MAKE_LOCK_BY_COMPILATION_ID: LazyLock<DashMap<CompilationId, Mutex<()>>> =
-  LazyLock::new(DashMap::default);
-
 #[derive(Debug)]
 pub struct Compilation {
   /// get_compilation_hooks(compilation.id)
@@ -230,6 +227,7 @@ pub struct Compilation {
   pub input_filesystem: Arc<dyn FileSystem>,
 
   in_finish_make: bool,
+  make_lock: Mutex<()>,
 }
 
 impl Compilation {
@@ -334,6 +332,7 @@ impl Compilation {
       input_filesystem,
 
       in_finish_make: false,
+      make_lock: Mutex::default(),
     }
   }
 
@@ -551,11 +550,7 @@ impl Compilation {
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
-    let _ = MAKE_LOCK_BY_COMPILATION_ID
-      .entry(self.id)
-      .or_insert(Mutex::new(()))
-      .lock()
-      .await;
+    let guard = self.make_lock.lock().await;
 
     if !self.in_finish_make {
       return Err(
@@ -569,7 +564,18 @@ impl Compilation {
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      self.get_module_graph_mut().add_dependency(entry);
+      let mut module_graph = if let Some(other) = &mut self.other_module_graph {
+        ModuleGraph::new(
+          vec![self.make_artifact.get_module_graph_partial()],
+          Some(other),
+        )
+      } else {
+        ModuleGraph::new(
+          vec![],
+          Some(self.make_artifact.get_module_graph_partial_mut()),
+        )
+      };
+      module_graph.add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -603,6 +609,9 @@ impl Compilation {
       )],
     )
     .await?;
+
+    drop(guard);
+
     Ok(())
   }
 
@@ -1172,12 +1181,8 @@ impl Compilation {
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
-    if MAKE_LOCK_BY_COMPILATION_ID
-      .entry(self.id)
-      .or_insert(Mutex::new(()))
-      .try_lock()
-      .is_err()
-    {
+    self.in_finish_make = false;
+    if self.make_lock.try_lock().is_err() {
       return Err(
         InternalError::new(
           "Must wait for add_include to finish within the finish make stage".to_string(),
@@ -1186,8 +1191,6 @@ impl Compilation {
         .into(),
       );
     }
-
-    self.in_finish_make = false;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {

@@ -58,7 +58,7 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-import { EntryOptions } from "./builtin-plugin";
+import { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import WebpackError from "./lib/WebpackError";
 export type { AssetInfo } from "./util/AssetInfo";
 
@@ -1161,7 +1161,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	addInclude(
 		context: string,
-		dependency: Dependency,
+		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
 		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
@@ -1282,12 +1282,19 @@ class AddIncludeDispatcher {
 		[];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
-	#execute() {
+	#execute = () => {
 		const args = this.#args;
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
-		this.#inner(args, results => {
+		this.#inner(args, (wholeErrMsg, results) => {
+			if (wholeErrMsg) {
+				const webpackError = new WebpackError(wholeErrMsg);
+				for (const cb of this.#cbs) {
+					cb(webpackError);
+				}
+				return;
+			}
 			for (let i = 0; i < results.length; i++) {
 				const [errMsg, moduleBinding] = results[i];
 				const cb = cbs[i];
@@ -1297,7 +1304,7 @@ class AddIncludeDispatcher {
 				);
 			}
 		});
-	}
+	};
 
 	constructor(binding: binding.JsCompilation["addInclude"]) {
 		this.#inner = binding;
@@ -1305,7 +1312,7 @@ class AddIncludeDispatcher {
 
 	call(
 		context: string,
-		dependency: Dependency,
+		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
 		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
@@ -1313,7 +1320,7 @@ class AddIncludeDispatcher {
 			queueMicrotask(this.#execute);
 		}
 
-		this.#args.push([context, { request: "xxx" }, options as any]);
+		this.#args.push([context, dependency, options as any]);
 		this.#cbs.push(callback);
 	}
 }

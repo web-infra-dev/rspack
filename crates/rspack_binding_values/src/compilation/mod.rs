@@ -724,7 +724,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (results: [string, JsModule][]) => void"
+    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: string | null, results: [string | null, JsModule][]) => void"
   )]
   pub fn add_include(
     &mut self,
@@ -761,13 +761,10 @@ impl JsCompilation {
         .map(|(dependency, _)| *dependency.id())
         .collect::<Vec<_>>();
 
-      if let Err(e) = compilation.add_include(args).await {
-        let results = dependency_ids
-          .iter()
-          .map(|_| (Either::A(format!("{e}")), Either::A(())))
-          .collect::<Vec<_>>();
-        return Ok(JsAddIncludeCallbackArgs(results));
-      }
+      compilation
+        .add_include(args)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
       let results = dependency_ids
         .into_iter()
@@ -809,7 +806,7 @@ pub struct JsAddIncludeCallbackArgs(Vec<(Either<String, ()>, Either<(), JsModule
 impl ToNapiValue for JsAddIncludeCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env_wrapper = Env::from_raw(env);
-    let mut js_array = env_wrapper.create_array(val.0.len() as u32)?;
+    let mut js_array = env_wrapper.create_array(0)?;
     for (error, module) in val.0 {
       let js_error = match error {
         Either::A(val) => env_wrapper.create_string(&val)?.into_unknown(),
