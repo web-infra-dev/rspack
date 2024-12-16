@@ -140,7 +140,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: string | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {

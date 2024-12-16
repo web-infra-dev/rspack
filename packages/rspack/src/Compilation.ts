@@ -1276,21 +1276,37 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 }
 
+// The AddIncludeDispatcher class has two responsibilities:
+//
+// 1. It is responsible for combining multiple addInclude calls that occur within the same event loop.
+// The purpose of this is to send these combined calls to the add_include method on the Rust side in a unified manner, thereby optimizing the call process and avoiding the overhead of multiple scattered calls.
+//
+// 2. It should be noted that the add_include method on the Rust side has a limitation. It does not allow multiple calls to execute in parallel.
+// Based on this limitation, the AddIncludeDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
+	#running: boolean;
 	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
 		[];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {
+		if (this.#running) {
+			return;
+		}
+
 		const args = this.#args;
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
-		this.#inner(args, (wholeErrMsg, results) => {
-			if (wholeErrMsg) {
-				const webpackError = new WebpackError(wholeErrMsg);
-				for (const cb of this.#cbs) {
+		this.#inner(args, (wholeErr, results) => {
+			if (this.#args.length !== 0) {
+				queueMicrotask(this.#execute);
+			}
+
+			if (wholeErr) {
+				const webpackError = new WebpackError(wholeErr.message);
+				for (const cb of cbs) {
 					cb(webpackError);
 				}
 				return;
@@ -1308,6 +1324,7 @@ class AddIncludeDispatcher {
 
 	constructor(binding: binding.JsCompilation["addInclude"]) {
 		this.#inner = binding;
+		this.#running = false;
 	}
 
 	call(
