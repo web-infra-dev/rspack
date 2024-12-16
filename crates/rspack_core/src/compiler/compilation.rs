@@ -2,7 +2,10 @@ use std::{
   collections::{hash_map, VecDeque},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash},
-  sync::{atomic::AtomicU32, Arc},
+  sync::{
+    atomic::{AtomicBool, AtomicU32, Ordering},
+    Arc,
+  },
 };
 
 use dashmap::DashSet;
@@ -25,7 +28,6 @@ use rspack_paths::ArcPath;
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_util::itoa;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use tokio::sync::Mutex;
 use tracing::instrument;
 
 use super::{
@@ -220,7 +222,7 @@ pub struct Compilation {
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
   pub module_executor: Option<ModuleExecutor>,
-  make_lock: Option<Mutex<()>>,
+  in_finish_make: AtomicBool,
 
   pub modified_files: HashSet<ArcPath>,
   pub removed_files: HashSet<ArcPath>,
@@ -328,12 +330,12 @@ impl Compilation {
       import_var_map: IdentifierDashMap::default(),
 
       module_executor,
+      in_finish_make: AtomicBool::new(false),
 
       make_artifact: Default::default(),
       modified_files,
       removed_files,
       input_filesystem,
-      make_lock: Default::default(),
 
       intermediate_filesystem,
       output_filesystem,
@@ -554,33 +556,19 @@ impl Compilation {
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
-    let guard = match &self.make_lock {
-      Some(mutex) => mutex.lock().await,
-      None => {
-        return Err(
-          InternalError::new(
-            "You can only call `add_include` during the finish make stage".to_string(),
-            RspackSeverity::Error,
-          )
-          .into(),
-        );
-      }
-    };
+    if !self.in_finish_make.load(Ordering::Acquire) {
+      return Err(
+        InternalError::new(
+          "You can only call `add_include` during the finish make stage".to_string(),
+          RspackSeverity::Error,
+        )
+        .into(),
+      );
+    }
 
     for (entry, options) in args {
       let entry_id = *entry.id();
-      let mut module_graph = if let Some(other) = &mut self.other_module_graph {
-        ModuleGraph::new(
-          vec![self.make_artifact.get_module_graph_partial()],
-          Some(other),
-        )
-      } else {
-        ModuleGraph::new(
-          vec![],
-          Some(self.make_artifact.get_module_graph_partial_mut()),
-        )
-      };
-      module_graph.add_dependency(entry);
+      self.get_module_graph_mut().add_dependency(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -614,8 +602,6 @@ impl Compilation {
       )],
     )
     .await?;
-
-    drop(guard);
 
     Ok(())
   }
@@ -839,7 +825,7 @@ impl Compilation {
     let artifact = std::mem::take(&mut self.make_artifact);
     self.make_artifact = make_module_graph(self, artifact).await?;
 
-    self.make_lock = Some(Default::default());
+    self.in_finish_make.store(true, Ordering::Release);
 
     Ok(())
   }
@@ -1186,18 +1172,7 @@ impl Compilation {
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
 
-    if let Some(mutex) = &self.make_lock {
-      if mutex.try_lock().is_err() {
-        return Err(
-          InternalError::new(
-            "Must wait for add_include to finish within the finish make stage".to_string(),
-            RspackSeverity::Error,
-          )
-          .into(),
-        );
-      }
-      self.make_lock = None;
-    }
+    self.in_finish_make.store(false, Ordering::Release);
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
