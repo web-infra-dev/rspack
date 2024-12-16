@@ -4,7 +4,7 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimraf } = require("rimraf");
 
 describe.skip("Profiling Plugin", function () {
 	jest.setTimeout(120000);
@@ -14,7 +14,8 @@ describe.skip("Profiling Plugin", function () {
 		const outputPath = path.join(__dirname, "js/profilingPath");
 		const finalPath = path.join(outputPath, "events.json");
 		let counter = 0;
-		rimraf(outputPath, () => {
+
+		rimraf(outputPath).then(() => {
 			const startTime = process.hrtime();
 			const compiler = webpack({
 				context: __dirname,

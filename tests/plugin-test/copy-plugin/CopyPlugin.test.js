@@ -6,13 +6,13 @@ const rspack = require("@rspack/core");
 const { run, runEmit, runChange } = require("./helpers/run");
 
 const { readAssets, getCompiler, compile } = require("./helpers");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
 
 describe("CopyPlugin", () => {
 	beforeEach(() => {
-		rimraf.sync(path.join(__dirname, "build"));
+		rimrafSync(path.join(__dirname, "build"));
 	});
 	describe("basic", () => {
 		it("should copy a file", done => {

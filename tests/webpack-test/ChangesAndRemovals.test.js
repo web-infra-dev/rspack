@@ -5,7 +5,7 @@
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 const createCompiler = config => {
 	const webpack = require("@rspack/core").rspack;
@@ -47,7 +47,8 @@ const getChanges = compiler => {
 };
 
 function cleanup(callback) {
-	rimraf(tempFolderPath, callback);
+	rimrafSync(tempFolderPath);
+	callback();
 }
 
 function createFiles() {
