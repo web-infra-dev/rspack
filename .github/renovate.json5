@@ -4,6 +4,9 @@
 	extends: [":dependencyDashboard"],
 	schedule: ["before 8am on wednesday"],
 	enabledManagers: ["github-actions", "cargo", "npm"],
+	lockFileMaintenance: {
+		enabled: true
+	},
 	ignorePaths: [
 		"**/fixtures/**",
 		"**/tests/**",
