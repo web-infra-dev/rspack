@@ -91,13 +91,9 @@ impl ScopeManager {
       let _ = match res {
         Ok(new_scopes) => {
           let _ = std::mem::replace(&mut *scopes_lock, new_scopes);
-          println!("save scopes success");
           tx.send(Ok(()))
         }
-        Err(e) => {
-          println!("save scopes failed {:?}", e);
-          tx.send(Err(e))
-        }
+        Err(e) => tx.send(Err(e)),
       };
     }));
 
