@@ -406,7 +406,7 @@ fn visit_dirs(
       if options.context_options.recursive {
         visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
       }
-    } else if path.file_name().map_or(false, |name| name.starts_with('.')) {
+    } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
       continue;
     } else {

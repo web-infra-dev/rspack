@@ -41,7 +41,7 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 }
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
-  Arc::new(move |chunk, _| Ok(chunk.name().map_or(false, |name| re.test(name))))
+  Arc::new(move |chunk, _| Ok(chunk.name().is_some_and(|name| re.test(name))))
 }
 
 #[derive(Debug, Default, Clone)]
