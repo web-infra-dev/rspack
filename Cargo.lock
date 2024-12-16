@@ -4861,9 +4861,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44786dd48374dc4b43cff0306e417c1d11016c3dffda5685bb272b6eb4f7ff85"
+checksum = "6083bb780462960638457a30983041b8e56502178de5409b2f346a55e8fb3f9e"
 dependencies = [
  "cfg-if",
  "dashmap 6.1.0",
