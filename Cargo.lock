@@ -1481,9 +1481,9 @@ dependencies = [
 
 [[package]]
 name = "float-cmp"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
+checksum = "b09cf3155332e944990140d967ff5eceb70df778b34f77d8075db46e4704e6d8"
 dependencies = [
  "num-traits",
 ]
@@ -4881,15 +4881,14 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92cf456fa25822d9cd77280f05ab0fdac5b99b090243b263d835c6c7f26d09e7"
+version = "0.3.7"
+source = "git+https://github.com/web-infra-dev/rspack-sources?rev=5ca265bd428db264a2f2ca11dd7efcd465488112#5ca265bd428db264a2f2ca11dd7efcd465488112"
 dependencies = [
- "dashmap 5.5.3",
+ "dashmap 6.1.0",
  "dyn-clone",
  "itertools 0.13.0",
  "memchr",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "simd-json",
@@ -5153,9 +5152,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.215"
+version = "1.0.216"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6513c1ad0b11a9376da888e3e0baa0077f1aed55c17f50e7b2397136129fb88f"
+checksum = "0b9781016e935a97e8beecf0c933758c97a5520d32930e460142b4cd80c6338e"
 dependencies = [
  "serde_derive",
 ]
@@ -5173,9 +5172,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.215"
+version = "1.0.216"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad1e866f866923f252f05c889987993144fb74e722403468a4ebd70c3cd756c0"
+checksum = "46f859dbbf73865c6627ed570e78961cd3ac92407a2d117204c49232485da55e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5294,9 +5293,9 @@ checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "simd-json"
-version = "0.14.0-rc.2"
+version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89909dd48d17fa49c6fd6ea878b14891f7f2a1a6a12103099f61bb7cb974f8c6"
+checksum = "aa2bcf6c6e164e81bc7a5d49fc6988b3d515d9e8c07457d7b74ffb9324b9cd40"
 dependencies = [
  "getrandom",
  "halfbrown",
@@ -7308,9 +7307,9 @@ checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
 
 [[package]]
 name = "value-trait"
-version = "0.9.0-rc.2"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47641b6867a201e598b2f14df9996d97a2ca0af2c34535faded32047e0bc9430"
+checksum = "9170e001f458781e92711d2ad666110f153e4e50bfd5cbd02db6547625714187"
 dependencies = [
  "float-cmp",
  "halfbrown",
