@@ -63,7 +63,7 @@
     "@types/jest": "29.5.14",
     "@types/node": "^20.12.7",
     "@types/rimraf": "3.0.2",
-    "check-dependency-version-consistency": "^4.1.0",
+    "check-dependency-version-consistency": "^5.0.0",
     "commander": "12.1.0",
     "cross-env": "^7.0.3",
     "husky": "^9.0.0",
