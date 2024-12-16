@@ -482,9 +482,6 @@ importers:
       memfs:
         specifier: 4.14.0
         version: 4.14.0
-      mkdirp:
-        specifier: 0.5.6
-        version: 0.5.6
       path-serializer:
         specifier: 0.3.4
         version: 0.3.4
