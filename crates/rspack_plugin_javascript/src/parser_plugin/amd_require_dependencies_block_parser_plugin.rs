@@ -259,8 +259,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     ));
 
     let source_map: SharedSourceMap = parser.source_map.clone();
-    let block_loc =
-      Some(Into::<DependencyRange>::into(call_expr.span).to_loc(Some(source_map).as_ref()));
+    let block_loc = Into::<DependencyRange>::into(call_expr.span).to_loc(Some(&source_map));
 
     if call_expr.args.len() == 1 {
       let mut block_deps: Vec<BoxDependency> = vec![dep];
