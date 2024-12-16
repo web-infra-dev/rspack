@@ -39,6 +39,7 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
+import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import type {
 	Filename,
 	OutputNormalized,
@@ -47,6 +48,7 @@ import type {
 	StatsOptions,
 	StatsValue
 } from "./config";
+import WebpackError from "./lib/WebpackError";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
@@ -58,8 +60,6 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
-import { EntryOptions, EntryPlugin } from "./builtin-plugin";
-import WebpackError from "./lib/WebpackError";
 export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
