@@ -593,6 +593,8 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
+    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
+    // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
     // (undocumented)
@@ -1634,6 +1636,12 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
+// @public (undocumented)
+interface EntryDependency {
+    // (undocumented)
+    request: string;
+}
+
 // @public
 export type EntryDependOn = string | string[];
 
@@ -1691,15 +1699,12 @@ export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
     name?: string;
 };
 
-// @public
-export const EntryPlugin: {
-    new (context: string, entry: string, options?: string | EntryOptions | undefined): {
-        name: BuiltinPluginName;
-        _args: [context: string, entry: string, options?: string | EntryOptions | undefined];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
+// @public (undocumented)
+export const EntryPlugin: EntryPluginType;
+
+// @public (undocumented)
+type EntryPluginType = typeof OriginEntryPlugin & {
+    createDependency(entry: string): EntryDependency;
 };
 
 // @public (undocumented)
@@ -4178,6 +4183,17 @@ interface OptimizerConfig {
     // (undocumented)
     simplify?: boolean;
 }
+
+// @public
+const OriginEntryPlugin: {
+    new (context: string, entry: string, options?: string | EntryOptions | undefined): {
+        name: BuiltinPluginName;
+        _args: [context: string, entry: string, options?: string | EntryOptions | undefined];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 export type Output = {
