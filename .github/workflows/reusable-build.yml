@@ -109,6 +109,7 @@ jobs:
           echo 'incremental = false' >> Cargo.toml
 
       - name: Trim paths
+        if: ${{ !inputs.skipable }}
         shell: bash
         run: |
           echo $'\n' >> .cargo/config.toml
