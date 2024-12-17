@@ -731,7 +731,7 @@ importers:
         version: 8.4.49
       postcss-loader:
         specifier: ^8.0.0
-        version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.4.49)(typescript@5.6.3)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+        version: 8.1.1(@rspack/core@packages+rspack)(postcss@8.4.49)(typescript@5.7.2)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -743,16 +743,16 @@ importers:
         version: 0.14.0
       tailwindcss:
         specifier: ^3.3.0
-        version: 3.4.14(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3))
+        version: 3.4.14(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.7.2))
       typescript:
-        specifier: ^5.6.3
-        version: 5.6.3
+        specifier: ^5.7.2
+        version: 5.7.2
       vue:
         specifier: ^3.4.21
-        version: 3.5.12(typescript@5.6.3)
+        version: 3.5.12(typescript@5.7.2)
       vue-loader:
         specifier: ^17.3.1
-        version: 17.4.2(vue@3.5.12(typescript@5.6.3))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+        version: 17.4.2(vue@3.5.12(typescript@5.7.2))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
       webpack-dev-server:
         specifier: 5.0.4
         version: 5.0.4(webpack-cli@5.1.4(webpack@5.94.0))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
@@ -9333,11 +9333,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.6.3:
-    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@5.7.2:
     resolution: {integrity: sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg==}
     engines: {node: '>=14.17'}
@@ -12773,12 +12768,6 @@ snapshots:
       '@vue/shared': 3.5.12
       csstype: 3.1.3
 
-  '@vue/server-renderer@3.5.12(vue@3.5.12(typescript@5.6.3))':
-    dependencies:
-      '@vue/compiler-ssr': 3.5.12
-      '@vue/shared': 3.5.12
-      vue: 3.5.12(typescript@5.6.3)
-
   '@vue/server-renderer@3.5.12(vue@3.5.12(typescript@5.7.2))':
     dependencies:
       '@vue/compiler-ssr': 3.5.12
@@ -13850,15 +13839,6 @@ snapshots:
       path-type: 4.0.0
     optionalDependencies:
       typescript: 4.9.5
-
-  cosmiconfig@9.0.0(typescript@5.6.3):
-    dependencies:
-      env-paths: 2.2.1
-      import-fresh: 3.3.0
-      js-yaml: 4.1.0
-      parse-json: 5.2.0
-    optionalDependencies:
-      typescript: 5.6.3
 
   cosmiconfig@9.0.0(typescript@5.7.2):
     dependencies:
@@ -17511,14 +17491,6 @@ snapshots:
       camelcase-css: 2.0.1
       postcss: 8.4.49
 
-  postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3)):
-    dependencies:
-      lilconfig: 3.1.2
-      yaml: 2.6.0
-    optionalDependencies:
-      postcss: 8.4.49
-      ts-node: 10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3)
-
   postcss-load-config@4.0.2(postcss@8.4.49)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.7.2)):
     dependencies:
       lilconfig: 3.1.2
@@ -17541,18 +17513,6 @@ snapshots:
       jiti: 1.21.6
       postcss: 8.4.49
       semver: 7.6.3
-      webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))
-    transitivePeerDependencies:
-      - typescript
-
-  postcss-loader@8.1.1(@rspack/core@packages+rspack)(postcss@8.4.49)(typescript@5.6.3)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))):
-    dependencies:
-      cosmiconfig: 9.0.0(typescript@5.6.3)
-      jiti: 1.21.6
-      postcss: 8.4.49
-      semver: 7.6.3
-    optionalDependencies:
-      '@rspack/core': link:packages/rspack
       webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))
     transitivePeerDependencies:
       - typescript
@@ -19206,33 +19166,6 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
 
-  tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3)):
-    dependencies:
-      '@alloc/quick-lru': 5.2.0
-      arg: 5.0.2
-      chokidar: 3.6.0
-      didyoumean: 1.2.2
-      dlv: 1.1.3
-      fast-glob: 3.3.2
-      glob-parent: 6.0.2
-      is-glob: 4.0.3
-      jiti: 1.21.6
-      lilconfig: 2.1.0
-      micromatch: 4.0.8
-      normalize-path: 3.0.0
-      object-hash: 3.0.0
-      picocolors: 1.1.1
-      postcss: 8.4.49
-      postcss-import: 15.1.0(postcss@8.4.49)
-      postcss-js: 4.0.1(postcss@8.4.49)
-      postcss-load-config: 4.0.2(postcss@8.4.49)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3))
-      postcss-nested: 6.2.0(postcss@8.4.49)
-      postcss-selector-parser: 6.1.2
-      resolve: 1.22.8
-      sucrase: 3.35.0
-    transitivePeerDependencies:
-      - ts-node
-
   tailwindcss@3.4.14(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.7.2)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
@@ -19474,27 +19407,6 @@ snapshots:
     optionalDependencies:
       '@swc/core': 1.10.1(@swc/helpers@0.5.15)
 
-  ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.6.3):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 20.12.7
-      acorn: 8.11.3
-      acorn-walk: 8.3.2
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 5.6.3
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    optionalDependencies:
-      '@swc/core': 1.10.1(@swc/helpers@0.5.15)
-    optional: true
-
   ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@5.7.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
@@ -19585,8 +19497,6 @@ snapshots:
   typescript@4.9.5: {}
 
   typescript@5.4.2: {}
-
-  typescript@5.6.3: {}
 
   typescript@5.7.2: {}
 
@@ -19832,15 +19742,6 @@ snapshots:
 
   vscode-uri@3.0.8: {}
 
-  vue-loader@17.4.2(vue@3.5.12(typescript@5.6.3))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))):
-    dependencies:
-      chalk: 4.1.2
-      hash-sum: 2.0.0
-      watchpack: 2.4.1
-      webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))
-    optionalDependencies:
-      vue: 3.5.12(typescript@5.6.3)
-
   vue-loader@17.4.2(vue@3.5.12(typescript@5.7.2))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))):
     dependencies:
       chalk: 4.1.2
@@ -19849,16 +19750,6 @@ snapshots:
       webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))
     optionalDependencies:
       vue: 3.5.12(typescript@5.7.2)
-
-  vue@3.5.12(typescript@5.6.3):
-    dependencies:
-      '@vue/compiler-dom': 3.5.12
-      '@vue/compiler-sfc': 3.5.12
-      '@vue/runtime-dom': 3.5.12
-      '@vue/server-renderer': 3.5.12(vue@3.5.12(typescript@5.6.3))
-      '@vue/shared': 3.5.12
-    optionalDependencies:
-      typescript: 5.6.3
 
   vue@3.5.12(typescript@5.7.2):
     dependencies:
