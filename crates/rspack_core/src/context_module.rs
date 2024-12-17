@@ -1113,13 +1113,13 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     }
     id += "|groupOptions: {";
     if let Some(o) = group.prefetch_order {
-      id.push_str(&format!("prefetchOrder: {},", o));
+      id.push_str(&format!("prefetchOrder: {o},"));
     }
     if let Some(o) = group.preload_order {
-      id.push_str(&format!("preloadOrder: {},", o));
+      id.push_str(&format!("preloadOrder: {o},"));
     }
     if let Some(o) = group.fetch_priority {
-      id.push_str(&format!("fetchPriority: {},", o));
+      id.push_str(&format!("fetchPriority: {o},"));
     }
     id += "}";
   }

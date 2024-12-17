@@ -39,7 +39,7 @@ impl fmt::Debug for ResolveInnerOptions<'_> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       Self::RspackResolver(options) => {
-        write!(f, "{:?}", options)
+        write!(f, "{options:?}")
       }
     }
   }
