@@ -172,9 +172,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let format = self.options.format.unwrap_or_default();
 
     let manifest_json = if format {
-      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
+      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{e}")))?
     } else {
-      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
+      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{e}")))?
     };
 
     let asset = Arc::new(RawStringSource::from(manifest_json)) as BoxSource;
