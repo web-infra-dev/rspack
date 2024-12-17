@@ -333,6 +333,17 @@ impl GeneratorOptions {
       .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
   }
 
+  pub fn asset_output_path(&self) -> Option<&Filename> {
+    self
+      .get_asset()
+      .and_then(|x| x.output_path.as_ref())
+      .or_else(|| {
+        self
+          .get_asset_resource()
+          .and_then(|x| x.output_path.as_ref())
+      })
+  }
+
   pub fn asset_public_path(&self) -> Option<&PublicPath> {
     self
       .get_asset()
@@ -370,6 +381,7 @@ pub struct AssetInlineGeneratorOptions {
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
+  pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
 }
 
@@ -378,6 +390,7 @@ pub struct AssetResourceGeneratorOptions {
 pub struct AssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
+  pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
 }

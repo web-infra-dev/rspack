@@ -815,6 +815,7 @@ function getRawAssetResourceGeneratorOptions(
 	return {
 		emit: options.emit,
 		filename: options.filename,
+		outputPath: options.outputPath,
 		publicPath: options.publicPath
 	};
 }

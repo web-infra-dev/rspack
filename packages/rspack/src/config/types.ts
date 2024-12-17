@@ -1128,6 +1128,9 @@ export type AssetInlineGeneratorOptions = {
 	dataUrl?: AssetGeneratorDataUrl;
 };
 
+/** Emit the asset in the specified folder relative to 'output.path'. */
+export type AssetModuleOutputPath = Filename;
+
 /** Options for asset modules. */
 export type AssetResourceGeneratorOptions = {
 	/**
@@ -1138,6 +1141,9 @@ export type AssetResourceGeneratorOptions = {
 
 	/** This option determines the name of each asset resource output bundle.*/
 	filename?: Filename;
+
+	/** Emit the asset in the specified folder relative to 'output.path' */
+	outputPath?: AssetModuleOutputPath;
 
 	/** This option determines the URL prefix of the referenced 'asset' or 'asset/resource'*/
 	publicPath?: PublicPath;
