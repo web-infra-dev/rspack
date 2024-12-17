@@ -105,10 +105,17 @@ var parseRange = function(str) {
     // hyphen     ::= partial ( ' ' ) * ' - ' ( ' ' ) * partial
     const items = str.split(/\s+-\s+/);
     if (items.length === 1) {
-      const items = str
-        .trim()
-        .split(/(?<=[-0-9A-Za-z])\s+/g)
-        .map(parseSimple);
+			str = str.trim();
+			const items = [];
+			const r = /[-0-9A-Za-z]\s+/g;
+			var start = 0;
+			var match;
+			while ((match = r.exec(str))) {
+				const end = match.index + 1;
+				items.push(parseSimple(str.slice(start, end).trim()));
+				start = end;
+			}
+			items.push(parseSimple(str.slice(start).trim()));
       return combine(items, 2);
     }
     const a = parsePartial(items[0]);
