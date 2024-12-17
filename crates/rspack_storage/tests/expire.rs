@@ -5,7 +5,7 @@ mod test_storage_expire {
   use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
-  use rspack_storage::{PackBridgeFS, PackFS, PackStorage, PackStorageOptions, Storage};
+  use rspack_storage::{PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS};
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
@@ -23,7 +23,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -59,7 +59,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -73,7 +73,7 @@ mod test_storage_expire {
     });
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()
-        .contains("validation failed due to cache expired")
+        .contains("validate scope `test_scope` failed due to expiration")
     }));
 
     Ok(())
@@ -84,7 +84,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -124,11 +124,11 @@ mod test_storage_expire {
     let cases = [
       (
         get_native_path("test_expire_native"),
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_expire_memory"),
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 

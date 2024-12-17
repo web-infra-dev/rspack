@@ -1,7 +1,7 @@
 mod split;
 
 use async_trait::async_trait;
-use rspack_error::Result;
+use rspack_error::{miette, thiserror::Error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
@@ -70,6 +70,36 @@ pub trait ScopeReadStrategy {
   async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()>;
 }
 
+#[async_trait]
+pub trait ScopeValidateStrategy {
+  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult>;
+  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult>;
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct WriteScopeResult {
+  pub wrote_files: HashSet<Utf8PathBuf>,
+  pub removed_files: HashSet<Utf8PathBuf>,
+}
+
+impl WriteScopeResult {
+  pub fn extend(&mut self, other: Self) {
+    self.wrote_files.extend(other.wrote_files);
+    self.removed_files.extend(other.removed_files);
+  }
+}
+
+pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
+#[async_trait]
+pub trait ScopeWriteStrategy {
+  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
+  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
+  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+}
+
 #[derive(Debug)]
 pub struct InvalidDetail {
   pub reason: String,
@@ -101,13 +131,52 @@ impl ValidateResult {
   }
 }
 
-impl std::fmt::Display for ValidateResult {
+#[derive(Debug)]
+enum ScopeValidateErrorReason {
+  Reason(String),
+  Detail(InvalidDetail),
+  Error(rspack_error::Error),
+}
+
+#[derive(Debug, Error)]
+pub struct StorageValidateError {
+  scope: Option<&'static str>,
+  inner: ScopeValidateErrorReason,
+}
+
+impl StorageValidateError {
+  pub fn from_detail(scope: Option<&'static str>, detail: InvalidDetail) -> Self {
+    Self {
+      scope,
+      inner: ScopeValidateErrorReason::Detail(detail),
+    }
+  }
+  pub fn from_error(scope: Option<&'static str>, error: rspack_error::Error) -> Self {
+    Self {
+      scope,
+      inner: ScopeValidateErrorReason::Error(error),
+    }
+  }
+  pub fn from_reason(scope: Option<&'static str>, reason: String) -> Self {
+    Self {
+      scope,
+      inner: ScopeValidateErrorReason::Reason(reason),
+    }
+  }
+}
+
+impl std::fmt::Display for StorageValidateError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ValidateResult::NotExists => write!(f, "validation failed due to not exists"),
-      ValidateResult::Valid => write!(f, "validation passed"),
-      ValidateResult::Invalid(e) => {
-        let mut pack_info_lines = e
+    write!(f, "validate ")?;
+    if let Some(scope) = self.scope {
+      write!(f, "scope `{}` ", scope)?;
+    }
+    write!(f, "failed due to")?;
+
+    match &self.inner {
+      ScopeValidateErrorReason::Detail(detail) => {
+        write!(f, " {}", detail.reason)?;
+        let mut pack_info_lines = detail
           .packs
           .iter()
           .map(|p| format!("- {}", p))
@@ -116,47 +185,32 @@ impl std::fmt::Display for ValidateResult {
           pack_info_lines.truncate(5);
           pack_info_lines.push("...".to_string());
         }
-        write!(
-          f,
-          "validation failed due to {}{}",
-          e.reason,
-          if pack_info_lines.is_empty() {
-            "".to_string()
-          } else {
-            format!(":\n{}", pack_info_lines.join("\n"))
-          }
-        )
+        if !pack_info_lines.is_empty() {
+          write!(f, ":\n{}", pack_info_lines.join("\n"))?;
+        }
+      }
+      ScopeValidateErrorReason::Error(e) => {
+        write!(f, " {}", e)?;
+      }
+      ScopeValidateErrorReason::Reason(e) => {
+        write!(f, " {}", e)?;
       }
     }
+    Ok(())
   }
 }
 
-#[async_trait]
-pub trait ScopeValidateStrategy {
-  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult>;
-  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult>;
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct WriteScopeResult {
-  pub wrote_files: HashSet<Utf8PathBuf>,
-  pub removed_files: HashSet<Utf8PathBuf>,
-}
-
-impl WriteScopeResult {
-  pub fn extend(&mut self, other: Self) {
-    self.wrote_files.extend(other.wrote_files);
-    self.removed_files.extend(other.removed_files);
+impl miette::Diagnostic for StorageValidateError {
+  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+    Some(Box::new("StorageValidateError"))
   }
-}
-
-pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
-#[async_trait]
-pub trait ScopeWriteStrategy {
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
-  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
-  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
-  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
-  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;
-  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+  fn severity(&self) -> Option<miette::Severity> {
+    Some(miette::Severity::Warning)
+  }
+  fn diagnostic_source(&self) -> Option<&dyn miette::Diagnostic> {
+    match &self.inner {
+      ScopeValidateErrorReason::Error(e) => Some(e.as_ref()),
+      _ => None,
+    }
+  }
 }

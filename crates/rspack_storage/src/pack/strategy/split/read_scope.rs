@@ -9,8 +9,8 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::pack::{
   data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-  fs::PackFS,
-  strategy::{PackReadStrategy, ScopeReadStrategy},
+  fs::StorageFS,
+  strategy::{PackReadStrategy, ScopeReadStrategy, StorageValidateError},
 };
 
 #[async_trait]
@@ -18,7 +18,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
   async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.meta.loaded() {
       let meta_path = ScopeMeta::get_path(&scope.path);
-      let meta = read_scope_meta(&meta_path, self.fs.clone())
+      let meta = read_scope_meta(scope.name, &meta_path, self.fs.clone())
         .await?
         .unwrap_or_else(|| ScopeMeta::new(&scope.path, &scope.options));
       scope.meta.set_value(meta);
@@ -87,7 +87,11 @@ impl ScopeReadStrategy for SplitPackStrategy {
   }
 }
 
-async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<ScopeMeta>> {
+async fn read_scope_meta(
+  scope: &'static str,
+  path: &Utf8Path,
+  fs: Arc<dyn StorageFS>,
+) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
   }
@@ -99,14 +103,17 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<
     .await?
     .split(" ")
     .map(|item| {
-      item
-        .parse::<usize>()
-        .map_err(|e| error!("parse option meta failed: {}", e))
+      item.parse::<usize>().map_err(|e| {
+        StorageValidateError::from_reason(Some(scope), format!("parse option meta failed: {}", e))
+          .into()
+      })
     })
     .collect::<Result<Vec<usize>>>()?;
 
   if option_items.len() < 2 {
-    return Err(error!("option meta not match"));
+    return Err(
+      StorageValidateError::from_reason(Some(scope), "option meta not match".to_string()).into(),
+    );
   }
 
   let bucket_size = option_items[0];
@@ -123,14 +130,20 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<
         .map(|i| i.split(",").collect::<Vec<_>>())
         .map(|i| {
           if i.len() < 3 {
-            Err(error!("file meta not match"))
+            Err(
+              StorageValidateError::from_reason(Some(scope), "file meta not match".to_string())
+                .into(),
+            )
           } else {
             Ok(PackFileMeta {
               name: i[0].to_owned(),
               hash: i[1].to_owned(),
-              size: i[2]
-                .parse::<usize>()
-                .map_err(|e| error!("parse file meta failed: {}", e))?,
+              size: i[2].parse::<usize>().map_err(|e| {
+                StorageValidateError::from_reason(
+                  Some(scope),
+                  format!("parse file meta failed: {}", e),
+                )
+              })?,
               wrote: true,
             })
           }
@@ -140,7 +153,9 @@ async fn read_scope_meta(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<Option<
   }
 
   if packs.len() < bucket_size {
-    return Err(error!("bucket size not match"));
+    return Err(
+      StorageValidateError::from_reason(Some(scope), "bucket size not match".to_string()).into(),
+    );
   }
 
   Ok(Some(ScopeMeta {
@@ -170,7 +185,8 @@ async fn read_keys(scope: &PackScope, strategy: &SplitPackStrategy) -> Result<Ve
     .map(|i| {
       let strategy = strategy.clone();
       let path = i.1.path.clone();
-      tokio::spawn(async move { strategy.read_pack_keys(&path).await }).map_err(|e| error!("{}", e))
+      tokio::spawn(async move { strategy.read_pack_keys(&path).await })
+        .map_err(|e| StorageValidateError::from_error(Some(scope.name), error!("{}", e)))
     })
     .collect_vec();
 
@@ -215,7 +231,7 @@ async fn read_contents(
       let strategy = strategy.to_owned();
       let path = i.1.path.to_owned();
       tokio::spawn(async move { strategy.read_pack_contents(&path).await })
-        .map_err(|e| error!("{}", e))
+        .map_err(|e| StorageValidateError::from_error(Some(scope.name), error!("{}", e)))
     })
     .collect_vec();
   let pack_contents = join_all(tasks).await.into_iter().process_results(|iter| {
@@ -248,7 +264,7 @@ mod tests {
 
   use crate::pack::{
     data::{PackOptions, PackScope, ScopeMeta},
-    fs::PackFS,
+    fs::StorageFS,
     strategy::{
       split::util::test_pack_utils::{
         clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
@@ -257,7 +273,7 @@ mod tests {
     },
   };
 
-  async fn mock_scope(path: &Utf8Path, fs: &dyn PackFS, options: &PackOptions) -> Result<()> {
+  async fn mock_scope(path: &Utf8Path, fs: &dyn StorageFS, options: &PackOptions) -> Result<()> {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
@@ -335,7 +351,11 @@ mod tests {
         bucket_size: 1,
         pack_size: 16,
       });
-      let mut scope = PackScope::new(strategy.get_path("scope_name"), options.clone());
+      let mut scope = PackScope::new(
+        "scope_name",
+        strategy.get_path("scope_name"),
+        options.clone(),
+      );
 
       mock_scope(&scope.path, strategy.fs.as_ref(), &scope.options)
         .await

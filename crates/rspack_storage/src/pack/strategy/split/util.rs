@@ -86,16 +86,16 @@ pub mod test_pack_utils {
   use crate::{
     pack::{
       data::{current_time, PackOptions, PackScope},
-      fs::PackFS,
+      fs::StorageFS,
       strategy::{
         split::handle_file::prepare_scope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy,
         WriteScopeResult,
       },
     },
-    PackBridgeFS,
+    StorageBridgeFS,
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn PackFS) -> Result<()> {
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -108,7 +108,7 @@ pub mod test_pack_utils {
 
   pub async fn mock_scope_meta_file(
     path: &Utf8Path,
-    fs: &dyn PackFS,
+    fs: &dyn StorageFS,
     options: &PackOptions,
     pack_count: usize,
   ) -> Result<()> {
@@ -138,7 +138,7 @@ pub mod test_pack_utils {
     path: &Utf8Path,
     unique_id: &str,
     item_count: usize,
-    fs: &dyn PackFS,
+    fs: &dyn StorageFS,
   ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
@@ -228,7 +228,7 @@ pub mod test_pack_utils {
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     fs.write_file(path).await?.write_all(&content).await?;
 
@@ -270,11 +270,11 @@ pub mod test_pack_utils {
   pub fn create_strategies(case: &str) -> Vec<SplitPackStrategy> {
     let fs = [
       (
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
         get_memory_path(case),
       ),
       (
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
         get_native_path(case),
       ),
     ];

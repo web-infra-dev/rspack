@@ -8,18 +8,18 @@ mod test_storage_lock {
   use rspack_error::{error, Result};
   use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem, ReadStream, WriteStream};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-  use rspack_storage::{PackBridgeFS, PackFS, PackStorage, PackStorageOptions, Storage};
+  use rspack_storage::{PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS};
   use rustc_hash::FxHashSet as HashSet;
 
   #[derive(Debug)]
-  pub struct MockPackFS {
-    pub fs: Arc<dyn PackFS>,
+  pub struct MoakStorageFS {
+    pub fs: Arc<dyn StorageFS>,
     pub moved: AtomicUsize,
     pub break_on: usize,
   }
 
   #[async_trait::async_trait]
-  impl PackFS for MockPackFS {
+  impl StorageFS for MoakStorageFS {
     async fn exists(&self, path: &Utf8Path) -> Result<bool> {
       self.fs.exists(path).await
     }
@@ -81,7 +81,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -117,7 +117,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -137,7 +137,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn StorageFS>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -162,11 +162,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_native"),
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_lock_memory"),
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 
@@ -182,7 +182,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockPackFS {
+        Arc::new(MoakStorageFS {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
@@ -195,7 +195,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockPackFS {
+        Arc::new(MoakStorageFS {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,
@@ -212,11 +212,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_fail_native"),
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_lock_fail_memory"),
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 
@@ -232,7 +232,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MockPackFS {
+        Arc::new(MoakStorageFS {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
@@ -245,7 +245,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root.join("other"),
-        Arc::new(MockPackFS {
+        Arc::new(MoakStorageFS {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,

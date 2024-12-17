@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use itertools::Itertools;
-use rspack_error::{error, Result};
+use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -137,7 +137,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
     if keys.len() != contents.len() {
-      return Err(error!("pack keys and contents length not match"));
+      panic!("pack keys and contents length not match");
     }
 
     let mut writer = self.fs.write_file(&path).await?;

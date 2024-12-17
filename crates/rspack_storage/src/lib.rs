@@ -2,7 +2,7 @@ mod pack;
 
 use std::sync::Arc;
 
-pub use pack::{PackBridgeFS, PackFS, PackStorage, PackStorageOptions};
+pub use pack::{PackStorage, PackStorageOptions, StorageBridgeFS, StorageFS};
 use rspack_error::Result;
 use tokio::sync::oneshot::Receiver;
 

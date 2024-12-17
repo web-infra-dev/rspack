@@ -7,13 +7,13 @@ use itertools::Itertools;
 use pollster::block_on;
 use queue::TaskQueue;
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use rspack_error::{error, Error, Result};
+use rspack_error::{Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
 use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
-use super::strategy::{ScopeStrategy, ValidateResult, WriteScopeResult};
+use super::strategy::{ScopeStrategy, StorageValidateError, ValidateResult, WriteScopeResult};
 use super::ScopeUpdates;
 use crate::StorageContent;
 
@@ -116,7 +116,13 @@ impl ScopeManager {
       .lock()
       .await
       .entry(name.to_string())
-      .or_insert_with(|| PackScope::new(self.strategy.get_path(name), self.pack_options.clone()));
+      .or_insert_with(|| {
+        PackScope::new(
+          name,
+          self.strategy.get_path(name),
+          self.pack_options.clone(),
+        )
+      });
 
     // only check lock file and root meta for the first time
     if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
@@ -148,15 +154,15 @@ impl ScopeManager {
           Ok(vec![])
         }
         // clear scope if invalid
-        ValidateResult::Invalid(_) => {
+        ValidateResult::Invalid(detail) => {
           self.clear_scope(name).await;
-          Err(error!(validated.to_string()))
+          Err(StorageValidateError::from_detail(Some(name), detail).into())
         }
       },
       Err(e) => {
         // clear scope if error
         self.clear_scope(name).await;
-        Err(Error::from(e))
+        Err(StorageValidateError::from_error(Some(name), e).into())
       }
     }
   }
@@ -197,9 +203,13 @@ fn update_scopes(
   strategy: &dyn ScopeStrategy,
 ) -> Result<()> {
   for (scope_name, _) in updates.iter() {
-    scopes
-      .entry(scope_name.to_string())
-      .or_insert_with(|| PackScope::empty(strategy.get_path(scope_name), pack_options.clone()));
+    scopes.entry(scope_name.to_string()).or_insert_with(|| {
+      PackScope::empty(
+        scope_name,
+        strategy.get_path(scope_name),
+        pack_options.clone(),
+      )
+    });
   }
 
   scopes
@@ -276,7 +286,7 @@ mod tests {
   use crate::{
     pack::{
       data::{PackOptions, RootOptions},
-      fs::{PackBridgeFS, PackFS},
+      fs::{StorageBridgeFS, StorageFS},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
@@ -305,7 +315,7 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -359,7 +369,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -437,7 +447,11 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_invalid_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn StorageFS>,
+  ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -458,7 +472,7 @@ mod tests {
     // should report error when invalid failed
     assert_eq!(
       manager.load("scope1").await.unwrap_err().to_string(),
-      "validation failed due to `options.bucketSize` changed"
+      "validate scope `scope1` failed due to `options.bucketSize` changed"
     );
 
     // clear after invalid, can be used as a empty scope
@@ -484,7 +498,7 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
+    let fs = Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
     test_cold_start(&root, &temp, fs.clone()).await?;

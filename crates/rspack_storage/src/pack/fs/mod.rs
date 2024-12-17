@@ -3,13 +3,13 @@ use std::sync::Arc;
 use rspack_error::Result;
 
 mod error;
-pub use error::{PackFsError, PackFsErrorOpt};
+pub use error::{BatchStorageFSError, StorageFSError, StorageFSOperation};
 use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashSet as HashSet;
 
 #[async_trait::async_trait]
-pub trait PackFS: std::fmt::Debug + Sync + Send {
+pub trait StorageFS: std::fmt::Debug + Sync + Send {
   async fn exists(&self, path: &Utf8Path) -> Result<bool>;
   async fn remove_dir(&self, path: &Utf8Path) -> Result<()>;
   async fn ensure_dir(&self, path: &Utf8Path) -> Result<()>;
@@ -22,14 +22,14 @@ pub trait PackFS: std::fmt::Debug + Sync + Send {
 }
 
 #[derive(Debug)]
-pub struct PackBridgeFS(pub Arc<dyn IntermediateFileSystem>);
+pub struct StorageBridgeFS(pub Arc<dyn IntermediateFileSystem>);
 
 #[async_trait::async_trait]
-impl PackFS for PackBridgeFS {
+impl StorageFS for StorageBridgeFS {
   async fn exists(&self, path: &Utf8Path) -> Result<bool> {
     match self.metadata(path).await {
       Ok(_) => Ok(true),
-      Err(e) => match e.downcast::<PackFsError>() {
+      Err(e) => match e.downcast::<StorageFSError>() {
         Ok(e) => {
           if e.is_not_found() {
             Ok(false)
@@ -48,7 +48,7 @@ impl PackFS for PackBridgeFS {
         .0
         .remove_dir_all(path)
         .await
-        .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Remove, e))?;
+        .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Remove, e))?;
     }
     Ok(())
   }
@@ -58,7 +58,7 @@ impl PackFS for PackBridgeFS {
       .0
       .create_dir_all(path)
       .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Dir, e))?;
+      .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Dir, e))?;
     Ok(())
   }
 
@@ -74,7 +74,7 @@ impl PackFS for PackBridgeFS {
       .0
       .create_write_stream(path)
       .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Write, e))?;
+      .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Write, e))?;
 
     Ok(res)
   }
@@ -84,7 +84,7 @@ impl PackFS for PackBridgeFS {
       .0
       .create_read_stream(path)
       .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Read, e))?;
+      .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Read, e))?;
     Ok(res)
   }
 
@@ -93,7 +93,7 @@ impl PackFS for PackBridgeFS {
       .0
       .read_dir(path)
       .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Read, e))?;
+      .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Read, e))?;
     Ok(files.into_iter().collect::<HashSet<_>>())
   }
 
@@ -102,7 +102,7 @@ impl PackFS for PackBridgeFS {
       .0
       .stat(path)
       .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Stat, e))?;
+      .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Stat, e))?;
     Ok(res)
   }
 
@@ -112,7 +112,7 @@ impl PackFS for PackBridgeFS {
         .0
         .remove_file(path)
         .await
-        .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Remove, e))?;
+        .map_err(|e| StorageFSError::from_fs_error(path, StorageFSOperation::Remove, e))?;
     }
     Ok(())
   }
@@ -126,7 +126,7 @@ impl PackFS for PackBridgeFS {
         .0
         .rename(from, to)
         .await
-        .map_err(|e| PackFsError::from_fs_error(from, PackFsErrorOpt::Move, e))?;
+        .map_err(|e| StorageFSError::from_fs_error(from, StorageFSOperation::Move, e))?;
     }
     Ok(())
   }
@@ -140,14 +140,14 @@ mod tests {
   use rspack_fs::MemoryFileSystem;
   use rspack_paths::Utf8PathBuf;
 
-  use super::PackBridgeFS;
-  use crate::PackFS;
+  use super::StorageBridgeFS;
+  use crate::StorageFS;
 
   fn get_path(p: &str) -> Utf8PathBuf {
     Utf8PathBuf::from(p)
   }
 
-  async fn test_create_dir(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_create_dir(fs: &StorageBridgeFS) -> Result<()> {
     fs.ensure_dir(&get_path("/parent/from")).await?;
     fs.ensure_dir(&get_path("/parent/to")).await?;
 
@@ -160,7 +160,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_write_file(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_write_file(fs: &StorageBridgeFS) -> Result<()> {
     let mut writer = fs.write_file(&get_path("/parent/from/file.txt")).await?;
 
     writer.write_line("hello").await?;
@@ -177,7 +177,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_file(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_read_file(fs: &StorageBridgeFS) -> Result<()> {
     let mut reader = fs.read_file(&get_path("/parent/from/file.txt")).await?;
 
     assert_eq!(reader.read_line().await?, "hello");
@@ -186,7 +186,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_move_file(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_move_file(fs: &StorageBridgeFS) -> Result<()> {
     fs.move_file(
       &get_path("/parent/from/file.txt"),
       &get_path("/parent/to/file.txt"),
@@ -199,13 +199,13 @@ mod tests {
     Ok(())
   }
 
-  async fn test_remove_file(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_remove_file(fs: &StorageBridgeFS) -> Result<()> {
     fs.remove_file(&get_path("/parent/to/file.txt")).await?;
     assert!(!fs.exists(&get_path("/parent/to/file.txt")).await?);
     Ok(())
   }
 
-  async fn test_remove_dir(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_remove_dir(fs: &StorageBridgeFS) -> Result<()> {
     fs.remove_dir(&get_path("/parent/from")).await?;
     fs.remove_dir(&get_path("/parent/to")).await?;
     assert!(!fs.exists(&get_path("/parent/from")).await?);
@@ -213,19 +213,19 @@ mod tests {
     Ok(())
   }
 
-  async fn test_error(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_error(fs: &StorageBridgeFS) -> Result<()> {
     match fs.metadata(&get_path("/parent/from/not_exist.txt")).await {
       Ok(_) => panic!("should error"),
       Err(e) => assert_eq!(
         e.to_string(),
-        r#"Rspack Storage FS Error: stat `/parent/from/not_exist.txt` failed with `Rspack FS Error: file not exist`"#
+        r#"stat `/parent/from/not_exist.txt` failed due to `file not exist`"#
       ),
     };
 
     Ok(())
   }
 
-  async fn test_memory_fs(fs: &PackBridgeFS) -> Result<()> {
+  async fn test_memory_fs(fs: &StorageBridgeFS) -> Result<()> {
     test_create_dir(fs).await?;
     test_write_file(fs).await?;
     test_read_file(fs).await?;
@@ -239,8 +239,8 @@ mod tests {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn should_pack_bridge_fs_work() {
-    let fs = PackBridgeFS(Arc::new(MemoryFileSystem::default()));
+  async fn should_storage_bridge_fs_work() {
+    let fs = StorageBridgeFS(Arc::new(MemoryFileSystem::default()));
 
     let _ = test_memory_fs(&fs).await.map_err(|e| {
       panic!("{}", e);

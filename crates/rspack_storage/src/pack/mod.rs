@@ -9,7 +9,7 @@ use std::{
 };
 
 use data::{PackOptions, RootOptions};
-pub use fs::{PackBridgeFS, PackFS};
+pub use fs::{StorageBridgeFS, StorageFS};
 use manager::ScopeManager;
 use rspack_error::Result;
 use rspack_paths::AssertUtf8;
@@ -29,7 +29,7 @@ pub struct PackStorage {
 pub struct PackStorageOptions {
   pub root: PathBuf,
   pub temp_root: PathBuf,
-  pub fs: Arc<dyn PackFS>,
+  pub fs: Arc<dyn StorageFS>,
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,
