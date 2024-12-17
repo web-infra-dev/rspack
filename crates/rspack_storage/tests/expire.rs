@@ -2,10 +2,11 @@
 mod test_storage_expire {
   use std::{path::PathBuf, sync::Arc};
 
-  use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
-  use rspack_storage::{PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS};
+  use rspack_storage::{
+    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageResult,
+  };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
@@ -24,7 +25,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -60,7 +61,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -85,7 +86,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),

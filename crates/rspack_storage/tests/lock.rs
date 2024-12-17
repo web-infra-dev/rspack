@@ -5,10 +5,12 @@ mod test_storage_lock {
     sync::{atomic::AtomicUsize, Arc},
   };
 
-  use rspack_error::{error, Result};
-  use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem, ReadStream, WriteStream};
+  use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-  use rspack_storage::{PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS};
+  use rspack_storage::{
+    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageFSError,
+    StorageFSOperation, StorageFSResult, StorageReader, StorageResult, StorageWriter,
+  };
   use rustc_hash::FxHashSet as HashSet;
 
   #[derive(Debug)]
@@ -20,42 +22,46 @@ mod test_storage_lock {
 
   #[async_trait::async_trait]
   impl StorageFS for MoakStorageFS {
-    async fn exists(&self, path: &Utf8Path) -> Result<bool> {
+    async fn exists(&self, path: &Utf8Path) -> StorageFSResult<bool> {
       self.fs.exists(path).await
     }
 
-    async fn remove_dir(&self, path: &Utf8Path) -> Result<()> {
+    async fn remove_dir(&self, path: &Utf8Path) -> StorageFSResult<()> {
       self.fs.remove_dir(path).await
     }
 
-    async fn ensure_dir(&self, path: &Utf8Path) -> Result<()> {
+    async fn ensure_dir(&self, path: &Utf8Path) -> StorageFSResult<()> {
       self.fs.ensure_dir(path).await
     }
 
-    async fn write_file(&self, path: &Utf8Path) -> Result<Box<dyn WriteStream>> {
+    async fn write_file(&self, path: &Utf8Path) -> StorageFSResult<StorageWriter> {
       self.fs.write_file(path).await
     }
 
-    async fn read_file(&self, path: &Utf8Path) -> Result<Box<dyn ReadStream>> {
+    async fn read_file(&self, path: &Utf8Path) -> StorageFSResult<StorageReader> {
       self.fs.read_file(path).await
     }
 
-    async fn read_dir(&self, path: &Utf8Path) -> Result<HashSet<String>> {
+    async fn read_dir(&self, path: &Utf8Path) -> StorageFSResult<HashSet<String>> {
       self.fs.read_dir(path).await
     }
 
-    async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    async fn metadata(&self, path: &Utf8Path) -> StorageFSResult<FileMetadata> {
       self.fs.metadata(path).await
     }
 
-    async fn remove_file(&self, path: &Utf8Path) -> Result<()> {
+    async fn remove_file(&self, path: &Utf8Path) -> StorageFSResult<()> {
       self.fs.remove_file(path).await
     }
 
-    async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> StorageFSResult<()> {
       let moved = self.moved.load(std::sync::atomic::Ordering::Relaxed);
       if moved == self.break_on {
-        Err(error!("move failed"))
+        Err(StorageFSError::from_message(
+          from,
+          StorageFSOperation::Move,
+          "move failed".to_string(),
+        ))
       } else {
         self
           .moved
@@ -82,7 +88,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -118,7 +124,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -138,7 +144,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),

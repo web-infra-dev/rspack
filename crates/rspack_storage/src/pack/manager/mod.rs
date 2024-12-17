@@ -7,15 +7,15 @@ use itertools::Itertools;
 use pollster::block_on;
 use queue::TaskQueue;
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use rspack_error::{Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
 use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
-use super::strategy::{ScopeStrategy, StorageValidateError, ValidateResult, WriteScopeResult};
+use super::strategy::{ScopeStrategy, WriteScopeResult};
 use super::ScopeUpdates;
-use crate::StorageContent;
+use crate::error::{StorageError, StorageErrorType, ValidateResult};
+use crate::{StorageContent, StorageResult};
 
 type ScopeMap = HashMap<String, PackScope>;
 
@@ -45,7 +45,7 @@ impl ScopeManager {
     }
   }
 
-  pub fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
+  pub fn save(&self, updates: ScopeUpdates) -> StorageResult<Receiver<StorageResult<()>>> {
     let pack_options = self.pack_options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
@@ -69,7 +69,7 @@ impl ScopeManager {
           )));
           Ok(())
         }
-        Err(e) => Err(Error::from(e)),
+        Err(e) => Err(e),
       }
     })?;
 
@@ -110,7 +110,7 @@ impl ScopeManager {
       .clear();
   }
 
-  pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
+  pub async fn load(&self, name: &'static str) -> StorageResult<StorageContent> {
     self
       .scopes
       .lock()
@@ -156,18 +156,26 @@ impl ScopeManager {
         // clear scope if invalid
         ValidateResult::Invalid(detail) => {
           self.clear_scope(name).await;
-          Err(StorageValidateError::from_detail(Some(name), detail).into())
+          Err(StorageError::from_detail(
+            Some(StorageErrorType::Validate),
+            Some(name),
+            detail,
+          ))
         }
       },
       Err(e) => {
         // clear scope if error
         self.clear_scope(name).await;
-        Err(StorageValidateError::from_error(Some(name), e).into())
+        Err(StorageError::from_error(
+          Some(StorageErrorType::Validate),
+          Some(name),
+          Box::new(e),
+        ))
       }
     }
   }
 
-  async fn validate_scope(&self, name: &'static str) -> Result<ValidateResult> {
+  async fn validate_scope(&self, name: &'static str) -> StorageResult<ValidateResult> {
     let root_meta_guard = self.root_meta.lock().await;
     // no root, no scope
     let Some(root_meta) = root_meta_guard.expect_value() else {
@@ -201,7 +209,7 @@ fn update_scopes(
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
   strategy: &dyn ScopeStrategy,
-) -> Result<()> {
+) -> StorageResult<()> {
   for (scope_name, _) in updates.iter() {
     scopes.entry(scope_name.to_string()).or_insert_with(|| {
       PackScope::empty(
@@ -227,7 +235,7 @@ fn update_scopes(
     })
     .par_bridge()
     .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update))
-    .collect::<Result<Vec<_>>>()?;
+    .collect::<StorageResult<Vec<_>>>()?;
 
   Ok(())
 }
@@ -237,7 +245,7 @@ async fn save_scopes(
   root_meta: &RootMeta,
   strategy: &dyn ScopeStrategy,
   root_options: &RootOptions,
-) -> Result<ScopeMap> {
+) -> StorageResult<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());
 
   strategy.before_all(&mut scopes).await?;
@@ -257,7 +265,7 @@ async fn save_scopes(
   )
   .await
   .into_iter()
-  .collect::<Result<Vec<WriteScopeResult>>>()?
+  .collect::<StorageResult<Vec<WriteScopeResult>>>()?
   .into_iter()
   .fold(WriteScopeResult::default(), |mut acc, res| {
     acc.extend(res);
@@ -278,12 +286,12 @@ async fn save_scopes(
 mod tests {
   use std::sync::Arc;
 
-  use rspack_error::Result;
   use rspack_fs::MemoryFileSystem;
   use rspack_paths::{Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
+    error::StorageResult,
     pack::{
       data::{PackOptions, RootOptions},
       manager::ScopeManager,
@@ -314,7 +322,11 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+  async fn test_cold_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn StorageFS>,
+  ) -> StorageResult<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -368,7 +380,11 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+  async fn test_hot_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn StorageFS>,
+  ) -> StorageResult<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -450,7 +466,7 @@ mod tests {
     root: &Utf8Path,
     temp: &Utf8Path,
     fs: Arc<dyn StorageFS>,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -496,7 +512,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_manager() -> Result<()> {
+  async fn test_manager() -> StorageResult<()> {
     let fs = Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");

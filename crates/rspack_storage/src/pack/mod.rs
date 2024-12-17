@@ -9,13 +9,14 @@ use std::{
 
 use data::{PackOptions, RootOptions};
 use manager::ScopeManager;
-use rspack_error::Result;
 use rspack_paths::AssertUtf8;
 use rustc_hash::FxHashMap as HashMap;
 use strategy::{ScopeUpdate, SplitPackStrategy};
 use tokio::sync::oneshot::Receiver;
 
-use crate::{Storage, StorageContent, StorageFS, StorageItemKey, StorageItemValue};
+use crate::{
+  error::StorageResult, Storage, StorageContent, StorageFS, StorageItemKey, StorageItemValue,
+};
 
 pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]
@@ -61,7 +62,7 @@ impl PackStorage {
 
 #[async_trait::async_trait]
 impl Storage for PackStorage {
-  async fn load(&self, name: &'static str) -> Result<StorageContent> {
+  async fn load(&self, name: &'static str) -> StorageResult<StorageContent> {
     self.manager.load(name).await
   }
   fn set(&self, scope: &'static str, key: StorageItemKey, value: StorageItemValue) {
@@ -74,7 +75,7 @@ impl Storage for PackStorage {
     let scope_update = updates.entry(scope).or_default();
     scope_update.insert(key.to_vec(), None);
   }
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+  fn trigger_save(&self) -> StorageResult<Receiver<StorageResult<()>>> {
     self.manager.save(std::mem::take(
       &mut *self.updates.lock().expect("should get lock"),
     ))

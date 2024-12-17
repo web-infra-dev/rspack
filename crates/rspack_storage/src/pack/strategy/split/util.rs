@@ -1,7 +1,6 @@
 use std::hash::Hasher;
 
 use itertools::Itertools;
-use rspack_error::Result;
 use rustc_hash::FxHasher;
 
 use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
@@ -21,40 +20,38 @@ pub fn flag_scope_wrote(scope: &mut PackScope) {
 pub fn get_indexed_packs<'a>(
   scope: &'a PackScope,
   filter: Option<&dyn Fn(&'a Pack, &'a PackFileMeta) -> bool>,
-) -> Result<(PackIndexList, PackInfoList<'a>)> {
+) -> (PackIndexList, PackInfoList<'a>) {
   let meta = scope.meta.expect_value();
   let packs = scope.packs.expect_value();
 
-  Ok(
-    meta
-      .packs
-      .iter()
-      .enumerate()
-      .flat_map(|(bucket_id, pack_meta_list)| {
-        let bucket_packs = packs.get(bucket_id).expect("should have bucket packs");
-        pack_meta_list
-          .iter()
-          .enumerate()
-          .map(|(pack_pos, pack_meta)| {
+  meta
+    .packs
+    .iter()
+    .enumerate()
+    .flat_map(|(bucket_id, pack_meta_list)| {
+      let bucket_packs = packs.get(bucket_id).expect("should have bucket packs");
+      pack_meta_list
+        .iter()
+        .enumerate()
+        .map(|(pack_pos, pack_meta)| {
+          (
+            (bucket_id, pack_pos),
             (
-              (bucket_id, pack_pos),
-              (
-                pack_meta,
-                bucket_packs.get(pack_pos).expect("should have bucket pack"),
-              ),
-            )
-          })
-          .collect_vec()
-      })
-      .filter(|(_, (pack_meta, pack))| {
-        if let Some(filter) = filter {
-          filter(pack, pack_meta)
-        } else {
-          true
-        }
-      })
-      .unzip(),
-  )
+              pack_meta,
+              bucket_packs.get(pack_pos).expect("should have bucket pack"),
+            ),
+          )
+        })
+        .collect_vec()
+    })
+    .filter(|(_, (pack_meta, pack))| {
+      if let Some(filter) = filter {
+        filter(pack, pack_meta)
+      } else {
+        true
+      }
+    })
+    .unzip()
 }
 
 pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
@@ -77,13 +74,13 @@ pub mod test_pack_utils {
   use std::sync::Arc;
 
   use itertools::Itertools;
-  use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
   use super::flag_scope_wrote;
   use crate::{
+    error::StorageResult,
     pack::{
       data::{current_time, PackOptions, PackScope},
       strategy::{
@@ -94,7 +91,7 @@ pub mod test_pack_utils {
     StorageBridgeFS, StorageFS,
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> Result<()> {
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> StorageResult<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -110,7 +107,7 @@ pub mod test_pack_utils {
     fs: &dyn StorageFS,
     options: &PackOptions,
     pack_count: usize,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -138,7 +135,7 @@ pub mod test_pack_utils {
     unique_id: &str,
     item_count: usize,
     fs: &dyn StorageFS,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -227,7 +224,7 @@ pub mod test_pack_utils {
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn StorageFS>) -> StorageResult<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     fs.write_file(path).await?.write_all(&content).await?;
 
@@ -237,7 +234,7 @@ pub mod test_pack_utils {
   pub async fn save_scope(
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
-  ) -> Result<WriteScopeResult> {
+  ) -> StorageResult<WriteScopeResult> {
     prepare_scope(
       &scope.path,
       &strategy.root,

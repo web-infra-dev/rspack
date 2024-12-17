@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use itertools::Itertools;
-use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
+  error::StorageResult,
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions},
     strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
@@ -132,7 +132,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     }
   }
 
-  async fn write_pack(&self, pack: &Pack) -> Result<()> {
+  async fn write_pack(&self, pack: &Pack) -> StorageResult<()> {
     let path = redirect_to_path(&pack.path, &self.root, &self.temp_root)?;
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
@@ -261,21 +261,23 @@ mod tests {
   use std::sync::Arc;
 
   use itertools::Itertools;
-  use rspack_error::Result;
   use rustc_hash::FxHashMap as HashMap;
 
-  use crate::pack::{
-    data::{Pack, PackFileMeta, PackOptions},
-    strategy::{
-      split::{
-        handle_file::redirect_to_path,
-        util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+  use crate::{
+    error::StorageResult,
+    pack::{
+      data::{Pack, PackFileMeta, PackOptions},
+      strategy::{
+        split::{
+          handle_file::redirect_to_path,
+          util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+        },
+        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
       },
-      PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
     },
   };
 
-  async fn test_write_pack(strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_write_pack(strategy: &SplitPackStrategy) -> StorageResult<()> {
     let dir = strategy.root.join("write");
     let mut pack = Pack::new(dir);
     pack.keys.set_value(vec![
@@ -324,7 +326,7 @@ mod tests {
     sizes
   }
 
-  async fn test_update_packs(strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_update_packs(strategy: &SplitPackStrategy) -> StorageResult<()> {
     let dir = strategy.root.join("update");
     let options = PackOptions {
       bucket_size: 1,

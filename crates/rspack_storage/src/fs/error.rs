@@ -1,11 +1,6 @@
 use std::io::ErrorKind;
 
 use cow_utils::CowUtils;
-use rspack_error::{
-  miette::{self},
-  thiserror::Error,
-  Result,
-};
 use rspack_paths::Utf8Path;
 use tokio::task::JoinError;
 
@@ -17,6 +12,7 @@ pub enum StorageFSOperation {
   Remove,
   Stat,
   Move,
+  Redirect,
 }
 
 impl std::fmt::Display for StorageFSOperation {
@@ -28,22 +24,32 @@ impl std::fmt::Display for StorageFSOperation {
       Self::Remove => write!(f, "remove"),
       Self::Stat => write!(f, "stat"),
       Self::Move => write!(f, "move"),
+      Self::Redirect => write!(f, "redirect"),
     }
   }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct StorageFSError {
   file: String,
   inner: rspack_fs::Error,
   opt: StorageFSOperation,
 }
 
+impl std::error::Error for StorageFSError {}
+
 impl StorageFSError {
   pub fn from_fs_error(file: &Utf8Path, opt: StorageFSOperation, error: rspack_fs::Error) -> Self {
     Self {
       file: file.to_string(),
       inner: error,
+      opt,
+    }
+  }
+  pub fn from_message(file: &Utf8Path, opt: StorageFSOperation, message: String) -> Self {
+    Self {
+      file: file.to_string(),
+      inner: rspack_fs::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, message)),
       opt,
     }
   }
@@ -77,23 +83,21 @@ impl std::fmt::Display for StorageFSError {
   }
 }
 
-impl miette::Diagnostic for StorageFSError {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new("StorageFSError"))
-  }
-  fn severity(&self) -> Option<miette::Severity> {
-    Some(miette::Severity::Warning)
-  }
-  fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new(self.file.clone()))
-  }
-}
-
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct BatchStorageFSError {
   message: String,
   join_error: Option<JoinError>,
-  errors: Vec<rspack_error::Error>,
+  errors: Vec<Box<dyn std::error::Error + std::marker::Send + Sync>>,
+}
+
+impl From<StorageFSError> for BatchStorageFSError {
+  fn from(error: StorageFSError) -> Self {
+    Self {
+      message: "".to_string(),
+      join_error: None,
+      errors: vec![Box::new(error)],
+    }
+  }
 }
 
 impl std::fmt::Display for BatchStorageFSError {
@@ -102,21 +106,26 @@ impl std::fmt::Display for BatchStorageFSError {
     if let Some(join_error) = &self.join_error {
       write!(f, " due to `{}`", join_error)?;
     }
-    for error in &self.errors {
-      write!(f, "\n- {}", error)?;
+    if self.errors.len() == 1 {
+      write!(f, "{}", self.errors[0])?;
+    } else {
+      for error in &self.errors {
+        write!(f, "\n- {}", error)?;
+      }
     }
+
     Ok(())
   }
 }
 
 impl BatchStorageFSError {
-  pub fn try_from_joined_result(
+  pub fn try_from_joined_result<T: std::error::Error + std::marker::Send + Sync + 'static, R>(
     message: &str,
-    res: Result<Vec<Result<()>>, JoinError>,
-  ) -> Option<Self> {
+    res: Result<Vec<Result<R, T>>, JoinError>,
+  ) -> Result<Vec<R>, Self> {
     match res {
       Ok(res) => Self::try_from_results(message, res),
-      Err(join_error) => Some(Self {
+      Err(join_error) => Err(Self {
         message: message.to_string(),
         errors: vec![],
         join_error: Some(join_error),
@@ -124,15 +133,22 @@ impl BatchStorageFSError {
     }
   }
 
-  pub fn try_from_results(message: &str, results: Vec<Result<()>>) -> Option<Self> {
-    let errors = results
-      .into_iter()
-      .filter_map(|res| res.err())
-      .collect::<Vec<_>>();
+  pub fn try_from_results<T: std::error::Error + std::marker::Send + Sync + 'static, R>(
+    message: &str,
+    results: Vec<Result<R, T>>,
+  ) -> Result<Vec<R>, Self> {
+    let mut errors = vec![];
+    let mut res = vec![];
+    for r in results {
+      match r {
+        Ok(r) => res.push(r),
+        Err(e) => errors.push(Box::new(e).into()),
+      }
+    }
     if errors.is_empty() {
-      None
+      Ok(res)
     } else {
-      Some(Self {
+      Err(Self {
         message: message.to_string(),
         errors,
         join_error: None,
@@ -141,11 +157,4 @@ impl BatchStorageFSError {
   }
 }
 
-impl miette::Diagnostic for BatchStorageFSError {
-  fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-    Some(Box::new("BatchStorageFSError"))
-  }
-  fn severity(&self) -> Option<miette::Severity> {
-    Some(miette::Severity::Warning)
-  }
-}
+impl std::error::Error for BatchStorageFSError {}

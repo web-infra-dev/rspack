@@ -1,26 +1,25 @@
 use std::sync::Arc;
 
 use futures::future::join_all;
-use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
 use crate::{
-  fs::BatchStorageFSError,
-  pack::{
-    data::{current_time, PackScope, RootMeta, RootOptions, ScopeMeta},
-    strategy::StorageValidateError,
-  },
+  fs::{BatchStorageFSError, StorageFSError, StorageFSOperation},
+  pack::data::{current_time, PackScope, RootMeta, RootOptions, ScopeMeta},
   StorageFS,
 };
+
+type HandleFileResult<T> = Result<T, StorageFSError>;
+type BatchHandleFileResult<T> = Result<T, BatchStorageFSError>;
 
 pub async fn prepare_scope(
   scope_path: &Utf8Path,
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> HandleFileResult<()> {
   let temp_path = redirect_to_path(scope_path, root, temp_root)?;
   fs.remove_dir(&temp_path).await?;
   fs.ensure_dir(&temp_path).await?;
@@ -33,7 +32,7 @@ pub async fn prepare_scope_dirs(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let tasks = scopes.values().map(|scope| {
     let fs = fs.clone();
     let scope_path = scope.path.clone();
@@ -49,10 +48,13 @@ pub async fn prepare_scope_dirs(
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
   )
-  .map_or_else(|| Ok(()), |e| Err(e.into()))
+  .map(|_| ())
 }
 
-pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn StorageFS>) -> Result<()> {
+pub async fn remove_files(
+  files: HashSet<Utf8PathBuf>,
+  fs: Arc<dyn StorageFS>,
+) -> BatchHandleFileResult<()> {
   let tasks = files.into_iter().map(|path| {
     let fs = fs.clone();
     tokio::spawn(async move { fs.remove_file(&path).await })
@@ -65,7 +67,7 @@ pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn StorageFS>) -
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
   )
-  .map_or_else(|| Ok(()), |e| Err(e.into()))
+  .map(|_| ())
 }
 
 pub async fn write_lock(
@@ -74,10 +76,10 @@ pub async fn write_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> HandleFileResult<()> {
   let lock_file = root.join(lock_file);
   let mut lock_writer = fs.write_file(&lock_file).await?;
-  let mut contents = vec![temp_root.to_string()];
+  let mut contents = vec![root.to_string(), temp_root.to_string()];
   contents.extend(files.iter().map(|path| path.to_string()));
 
   lock_writer
@@ -87,7 +89,11 @@ pub async fn write_lock(
   Ok(())
 }
 
-pub async fn remove_lock(lock_file: &str, root: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+pub async fn remove_lock(
+  lock_file: &str,
+  root: &Utf8Path,
+  fs: Arc<dyn StorageFS>,
+) -> HandleFileResult<()> {
   let lock_file = root.join(lock_file);
   fs.remove_file(&lock_file).await?;
   Ok(())
@@ -98,17 +104,7 @@ pub async fn move_files(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
-  let lock_file = root.join("move.lock");
-  let mut lock_writer = fs.write_file(&lock_file).await?;
-  let mut contents = vec![temp_root.to_string()];
-  contents.extend(files.iter().map(|path| path.to_string()));
-
-  lock_writer
-    .write_all(contents.join("\n").as_bytes())
-    .await?;
-  lock_writer.flush().await?;
-
+) -> BatchHandleFileResult<()> {
   let mut candidates = vec![];
   for to in files {
     let from = redirect_to_path(&to, root, temp_root)?;
@@ -120,20 +116,14 @@ pub async fn move_files(
     tokio::spawn(async move { fs.move_file(&from, &to).await })
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  BatchStorageFSError::try_from_joined_result(
     "move temp files failed",
     join_all(tasks)
       .await
       .into_iter()
-      .collect::<Result<Vec<Result<()>>, JoinError>>(),
-  );
-
-  if let Some(e) = res {
-    Err(e.into())
-  } else {
-    fs.remove_file(&lock_file).await?;
-    Ok(())
-  }
+      .collect::<Result<Vec<_>, JoinError>>(),
+  )
+  .map(|_| ())
 }
 
 async fn recovery_lock(
@@ -141,46 +131,54 @@ async fn recovery_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<Vec<String>> {
+) -> HandleFileResult<Vec<String>> {
   let lock_file = root.join(lock);
   if !fs.exists(&lock_file).await? {
     return Ok(vec![]);
   }
   let mut lock_reader = fs.read_file(&lock_file).await?;
-  let lock_file_content = String::from_utf8(lock_reader.read_to_end().await?)
-    .map_err(|e| StorageValidateError::from_reason(None, format!("parse utf8 failed: {}", e)))?;
+  let lock_file_content = String::from_utf8(lock_reader.read_to_end().await?).map_err(|e| {
+    StorageFSError::from_message(
+      &lock_file,
+      StorageFSOperation::Read,
+      format!("parse utf8 failed: {}", e),
+    )
+  })?;
   let files = lock_file_content
     .split("\n")
     .map(|i| i.to_owned())
     .collect::<Vec<_>>();
   fs.remove_file(&lock_file).await?;
 
-  if files.is_empty() {
-    return Err(
-      StorageValidateError::from_reason(
-        None,
-        "incomplete storage due to empty `move.lock`".to_string(),
-      )
-      .into(),
-    );
+  if files.len() < 2 {
+    return Err(StorageFSError::from_message(
+      &lock_file,
+      StorageFSOperation::Read,
+      "incomplete storage due to illegal `move.lock`".to_string(),
+    ));
   }
-  if files.first().is_some_and(|root| !root.eq(temp_root)) {
-    return Err(
-      StorageValidateError::from_reason(
-        None,
-        "incomplete storage due to `move.lock` from an unexpected directory".to_string(),
-      )
-      .into(),
-    );
+  if files.first().is_some_and(|p: &String| !p.eq(root)) {
+    return Err(StorageFSError::from_message(
+      &lock_file,
+      StorageFSOperation::Read,
+      "incomplete storage due to `move.lock` to an unexpected directory".to_string(),
+    ));
   }
-  Ok(files[1..].to_vec())
+  if files.get(1).is_some_and(|p| !p.eq(temp_root)) {
+    return Err(StorageFSError::from_message(
+      &lock_file,
+      StorageFSOperation::Read,
+      "incomplete storage due to `move.lock` from an unexpected directory".to_string(),
+    ));
+  }
+  Ok(files[2..].to_vec())
 }
 
 pub async fn recovery_move_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let moving_files = recovery_lock("move.lock", root, temp_root, fs.clone()).await?;
   if moving_files.is_empty() {
     return Ok(());
@@ -202,7 +200,7 @@ pub async fn recovery_remove_lock(
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let removing_files = recovery_lock("remove.lock", root, temp_root, fs.clone()).await?;
   if removing_files.is_empty() {
     return Ok(());
@@ -218,7 +216,10 @@ pub async fn recovery_remove_lock(
   Ok(())
 }
 
-pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<HashSet<Utf8PathBuf>> {
+pub async fn walk_dir(
+  root: &Utf8Path,
+  fs: Arc<dyn StorageFS>,
+) -> BatchHandleFileResult<HashSet<Utf8PathBuf>> {
   let mut files = HashSet::default();
   let mut stack = vec![root.to_owned()];
   while let Some(path) = stack.pop() {
@@ -245,14 +246,21 @@ pub async fn walk_dir(root: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<HashSet
   Ok(files)
 }
 
-pub fn redirect_to_path(path: &Utf8Path, src: &Utf8Path, dist: &Utf8Path) -> Result<Utf8PathBuf> {
-  let relative_path = path
-    .strip_prefix(src)
-    .map_err(|e| error!("get relative path failed: {}", e))?;
+pub fn redirect_to_path(
+  path: &Utf8Path,
+  src: &Utf8Path,
+  dist: &Utf8Path,
+) -> HandleFileResult<Utf8PathBuf> {
+  let relative_path = path.strip_prefix(src).map_err(|e| {
+    StorageFSError::from_message(path, StorageFSOperation::Redirect, format!("{e}"))
+  })?;
   Ok(dist.join(relative_path))
 }
 
-async fn try_remove_scope_files(scope: &PackScope, fs: Arc<dyn StorageFS>) -> Result<()> {
+async fn try_remove_scope_files(
+  scope: &PackScope,
+  fs: Arc<dyn StorageFS>,
+) -> BatchHandleFileResult<()> {
   let scope_root = &scope.path;
   let scope_meta_file = ScopeMeta::get_path(scope_root);
   let mut scope_files = scope
@@ -281,16 +289,20 @@ async fn try_remove_scope_files(scope: &PackScope, fs: Arc<dyn StorageFS>) -> Re
 pub async fn remove_unused_scope_files(
   scopes: &HashMap<String, PackScope>,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let clean_scope_tasks = scopes
     .values()
     .map(|scope| try_remove_scope_files(scope, fs.clone()));
 
   BatchStorageFSError::try_from_results("clean scopes failed", join_all(clean_scope_tasks).await)
-    .map_or_else(|| Ok(()), |e| Err(e.into()))
+    .map(|_| ())
 }
 
-async fn try_remove_scope(name: &str, dir: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+async fn try_remove_scope(
+  name: &str,
+  dir: &Utf8Path,
+  fs: Arc<dyn StorageFS>,
+) -> HandleFileResult<()> {
   // do not remove hidden dirs
   if name.starts_with(".") {
     return Ok(());
@@ -310,7 +322,7 @@ pub async fn remove_unused_scopes(
   root: &Utf8Path,
   root_meta: &RootMeta,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let dirs = fs.read_dir(root).await?;
   let tasks = dirs.difference(&root_meta.scopes).map(|name| {
     let fs = fs.clone();
@@ -326,10 +338,14 @@ pub async fn remove_unused_scopes(
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
   )
-  .map_or_else(|| Ok(()), |e| Err(e.into()))
+  .map(|_| ())
 }
 
-async fn try_remove_version(version: &str, dir: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+async fn try_remove_version(
+  version: &str,
+  dir: &Utf8Path,
+  fs: Arc<dyn StorageFS>,
+) -> BatchHandleFileResult<()> {
   // do not remove hidden dirs and lock files
   if version.starts_with(".") || version.contains(".lock") {
     return Ok(());
@@ -343,18 +359,24 @@ async fn try_remove_version(version: &str, dir: &Utf8Path, fs: Arc<dyn StorageFS
   // remove unknown directories
   let meta = RootMeta::get_path(dir);
   if !fs.exists(&meta).await? {
-    return fs.remove_dir(dir).await;
+    fs.remove_dir(dir).await?;
+    return Ok(());
   }
 
   // remove direcotires of expired versions
   let mut reader = fs.read_file(&meta).await?;
   let expire_time = reader.read_line().await?.parse::<u64>().map_err(|e| {
-    StorageValidateError::from_reason(None, format!("parse option meta failed: {}", e))
+    StorageFSError::from_message(
+      &meta,
+      StorageFSOperation::Read,
+      format!("parse option meta failed: {}", e),
+    )
   })?;
   let current = current_time();
 
   if current > expire_time {
-    fs.remove_dir(dir).await
+    fs.remove_dir(dir).await?;
+    Ok(())
   } else {
     Ok(())
   }
@@ -364,7 +386,7 @@ pub async fn remove_expired_versions(
   root: &Utf8Path,
   root_options: &RootOptions,
   fs: Arc<dyn StorageFS>,
-) -> Result<()> {
+) -> BatchHandleFileResult<()> {
   let dirs = fs.read_dir(&root_options.root).await?;
   let tasks = dirs.into_iter().filter_map(|version| {
     let version_dir = root_options.root.join(&version);
@@ -385,5 +407,5 @@ pub async fn remove_expired_versions(
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
   )
-  .map_or_else(|| Ok(()), |e| Err(e.into()))
+  .map(|_| ())
 }

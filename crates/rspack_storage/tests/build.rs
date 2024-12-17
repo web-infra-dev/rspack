@@ -2,10 +2,11 @@
 mod test_storage_build {
   use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-  use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
-  use rspack_storage::{PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS};
+  use rspack_storage::{
+    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageResult,
+  };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
@@ -41,7 +42,7 @@ mod test_storage_build {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(options);
     let data = storage.load("test_scope").await?;
     assert!(data.is_empty());
@@ -62,7 +63,7 @@ mod test_storage_build {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(options);
     let data = storage.load("test_scope").await?;
     assert_eq!(data.len(), 1000);
@@ -82,7 +83,7 @@ mod test_storage_build {
     _root: &Utf8PathBuf,
     _fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let storage = PackStorage::new(options);
     let data = storage
       .load("test_scope")

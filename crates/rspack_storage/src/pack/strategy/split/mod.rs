@@ -13,13 +13,14 @@ use handle_file::{
   remove_unused_scopes,
 };
 use itertools::Itertools;
-use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use util::get_name;
 
-use super::{RootStrategy, ScopeStrategy, StorageValidateError, ValidateResult};
+use super::{RootStrategy, ScopeStrategy};
 use crate::{
+  error::{StorageResult, ValidateResult},
+  fs::{StorageFSError, StorageFSOperation},
   pack::data::{
     current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
   },
@@ -47,7 +48,7 @@ impl SplitPackStrategy {
     path: &Utf8Path,
     keys: &PackKeys,
     contents: &PackContents,
-  ) -> Result<String> {
+  ) -> StorageResult<String> {
     let mut hasher = FxHasher::default();
     let file_name = get_name(keys, contents);
     hasher.write(file_name.as_bytes());
@@ -62,12 +63,12 @@ impl SplitPackStrategy {
 
 #[async_trait::async_trait]
 impl RootStrategy for SplitPackStrategy {
-  async fn before_load(&self) -> Result<()> {
+  async fn before_load(&self) -> StorageResult<()> {
     recovery_remove_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     recovery_move_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
-  async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
+  async fn read_root_meta(&self) -> StorageResult<Option<RootMeta>> {
     let meta_path = RootMeta::get_path(&self.root);
     if !self.fs.exists(&meta_path).await? {
       return Ok(None);
@@ -75,7 +76,11 @@ impl RootStrategy for SplitPackStrategy {
 
     let mut reader = self.fs.read_file(&meta_path).await?;
     let expire_time = reader.read_line().await?.parse::<u64>().map_err(|e| {
-      StorageValidateError::from_reason(None, format!("parse root meta failed: {}", e))
+      StorageFSError::from_message(
+        &meta_path,
+        StorageFSOperation::Read,
+        format!("parse root meta failed: {}", e),
+      )
     })?;
     let scopes = reader
       .read_line()
@@ -90,9 +95,8 @@ impl RootStrategy for SplitPackStrategy {
       from: RootMetaFrom::File,
     }))
   }
-  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> StorageResult<()> {
     let meta_path = RootMeta::get_path(&self.root);
-
     let mut writer = self.fs.write_file(&meta_path).await?;
 
     writer
@@ -104,9 +108,10 @@ impl RootStrategy for SplitPackStrategy {
       .await?;
 
     writer.flush().await?;
+
     Ok(())
   }
-  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
+  async fn validate_root(&self, root_meta: &RootMeta) -> StorageResult<ValidateResult> {
     if matches!(root_meta.from, RootMetaFrom::New) {
       Ok(ValidateResult::Valid)
     } else {
@@ -124,7 +129,7 @@ impl RootStrategy for SplitPackStrategy {
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
     root_options: &RootOptions,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     if !root_options.clean {
       return Ok(());
     }

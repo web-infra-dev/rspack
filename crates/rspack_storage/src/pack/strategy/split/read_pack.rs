@@ -1,18 +1,20 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_error::Result;
 use rspack_paths::Utf8Path;
 
 use super::SplitPackStrategy;
-use crate::pack::{
-  data::{PackContents, PackKeys},
-  strategy::PackReadStrategy,
+use crate::{
+  error::StorageResult,
+  pack::{
+    data::{PackContents, PackKeys},
+    strategy::PackReadStrategy,
+  },
 };
 
 #[async_trait]
 impl PackReadStrategy for SplitPackStrategy {
-  async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>> {
+  async fn read_pack_keys(&self, path: &Utf8Path) -> StorageResult<Option<PackKeys>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -34,7 +36,7 @@ impl PackReadStrategy for SplitPackStrategy {
     Ok(Some(keys))
   }
 
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>> {
+  async fn read_pack_contents(&self, path: &Utf8Path) -> StorageResult<Option<PackContents>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -68,16 +70,18 @@ impl PackReadStrategy for SplitPackStrategy {
 #[cfg(test)]
 mod tests {
 
-  use rspack_error::Result;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::pack::strategy::{
-    split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
-    PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+  use crate::{
+    error::StorageResult,
+    pack::strategy::{
+      split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
+      PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+    },
   };
 
-  async fn test_read_keys_non_exists(strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_read_keys_non_exists(strategy: &SplitPackStrategy) -> StorageResult<()> {
     let non_exists_keys = strategy
       .read_pack_keys(&strategy.get_path("/non_exists_path"))
       .await?;
@@ -85,7 +89,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_contents_non_exists(strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_read_contents_non_exists(strategy: &SplitPackStrategy) -> StorageResult<()> {
     let non_exists_contents = strategy
       .read_pack_contents(&strategy.get_path("/non_exists_path"))
       .await?;
@@ -93,7 +97,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_keys(path: &Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_read_keys(path: &Utf8PathBuf, strategy: &SplitPackStrategy) -> StorageResult<()> {
     let keys = strategy
       .read_pack_keys(path)
       .await?
@@ -106,7 +110,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_contents(path: &Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_read_contents(
+    path: &Utf8PathBuf,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     let contents = strategy
       .read_pack_contents(path)
       .await?

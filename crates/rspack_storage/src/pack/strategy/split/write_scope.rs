@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use futures::future::join_all;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_error::{error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
@@ -13,19 +12,23 @@ use super::{
   util::{choose_bucket, flag_scope_wrote},
   SplitPackStrategy,
 };
-use crate::pack::{
-  data::{Pack, PackScope},
-  strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+use crate::{
+  error::StorageResult,
+  fs::BatchStorageFSError,
+  pack::{
+    data::{Pack, PackScope},
+    strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+  },
 };
 
 #[async_trait]
 impl ScopeWriteStrategy for SplitPackStrategy {
-  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> StorageResult<()> {
     prepare_scope_dirs(scopes, &self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
 
-  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()> {
+  async fn merge_changed(&self, changed: WriteScopeResult) -> StorageResult<()> {
     // remove files with `.lock`
     write_lock(
       "remove.lock",
@@ -60,7 +63,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()> {
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> StorageResult<()> {
     for scope in scopes.values_mut() {
       flag_scope_wrote(scope);
     }
@@ -68,7 +71,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
+  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> StorageResult<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -151,7 +154,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  async fn write_packs(&self, scope: &mut PackScope) -> StorageResult<WriteScopeResult> {
     let removed_files = std::mem::take(&mut scope.removed);
     let packs = scope.packs.take_value().expect("should have scope packs");
     let meta = scope.meta.expect_value_mut();
@@ -200,7 +203,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     })
   }
 
-  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult> {
+  async fn write_meta(&self, scope: &mut PackScope) -> StorageResult<WriteScopeResult> {
     let meta = scope.meta.expect_value();
     let path = redirect_to_path(&meta.path, &self.root, &self.temp_root)?;
     self
@@ -237,7 +240,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
   }
 }
 
-async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> Result<String> {
+async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> StorageResult<String> {
   let keys = pack.keys.expect_value();
   let contents = pack.contents.expect_value();
   if keys.len() != contents.len() {
@@ -257,22 +260,20 @@ async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> Result<String> 
 async fn batch_write_packs(
   packs: Vec<Pack>,
   strategy: &SplitPackStrategy,
-) -> Result<Vec<(String, Pack)>> {
+) -> StorageResult<Vec<(String, Pack)>> {
   let tasks = packs.into_iter().map(|pack| {
     let strategy = strategy.to_owned();
-    tokio::spawn(async move { (save_pack(&pack, &strategy).await, pack) })
+    tokio::spawn(async move { save_pack(&pack, &strategy).await.map(|hash| (hash, pack)) })
   });
 
-  let task_result = join_all(tasks)
-    .await
-    .into_iter()
-    .collect::<Result<Vec<(Result<String>, Pack)>, JoinError>>()
-    .map_err(|e| error!("{}", e))?;
+  let res = BatchStorageFSError::try_from_joined_result(
+    "write packs failed",
+    join_all(tasks)
+      .await
+      .into_iter()
+      .collect::<Result<Vec<_>, JoinError>>(),
+  )?;
 
-  let mut res = vec![];
-  for (hash, pack) in task_result {
-    res.push((hash?, pack));
-  }
   Ok(res)
 }
 
@@ -280,18 +281,19 @@ async fn batch_write_packs(
 mod tests {
   use std::{collections::HashMap, sync::Arc};
 
-  use rspack_error::Result;
-
-  use crate::pack::{
-    data::{PackOptions, PackScope},
-    strategy::{
-      split::util::test_pack_utils::{
-        clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
-        get_bucket_pack_sizes, mock_updates, save_scope, UpdateVal,
+  use crate::{
+    error::StorageResult,
+    pack::{
+      data::{PackOptions, PackScope},
+      strategy::{
+        split::util::test_pack_utils::{
+          clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
+          get_bucket_pack_sizes, mock_updates, save_scope, UpdateVal,
+        },
+        ScopeReadStrategy, ScopeWriteStrategy,
       },
-      ScopeReadStrategy, ScopeWriteStrategy,
+      SplitPackStrategy,
     },
-    SplitPackStrategy,
   };
 
   async fn test_short_value(
@@ -299,7 +301,7 @@ mod tests {
     strategy: &SplitPackStrategy,
     start: usize,
     end: usize,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let updates = mock_updates(start, end, 8, UpdateVal::Value("val".into()));
     strategy.update_scope(scope, updates)?;
     let contents = scope
@@ -330,7 +332,7 @@ mod tests {
     strategy: &SplitPackStrategy,
     start: usize,
     end: usize,
-  ) -> Result<()> {
+  ) -> StorageResult<()> {
     let updates = mock_updates(start, end, 24, UpdateVal::Value("val".into()));
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates)?;
@@ -356,7 +358,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_update_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_update_value(
+    scope: &mut PackScope,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     let updates = mock_updates(0, 1, 8, UpdateVal::Value("new".into()));
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates)?;
@@ -377,7 +382,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_remove_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_remove_value(
+    scope: &mut PackScope,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     let updates = mock_updates(1, 2, 8, UpdateVal::Removed);
     let pre_item_count = scope.get_contents().len();
     strategy.update_scope(scope, updates)?;
@@ -392,7 +400,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_single_bucket(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_single_bucket(
+    scope: &mut PackScope,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     test_short_value(scope, strategy, 0, 10).await?;
     assert_eq!(count_scope_packs(scope), 5);
     let res = save_scope(scope, strategy).await?;
@@ -424,7 +435,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_multi_bucket(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_multi_bucket(
+    scope: &mut PackScope,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     test_short_value(scope, strategy, 0, 100).await?;
     assert_eq!(count_bucket_packs(scope), vec![5; 10]);
 
@@ -457,7 +471,10 @@ mod tests {
     Ok(())
   }
 
-  async fn test_big_bucket(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
+  async fn test_big_bucket(
+    scope: &mut PackScope,
+    strategy: &SplitPackStrategy,
+  ) -> StorageResult<()> {
     // 200 * 16 = 3200 = 2000 + 1200
     test_short_value(scope, strategy, 0, 200).await?;
     assert_eq!(count_scope_packs(scope), 2);
