@@ -72,7 +72,7 @@
     "jest-environment-node": "29.7.0",
     "lint-staged": "^15.0.0",
     "prettier": "3.4.2",
-    "prettier-2": "npm:prettier@2.8.8",
+    "prettier-2": "npm:prettier@3.4.2",
     "rimraf": "^5.0.10",
     "ts-jest": "29.2.5",
     "typescript": "^5.7.2",

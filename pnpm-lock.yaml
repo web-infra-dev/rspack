@@ -74,8 +74,8 @@ importers:
         specifier: 3.4.2
         version: 3.4.2
       prettier-2:
-        specifier: npm:prettier@2.8.8
-        version: prettier@2.8.8
+        specifier: npm:prettier@3.4.2
+        version: prettier@3.4.2
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
@@ -7631,11 +7631,6 @@ packages:
 
   prebundle@1.1.0:
     resolution: {integrity: sha512-yTfRjx0+xiveeb7kO77OcODVB8RSHMKIiVl/qferU7ZHw4Y8pycXkCAtPDViF8YDo0a8ViDpm4C1O9PFKCw1ig==}
-    hasBin: true
-
-  prettier@2.8.8:
-    resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
-    engines: {node: '>=10.13.0'}
     hasBin: true
 
   prettier@3.4.2:
@@ -17626,8 +17621,6 @@ snapshots:
       rollup-plugin-dts: 6.1.0(patch_hash=ae3wyaqpjyjp5gck7zzwzn3cfq)(rollup@4.24.0)(typescript@5.7.2)
     transitivePeerDependencies:
       - typescript
-
-  prettier@2.8.8: {}
 
   prettier@3.4.2: {}
 
