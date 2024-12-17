@@ -1,13 +1,17 @@
+use std::vec;
+
+use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_core::LibraryAuxiliaryComment;
 use rspack_core::{LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions};
+use rspack_napi::napi::bindgen_prelude::Either;
 
 #[derive(Debug)]
 #[napi(object)]
 pub struct JsLibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,
-  pub root: Option<Vec<String>>,
+  pub root: Option<Either<Vec<String>, String>>,
 }
 
 impl From<JsLibraryCustomUmdObject> for LibraryCustomUmdObject {
@@ -15,7 +19,10 @@ impl From<JsLibraryCustomUmdObject> for LibraryCustomUmdObject {
     Self {
       amd: value.amd,
       commonjs: value.commonjs,
-      root: value.root,
+      root: value.root.map(|v| match v {
+        Either::A(v) => v,
+        Either::B(v) => vec![v],
+      }),
     }
   }
 }
@@ -25,7 +32,7 @@ impl From<LibraryCustomUmdObject> for JsLibraryCustomUmdObject {
     Self {
       amd: value.amd,
       commonjs: value.commonjs,
-      root: value.root,
+      root: value.root.map(|v| Either::A(v)),
     }
   }
 }
@@ -100,6 +107,17 @@ pub struct JsLibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
+impl From<String> for JsLibraryAuxiliaryComment {
+  fn from(value: String) -> Self {
+    Self {
+      root: Some(value.clone()),
+      commonjs: Some(value.clone()),
+      commonjs2: Some(value.clone()),
+      amd: Some(value),
+    }
+  }
+}
+
 impl From<JsLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
   fn from(value: JsLibraryAuxiliaryComment) -> Self {
     Self {
@@ -125,23 +143,33 @@ impl From<LibraryAuxiliaryComment> for JsLibraryAuxiliaryComment {
 #[derive(Debug)]
 #[napi(object)]
 pub struct JsLibraryOptions {
-  pub name: Option<JsLibraryName>,
-  pub export: Option<Vec<String>>,
+  pub name: Option<Either3<String, Vec<String>, JsLibraryCustomUmdObject>>,
+  pub export: Option<Either<Vec<String>, String>>,
   // webpack type
-  pub library_type: String,
+  pub r#type: String,
   pub umd_named_define: Option<bool>,
-  pub auxiliary_comment: Option<JsLibraryAuxiliaryComment>,
+  pub auxiliary_comment: Option<Either<String, JsLibraryAuxiliaryComment>>,
   pub amd_container: Option<String>,
 }
 
 impl From<JsLibraryOptions> for LibraryOptions {
   fn from(value: JsLibraryOptions) -> Self {
     Self {
-      name: value.name.map(Into::into),
-      export: value.export,
-      library_type: value.library_type,
+      name: value.name.map(|name| match name {
+        Either3::A(name) => LibraryName::NonUmdObject(LibraryNonUmdObject::String(name)),
+        Either3::B(names) => LibraryName::NonUmdObject(LibraryNonUmdObject::Array(names)),
+        Either3::C(umd_object) => LibraryName::UmdObject(umd_object.into()),
+      }),
+      export: value.export.map(|v| match v {
+        Either::A(v) => v,
+        Either::B(v) => vec![v],
+      }),
+      library_type: value.r#type,
       umd_named_define: value.umd_named_define,
-      auxiliary_comment: value.auxiliary_comment.map(Into::into),
+      auxiliary_comment: value.auxiliary_comment.map(|v| match v {
+        Either::A(v) => Into::<JsLibraryAuxiliaryComment>::into(v).into(),
+        Either::B(v) => v.into(),
+      }),
       amd_container: value.amd_container,
     }
   }
@@ -150,11 +178,17 @@ impl From<JsLibraryOptions> for LibraryOptions {
 impl From<LibraryOptions> for JsLibraryOptions {
   fn from(value: LibraryOptions) -> Self {
     JsLibraryOptions {
-      name: value.name.map(|name| name.into()),
-      export: value.export,
-      library_type: value.library_type,
+      name: value.name.map(|name| match name {
+        LibraryName::NonUmdObject(LibraryNonUmdObject::String(name)) => Either3::A(name),
+        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(names)) => Either3::B(names),
+        LibraryName::UmdObject(umd_object) => Either3::C(umd_object.into()),
+      }),
+      export: value.export.map(|v| Either::A(v)),
+      r#type: value.library_type,
       umd_named_define: value.umd_named_define,
-      auxiliary_comment: value.auxiliary_comment.map(|comment| comment.into()),
+      auxiliary_comment: value
+        .auxiliary_comment
+        .map(|comment| Either::B(comment.into())),
       amd_container: value.amd_container,
     }
   }

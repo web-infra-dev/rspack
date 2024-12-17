@@ -25,11 +25,11 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./types";
+import { RspackOptionsNormalized } from "./normalization";
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
 export interface ComposeJsUseOptions {
-	devtool: RawOptions["devtool"];
 	context: RawOptions["context"];
 	mode: RawOptions["mode"];
 	experiments: RawOptions["experiments"];
@@ -370,13 +370,23 @@ function resolveStringifyLoaders(
 	return obj.path + obj.query + obj.fragment;
 }
 
-export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
+export function isUseSourceMap(
+	devtool: RspackOptionsNormalized["devtool"]
+): boolean {
+	if (!devtool) {
+		return false;
+	}
 	return (
 		devtool.includes("source-map") &&
 		(devtool.includes("module") || !devtool.includes("cheap"))
 	);
 }
 
-export function isUseSimpleSourceMap(devtool: RawOptions["devtool"]): boolean {
+export function isUseSimpleSourceMap(
+	devtool: RspackOptionsNormalized["devtool"]
+): boolean {
+	if (!devtool) {
+		return false;
+	}
 	return devtool.includes("source-map") && !isUseSourceMap(devtool);
 }

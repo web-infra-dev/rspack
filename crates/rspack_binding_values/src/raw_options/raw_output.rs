@@ -1,11 +1,13 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure, PathInfo,
+  ChunkLoading, CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure, PathInfo,
+  WasmLoading,
 };
 use rspack_core::{OutputOptions, TrustedTypes};
 
 use crate::library::JsLibraryOptions;
+use crate::WithFalse;
 use crate::{JsCleanOptions, JsFilename};
 
 #[derive(Debug)]
@@ -27,25 +29,13 @@ impl From<RawTrustedTypes> for TrustedTypes {
   }
 }
 
-#[derive(Debug, Clone)]
-#[napi(object)]
-pub struct RawCrossOriginLoading {
-  #[napi(ts_type = r#""bool" | "string""#)]
-  pub r#type: String,
-  pub string_payload: Option<String>,
-  pub bool_payload: Option<bool>,
-}
+type RawCrossOriginLoading = WithFalse<String>;
 
 impl From<RawCrossOriginLoading> for CrossOriginLoading {
   fn from(value: RawCrossOriginLoading) -> Self {
-    match value.r#type.as_str() {
-      "string" => Self::Enable(
-        value
-          .string_payload
-          .expect("should have a string_payload when RawCrossOriginLoading.type is \"string\""),
-      ),
-      "bool" => Self::Disable,
-      _ => unreachable!(),
+    match value {
+      WithFalse::True(s) => Self::Enable(s),
+      WithFalse::False => Self::Disable,
     }
   }
 }
@@ -78,7 +68,7 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
-  pub wasm_loading: String,
+  pub wasm_loading: RawWasmLoading,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: JsFilename,
@@ -99,7 +89,7 @@ pub struct RawOutputOptions {
   pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
-  pub chunk_loading: String,
+  pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
   pub charset: bool,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
@@ -110,13 +100,34 @@ pub struct RawOutputOptions {
   pub hash_digest_length: u32,
   pub hash_salt: Option<String>,
   pub async_chunks: bool,
-  pub worker_chunk_loading: String,
-  pub worker_wasm_loading: String,
+  pub worker_chunk_loading: RawChunkLoading,
+  pub worker_wasm_loading: RawWasmLoading,
   pub worker_public_path: String,
-  #[napi(ts_type = r#""module" | "text/javascript" | "false""#)]
-  pub script_type: String,
+  #[napi(ts_type = r#""module" | "text/javascript" | false"#)]
+  pub script_type: WithFalse<String>,
   pub environment: RawEnvironment,
   pub compare_before_emit: bool,
+}
+
+pub type RawWasmLoading = WithFalse<String>;
+pub type RawChunkLoading = WithFalse<String>;
+
+impl From<RawChunkLoading> for ChunkLoading {
+  fn from(value: RawChunkLoading) -> Self {
+    match value {
+      WithFalse::False => Self::Disable,
+      WithFalse::True(s) => Self::Enable(s.as_str().into()),
+    }
+  }
+}
+
+impl From<RawWasmLoading> for WasmLoading {
+  fn from(value: RawWasmLoading) -> Self {
+    match value {
+      WithFalse::False => Self::Disable,
+      WithFalse::True(s) => Self::Enable(s.as_str().into()),
+    }
+  }
 }
 
 impl TryFrom<RawOutputOptions> for OutputOptions {
@@ -139,10 +150,10 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       clean,
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
-      wasm_loading: value.wasm_loading.as_str().into(),
+      wasm_loading: value.wasm_loading.into(),
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
-      chunk_loading: value.chunk_loading.as_str().into(),
+      chunk_loading: value.chunk_loading.into(),
       chunk_loading_global: value.chunk_loading_global.as_str().into(),
       filename: value.filename.into(),
       chunk_filename: value.chunk_filename.into(),
@@ -167,10 +178,13 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       hash_digest_length: value.hash_digest_length as usize,
       hash_salt: value.hash_salt.into(),
       async_chunks: value.async_chunks,
-      worker_chunk_loading: value.worker_chunk_loading.as_str().into(),
-      worker_wasm_loading: value.worker_wasm_loading.as_str().into(),
+      worker_chunk_loading: value.worker_chunk_loading.into(),
+      worker_wasm_loading: value.worker_wasm_loading.into(),
       worker_public_path: value.worker_public_path,
-      script_type: value.script_type,
+      script_type: match value.script_type {
+        WithFalse::False => "false".to_string(),
+        WithFalse::True(s) => s,
+      },
       environment: value.environment.into(),
       charset: value.charset,
       chunk_load_timeout: value.chunk_load_timeout,

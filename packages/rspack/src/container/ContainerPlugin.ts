@@ -12,8 +12,7 @@ import {
 import {
 	type EntryRuntime,
 	type FilenameTemplate,
-	type LibraryOptions,
-	getRawLibrary
+	type LibraryOptions
 } from "../config";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
@@ -79,7 +78,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 		const rawOptions: RawContainerPluginOptions = {
 			name,
 			shareScope,
-			library: getRawLibrary(library),
+			library,
 			runtime,
 			filename,
 			exposes: exposes.map(([key, r]) => ({ key, ...r })),

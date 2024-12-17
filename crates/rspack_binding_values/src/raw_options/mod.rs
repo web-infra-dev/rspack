@@ -1,3 +1,7 @@
+use napi::{
+  bindgen_prelude::{FromNapiValue, ValidateNapiValue},
+  Either,
+};
 use napi_derive::napi;
 use rspack_core::{
   incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
@@ -15,7 +19,6 @@ mod raw_module;
 mod raw_node;
 mod raw_optimization;
 mod raw_output;
-mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
 
@@ -30,7 +33,6 @@ pub use raw_module::*;
 pub use raw_node::*;
 pub use raw_optimization::*;
 pub use raw_output::*;
-pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 
@@ -41,16 +43,13 @@ pub use crate::raw_resolve::*;
 pub struct RawOptions {
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
-  pub target: Vec<String>,
   pub context: String,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
   pub resolve_loader: RawResolveOptions,
   pub module: RawModuleOptions,
-  pub devtool: String,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,
-  pub snapshot: RawSnapshotOptions,
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
   pub node: Option<RawNodeOption>,
@@ -78,7 +77,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
     }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
-    let snapshot = value.snapshot.into();
     let node = value.node.map(|n| n.into());
 
     Ok(CompilerOptions {
@@ -91,13 +89,69 @@ impl TryFrom<RawOptions> for CompilerOptions {
       experiments,
       stats,
       cache,
-      snapshot,
       optimization,
       node,
       profile: value.profile,
       amd: value.amd,
       bail: value.bail,
       __references: value.__references,
+    })
+  }
+}
+
+#[derive(Debug)]
+pub enum WithFalse<T> {
+  False,
+  True(T),
+}
+
+impl<T: ValidateNapiValue + FromNapiValue> FromNapiValue for WithFalse<T> {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    Either::from_napi_value(env, napi_val).map(|either| match either {
+      Either::A(false) => WithFalse::False,
+      Either::A(true) => panic!("true is not a valid value for `WithFalse`"),
+      Either::B(value) => WithFalse::True(value),
+    })
+  }
+}
+
+#[derive(Default, Debug)]
+pub enum WithBool<T> {
+  True,
+  #[default]
+  False,
+  Value(T),
+}
+
+impl<T> WithBool<T> {
+  pub fn as_bool(&self) -> Option<bool> {
+    match self {
+      WithBool::True => Some(true),
+      WithBool::False => Some(false),
+      WithBool::Value(_) => None,
+    }
+  }
+
+  pub fn as_value(&self) -> Option<&T> {
+    match self {
+      WithBool::Value(value) => Some(value),
+      _ => None,
+    }
+  }
+}
+
+impl<T: ValidateNapiValue + FromNapiValue> FromNapiValue for WithBool<T> {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    Either::from_napi_value(env, napi_val).map(|either| match either {
+      Either::A(false) => WithBool::False,
+      Either::A(true) => WithBool::True,
+      Either::B(value) => WithBool::Value(value),
     })
   }
 }
