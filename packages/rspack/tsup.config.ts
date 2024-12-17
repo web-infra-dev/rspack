@@ -24,7 +24,8 @@ const aliasPlugin = {
 const commonConfig: Options = {
 	format: ["cjs"],
 	target: "node16",
-	esbuildPlugins: [aliasPlugin]
+	esbuildPlugins: [aliasPlugin],
+	outDir: "./dist-modern"
 };
 
 export default defineConfig([

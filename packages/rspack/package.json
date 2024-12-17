@@ -21,8 +21,9 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
-    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
+    "build": "tsc -b ./tsconfig.build.json && tsc-alias -p tsconfig.build.json && rslib build && npm run prepare-container-runtime",
+    "build:tsup": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && tsup && npm run prepare-container-runtime",
+    "build:force": "tsc -b ./tsconfig.build.json --force && tsc-alias -p tsconfig.build.json && rslib build && npm run prepare-container-runtime",
     "dev": "pnpm run --stream /^dev:.*/",
     "dev:types": "tsc -w",
     "dev:js": "tsup --watch",
@@ -51,6 +52,7 @@
   "devDependencies": {
     "@swc/core": "1.10.1",
     "@swc/types": "0.1.17",
+    "@rslib/core": "0.1.4",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",

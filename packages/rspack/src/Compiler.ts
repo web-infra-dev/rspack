@@ -1095,7 +1095,8 @@ class Compiler {
 											codeGenerationResult: new CodeGenerationResult(result),
 											moduleObject
 										},
-										{ __webpack_require__ }
+										// What, transform bug?
+										{ __webpack_require__: __webpack_require__ }
 									),
 								"Compilation.hooks.executeModule"
 							);
