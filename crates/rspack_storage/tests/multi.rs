@@ -126,9 +126,7 @@ mod test_storage_multi {
         .expect("should get modified value"),
       format!("scope_1_new_{:0>3}", 111)
     );
-    assert!(scope_data_1
-      .get(&format!("scope_1_key_{:0>3}", 222))
-      .is_none());
+    assert!(!scope_data_1.contains_key(&format!("scope_1_key_{:0>3}", 222)));
 
     let scope_data_2 = storage
       .load("scope_2")
@@ -148,9 +146,7 @@ mod test_storage_multi {
         .expect("should get modified value"),
       format!("scope_2_new_{:0>3}", 333)
     );
-    assert!(scope_data_2
-      .get(&format!("scope_2_key_{:0>3}", 444))
-      .is_none());
+    assert!(!scope_data_2.contains_key(&format!("scope_2_key_{:0>3}", 444)));
     Ok(())
   }
 
