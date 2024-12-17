@@ -8,6 +8,10 @@ pub struct CgmRuntimeRequirementsResults {
 }
 
 impl CgmRuntimeRequirementsResults {
+  pub fn is_empty(&self) -> bool {
+    self.module_to_runtime_requirements.is_empty()
+  }
+
   pub fn get(&self, module: &ModuleIdentifier, runtime: &RuntimeSpec) -> Option<&RuntimeGlobals> {
     let requirements = self.module_to_runtime_requirements.get(module)?;
     requirements.get(runtime)

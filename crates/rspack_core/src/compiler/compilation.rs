@@ -1021,7 +1021,9 @@ impl Compilation {
     let mutations = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RENDER);
-    let chunks = if let Some(mutations) = mutations {
+    let chunks = if let Some(mutations) = mutations
+      && !self.chunk_render_results.is_empty()
+    {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(*chunk),
         _ => None,
@@ -1222,7 +1224,10 @@ impl Compilation {
     let mutations = self
       .incremental
       .mutations_read(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
-    let modules = if let Some(mutations) = mutations {
+    // TODO move diagnostic collect to make
+    let modules = if let Some(mutations) = mutations
+      && !self.dependencies_diagnostics.is_empty()
+    {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
         _ => None,
@@ -1349,6 +1354,7 @@ impl Compilation {
     let create_module_hashes_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_HASHES)
+      && !self.cgm_hash_results.is_empty()
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
@@ -1381,6 +1387,7 @@ impl Compilation {
     let code_generation_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_CODEGEN)
+      && !self.code_generation_results.is_empty()
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
@@ -1407,6 +1414,7 @@ impl Compilation {
     let process_runtime_requirements_modules = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
+      && !self.cgm_runtime_requirements_results.is_empty()
     {
       let revoked_modules = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ModuleRemove { module } => Some(*module),
@@ -1438,6 +1446,7 @@ impl Compilation {
     let process_runtime_requirements_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
+      && !self.cgc_runtime_requirements_results.is_empty()
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(chunk),
@@ -1479,6 +1488,7 @@ impl Compilation {
     let create_hash_chunks = if let Some(mutations) = self
       .incremental
       .mutations_read(IncrementalPasses::CHUNKS_HASHES)
+      && !self.chunk_hashes_results.is_empty()
     {
       let removed_chunks = mutations.iter().filter_map(|mutation| match mutation {
         Mutation::ChunkRemove { chunk } => Some(*chunk),

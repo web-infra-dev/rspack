@@ -132,6 +132,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let mut modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)
+    && !module_ids.is_empty()
   {
     mutations
       .iter()

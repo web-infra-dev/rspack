@@ -194,6 +194,10 @@ pub struct CodeGenerationResults {
 }
 
 impl CodeGenerationResults {
+  pub fn is_empty(&self) -> bool {
+    self.module_generation_result_map.is_empty() && self.map.is_empty()
+  }
+
   pub fn get_one(&self, module_identifier: &ModuleIdentifier) -> Option<&CodeGenerationResult> {
     self
       .map
