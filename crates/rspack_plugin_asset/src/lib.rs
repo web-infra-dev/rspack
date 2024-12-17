@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::{borrow::Cow, hash::Hasher};
+use std::{borrow::Cow, hash::Hasher, path::PathBuf};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
@@ -242,22 +242,38 @@ impl AssetParserAndGenerator {
     compilation: &Compilation,
     contenthash: Option<&str>,
     source_file_name: &str,
-  ) -> Result<(String, AssetInfo)> {
+    use_output_path: bool,
+  ) -> Result<(String, String, AssetInfo)> {
     // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
     let asset_filename_template = module_generator_options
       .and_then(|x| x.asset_filename())
       .unwrap_or(&compilation.options.output.asset_module_filename);
+    let path_data = PathData::default()
+      .module_id_optional(
+        ChunkGraph::get_module_id(&compilation.module_ids, module.id()).map(|s| s.as_str()),
+      )
+      .content_hash_optional(contenthash)
+      .hash_optional(contenthash)
+      .filename(source_file_name);
 
-    compilation.get_asset_path_with_info(
-      asset_filename_template,
-      PathData::default()
-        .module_id_optional(
-          ChunkGraph::get_module_id(&compilation.module_ids, module.id()).map(|s| s.as_str()),
-        )
-        .content_hash_optional(contenthash)
-        .hash_optional(contenthash)
-        .filename(source_file_name),
-    )
+    let (mut filename, mut asset_info) =
+      compilation.get_asset_path_with_info(asset_filename_template, path_data)?;
+    let original_filename = filename.clone();
+
+    if use_output_path {
+      let output_path = module_generator_options.and_then(|x| x.asset_output_path());
+
+      if let Some(output_path) = output_path {
+        let (output_path, another_asset_info) =
+          compilation.get_asset_path_with_info(output_path, path_data)?;
+        let output_path = PathBuf::from(output_path);
+        let file_path = PathBuf::from(filename);
+        filename = output_path.join(file_path).to_string_lossy().to_string();
+        asset_info.merge_another_asset(another_asset_info);
+      }
+    }
+
+    Ok((original_filename, filename, asset_info))
   }
 
   fn get_public_path<F: LocalFilenameFn>(
@@ -447,12 +463,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           let contenthash = contenthash.rendered(compilation.options.output.hash_digest_length);
 
           let source_file_name = self.get_source_file_name(normal_module, compilation);
-          let (filename, mut asset_info) = self.get_asset_module_filename(
+          let (original_filename, filename, mut asset_info) = self.get_asset_module_filename(
             normal_module,
             module_generator_options,
             compilation,
             Some(contenthash),
             &source_file_name,
+            true,
           )?;
 
           let asset_path = if let Some(public_path) =
@@ -472,13 +489,17 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               }
               PublicPath::Auto => public_path.render(compilation, &filename),
             };
-            serde_json::to_string(&format!("{public_path}{filename}"))
+            serde_json::to_string(&format!("{public_path}{original_filename}"))
               .map_err(|e| error!(e.to_string()))?
           } else {
             generate_context
               .runtime_requirements
               .insert(RuntimeGlobals::PUBLIC_PATH);
-            format!(r#"{} + "{}""#, RuntimeGlobals::PUBLIC_PATH, filename)
+            format!(
+              r#"{} + "{}""#,
+              RuntimeGlobals::PUBLIC_PATH,
+              original_filename
+            )
           };
           asset_info.set_source_filename(source_file_name);
 
@@ -565,12 +586,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       data_url_options.dyn_hash(hasher);
     } else if parsed_asset_config.is_resource() {
       let source_file_name = self.get_source_file_name(module, compilation);
-      let (filename, _) = self.get_asset_module_filename(
+      let (filename, _, _) = self.get_asset_module_filename(
         module,
         module_generator_options,
         compilation,
         None,
         &source_file_name,
+        false,
       )?;
       filename.dyn_hash(hasher);
       match module_generator_options.and_then(|x| x.asset_public_path()) {

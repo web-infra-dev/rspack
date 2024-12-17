@@ -137,7 +137,7 @@ pub trait ScopeValidateStrategy {
   async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult>;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct WriteScopeResult {
   pub wrote_files: HashSet<Utf8PathBuf>,
   pub removed_files: HashSet<Utf8PathBuf>,
@@ -154,15 +154,9 @@ pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
-  fn before_all(&self, scope: &mut PackScope) -> Result<()>;
-  async fn before_write(&self, scope: &PackScope) -> Result<()>;
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
-  async fn after_write(
-    &self,
-    scope: &PackScope,
-    wrote_files: HashSet<Utf8PathBuf>,
-    removed_files: HashSet<Utf8PathBuf>,
-  ) -> Result<()>;
-  fn after_all(&self, scope: &mut PackScope) -> Result<()>;
+  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
 }

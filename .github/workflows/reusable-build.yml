@@ -39,6 +39,10 @@ on:
       target:
         required: true
         type: string
+      native:
+        required: false
+        type: boolean
+        default: false
       runner: # Runner labels
         required: true
         type: string
@@ -133,7 +137,7 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable && !inputs.native }}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -148,7 +152,8 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
-          pre: export CC_aarch64_unknown_linux_gnu=clang
+          pre: |
+            export CC_aarch64_unknown_linux_gnu=clang
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -157,6 +162,12 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
+          pre: |
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -167,11 +178,20 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
 
       # setup rust target for windows and macos
       - name: Setup Rust Target
-        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
+        if: ${{ (!contains(inputs.target, 'linux') || inputs.native) && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
+
+      - name: Build ${{ inputs.target }}
+        if: ${{ inputs.native && contains(inputs.target, 'linux') && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Windows
 

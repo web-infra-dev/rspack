@@ -8,7 +8,9 @@ mod write_scope;
 
 use std::{hash::Hasher, sync::Arc};
 
-use handle_file::{clean_root, clean_scopes, clean_versions, recovery_move_lock};
+use handle_file::{
+  clean_root, clean_scopes, clean_versions, recovery_move_lock, recovery_remove_lock,
+};
 use itertools::Itertools;
 use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -58,6 +60,7 @@ impl SplitPackStrategy {
 #[async_trait::async_trait]
 impl RootStrategy for SplitPackStrategy {
   async fn before_load(&self) -> Result<()> {
+    recovery_remove_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     recovery_move_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
