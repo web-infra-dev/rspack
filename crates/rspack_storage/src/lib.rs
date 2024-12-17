@@ -1,8 +1,10 @@
+mod fs;
 mod pack;
 
 use std::sync::Arc;
 
-pub use pack::{PackStorage, PackStorageOptions, StorageBridgeFS, StorageFS};
+pub use fs::{StorageBridgeFS, StorageFS};
+pub use pack::{PackStorage, PackStorageOptions};
 use rspack_error::Result;
 use tokio::sync::oneshot::Receiver;
 

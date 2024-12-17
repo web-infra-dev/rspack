@@ -19,9 +19,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy, StorageValidateError, ValidateResult};
-use crate::pack::{
-  data::{current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions},
-  fs::StorageFS,
+use crate::{
+  pack::data::{
+    current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
+  },
+  StorageFS,
 };
 
 #[derive(Debug, Clone)]

@@ -286,11 +286,10 @@ mod tests {
   use crate::{
     pack::{
       data::{PackOptions, RootOptions},
-      fs::{StorageBridgeFS, StorageFS},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
-    StorageItemKey, StorageItemValue,
+    StorageBridgeFS, StorageFS, StorageItemKey, StorageItemValue,
   };
 
   fn mock_key(id: usize) -> StorageItemKey {

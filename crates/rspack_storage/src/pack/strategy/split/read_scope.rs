@@ -7,10 +7,12 @@ use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
-use crate::pack::{
-  data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-  fs::StorageFS,
-  strategy::{PackReadStrategy, ScopeReadStrategy, StorageValidateError},
+use crate::{
+  pack::{
+    data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
+    strategy::{PackReadStrategy, ScopeReadStrategy, StorageValidateError},
+  },
+  StorageFS,
 };
 
 #[async_trait]
@@ -262,15 +264,17 @@ mod tests {
   use rspack_error::Result;
   use rspack_paths::Utf8Path;
 
-  use crate::pack::{
-    data::{PackOptions, PackScope, ScopeMeta},
-    fs::StorageFS,
-    strategy::{
-      split::util::test_pack_utils::{
-        clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
+  use crate::{
+    pack::{
+      data::{PackOptions, PackScope, ScopeMeta},
+      strategy::{
+        split::util::test_pack_utils::{
+          clean_strategy, create_strategies, mock_pack_file, mock_scope_meta_file,
+        },
+        ScopeReadStrategy, SplitPackStrategy,
       },
-      ScopeReadStrategy, SplitPackStrategy,
     },
+    StorageFS,
   };
 
   async fn mock_scope(path: &Utf8Path, fs: &dyn StorageFS, options: &PackOptions) -> Result<()> {

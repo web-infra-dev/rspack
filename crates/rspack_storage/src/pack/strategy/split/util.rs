@@ -86,13 +86,12 @@ pub mod test_pack_utils {
   use crate::{
     pack::{
       data::{current_time, PackOptions, PackScope},
-      fs::StorageFS,
       strategy::{
         split::handle_file::prepare_scope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy,
         WriteScopeResult,
       },
     },
-    StorageBridgeFS,
+    StorageBridgeFS, StorageFS,
   };
 
   pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> Result<()> {

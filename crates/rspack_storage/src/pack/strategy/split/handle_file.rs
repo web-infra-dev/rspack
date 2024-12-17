@@ -7,9 +7,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
 use crate::{
+  fs::BatchStorageFSError,
   pack::{
     data::{current_time, PackScope, RootMeta, RootOptions, ScopeMeta},
-    fs::BatchStorageFSError,
     strategy::StorageValidateError,
   },
   StorageFS,
@@ -42,19 +42,14 @@ pub async fn prepare_scope_dirs(
     tokio::spawn(async move { prepare_scope(&scope_path, &root_path, &temp_root_path, fs).await })
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  BatchStorageFSError::try_from_joined_result(
     "prepare scopes directories failed",
     join_all(tasks)
       .await
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
-  );
-
-  if let Some(e) = res {
-    Err(e.into())
-  } else {
-    Ok(())
-  }
+  )
+  .map_or_else(|| Ok(()), |e| Err(e.into()))
 }
 
 pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn StorageFS>) -> Result<()> {
@@ -63,19 +58,14 @@ pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn StorageFS>) -
     tokio::spawn(async move { fs.remove_file(&path).await })
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  BatchStorageFSError::try_from_joined_result(
     "remove files failed",
     join_all(tasks)
       .await
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
-  );
-
-  if let Some(e) = res {
-    Err(e.into())
-  } else {
-    Ok(())
-  }
+  )
+  .map_or_else(|| Ok(()), |e| Err(e.into()))
 }
 
 pub async fn write_lock(
@@ -296,13 +286,8 @@ pub async fn remove_unused_scope_files(
     .values()
     .map(|scope| try_remove_scope_files(scope, fs.clone()));
 
-  if let Some(e) =
-    BatchStorageFSError::try_from_results("clean scopes failed", join_all(clean_scope_tasks).await)
-  {
-    Err(e.into())
-  } else {
-    Ok(())
-  }
+  BatchStorageFSError::try_from_results("clean scopes failed", join_all(clean_scope_tasks).await)
+    .map_or_else(|| Ok(()), |e| Err(e.into()))
 }
 
 async fn try_remove_scope(name: &str, dir: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
@@ -334,19 +319,14 @@ pub async fn remove_unused_scopes(
     tokio::spawn(async move { try_remove_scope(&scope_name, &scope_dir, fs).await })
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  BatchStorageFSError::try_from_joined_result(
     "remove unused scopes failed",
     join_all(tasks)
       .await
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
-  );
-
-  if let Some(e) = res {
-    Err(e.into())
-  } else {
-    Ok(())
-  }
+  )
+  .map_or_else(|| Ok(()), |e| Err(e.into()))
 }
 
 async fn try_remove_version(version: &str, dir: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
@@ -398,17 +378,12 @@ pub async fn remove_expired_versions(
     }
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  BatchStorageFSError::try_from_joined_result(
     "remove expired versions failed",
     join_all(tasks)
       .await
       .into_iter()
       .collect::<Result<Vec<_>, JoinError>>(),
-  );
-
-  if let Some(e) = res {
-    Err(e.into())
-  } else {
-    Ok(())
-  }
+  )
+  .map_or_else(|| Ok(()), |e| Err(e.into()))
 }

@@ -83,23 +83,25 @@ mod tests {
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::pack::{
-    data::{PackOptions, PackScope, RootMeta, ScopeMeta},
-    fs::StorageFS,
-    strategy::{
-      split::{
-        handle_file::prepare_scope,
-        util::{
-          flag_scope_wrote,
-          test_pack_utils::{
-            clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
-            mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+  use crate::{
+    pack::{
+      data::{PackOptions, PackScope, RootMeta, ScopeMeta},
+      strategy::{
+        split::{
+          handle_file::prepare_scope,
+          util::{
+            flag_scope_wrote,
+            test_pack_utils::{
+              clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
+              mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+            },
           },
         },
+        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
+        StorageValidateError, ValidateResult,
       },
-      ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
-      StorageValidateError, ValidateResult,
     },
+    StorageFS,
   };
 
   async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {

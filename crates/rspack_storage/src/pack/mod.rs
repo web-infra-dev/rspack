@@ -1,5 +1,4 @@
 mod data;
-mod fs;
 mod manager;
 mod strategy;
 
@@ -9,7 +8,6 @@ use std::{
 };
 
 use data::{PackOptions, RootOptions};
-pub use fs::{StorageBridgeFS, StorageFS};
 use manager::ScopeManager;
 use rspack_error::Result;
 use rspack_paths::AssertUtf8;
@@ -17,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 use strategy::{ScopeUpdate, SplitPackStrategy};
 use tokio::sync::oneshot::Receiver;
 
-use crate::{Storage, StorageContent, StorageItemKey, StorageItemValue};
+use crate::{Storage, StorageContent, StorageFS, StorageItemKey, StorageItemValue};
 
 pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]
