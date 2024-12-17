@@ -21,6 +21,7 @@ module.exports = {
 		"<rootDir>/Compiler.test.js",
 		// "<rootDir>/ConfigCacheTestCases.longtest.js",
 		"<rootDir>/ConfigTestCases.basictest.js",
+		"<rootDir>/ConsumesCommon.test.js",
 		// "<rootDir>/ContextModule.unittest.js",
 		// "<rootDir>/ContextModuleFactory.unittest.js",
 		// "<rootDir>/Defaults.unittest.js",
