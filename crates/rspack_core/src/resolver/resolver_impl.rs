@@ -35,7 +35,7 @@ pub enum ResolveInnerOptions<'a> {
   RspackResolver(&'a rspack_resolver::ResolveOptions),
 }
 
-impl<'a> fmt::Debug for ResolveInnerOptions<'a> {
+impl fmt::Debug for ResolveInnerOptions<'_> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       Self::RspackResolver(options) => {
@@ -45,7 +45,7 @@ impl<'a> fmt::Debug for ResolveInnerOptions<'a> {
   }
 }
 
-impl<'a> ResolveInnerOptions<'a> {
+impl ResolveInnerOptions<'_> {
   pub fn is_enforce_extension_enabled(&self) -> bool {
     match self {
       Self::RspackResolver(options) => matches!(

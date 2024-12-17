@@ -60,10 +60,9 @@
     "jest-snapshot": "29.7.0",
     "jsdom": "^25.0.0",
     "memfs": "4.14.0",
-    "mkdirp": "0.5.6",
     "path-serializer": "0.3.4",
     "pretty-format": "29.7.0",
-    "rimraf": "3.0.2",
+    "rimraf": "^5.0.10",
     "webpack": "^5.94.0",
     "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3"

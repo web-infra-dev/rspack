@@ -9,7 +9,7 @@ use crate::dependency::ESMCompatibilityDependency;
 use crate::utils::eval::BasicEvaluatedExpression;
 use crate::visitors::{create_traceable_error, JavascriptParser};
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   fn throw_top_level_await_error(&mut self, msg: String, span: Span) {
     self.errors.push(Box::new(create_traceable_error(
       "JavaScript parsing error".into(),

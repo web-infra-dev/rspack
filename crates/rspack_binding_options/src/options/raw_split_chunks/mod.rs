@@ -5,7 +5,7 @@ mod raw_split_chunk_size;
 
 use std::sync::Arc;
 
-use derivative::Derivative;
+use derive_more::Debug;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
@@ -24,18 +24,17 @@ use self::raw_split_chunk_chunks::{create_chunks_filter, Chunks};
 use self::raw_split_chunk_name::default_chunk_option_name;
 use self::raw_split_chunk_size::RawSplitChunkSizes;
 
-#[derive(Derivative)]
 #[napi(object, object_to_js = false)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
   #[napi(ts_type = "string | false | Function")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks: Option<Chunks>,
   pub used_exports: Option<bool>,
   pub automatic_name_delimiter: Option<String>,
@@ -54,29 +53,28 @@ pub struct RawSplitChunksOptions {
   pub max_initial_size: Option<Either<f64, RawSplitChunkSizes>>,
 }
 
-#[derive(Derivative)]
 #[napi(object, object_to_js = false)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct RawCacheGroupOptions {
   pub key: String,
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   #[napi(ts_type = "RegExp | string | Function")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub test: Option<RawCacheGroupTest>,
   pub filename: Option<String>,
   //   pub enforce: bool,
   pub id_hint: Option<String>,
   /// What kind of chunks should be selected.
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks: Option<Chunks>,
   #[napi(ts_type = "RegExp | string")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub r#type: Option<Either<RspackRegex, JsString>>,
   #[napi(ts_type = "RegExp | string")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub layer: Option<Either<RspackRegex, JsString>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
@@ -93,7 +91,7 @@ pub struct RawCacheGroupOptions {
   pub max_async_requests: Option<f64>,
   pub max_initial_requests: Option<f64>,
   #[napi(ts_type = "string | false | Function")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
@@ -268,12 +266,11 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
   }
 }
 
-#[derive(Default, Derivative)]
+#[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
-#[derivative(Debug)]
 pub struct RawFallbackCacheGroupOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks: Option<Chunks>,
   pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,

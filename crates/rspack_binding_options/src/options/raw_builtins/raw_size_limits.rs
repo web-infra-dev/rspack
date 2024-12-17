@@ -1,13 +1,12 @@
-use derivative::Derivative;
+use derive_more::Debug;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_size_limits::{AssetFilterFn, SizeLimitsPluginOptions};
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawSizeLimitsPluginOptions {
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(ts_type = "(assetFilename: string) => boolean")]
   pub asset_filter: Option<ThreadsafeFunction<String, bool>>,
   #[napi(ts_type = "\"error\" | \"warning\"")]

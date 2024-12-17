@@ -7,7 +7,6 @@ import path from "node:path";
 import chalk from "chalk";
 import filenamify from "filenamify";
 import { diff } from "jest-diff";
-import mkdirp from "mkdirp";
 import type { FileMatcherOptions } from "../../../jest";
 
 /**
@@ -98,7 +97,7 @@ export function toMatchFileSnapshot(
 			return { pass: true, message: () => "" };
 		}
 		if (snapshotState._updateSnapshot === "all") {
-			mkdirp.sync(path.dirname(filename));
+			fs.mkdirSync(path.dirname(filename), { recursive: true });
 			fs.writeFileSync(filename, content);
 
 			snapshotState.updated++;
@@ -136,7 +135,7 @@ export function toMatchFileSnapshot(
 		(snapshotState._updateSnapshot === "new" ||
 			snapshotState._updateSnapshot === "all")
 	) {
-		mkdirp.sync(path.dirname(filename));
+		fs.mkdirSync(path.dirname(filename), { recursive: true });
 		fs.writeFileSync(filename, content);
 
 		snapshotState.added++;

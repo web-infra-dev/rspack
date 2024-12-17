@@ -4,7 +4,7 @@
 
 const path = require("path");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 let fixtureCount = 0;
 
@@ -97,7 +97,7 @@ describe.skip("Compiler (caching)", () => {
 	);
 
 	function cleanup() {
-		rimraf.sync(`${tempFixturePath}-*`);
+		rimrafSync(`${tempFixturePath}-*`);
 	}
 
 	beforeAll(cleanup);
@@ -109,7 +109,7 @@ describe.skip("Compiler (caching)", () => {
 		const cFilepath = path.join(fixturePath, "c.js");
 
 		// Remove previous copy if present
-		rimraf.sync(fixturePath);
+		rimrafSync(fixturePath);
 
 		// Copy over file since we"ll be modifying some of them
 		fs.mkdirSync(fixturePath);

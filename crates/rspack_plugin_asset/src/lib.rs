@@ -7,7 +7,7 @@ use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   rspack_sources::{BoxSource, RawBufferSource, RawStringSource, SourceExt},
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnArgs, AssetInfo, AssetParserDataUrl,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetInfo, AssetParserDataUrl,
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
   CompilerOptions, Filename, GenerateContext, GeneratorOptions, LocalFilenameFn, Module,
@@ -135,18 +135,19 @@ impl AssetParserAndGenerator {
     resource_data: &ResourceData,
     data_url: Option<&AssetGeneratorDataUrl>,
     source: &BoxSource,
+    module: &dyn Module,
+    compilation: &Compilation,
   ) -> Option<String> {
-    let func_args = AssetGeneratorDataUrlFnArgs {
-      filename: resource_data
-        .resource_path
-        .as_deref()
-        .map(|p| p.as_str().to_string())
-        .unwrap_or_default(),
-      content: source.source().into_owned(),
+    let func_ctx = AssetGeneratorDataUrlFnCtx {
+      filename: resource_data.resource.clone(),
+      module,
+      compilation,
     };
 
     if let Some(AssetGeneratorDataUrl::Func(data_url)) = data_url {
-      return Some(data_url(func_args).expect("call data_url function failed"));
+      return Some(
+        data_url(source.buffer().to_vec(), func_ctx).expect("call data_url function failed"),
+      );
     }
     None
   }
@@ -397,7 +398,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   fn generate(
     &self,
     source: &BoxSource,
-    module: &dyn rspack_core::Module,
+    module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
@@ -418,7 +419,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           let encoded_source: String;
 
-          if let Some(custom_data_url) = self.get_data_url(resource_data, data_url, source) {
+          if let Some(custom_data_url) =
+            self.get_data_url(resource_data, data_url, source, module, compilation)
+          {
             encoded_source = custom_data_url;
           } else {
             let mimetype = self.get_mimetype(resource_data, data_url)?;

@@ -107,11 +107,13 @@ impl PackFS for PackBridgeFS {
   }
 
   async fn remove_file(&self, path: &Utf8Path) -> Result<()> {
-    self
-      .0
-      .remove_file(path)
-      .await
-      .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Remove, e))?;
+    if self.exists(path).await? {
+      self
+        .0
+        .remove_file(path)
+        .await
+        .map_err(|e| PackFsError::from_fs_error(path, PackFsErrorOpt::Remove, e))?;
+    }
     Ok(())
   }
 

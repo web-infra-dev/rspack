@@ -599,9 +599,10 @@ const assetGeneratorDataUrlOptions = z.strictObject({
 const assetGeneratorDataUrlFunction = z
 	.function()
 	.args(
+		z.instanceof(Buffer),
 		z.strictObject({
-			content: z.string(),
-			filename: z.string()
+			filename: z.string(),
+			module: z.custom<Module>()
 		})
 	)
 	.returns(z.string()) satisfies z.ZodType<t.AssetGeneratorDataUrlFunction>;
@@ -1315,10 +1316,12 @@ const experimentCacheOptions = z
 					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
 				})
 				.optional(),
-			storage: z.strictObject({
-				type: z.enum(["filesystem"]),
-				directory: z.string().optional()
-			})
+			storage: z
+				.object({
+					type: z.enum(["filesystem"]),
+					directory: z.string().optional()
+				})
+				.optional()
 		})
 	);
 

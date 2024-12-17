@@ -1110,10 +1110,13 @@ export type AssetGeneratorDataUrlOptions = {
 	mimetype?: string;
 };
 
-export type AssetGeneratorDataUrlFunction = (options: {
-	filename: string;
-	content: string;
-}) => string;
+export type AssetGeneratorDataUrlFunction = (
+	content: Buffer,
+	context: {
+		filename: string;
+		module: Module;
+	}
+) => string;
 
 export type AssetGeneratorDataUrl =
 	| AssetGeneratorDataUrlOptions
@@ -2350,7 +2353,7 @@ export type ExperimentCacheOptions =
 				unmanagedPaths?: Array<string | RegExp>;
 				managedPaths?: Array<string | RegExp>;
 			};
-			storage: {
+			storage?: {
 				type: "filesystem";
 				directory?: string;
 			};

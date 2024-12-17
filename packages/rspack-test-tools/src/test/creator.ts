@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import rimraf from "rimraf";
+import { rimrafSync } from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import type {
@@ -125,7 +125,7 @@ export class BasicCaseCreator<T extends ECompilerType> {
 
 	protected clean(folders: string[]) {
 		for (const f of folders) {
-			rimraf.sync(f);
+			rimrafSync(f);
 			fs.mkdirSync(f, { recursive: true });
 		}
 	}

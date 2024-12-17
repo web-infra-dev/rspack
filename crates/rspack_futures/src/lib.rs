@@ -38,9 +38,9 @@ impl<T> FuturesResults<T> {
   }
 }
 
-impl<'f, Fut> FromIterator<Fut> for FuturesResults<Fut::Output>
+impl<Fut> FromIterator<Fut> for FuturesResults<Fut::Output>
 where
-  Fut: Future + Send + 'f,
+  Fut: Future + Send,
   Fut::Output: Send + 'static,
 {
   fn from_iter<I>(iter: I) -> Self

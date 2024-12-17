@@ -322,7 +322,9 @@ export const getNormalizedRspackOptions = (
 				const snapshot = cache.snapshot || {};
 				return {
 					type: "persistent",
-					buildDependencies: cache.buildDependencies || [],
+					buildDependencies: nestedArray(cache.buildDependencies, deps =>
+						deps.map(d => path.resolve(config.context || process.cwd(), d))
+					),
 					version: cache.version || "",
 					snapshot: {
 						immutablePaths: nestedArray(snapshot.immutablePaths, p => [...p]),
@@ -333,9 +335,10 @@ export const getNormalizedRspackOptions = (
 					},
 					storage: {
 						type: "filesystem",
-						directory:
-							cache.storage.directory ||
-							path.join(config.context || process.cwd(), "node_modules/.cache")
+						directory: path.resolve(
+							config.context || process.cwd(),
+							cache.storage?.directory || "node_modules/.cache/rspack"
+						)
 					}
 				};
 			}),

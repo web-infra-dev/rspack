@@ -6,7 +6,7 @@ use std::{
   sync::LazyLock,
 };
 
-use derivative::Derivative;
+use derive_more::Debug;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::{Captures, Regex};
@@ -178,18 +178,17 @@ fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 struct AssetData {
   own_hashes: HashSet<String>,
   referenced_hashes: HashSet<String>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   old_source: BoxSource,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   content: AssetDataContent,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   new_source: OnceCell<BoxSource>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   new_source_without_own: OnceCell<BoxSource>,
 }
 

@@ -65,6 +65,7 @@ impl ScopeManager {
               .filter(|(_, scope)| scope.loaded())
               .map(|(name, _)| name.clone())
               .collect::<HashSet<_>>(),
+            self.root_options.expire,
           )));
           Ok(())
         }
@@ -99,25 +100,37 @@ impl ScopeManager {
     Ok(rx)
   }
 
+  async fn clear_scope(&self, name: &str) {
+    self
+      .scopes
+      .lock()
+      .await
+      .get_mut(name)
+      .expect("should have scope")
+      .clear();
+  }
+
   pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
+    self
+      .scopes
+      .lock()
+      .await
+      .entry(name.to_string())
+      .or_insert_with(|| PackScope::new(self.strategy.get_path(name), self.pack_options.clone()));
+
+    // only check lock file and root meta for the first time
     if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
-      let loaded = self.strategy.read_root_meta().await?;
-      if let Some(meta) = &loaded {
-        for scope_name in meta.scopes.clone() {
-          self
-            .scopes
-            .lock()
-            .await
-            .entry(scope_name.clone())
-            .or_insert_with(|| {
-              PackScope::new(
-                self.strategy.get_path(&scope_name),
-                self.pack_options.clone(),
-              )
-            });
+      match self.strategy.before_load().await {
+        Ok(()) => {
+          let loaded = self.strategy.read_root_meta().await?;
+          *self.root_meta.lock().await = RootMetaState::Value(loaded);
+        }
+        Err(err) => {
+          *self.root_meta.lock().await = RootMetaState::Value(None);
+          self.clear_scope(name).await;
+          return Err(err);
         }
       }
-      *self.root_meta.lock().await = RootMetaState::Value(loaded);
     }
 
     match self.validate_scope(name).await {
@@ -131,37 +144,18 @@ impl ScopeManager {
         }
         // create empty scope if not exists
         ValidateResult::NotExists => {
-          self
-            .scopes
-            .lock()
-            .await
-            .entry(name.to_string())
-            .or_insert_with(|| {
-              PackScope::empty(self.strategy.get_path(name), self.pack_options.clone())
-            });
+          self.clear_scope(name).await;
           Ok(vec![])
         }
         // clear scope if invalid
         ValidateResult::Invalid(_) => {
-          self
-            .scopes
-            .lock()
-            .await
-            .get_mut(name)
-            .expect("should have scope")
-            .clear();
+          self.clear_scope(name).await;
           Err(error!(validated.to_string()))
         }
       },
       Err(e) => {
         // clear scope if error
-        self
-          .scopes
-          .lock()
-          .await
-          .get_mut(name)
-          .expect("should have scope")
-          .clear();
+        self.clear_scope(name).await;
         Err(Error::from(e))
       }
     }
@@ -180,10 +174,7 @@ impl ScopeManager {
     };
 
     // scope exists, validate it
-    let validated = self
-      .strategy
-      .validate_root(root_meta, self.root_options.expire)
-      .await?;
+    let validated = self.strategy.validate_root(root_meta).await?;
     if validated.is_valid() {
       self.strategy.ensure_meta(scope).await?;
       let validated = self.strategy.validate_meta(scope).await?;
@@ -272,6 +263,8 @@ async fn save_scopes(
   .into_iter()
   .collect_vec();
 
+  strategy.write_root_meta(root_meta).await?;
+
   join_all(
     scopes
       .values()
@@ -290,8 +283,6 @@ async fn save_scopes(
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
-
-  strategy.write_root_meta(root_meta).await?;
 
   for (_, scope) in scopes.iter_mut() {
     strategy.after_all(scope)?;

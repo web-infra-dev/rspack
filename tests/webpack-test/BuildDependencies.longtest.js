@@ -3,7 +3,7 @@
 const path = require("path");
 const child_process = require("child_process");
 const fs = require("fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 const cacheDirectory = path.resolve(__dirname, "js/buildDepsCache");
 const outputDirectory = path.resolve(__dirname, "js/buildDeps");
@@ -98,15 +98,15 @@ const exec = (n, options = {}) => {
 const supportsEsm = +process.versions.modules >= 83;
 
 describe.skip("BuildDependencies", () => {
-	beforeEach(done => {
-		rimraf(cacheDirectory, done);
+	beforeEach(() => {
+		rimrafSync(cacheDirectory);
 	});
-	beforeEach(done => {
-		rimraf(outputDirectory, done);
+	beforeEach(() => {
+		rimrafSync(outputDirectory);
 	});
 
-	beforeEach(done => {
-		rimraf(inputDirectory, done);
+	beforeEach(() => {
+		rimrafSync(inputDirectory);
 	});
 	beforeEach(done => {
 		fs.mkdir(inputDirectory, { recursive: true }, done);

@@ -99,7 +99,7 @@ fn add_dependencies(
   let source_map: SharedSourceMap = parser.source_map.clone();
   let mut block = AsyncDependenciesBlock::new(
     *parser.module_identifier,
-    Some(Into::<DependencyRange>::into(span).to_loc(Some(source_map).as_ref())),
+    Into::<DependencyRange>::into(span).to_loc(Some(&source_map)),
     None,
     vec![dep],
     None,

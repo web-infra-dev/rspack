@@ -192,7 +192,7 @@ pub fn stringified_exports<'a>(
     let content = elements
       .iter()
       .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&unescape(ident)),
+        None => json_stringify(&ident),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -233,7 +233,7 @@ pub fn stringified_exports<'a>(
     writeln!(
       stringified_exports,
       "  {}: {},",
-      json_stringify(&unescape(key)),
+      json_stringify(&key),
       content
     )
     .map_err(|e| error!(e.to_string()))?;
@@ -266,7 +266,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let content = elements
       .iter()
       .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&unescape(ident)),
+        None => json_stringify(&ident),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -297,7 +297,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
           format!(
             "{}({from})[{}]",
             RuntimeGlobals::REQUIRE,
-            json_stringify(&unescape(ident))
+            json_stringify(&ident)
           )
         }
       })
@@ -306,7 +306,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{}", itoa!(i)));
+      identifier = Cow::Owned(format!("{identifier}{}", itoa!(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -314,7 +314,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
       "var {identifier} = {content};\n"
     )));
     used_identifiers.insert(identifier.clone());
-    scope.register_export(unescape(key).as_ref().into(), identifier.into_owned());
+    scope.register_export(key.into(), identifier.into_owned());
   }
   Ok(())
 }
@@ -330,6 +330,7 @@ static UNESCAPE: LazyLock<Regex> =
 
 static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
+// `\/foo` in css should be treated as `foo` in js
 pub fn unescape(s: &str) -> Cow<str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
     caps

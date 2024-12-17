@@ -207,10 +207,12 @@ impl SplitChunksPlugin {
     let new_chunk_ukey = new_chunk;
     for original_chunk_ukey in original_chunks {
       debug_assert!(&new_chunk_ukey != original_chunk_ukey);
-      let [new_chunk, original_chunk] = compilation
+      let [Some(new_chunk), Some(original_chunk)] = compilation
         .chunk_by_ukey
         .get_many_mut([&new_chunk_ukey, original_chunk_ukey])
-        .expect("split_from_original_chunks failed");
+      else {
+        panic!("split_from_original_chunks failed")
+      };
       original_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
       if let Some(mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {

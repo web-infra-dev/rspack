@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
 const { pathToFileURL, URL } = require("url");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const deprecationTracking = require("./helpers/deprecationTracking");
@@ -232,8 +232,8 @@ const describeCases = config => {
 								testConfig = undefined;
 								for (const fn of cleanups) fn();
 							});
-							beforeAll(done => {
-								rimraf(cacheDirectory, done);
+							beforeAll(() => {
+								rimrafSync(cacheDirectory);
 							});
 							if (config.cache) {
 								it(

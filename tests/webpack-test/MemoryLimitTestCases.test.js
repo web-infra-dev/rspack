@@ -3,7 +3,7 @@
 // require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core").rspack;
 const { createFilteredDescribe } = require("./lib/util/filterUtil")
@@ -54,7 +54,7 @@ describe("MemoryLimitTestCases", () => {
 			testConfig.heapSizeLimitBytes
 		)}`, done => {
 			const outputDirectory = path.join(outputBase, testName);
-			rimraf.sync(outputDirectory);
+			rimrafSync(outputDirectory);
 			fs.mkdirSync(outputDirectory, { recursive: true });
 			let options = {
 				mode: "development",

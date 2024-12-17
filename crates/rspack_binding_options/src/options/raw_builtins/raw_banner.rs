@@ -1,4 +1,4 @@
-use derivative::Derivative;
+use derive_more::Debug;
 use napi::Either;
 use napi_derive::napi;
 use rspack_binding_values::{into_asset_conditions, JsChunkWrapper, RawAssetConditions};
@@ -15,7 +15,7 @@ pub struct JsBannerContentFnCtx {
   pub filename: String,
 }
 
-impl<'a> From<BannerContentFnCtx<'a>> for JsBannerContentFnCtx {
+impl From<BannerContentFnCtx<'_>> for JsBannerContentFnCtx {
   fn from(value: BannerContentFnCtx) -> Self {
     Self {
       hash: value.hash.to_string(),
@@ -44,11 +44,10 @@ impl TryFrom<RawBannerContentWrapper> for BannerContent {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawBannerPluginOptions {
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[napi(ts_type = "string | ((...args: any[]) => any)")]
   pub banner: RawBannerContent,
   pub entry_only: Option<bool>,

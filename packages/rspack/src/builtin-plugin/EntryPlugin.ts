@@ -28,7 +28,7 @@ export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
  * contains only one module (plus dependencies). The module is resolved from
  * `entry` in `context` (absolute path).
  */
-export const EntryPlugin = create(
+const OriginEntryPlugin = create(
 	BuiltinPluginName.EntryPlugin,
 	(
 		context: string,
@@ -45,6 +45,23 @@ export const EntryPlugin = create(
 	},
 	"make"
 );
+
+// TODO: Currently, the Rspack framework does not support the inheritance hierarchy of Dependency.
+interface EntryDependency {
+	request: string;
+}
+
+type EntryPluginType = typeof OriginEntryPlugin & {
+	createDependency(entry: string): EntryDependency;
+};
+
+export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
+
+EntryPlugin.createDependency = request => {
+	return {
+		request
+	};
+};
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;

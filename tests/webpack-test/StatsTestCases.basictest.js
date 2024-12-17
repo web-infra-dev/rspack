@@ -3,7 +3,7 @@
 require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core");
 const { createFilteredDescribe } = require('./lib/util/filterUtil')
@@ -50,7 +50,7 @@ describe("StatsTestCases", () => {
 	tests.forEach(testName => {
 		it("should print correct stats for " + testName, done => {
 			const outputDirectory = path.join(outputBase, testName);
-			rimraf.sync(outputDirectory);
+			rimrafSync(outputDirectory);
 			fs.mkdirSync(outputDirectory, { recursive: true });
 			let options = {
 				mode: "development",
