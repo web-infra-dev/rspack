@@ -146,9 +146,9 @@ new rspack.SwcJsMinimizerRspackPlugin({
 ```ts
 type MinimizerOptions = {
   minify?: boolean;
-  compress?: TerserCompressOptions | boolean;
-  mangle?: TerserMangleOptions | boolean;
   module?: boolean;
+  mangle?: TerserMangleOptions | boolean;
+  compress?: TerserCompressOptions | boolean;
   format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
 };
 ```
@@ -157,6 +157,7 @@ type MinimizerOptions = {
 
 ```js
 const defaultOptions = {
+  minify: true,
   mangle: true,
   compress: {
     passes: 1,
