@@ -39,6 +39,10 @@ on:
       target:
         required: true
         type: string
+      native:
+        required: false
+        type: boolean
+        default: false
       runner: # Runner labels
         required: true
         type: string
@@ -133,7 +137,7 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable && !inputs.native }}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -182,8 +186,12 @@ jobs:
 
       # setup rust target for windows and macos
       - name: Setup Rust Target
-        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
+        if: ${{ (!contains(inputs.target, 'linux') || inputs.native) && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
+
+      - name: Build ${{ inputs.target }}
+        if: ${{ inputs.native && contains(inputs.target, 'linux') && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Windows
 
