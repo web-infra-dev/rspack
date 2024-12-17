@@ -230,21 +230,9 @@ async fn save_scopes(
 ) -> Result<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());
 
-  for (_, scope) in scopes.iter_mut() {
-    strategy.before_all(scope)?;
-  }
+  strategy.before_all(&mut scopes).await?;
 
-  join_all(
-    scopes
-      .values()
-      .map(|scope| async move { strategy.before_write(scope).await })
-      .collect_vec(),
-  )
-  .await
-  .into_iter()
-  .collect::<Result<Vec<_>>>()?;
-
-  let wrote_results = join_all(
+  let changed = join_all(
     scopes
       .values_mut()
       .map(|scope| async move {
@@ -261,33 +249,14 @@ async fn save_scopes(
   .into_iter()
   .collect::<Result<Vec<WriteScopeResult>>>()?
   .into_iter()
-  .collect_vec();
+  .fold(WriteScopeResult::default(), |mut acc, res| {
+    acc.extend(res);
+    acc
+  });
 
   strategy.write_root_meta(root_meta).await?;
-
-  join_all(
-    scopes
-      .values()
-      .zip(wrote_results)
-      .map(|(scope, scope_wrote_result)| async move {
-        strategy
-          .after_write(
-            scope,
-            scope_wrote_result.wrote_files,
-            scope_wrote_result.removed_files,
-          )
-          .await
-      })
-      .collect_vec(),
-  )
-  .await
-  .into_iter()
-  .collect::<Result<Vec<_>>>()?;
-
-  for (_, scope) in scopes.iter_mut() {
-    strategy.after_all(scope)?;
-  }
-
+  strategy.merge_changed(changed).await?;
+  strategy.after_all(&mut scopes).await?;
   strategy
     .clean_unused(root_meta, &scopes, root_options)
     .await?;

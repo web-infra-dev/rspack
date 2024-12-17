@@ -10,6 +10,56 @@ use crate::{
   PackFS,
 };
 
+pub async fn prepare_scope(
+  scope_path: &Utf8Path,
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let temp_path = redirect_to_path(scope_path, root, temp_root)?;
+  fs.remove_dir(&temp_path).await?;
+  fs.ensure_dir(&temp_path).await?;
+  fs.ensure_dir(scope_path).await?;
+  Ok(())
+}
+
+pub async fn prepare_scope_dirs(
+  scopes: &HashMap<String, PackScope>,
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let tasks = scopes.values().map(|scope| {
+    let fs = fs.clone();
+    let scope_path = scope.path.clone();
+    let root_path = root.to_path_buf();
+    let temp_root_path = temp_root.to_path_buf();
+    tokio::spawn(async move { prepare_scope(&scope_path, &root_path, &temp_root_path, fs).await })
+      .map_err(|e| error!("{e}"))
+  });
+
+  let res = join_all(tasks)
+    .await
+    .into_iter()
+    .collect::<Result<Vec<_>>>()?;
+
+  let mut errors = vec![];
+  for task_result in res {
+    if let Err(e) = task_result {
+      errors.push(format!("- {}", e));
+    }
+  }
+
+  if errors.is_empty() {
+    Ok(())
+  } else {
+    Err(error!(
+      "prepare scopes directories failed:\n{}",
+      errors.join("\n")
+    ))
+  }
+}
+
 pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn PackFS>) -> Result<()> {
   let tasks = files.into_iter().map(|path| {
     let fs = fs.clone();
@@ -35,7 +85,32 @@ pub async fn remove_files(files: HashSet<Utf8PathBuf>, fs: Arc<dyn PackFS>) -> R
   }
 }
 
-pub async fn move_temp_files(
+pub async fn write_lock(
+  lock_file: &str,
+  files: &HashSet<Utf8PathBuf>,
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let lock_file = root.join(lock_file);
+  let mut lock_writer = fs.write_file(&lock_file).await?;
+  let mut contents = vec![temp_root.to_string()];
+  contents.extend(files.iter().map(|path| path.to_string()));
+
+  lock_writer
+    .write_all(contents.join("\n").as_bytes())
+    .await?;
+  lock_writer.flush().await?;
+  Ok(())
+}
+
+pub async fn remove_lock(lock_file: &str, root: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  let lock_file = root.join(lock_file);
+  fs.remove_file(&lock_file).await?;
+  Ok(())
+}
+
+pub async fn move_files(
   files: HashSet<Utf8PathBuf>,
   root: &Utf8Path,
   temp_root: &Utf8Path,
@@ -75,27 +150,29 @@ pub async fn move_temp_files(
   }
 
   if errors.is_empty() {
-    fs.remove_file(&lock_file).await?;
-
     Ok(())
   } else {
     Err(error!("move temp files failed:\n{}", errors.join("\n")))
   }
 }
 
-pub async fn recovery_move_lock(
+async fn recovery_lock(
+  lock: &str,
   root: &Utf8Path,
   temp_root: &Utf8Path,
   fs: Arc<dyn PackFS>,
-) -> Result<()> {
-  let lock_file = root.join("move.lock");
+) -> Result<Vec<String>> {
+  let lock_file = root.join(lock);
   if !fs.exists(&lock_file).await? {
-    return Ok(());
+    return Ok(vec![]);
   }
   let mut lock_reader = fs.read_file(&lock_file).await?;
   let lock_file_content = String::from_utf8(lock_reader.read_to_end().await?)
     .map_err(|e| error!("parse utf8 failed: {}", e))?;
-  let files = lock_file_content.split("\n").collect::<Vec<_>>();
+  let files = lock_file_content
+    .split("\n")
+    .map(|i| i.to_owned())
+    .collect::<Vec<_>>();
   fs.remove_file(&lock_file).await?;
 
   if files.is_empty() {
@@ -106,13 +183,45 @@ pub async fn recovery_move_lock(
       "incomplete storage due to `move.lock` from an unexpected directory"
     ));
   }
-  move_temp_files(
-    files[1..]
+  Ok(files[1..].to_vec())
+}
+
+pub async fn recovery_move_lock(
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let moving_files = recovery_lock("move.lock", root, temp_root, fs.clone()).await?;
+  if moving_files.is_empty() {
+    return Ok(());
+  }
+  move_files(
+    moving_files
       .iter()
       .map(Utf8PathBuf::from)
       .collect::<HashSet<_>>(),
     root,
     temp_root,
+    fs,
+  )
+  .await?;
+  Ok(())
+}
+
+pub async fn recovery_remove_lock(
+  root: &Utf8Path,
+  temp_root: &Utf8Path,
+  fs: Arc<dyn PackFS>,
+) -> Result<()> {
+  let removing_files = recovery_lock("remove.lock", root, temp_root, fs.clone()).await?;
+  if removing_files.is_empty() {
+    return Ok(());
+  }
+  remove_files(
+    removing_files
+      .iter()
+      .map(Utf8PathBuf::from)
+      .collect::<HashSet<_>>(),
     fs,
   )
   .await?;
