@@ -832,23 +832,21 @@ fn do_optimize_incoming_connection(
     let cache_clone = cache.clone();
     let target = export_info.move_target(
       &mut module_graph,
-      Rc::new(
-        move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-          let mut cache = cache_clone.borrow_mut();
-          let state = if let Some(state) = cache.get(&target.module) {
-            *state
-          } else {
-            let state = mg
-              .module_by_identifier(&target.module)
-              .expect("should have module")
-              .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
-            cache.insert(target.module, state);
-            state
-          };
+      Rc::new(move |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+        let mut cache = cache_clone.borrow_mut();
+        let state = if let Some(state) = cache.get(&target.module) {
+          *state
+        } else {
+          let state = mg
+            .module_by_identifier(&target.module)
+            .expect("should have module")
+            .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
+          cache.insert(target.module, state);
+          state
+        };
 
-          state == ConnectionState::Bool(false)
-        },
-      ),
+        state == ConnectionState::Bool(false)
+      }),
       Arc::new(
         move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
           if !mg.update_module(&dependency_id, &target.module) {
@@ -888,24 +886,22 @@ fn do_optimize_incoming_connection(
     let export_info = cur_exports_info.get_export_info(&mut module_graph, &ids[0]);
 
     let cache = cache.clone();
-    let target = export_info.get_target_mut(
-      &mut module_graph,
-      Rc::new(
-        move |target: &ResolvedExportInfoTarget, mg: &mut ModuleGraph| {
-          let mut cache = cache.borrow_mut();
-          let state = if let Some(state) = cache.get(&target.module) {
-            *state
-          } else {
-            let state = mg
-              .module_by_identifier(&target.module)
-              .expect("should have module graph")
-              .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
-            cache.insert(target.module, state);
-            state
-          };
-          state == ConnectionState::Bool(false)
-        },
-      ),
+    let target = export_info.get_target_with_filter(
+      &module_graph,
+      Rc::new(move |target: &ResolvedExportInfoTarget, mg: &ModuleGraph| {
+        let mut cache = cache.borrow_mut();
+        let state = if let Some(state) = cache.get(&target.module) {
+          *state
+        } else {
+          let state = mg
+            .module_by_identifier(&target.module)
+            .expect("should have module graph")
+            .get_side_effects_connection_state(mg, &mut IdentifierSet::default());
+          cache.insert(target.module, state);
+          state
+        };
+        state == ConnectionState::Bool(false)
+      }),
     );
     let Some(target) = target else {
       return;
