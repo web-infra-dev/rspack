@@ -9,6 +9,10 @@ pub struct CgmHashResults {
 }
 
 impl CgmHashResults {
+  pub fn is_empty(&self) -> bool {
+    self.module_to_hashes.is_empty()
+  }
+
   pub fn get(&self, module: &ModuleIdentifier, runtime: &RuntimeSpec) -> Option<&RspackHashDigest> {
     let hashes = self.module_to_hashes.get(module)?;
     hashes.get(runtime)
