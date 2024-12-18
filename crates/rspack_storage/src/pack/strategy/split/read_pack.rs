@@ -10,6 +10,7 @@ use crate::{
     data::{PackContents, PackKeys},
     strategy::PackReadStrategy,
   },
+  FSError, FSOperation,
 };
 
 #[async_trait]
@@ -20,12 +21,20 @@ impl PackReadStrategy for SplitPackStrategy {
     }
 
     let mut reader = self.fs.read_file(path).await?;
-    let key_lengths: Vec<usize> = reader
+    let key_lengths = reader
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
-      .collect();
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack key lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
     reader.read_line().await?;
 
@@ -46,15 +55,33 @@ impl PackReadStrategy for SplitPackStrategy {
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack key lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?
+      .iter()
       .sum::<usize>();
 
     let content_lengths: Vec<usize> = reader
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
-      .collect();
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack content lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
     reader.skip(total_key_length).await?;
 
