@@ -2426,6 +2426,13 @@ export type ImportFunctionName = string;
 // @public
 export type ImportMetaName = string;
 
+// @public (undocumented)
+interface ImportModuleOptions {
+    baseUri?: string;
+    layer?: string;
+    publicPath?: PublicPath;
+}
+
 // @public
 export type Incremental = {
     make?: boolean;
@@ -3356,12 +3363,9 @@ export interface LoaderContext<OptionsType = {}> {
     getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
+    importModule(request: string, options: ImportModuleOptions | undefined, callback: (err?: null | Error, exports?: any) => any): void;
     // (undocumented)
-    importModule(request: string, options: {
-        layer?: string;
-        publicPath?: PublicPath;
-        baseUri?: string;
-    }, callback: (err?: Error, res?: any) => void): void;
+    importModule(request: string, options?: ImportModuleOptions): Promise<any>;
     // (undocumented)
     loaderIndex: number;
     loaders: LoaderObject[];

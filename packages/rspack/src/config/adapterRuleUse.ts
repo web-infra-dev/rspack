@@ -95,6 +95,21 @@ interface LoaderExperiments {
 	emitDiagnostic(diagnostic: Diagnostic): void;
 }
 
+export interface ImportModuleOptions {
+	/**
+	 * Specify a layer in which this module is placed/compiled
+	 */
+	layer?: string;
+	/**
+	 * The public path used for the built modules
+	 */
+	publicPath?: PublicPath;
+	/**
+	 * Target base uri
+	 */
+	baseUri?: string;
+}
+
 export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
@@ -173,11 +188,27 @@ export interface LoaderContext<OptionsType = {}> {
 	getContextDependencies(): string[];
 	getMissingDependencies(): string[];
 	addBuildDependency(file: string): void;
+
+	/**
+	 * Compile and execute a module at the build time.
+	 * This is an alternative lightweight solution for the child compiler.
+	 * `importModule` will return a Promise if no callback is provided.
+	 *
+	 * @example
+	 * ```ts
+	 * const modulePath = path.resolve(__dirname, 'some-module.ts');
+	 * const moduleExports = await this.importModule(modulePath, {
+	 *   // optional options
+	 * });
+	 * ```
+	 */
 	importModule(
 		request: string,
-		options: { layer?: string; publicPath?: PublicPath; baseUri?: string },
-		callback: (err?: Error, res?: any) => void
+		options: ImportModuleOptions | undefined,
+		callback: (err?: null | Error, exports?: any) => any
 	): void;
+	importModule(request: string, options?: ImportModuleOptions): Promise<any>;
+
 	fs: any;
 	/**
 	 * This is an experimental API and maybe subject to change.
