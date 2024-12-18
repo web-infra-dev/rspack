@@ -202,12 +202,15 @@ export interface LoaderContext<OptionsType = {}> {
 	 * });
 	 * ```
 	 */
-	importModule(
+	importModule<T = any>(
 		request: string,
 		options: ImportModuleOptions | undefined,
-		callback: (err?: null | Error, exports?: any) => any
+		callback: (err?: null | Error, exports?: T) => any
 	): void;
-	importModule(request: string, options?: ImportModuleOptions): Promise<any>;
+	importModule<T = any>(
+		request: string,
+		options?: ImportModuleOptions
+	): Promise<T>;
 
 	fs: any;
 	/**

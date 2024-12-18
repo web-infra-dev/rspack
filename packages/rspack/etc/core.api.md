@@ -3363,9 +3363,9 @@ export interface LoaderContext<OptionsType = {}> {
     getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
     // (undocumented)
     hot?: boolean;
-    importModule(request: string, options: ImportModuleOptions | undefined, callback: (err?: null | Error, exports?: any) => any): void;
+    importModule<T = any>(request: string, options: ImportModuleOptions | undefined, callback: (err?: null | Error, exports?: T) => any): void;
     // (undocumented)
-    importModule(request: string, options?: ImportModuleOptions): Promise<any>;
+    importModule<T = any>(request: string, options?: ImportModuleOptions): Promise<T>;
     // (undocumented)
     loaderIndex: number;
     loaders: LoaderObject[];
