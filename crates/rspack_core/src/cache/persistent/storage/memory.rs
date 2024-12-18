@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use rspack_error::Result;
-use rspack_storage::Storage;
+use rspack_storage::{Result, Storage};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::oneshot::{channel, Receiver};
 

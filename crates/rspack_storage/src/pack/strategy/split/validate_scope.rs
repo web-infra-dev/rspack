@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use futures::{future::join_all, TryFutureExt};
 use itertools::Itertools;
-use rspack_error::{error, Result};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
-use crate::pack::{
-  data::PackScope,
-  strategy::{ScopeValidateStrategy, ValidateResult},
+use crate::{
+  error::{Error, ErrorType, Result, ValidateResult},
+  pack::{data::PackScope, strategy::ScopeValidateStrategy},
 };
 
 #[async_trait]
@@ -26,7 +25,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
   }
 
   async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
-    let (_, pack_list) = get_indexed_packs(scope, None)?;
+    let (_, pack_list) = get_indexed_packs(scope, None);
 
     let tasks = pack_list
       .iter()
@@ -45,7 +44,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
             Err(_) => false,
           }
         })
-        .map_err(|e| error!("{}", e))
+        .map_err(|e| Error::from_error(Some(ErrorType::Validate), Some(scope.name), e.into()))
       });
 
     let validate_results = join_all(tasks)
@@ -79,27 +78,28 @@ impl ScopeValidateStrategy for SplitPackStrategy {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_error::Result;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::pack::{
-    data::{PackOptions, PackScope, RootMeta, ScopeMeta},
-    fs::PackFS,
-    strategy::{
-      split::{
-        handle_file::prepare_scope,
-        util::{
-          flag_scope_wrote,
-          test_pack_utils::{
-            clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
-            mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+  use crate::{
+    error::{Error, ErrorType, Result, ValidateResult},
+    pack::{
+      data::{PackOptions, PackScope, RootMeta, ScopeMeta},
+      strategy::{
+        split::{
+          handle_file::prepare_scope,
+          util::{
+            flag_scope_wrote,
+            test_pack_utils::{
+              clean_strategy, create_strategies, flush_file_mtime, mock_root_meta_file,
+              mock_scope_meta_file, mock_updates, save_scope, UpdateVal,
+            },
           },
         },
+        ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
       },
-      ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
-      ValidateResult,
     },
+    FileSystem,
   };
 
   async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
@@ -107,7 +107,7 @@ mod tests {
       bucket_size: 10,
       pack_size: 100,
     });
-    let mut scope = PackScope::new(scope_path, same_options);
+    let mut scope = PackScope::new("scope_name", scope_path, same_options);
     strategy.ensure_meta(&mut scope).await?;
     let validated = strategy.validate_meta(&mut scope).await?;
     assert!(validated.is_valid());
@@ -123,25 +123,41 @@ mod tests {
       bucket_size: 1,
       pack_size: 100,
     });
-    let mut scope = PackScope::new(scope_path.clone(), bucket_changed_options.clone());
-    strategy.ensure_meta(&mut scope).await?;
-    let validated: ValidateResult = strategy.validate_meta(&mut scope).await?;
-    assert_eq!(
-      validated.to_string(),
-      "validation failed due to `options.bucketSize` changed"
+    let mut scope = PackScope::new(
+      "scope_name",
+      scope_path.clone(),
+      bucket_changed_options.clone(),
     );
+    strategy.ensure_meta(&mut scope).await?;
+    if let ValidateResult::Invalid(detail) = strategy.validate_meta(&mut scope).await? {
+      let error = Error::from_detail(Some(ErrorType::Validate), Some("test_scope"), detail);
+      assert_eq!(
+        error.to_string(),
+        "validate scope `test_scope` failed due to `options.bucketSize` changed"
+      );
+    } else {
+      panic!("should be invalid");
+    }
 
     let max_size_changed_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 99,
     });
-    let mut scope = PackScope::new(scope_path.clone(), max_size_changed_options.clone());
-    strategy.ensure_meta(&mut scope).await?;
-    let validated: ValidateResult = strategy.validate_meta(&mut scope).await?;
-    assert_eq!(
-      validated.to_string(),
-      "validation failed due to `options.packSize` changed"
+    let mut scope = PackScope::new(
+      "scope_name",
+      scope_path.clone(),
+      max_size_changed_options.clone(),
     );
+    strategy.ensure_meta(&mut scope).await?;
+    if let ValidateResult::Invalid(detail) = strategy.validate_meta(&mut scope).await? {
+      let error = Error::from_detail(Some(ErrorType::Validate), Some("test_scope"), detail);
+      assert_eq!(
+        error.to_string(),
+        "validate scope `test_scope` failed due to `options.packSize` changed"
+      );
+    } else {
+      panic!("should be invalid");
+    }
 
     Ok(())
   }
@@ -151,7 +167,7 @@ mod tests {
     strategy: &SplitPackStrategy,
     options: Arc<PackOptions>,
   ) -> Result<()> {
-    let mut scope = PackScope::new(scope_path, options);
+    let mut scope = PackScope::new("scope_name", scope_path, options);
     strategy.ensure_keys(&mut scope).await?;
     let validated = strategy.validate_packs(&mut scope).await?;
     assert!(validated.is_valid());
@@ -162,11 +178,11 @@ mod tests {
   async fn test_invalid_packs_changed(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn FileSystem>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
-    let mut scope = PackScope::new(scope_path, options);
+    let mut scope = PackScope::new("scope_name", scope_path, options);
     for file in files {
       if !file.to_string().contains("scope_meta") {
         flush_file_mtime(&file, fs.clone()).await?;
@@ -174,11 +190,14 @@ mod tests {
     }
 
     strategy.ensure_keys(&mut scope).await?;
-    let validated = strategy.validate_packs(&mut scope).await?;
-    assert!(validated
-      .to_string()
-      .starts_with("validation failed due to some packs are modified:"));
-    assert_eq!(validated.to_string().split("\n").count(), 7);
+    if let ValidateResult::Invalid(detail) = strategy.validate_packs(&mut scope).await? {
+      let error =
+        Error::from_detail(Some(ErrorType::Validate), Some("scope_name"), detail).to_string();
+      assert!(error.contains("validate scope `scope_name` failed due to some packs are modified"));
+      assert_eq!(error.split("\n").count(), 7);
+    } else {
+      panic!("should be invalid");
+    }
 
     Ok(())
   }
@@ -236,7 +255,7 @@ mod tests {
         bucket_size: 10,
         pack_size: 100,
       });
-      let mut mock_scope = PackScope::empty(scope_path.clone(), pack_options.clone());
+      let mut mock_scope = PackScope::empty("scope_name", scope_path.clone(), pack_options.clone());
       let updates = mock_updates(0, 100, 30, UpdateVal::Value("val".to_string()));
       strategy
         .update_scope(&mut mock_scope, updates)

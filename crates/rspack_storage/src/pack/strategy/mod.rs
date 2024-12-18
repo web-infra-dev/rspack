@@ -1,7 +1,6 @@
 mod split;
 
 use async_trait::async_trait;
-use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
@@ -9,7 +8,10 @@ pub use split::SplitPackStrategy;
 use super::data::{
   Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
 };
-use crate::{StorageItemKey, StorageItemValue};
+use crate::{
+  error::{Result, ValidateResult},
+  ItemKey, ItemValue,
+};
 
 pub struct UpdatePacksResult {
   pub new_packs: Vec<(PackFileMeta, Pack)>,
@@ -56,7 +58,7 @@ pub trait PackWriteStrategy {
     dir: Utf8PathBuf,
     options: &PackOptions,
     packs: HashMap<PackFileMeta, Pack>,
-    updates: HashMap<StorageItemKey, Option<StorageItemValue>>,
+    updates: HashMap<ItemKey, Option<ItemValue>>,
   ) -> UpdatePacksResult;
   async fn write_pack(&self, pack: &Pack) -> Result<()>;
 }
@@ -68,67 +70,6 @@ pub trait ScopeReadStrategy {
   async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()>;
   async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()>;
   async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()>;
-}
-
-#[derive(Debug)]
-pub struct InvalidDetail {
-  pub reason: String,
-  pub packs: Vec<String>,
-}
-
-#[derive(Debug)]
-pub enum ValidateResult {
-  NotExists,
-  Valid,
-  Invalid(InvalidDetail),
-}
-
-impl ValidateResult {
-  pub fn invalid(reason: &str) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs: vec![],
-    })
-  }
-  pub fn invalid_with_packs(reason: &str, packs: Vec<String>) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs,
-    })
-  }
-  pub fn is_valid(&self) -> bool {
-    matches!(self, ValidateResult::Valid)
-  }
-}
-
-impl std::fmt::Display for ValidateResult {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ValidateResult::NotExists => write!(f, "validation failed due to not exists"),
-      ValidateResult::Valid => write!(f, "validation passed"),
-      ValidateResult::Invalid(e) => {
-        let mut pack_info_lines = e
-          .packs
-          .iter()
-          .map(|p| format!("- {}", p))
-          .collect::<Vec<_>>();
-        if pack_info_lines.len() > 5 {
-          pack_info_lines.truncate(5);
-          pack_info_lines.push("...".to_string());
-        }
-        write!(
-          f,
-          "validation failed due to {}{}",
-          e.reason,
-          if pack_info_lines.is_empty() {
-            "".to_string()
-          } else {
-            format!(":\n{}", pack_info_lines.join("\n"))
-          }
-        )
-      }
-    }
-  }
 }
 
 #[async_trait]
@@ -150,7 +91,7 @@ impl WriteScopeResult {
   }
 }
 
-pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
+pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;

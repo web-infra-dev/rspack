@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use futures::future::join_all;
-use futures::TryFutureExt;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_error::{error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::task::JoinError;
 
 use super::{
   handle_file::{
@@ -13,9 +12,13 @@ use super::{
   util::{choose_bucket, flag_scope_wrote},
   SplitPackStrategy,
 };
-use crate::pack::{
-  data::{Pack, PackScope},
-  strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+use crate::{
+  error::Result,
+  fs::BatchFSError,
+  pack::{
+    data::{Pack, PackScope},
+    strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
+  },
 };
 
 #[async_trait]
@@ -70,7 +73,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
 
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
     if !scope.loaded() {
-      return Err(error!("scope not loaded, run `load` first"));
+      panic!("scope not loaded, run `load` first");
     }
     let mut scope_meta = scope.meta.take_value().expect("should have scope meta");
     let mut scope_packs = scope.packs.take_value().expect("should have scope packs");
@@ -241,7 +244,7 @@ async fn save_pack(pack: &Pack, strategy: &SplitPackStrategy) -> Result<String> 
   let keys = pack.keys.expect_value();
   let contents = pack.contents.expect_value();
   if keys.len() != contents.len() {
-    return Err(error!("pack keys and contents length not match"));
+    panic!("pack keys and contents length not match");
   }
   strategy.write_pack(pack).await?;
   let hash = strategy
@@ -260,19 +263,17 @@ async fn batch_write_packs(
 ) -> Result<Vec<(String, Pack)>> {
   let tasks = packs.into_iter().map(|pack| {
     let strategy = strategy.to_owned();
-    tokio::spawn(async move { (save_pack(&pack, &strategy).await, pack) })
-      .map_err(|e| error!("{}", e))
+    tokio::spawn(async move { save_pack(&pack, &strategy).await.map(|hash| (hash, pack)) })
   });
 
-  let task_result = join_all(tasks)
-    .await
-    .into_iter()
-    .collect::<Result<Vec<(Result<String>, Pack)>>>()?;
+  let res = BatchFSError::try_from_joined_result(
+    "write packs failed",
+    join_all(tasks)
+      .await
+      .into_iter()
+      .collect::<std::result::Result<Vec<_>, JoinError>>(),
+  )?;
 
-  let mut res = vec![];
-  for (hash, pack) in task_result {
-    res.push((hash?, pack));
-  }
   Ok(res)
 }
 
@@ -280,18 +281,19 @@ async fn batch_write_packs(
 mod tests {
   use std::{collections::HashMap, sync::Arc};
 
-  use rspack_error::Result;
-
-  use crate::pack::{
-    data::{PackOptions, PackScope},
-    strategy::{
-      split::util::test_pack_utils::{
-        clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
-        get_bucket_pack_sizes, mock_updates, save_scope, UpdateVal,
+  use crate::{
+    error::Result,
+    pack::{
+      data::{PackOptions, PackScope},
+      strategy::{
+        split::util::test_pack_utils::{
+          clean_strategy, count_bucket_packs, count_scope_packs, create_strategies,
+          get_bucket_pack_sizes, mock_updates, save_scope, UpdateVal,
+        },
+        ScopeReadStrategy, ScopeWriteStrategy,
       },
-      ScopeReadStrategy, ScopeWriteStrategy,
+      SplitPackStrategy,
     },
-    SplitPackStrategy,
   };
 
   async fn test_short_value(
@@ -489,7 +491,11 @@ mod tests {
         bucket_size: 1,
         pack_size: 32,
       });
-      let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
+      let mut scope = PackScope::empty(
+        "scope_name",
+        strategy.get_path("scope_name"),
+        options.clone(),
+      );
       clean_strategy(&strategy).await;
 
       let _ = test_single_bucket(&mut scope, &strategy)
@@ -508,7 +514,11 @@ mod tests {
         bucket_size: 10,
         pack_size: 32,
       });
-      let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
+      let mut scope = PackScope::empty(
+        "scope_name",
+        strategy.get_path("scope_name"),
+        options.clone(),
+      );
       clean_strategy(&strategy).await;
 
       let _ = test_multi_bucket(&mut scope, &strategy).await.map_err(|e| {
@@ -525,7 +535,11 @@ mod tests {
         bucket_size: 1,
         pack_size: 2000,
       });
-      let mut scope = PackScope::empty(strategy.get_path("scope_name"), options.clone());
+      let mut scope = PackScope::empty(
+        "scope_name",
+        strategy.get_path("scope_name"),
+        options.clone(),
+      );
       clean_strategy(&strategy).await;
 
       let _ = test_big_bucket(&mut scope, &strategy).await.map_err(|e| {

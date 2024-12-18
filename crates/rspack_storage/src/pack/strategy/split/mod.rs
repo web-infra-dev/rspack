@@ -9,29 +9,33 @@ mod write_scope;
 use std::{hash::Hasher, sync::Arc};
 
 use handle_file::{
-  clean_root, clean_scopes, clean_versions, recovery_move_lock, recovery_remove_lock,
+  recovery_move_lock, recovery_remove_lock, remove_expired_versions, remove_unused_scope_files,
+  remove_unused_scopes,
 };
 use itertools::Itertools;
-use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use util::get_name;
 
-use super::{RootStrategy, ScopeStrategy, ValidateResult};
-use crate::pack::{
-  data::{current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions},
-  fs::PackFS,
+use super::{RootStrategy, ScopeStrategy};
+use crate::{
+  error::{Result, ValidateResult},
+  fs::{FSError, FSOperation},
+  pack::data::{
+    current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
+  },
+  FileSystem,
 };
 
 #[derive(Debug, Clone)]
 pub struct SplitPackStrategy {
-  pub fs: Arc<dyn PackFS>,
+  pub fs: Arc<dyn FileSystem>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
 }
 
 impl SplitPackStrategy {
-  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn PackFS>) -> Self {
+  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn FileSystem>) -> Self {
     Self {
       fs,
       root: Arc::new(root),
@@ -71,11 +75,13 @@ impl RootStrategy for SplitPackStrategy {
     }
 
     let mut reader = self.fs.read_file(&meta_path).await?;
-    let expire_time = reader
-      .read_line()
-      .await?
-      .parse::<u64>()
-      .map_err(|e| error!("parse option meta failed: {}", e))?;
+    let expire_time = reader.read_line().await?.parse::<u64>().map_err(|e| {
+      FSError::from_message(
+        &meta_path,
+        FSOperation::Read,
+        format!("parse root meta failed: {}", e),
+      )
+    })?;
     let scopes = reader
       .read_line()
       .await?
@@ -91,7 +97,6 @@ impl RootStrategy for SplitPackStrategy {
   }
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
     let meta_path = RootMeta::get_path(&self.root);
-
     let mut writer = self.fs.write_file(&meta_path).await?;
 
     writer
@@ -103,6 +108,7 @@ impl RootStrategy for SplitPackStrategy {
       .await?;
 
     writer.flush().await?;
+
     Ok(())
   }
   async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
@@ -111,7 +117,7 @@ impl RootStrategy for SplitPackStrategy {
     } else {
       let now = current_time();
       if now > root_meta.expire_time {
-        Ok(ValidateResult::invalid("cache expired"))
+        Ok(ValidateResult::invalid("expiration"))
       } else {
         Ok(ValidateResult::Valid)
       }
@@ -129,9 +135,9 @@ impl RootStrategy for SplitPackStrategy {
     }
 
     let _ = tokio::try_join!(
-      clean_scopes(scopes, self.fs.clone()),
-      clean_root(&self.root, root_meta, self.fs.clone()),
-      clean_versions(&self.root, root_options, self.fs.clone())
+      remove_unused_scope_files(scopes, self.fs.clone()),
+      remove_unused_scopes(&self.root, root_meta, self.fs.clone()),
+      remove_expired_versions(&self.root, root_options, self.fs.clone())
     );
 
     Ok(())

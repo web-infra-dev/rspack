@@ -2,18 +2,18 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use itertools::Itertools;
-use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
+  error::Result,
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions},
     strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
     ScopeUpdate,
   },
-  StorageItemKey, StorageItemValue,
+  ItemKey, ItemValue,
 };
 
 #[async_trait]
@@ -137,7 +137,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
     if keys.len() != contents.len() {
-      return Err(error!("pack keys and contents length not match"));
+      panic!("pack keys and contents length not match");
     }
 
     let mut writer = self.fs.write_file(&path).await?;
@@ -183,7 +183,7 @@ impl PackWriteStrategy for SplitPackStrategy {
 fn create(
   dir: &Utf8Path,
   options: &PackOptions,
-  items: HashMap<Arc<StorageItemKey>, Arc<StorageItemValue>>,
+  items: HashMap<Arc<ItemKey>, Arc<ItemValue>>,
 ) -> Vec<(PackFileMeta, Pack)> {
   let mut items = items.into_iter().collect_vec();
   items.sort_unstable_by(|a, b| a.1.len().cmp(&b.1.len()));
@@ -261,17 +261,19 @@ mod tests {
   use std::sync::Arc;
 
   use itertools::Itertools;
-  use rspack_error::Result;
   use rustc_hash::FxHashMap as HashMap;
 
-  use crate::pack::{
-    data::{Pack, PackFileMeta, PackOptions},
-    strategy::{
-      split::{
-        handle_file::redirect_to_path,
-        util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+  use crate::{
+    error::Result,
+    pack::{
+      data::{Pack, PackFileMeta, PackOptions},
+      strategy::{
+        split::{
+          handle_file::redirect_to_path,
+          util::test_pack_utils::{clean_strategy, create_strategies, mock_updates, UpdateVal},
+        },
+        PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
       },
-      PackWriteStrategy, SplitPackStrategy, UpdatePacksResult,
     },
   };
 
