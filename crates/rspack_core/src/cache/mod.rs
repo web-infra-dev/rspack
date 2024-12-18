@@ -4,6 +4,7 @@ pub mod persistent;
 
 use std::{fmt::Debug, sync::Arc};
 
+use rspack_error::Result;
 use rspack_fs::{FileSystem, IntermediateFileSystem};
 
 pub use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
@@ -23,11 +24,19 @@ use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOpt
 /// We can consider change to Hook when we need to open the API to js side.
 #[async_trait::async_trait]
 pub trait Cache: Debug + Send + Sync {
-  async fn before_compile(&self, _compilation: &mut Compilation) {}
-  fn after_compile(&self, _compilation: &Compilation) {}
+  async fn before_compile(&self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+  async fn after_compile(&self, _compilation: &Compilation) -> Result<()> {
+    Ok(())
+  }
 
-  async fn before_make(&self, _make_artifact: &mut MakeArtifact) {}
-  fn after_make(&self, _make_artifact: &MakeArtifact) {}
+  async fn before_make(&self, _make_artifact: &mut MakeArtifact) -> Result<()> {
+    Ok(())
+  }
+  async fn after_make(&self, _make_artifact: &MakeArtifact) -> Result<()> {
+    Ok(())
+  }
 }
 
 pub fn new_cache(
@@ -39,20 +48,12 @@ pub fn new_cache(
   match &compiler_option.experiments.cache {
     ExperimentCacheOptions::Disabled => Arc::new(DisableCache),
     ExperimentCacheOptions::Memory => Arc::new(MemoryCache),
-    ExperimentCacheOptions::Persistent(option) => {
-      match PersistentCache::new(
-        compiler_path,
-        option,
-        compiler_option.clone(),
-        input_filesystem,
-        intermediate_filesystem,
-      ) {
-        Ok(cache) => Arc::new(cache),
-        Err(e) => {
-          tracing::warn!("create persistent cache failed {e:?}");
-          Arc::new(MemoryCache)
-        }
-      }
-    }
+    ExperimentCacheOptions::Persistent(option) => Arc::new(PersistentCache::new(
+      compiler_path,
+      option,
+      compiler_option.clone(),
+      input_filesystem,
+      intermediate_filesystem,
+    )),
   }
 }

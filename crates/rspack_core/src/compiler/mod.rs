@@ -185,12 +185,16 @@ impl Compiler {
         self.output_filesystem.clone(),
       ),
     );
-    self.cache.before_compile(&mut self.compilation).await;
+    if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
 
     self.compile().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
-    self.cache.after_compile(&self.compilation);
+    if let Err(err) = self.cache.after_compile(&self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
     Ok(())
   }
 
@@ -218,10 +222,13 @@ impl Compiler {
     let logger = self.compilation.get_logger("rspack.Compiler");
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
-    self
+    if let Err(err) = self
       .cache
       .before_make(&mut self.compilation.make_artifact)
-      .await;
+      .await
+    {
+      self.compilation.push_diagnostic(err.into());
+    }
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks
@@ -247,7 +254,9 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    self.cache.after_make(&self.compilation.make_artifact);
+    if let Err(err) = self.cache.after_make(&self.compilation.make_artifact).await {
+      self.compilation.push_diagnostic(err.into());
+    }
     logger.time_end(start);
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;

@@ -181,14 +181,18 @@ impl Compiler {
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
-      self.cache.before_compile(&mut self.compilation).await;
+      if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
+        self.compilation.push_diagnostic(err.into());
+      }
       self.compile().await?;
 
       self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
-    self.cache.after_compile(&self.compilation);
+    if let Err(err) = self.cache.after_compile(&self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
 
     Ok(())
   }
