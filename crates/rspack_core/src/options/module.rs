@@ -383,6 +383,8 @@ pub struct AssetResourceGeneratorOptions {
   pub filename: Option<Filename>,
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
+  pub experimental_lib_re_export: Option<bool>,
+  pub experimental_lib_preserve_import: Option<bool>,
 }
 
 #[cacheable]
@@ -393,6 +395,8 @@ pub struct AssetGeneratorOptions {
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub experimental_lib_re_export: Option<bool>,
+  pub experimental_lib_preserve_import: Option<bool>,
 }
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {

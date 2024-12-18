@@ -555,6 +555,9 @@ impl ModuleConcatenationPlugin {
     let box_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have module");
+    let root_module_source_types = box_module.source_types();
+    let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
+
     let root_module_ctxt = RootModuleContext {
       id: root_module_id,
       readable_identifier: box_module
@@ -677,8 +680,26 @@ impl ModuleConcatenationPlugin {
     //   .module_identifier_to_module
     //   .remove(&root_module_id);
     // compilation.chunk_graph.clear
+    if is_root_module_asset_module {
+      chunk_graph.replace_module(&root_module_id, &new_module.id());
+      chunk_graph.add_module(root_module_id);
+      for chunk_ukey in chunk_graph.get_module_chunks(new_module.id()).clone() {
+        let module = module_graph
+          .module_by_identifier(&root_module_id)
+          .expect("should exist module");
 
-    chunk_graph.replace_module(&root_module_id, &new_module.id());
+        let source_types = chunk_graph.get_chunk_module_source_types(&chunk_ukey, module);
+        let new_source_types = source_types
+          .iter()
+          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+          .copied()
+          .collect();
+        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, root_module_id, new_source_types);
+        chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
+      }
+    } else {
+      chunk_graph.replace_module(&root_module_id, &new_module.id());
+    }
 
     module_graph.move_module_connections(&root_module_id, &new_module.id(), |c, dep| {
       let other_module = if *c.module_identifier() == root_module_id {

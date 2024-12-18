@@ -1129,6 +1129,8 @@ export interface RawAssetGeneratorOptions {
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
+  experimentalLibReExport?: boolean
+  experimentalLibPreserveImport?: boolean
 }
 
 export interface RawAssetInlineGeneratorOptions {
@@ -1153,6 +1155,8 @@ export interface RawAssetResourceGeneratorOptions {
   filename?: JsFilename
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
+  experimentalLibPreserveImport?: boolean
+  experimentalLibReExport?: boolean
 }
 
 export interface RawBannerPluginOptions {

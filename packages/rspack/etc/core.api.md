@@ -203,6 +203,8 @@ export type AssetResourceGeneratorOptions = {
     filename?: Filename;
     outputPath?: AssetModuleOutputPath;
     publicPath?: PublicPath;
+    experimentalLibReExport?: boolean;
+    experimentalLibPreserveImport?: boolean;
 };
 
 // @public (undocumented)

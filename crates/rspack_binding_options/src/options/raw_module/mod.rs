@@ -504,6 +504,9 @@ pub struct RawAssetGeneratorOptions {
     ts_type = "RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)"
   )]
   pub data_url: Option<RawAssetGeneratorDataUrl>,
+
+  pub experimental_lib_re_export: Option<bool>,
+  pub experimental_lib_preserve_import: Option<bool>,
 }
 
 impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
@@ -516,6 +519,8 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
       data_url: value
         .data_url
         .map(|i| RawAssetGeneratorDataUrlWrapper(i).into()),
+      experimental_lib_re_export: value.experimental_lib_re_export,
+      experimental_lib_preserve_import: value.experimental_lib_preserve_import,
     }
   }
 }
@@ -548,6 +553,9 @@ pub struct RawAssetResourceGeneratorOptions {
   pub output_path: Option<JsFilename>,
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: Option<JsFilename>,
+
+  pub experimental_lib_preserve_import: Option<bool>,
+  pub experimental_lib_re_export: Option<bool>,
 }
 
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -557,6 +565,8 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
       filename: value.filename.map(|i| i.into()),
       output_path: value.output_path.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
+      experimental_lib_preserve_import: value.experimental_lib_preserve_import,
+      experimental_lib_re_export: value.experimental_lib_re_export,
     }
   }
 }

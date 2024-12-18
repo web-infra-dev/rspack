@@ -816,7 +816,9 @@ function getRawAssetResourceGeneratorOptions(
 		emit: options.emit,
 		filename: options.filename,
 		outputPath: options.outputPath,
-		publicPath: options.publicPath
+		publicPath: options.publicPath,
+		experimentalLibReExport: options.experimentalLibReExport,
+		experimentalLibPreserveImport: options.experimentalLibPreserveImport
 	};
 }
 
