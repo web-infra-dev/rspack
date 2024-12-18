@@ -31,7 +31,7 @@ pub trait Cache: Debug + Send + Sync {
 }
 
 pub fn new_cache(
-  compiler_path: &String,
+  compiler_path: &str,
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn FileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,

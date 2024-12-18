@@ -8,7 +8,7 @@ use rspack_paths::AssertUtf8;
 pub fn get_version(
   fs: Arc<dyn FileSystem>,
   dependencies: &Vec<PathBuf>,
-  salt: Vec<&String>,
+  salt: Vec<&str>,
 ) -> Result<String> {
   let mut hasher = DefaultHasher::new();
   for dep in dependencies {
