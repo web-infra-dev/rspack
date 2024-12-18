@@ -4,12 +4,12 @@
     "license": "MIT",
     "type": "module",
     "scripts": {
-        "bench": "node index.js"
+        "bench": "vitest bench --run"
     },
     "devDependencies": {
-        "@codspeed/tinybench-plugin": "^4.0.0",
-        "@rspack/cli": "workspace:*",
+        "@codspeed/vitest-plugin": "^4.0.0",
         "@rspack/core": "workspace:*",
-        "tinybench": "^3.0.7"
+        "vitest": "^2.1.8",
+        "zx": "7.2.3"
     }
 }

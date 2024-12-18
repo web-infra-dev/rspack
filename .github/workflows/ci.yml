@@ -375,19 +375,11 @@ jobs:
       - name: Build Benchmark
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
-      - name: Run Rust benchmark
+      - name: Run benchmark
         uses: CodSpeedHQ/action@v3
         timeout-minutes: 30
         with:
-          run: cargo codspeed run
-          token: ${{ secrets.CODSPEED_TOKEN }}
-
-      - name: Run JavaScript benchmark
-        uses: CodSpeedHQ/action@v3
-        timeout-minutes: 30
-        with:
-          working-directory: "packages/bench"
-          run: pnpm run bench
+          run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
 
   run_benchmark:
