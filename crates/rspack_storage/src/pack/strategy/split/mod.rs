@@ -19,7 +19,7 @@ use util::get_name;
 
 use super::{RootStrategy, ScopeStrategy};
 use crate::{
-  error::{StorageResult, ValidateResult},
+  error::{Result, ValidateResult},
   fs::{StorageFSError, StorageFSOperation},
   pack::data::{
     current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
@@ -48,7 +48,7 @@ impl SplitPackStrategy {
     path: &Utf8Path,
     keys: &PackKeys,
     contents: &PackContents,
-  ) -> StorageResult<String> {
+  ) -> Result<String> {
     let mut hasher = FxHasher::default();
     let file_name = get_name(keys, contents);
     hasher.write(file_name.as_bytes());
@@ -63,12 +63,12 @@ impl SplitPackStrategy {
 
 #[async_trait::async_trait]
 impl RootStrategy for SplitPackStrategy {
-  async fn before_load(&self) -> StorageResult<()> {
+  async fn before_load(&self) -> Result<()> {
     recovery_remove_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     recovery_move_lock(&self.root, &self.temp_root, self.fs.clone()).await?;
     Ok(())
   }
-  async fn read_root_meta(&self) -> StorageResult<Option<RootMeta>> {
+  async fn read_root_meta(&self) -> Result<Option<RootMeta>> {
     let meta_path = RootMeta::get_path(&self.root);
     if !self.fs.exists(&meta_path).await? {
       return Ok(None);
@@ -95,7 +95,7 @@ impl RootStrategy for SplitPackStrategy {
       from: RootMetaFrom::File,
     }))
   }
-  async fn write_root_meta(&self, root_meta: &RootMeta) -> StorageResult<()> {
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()> {
     let meta_path = RootMeta::get_path(&self.root);
     let mut writer = self.fs.write_file(&meta_path).await?;
 
@@ -111,7 +111,7 @@ impl RootStrategy for SplitPackStrategy {
 
     Ok(())
   }
-  async fn validate_root(&self, root_meta: &RootMeta) -> StorageResult<ValidateResult> {
+  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult> {
     if matches!(root_meta.from, RootMetaFrom::New) {
       Ok(ValidateResult::Valid)
     } else {
@@ -129,7 +129,7 @@ impl RootStrategy for SplitPackStrategy {
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
     root_options: &RootOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     if !root_options.clean {
       return Ok(());
     }

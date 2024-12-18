@@ -4,13 +4,13 @@ use itertools::Itertools;
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::{
-  error::{StorageError, StorageErrorType, StorageResult, ValidateResult},
+  error::{Result, StorageError, StorageErrorType, ValidateResult},
   pack::{data::PackScope, strategy::ScopeValidateStrategy},
 };
 
 #[async_trait]
 impl ScopeValidateStrategy for SplitPackStrategy {
-  async fn validate_meta(&self, scope: &mut PackScope) -> StorageResult<ValidateResult> {
+  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let meta = scope.meta.expect_value();
 
     if meta.bucket_size != scope.options.bucket_size {
@@ -24,7 +24,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
     return Ok(ValidateResult::Valid);
   }
 
-  async fn validate_packs(&self, scope: &mut PackScope) -> StorageResult<ValidateResult> {
+  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult> {
     let (_, pack_list) = get_indexed_packs(scope, None);
 
     let tasks = pack_list
@@ -52,7 +52,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
     let validate_results = join_all(tasks)
       .await
       .into_iter()
-      .collect::<StorageResult<Vec<_>>>()?;
+      .collect::<Result<Vec<_>>>()?;
 
     let mut invalid_packs = validate_results
       .iter()
@@ -84,7 +84,7 @@ mod tests {
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::{
-    error::{StorageError, StorageErrorType, StorageResult, ValidateResult},
+    error::{Result, StorageError, StorageErrorType, ValidateResult},
     pack::{
       data::{PackOptions, PackScope, RootMeta, ScopeMeta},
       strategy::{
@@ -104,10 +104,7 @@ mod tests {
     StorageFS,
   };
 
-  async fn test_valid_meta(
-    scope_path: Utf8PathBuf,
-    strategy: &SplitPackStrategy,
-  ) -> StorageResult<()> {
+  async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
     let same_options = Arc::new(PackOptions {
       bucket_size: 10,
       pack_size: 100,
@@ -123,7 +120,7 @@ mod tests {
   async fn test_invalid_option_changed(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let bucket_changed_options = Arc::new(PackOptions {
       bucket_size: 1,
       pack_size: 100,
@@ -173,7 +170,7 @@ mod tests {
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
     options: Arc<PackOptions>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let mut scope = PackScope::new("scope_name", scope_path, options);
     strategy.ensure_keys(&mut scope).await?;
     let validated = strategy.validate_packs(&mut scope).await?;
@@ -188,7 +185,7 @@ mod tests {
     fs: Arc<dyn StorageFS>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let mut scope = PackScope::new("scope_name", scope_path, options);
     for file in files {
       if !file.to_string().contains("scope_meta") {

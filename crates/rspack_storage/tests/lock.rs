@@ -8,8 +8,8 @@ mod test_storage_lock {
   use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageFSError,
-    StorageFSOperation, StorageFSResult, StorageReader, StorageResult, StorageWriter,
+    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS, StorageFSError,
+    StorageFSOperation, StorageFSResult, StorageReader, StorageWriter,
   };
   use rustc_hash::FxHashSet as HashSet;
 
@@ -88,7 +88,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -124,7 +124,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -144,7 +144,7 @@ mod test_storage_lock {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),

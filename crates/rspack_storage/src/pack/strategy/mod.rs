@@ -9,7 +9,7 @@ use super::data::{
   Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
 };
 use crate::{
-  error::{StorageResult, ValidateResult},
+  error::{Result, ValidateResult},
   StorageItemKey, StorageItemValue,
 };
 
@@ -33,22 +33,22 @@ pub trait ScopeStrategy:
 
 #[async_trait]
 pub trait RootStrategy {
-  async fn before_load(&self) -> StorageResult<()>;
-  async fn read_root_meta(&self) -> StorageResult<Option<RootMeta>>;
-  async fn write_root_meta(&self, root_meta: &RootMeta) -> StorageResult<()>;
-  async fn validate_root(&self, root_meta: &RootMeta) -> StorageResult<ValidateResult>;
+  async fn before_load(&self) -> Result<()>;
+  async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
+  async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
+  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult>;
   async fn clean_unused(
     &self,
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
     root_options: &RootOptions,
-  ) -> StorageResult<()>;
+  ) -> Result<()>;
 }
 
 #[async_trait]
 pub trait PackReadStrategy {
-  async fn read_pack_keys(&self, path: &Utf8Path) -> StorageResult<Option<PackKeys>>;
-  async fn read_pack_contents(&self, path: &Utf8Path) -> StorageResult<Option<PackContents>>;
+  async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>>;
+  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>>;
 }
 
 #[async_trait]
@@ -60,22 +60,22 @@ pub trait PackWriteStrategy {
     packs: HashMap<PackFileMeta, Pack>,
     updates: HashMap<StorageItemKey, Option<StorageItemValue>>,
   ) -> UpdatePacksResult;
-  async fn write_pack(&self, pack: &Pack) -> StorageResult<()>;
+  async fn write_pack(&self, pack: &Pack) -> Result<()>;
 }
 
 #[async_trait]
 pub trait ScopeReadStrategy {
   fn get_path(&self, sub: &str) -> Utf8PathBuf;
-  async fn ensure_meta(&self, scope: &mut PackScope) -> StorageResult<()>;
-  async fn ensure_packs(&self, scope: &mut PackScope) -> StorageResult<()>;
-  async fn ensure_keys(&self, scope: &mut PackScope) -> StorageResult<()>;
-  async fn ensure_contents(&self, scope: &mut PackScope) -> StorageResult<()>;
+  async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()>;
+  async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()>;
+  async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()>;
+  async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()>;
 }
 
 #[async_trait]
 pub trait ScopeValidateStrategy {
-  async fn validate_meta(&self, scope: &mut PackScope) -> StorageResult<ValidateResult>;
-  async fn validate_packs(&self, scope: &mut PackScope) -> StorageResult<ValidateResult>;
+  async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult>;
+  async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult>;
 }
 
 #[derive(Debug, Default, Clone)]
@@ -94,10 +94,10 @@ impl WriteScopeResult {
 pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> StorageResult<()>;
-  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> StorageResult<()>;
-  async fn write_packs(&self, scope: &mut PackScope) -> StorageResult<WriteScopeResult>;
-  async fn write_meta(&self, scope: &mut PackScope) -> StorageResult<WriteScopeResult>;
-  async fn merge_changed(&self, changed: WriteScopeResult) -> StorageResult<()>;
-  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> StorageResult<()>;
+  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+  async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
+  async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
+  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
 }

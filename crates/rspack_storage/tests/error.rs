@@ -5,7 +5,7 @@ mod test_storage_error {
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageResult,
+    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS,
   };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
@@ -42,7 +42,7 @@ mod test_storage_error {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let data = storage.load("test_scope").await?;
     assert!(data.is_empty());
@@ -65,7 +65,7 @@ mod test_storage_error {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let meta_file = root.join("test_scope/scope_meta");
     let meta_content = fs.read_file(&meta_file).await?.read_to_end().await?;
@@ -94,7 +94,7 @@ mod test_storage_error {
     scope_name: &str,
     meta_path: &Utf8Path,
     fs: &dyn StorageFS,
-  ) -> StorageResult<Utf8PathBuf> {
+  ) -> Result<Utf8PathBuf> {
     let mut reader = fs.read_file(meta_path).await?;
     reader.read_line().await?;
     let line = reader.read_line().await?;
@@ -115,7 +115,7 @@ mod test_storage_error {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let meta_file = root.join("test_scope/scope_meta");
     let first_pack_file = root.join(&get_first_pack("test_scope", &meta_file, fs.as_ref()).await?);
@@ -142,7 +142,7 @@ mod test_storage_error {
     _root: &Utf8PathBuf,
     _fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
 
     // test

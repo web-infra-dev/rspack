@@ -80,7 +80,7 @@ pub mod test_pack_utils {
 
   use super::flag_scope_wrote;
   use crate::{
-    error::StorageResult,
+    error::Result,
     pack::{
       data::{current_time, PackOptions, PackScope},
       strategy::{
@@ -91,7 +91,7 @@ pub mod test_pack_utils {
     StorageBridgeFS, StorageFS,
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> StorageResult<()> {
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn StorageFS) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -107,7 +107,7 @@ pub mod test_pack_utils {
     fs: &dyn StorageFS,
     options: &PackOptions,
     pack_count: usize,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -135,7 +135,7 @@ pub mod test_pack_utils {
     unique_id: &str,
     item_count: usize,
     fs: &dyn StorageFS,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -224,7 +224,7 @@ pub mod test_pack_utils {
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn StorageFS>) -> StorageResult<()> {
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     fs.write_file(path).await?.write_all(&content).await?;
 
@@ -234,7 +234,7 @@ pub mod test_pack_utils {
   pub async fn save_scope(
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
-  ) -> StorageResult<WriteScopeResult> {
+  ) -> Result<WriteScopeResult> {
     prepare_scope(
       &scope.path,
       &strategy.root,

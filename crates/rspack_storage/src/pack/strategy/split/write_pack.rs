@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
-  error::StorageResult,
+  error::Result,
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackOptions},
     strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
@@ -132,7 +132,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     }
   }
 
-  async fn write_pack(&self, pack: &Pack) -> StorageResult<()> {
+  async fn write_pack(&self, pack: &Pack) -> Result<()> {
     let path = redirect_to_path(&pack.path, &self.root, &self.temp_root)?;
     let keys = pack.keys.expect_value();
     let contents = pack.contents.expect_value();
@@ -264,7 +264,7 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
-    error::StorageResult,
+    error::Result,
     pack::{
       data::{Pack, PackFileMeta, PackOptions},
       strategy::{
@@ -277,7 +277,7 @@ mod tests {
     },
   };
 
-  async fn test_write_pack(strategy: &SplitPackStrategy) -> StorageResult<()> {
+  async fn test_write_pack(strategy: &SplitPackStrategy) -> Result<()> {
     let dir = strategy.root.join("write");
     let mut pack = Pack::new(dir);
     pack.keys.set_value(vec![
@@ -326,7 +326,7 @@ mod tests {
     sizes
   }
 
-  async fn test_update_packs(strategy: &SplitPackStrategy) -> StorageResult<()> {
+  async fn test_update_packs(strategy: &SplitPackStrategy) -> Result<()> {
     let dir = strategy.root.join("update");
     let options = PackOptions {
       bucket_size: 1,

@@ -174,4 +174,4 @@ impl miette::Diagnostic for StorageError {
   }
 }
 
-pub type StorageResult<T> = std::result::Result<T, StorageError>;
+pub type Result<T> = std::result::Result<T, StorageError>;

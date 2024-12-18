@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use rspack_storage::{Storage, StorageResult};
+use rspack_storage::{Result, Storage};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::oneshot::{channel, Receiver};
 
@@ -16,7 +16,7 @@ pub struct MemoryStorage {
 
 #[async_trait::async_trait]
 impl Storage for MemoryStorage {
-  async fn load(&self, scope: &'static str) -> StorageResult<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>> {
+  async fn load(&self, scope: &'static str) -> Result<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>> {
     if let Some(value) = self.inner.lock().expect("should get lock").get(scope) {
       Ok(
         value
@@ -37,8 +37,8 @@ impl Storage for MemoryStorage {
     let mut map = self.inner.lock().expect("should get lock");
     map.get_mut(scope).map(|map| map.remove(key));
   }
-  fn trigger_save(&self) -> StorageResult<Receiver<StorageResult<()>>> {
-    let (rs, rx) = channel::<StorageResult<()>>();
+  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+    let (rs, rx) = channel::<Result<()>>();
     let _ = rs.send(Ok(()));
     Ok(rx)
   }

@@ -5,7 +5,7 @@ mod test_storage_multi {
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageResult,
+    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS,
   };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
@@ -42,7 +42,7 @@ mod test_storage_multi {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let scope_data_1 = storage.load("scope_1").await?;
     let scope_data_2 = storage.load("scope_2").await?;
@@ -71,7 +71,7 @@ mod test_storage_multi {
     root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let scope_data_1 = storage.load("scope_1").await?;
     let scope_data_2 = storage.load("scope_2").await?;
@@ -107,7 +107,7 @@ mod test_storage_multi {
     _root: &Utf8PathBuf,
     _fs: Arc<dyn StorageFS>,
     options: PackStorageOptions,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(options);
     let scope_data_1 = storage
       .load("scope_1")

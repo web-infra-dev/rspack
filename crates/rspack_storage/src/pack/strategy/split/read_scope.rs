@@ -7,7 +7,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::{
-  error::{StorageError, StorageErrorType, StorageResult},
+  error::{Result, StorageError, StorageErrorType},
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
     strategy::{PackReadStrategy, ScopeReadStrategy},
@@ -17,7 +17,7 @@ use crate::{
 
 #[async_trait]
 impl ScopeReadStrategy for SplitPackStrategy {
-  async fn ensure_meta(&self, scope: &mut PackScope) -> StorageResult<()> {
+  async fn ensure_meta(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.meta.loaded() {
       let meta_path = ScopeMeta::get_path(&scope.path);
       let meta = read_scope_meta(scope.name, &meta_path, self.fs.clone())
@@ -28,7 +28,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_packs(&self, scope: &mut PackScope) -> StorageResult<()> {
+  async fn ensure_packs(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_meta(scope).await?;
 
     if !scope.packs.loaded() {
@@ -52,7 +52,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_keys(&self, scope: &mut PackScope) -> StorageResult<()> {
+  async fn ensure_keys(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_packs(scope).await?;
 
     let read_key_results = read_keys(scope, self).await?;
@@ -68,7 +68,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn ensure_contents(&self, scope: &mut PackScope) -> StorageResult<()> {
+  async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()> {
     self.ensure_keys(scope).await?;
 
     let read_content_results = read_contents(scope, self).await?;
@@ -93,7 +93,7 @@ async fn read_scope_meta(
   scope: &'static str,
   path: &Utf8Path,
   fs: Arc<dyn StorageFS>,
-) -> StorageResult<Option<ScopeMeta>> {
+) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
   }
@@ -113,7 +113,7 @@ async fn read_scope_meta(
         )
       })
     })
-    .collect::<StorageResult<Vec<usize>>>()?;
+    .collect::<Result<Vec<usize>>>()?;
 
   if option_items.len() < 2 {
     return Err(StorageError::from_reason(
@@ -157,7 +157,7 @@ async fn read_scope_meta(
             })
           }
         })
-        .collect::<StorageResult<Vec<PackFileMeta>>>()?,
+        .collect::<Result<Vec<PackFileMeta>>>()?,
     );
   }
 
@@ -188,10 +188,7 @@ fn read_keys_filter(pack: &Pack, _: &PackFileMeta) -> bool {
   !pack.keys.loaded()
 }
 
-async fn read_keys(
-  scope: &PackScope,
-  strategy: &SplitPackStrategy,
-) -> StorageResult<Vec<ReadKeysResult>> {
+async fn read_keys(scope: &PackScope, strategy: &SplitPackStrategy) -> Result<Vec<ReadKeysResult>> {
   let (pack_indexes, packs) = get_indexed_packs(scope, Some(&read_keys_filter));
 
   let tasks = packs
@@ -238,7 +235,7 @@ fn read_contents_filter(pack: &Pack, _: &PackFileMeta) -> bool {
 async fn read_contents(
   scope: &PackScope,
   strategy: &SplitPackStrategy,
-) -> StorageResult<Vec<ReadContentsResult>> {
+) -> Result<Vec<ReadContentsResult>> {
   let (pack_indexes, packs) = get_indexed_packs(scope, Some(&read_contents_filter));
   let tasks = packs
     .into_iter()
@@ -278,7 +275,7 @@ mod tests {
   use rspack_paths::Utf8Path;
 
   use crate::{
-    error::StorageResult,
+    error::Result,
     pack::{
       data::{PackOptions, PackScope, ScopeMeta},
       strategy::{
@@ -291,11 +288,7 @@ mod tests {
     StorageFS,
   };
 
-  async fn mock_scope(
-    path: &Utf8Path,
-    fs: &dyn StorageFS,
-    options: &PackOptions,
-  ) -> StorageResult<()> {
+  async fn mock_scope(path: &Utf8Path, fs: &dyn StorageFS, options: &PackOptions) -> Result<()> {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {
@@ -309,10 +302,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_meta(
-    scope: &mut PackScope,
-    strategy: &SplitPackStrategy,
-  ) -> StorageResult<()> {
+  async fn test_read_meta(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
     strategy.ensure_meta(scope).await?;
     let meta = scope.meta.expect_value();
     assert_eq!(meta.path, ScopeMeta::get_path(&scope.path));
@@ -336,10 +326,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_read_packs(
-    scope: &mut PackScope,
-    strategy: &SplitPackStrategy,
-  ) -> StorageResult<()> {
+  async fn test_read_packs(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
     strategy.ensure_keys(scope).await?;
 
     let all_keys = scope

@@ -15,7 +15,7 @@ use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
 use super::strategy::{ScopeStrategy, WriteScopeResult};
 use super::ScopeUpdates;
 use crate::error::{StorageError, StorageErrorType, ValidateResult};
-use crate::{StorageContent, StorageResult};
+use crate::{Result, StorageContent};
 
 type ScopeMap = HashMap<String, PackScope>;
 
@@ -45,7 +45,7 @@ impl ScopeManager {
     }
   }
 
-  pub fn save(&self, updates: ScopeUpdates) -> StorageResult<Receiver<StorageResult<()>>> {
+  pub fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
     let pack_options = self.pack_options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
@@ -110,7 +110,7 @@ impl ScopeManager {
       .clear();
   }
 
-  pub async fn load(&self, name: &'static str) -> StorageResult<StorageContent> {
+  pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
     self
       .scopes
       .lock()
@@ -175,7 +175,7 @@ impl ScopeManager {
     }
   }
 
-  async fn validate_scope(&self, name: &'static str) -> StorageResult<ValidateResult> {
+  async fn validate_scope(&self, name: &'static str) -> Result<ValidateResult> {
     let root_meta_guard = self.root_meta.lock().await;
     // no root, no scope
     let Some(root_meta) = root_meta_guard.expect_value() else {
@@ -209,7 +209,7 @@ fn update_scopes(
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
   strategy: &dyn ScopeStrategy,
-) -> StorageResult<()> {
+) -> Result<()> {
   for (scope_name, _) in updates.iter() {
     scopes.entry(scope_name.to_string()).or_insert_with(|| {
       PackScope::empty(
@@ -235,7 +235,7 @@ fn update_scopes(
     })
     .par_bridge()
     .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update))
-    .collect::<StorageResult<Vec<_>>>()?;
+    .collect::<Result<Vec<_>>>()?;
 
   Ok(())
 }
@@ -245,7 +245,7 @@ async fn save_scopes(
   root_meta: &RootMeta,
   strategy: &dyn ScopeStrategy,
   root_options: &RootOptions,
-) -> StorageResult<ScopeMap> {
+) -> Result<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());
 
   strategy.before_all(&mut scopes).await?;
@@ -265,7 +265,7 @@ async fn save_scopes(
   )
   .await
   .into_iter()
-  .collect::<StorageResult<Vec<WriteScopeResult>>>()?
+  .collect::<Result<Vec<WriteScopeResult>>>()?
   .into_iter()
   .fold(WriteScopeResult::default(), |mut acc, res| {
     acc.extend(res);
@@ -291,7 +291,7 @@ mod tests {
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
-    error::StorageResult,
+    error::Result,
     pack::{
       data::{PackOptions, RootOptions},
       manager::ScopeManager,
@@ -322,11 +322,7 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -380,11 +376,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(
-    root: &Utf8Path,
-    temp: &Utf8Path,
-    fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -466,7 +458,7 @@ mod tests {
     root: &Utf8Path,
     temp: &Utf8Path,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -512,7 +504,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_manager() -> StorageResult<()> {
+  async fn test_manager() -> Result<()> {
     let fs = Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");

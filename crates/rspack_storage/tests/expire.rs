@@ -5,7 +5,7 @@ mod test_storage_expire {
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Storage, StorageBridgeFS, StorageFS, StorageResult,
+    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS,
   };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
@@ -25,7 +25,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -61,7 +61,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
@@ -86,7 +86,7 @@ mod test_storage_expire {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     fs: Arc<dyn StorageFS>,
-  ) -> StorageResult<()> {
+  ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
       root: root.into(),
