@@ -8,58 +8,58 @@ mod test_storage_lock {
   use rspack_fs::{FileMetadata, MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS, StorageFSError,
-    StorageFSOperation, StorageFSResult, StorageReader, StorageWriter,
+    BridgeFileSystem, FSError, FSOperation, FSResult, FileSystem, PackStorage, PackStorageOptions,
+    Reader, Result, Storage, Writer,
   };
   use rustc_hash::FxHashSet as HashSet;
 
   #[derive(Debug)]
-  pub struct MoakStorageFS {
-    pub fs: Arc<dyn StorageFS>,
+  pub struct MockFileSystem {
+    pub fs: Arc<dyn FileSystem>,
     pub moved: AtomicUsize,
     pub break_on: usize,
   }
 
   #[async_trait::async_trait]
-  impl StorageFS for MoakStorageFS {
-    async fn exists(&self, path: &Utf8Path) -> StorageFSResult<bool> {
+  impl FileSystem for MockFileSystem {
+    async fn exists(&self, path: &Utf8Path) -> FSResult<bool> {
       self.fs.exists(path).await
     }
 
-    async fn remove_dir(&self, path: &Utf8Path) -> StorageFSResult<()> {
+    async fn remove_dir(&self, path: &Utf8Path) -> FSResult<()> {
       self.fs.remove_dir(path).await
     }
 
-    async fn ensure_dir(&self, path: &Utf8Path) -> StorageFSResult<()> {
+    async fn ensure_dir(&self, path: &Utf8Path) -> FSResult<()> {
       self.fs.ensure_dir(path).await
     }
 
-    async fn write_file(&self, path: &Utf8Path) -> StorageFSResult<StorageWriter> {
+    async fn write_file(&self, path: &Utf8Path) -> FSResult<Writer> {
       self.fs.write_file(path).await
     }
 
-    async fn read_file(&self, path: &Utf8Path) -> StorageFSResult<StorageReader> {
+    async fn read_file(&self, path: &Utf8Path) -> FSResult<Reader> {
       self.fs.read_file(path).await
     }
 
-    async fn read_dir(&self, path: &Utf8Path) -> StorageFSResult<HashSet<String>> {
+    async fn read_dir(&self, path: &Utf8Path) -> FSResult<HashSet<String>> {
       self.fs.read_dir(path).await
     }
 
-    async fn metadata(&self, path: &Utf8Path) -> StorageFSResult<FileMetadata> {
+    async fn metadata(&self, path: &Utf8Path) -> FSResult<FileMetadata> {
       self.fs.metadata(path).await
     }
 
-    async fn remove_file(&self, path: &Utf8Path) -> StorageFSResult<()> {
+    async fn remove_file(&self, path: &Utf8Path) -> FSResult<()> {
       self.fs.remove_file(path).await
     }
 
-    async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> StorageFSResult<()> {
+    async fn move_file(&self, from: &Utf8Path, to: &Utf8Path) -> FSResult<()> {
       let moved = self.moved.load(std::sync::atomic::Ordering::Relaxed);
       if moved == self.break_on {
-        Err(StorageFSError::from_message(
+        Err(FSError::from_message(
           from,
-          StorageFSOperation::Move,
+          FSOperation::Move,
           "move failed".to_string(),
         ))
       } else {
@@ -87,7 +87,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -123,7 +123,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -143,7 +143,7 @@ mod test_storage_lock {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -168,11 +168,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_native"),
-        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_lock_memory"),
-        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 
@@ -188,7 +188,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MoakStorageFS {
+        Arc::new(MockFileSystem {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
@@ -201,7 +201,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MoakStorageFS {
+        Arc::new(MockFileSystem {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,
@@ -218,11 +218,11 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_fail_native"),
-        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_lock_fail_memory"),
-        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 
@@ -238,7 +238,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root,
-        Arc::new(MoakStorageFS {
+        Arc::new(MockFileSystem {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 3,
@@ -251,7 +251,7 @@ mod test_storage_lock {
         "xxx",
         &root,
         &temp_root.join("other"),
-        Arc::new(MoakStorageFS {
+        Arc::new(MockFileSystem {
           fs: fs.clone(),
           moved: AtomicUsize::new(0),
           break_on: 9999,

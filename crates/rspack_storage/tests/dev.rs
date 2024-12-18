@@ -5,7 +5,7 @@ mod test_storage_dev {
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS,
+    BridgeFileSystem, FileSystem, PackStorage, PackStorageOptions, Result, Storage,
   };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
@@ -24,7 +24,7 @@ mod test_storage_dev {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     version: &str,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> PackStorageOptions {
     PackStorageOptions {
       version: version.to_string(),
@@ -40,7 +40,7 @@ mod test_storage_dev {
 
   async fn test_initial_dev(
     root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -84,7 +84,7 @@ mod test_storage_dev {
 
   async fn test_recovery_modify(
     root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -115,7 +115,7 @@ mod test_storage_dev {
 
   async fn test_recovery_final(
     _root: &Utf8PathBuf,
-    _fs: Arc<dyn StorageFS>,
+    _fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -147,11 +147,11 @@ mod test_storage_dev {
     let cases = [
       (
         get_native_path("test_dev_native"),
-        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_dev_memory"),
-        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
     let version = "xxx".to_string();

@@ -1,6 +1,6 @@
 use rspack_error::miette;
 
-use crate::fs::{BatchStorageFSError, StorageFSError};
+use crate::fs::{BatchFSError, FSError};
 
 #[derive(Debug)]
 pub struct InvalidDetail {
@@ -34,93 +34,93 @@ impl ValidateResult {
 }
 
 #[derive(Debug)]
-enum StorageErrorReason {
+enum ErrorReason {
   Reason(String),
   Detail(InvalidDetail),
   Error(Box<dyn std::error::Error + Send + Sync>),
 }
 
 #[derive(Debug)]
-pub enum StorageErrorType {
+pub enum ErrorType {
   Validate,
   Save,
   Load,
 }
 
-impl std::fmt::Display for StorageErrorType {
+impl std::fmt::Display for ErrorType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      StorageErrorType::Validate => write!(f, "validate"),
-      StorageErrorType::Save => write!(f, "save"),
-      StorageErrorType::Load => write!(f, "load"),
+      ErrorType::Validate => write!(f, "validate"),
+      ErrorType::Save => write!(f, "save"),
+      ErrorType::Load => write!(f, "load"),
     }
   }
 }
 
 #[derive(Debug)]
-pub struct StorageError {
-  r#type: Option<StorageErrorType>,
+pub struct Error {
+  r#type: Option<ErrorType>,
   scope: Option<&'static str>,
-  inner: StorageErrorReason,
+  inner: ErrorReason,
 }
 
-impl From<StorageFSError> for StorageError {
-  fn from(e: StorageFSError) -> Self {
+impl From<FSError> for Error {
+  fn from(e: FSError) -> Self {
     Self {
       r#type: None,
       scope: None,
-      inner: StorageErrorReason::Error(Box::new(e)),
+      inner: ErrorReason::Error(Box::new(e)),
     }
   }
 }
 
-impl From<BatchStorageFSError> for StorageError {
-  fn from(e: BatchStorageFSError) -> Self {
+impl From<BatchFSError> for Error {
+  fn from(e: BatchFSError) -> Self {
     Self {
       r#type: None,
       scope: None,
-      inner: StorageErrorReason::Error(Box::new(e)),
+      inner: ErrorReason::Error(Box::new(e)),
     }
   }
 }
 
-impl StorageError {
+impl Error {
   pub fn from_detail(
-    r#type: Option<StorageErrorType>,
+    r#type: Option<ErrorType>,
     scope: Option<&'static str>,
     detail: InvalidDetail,
   ) -> Self {
     Self {
       r#type,
       scope,
-      inner: StorageErrorReason::Detail(detail),
+      inner: ErrorReason::Detail(detail),
     }
   }
   pub fn from_error(
-    r#type: Option<StorageErrorType>,
+    r#type: Option<ErrorType>,
     scope: Option<&'static str>,
     error: Box<dyn std::error::Error + Send + Sync>,
   ) -> Self {
     Self {
       r#type,
       scope,
-      inner: StorageErrorReason::Error(error),
+      inner: ErrorReason::Error(error),
     }
   }
   pub fn from_reason(
-    r#type: Option<StorageErrorType>,
+    r#type: Option<ErrorType>,
     scope: Option<&'static str>,
     reason: String,
   ) -> Self {
     Self {
       r#type,
       scope,
-      inner: StorageErrorReason::Reason(reason),
+      inner: ErrorReason::Reason(reason),
     }
   }
 }
 
-impl std::fmt::Display for StorageError {
+impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(t) = &self.r#type {
       write!(f, "{} ", t)?;
@@ -131,7 +131,7 @@ impl std::fmt::Display for StorageError {
     write!(f, "failed due to")?;
 
     match &self.inner {
-      StorageErrorReason::Detail(detail) => {
+      ErrorReason::Detail(detail) => {
         write!(f, " {}", detail.reason)?;
         let mut pack_info_lines = detail
           .packs
@@ -146,10 +146,10 @@ impl std::fmt::Display for StorageError {
           write!(f, ":\n{}", pack_info_lines.join("\n"))?;
         }
       }
-      StorageErrorReason::Error(e) => {
+      ErrorReason::Error(e) => {
         write!(f, " {}", e)?;
       }
-      StorageErrorReason::Reason(e) => {
+      ErrorReason::Reason(e) => {
         write!(f, " {}", e)?;
       }
     }
@@ -157,12 +157,12 @@ impl std::fmt::Display for StorageError {
   }
 }
 
-impl std::error::Error for StorageError {}
+impl std::error::Error for Error {}
 
-impl miette::Diagnostic for StorageError {
+impl miette::Diagnostic for Error {
   fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
     Some(Box::new(format!(
-      "StorageError::{}",
+      "Error::{}",
       self
         .r#type
         .as_ref()
@@ -174,4 +174,4 @@ impl miette::Diagnostic for StorageError {
   }
 }
 
-pub type Result<T> = std::result::Result<T, StorageError>;
+pub type Result<T> = std::result::Result<T, Error>;

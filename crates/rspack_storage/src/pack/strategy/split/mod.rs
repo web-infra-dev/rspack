@@ -20,22 +20,22 @@ use util::get_name;
 use super::{RootStrategy, ScopeStrategy};
 use crate::{
   error::{Result, ValidateResult},
-  fs::{StorageFSError, StorageFSOperation},
+  fs::{FSError, FSOperation},
   pack::data::{
     current_time, PackContents, PackKeys, PackScope, RootMeta, RootMetaFrom, RootOptions,
   },
-  StorageFS,
+  FileSystem,
 };
 
 #[derive(Debug, Clone)]
 pub struct SplitPackStrategy {
-  pub fs: Arc<dyn StorageFS>,
+  pub fs: Arc<dyn FileSystem>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
 }
 
 impl SplitPackStrategy {
-  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn StorageFS>) -> Self {
+  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn FileSystem>) -> Self {
     Self {
       fs,
       root: Arc::new(root),
@@ -76,9 +76,9 @@ impl RootStrategy for SplitPackStrategy {
 
     let mut reader = self.fs.read_file(&meta_path).await?;
     let expire_time = reader.read_line().await?.parse::<u64>().map_err(|e| {
-      StorageFSError::from_message(
+      FSError::from_message(
         &meta_path,
-        StorageFSOperation::Read,
+        FSOperation::Read,
         format!("parse root meta failed: {}", e),
       )
     })?;

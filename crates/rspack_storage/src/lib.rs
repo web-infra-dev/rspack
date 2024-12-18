@@ -5,16 +5,13 @@ mod pack;
 use std::sync::Arc;
 
 pub use error::Result;
-pub use fs::{
-  StorageBridgeFS, StorageFS, StorageFSError, StorageFSOperation, StorageFSResult, StorageReader,
-  StorageWriter,
-};
+pub use fs::{BridgeFileSystem, FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
 pub use pack::{PackStorage, PackStorageOptions};
 use tokio::sync::oneshot::Receiver;
 
-type StorageItemKey = Vec<u8>;
-type StorageItemValue = Vec<u8>;
-type StorageContent = Vec<(Arc<StorageItemKey>, Arc<StorageItemValue>)>;
+type ItemKey = Vec<u8>;
+type ItemValue = Vec<u8>;
+type ItemPairs = Vec<(Arc<ItemKey>, Arc<ItemValue>)>;
 
 #[async_trait::async_trait]
 pub trait Storage: std::fmt::Debug + Sync + Send {

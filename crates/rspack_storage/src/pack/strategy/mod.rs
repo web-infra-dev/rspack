@@ -10,7 +10,7 @@ use super::data::{
 };
 use crate::{
   error::{Result, ValidateResult},
-  StorageItemKey, StorageItemValue,
+  ItemKey, ItemValue,
 };
 
 pub struct UpdatePacksResult {
@@ -58,7 +58,7 @@ pub trait PackWriteStrategy {
     dir: Utf8PathBuf,
     options: &PackOptions,
     packs: HashMap<PackFileMeta, Pack>,
-    updates: HashMap<StorageItemKey, Option<StorageItemValue>>,
+    updates: HashMap<ItemKey, Option<ItemValue>>,
   ) -> UpdatePacksResult;
   async fn write_pack(&self, pack: &Pack) -> Result<()>;
 }
@@ -91,7 +91,7 @@ impl WriteScopeResult {
   }
 }
 
-pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
+pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;

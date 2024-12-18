@@ -14,8 +14,8 @@ use tokio::sync::{oneshot, Mutex};
 use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
 use super::strategy::{ScopeStrategy, WriteScopeResult};
 use super::ScopeUpdates;
-use crate::error::{StorageError, StorageErrorType, ValidateResult};
-use crate::{Result, StorageContent};
+use crate::error::{Error, ErrorType, ValidateResult};
+use crate::{ItemPairs, Result};
 
 type ScopeMap = HashMap<String, PackScope>;
 
@@ -110,7 +110,7 @@ impl ScopeManager {
       .clear();
   }
 
-  pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
+  pub async fn load(&self, name: &'static str) -> Result<ItemPairs> {
     self
       .scopes
       .lock()
@@ -156,8 +156,8 @@ impl ScopeManager {
         // clear scope if invalid
         ValidateResult::Invalid(detail) => {
           self.clear_scope(name).await;
-          Err(StorageError::from_detail(
-            Some(StorageErrorType::Validate),
+          Err(Error::from_detail(
+            Some(ErrorType::Validate),
             Some(name),
             detail,
           ))
@@ -166,8 +166,8 @@ impl ScopeManager {
       Err(e) => {
         // clear scope if error
         self.clear_scope(name).await;
-        Err(StorageError::from_error(
-          Some(StorageErrorType::Validate),
+        Err(Error::from_error(
+          Some(ErrorType::Validate),
           Some(name),
           Box::new(e),
         ))
@@ -297,16 +297,16 @@ mod tests {
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
-    StorageBridgeFS, StorageFS, StorageItemKey, StorageItemValue,
+    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
   };
 
-  fn mock_key(id: usize) -> StorageItemKey {
+  fn mock_key(id: usize) -> ItemKey {
     format!("{:0>length$}_key", id, length = 46)
       .as_bytes()
       .to_vec()
   }
 
-  fn mock_insert_value(id: usize) -> Option<StorageItemValue> {
+  fn mock_insert_value(id: usize) -> Option<ItemValue> {
     Some(
       format!("{:0>length$}_val", id, length = 46)
         .as_bytes()
@@ -314,7 +314,7 @@ mod tests {
     )
   }
 
-  fn mock_update_value(id: usize) -> Option<StorageItemValue> {
+  fn mock_update_value(id: usize) -> Option<ItemValue> {
     Some(
       format!("{:0>length$}_new", id, length = 46)
         .as_bytes()
@@ -322,7 +322,11 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+  async fn test_cold_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn FileSystem>,
+  ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -376,7 +380,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn StorageFS>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -457,7 +461,7 @@ mod tests {
   async fn test_invalid_start(
     root: &Utf8Path,
     temp: &Utf8Path,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
@@ -505,7 +509,7 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default())));
+    let fs = Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
     test_cold_start(&root, &temp, fs.clone()).await?;

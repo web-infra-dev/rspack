@@ -7,12 +7,12 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::{
-  error::{Result, StorageError, StorageErrorType},
+  error::{Error, ErrorType, Result},
   pack::{
     data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
     strategy::{PackReadStrategy, ScopeReadStrategy},
   },
-  StorageFS,
+  FileSystem,
 };
 
 #[async_trait]
@@ -92,7 +92,7 @@ impl ScopeReadStrategy for SplitPackStrategy {
 async fn read_scope_meta(
   scope: &'static str,
   path: &Utf8Path,
-  fs: Arc<dyn StorageFS>,
+  fs: Arc<dyn FileSystem>,
 ) -> Result<Option<ScopeMeta>> {
   if !fs.exists(path).await? {
     return Ok(None);
@@ -106,8 +106,8 @@ async fn read_scope_meta(
     .split(" ")
     .map(|item| {
       item.parse::<usize>().map_err(|e| {
-        StorageError::from_reason(
-          Some(StorageErrorType::Load),
+        Error::from_reason(
+          Some(ErrorType::Load),
           Some(scope),
           format!("parse option meta failed: {}", e),
         )
@@ -116,8 +116,8 @@ async fn read_scope_meta(
     .collect::<Result<Vec<usize>>>()?;
 
   if option_items.len() < 2 {
-    return Err(StorageError::from_reason(
-      Some(StorageErrorType::Load),
+    return Err(Error::from_reason(
+      Some(ErrorType::Load),
       Some(scope),
       "option meta not match".to_string(),
     ));
@@ -137,8 +137,8 @@ async fn read_scope_meta(
         .map(|i| i.split(",").collect::<Vec<_>>())
         .map(|i| {
           if i.len() < 3 {
-            Err(StorageError::from_reason(
-              Some(StorageErrorType::Load),
+            Err(Error::from_reason(
+              Some(ErrorType::Load),
               Some(scope),
               "file meta not match".to_string(),
             ))
@@ -147,8 +147,8 @@ async fn read_scope_meta(
               name: i[0].to_owned(),
               hash: i[1].to_owned(),
               size: i[2].parse::<usize>().map_err(|e| {
-                StorageError::from_reason(
-                  Some(StorageErrorType::Load),
+                Error::from_reason(
+                  Some(ErrorType::Load),
                   Some(scope),
                   format!("parse file meta failed: {}", e),
                 )
@@ -162,8 +162,8 @@ async fn read_scope_meta(
   }
 
   if packs.len() < bucket_size {
-    return Err(StorageError::from_reason(
-      Some(StorageErrorType::Load),
+    return Err(Error::from_reason(
+      Some(ErrorType::Load),
       Some(scope),
       "bucket size not match".to_string(),
     ));
@@ -196,9 +196,8 @@ async fn read_keys(scope: &PackScope, strategy: &SplitPackStrategy) -> Result<Ve
     .map(|i| {
       let strategy = strategy.clone();
       let path = i.1.path.clone();
-      tokio::spawn(async move { strategy.read_pack_keys(&path).await }).map_err(|e| {
-        StorageError::from_error(Some(StorageErrorType::Load), Some(scope.name), Box::new(e))
-      })
+      tokio::spawn(async move { strategy.read_pack_keys(&path).await })
+        .map_err(|e| Error::from_error(Some(ErrorType::Load), Some(scope.name), Box::new(e)))
     })
     .collect_vec();
 
@@ -242,9 +241,8 @@ async fn read_contents(
     .map(|i| {
       let strategy = strategy.to_owned();
       let path = i.1.path.to_owned();
-      tokio::spawn(async move { strategy.read_pack_contents(&path).await }).map_err(|e| {
-        StorageError::from_error(Some(StorageErrorType::Load), Some(scope.name), Box::new(e))
-      })
+      tokio::spawn(async move { strategy.read_pack_contents(&path).await })
+        .map_err(|e| Error::from_error(Some(ErrorType::Load), Some(scope.name), Box::new(e)))
     })
     .collect_vec();
   let pack_contents = join_all(tasks).await.into_iter().process_results(|iter| {
@@ -285,10 +283,10 @@ mod tests {
         ScopeReadStrategy, SplitPackStrategy,
       },
     },
-    StorageFS,
+    FileSystem,
   };
 
-  async fn mock_scope(path: &Utf8Path, fs: &dyn StorageFS, options: &PackOptions) -> Result<()> {
+  async fn mock_scope(path: &Utf8Path, fs: &dyn FileSystem, options: &PackOptions) -> Result<()> {
     mock_scope_meta_file(&ScopeMeta::get_path(path), fs, options, 3).await?;
     for bucket_id in 0..options.bucket_size {
       for pack_no in 0..3 {

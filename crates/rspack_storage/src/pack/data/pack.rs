@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use rspack_paths::Utf8PathBuf;
 
-use crate::{StorageItemKey, StorageItemValue};
+use crate::{ItemKey, ItemValue};
 
-pub type PackKeys = Vec<Arc<StorageItemKey>>;
-pub type PackContents = Vec<Arc<StorageItemValue>>;
+pub type PackKeys = Vec<Arc<ItemKey>>;
+pub type PackContents = Vec<Arc<ItemValue>>;
 
 #[derive(Debug, Default)]
 pub enum PackKeysState {

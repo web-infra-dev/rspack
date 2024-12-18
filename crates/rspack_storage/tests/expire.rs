@@ -5,7 +5,7 @@ mod test_storage_expire {
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
   use rspack_storage::{
-    PackStorage, PackStorageOptions, Result, Storage, StorageBridgeFS, StorageFS,
+    BridgeFileSystem, FileSystem, PackStorage, PackStorageOptions, Result, Storage,
   };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
@@ -24,7 +24,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -60,7 +60,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -85,7 +85,7 @@ mod test_storage_expire {
     version: &str,
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> Result<()> {
     let storage = PackStorage::new(PackStorageOptions {
       version: version.to_string(),
@@ -125,11 +125,11 @@ mod test_storage_expire {
     let cases = [
       (
         get_native_path("test_expire_native"),
-        Arc::new(StorageBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
         get_memory_path("test_expire_memory"),
-        Arc::new(StorageBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
 

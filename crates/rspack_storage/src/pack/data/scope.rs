@@ -5,7 +5,7 @@ use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{Pack, PackOptions, RootMeta, ScopeMeta};
-use crate::StorageContent;
+use crate::ItemPairs;
 
 #[derive(Debug, Default)]
 pub enum RootMetaState {
@@ -132,7 +132,7 @@ impl PackScope {
         .all(|pack| pack.loaded())
   }
 
-  pub fn get_contents(&self) -> StorageContent {
+  pub fn get_contents(&self) -> ItemPairs {
     self
       .packs
       .expect_value()

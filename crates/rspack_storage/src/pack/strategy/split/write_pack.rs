@@ -13,7 +13,7 @@ use crate::{
     strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
     ScopeUpdate,
   },
-  StorageItemKey, StorageItemValue,
+  ItemKey, ItemValue,
 };
 
 #[async_trait]
@@ -183,7 +183,7 @@ impl PackWriteStrategy for SplitPackStrategy {
 fn create(
   dir: &Utf8Path,
   options: &PackOptions,
-  items: HashMap<Arc<StorageItemKey>, Arc<StorageItemValue>>,
+  items: HashMap<Arc<ItemKey>, Arc<ItemValue>>,
 ) -> Vec<(PackFileMeta, Pack)> {
   let mut items = items.into_iter().collect_vec();
   items.sort_unstable_by(|a, b| a.1.len().cmp(&b.1.len()));

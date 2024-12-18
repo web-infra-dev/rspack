@@ -6,7 +6,7 @@ use std::{path::PathBuf, sync::Arc};
 pub use memory::MemoryStorage;
 use rspack_fs::IntermediateFileSystem;
 pub use rspack_storage::Storage;
-use rspack_storage::{PackStorage, PackStorageOptions, StorageBridgeFS};
+use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
 
 /// Storage Options
 ///
@@ -31,7 +31,7 @@ pub fn create_storage(
         bucket_size: 20,
         pack_size: 500 * 1024,
         expire: 7 * 24 * 60 * 60 * 1000,
-        fs: Arc::new(StorageBridgeFS(fs)),
+        fs: Arc::new(BridgeFileSystem(fs)),
         version,
       };
       Arc::new(PackStorage::new(option))

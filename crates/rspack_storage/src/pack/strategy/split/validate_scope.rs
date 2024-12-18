@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::{
-  error::{Result, StorageError, StorageErrorType, ValidateResult},
+  error::{Error, ErrorType, Result, ValidateResult},
   pack::{data::PackScope, strategy::ScopeValidateStrategy},
 };
 
@@ -44,9 +44,7 @@ impl ScopeValidateStrategy for SplitPackStrategy {
             Err(_) => false,
           }
         })
-        .map_err(|e| {
-          StorageError::from_error(Some(StorageErrorType::Validate), Some(scope.name), e.into())
-        })
+        .map_err(|e| Error::from_error(Some(ErrorType::Validate), Some(scope.name), e.into()))
       });
 
     let validate_results = join_all(tasks)
@@ -84,7 +82,7 @@ mod tests {
   use rustc_hash::FxHashSet as HashSet;
 
   use crate::{
-    error::{Result, StorageError, StorageErrorType, ValidateResult},
+    error::{Error, ErrorType, Result, ValidateResult},
     pack::{
       data::{PackOptions, PackScope, RootMeta, ScopeMeta},
       strategy::{
@@ -101,7 +99,7 @@ mod tests {
         ScopeReadStrategy, ScopeValidateStrategy, ScopeWriteStrategy, SplitPackStrategy,
       },
     },
-    StorageFS,
+    FileSystem,
   };
 
   async fn test_valid_meta(scope_path: Utf8PathBuf, strategy: &SplitPackStrategy) -> Result<()> {
@@ -132,8 +130,7 @@ mod tests {
     );
     strategy.ensure_meta(&mut scope).await?;
     if let ValidateResult::Invalid(detail) = strategy.validate_meta(&mut scope).await? {
-      let error =
-        StorageError::from_detail(Some(StorageErrorType::Validate), Some("test_scope"), detail);
+      let error = Error::from_detail(Some(ErrorType::Validate), Some("test_scope"), detail);
       assert_eq!(
         error.to_string(),
         "validate scope `test_scope` failed due to `options.bucketSize` changed"
@@ -153,8 +150,7 @@ mod tests {
     );
     strategy.ensure_meta(&mut scope).await?;
     if let ValidateResult::Invalid(detail) = strategy.validate_meta(&mut scope).await? {
-      let error =
-        StorageError::from_detail(Some(StorageErrorType::Validate), Some("test_scope"), detail);
+      let error = Error::from_detail(Some(ErrorType::Validate), Some("test_scope"), detail);
       assert_eq!(
         error.to_string(),
         "validate scope `test_scope` failed due to `options.packSize` changed"
@@ -182,7 +178,7 @@ mod tests {
   async fn test_invalid_packs_changed(
     scope_path: Utf8PathBuf,
     strategy: &SplitPackStrategy,
-    fs: Arc<dyn StorageFS>,
+    fs: Arc<dyn FileSystem>,
     options: Arc<PackOptions>,
     files: HashSet<Utf8PathBuf>,
   ) -> Result<()> {
@@ -196,8 +192,7 @@ mod tests {
     strategy.ensure_keys(&mut scope).await?;
     if let ValidateResult::Invalid(detail) = strategy.validate_packs(&mut scope).await? {
       let error =
-        StorageError::from_detail(Some(StorageErrorType::Validate), Some("scope_name"), detail)
-          .to_string();
+        Error::from_detail(Some(ErrorType::Validate), Some("scope_name"), detail).to_string();
       assert!(error.contains("validate scope `scope_name` failed due to some packs are modified"));
       assert_eq!(error.split("\n").count(), 7);
     } else {

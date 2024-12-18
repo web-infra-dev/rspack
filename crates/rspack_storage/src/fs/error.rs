@@ -5,7 +5,7 @@ use rspack_paths::Utf8Path;
 use tokio::task::JoinError;
 
 #[derive(Debug)]
-pub enum StorageFSOperation {
+pub enum FSOperation {
   Read,
   Write,
   Dir,
@@ -15,7 +15,7 @@ pub enum StorageFSOperation {
   Redirect,
 }
 
-impl std::fmt::Display for StorageFSOperation {
+impl std::fmt::Display for FSOperation {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Self::Read => write!(f, "read"),
@@ -30,23 +30,23 @@ impl std::fmt::Display for StorageFSOperation {
 }
 
 #[derive(Debug)]
-pub struct StorageFSError {
+pub struct FSError {
   file: String,
   inner: rspack_fs::Error,
-  opt: StorageFSOperation,
+  opt: FSOperation,
 }
 
-impl std::error::Error for StorageFSError {}
+impl std::error::Error for FSError {}
 
-impl StorageFSError {
-  pub fn from_fs_error(file: &Utf8Path, opt: StorageFSOperation, error: rspack_fs::Error) -> Self {
+impl FSError {
+  pub fn from_fs_error(file: &Utf8Path, opt: FSOperation, error: rspack_fs::Error) -> Self {
     Self {
       file: file.to_string(),
       inner: error,
       opt,
     }
   }
-  pub fn from_message(file: &Utf8Path, opt: StorageFSOperation, message: String) -> Self {
+  pub fn from_message(file: &Utf8Path, opt: FSOperation, message: String) -> Self {
     Self {
       file: file.to_string(),
       inner: rspack_fs::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, message)),
@@ -69,7 +69,7 @@ impl StorageFSError {
   }
 }
 
-impl std::fmt::Display for StorageFSError {
+impl std::fmt::Display for FSError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(
       f,
@@ -84,14 +84,14 @@ impl std::fmt::Display for StorageFSError {
 }
 
 #[derive(Debug)]
-pub struct BatchStorageFSError {
+pub struct BatchFSError {
   message: String,
   join_error: Option<JoinError>,
   errors: Vec<Box<dyn std::error::Error + std::marker::Send + Sync>>,
 }
 
-impl From<StorageFSError> for BatchStorageFSError {
-  fn from(error: StorageFSError) -> Self {
+impl From<FSError> for BatchFSError {
+  fn from(error: FSError) -> Self {
     Self {
       message: "".to_string(),
       join_error: None,
@@ -100,7 +100,7 @@ impl From<StorageFSError> for BatchStorageFSError {
   }
 }
 
-impl std::fmt::Display for BatchStorageFSError {
+impl std::fmt::Display for BatchFSError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "{}", self.message)?;
     if let Some(join_error) = &self.join_error {
@@ -118,7 +118,7 @@ impl std::fmt::Display for BatchStorageFSError {
   }
 }
 
-impl BatchStorageFSError {
+impl BatchFSError {
   pub fn try_from_joined_result<T: std::error::Error + std::marker::Send + Sync + 'static, R>(
     message: &str,
     res: Result<Vec<Result<R, T>>, JoinError>,
@@ -157,4 +157,4 @@ impl BatchStorageFSError {
   }
 }
 
-impl std::error::Error for BatchStorageFSError {}
+impl std::error::Error for BatchFSError {}

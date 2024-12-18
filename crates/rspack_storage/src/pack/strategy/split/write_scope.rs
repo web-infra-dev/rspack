@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
   error::Result,
-  fs::BatchStorageFSError,
+  fs::BatchFSError,
   pack::{
     data::{Pack, PackScope},
     strategy::{PackWriteStrategy, ScopeUpdate, ScopeWriteStrategy, WriteScopeResult},
@@ -266,7 +266,7 @@ async fn batch_write_packs(
     tokio::spawn(async move { save_pack(&pack, &strategy).await.map(|hash| (hash, pack)) })
   });
 
-  let res = BatchStorageFSError::try_from_joined_result(
+  let res = BatchFSError::try_from_joined_result(
     "write packs failed",
     join_all(tasks)
       .await
