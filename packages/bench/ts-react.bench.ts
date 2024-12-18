@@ -1,5 +1,5 @@
-import { bench, describe } from "vitest";
 import { rspack } from "@rspack/core";
+import { bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
 describe("TypeScript React project", () => {

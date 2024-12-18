@@ -387,3 +387,54 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
+
+  bench:
+    needs: build
+    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    steps:
+      - name: Checkout
+        if: ${{ !inputs.skipable }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Clean
+        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Download bindings
+        if: ${{ !inputs.skipable }}
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+          try-local-cache: ${{ inputs.profile == 'debug' }}
+          link-when-local: true
+
+      - name: Show restored binding
+        if: ${{ !inputs.skipable }}
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Setup Pnpm
+        if: ${{ !inputs.skipable }}
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install Rust Toolchain
+        if: ${{ !inputs.skipable }}
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          shared-key: build-${{ inputs.target }}
+
+      - name: Run benchmark
+        uses: CodSpeedHQ/action@v3
+        timeout-minutes: 30
+        with:
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}
