@@ -5,7 +5,6 @@ use derive_more::Debug;
 use napi::bindgen_prelude::{Buffer, Either3};
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{JsFilename, JsModuleWrapper};
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
@@ -23,6 +22,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 
 use crate::RawResolveOptions;
+use crate::{JsFilename, JsModuleWrapper};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is

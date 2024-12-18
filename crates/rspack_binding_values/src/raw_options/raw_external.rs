@@ -4,11 +4,12 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
-use rspack_binding_values::JsResolver;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
 use rspack_core::{ExternalItemFnCtx, ResolveOptionsWithDependencyType, ResolverFactory};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+
+use crate::JsResolver;
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {

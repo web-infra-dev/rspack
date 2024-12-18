@@ -1,11 +1,12 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::library::JsLibraryOptions;
-use rspack_binding_values::{JsCleanOptions, JsFilename};
 use rspack_core::{
   CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure, PathInfo,
 };
 use rspack_core::{OutputOptions, TrustedTypes};
+
+use crate::library::JsLibraryOptions;
+use crate::{JsCleanOptions, JsFilename};
 
 #[derive(Debug)]
 #[napi(object)]

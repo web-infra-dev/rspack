@@ -10,6 +10,6 @@ it("should pass 'commonjs' type to loader for .cjs", function () {
 	// ORIGINAL WEBPACK COMMENT: TODO otherwise this test case cause segment fault
 	// Turned on this as rspack checks extensions for loader type.
 	// So this will not fall into dynamic import which causes segment fault.
-	// See: crates/rspack_binding_options/src/plugins/js_loader/resolver.rs
+	// See: crates/rspack_binding_values/src/plugins/js_loader/resolver.rs
 	expect(require("esm/loader.cjs!")).toBe("commonjs");
 });

@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use napi::{bindgen_prelude::Either3, JsString};
-use rspack_binding_values::JsChunkWrapper;
 use rspack_collections::DatabaseItem;
 use rspack_napi::string::JsStringExt;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
+
+use crate::JsChunkWrapper;
 
 pub type Chunks = Either3<RspackRegex, JsString, ThreadsafeFunction<JsChunkWrapper, bool>>;
 

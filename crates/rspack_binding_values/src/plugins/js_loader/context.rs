@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_binding_values::{JsModuleWrapper, JsResourceData, JsRspackError};
 use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+
+use crate::{JsModuleWrapper, JsResourceData, JsRspackError};
 
 #[napi(object)]
 pub struct JsLoaderItem {

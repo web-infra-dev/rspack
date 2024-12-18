@@ -1,9 +1,10 @@
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_error::Result;
 use rspack_plugin_lightning_css_minimizer::{
   Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
+
+use crate::{into_asset_conditions, RawAssetConditions};
 
 #[derive(Debug)]
 #[napi(object)]

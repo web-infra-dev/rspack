@@ -3701,17 +3701,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_binding_options"
+name = "rspack_binding_values"
 version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
  "derive_more",
+ "futures",
  "glob",
+ "heck 0.5.0",
  "napi",
  "napi-derive",
  "pollster",
- "rspack_binding_values",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -3766,34 +3767,13 @@ dependencies = [
  "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
+ "rspack_util",
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "swc_core",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "rspack_binding_values"
-version = "0.2.0"
-dependencies = [
- "cow-utils",
- "futures",
- "heck 0.5.0",
- "napi",
- "napi-derive",
- "rspack_collections",
- "rspack_core",
- "rspack_error",
- "rspack_napi",
- "rspack_plugin_html",
- "rspack_plugin_runtime",
- "rspack_regex",
- "rspack_util",
- "rustc-hash 2.1.0",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -4160,7 +4140,6 @@ dependencies = [
  "napi-derive",
  "ropey",
  "rspack_allocator",
- "rspack_binding_options",
  "rspack_binding_values",
  "rspack_collections",
  "rspack_core",

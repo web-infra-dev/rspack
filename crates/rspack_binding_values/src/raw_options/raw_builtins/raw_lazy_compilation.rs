@@ -3,7 +3,6 @@ use napi::{
   Either,
 };
 use napi_derive::napi;
-use rspack_binding_values::JsModuleWrapper;
 use rspack_core::{CompilationId, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{
@@ -11,6 +10,8 @@ use rspack_plugin_lazy_compilation::{
   plugin::{LazyCompilationTest, LazyCompilationTestCheck},
 };
 use rspack_regex::RspackRegex;
+
+use crate::JsModuleWrapper;
 
 #[derive(Debug)]
 pub struct RawLazyCompilationTest<F = ThreadsafeFunction<JsModuleWrapper, Option<bool>>>(

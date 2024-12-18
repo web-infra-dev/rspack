@@ -1,11 +1,12 @@
 use derive_more::Debug;
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_conditions, JsChunkWrapper, RawAssetConditions};
 use rspack_collections::DatabaseItem;
 use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
+
+use crate::{into_asset_conditions, JsChunkWrapper, RawAssetConditions};
 
 #[napi(object, object_from_js = false)]
 pub struct JsBannerContentFnCtx {
