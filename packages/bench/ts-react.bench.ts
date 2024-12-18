@@ -7,15 +7,21 @@ describe("TypeScript React project", () => {
 		"build single module project in production mode",
 		() =>
 			new Promise((resolve, reject) => {
-				rspack(rspackConfig, (err, stats) => {
-					if (err) {
-						reject(err);
+				rspack(
+					{
+						...rspackConfig,
+						mode: "production"
+					},
+					(err, stats) => {
+						if (err) {
+							reject(err);
+						}
+						if (stats?.hasErrors()) {
+							reject(new Error(stats.toString({})));
+						}
+						resolve();
 					}
-					if (stats?.hasErrors()) {
-						reject(new Error(stats.toString({})));
-					}
-					resolve();
-				});
+				);
 			})
 	);
 });

@@ -57,7 +57,7 @@ on:
       bench: # Run benchmarks?
         type: boolean
         required: false
-        default: true
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -395,24 +395,22 @@ jobs:
   bench:
     name: Bench
     needs: build
-    if: inputs.bench
+    if: ${{ inputs.bench && !inputs.skipable }}
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     steps:
       - name: Checkout
-        if: ${{ !inputs.skipable }}
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
 
       - name: Download bindings
-        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/download-artifact
         with:
           name: bindings-${{ inputs.target }}
@@ -421,22 +419,28 @@ jobs:
           link-when-local: true
 
       - name: Show restored binding
-        if: ${{ !inputs.skipable }}
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
-      - name: Setup Pnpm
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          node-version: 20
-
       - name: Install Rust Toolchain
-        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-codspeed
+
+      - name: Build Benchmark
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
         uses: CodSpeedHQ/action@v3
