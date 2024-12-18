@@ -4,9 +4,10 @@ use rayon::prelude::*;
 use rspack_cacheable::{
   cacheable, from_bytes, to_bytes,
   with::{AsOption, AsTuple2, AsVec, Inline},
-  DeserializeError, SerializeError,
+  SerializeError,
 };
 use rspack_collections::IdentifierSet;
+use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::Storage;
@@ -125,11 +126,11 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
-) -> Result<(ModuleGraphPartial, HashSet<BuildDependency>), DeserializeError> {
+) -> Result<(ModuleGraphPartial, HashSet<BuildDependency>)> {
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
-  for (_, v) in storage.load(SCOPE).await.unwrap_or_default() {
+  for (_, v) in storage.load(SCOPE).await? {
     let mut node: Node =
       from_bytes(&v, context).expect("unexpected module graph deserialize failed");
     for (dep, parent_block) in node.dependencies {

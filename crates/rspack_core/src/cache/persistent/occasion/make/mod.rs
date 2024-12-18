@@ -4,7 +4,7 @@ mod module_graph;
 
 use std::sync::Arc;
 
-use rspack_cacheable::DeserializeError;
+use rspack_error::Result;
 
 use super::super::{cacheable_context::CacheableContext, Storage};
 use crate::make::MakeArtifact;
@@ -48,8 +48,7 @@ impl MakeOccasion {
       missing_dependencies,
       build_dependencies,
       &self.storage,
-    )
-    .expect("should save dependencies success");
+    );
 
     module_graph::save_module_graph(
       module_graph_partial,
@@ -59,14 +58,15 @@ impl MakeOccasion {
       &self.context,
     );
 
-    meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage)
-      .expect("should save make meta");
+    meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage);
   }
 
   #[tracing::instrument(name = "MakeOccasion::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<MakeArtifact, DeserializeError> {
+  pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
+    // TODO can call recovery with multi thread
+    // TODO return DeserializeError not panic
     let (file_dependencies, context_dependencies, missing_dependencies, build_dependencies) =
       dependencies::recovery_dependencies_info(&self.storage).await?;
     artifact.file_dependencies = file_dependencies;
