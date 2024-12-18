@@ -64,6 +64,7 @@ jobs:
       native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-latest"' }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      bench: true
 
   test-release-linux:
     name: Test Release Linux

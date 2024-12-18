@@ -54,6 +54,10 @@ on:
         type: boolean
         required: false
         default: true
+      bench: # Run benchmarks?
+        type: boolean
+        required: false
+        default: true
       ref: # Git reference to checkout
         required: false
         type: string
@@ -389,7 +393,9 @@ jobs:
           sha: ${{ github.sha }}
 
   bench:
+    name: Bench
     needs: build
+    if: inputs.bench
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     steps:
       - name: Checkout
@@ -423,7 +429,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
 
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
