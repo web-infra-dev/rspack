@@ -1,12 +1,13 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{JsBuildMeta, JsFilename};
 use rspack_plugin_dll::{
   DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
   DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::atoms::Atom;
+
+use crate::{JsBuildMeta, JsFilename};
 
 #[derive(Debug)]
 #[napi(object)]

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_binding_values::JsFilename;
 use rspack_plugin_extract_css::plugin::{CssExtractOptions, InsertType};
+
+use crate::JsFilename;
 
 #[napi(object, object_to_js = false)]
 pub struct RawCssExtractPluginOption {

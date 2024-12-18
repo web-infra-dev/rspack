@@ -3,13 +3,14 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{Either3, Null};
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{into_asset_conditions, RawAssetConditions};
 use rspack_core::PathData;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
   SourceMapDevToolPluginOptions,
 };
+
+use crate::{into_asset_conditions, RawAssetConditions};
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
 

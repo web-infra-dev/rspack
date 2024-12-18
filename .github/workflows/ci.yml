@@ -319,7 +319,7 @@ jobs:
 
       - name: Run test
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
+        run: cargo test --workspace --exclude rspack_node -- --nocapture
 
   rust_test_miri:
     name: Rust test miri
@@ -350,7 +350,7 @@ jobs:
         env:
           MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-disable-isolation
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo miri test --workspace --exclude rspack_binding_options --exclude rspack_node -- --nocapture
+        run: cargo miri test --workspace --exclude rspack_node -- --nocapture
 
   run_rust_benchmark:
     name: Run rust benchmark

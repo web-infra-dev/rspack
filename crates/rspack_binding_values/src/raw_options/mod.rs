@@ -33,7 +33,8 @@ pub use raw_output::*;
 pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
-pub use rspack_binding_values::raw_resolve::*;
+
+pub use crate::raw_resolve::*;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

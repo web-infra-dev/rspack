@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_binding_values::{
-  entry::{JsEntryRuntime, JsEntryRuntimeWrapper},
-  library::JsLibraryOptions,
-};
 use rspack_plugin_mf::{
   ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion, ContainerPluginOptions,
   ContainerReferencePluginOptions, ExposeOptions, ProvideOptions, ProvideVersion, RemoteOptions,
+};
+
+use crate::{
+  entry::{JsEntryRuntime, JsEntryRuntimeWrapper},
+  library::JsLibraryOptions,
 };
 
 #[derive(Debug)]

@@ -10,13 +10,11 @@ version     = "0.2.0"
 crate-type = ["cdylib"]
 
 [features]
-default = []
-plugin  = ["rspack_binding_options/plugin"]
+plugin = ["rspack_binding_values/plugin"]
 
 [dependencies]
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
-rspack_binding_options   = { workspace = true }
 rspack_binding_values    = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
