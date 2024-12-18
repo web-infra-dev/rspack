@@ -8,6 +8,7 @@ use std::{path::PathBuf, sync::Arc};
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
 use rspack_fs::{FileSystem, IntermediateFileSystem, Result};
+use rspack_macros::rspack_version;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -36,7 +37,7 @@ pub struct PersistentCache {
 
 impl PersistentCache {
   pub fn new(
-    compiler_path: &String,
+    compiler_path: &str,
     option: &PersistentCacheOptions,
     compiler_options: Arc<CompilerOptions>,
     input_filesystem: Arc<dyn FileSystem>,
@@ -45,7 +46,7 @@ impl PersistentCache {
     let version = version::get_version(
       input_filesystem.clone(),
       &option.build_dependencies,
-      vec![compiler_path, &option.version],
+      vec![compiler_path, &option.version, rspack_version!()],
     )?;
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
     let context = Arc::new(CacheableContext {
