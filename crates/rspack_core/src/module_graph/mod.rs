@@ -937,16 +937,20 @@ impl<'a> ModuleGraph<'a> {
       .insert(dep_id, DependencyExtraMeta { ids });
   }
 
-  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
+  pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
+    let connection = self
+      .connection_by_dependency_id(dep_id)
+      .expect("should have connection");
+    connection.module_identifier() != module_id
+  }
+
+  pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_id_mut(dep_id)
       .expect("should have connection");
     let old_module_identifier = *connection.module_identifier();
-    if &old_module_identifier == module_id {
-      return false;
-    }
-
     connection.set_module_identifier(*module_id);
+
     // remove dep_id from old module mgm incoming connection
     let old_mgm = self
       .module_graph_module_by_identifier_mut(&old_module_identifier)
@@ -958,7 +962,6 @@ impl<'a> ModuleGraph<'a> {
       .module_graph_module_by_identifier_mut(module_id)
       .expect("should exist mgm");
     new_mgm.add_incoming_connection(*dep_id);
-    true
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
