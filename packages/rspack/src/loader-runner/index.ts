@@ -402,7 +402,9 @@ export async function runLoaders(
 		missingDependencies.length = 0;
 		context.cacheable = true;
 	};
+
 	loaderContext.importModule = function importModule(
+		this: LoaderContext,
 		request,
 		userOptions,
 		callback
@@ -490,7 +492,8 @@ export async function runLoaders(
 					}
 				}
 			);
-	};
+	} as LoaderContext["importModule"];
+
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: () => {
