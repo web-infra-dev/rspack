@@ -92,9 +92,9 @@ inventory = { version = "=0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=9.0.0" }
+swc                 = { version = "=9.0.1" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=9.0.0", default-features = false }
+swc_core            = { version = "=9.0.2", default-features = false }
 swc_ecma_minifier   = { version = "=6.0.1", default-features = false }
 swc_error_reporters = { version = "=6.0.0" }
 swc_html            = { version = "=6.0.0" }
@@ -188,7 +188,7 @@ rspack_util                            = { version = "0.2.0", path = "crates/rsp
 rate-limit = { existing-packages = 70, new-packages = 70 }
 [profile.dev]
 codegen-units = 16
-debug         = 2    # debug build will cause runtime panic if codegen-unints is default
+debug         = 2       # debug build will cause runtime panic if codegen-unints is default
 incremental   = true
 panic         = "abort"
 
