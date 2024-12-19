@@ -325,7 +325,7 @@ Sets the hint for chunk id. It will be added to chunk's filename.
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.filename
 
-- **Type:** `string`
+- **Type:** `string | function`
 
 Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
 
@@ -337,6 +337,10 @@ module.exports = {
       cacheGroups: {
         defaultVendors: {
           filename: 'vendors-[name].js',
+          // or
+          filename: (pathData, assetInfo) => {
+            return `${pathData.chunk.name}-bundle.js`;
+          },
         },
       },
     },
