@@ -34,6 +34,7 @@ pub struct PersistentCache {
   storage: Arc<dyn Storage>,
   snapshot: Snapshot,
   make_occasion: MakeOccasion,
+  async_mode: bool,
 }
 
 impl PersistentCache {
@@ -44,6 +45,7 @@ impl PersistentCache {
     input_filesystem: Arc<dyn FileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
+    let async_mode = compiler_options.mode.is_development();
     let version = version::get_version(
       input_filesystem.clone(),
       &option.build_dependencies,
@@ -59,6 +61,7 @@ impl PersistentCache {
       snapshot: Snapshot::new(option.snapshot.clone(), input_filesystem, storage.clone()),
       storage,
       make_occasion,
+      async_mode,
     }
   }
 }
@@ -108,8 +111,17 @@ impl Cache for PersistentCache {
       .add(modified_paths.iter().map(|item| item.as_ref()))
       .await;
 
-    // TODO listen for storage finish in build mode
-    let _ = self.storage.trigger_save();
+    let rx = self.storage.trigger_save()?;
+    if self.async_mode {
+      tokio::spawn(async {
+        if let Err(err) = rx.await.expect("should receive message") {
+          // TODO use infra structure logger to println
+          println!("persistent cache save failed. {err}");
+        }
+      });
+    } else {
+      rx.await.expect("should receive message")?;
+    }
 
     Ok(())
   }
