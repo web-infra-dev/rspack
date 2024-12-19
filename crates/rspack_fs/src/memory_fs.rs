@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   collections::{HashMap, HashSet},
   io::{BufRead, Cursor, Read, Seek},
   sync::{Arc, Mutex},
@@ -181,14 +182,14 @@ impl WritableFileSystem for MemoryFileSystem {
     Ok(())
   }
 
-  async fn write(&self, file: &Utf8Path, data: Vec<u8>) -> Result<()> {
+  async fn write<'a>(&self, file: &Utf8Path, data: Cow<'a, [u8]>) -> Result<()> {
     {
       // check file exist and update it
       let mut files = self.files.lock().expect("should get lock");
       if let Some(ft) = files.get_mut(file) {
         if let FileType::File { content, metadata } = ft {
           let now = current_time();
-          *content = data;
+          *content = data.into_owned();
           metadata.mtime_ms = now;
           metadata.atime_ms = now;
           metadata.size = content.len() as u64;
@@ -206,6 +207,10 @@ impl WritableFileSystem for MemoryFileSystem {
     }
 
     let mut files = self.files.lock().expect("should get lock");
+    let data = match data {
+      Cow::Borrowed(d) => d.to_vec(),
+      Cow::Owned(d) => d,
+    };
     files.insert(file.to_path_buf(), FileType::new_file(data));
     Ok(())
   }
@@ -356,7 +361,10 @@ impl WriteStream for MemoryWriteStream {
     Ok(())
   }
   async fn flush(&mut self) -> Result<()> {
-    self.fs.write(&self.file, self.contents.clone()).await?;
+    self
+      .fs
+      .write(&self.file, Cow::Borrowed(&self.contents))
+      .await?;
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
@@ -366,18 +374,20 @@ impl WriteStream for MemoryWriteStream {
 
 #[cfg(test)]
 mod tests {
+  use std::borrow::Cow;
+
   use rspack_paths::Utf8Path;
 
   use super::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();
-    let file_content = "1".as_bytes().to_vec();
+    let file_content = Cow::Borrowed("1".as_bytes());
     // init fs
     WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c"))
       .await
       .unwrap();
-    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content.clone())
+    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content)
       .await
       .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;

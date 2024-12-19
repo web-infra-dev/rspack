@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
 };
@@ -23,7 +24,11 @@ impl WritableFileSystem for NativeFileSystem {
     fs::create_dir_all(dir).map_err(Error::from)
   }
 
-  async fn write(&self, file: &Utf8Path, data: Vec<u8>) -> Result<()> {
+  async fn write<'a>(&self, file: &Utf8Path, data: Cow<'a, [u8]>) -> Result<()> {
+    let data = match &data {
+      Cow::Borrowed(d) => *d,
+      Cow::Owned(d) => d,
+    };
     fs::write(file, data).map_err(Error::from)
   }
 

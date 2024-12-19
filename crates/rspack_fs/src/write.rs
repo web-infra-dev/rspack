@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use rspack_paths::Utf8Path;
 
@@ -23,7 +23,7 @@ pub trait WritableFileSystem: Debug + Send + Sync {
 
   /// Write a slice as the entire contents of a file.
   /// This function will create a file if it does not exist, and will entirely replace its contents if it does.
-  async fn write(&self, file: &Utf8Path, data: Vec<u8>) -> Result<()>;
+  async fn write<'a>(&self, file: &Utf8Path, data: Cow<'a, [u8]>) -> Result<()>;
 
   /// Removes a file from the filesystem.
   async fn remove_file(&self, file: &Utf8Path) -> Result<()>;
