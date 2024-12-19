@@ -7,10 +7,13 @@ use super::WithBool;
 #[napi(object, object_to_js = false)]
 pub struct RawOptimizationOptions {
   pub remove_available_modules: bool,
+  #[napi(ts_type = "boolean | string")]
   pub side_effects: WithBool<String>,
+  #[napi(ts_type = "boolean | string")]
   pub used_exports: WithBool<String>,
   pub provided_exports: bool,
   pub inner_graph: bool,
+  #[napi(ts_type = "boolean | string")]
   pub mangle_exports: WithBool<String>,
   pub concatenate_modules: bool,
 }

@@ -4,7 +4,7 @@ use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
   dependency::JsDependency, entry::JsEntryOptions, library::JsLibraryOptions, JsDependencyWrapper,
-  RawChunkLoading,
+  RawChunkLoading, WithFalse,
 };
 
 #[napi]
@@ -59,9 +59,15 @@ impl EntryOptionsDTO {
     }
   }
 
-  #[napi(setter)]
-  pub fn set_chunk_loading(&mut self, chunk_loading: Option<RawChunkLoading>) {
-    self.0.chunk_loading = chunk_loading.map(Into::into);
+  #[napi(setter, ts_type = "(chunkLoading: string | false | undefined)")]
+  pub fn set_chunk_loading(&mut self, chunk_loading: Either<RawChunkLoading, ()>) {
+    match chunk_loading {
+      Either::A(WithFalse::False) => self.0.chunk_loading = Some(ChunkLoading::Disable),
+      Either::A(WithFalse::True(s)) => {
+        self.0.chunk_loading = Some(ChunkLoading::Enable(s.as_str().into()))
+      }
+      Either::B(_) => self.0.chunk_loading = None,
+    }
   }
 
   #[napi(getter)]

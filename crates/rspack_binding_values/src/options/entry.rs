@@ -34,6 +34,7 @@ pub struct JsEntryOptions {
   pub name: Option<String>,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<JsEntryRuntime>,
+  #[napi(ts_type = "false | string")]
   pub chunk_loading: Option<RawChunkLoading>,
   pub async_chunks: Option<bool>,
   #[napi(ts_type = "\"auto\" | JsFilename")]

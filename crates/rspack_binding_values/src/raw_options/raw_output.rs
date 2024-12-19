@@ -68,11 +68,13 @@ pub struct RawOutputOptions {
   #[napi(ts_type = "\"auto\" | JsFilename")]
   pub public_path: JsFilename,
   pub asset_module_filename: JsFilename,
+  #[napi(ts_type = "string | false")]
   pub wasm_loading: RawWasmLoading,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: JsFilename,
   pub chunk_filename: JsFilename,
+  #[napi(ts_type = "string | false")]
   pub cross_origin_loading: RawCrossOriginLoading,
   pub css_filename: JsFilename,
   pub css_chunk_filename: JsFilename,
@@ -89,6 +91,7 @@ pub struct RawOutputOptions {
   pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
+  #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
   pub charset: bool,
@@ -100,7 +103,9 @@ pub struct RawOutputOptions {
   pub hash_digest_length: u32,
   pub hash_salt: Option<String>,
   pub async_chunks: bool,
+  #[napi(ts_type = "string | false")]
   pub worker_chunk_loading: RawChunkLoading,
+  #[napi(ts_type = "string | false")]
   pub worker_wasm_loading: RawWasmLoading,
   pub worker_public_path: String,
   #[napi(ts_type = r#""module" | "text/javascript" | false"#)]

@@ -32,7 +32,7 @@ export declare class EntryOptionsDto {
   get runtime(): false | string | undefined
   set runtime(chunkLoading: boolean | string | undefined)
   get chunkLoading(): string | undefined
-  set chunkLoading(chunkLoading?: RawChunkLoading | undefined | null)
+  set chunkLoading(chunkLoading: string | false | undefined)
   get asyncChunks(): boolean | undefined
   set asyncChunks(asyncChunks: boolean | undefined)
   get baseUri(): string | undefined
@@ -612,7 +612,7 @@ export interface JsEntryData {
 export interface JsEntryOptions {
   name?: string
   runtime?: false | string
-  chunkLoading?: RawChunkLoading
+  chunkLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
@@ -1382,9 +1382,9 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: WithFalse
-  rspackFuture?: RawRspackFuture
-  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsMemory | boolean
+incremental?: false | { [key: string]: boolean }
+rspackFuture?: RawRspackFuture
+cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsMemory | boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -1731,11 +1731,11 @@ export interface RawOccurrenceChunkIdsPluginOptions {
 
 export interface RawOptimizationOptions {
   removeAvailableModules: boolean
-  sideEffects: WithBool
-  usedExports: WithBool
+  sideEffects: boolean | string
+  usedExports: boolean | string
   providedExports: boolean
   innerGraph: boolean
-  mangleExports: WithBool
+  mangleExports: boolean | string
   concatenateModules: boolean
 }
 
@@ -1763,12 +1763,12 @@ export interface RawOutputOptions {
   clean: boolean | JsCleanOptions
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
-  wasmLoading: RawWasmLoading
+  wasmLoading: string | false
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: JsFilename
   chunkFilename: JsFilename
-  crossOriginLoading: RawCrossOriginLoading
+  crossOriginLoading: string | false
   cssFilename: JsFilename
   cssChunkFilename: JsFilename
   hotUpdateMainFilename: string
@@ -1784,7 +1784,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
-  chunkLoading: RawChunkLoading
+  chunkLoading: string | false
   chunkLoadTimeout: number
   charset: boolean
   enabledChunkLoadingTypes?: Array<string>
@@ -1795,8 +1795,8 @@ export interface RawOutputOptions {
   hashDigestLength: number
   hashSalt?: string
   asyncChunks: boolean
-  workerChunkLoading: RawChunkLoading
-  workerWasmLoading: RawWasmLoading
+  workerChunkLoading: string | false
+  workerWasmLoading: string | false
   workerPublicPath: string
   scriptType: "module" | "text/javascript" | false
   environment: RawEnvironment

@@ -1,5 +1,5 @@
 use napi::{
-  bindgen_prelude::{FromNapiValue, ValidateNapiValue},
+  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
   Either,
 };
 use napi_derive::napi;
@@ -115,6 +115,18 @@ impl<T: ValidateNapiValue + FromNapiValue> FromNapiValue for WithFalse<T> {
       Either::A(true) => panic!("true is not a valid value for `WithFalse`"),
       Either::B(value) => WithFalse::True(value),
     })
+  }
+}
+
+impl<T: ValidateNapiValue> ValidateNapiValue for WithFalse<T> {}
+
+impl<T: TypeName> TypeName for WithFalse<T> {
+  fn type_name() -> &'static str {
+    T::type_name()
+  }
+
+  fn value_type() -> napi::ValueType {
+    T::value_type()
   }
 }
 
