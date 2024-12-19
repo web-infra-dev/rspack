@@ -409,7 +409,7 @@ impl Compiler {
       };
 
       if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
+        self.output_filesystem.write(&file_path, content).await?;
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 
