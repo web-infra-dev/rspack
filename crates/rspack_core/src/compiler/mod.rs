@@ -2,7 +2,6 @@ mod compilation;
 mod hmr;
 pub mod make;
 mod module_executor;
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use rspack_error::Result;
@@ -365,7 +364,7 @@ impl Compiler {
         )
         .await?;
 
-      let content: Vec<u8> = source.buffer().into();
+      let content = source.buffer();
 
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
@@ -410,10 +409,7 @@ impl Compiler {
       };
 
       if need_write {
-        self
-          .output_filesystem
-          .write(&file_path, Cow::Owned(content))
-          .await?;
+        self.output_filesystem.write(&file_path, content).await?;
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 

@@ -387,7 +387,7 @@ mod tests {
     WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c"))
       .await
       .unwrap();
-    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content)
+    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content.clone())
       .await
       .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -465,16 +465,16 @@ mod tests {
         .is_err()
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
+      *ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file1"))
         .await
         .unwrap(),
-      file_content
+      *file_content
     );
     assert_eq!(
-      ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
+      *ReadableFileSystem::async_read(&fs, Utf8Path::new("/a/file2"))
         .await
         .unwrap(),
-      file_content
+      *file_content
     );
 
     // stat
