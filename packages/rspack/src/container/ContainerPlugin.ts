@@ -9,12 +9,7 @@ import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";
-import {
-	type EntryRuntime,
-	type FilenameTemplate,
-	type LibraryOptions,
-	getRawLibrary
-} from "../config";
+import type { EntryRuntime, FilenameTemplate, LibraryOptions } from "../config";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 
@@ -79,7 +74,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 		const rawOptions: RawContainerPluginOptions = {
 			name,
 			shareScope,
-			library: getRawLibrary(library),
+			library,
 			runtime,
 			filename,
 			exposes: exposes.map(([key, r]) => ({ key, ...r })),

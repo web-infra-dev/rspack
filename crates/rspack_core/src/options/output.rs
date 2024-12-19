@@ -98,15 +98,6 @@ pub enum ChunkLoading {
   Disable,
 }
 
-impl From<&str> for ChunkLoading {
-  fn from(value: &str) -> Self {
-    match value {
-      "false" => ChunkLoading::Disable,
-      v => ChunkLoading::Enable(v.into()),
-    }
-  }
-}
-
 impl From<ChunkLoading> for String {
   fn from(value: ChunkLoading) -> Self {
     match value {
