@@ -57,3 +57,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+# Fix https://github.com/rust-lang/cargo/issues/8688
+[http]
+check-revoke = false
