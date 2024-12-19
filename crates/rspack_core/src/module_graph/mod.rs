@@ -928,13 +928,11 @@ impl<'a> ModuleGraph<'a> {
     self.loop_partials(|p| p.dep_meta_map.get(id))
   }
 
-  pub fn set_dep_meta(&mut self, dep_id: DependencyId, ids: Vec<Atom>) {
+  pub fn set_dependency_extra_meta(&mut self, dep_id: DependencyId, extra: DependencyExtraMeta) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
-    active_partial
-      .dep_meta_map
-      .insert(dep_id, DependencyExtraMeta { ids });
+    active_partial.dep_meta_map.insert(dep_id, extra);
   }
 
   pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {

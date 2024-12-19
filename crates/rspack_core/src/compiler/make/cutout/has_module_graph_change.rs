@@ -61,8 +61,9 @@ impl ModuleDeps {
         dep.dependency_type(),
         crate::DependencyType::EsmImportSpecifier
       ) {
-        let dep_ids = dep.get_ids(module_graph);
-        ids.extend(dep_ids.into_iter());
+        // TODO: remove Dependency::get_ids once incremental build chunk graph is stable.
+        let dep_ids = dep._get_ids(module_graph);
+        ids.extend(dep_ids.iter().cloned());
       }
     }
 
@@ -142,7 +143,6 @@ impl HasModuleGraphChange {
 mod t {
   use std::borrow::Cow;
 
-  use itertools::Itertools;
   use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
@@ -185,14 +185,6 @@ mod t {
 
     fn id(&self) -> &DependencyId {
       &self.id
-    }
-
-    fn get_ids(&self, _mg: &ModuleGraph) -> Vec<swc_core::atoms::Atom> {
-      self
-        .ids
-        .iter()
-        .map(|id| (*id).to_string().into())
-        .collect_vec()
     }
 
     fn could_affect_referencing_module(&self) -> AffectType {

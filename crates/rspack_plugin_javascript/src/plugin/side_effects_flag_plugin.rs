@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
+use rspack_core::DependencyExtraMeta;
 use rspack_core::DependencyId;
 use rspack_core::MaybeDynamicTargetExportInfo;
 use rspack_core::ModuleGraphConnection;
@@ -730,7 +731,7 @@ fn do_optimize_connection(
     kind,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
-  dependency.set_ids(ids, module_graph);
+  module_graph.set_dependency_extra_meta(dependency, DependencyExtraMeta { ids });
   if let DoOptimizeKind::ExportImportedSpecifier {
     export_info: MaybeDynamicTargetExportInfo::Static(export_info),
     target_export,
@@ -750,16 +751,10 @@ fn can_optimize_connection(
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
   let dep = module_graph.dependency_by_id(&dependency_id)?;
-  let reexport_dep = dep.downcast_ref::<ESMExportImportedSpecifierDependency>();
-  let is_reexport = reexport_dep.is_some();
-  let is_valid_import_specifier_dep = dep
-    .downcast_ref::<ESMImportSpecifierDependency>()
-    .map(|import_specifier_dep| !import_specifier_dep.namespace_object_as_context)
-    .unwrap_or_default();
-  if !is_reexport && !is_valid_import_specifier_dep {
-    return None;
-  }
-  if let Some(name) = reexport_dep.and_then(|dep| dep.name.as_ref()) {
+
+  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
+    && let Some(name) = &dep.name
+  {
     let exports_info = module_graph.get_exports_info(&original_module);
     let export_info = exports_info.get_export_info_without_mut_module_graph(module_graph, name);
 
@@ -773,7 +768,7 @@ fn can_optimize_connection(
       return None;
     }
 
-    let ids = dependency_id.get_ids(module_graph);
+    let ids = dep.get_ids(module_graph);
     let processed_ids = target
       .export
       .as_ref()
@@ -795,8 +790,11 @@ fn can_optimize_connection(
     });
   }
 
-  let ids = dependency_id.get_ids(module_graph);
-  if !ids.is_empty() {
+  if let Some(dep) = dep.downcast_ref::<ESMImportSpecifierDependency>()
+    && !dep.namespace_object_as_context
+    && let ids = dep.get_ids(module_graph)
+    && !ids.is_empty()
+  {
     let exports_info = module_graph.get_exports_info(connection.module_identifier());
     let export_info = exports_info.get_export_info_without_mut_module_graph(module_graph, &ids[0]);
 

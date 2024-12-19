@@ -342,14 +342,14 @@ impl ExportsInfo {
   pub fn get_nested_exports_info(
     &self,
     mg: &ModuleGraph,
-    name: Option<Vec<Atom>>,
+    name: Option<&[Atom]>,
   ) -> Option<ExportsInfo> {
     if let Some(name) = name
       && !name.is_empty()
     {
       let info = self.get_read_only_export_info(mg, &name[0]);
       if let Some(exports_info) = info.exports_info(mg) {
-        return exports_info.get_nested_exports_info(mg, Some(name[1..].to_vec()));
+        return exports_info.get_nested_exports_info(mg, Some(&name[1..]));
       } else {
         return None;
       }
