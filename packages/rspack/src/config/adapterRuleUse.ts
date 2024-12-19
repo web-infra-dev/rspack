@@ -17,6 +17,7 @@ import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
 import type Hash from "../util/hash";
+import type { RspackOptionsNormalized } from "./normalization";
 import type {
 	Mode,
 	PublicPath,
@@ -25,7 +26,6 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./types";
-import { RspackOptionsNormalized } from "./normalization";
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 

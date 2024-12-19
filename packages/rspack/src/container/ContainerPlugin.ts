@@ -9,11 +9,7 @@ import {
 	RspackBuiltinPlugin,
 	createBuiltinPlugin
 } from "../builtin-plugin/base";
-import {
-	type EntryRuntime,
-	type FilenameTemplate,
-	type LibraryOptions
-} from "../config";
+import type { EntryRuntime, FilenameTemplate, LibraryOptions } from "../config";
 import { parseOptions } from "../container/options";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
 

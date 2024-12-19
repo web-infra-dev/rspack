@@ -4,7 +4,7 @@ import {
 	type JsEntryPluginOptions
 } from "@rspack/binding";
 
-import { type EntryDescriptionNormalized } from "../config";
+import type { EntryDescriptionNormalized } from "../config";
 import { create } from "./base";
 
 /**
