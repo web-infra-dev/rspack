@@ -153,9 +153,9 @@ interface AssetEmittedInfo {
 export type AssetGeneratorDataUrl = AssetGeneratorDataUrlOptions | AssetGeneratorDataUrlFunction;
 
 // @public (undocumented)
-export type AssetGeneratorDataUrlFunction = (content: Buffer, context: {
+export type AssetGeneratorDataUrlFunction = (options: {
     filename: string;
-    module: Module;
+    content: string;
 }) => string;
 
 // @public (undocumented)
@@ -182,9 +182,6 @@ export type AssetInlineGeneratorOptions = {
 export type AssetModuleFilename = Filename;
 
 // @public
-export type AssetModuleOutputPath = Filename;
-
-// @public
 export type AssetParserDataUrl = AssetParserDataUrlOptions;
 
 // @public
@@ -201,7 +198,6 @@ export type AssetParserOptions = {
 export type AssetResourceGeneratorOptions = {
     emit?: boolean;
     filename?: Filename;
-    outputPath?: AssetModuleOutputPath;
     publicPath?: PublicPath;
 };
 
@@ -596,8 +592,6 @@ export class Compilation {
     set __internal__shutdown(shutdown: boolean);
     // @internal
     __internal_getInner(): binding.JsCompilation;
-    // (undocumented)
-    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
     // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
@@ -1640,12 +1634,6 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
-}
-
 // @public
 export type EntryDependOn = string | string[];
 
@@ -1703,12 +1691,15 @@ export type EntryOptions = Omit<EntryDescriptionNormalized, "import"> & {
     name?: string;
 };
 
-// @public (undocumented)
-export const EntryPlugin: EntryPluginType;
-
-// @public (undocumented)
-type EntryPluginType = typeof OriginEntryPlugin & {
-    createDependency(entry: string): EntryDependency;
+// @public
+export const EntryPlugin: {
+    new (context: string, entry: string, options?: string | EntryOptions | undefined): {
+        name: BuiltinPluginName;
+        _args: [context: string, entry: string, options?: string | EntryOptions | undefined];
+        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
 };
 
 // @public (undocumented)
@@ -1938,7 +1929,7 @@ export type ExperimentCacheOptions = boolean | {
         unmanagedPaths?: Array<string | RegExp>;
         managedPaths?: Array<string | RegExp>;
     };
-    storage?: {
+    storage: {
         type: "filesystem";
         directory?: string;
     };
@@ -4144,7 +4135,7 @@ type OptimizationSplitChunksChunks = "initial" | "async" | "all" | RegExp | ((ch
 type OptimizationSplitChunksName = string | false | OptimizationSplitChunksNameFunction;
 
 // @public (undocumented)
-export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+export type OptimizationSplitChunksNameFunction = (module?: Module, chunks?: Chunk[]) => unknown;
 
 // @public
 export type OptimizationSplitChunksOptions = {
@@ -4187,17 +4178,6 @@ interface OptimizerConfig {
     // (undocumented)
     simplify?: boolean;
 }
-
-// @public
-const OriginEntryPlugin: {
-    new (context: string, entry: string, options?: string | EntryOptions | undefined): {
-        name: BuiltinPluginName;
-        _args: [context: string, entry: string, options?: string | EntryOptions | undefined];
-        affectedHooks: "done" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
-    };
-};
 
 // @public (undocumented)
 export type Output = {
@@ -5320,7 +5300,6 @@ declare namespace rspackExports {
         AssetGeneratorDataUrlFunction,
         AssetGeneratorDataUrl,
         AssetInlineGeneratorOptions,
-        AssetModuleOutputPath,
         AssetResourceGeneratorOptions,
         AssetGeneratorOptions,
         CssGeneratorExportsConvention,
@@ -6269,18 +6248,22 @@ export const rspackOptions: z.ZodObject<{
                 unmanagedPaths?: (string | RegExp)[] | undefined;
                 managedPaths?: (string | RegExp)[] | undefined;
             }>>;
-            storage: z.ZodOptional<z.ZodObject<{
+            storage: z.ZodObject<{
                 type: z.ZodEnum<["filesystem"]>;
                 directory: z.ZodOptional<z.ZodString>;
-            }, "strip", z.ZodTypeAny, {
+            }, "strict", z.ZodTypeAny, {
                 type: "filesystem";
                 directory?: string | undefined;
             }, {
                 type: "filesystem";
                 directory?: string | undefined;
-            }>>;
+            }>;
         }, "strip", z.ZodTypeAny, {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -6288,12 +6271,12 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         }, {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -6301,10 +6284,6 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         }>]>]>;
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
@@ -6490,6 +6469,10 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -6497,10 +6480,6 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -6555,6 +6534,10 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -6562,10 +6545,6 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -7789,14 +7768,14 @@ export const rspackOptions: z.ZodObject<{
                 }, {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer, z.ZodTypeDef, Buffer>, z.ZodObject<{
+                }>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+                    content: z.ZodString;
                     filename: z.ZodString;
-                    module: z.ZodType<Module, z.ZodTypeDef, Module>;
                 }, "strict", z.ZodTypeAny, {
-                    module: Module;
+                    content: string;
                     filename: string;
                 }, {
-                    module: Module;
+                    content: string;
                     filename: string;
                 }>], z.ZodUnknown>, z.ZodString>]>>;
             }, {
@@ -7809,8 +7788,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -7820,8 +7799,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -7836,30 +7815,30 @@ export const rspackOptions: z.ZodObject<{
                 }, {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer, z.ZodTypeDef, Buffer>, z.ZodObject<{
+                }>, z.ZodFunction<z.ZodTuple<[z.ZodObject<{
+                    content: z.ZodString;
                     filename: z.ZodString;
-                    module: z.ZodType<Module, z.ZodTypeDef, Module>;
                 }, "strict", z.ZodTypeAny, {
-                    module: Module;
+                    content: string;
                     filename: string;
                 }, {
-                    module: Module;
+                    content: string;
                     filename: string;
                 }>], z.ZodUnknown>, z.ZodString>]>>;
             }, "strict", z.ZodTypeAny, {
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             }, {
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             }>>;
@@ -7929,8 +7908,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -7951,8 +7930,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -7972,8 +7951,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -7994,8 +7973,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -8120,8 +8099,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -8142,8 +8121,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -8268,8 +8247,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -8290,8 +8269,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -8437,8 +8416,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -8459,8 +8438,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -8490,6 +8469,10 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -8497,10 +8480,6 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -9039,8 +9018,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
@@ -9061,8 +9040,8 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer, args_1: {
-                    module: Module;
+                } | ((args_0: {
+                    content: string;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
@@ -9092,6 +9071,10 @@ export const rspackOptions: z.ZodObject<{
             type: "memory";
         } | {
             type: "persistent";
+            storage: {
+                type: "filesystem";
+                directory?: string | undefined;
+            };
             version?: string | undefined;
             snapshot?: {
                 immutablePaths?: (string | RegExp)[] | undefined;
@@ -9099,10 +9082,6 @@ export const rspackOptions: z.ZodObject<{
                 managedPaths?: (string | RegExp)[] | undefined;
             } | undefined;
             buildDependencies?: string[] | undefined;
-            storage?: {
-                type: "filesystem";
-                directory?: string | undefined;
-            } | undefined;
         } | undefined;
         topLevelAwait?: boolean | undefined;
         layers?: boolean | undefined;
@@ -10465,7 +10444,6 @@ declare namespace t {
         AssetGeneratorDataUrlFunction,
         AssetGeneratorDataUrl,
         AssetInlineGeneratorOptions,
-        AssetModuleOutputPath,
         AssetResourceGeneratorOptions,
         AssetGeneratorOptions,
         CssGeneratorExportsConvention,
