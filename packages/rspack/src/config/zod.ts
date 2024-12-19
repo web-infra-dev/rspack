@@ -1218,7 +1218,7 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
-	filename: z.string().optional(),
+	filename: filename.optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
