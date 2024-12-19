@@ -1,8 +1,7 @@
 name: ecosystem-ci trigger
 
-on:
-  issue_comment:
-    types: [created]
+# TODO: switch to workflow_dispatch
+# on:
 
 jobs:
   trigger:
