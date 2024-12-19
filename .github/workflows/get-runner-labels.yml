@@ -12,12 +12,30 @@ on:
       LINUX_RUNNER_LABELS:
         description: "linux runner labels"
         value: ${{ jobs.main.outputs.LINUX_RUNNER_LABELS }}
+      LINUX_RUNNER_TYPE:
+        description: "linux runner type"
+        value: ${{ jobs.main.outputs.LINUX_RUNNER_TYPE }}
+      LINUX_CACHE_TYPE:
+        description: "cache type used for linux runner"
+        value: ${{ jobs.main.outputs.LINUX_CACHE_TYPE }}
       MACOS_RUNNER_LABELS:
         description: "macos runner labels"
         value: ${{ jobs.main.outputs.MACOS_RUNNER_LABELS }}
+      MACOS_RUNNER_TYPE:
+        description: "macos runner type"
+        value: ${{ jobs.main.outputs.MACOS_RUNNER_TYPE }}
+      MACOS_CACHE_TYPE:
+        description: "cache type used for macos runner"
+        value: ${{ jobs.main.outputs.MACOS_CACHE_TYPE }}
       WINDOWS_RUNNER_LABELS:
         description: "windows runner labels"
         value: ${{ jobs.main.outputs.WINDOWS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_TYPE:
+        description: "windows runner type"
+        value: ${{ jobs.main.outputs.WINDOWS_RUNNER_TYPE }}
+      WINDOWS_CACHE_TYPE:
+        description: "cache type used for windows runner"
+        value: ${{ jobs.main.outputs.WINDOWS_CACHE_TYPE }}
 
 jobs:
   main:
@@ -25,8 +43,16 @@ jobs:
     runs-on: [ubuntu-22.04]
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
+      LINUX_RUNNER_TYPE: ${{ steps.run.outputs.LINUX_RUNNER_TYPE }}
+      LINUX_CACHE_TYPE: ${{ steps.run.outputs.LINUX_CACHE_TYPE }}
+
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
+      MACOS_RUNNER_TYPE: ${{ steps.run.outputs.MACOS_RUNNER_TYPE }}
+      MACOS_CACHE_TYPE: ${{ steps.run.outputs.MACOS_CACHE_TYPE }}
+
       WINDOWS_RUNNER_LABELS: ${{ steps.run.outputs.WINDOWS_RUNNER_LABELS }}
+      WINDOWS_RUNNER_TYPE: ${{ steps.run.outputs.WINDOWS_RUNNER_TYPE }}
+      WINDOWS_CACHE_TYPE: ${{ steps.run.outputs.WINDOWS_CACHE_TYPE }}
     steps:
       - id: run
         shell: bash
@@ -36,6 +62,7 @@ jobs:
             MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
             WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
           fi
+
           # set default value
           # use ubuntu 22.04 to be compatible with playwright docker
           if [[ -z "$LINUX_RUNNER_LABELS" ]]; then
@@ -47,7 +74,33 @@ jobs:
           if [[ -z "$WINDOWS_RUNNER_LABELS" ]]; then
             WINDOWS_RUNNER_LABELS='"windows-latest"';
           fi
+
+          if [[ "$LINUX_RUNNER_LABELS" == rspack-* ]]; then
+            LINUX_RUNNER_TYPE="hosted"
+            LINUX_CACHE_TYPE="hosted"
+          else
+            LINUX_RUNNER_TYPE="github"
+            LINUX_CACHE_TYPE="github"
+          fi
+
+          if [[ "$MACOS_RUNNER_LABELS" == rspack-* ]]; then
+            MACOS_RUNNER_EPHEMERAL="hosted"
+            MACOS_CACHE_TYPE="hosted"
+          else
+            MACOS_RUNNER_EPHEMERAL="github"
+            MACOS_CACHE_TYPE="github"
+          fi
+
           # set output
           echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "LINUX_RUNNER_TYPE=$LINUX_RUNNER_TYPE" >> "$GITHUB_OUTPUT"
+          echo "LINUX_CACHE_TYPE=$LINUX_CACHE_TYPE" >> "$GITHUB_OUTPUT"
+
           echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
-          echo "WINDOWS_RUNNER_LABELS=$WINDOWS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
+          echo "MACOS_RUNNER_EPHEMERAL=$MACOS_RUNNER_EPHEMERAL" >> "$GITHUB_OUTPUT"
+          echo "MACOS_CACHE_TYPE=$MACOS_CACHE_TYPE" >> "$GITHUB_OUTPUT"
+
+          # TODO: test
+          echo "WINDOWS_RUNNER_LABELS='"rspack-windows-2022-large"'" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_RUNNER_TYPE=k8s" >> "$GITHUB_OUTPUT"
+          echo "WINDOWS_CACHE_TYPE=lynx" >> "$GITHUB_OUTPUT"
