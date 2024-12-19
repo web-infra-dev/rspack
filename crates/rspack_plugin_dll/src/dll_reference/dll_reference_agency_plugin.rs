@@ -62,7 +62,7 @@ impl Plugin for DllReferenceAgencyPlugin {
 
     let name = name.expect("Should pass name or manifest should have the name attribute");
 
-    let source = format!("dll-reference {}", name);
+    let source = format!("dll-reference {name}");
 
     let mut external_item_object = HashMap::default();
 
