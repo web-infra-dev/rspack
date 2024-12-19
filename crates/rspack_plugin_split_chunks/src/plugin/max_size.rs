@@ -6,8 +6,7 @@ use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::incremental::Mutation;
 use rspack_core::{
-  compare_modules_by_identifier, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
-  DEFAULT_DELIMITER,
+  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -28,10 +27,11 @@ struct Group {
   nodes: Vec<GroupItem>,
   pub size: SplitChunkSizes,
   pub key: Option<String>,
+  pub similarities: Vec<usize>,
 }
 
 impl Group {
-  fn new(items: Vec<GroupItem>, key: Option<String>) -> Self {
+  fn new(items: Vec<GroupItem>, key: Option<String>, similarities: Vec<usize>) -> Self {
     let mut summed_size = SplitChunkSizes::empty();
     items.iter().for_each(|item| summed_size.add_by(&item.size));
 
@@ -39,6 +39,7 @@ impl Group {
       nodes: items,
       size: summed_size,
       key,
+      similarities,
     }
   }
 }
@@ -84,21 +85,19 @@ fn deterministic_grouping_for_modules(
 ) -> Vec<Group> {
   let mut results: Vec<Group> = Default::default();
   let module_graph = compilation.get_module_graph();
-  let mut items = compilation
+  let items = compilation
     .chunk_graph
     .get_chunk_modules(chunk, &module_graph);
-
-  items.sort_unstable_by(|a, b| compare_modules_by_identifier(a, b));
-
   let context = compilation.options.context.as_ref();
 
   let nodes = items.into_iter().map(|module| {
     let module: &dyn Module = &**module;
-    let name: String = if module.name_for_condition().is_some() {
-      make_paths_relative(context, module.identifier().as_str())
+    let name: String = if let Some(name_for_condition) = module.name_for_condition() {
+      make_paths_relative(context, &name_for_condition)
     } else {
+      let path = make_paths_relative(context, module.identifier().as_str());
       REPLACE_MODULE_IDENTIFIER_REG
-        .replace_all(&module.identifier(), "")
+        .replace_all(&path, "")
         .to_string()
     };
     let key = format!(
@@ -114,7 +113,7 @@ fn deterministic_grouping_for_modules(
     }
   });
 
-  let initial_nodes = nodes
+  let mut initial_nodes = nodes
     .into_iter()
     .filter_map(|node| {
       // The Module itself is already bigger than `allow_max_size`, we will create a chunk
@@ -127,7 +126,7 @@ fn deterministic_grouping_for_modules(
           allow_max_size
         );
         let key = node.key.clone();
-        results.push(Group::new(vec![node], Some(key)));
+        results.push(Group::new(vec![node], Some(key), vec![]));
         None
       } else {
         Some(node)
@@ -135,8 +134,11 @@ fn deterministic_grouping_for_modules(
     })
     .collect::<Vec<_>>();
 
+  initial_nodes.sort_by(|a, b| a.key.cmp(&b.key));
+
   if !initial_nodes.is_empty() {
-    let initial_group = Group::new(initial_nodes, None);
+    let similarities = get_similarities(&initial_nodes);
+    let initial_group = Group::new(initial_nodes, None, similarities);
 
     let mut queue = vec![initial_group];
 
@@ -159,16 +161,17 @@ fn deterministic_grouping_for_modules(
         left += 1;
       }
 
-      let mut right = group.nodes.len() - 2;
+      let mut right: i32 = group.nodes.len() as i32 - 2;
       let mut right_size = SplitChunkSizes::empty();
-      right_size.add_by(&group.nodes[right + 1].size);
-      while right != 0 && right_size.smaller_than(min_size) {
-        right_size.add_by(&group.nodes[right].size);
+      right_size.add_by(&group.nodes[right as usize + 1].size);
 
-        right = right.saturating_sub(1);
+      while right >= 0 && right_size.smaller_than(min_size) {
+        right_size.add_by(&group.nodes[right as usize].size);
+
+        right -= 1;
       }
 
-      if left - 1 > right {
+      if left - 1 > right as usize {
         // There are overlaps
 
         // TODO(hyf0): There are some algorithms we could do better in this
@@ -182,11 +185,53 @@ fn deterministic_grouping_for_modules(
         results.push(group);
         continue;
       } else {
+        let mut pos = left;
+        let mut best = -1;
+        let mut best_similarity = usize::MAX;
+        right_size = group.nodes.iter().rev().take(group.nodes.len() - pos).fold(
+          SplitChunkSizes::empty(),
+          |mut acc, node| {
+            acc.add_by(&node.size);
+            acc
+          },
+        );
+
+        while pos <= right as usize + 1 {
+          let similarity = group.similarities[pos - 1];
+          if similarity < best_similarity
+            && left_size.bigger_than(min_size)
+            && right_size.bigger_than(min_size)
+          {
+            best_similarity = similarity;
+            best = pos as i32;
+          }
+          let size = &group.nodes[pos].size;
+          left_size.add_by(size);
+          right_size.subtract_by(size);
+          pos += 1;
+        }
+
+        if best == -1 {
+          results.push(group);
+          continue;
+        }
+
+        left = best as usize;
+        right = best - 1;
+
+        let mut right_similarities = vec![];
+        for i in right as usize + 2..group.nodes.len() {
+          right_similarities.push((group.similarities)[i - 1]);
+        }
+
+        let mut left_similarities = vec![];
+        for i in 1..left {
+          left_similarities.push((group.similarities)[i - 1]);
+        }
         let right_nodes = group.nodes.split_off(left);
         let left_nodes = group.nodes;
-
-        queue.push(Group::new(right_nodes, None));
-        queue.push(Group::new(left_nodes, None));
+        queue.push(Group::new(right_nodes, None, right_similarities));
+        queue.push(Group::new(left_nodes, None, left_similarities));
       }
     }
   }
@@ -202,6 +247,31 @@ struct ChunkWithSizeInfo<'a> {
   pub allow_max_size: Cow<'a, SplitChunkSizes>,
   pub min_size: &'a SplitChunkSizes,
   pub automatic_name_delimiter: &'a String,
+}
+
+fn get_similarities(nodes: &[GroupItem]) -> Vec<usize> {
+  let mut similarities = Vec::with_capacity(nodes.len());
+  let mut nodes = nodes.iter();
+  let Some(mut last) = nodes.next() else {
+    return similarities;
+  };
+
+  for node in nodes {
+    similarities.push(similarity(&last.key, &node.key));
+    last = node;
+  }
+
+  similarities
+}
+
+fn similarity(a: &str, b: &str) -> usize {
+  let mut a = a.chars();
+  let mut b = b.chars();
+  let mut dist = 0;
+  while let (Some(ca), Some(cb)) = (a.next(), b.next()) {
+    dist += std::cmp::max(0, 10 - (ca as i32 - cb as i32).abs());
+  }
+  dist as usize
 }
 
 impl SplitChunksPlugin {

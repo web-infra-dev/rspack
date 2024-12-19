@@ -122,6 +122,10 @@ impl SplitChunkSizes {
   pub fn add_by(&mut self, other: &Self) {
     self.combine_with(other, &|a, b| a + b)
   }
+
+  pub fn subtract_by(&mut self, other: &Self) {
+    self.combine_with(other, &|a, b| a - b)
+  }
 }
 
 impl Deref for SplitChunkSizes {
