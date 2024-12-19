@@ -4,8 +4,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
+use rspack_util::atom::Atom;
 use rspack_util::ext::AsAny;
-use swc_core::ecma::atoms::Atom;
 
 use super::dependency_template::AsDependencyTemplate;
 use super::module_dependency::*;
@@ -89,9 +89,10 @@ pub trait Dependency:
     None
   }
 
+  // TODO: remove this once incremental build chunk graph is stable.
   // For now only `ESMImportSpecifierDependency` and
   // `ESMExportImportedSpecifierDependency` can use this method
-  fn get_ids(&self, _mg: &ModuleGraph) -> Vec<Atom> {
+  fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
     unreachable!()
   }
 

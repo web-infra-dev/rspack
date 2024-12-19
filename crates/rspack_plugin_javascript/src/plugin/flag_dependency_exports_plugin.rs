@@ -312,7 +312,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       if let Some(target) = target {
         let target_module_exports_info = self.mg.get_exports_info(&target.module);
         target_exports_info =
-          target_module_exports_info.get_nested_exports_info(self.mg, target.export);
+          target_module_exports_info.get_nested_exports_info(self.mg, target.export.as_deref());
         match self.dependencies.entry(target.module) {
           Entry::Occupied(mut occ) => {
             occ.get_mut().insert(self.current_module_id);
