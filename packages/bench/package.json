@@ -13,8 +13,7 @@
         "@rspack/plugin-react-refresh": "1.0.0",
         "@types/react": "^18.2.48",
         "@types/react-dom": "^18.2.18",
-        "vitest": "^2.1.8",
-        "zx": "7.2.3"
+        "vitest": "^2.1.8"
     },
     "dependencies": {
         "react": "^18.2.0",
