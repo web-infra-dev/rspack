@@ -37,8 +37,9 @@ jobs:
             WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
           fi
           # set default value
+          # use ubuntu 22.04 to be compatible with playwright docker
           if [[ -z "$LINUX_RUNNER_LABELS" ]]; then
-            LINUX_RUNNER_LABELS='"ubuntu-latest"';
+            LINUX_RUNNER_LABELS='"ubuntu-22.04"';
           fi
           if [[ -z "$MACOS_RUNNER_LABELS" ]]; then
             MACOS_RUNNER_LABELS='"macos-latest"';
