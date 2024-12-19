@@ -364,7 +364,7 @@ impl Compiler {
         )
         .await?;
 
-      let content = source.buffer();
+      let content: Vec<u8> = source.buffer().into();
 
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
@@ -409,7 +409,7 @@ impl Compiler {
       };
 
       if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
+        self.output_filesystem.write(&file_path, content).await?;
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 

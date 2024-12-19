@@ -201,7 +201,7 @@ impl HttpCache {
 
       if should_update {
         if store_cache {
-          self.write_to_cache(url, &result.content).await?;
+          self.write_to_cache(url, result.content.clone()).await?;
         }
         let lockfile = self.lockfile_cache.get_lockfile().await?;
         lockfile
@@ -252,7 +252,7 @@ impl HttpCache {
     Ok(None)
   }
 
-  async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
+  async fn write_to_cache(&self, resource: &str, content: Vec<u8>) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
       let cache_location_path =
         Utf8Path::from_path(cache_location).expect("Invalid cache location path");

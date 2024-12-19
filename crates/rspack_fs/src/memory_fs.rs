@@ -181,17 +181,17 @@ impl WritableFileSystem for MemoryFileSystem {
     Ok(())
   }
 
-  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
+  async fn write(&self, file: &Utf8Path, data: Vec<u8>) -> Result<()> {
     {
       // check file exist and update it
       let mut files = self.files.lock().expect("should get lock");
       if let Some(ft) = files.get_mut(file) {
         if let FileType::File { content, metadata } = ft {
           let now = current_time();
-          *content = data.to_vec();
+          *content = data;
           metadata.mtime_ms = now;
           metadata.atime_ms = now;
-          metadata.size = data.len() as u64;
+          metadata.size = content.len() as u64;
           return Ok(());
         } else {
           return Err(new_error("invalid file path"));
@@ -206,7 +206,7 @@ impl WritableFileSystem for MemoryFileSystem {
     }
 
     let mut files = self.files.lock().expect("should get lock");
-    files.insert(file.to_path_buf(), FileType::new_file(data.to_vec()));
+    files.insert(file.to_path_buf(), FileType::new_file(data));
     Ok(())
   }
 
@@ -356,7 +356,7 @@ impl WriteStream for MemoryWriteStream {
     Ok(())
   }
   async fn flush(&mut self) -> Result<()> {
-    self.fs.write(&self.file, &self.contents).await?;
+    self.fs.write(&self.file, self.contents.clone()).await?;
     Ok(())
   }
   async fn close(&mut self) -> Result<()> {
@@ -372,12 +372,12 @@ mod tests {
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();
-    let file_content = "1".as_bytes();
+    let file_content = "1".as_bytes().to_vec();
     // init fs
     WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/a/b/c"))
       .await
       .unwrap();
-    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content)
+    WritableFileSystem::write(&fs, Utf8Path::new("/a/file1"), file_content.clone())
       .await
       .unwrap();
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -428,17 +428,17 @@ mod tests {
 
     // test write
     assert!(
-      WritableFileSystem::write(&fs, Utf8Path::new("/a/temp/file2"), file_content)
+      WritableFileSystem::write(&fs, Utf8Path::new("/a/temp/file2"), file_content.clone())
         .await
         .is_err()
     );
     assert!(
-      WritableFileSystem::write(&fs, Utf8Path::new("/a/file2"), file_content)
+      WritableFileSystem::write(&fs, Utf8Path::new("/a/file2"), file_content.clone())
         .await
         .is_ok()
     );
     assert!(
-      WritableFileSystem::write(&fs, Utf8Path::new("/a/file1/file2"), file_content)
+      WritableFileSystem::write(&fs, Utf8Path::new("/a/file1/file2"), file_content.clone())
         .await
         .is_err()
     );

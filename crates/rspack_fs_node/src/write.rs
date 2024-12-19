@@ -57,9 +57,8 @@ impl WritableFileSystem for NodeFileSystem {
       .map(|_| ())
   }
 
-  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    let file = file.as_str().to_string();
-    let data = data.to_vec();
+  async fn write(&self, file: &Utf8Path, data: Vec<u8>) -> Result<()> {
+    let file = file.to_string();
     self
       .0
       .write_file
