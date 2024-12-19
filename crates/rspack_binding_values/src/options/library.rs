@@ -32,7 +32,7 @@ impl From<LibraryCustomUmdObject> for JsLibraryCustomUmdObject {
     Self {
       amd: value.amd,
       commonjs: value.commonjs,
-      root: value.root.map(|v| Either::A(v)),
+      root: value.root.map(Either::A),
     }
   }
 }
@@ -183,7 +183,7 @@ impl From<LibraryOptions> for JsLibraryOptions {
         LibraryName::NonUmdObject(LibraryNonUmdObject::Array(names)) => Either3::B(names),
         LibraryName::UmdObject(umd_object) => Either3::C(umd_object.into()),
       }),
-      export: value.export.map(|v| Either::A(v)),
+      export: value.export.map(Either::A),
       r#type: value.library_type,
       umd_named_define: value.umd_named_define,
       auxiliary_comment: value
