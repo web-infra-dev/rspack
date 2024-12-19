@@ -13,5 +13,5 @@ pub fn to_comment(str: &str) -> String {
 
   let result = COMMENT_END_REGEX.replace_all(str, "* /");
 
-  format!("/*! {} */", result)
+  format!("/*! {result} */")
 }
