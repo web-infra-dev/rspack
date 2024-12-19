@@ -1,5 +1,5 @@
-import { rspack, Compilation } from "@rspack/core";
-import { bench, describe, beforeAll } from "vitest";
+import { type Compilation, rspack } from "@rspack/core";
+import { beforeAll, bench, describe } from "vitest";
 import rspackConfig from "./fixtures/ts-react/rspack.config";
 
 let theCompilation: Compilation;
@@ -13,7 +13,7 @@ beforeAll(() => {
 				plugins: [
 					...(rspackConfig.plugins ?? []),
 					compiler => {
-						compiler.hooks.compilation.tap("PLGUIN", compilation => {
+						compiler.hooks.compilation.tap("PLUGIN", compilation => {
 							theCompilation = compilation;
 						});
 					}
@@ -33,7 +33,7 @@ beforeAll(() => {
 });
 
 describe("TypeScript React project", () => {
-	bench("Traverse chunk modules", () => {
+	bench("Traverse module graph by dependencies", () => {
 		const entries = theCompilation.entries.values();
 
 		const visitedModules = new Set();

@@ -65,7 +65,6 @@ import {
 	SizeLimitsPlugin,
 	SourceMapDevToolPlugin,
 	SplitChunksPlugin,
-	WarnCaseSensitiveModulesPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
@@ -373,8 +372,6 @@ export class RspackOptionsApply {
 		if (options.performance) {
 			new SizeLimitsPlugin(options.performance).apply(compiler);
 		}
-
-		new WarnCaseSensitiveModulesPlugin().apply(compiler);
 
 		if (options.cache) {
 			new MemoryCachePlugin().apply(compiler);
