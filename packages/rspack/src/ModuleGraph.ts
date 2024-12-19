@@ -29,4 +29,8 @@ export default class ModuleGraph {
 			this.#inner.getExportsInfo(Module.__to_binding(module))
 		);
 	}
+
+	getOutgoingConnections(module: Module): ExportsInfo {
+		return this.#inner.getOutgoingConnections(Module.__to_binding(module));
+	}
 }
