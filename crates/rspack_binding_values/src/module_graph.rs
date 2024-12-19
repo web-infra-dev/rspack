@@ -5,7 +5,9 @@ use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
-use crate::{JsDependency, JsExportsInfo, JsModule, JsModuleWrapper};
+use crate::{
+  JsDependency, JsExportsInfo, JsModule, JsModuleGraphConnectionWrapper, JsModuleWrapper,
+};
 
 #[napi]
 pub struct JsModuleGraph {
@@ -86,5 +88,21 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     let exports_info = module_graph.get_exports_info(&module.identifier);
     Ok(JsExportsInfo::new(exports_info, compilation))
+  }
+
+  #[napi(ts_return_type = "JsModuleGraphConnection[]")]
+  pub fn get_outgoing_connections(
+    &self,
+    module: &JsModule,
+  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .get_outgoing_connections(&module.identifier)
+        .map(|connection| {
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, &compilation)
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 }

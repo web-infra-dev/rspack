@@ -239,6 +239,12 @@ export declare class JsModuleGraph {
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
+  getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+}
+
+export declare class JsModuleGraphConnection {
+  get dependency(): JsDependency
+  get module(): JsModule | null
 }
 
 export declare class JsResolver {
@@ -259,6 +265,12 @@ export declare class JsStats {
 }
 
 export declare class RawExternalItemFnCtx {
+
+}
+
+export declare class RawExternalItemFnCtx {
+  data(): RawExternalItemFnCtxData
+  getResolver(): JsResolver
   data(): RawExternalItemFnCtxData
   getResolver(): JsResolver
 }
@@ -270,6 +282,12 @@ export declare class Rspack {
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+}
+
+export interface BuiltinPlugin {
+  name: BuiltinPluginName
+  options: unknown
+  canInherentFromParent?: boolean
 }
 
 export interface BuiltinPlugin {
@@ -358,7 +376,91 @@ export declare enum BuiltinPluginName {
   LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
 
+export declare enum BuiltinPluginName {
+  DefinePlugin = 'DefinePlugin',
+  ProvidePlugin = 'ProvidePlugin',
+  BannerPlugin = 'BannerPlugin',
+  IgnorePlugin = 'IgnorePlugin',
+  ProgressPlugin = 'ProgressPlugin',
+  EntryPlugin = 'EntryPlugin',
+  DynamicEntryPlugin = 'DynamicEntryPlugin',
+  ExternalsPlugin = 'ExternalsPlugin',
+  NodeTargetPlugin = 'NodeTargetPlugin',
+  ElectronTargetPlugin = 'ElectronTargetPlugin',
+  EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
+  EnableLibraryPlugin = 'EnableLibraryPlugin',
+  EnableWasmLoadingPlugin = 'EnableWasmLoadingPlugin',
+  FetchCompileAsyncWasmPlugin = 'FetchCompileAsyncWasmPlugin',
+  ChunkPrefetchPreloadPlugin = 'ChunkPrefetchPreloadPlugin',
+  CommonJsChunkFormatPlugin = 'CommonJsChunkFormatPlugin',
+  ArrayPushCallbackChunkFormatPlugin = 'ArrayPushCallbackChunkFormatPlugin',
+  ModuleChunkFormatPlugin = 'ModuleChunkFormatPlugin',
+  HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
+  LimitChunkCountPlugin = 'LimitChunkCountPlugin',
+  WorkerPlugin = 'WorkerPlugin',
+  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
+  MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
+  SplitChunksPlugin = 'SplitChunksPlugin',
+  RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
+  ShareRuntimePlugin = 'ShareRuntimePlugin',
+  ContainerPlugin = 'ContainerPlugin',
+  ContainerReferencePlugin = 'ContainerReferencePlugin',
+  ProvideSharedPlugin = 'ProvideSharedPlugin',
+  ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
+  NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
+  NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
+  DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
+  NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
+  DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
+  RealContentHashPlugin = 'RealContentHashPlugin',
+  RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
+  EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
+  WarnCaseSensitiveModulesPlugin = 'WarnCaseSensitiveModulesPlugin',
+  DataUriPlugin = 'DataUriPlugin',
+  FileUriPlugin = 'FileUriPlugin',
+  RuntimePlugin = 'RuntimePlugin',
+  JsonModulesPlugin = 'JsonModulesPlugin',
+  InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  JavascriptModulesPlugin = 'JavascriptModulesPlugin',
+  AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
+  AssetModulesPlugin = 'AssetModulesPlugin',
+  SourceMapDevToolPlugin = 'SourceMapDevToolPlugin',
+  EvalSourceMapDevToolPlugin = 'EvalSourceMapDevToolPlugin',
+  EvalDevToolModulePlugin = 'EvalDevToolModulePlugin',
+  SideEffectsFlagPlugin = 'SideEffectsFlagPlugin',
+  FlagDependencyExportsPlugin = 'FlagDependencyExportsPlugin',
+  FlagDependencyUsagePlugin = 'FlagDependencyUsagePlugin',
+  MangleExportsPlugin = 'MangleExportsPlugin',
+  ModuleConcatenationPlugin = 'ModuleConcatenationPlugin',
+  CssModulesPlugin = 'CssModulesPlugin',
+  APIPlugin = 'APIPlugin',
+  RuntimeChunkPlugin = 'RuntimeChunkPlugin',
+  SizeLimitsPlugin = 'SizeLimitsPlugin',
+  NoEmitOnErrorsPlugin = 'NoEmitOnErrorsPlugin',
+  ContextReplacementPlugin = 'ContextReplacementPlugin',
+  DllEntryPlugin = 'DllEntryPlugin',
+  DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
+  LibManifestPlugin = 'LibManifestPlugin',
+  FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
+  HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
+  CopyRspackPlugin = 'CopyRspackPlugin',
+  HtmlRspackPlugin = 'HtmlRspackPlugin',
+  SwcJsMinimizerRspackPlugin = 'SwcJsMinimizerRspackPlugin',
+  LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
+  BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
+  CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
+  LazyCompilationPlugin = 'LazyCompilationPlugin'
+}
+
 export declare function cleanupGlobalTrace(): void
+
+export interface ContextInfo {
+  issuer: string
+}
 
 export interface ContextInfo {
   issuer: string
@@ -480,6 +582,12 @@ export interface JsBannerContentFnCtx {
   filename: string
 }
 
+export interface JsBannerContentFnCtx {
+  hash: string
+  chunk: JsChunk
+  filename: string
+}
+
 export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
@@ -521,6 +629,10 @@ export interface JsCacheGroupTestCtx {
   module: JsModule
 }
 
+export interface JsCacheGroupTestCtx {
+  module: JsModule
+}
+
 export interface JsChunkAssetArgs {
   chunk: JsChunk
   filename: string
@@ -529,6 +641,12 @@ export interface JsChunkAssetArgs {
 export interface JsChunkGroupOrigin {
   module?: JsModule | undefined
   request?: string
+}
+
+export interface JsChunkOptionNameCtx {
+  module: JsModule
+  chunks: JsChunk[]
+  cacheGroupKey: string
 }
 
 export interface JsChunkOptionNameCtx {
@@ -727,12 +845,47 @@ export interface JsLoaderContext {
   __internal__error?: JsRspackError
 }
 
+export interface JsLoaderContext {
+  resourceData: Readonly<JsResourceData>
+  /** Will be deprecated. Use module.module_identifier instead */
+  _moduleIdentifier: Readonly<string>
+  _module: JsModule
+  hot: Readonly<boolean>
+  /** Content maybe empty in pitching stage */
+  content: null | Buffer
+  additionalData?: any
+  __internal__parseMeta: Record<string, string>
+  sourceMap?: Buffer
+  cacheable: boolean
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  loaderItems: Array<JsLoaderItem>
+  loaderIndex: number
+  loaderState: Readonly<JsLoaderState>
+  __internal__error?: JsRspackError
+}
+
 export interface JsLoaderItem {
   request: string
   type: string
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+}
+
+export interface JsLoaderItem {
+  request: string
+  type: string
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
+}
+
+export declare enum JsLoaderState {
+  Pitching = 'Pitching',
+  Normal = 'Normal'
 }
 
 export declare enum JsLoaderState {
@@ -1118,9 +1271,27 @@ export interface RawAssetGeneratorDataUrlFnCtx {
   module: JsModule
 }
 
+export interface RawAssetGeneratorDataUrlFnCtx {
+  filename: string
+  module: JsModule
+}
+
 export interface RawAssetGeneratorDataUrlOptions {
   encoding?: "base64" | "false" | undefined
   mimetype?: string
+}
+
+export interface RawAssetGeneratorDataUrlOptions {
+  encoding?: "base64" | "false" | undefined
+  mimetype?: string
+}
+
+export interface RawAssetGeneratorOptions {
+  emit?: boolean
+  filename?: JsFilename
+  outputPath?: JsFilename
+  publicPath?: "auto" | JsFilename
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
 export interface RawAssetGeneratorOptions {
@@ -1135,6 +1306,15 @@ export interface RawAssetInlineGeneratorOptions {
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
+export interface RawAssetInlineGeneratorOptions {
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
+}
+
+export interface RawAssetParserDataUrl {
+  type: "options"
+  options?: RawAssetParserDataUrlOptions
+}
+
 export interface RawAssetParserDataUrl {
   type: "options"
   options?: RawAssetParserDataUrlOptions
@@ -1144,8 +1324,23 @@ export interface RawAssetParserDataUrlOptions {
   maxSize?: number
 }
 
+export interface RawAssetParserDataUrlOptions {
+  maxSize?: number
+}
+
 export interface RawAssetParserOptions {
   dataUrlCondition?: RawAssetParserDataUrl
+}
+
+export interface RawAssetParserOptions {
+  dataUrlCondition?: RawAssetParserDataUrl
+}
+
+export interface RawAssetResourceGeneratorOptions {
+  emit?: boolean
+  filename?: JsFilename
+  outputPath?: JsFilename
+  publicPath?: "auto" | JsFilename
 }
 
 export interface RawAssetResourceGeneratorOptions {
@@ -1166,10 +1361,51 @@ export interface RawBannerPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
 }
 
+export interface RawBannerPluginOptions {
+  banner: string | ((...args: any[]) => any)
+  entryOnly?: boolean
+  footer?: boolean
+  raw?: boolean
+  stage?: number
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+}
+
 export interface RawBundlerInfoPluginOptions {
   version: string
   bundler: string
   force: boolean | string[]
+}
+
+export interface RawBundlerInfoPluginOptions {
+  version: string
+  bundler: string
+  force: boolean | string[]
+}
+
+export interface RawCacheGroupOptions {
+  key: string
+  priority?: number
+  test?: RegExp | string | Function
+  filename?: string
+  idHint?: string
+  /** What kind of chunks should be selected. */
+  chunks?: RegExp | 'async' | 'initial' | 'all'
+  type?: RegExp | string
+  layer?: RegExp | string
+  automaticNameDelimiter?: string
+  minChunks?: number
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
+  maxAsyncRequests?: number
+  maxInitialRequests?: number
+  name?: string | false | Function
+  reuseExistingChunk?: boolean
+  enforce?: boolean
+  usedExports?: boolean
 }
 
 export interface RawCacheGroupOptions {
@@ -1208,6 +1444,31 @@ export interface RawCacheOptions {
   version: string
 }
 
+export interface RawCacheOptions {
+  type: string
+  maxGenerations: number
+  maxAge: number
+  profile: boolean
+  buildDependencies: Array<string>
+  cacheDirectory: string
+  cacheLocation: string
+  name: string
+  version: string
+}
+
+export interface RawConsumeOptions {
+  key: string
+  import?: string
+  importResolved?: string
+  shareKey: string
+  shareScope: string
+  requiredVersion?: string | false | undefined
+  packageName?: string
+  strictVersion: boolean
+  singleton: boolean
+  eager: boolean
+}
+
 export interface RawConsumeOptions {
   key: string
   import?: string
@@ -1223,6 +1484,21 @@ export interface RawConsumeOptions {
 
 export interface RawConsumeSharedPluginOptions {
   consumes: Array<RawConsumeOptions>
+  enhanced: boolean
+}
+
+export interface RawConsumeSharedPluginOptions {
+  consumes: Array<RawConsumeOptions>
+  enhanced: boolean
+}
+
+export interface RawContainerPluginOptions {
+  name: string
+  shareScope: string
+  library: JsLibraryOptions
+  runtime?: false | string
+  filename?: string
+  exposes: Array<RawExposeOptions>
   enhanced: boolean
 }
 
@@ -1243,12 +1519,33 @@ export interface RawContainerReferencePluginOptions {
   enhanced: boolean
 }
 
+export interface RawContainerReferencePluginOptions {
+  remoteType: string
+  remotes: Array<RawRemoteOptions>
+  shareScope?: string
+  enhanced: boolean
+}
+
 export interface RawContextReplacementPluginOptions {
   resourceRegExp: RegExp
   newContentResource?: string
   newContentRecursive?: boolean
   newContentRegExp?: RegExp
   newContentCreateContextMap?: Record<string, string>
+}
+
+export interface RawContextReplacementPluginOptions {
+  resourceRegExp: RegExp
+  newContentResource?: string
+  newContentRecursive?: boolean
+  newContentRegExp?: RegExp
+  newContentCreateContextMap?: Record<string, string>
+}
+
+export interface RawCopyGlobOptions {
+  caseSensitiveMatch?: boolean
+  dot?: boolean
+  ignore?: Array<string>
 }
 
 export interface RawCopyGlobOptions {
@@ -1270,8 +1567,31 @@ export interface RawCopyPattern {
   transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
 }
 
+export interface RawCopyPattern {
+  from: string
+  to?: string | ((pathData: { context: string; absoluteFilename?: string }) => string | Promise<string>)
+  context?: string
+  toType?: string
+  noErrorOnMissing: boolean
+  force: boolean
+  priority: number
+  globOptions: RawCopyGlobOptions
+  info?: RawInfo
+  transform?: (input: Buffer, absoluteFilename: string) => string | Buffer | Promise<string> | Promise<Buffer>
+}
+
 export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
+}
+
+export interface RawCopyRspackPluginOptions {
+  patterns: Array<RawCopyPattern>
+}
+
+export interface RawCrossOriginLoading {
+  type: "bool" | "string"
+  stringPayload?: string
+  boolPayload?: boolean
 }
 
 export interface RawCrossOriginLoading {
@@ -1287,8 +1607,30 @@ export interface RawCssAutoGeneratorOptions {
   esModule?: boolean
 }
 
+export interface RawCssAutoGeneratorOptions {
+  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportsOnly?: boolean
+  localIdentName?: string
+  esModule?: boolean
+}
+
 export interface RawCssAutoParserOptions {
   namedExports?: boolean
+}
+
+export interface RawCssAutoParserOptions {
+  namedExports?: boolean
+}
+
+export interface RawCssExtractPluginOption {
+  filename: JsFilename
+  chunkFilename: JsFilename
+  ignoreOrder: boolean
+  insert?: string
+  attributes: Record<string, string>
+  linkType?: string
+  runtime: boolean
+  pathinfo: boolean
 }
 
 export interface RawCssExtractPluginOption {
@@ -1307,6 +1649,18 @@ export interface RawCssGeneratorOptions {
   esModule?: boolean
 }
 
+export interface RawCssGeneratorOptions {
+  exportsOnly?: boolean
+  esModule?: boolean
+}
+
+export interface RawCssModuleGeneratorOptions {
+  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportsOnly?: boolean
+  localIdentName?: string
+  esModule?: boolean
+}
+
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
@@ -1315,6 +1669,14 @@ export interface RawCssModuleGeneratorOptions {
 }
 
 export interface RawCssModuleParserOptions {
+  namedExports?: boolean
+}
+
+export interface RawCssModuleParserOptions {
+  namedExports?: boolean
+}
+
+export interface RawCssParserOptions {
   namedExports?: boolean
 }
 
@@ -1332,10 +1694,28 @@ export interface RawDllEntryPluginOptions {
   name: string
 }
 
+export interface RawDllEntryPluginOptions {
+  context: string
+  entries: Array<string>
+  name: string
+}
+
 export interface RawDllManifest {
   content: Record<string, RawDllManifestContentItem>
   name?: string
   type?: string
+}
+
+export interface RawDllManifest {
+  content: Record<string, RawDllManifestContentItem>
+  name?: string
+  type?: string
+}
+
+export interface RawDllManifestContentItem {
+  buildMeta?: JsBuildMeta
+  exports?: string[] | true
+  id?: string
 }
 
 export interface RawDllManifestContentItem {
@@ -1355,8 +1735,28 @@ export interface RawDllReferenceAgencyPluginOptions {
   manifest?: RawDllManifest
 }
 
+export interface RawDllReferenceAgencyPluginOptions {
+  context?: string
+  name?: string
+  extensions: Array<string>
+  scope?: string
+  sourceType?: string
+  type: string
+  content?: Record<string, RawDllManifestContentItem>
+  manifest?: RawDllManifest
+}
+
 export interface RawDraft {
   customMedia: boolean
+}
+
+export interface RawDraft {
+  customMedia: boolean
+}
+
+export interface RawDynamicEntryPluginOptions {
+  context: string
+  entry: () => Promise<RawEntryDynamicResult[]>
 }
 
 export interface RawDynamicEntryPluginOptions {
@@ -1367,6 +1767,17 @@ export interface RawDynamicEntryPluginOptions {
 export interface RawEntryDynamicResult {
   import: Array<string>
   options: JsEntryOptions
+}
+
+export interface RawEntryDynamicResult {
+  import: Array<string>
+  options: JsEntryOptions
+}
+
+export interface RawEnvironment {
+  const?: boolean
+  arrowFunction?: boolean
+  nodePrefixForCoreModules?: boolean
 }
 
 export interface RawEnvironment {
@@ -1381,8 +1792,26 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
+export interface RawEvalDevToolModulePluginOptions {
+  namespace?: string
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  sourceUrlComment?: string
+}
+
 export interface RawExperimentCacheOptionsCommon {
   type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsCommon {
+  type: "disable"|"memory"
+}
+
+export interface RawExperimentCacheOptionsPersistent {
+  type: "persistent"
+  buildDependencies: Array<string>
+  version: string
+  snapshot: RawExperimentSnapshotOptions
+  storage: RawStorageOptions
 }
 
 export interface RawExperimentCacheOptionsPersistent {
@@ -1401,10 +1830,30 @@ export interface RawExperiments {
   cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
 }
 
+export interface RawExperiments {
+  layers: boolean
+  topLevelAwait: boolean
+  incremental?: RawIncremental
+  rspackFuture: RawRspackFuture
+  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+}
+
 export interface RawExperimentSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+}
+
+export interface RawExperimentSnapshotOptions {
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
+}
+
+export interface RawExposeOptions {
+  key: string
+  name?: string
+  import: Array<string>
 }
 
 export interface RawExposeOptions {
@@ -1420,9 +1869,26 @@ export interface RawExternalItemFnCtxData {
   contextInfo: ContextInfo
 }
 
+export interface RawExternalItemFnCtxData {
+  request: string
+  context: string
+  dependencyType: string
+  contextInfo: ContextInfo
+}
+
 export interface RawExternalItemFnResult {
   externalType?: string
   result?: string | boolean | string[] | Record<string, string[]>
+}
+
+export interface RawExternalItemFnResult {
+  externalType?: string
+  result?: string | boolean | string[] | Record<string, string[]>
+}
+
+export interface RawExternalsPluginOptions {
+  type: string
+  externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
 }
 
 export interface RawExternalsPluginOptions {
@@ -1439,6 +1905,20 @@ export interface RawExternalsPresets {
   electronRenderer: boolean
 }
 
+export interface RawExternalsPresets {
+  node: boolean
+  web: boolean
+  electron: boolean
+  electronMain: boolean
+  electronPreload: boolean
+  electronRenderer: boolean
+}
+
+export interface RawExtractComments {
+  banner?: string | boolean
+  condition?: string
+}
+
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
@@ -1453,8 +1933,28 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
+export interface RawFallbackCacheGroupOptions {
+  chunks?: RegExp | 'async' | 'initial' | 'all'
+  minSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
+  automaticNameDelimiter?: string
+}
+
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
+}
+
+export interface RawFlagAllModulesAsUsedPluginOptions {
+  explanation: string
+}
+
+export interface RawFuncUseCtx {
+  resource?: string
+  realResource?: string
+  resourceQuery?: string
+  issuer?: string
 }
 
 export interface RawFuncUseCtx {
@@ -1472,6 +1972,21 @@ export interface RawGeneratorOptions {
   css?: RawCssGeneratorOptions
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
+}
+
+export interface RawGeneratorOptions {
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module"
+  asset?: RawAssetGeneratorOptions
+  assetInline?: RawAssetInlineGeneratorOptions
+  assetResource?: RawAssetResourceGeneratorOptions
+  css?: RawCssGeneratorOptions
+  cssAuto?: RawCssAutoGeneratorOptions
+  cssModule?: RawCssModuleGeneratorOptions
+}
+
+export interface RawHtmlRspackPluginBaseOptions {
+  href?: string
+  target?: "_self" | "_blank" | "_parent" | "_top"
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -1506,9 +2021,47 @@ export interface RawHtmlRspackPluginOptions {
   base?: RawHtmlRspackPluginBaseOptions
 }
 
+export interface RawHtmlRspackPluginOptions {
+  /** emitted file name in output path */
+  filename?: string[]
+  /** template html file */
+  template?: string
+  templateFn?: (data: string) => Promise<string>
+  templateContent?: string
+  templateParameters?: boolean | Record<string, any> | ((params: string) => Promise<string>)
+  /** "head", "body" or "false" */
+  inject: "head" | "body" | "false"
+  /** path or `auto` */
+  publicPath?: string
+  /** `blocking`, `defer`, `module` or `systemjs-module` */
+  scriptLoading: "blocking" | "defer" | "module" | "systemjs-module"
+  /** entry_chunk_name (only entry chunks are supported) */
+  chunks?: Array<string>
+  excludeChunks?: Array<string>
+  chunksSortMode: "auto" | "manual"
+  sri?: "sha256" | "sha384" | "sha512"
+  minify?: boolean
+  title?: string
+  favicon?: string
+  meta?: Record<string, Record<string, string>>
+  hash?: boolean
+  base?: RawHtmlRspackPluginBaseOptions
+}
+
 export interface RawHttpExternalsRspackPluginOptions {
   css: boolean
   webAsync: boolean
+}
+
+export interface RawHttpExternalsRspackPluginOptions {
+  css: boolean
+  webAsync: boolean
+}
+
+export interface RawIgnorePluginOptions {
+  resourceRegExp?: RegExp
+  contextRegExp?: RegExp
+  checkResource?: (resource: string, context: string) => boolean
 }
 
 export interface RawIgnorePluginOptions {
@@ -1532,6 +2085,34 @@ export interface RawIncremental {
   chunksHashes: boolean
   chunksRender: boolean
   emitAssets: boolean
+}
+
+export interface RawIncremental {
+  make: boolean
+  inferAsyncModules: boolean
+  providedExports: boolean
+  dependenciesDiagnostics: boolean
+  buildChunkGraph: boolean
+  moduleIds: boolean
+  chunkIds: boolean
+  modulesHashes: boolean
+  modulesCodegen: boolean
+  modulesRuntimeRequirements: boolean
+  chunksRuntimeRequirements: boolean
+  chunksHashes: boolean
+  chunksRender: boolean
+  emitAssets: boolean
+}
+
+export interface RawInfo {
+  immutable?: boolean
+  minimized?: boolean
+  chunkHash?: Array<string>
+  contentHash?: Array<string>
+  development?: boolean
+  hotModuleReplacement?: boolean
+  related?: RawRelated
+  version?: string
 }
 
 export interface RawInfo {
@@ -1583,6 +2164,52 @@ export interface RawJavascriptParserOptions {
   importDynamic?: boolean
 }
 
+export interface RawJavascriptParserOptions {
+  dynamicImportMode?: string
+  dynamicImportPreload?: string
+  dynamicImportPrefetch?: string
+  dynamicImportFetchPriority?: string
+  url?: string
+  exprContextCritical?: boolean
+  wrappedContextCritical?: boolean
+  wrappedContextRegExp?: RegExp
+  exportsPresence?: string
+  importExportsPresence?: string
+  reexportExportsPresence?: string
+  strictExportPresence?: boolean
+  worker?: Array<string>
+  overrideStrict?: string
+  importMeta?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireAsExpression?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireResolve?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importDynamic?: boolean
+}
+
+export interface RawLazyCompilationOption {
+  module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
+  test?: RawLazyCompilationTest
+  entries: boolean
+  imports: boolean
+  cacheable: boolean
+}
+
 export interface RawLazyCompilationOption {
   module: ((err: Error | null, arg: RawModuleArg) => RawModuleInfo)
   test?: RawLazyCompilationTest
@@ -1598,6 +2225,27 @@ export interface RawLibManifestPluginOptions {
   path: JsFilename
   format?: boolean
   type?: string
+}
+
+export interface RawLibManifestPluginOptions {
+  context?: string
+  entryOnly?: boolean
+  name?: JsFilename
+  path: JsFilename
+  format?: boolean
+  type?: string
+}
+
+export interface RawLightningCssBrowsers {
+  android?: number
+  chrome?: number
+  edge?: number
+  firefox?: number
+  ie?: number
+  ios_saf?: number
+  opera?: number
+  safari?: number
+  samsung?: number
 }
 
 export interface RawLightningCssBrowsers {
@@ -1624,6 +2272,26 @@ export interface RawLightningCssMinimizerOptions {
   unusedSymbols: Array<string>
 }
 
+export interface RawLightningCssMinimizerOptions {
+  errorRecovery: boolean
+  targets?: Array<string>
+  include?: number
+  exclude?: number
+  draft?: RawDraft
+  drafts?: RawDraft
+  nonStandard?: RawNonStandard
+  pseudoClasses?: RawLightningCssPseudoClasses
+  unusedSymbols: Array<string>
+}
+
+export interface RawLightningCssMinimizerRspackPluginOptions {
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+  removeUnusedLocalIdents: boolean
+  minimizerOptions: RawLightningCssMinimizerOptions
+}
+
 export interface RawLightningCssMinimizerRspackPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
@@ -1640,6 +2308,20 @@ export interface RawLightningCssPseudoClasses {
   focusWithin?: string
 }
 
+export interface RawLightningCssPseudoClasses {
+  hover?: string
+  active?: string
+  focus?: string
+  focusVisible?: string
+  focusWithin?: string
+}
+
+export interface RawLimitChunkCountPluginOptions {
+  chunkOverhead?: number
+  entryChunkMultiplicator?: number
+  maxChunks: number
+}
+
 export interface RawLimitChunkCountPluginOptions {
   chunkOverhead?: number
   entryChunkMultiplicator?: number
@@ -1649,6 +2331,25 @@ export interface RawLimitChunkCountPluginOptions {
 export interface RawModuleArg {
   module: string
   path: string
+}
+
+export interface RawModuleArg {
+  module: string
+  path: string
+}
+
+export interface RawModuleFilenameTemplateFnCtx {
+  identifier: string
+  shortIdentifier: string
+  resource: string
+  resourcePath: string
+  absoluteResourcePath: string
+  loaders: string
+  allLoaders: string
+  query: string
+  moduleId: string
+  hash: string
+  namespace: string
 }
 
 export interface RawModuleFilenameTemplateFnCtx {
@@ -1671,11 +2372,61 @@ export interface RawModuleInfo {
   data: string
 }
 
+export interface RawModuleInfo {
+  active: boolean
+  client: string
+  data: string
+}
+
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+}
+
+export interface RawModuleOptions {
+  rules: Array<RawModuleRule>
+  parser?: Record<string, RawParserOptions>
+  generator?: Record<string, RawGeneratorOptions>
+  noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
+}
+
+export interface RawModuleRule {
+  /**
+   * A conditional match matching an absolute path + query + fragment.
+   * Note:
+   *   This is a custom matching rule not initially designed by webpack.
+   *   Only for single-threaded environment interoperation purpose.
+   */
+  rspackResource?: RawRuleSetCondition
+  /** A condition matcher matching an absolute path. */
+  test?: RawRuleSetCondition
+  include?: RawRuleSetCondition
+  exclude?: RawRuleSetCondition
+  /** A condition matcher matching an absolute path. */
+  resource?: RawRuleSetCondition
+  /** A condition matcher against the resource query. */
+  resourceQuery?: RawRuleSetCondition
+  resourceFragment?: RawRuleSetCondition
+  descriptionData?: Record<string, RawRuleSetCondition>
+  with?: Record<string, RawRuleSetCondition>
+  sideEffects?: boolean
+  use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
+  type?: string
+  layer?: string
+  parser?: RawParserOptions
+  generator?: RawGeneratorOptions
+  resolve?: RawResolveOptions
+  issuer?: RawRuleSetCondition
+  issuerLayer?: RawRuleSetCondition
+  dependency?: RawRuleSetCondition
+  scheme?: RawRuleSetCondition
+  mimetype?: RawRuleSetCondition
+  oneOf?: Array<RawModuleRule>
+  rules?: Array<RawModuleRule>
+  /** Specifies the category of the loader. No value means normal loader. */
+  enforce?: 'pre' | 'post'
 }
 
 export interface RawModuleRule {
@@ -1729,6 +2480,26 @@ export interface RawModuleRuleUse {
   options?: string
 }
 
+/**
+ * `loader` is for both JS and Rust loaders.
+ * `options` is
+ *   - a `None` on rust side and handled by js side `getOptions` when
+ * using with `loader`.
+ *   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
+ * and passed to rust side loader in [get_builtin_loader] when using with
+ * `builtin_loader`.
+ */
+export interface RawModuleRuleUse {
+  loader: string
+  options?: string
+}
+
+export interface RawNodeOption {
+  dirname: string
+  filename: string
+  global: string
+}
+
 export interface RawNodeOption {
   dirname: string
   filename: string
@@ -1737,6 +2508,14 @@ export interface RawNodeOption {
 
 export interface RawNonStandard {
   deepSelectorCombinator: boolean
+}
+
+export interface RawNonStandard {
+  deepSelectorCombinator: boolean
+}
+
+export interface RawOccurrenceChunkIdsPluginOptions {
+  prioritiseInitial?: boolean
 }
 
 export interface RawOccurrenceChunkIdsPluginOptions {
@@ -1751,6 +2530,37 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   mangleExports: string
   concatenateModules: boolean
+}
+
+export interface RawOptimizationOptions {
+  removeAvailableModules: boolean
+  sideEffects: string
+  usedExports: string
+  providedExports: boolean
+  innerGraph: boolean
+  mangleExports: string
+  concatenateModules: boolean
+}
+
+export interface RawOptions {
+  mode?: undefined | 'production' | 'development' | 'none'
+  target: Array<string>
+  context: string
+  output: RawOutputOptions
+  resolve: RawResolveOptions
+  resolveLoader: RawResolveOptions
+  module: RawModuleOptions
+  devtool: string
+  optimization: RawOptimizationOptions
+  stats: RawStatsOptions
+  snapshot: RawSnapshotOptions
+  cache: RawCacheOptions
+  experiments: RawExperiments
+  node?: RawNodeOption
+  profile: boolean
+  amd?: string
+  bail: boolean
+  __references: Record<string, any>
 }
 
 export interface RawOptions {
@@ -1820,6 +2630,61 @@ export interface RawOutputOptions {
   compareBeforeEmit: boolean
 }
 
+export interface RawOutputOptions {
+  path: string
+  pathinfo: boolean | "verbose"
+  clean: boolean | JsCleanOptions
+  publicPath: "auto" | JsFilename
+  assetModuleFilename: JsFilename
+  wasmLoading: string
+  enabledWasmLoadingTypes: Array<string>
+  webassemblyModuleFilename: string
+  filename: JsFilename
+  chunkFilename: JsFilename
+  crossOriginLoading: RawCrossOriginLoading
+  cssFilename: JsFilename
+  cssChunkFilename: JsFilename
+  hotUpdateMainFilename: string
+  hotUpdateChunkFilename: string
+  hotUpdateGlobal: string
+  uniqueName: string
+  chunkLoadingGlobal: string
+  library?: JsLibraryOptions
+  strictModuleErrorHandling: boolean
+  enabledLibraryTypes?: Array<string>
+  globalObject: string
+  importFunctionName: string
+  importMetaName: string
+  iife: boolean
+  module: boolean
+  chunkLoading: string
+  chunkLoadTimeout: number
+  charset: boolean
+  enabledChunkLoadingTypes?: Array<string>
+  trustedTypes?: RawTrustedTypes
+  sourceMapFilename: string
+  hashFunction: string
+  hashDigest: string
+  hashDigestLength: number
+  hashSalt?: string
+  asyncChunks: boolean
+  workerChunkLoading: string
+  workerWasmLoading: string
+  workerPublicPath: string
+  scriptType: "module" | "text/javascript" | "false"
+  environment: RawEnvironment
+  compareBeforeEmit: boolean
+}
+
+export interface RawParserOptions {
+  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm"
+  asset?: RawAssetParserOptions
+  css?: RawCssParserOptions
+  cssAuto?: RawCssAutoParserOptions
+  cssModule?: RawCssModuleParserOptions
+  javascript?: RawJavascriptParserOptions
+}
+
 export interface RawParserOptions {
   type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm"
   asset?: RawAssetParserOptions
@@ -1833,6 +2698,21 @@ export interface RawPathData {
   filename?: string
   contentHash?: string
   url?: string
+}
+
+export interface RawPathData {
+  filename?: string
+  contentHash?: string
+  url?: string
+}
+
+export interface RawProgressPluginOptions {
+  prefix?: string
+  profile?: boolean
+  template?: string
+  tick?: string | Array<string>
+  progressChars?: string
+  handler?: (percent: number, msg: string, items: string[]) => void
 }
 
 export interface RawProgressPluginOptions {
@@ -1855,8 +2735,29 @@ export interface RawProvideOptions {
   strictVersion?: boolean
 }
 
+export interface RawProvideOptions {
+  key: string
+  shareKey: string
+  shareScope: string
+  version?: string | false | undefined
+  eager: boolean
+  singleton?: boolean
+  requiredVersion?: string | false | undefined
+  strictVersion?: boolean
+}
+
 export interface RawRelated {
   sourceMap?: string
+}
+
+export interface RawRelated {
+  sourceMap?: string
+}
+
+export interface RawRemoteOptions {
+  key: string
+  external: Array<string>
+  shareScope: string
 }
 
 export interface RawRemoteOptions {
@@ -1925,6 +2826,19 @@ export interface RawRspackFuture {
 
 }
 
+export interface RawRspackFuture {
+
+}
+
+export interface RawRuleSetCondition {
+  type: RawRuleSetConditionType
+  string?: string
+  regexp?: RegExp
+  logical?: Array<RawRuleSetLogicalConditions>
+  array?: Array<RawRuleSetCondition>
+  func?: (value: string) => boolean
+}
+
 export interface RawRuleSetCondition {
   type: RawRuleSetConditionType
   string?: string
@@ -1942,6 +2856,20 @@ export declare enum RawRuleSetConditionType {
   func = 'func'
 }
 
+export declare enum RawRuleSetConditionType {
+  string = 'string',
+  regexp = 'regexp',
+  logical = 'logical',
+  array = 'array',
+  func = 'func'
+}
+
+export interface RawRuleSetLogicalConditions {
+  and?: Array<RawRuleSetCondition>
+  or?: Array<RawRuleSetCondition>
+  not?: RawRuleSetCondition
+}
+
 export interface RawRuleSetLogicalConditions {
   and?: Array<RawRuleSetCondition>
   or?: Array<RawRuleSetCondition>
@@ -1950,6 +2878,14 @@ export interface RawRuleSetLogicalConditions {
 
 export interface RawRuntimeChunkNameFnCtx {
   name: string
+}
+
+export interface RawRuntimeChunkNameFnCtx {
+  name: string
+}
+
+export interface RawRuntimeChunkOptions {
+  name: string | ((entrypoint: { name: string }) => string)
 }
 
 export interface RawRuntimeChunkOptions {
@@ -1961,6 +2897,17 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
+}
+
+export interface RawSizeLimitsPluginOptions {
+  assetFilter?: (assetFilename: string) => boolean
+  hints?: "error" | "warning"
+  maxAssetSize?: number
+  maxEntrypointSize?: number
+}
+
+export interface RawSnapshotOptions {
+
 }
 
 export interface RawSnapshotOptions {
@@ -1982,6 +2929,27 @@ export interface RawSourceMapDevToolPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
+}
+
+export interface RawSourceMapDevToolPluginOptions {
+  append?: (false | null) | string | Function
+  columns?: boolean
+  fallbackModuleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  fileContext?: string
+  filename?: (false | null) | string
+  module?: boolean
+  moduleFilenameTemplate?: string | ((info: RawModuleFilenameTemplateFnCtx) => string)
+  namespace?: string
+  noSources?: boolean
+  publicPath?: string
+  sourceRoot?: string
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+}
+
+export interface RawSplitChunkSizes {
+  sizes: Record<string, number>
 }
 
 export interface RawSplitChunkSizes {
@@ -2009,6 +2977,31 @@ export interface RawSplitChunksOptions {
   maxInitialSize?: number | RawSplitChunkSizes
 }
 
+export interface RawSplitChunksOptions {
+  fallbackCacheGroup?: RawFallbackCacheGroupOptions
+  name?: string | false | Function
+  cacheGroups?: Array<RawCacheGroupOptions>
+  /** What kind of chunks should be selected. */
+  chunks?: RegExp | 'async' | 'initial' | 'all' | Function
+  usedExports?: boolean
+  automaticNameDelimiter?: string
+  maxAsyncRequests?: number
+  maxInitialRequests?: number
+  defaultSizeTypes: Array<string>
+  minChunks?: number
+  hidePathInfo?: boolean
+  minSize?: number | RawSplitChunkSizes
+  enforceSizeThreshold?: number
+  minRemainingSize?: number | RawSplitChunkSizes
+  maxSize?: number | RawSplitChunkSizes
+  maxAsyncSize?: number | RawSplitChunkSizes
+  maxInitialSize?: number | RawSplitChunkSizes
+}
+
+export interface RawStatsOptions {
+  colors: boolean
+}
+
 export interface RawStatsOptions {
   colors: boolean
 }
@@ -2016,6 +3009,19 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+}
+
+export interface RawStorageOptions {
+  type: "filesystem"
+  directory: string
+}
+
+export interface RawSwcJsMinimizerOptions {
+  compress: any
+  mangle: any
+  format: any
+  module?: boolean
+  minify?: boolean
 }
 
 export interface RawSwcJsMinimizerOptions {
@@ -2034,9 +3040,27 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   minimizerOptions: RawSwcJsMinimizerOptions
 }
 
+export interface RawSwcJsMinimizerRspackPluginOptions {
+  test?: string | RegExp | (string | RegExp)[]
+  include?: string | RegExp | (string | RegExp)[]
+  exclude?: string | RegExp | (string | RegExp)[]
+  extractComments?: RawExtractComments
+  minimizerOptions: RawSwcJsMinimizerOptions
+}
+
 export interface RawToOptions {
   context: string
   absoluteFilename: string
+}
+
+export interface RawToOptions {
+  context: string
+  absoluteFilename: string
+}
+
+export interface RawTrustedTypes {
+  policyName?: string
+  onPolicyCreationFailure?: string
 }
 
 export interface RawTrustedTypes {
