@@ -22,7 +22,7 @@ on:
 jobs:
   main:
     name: Get Runner Labels
-    runs-on: [ubuntu-22.04]
+    runs-on: [self-hosted, Linux]
     outputs:
       LINUX_RUNNER_LABELS: ${{ steps.run.outputs.LINUX_RUNNER_LABELS }}
       MACOS_RUNNER_LABELS: ${{ steps.run.outputs.MACOS_RUNNER_LABELS }}
@@ -30,24 +30,10 @@ jobs:
     steps:
       - id: run
         shell: bash
+        env:
+          TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if ${{ !inputs.force-use-github-runner }}; then
-            LINUX_RUNNER_LABELS='${{ vars.LINUX_RUNNER_LABELS }}';
-            MACOS_RUNNER_LABELS='${{ vars.MACOS_RUNNER_LABELS }}';
-            WINDOWS_RUNNER_LABELS='${{ vars.WINDOWS_RUNNER_LABELS }}';
+          echo "aaa$TOKEN"
+          if [[ "$TOKEN" = "ads" ]]; then
+             echo "hahah"
           fi
-          # set default value
-          # use ubuntu 22.04 to be compatible with playwright docker
-          if [[ -z "$LINUX_RUNNER_LABELS" ]]; then
-            LINUX_RUNNER_LABELS='"ubuntu-22.04"';
-          fi
-          if [[ -z "$MACOS_RUNNER_LABELS" ]]; then
-            MACOS_RUNNER_LABELS='"macos-latest"';
-          fi
-          if [[ -z "$WINDOWS_RUNNER_LABELS" ]]; then
-            WINDOWS_RUNNER_LABELS='"windows-latest"';
-          fi
-          # set output
-          echo "LINUX_RUNNER_LABELS=$LINUX_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
-          echo "MACOS_RUNNER_LABELS=$MACOS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
-          echo "WINDOWS_RUNNER_LABELS=$WINDOWS_RUNNER_LABELS" >> "$GITHUB_OUTPUT"
