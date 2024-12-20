@@ -116,6 +116,12 @@ impl ESMExportImportedSpecifierDependency {
     }
   }
 
+  pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
+    mg.get_dep_meta_if_existing(&self.id)
+      .map(|meta| meta.ids.as_slice())
+      .unwrap_or_else(|| self.ids.as_slice())
+  }
+
   // TODO cache get_mode result
   fn get_mode(
     &self,
@@ -1230,10 +1236,8 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     ConnectionState::Bool(false)
   }
 
-  fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.clone())
-      .unwrap_or_else(|| self.ids.clone())
+  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
+    self.get_ids(mg)
   }
 
   fn resource_identifier(&self) -> Option<&str> {
@@ -1256,7 +1260,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
       let mut diagnostics = Vec::new();
       if let Some(error) = esm_import_dependency_get_linking_error(
         self,
-        &ids,
+        ids,
         module_graph,
         self
           .name
@@ -1268,7 +1272,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         diagnostics.push(error);
       }
       if let Some(errors) =
-        self.get_conflicting_star_exports_errors(&ids, module_graph, should_error)
+        self.get_conflicting_star_exports_errors(ids, module_graph, should_error)
       {
         diagnostics.extend(errors);
       }
