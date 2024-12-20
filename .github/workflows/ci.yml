@@ -337,6 +337,7 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }}
           shared-key: check
+          # TODO: enable it after self host runners are ready
           miri: false
 
       # Compile test without debug info for reducing the CI cache size
