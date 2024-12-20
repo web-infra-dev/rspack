@@ -337,7 +337,7 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }}
           shared-key: check
-          miri: true
+          miri: false
 
       # Compile test without debug info for reducing the CI cache size
       - name: Change profile.test
