@@ -451,15 +451,16 @@ jobs:
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
 
-  pkg-preview:
-    name: Pkg Preview
-    needs:
-      - test-linux
-      - test-windows
-      - cargo-deny
-      - lint
-      - rust_check
-      - rust_test
-    # after merged to main branch
-    if: ${{ !failure() && github.event_name == 'push' }}
-    uses: ./.github/workflows/preview-commit.yml
+  # TODO: enable it after self hosted runners are ready
+  # pkg-preview:
+  #   name: Pkg Preview
+  #   needs:
+  #     - test-linux
+  #     - test-windows
+  #     - cargo-deny
+  #     - lint
+  #     - rust_check
+  #     - rust_test
+  #   # after merged to main branch
+  #   if: ${{ !failure() && github.event_name == 'push' }}
+  #   uses: ./.github/workflows/preview-commit.yml
