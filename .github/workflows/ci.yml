@@ -25,6 +25,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
+env:
+  TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+  TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+  TOS_BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
+  TOS_REGION: ${{ vars.TOS_REGION }}
+  TOS_ENDPOINT: ${{ vars.TOS_ENDPOINT }}
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -64,6 +71,8 @@ jobs:
       profile: "debug"
       native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-22.04"' }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
 
   test-release-linux:
@@ -82,6 +91,8 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
   test-windows:
     name: Test Windows
@@ -91,7 +102,12 @@ jobs:
       target: x86_64-pc-windows-msvc
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+    secrets:
+      TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+      TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
 
   test-release-windows:
     name: Test Release Windows
@@ -108,6 +124,11 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.WINDOWS_CACHE_TYPE }}
+    secrets:
+      TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+      TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
 
   test-mac:
     name: Test Mac
@@ -118,6 +139,8 @@ jobs:
       target: x86_64-apple-darwin
       profile: "debug"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
 
   test-release-mac:
@@ -134,6 +157,8 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+      runner-type: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_TYPE }}
+      cache-type: ${{ needs.get-runner-labels.outputs.MACOS_CACHE_TYPE }}
 
   cargo-deny:
     name: Check license of dependencies
@@ -182,6 +207,8 @@ jobs:
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
@@ -204,6 +231,8 @@ jobs:
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Run
         run: |
@@ -242,6 +271,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           frozen-lockfile: true
+          type: github
 
   rust_check:
     name: Rust check
@@ -260,6 +290,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
@@ -303,6 +335,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -333,6 +367,8 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: ${{ needs.get-runner-labels.outputs.LINUX_CACHE_TYPE }}
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -362,6 +398,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
+        with:
+          type: github
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
