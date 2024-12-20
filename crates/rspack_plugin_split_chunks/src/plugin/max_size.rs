@@ -250,18 +250,11 @@ struct ChunkWithSizeInfo<'a> {
 }
 
 fn get_similarities(nodes: &[GroupItem]) -> Vec<usize> {
-  let mut similarities = Vec::with_capacity(nodes.len());
-  let mut nodes = nodes.iter();
-  let Some(mut last) = nodes.next() else {
-    return similarities;
-  };
-
-  for node in nodes {
-    similarities.push(similarity(&last.key, &node.key));
-    last = node;
-  }
-
-  similarities
+  nodes
+    .windows(2)
+    .par_bridge()
+    .map(|window| similarity(&window[0].key, &window[1].key))
+    .collect::<Vec<_>>()
 }
 
 fn similarity(a: &str, b: &str) -> usize {
