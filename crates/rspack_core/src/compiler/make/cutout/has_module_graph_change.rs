@@ -148,7 +148,7 @@ mod t {
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
   use rspack_macros::impl_source_map_config;
   use rspack_sources::Source;
-  use rspack_util::source_map::SourceMapKind;
+  use rspack_util::{atom::Atom, source_map::SourceMapKind};
 
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
@@ -162,12 +162,12 @@ mod t {
   #[derive(Debug, Clone)]
   struct TestDep {
     #[cacheable(with=Skip)]
-    ids: Vec<&'static str>,
+    ids: Vec<Atom>,
     id: DependencyId,
   }
 
   impl TestDep {
-    fn new(ids: Vec<&'static str>) -> Self {
+    fn new(ids: Vec<Atom>) -> Self {
       Self {
         ids,
         id: DependencyId::new(),
@@ -185,6 +185,10 @@ mod t {
 
     fn id(&self) -> &DependencyId {
       &self.id
+    }
+
+    fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
+      &self.ids
     }
 
     fn could_affect_referencing_module(&self) -> AffectType {
@@ -346,7 +350,7 @@ mod t {
     let mut partial = ModuleGraphPartial::default();
     let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
 
-    let dep1 = Box::new(TestDep::new(vec!["foo"]));
+    let dep1 = Box::new(TestDep::new(vec!["foo".into()]));
     let dep1_id = *dep1.id();
     let module_orig = Box::new(TestModule::new("app", vec![dep1_id]));
     let module_orig_id = module_orig.identifier();
@@ -366,7 +370,7 @@ mod t {
 
     assert_eq!(module_deps_1, module_deps_2);
 
-    let dep2 = Box::new(TestDep::new(vec!["bar"]));
+    let dep2 = Box::new(TestDep::new(vec!["bar".into()]));
     let dep2_id = *dep2.id();
     let module_orig: &mut TestModule = mg
       .module_by_identifier_mut(&module_orig_id)
