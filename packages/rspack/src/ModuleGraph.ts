@@ -31,6 +31,13 @@ export default class ModuleGraph {
 		);
 	}
 
+	getConnection(dependency: Dependency): ModuleGraphConnection | null {
+		const binding = this.#inner.getConnection(
+			Dependency.__to_binding(dependency)
+		);
+		return binding ? ModuleGraphConnection.__from_binding(binding) : null;
+	}
+
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
 		return this.#inner
 			.getOutgoingConnections(Module.__to_binding(module))

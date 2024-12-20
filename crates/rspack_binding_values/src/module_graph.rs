@@ -90,6 +90,21 @@ impl JsModuleGraph {
     Ok(JsExportsInfo::new(exports_info, compilation))
   }
 
+  #[napi(ts_return_type = "JsModuleGraphConnection | null")]
+  pub fn get_connection(
+    &self,
+    dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .connection_by_dependency_id(&dependency.dependency_id)
+        .map(|connection| {
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, &compilation)
+        }),
+    )
+  }
+
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_outgoing_connections(
     &self,
