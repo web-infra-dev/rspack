@@ -2,6 +2,7 @@ import type { JsModuleGraph } from "@rspack/binding";
 import { Dependency } from "./Dependency";
 import { ExportsInfo } from "./ExportsInfo";
 import { Module } from "./Module";
+import { ModuleGraphConnection } from "./ModuleGraphConnection";
 
 export default class ModuleGraph {
 	static __from_binding(binding: JsModuleGraph) {
@@ -28,5 +29,18 @@ export default class ModuleGraph {
 		return ExportsInfo.__from_binding(
 			this.#inner.getExportsInfo(Module.__to_binding(module))
 		);
+	}
+
+	getConnection(dependency: Dependency): ModuleGraphConnection | null {
+		const binding = this.#inner.getConnection(
+			Dependency.__to_binding(dependency)
+		);
+		return binding ? ModuleGraphConnection.__from_binding(binding) : null;
+	}
+
+	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
+		return this.#inner
+			.getOutgoingConnections(Module.__to_binding(module))
+			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
 }
