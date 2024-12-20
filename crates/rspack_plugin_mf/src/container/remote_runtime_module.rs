@@ -56,16 +56,18 @@ impl RuntimeModule for RemoteRuntimeModule {
           continue;
         };
         let name = m.internal_request.as_str();
-        let id = ChunkGraph::get_module_id(&compilation.module_ids, m.identifier())
+        let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         let share_scope = m.share_scope.as_str();
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
           .get_module_by_dependency_id(&dep)
           .expect("should have module");
-        let external_module_id =
-          ChunkGraph::get_module_id(&compilation.module_ids, external_module.identifier())
-            .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
+        let external_module_id = ChunkGraph::get_module_id(
+          &compilation.module_ids_artifact,
+          external_module.identifier(),
+        )
+        .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(
           id,
@@ -83,7 +85,7 @@ impl RuntimeModule for RemoteRuntimeModule {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
       chunk_to_remotes_mapping.insert(
         chunk
-          .id(&compilation.chunk_ids)
+          .id(&compilation.chunk_ids_artifact)
           .expect("should have chunkId at <RemoteRuntimeModule as RuntimeModule>::generate"),
         remotes,
       );

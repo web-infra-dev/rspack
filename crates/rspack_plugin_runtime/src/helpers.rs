@@ -23,7 +23,7 @@ pub fn update_hash_for_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .and_then(|module| {
-        ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.module_identifier)
       })
     {
       module_id.hash(hasher);
@@ -41,7 +41,7 @@ pub fn update_hash_for_entry_startup(
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
-          chunk.id(&compilation.chunk_ids).hash(hasher);
+          chunk.id(&compilation.chunk_ids_artifact).hash(hasher);
         }
       }
     }
@@ -149,7 +149,7 @@ pub fn generate_entry_startup(
       .get_module_graph()
       .module_graph_module_by_identifier(module)
       .map(|module| {
-        ChunkGraph::get_module_id(&compilation.module_ids, module.module_identifier)
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.module_identifier)
           .map(|s| s.as_str())
           .unwrap_or("null")
       })
@@ -174,7 +174,7 @@ pub fn generate_entry_startup(
           .iter()
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id(&compilation.chunk_ids).clone()
+            chunk.expect_id(&compilation.chunk_ids_artifact).clone()
           })
           .collect::<HashSet<_>>(),
       );
@@ -247,7 +247,7 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result<String> {
   let hash = chunk.rendered_hash(
-    &compilation.chunk_hashes_results,
+    &compilation.chunk_hashes_artifact,
     compilation.options.output.hash_digest_length,
   );
   let filename = get_js_chunk_filename_template(
@@ -258,14 +258,18 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> Result
   compilation.get_path(
     &filename,
     PathData::default()
-      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
       .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         &SourceType::JavaScript,
         compilation.options.output.hash_digest_length,
       ))

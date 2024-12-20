@@ -103,7 +103,7 @@ impl CssPlugin {
             "chunk {}\nConflicting order between {} and {}",
             chunk.name().unwrap_or(
               chunk
-                .id(&compilation.chunk_ids)
+                .id(&compilation.chunk_ids_artifact)
                 .expect("should have chunk id")
                 .as_str()
             ),
@@ -287,7 +287,7 @@ async fn content_hash(
         compilation
           .code_generation_results
           .get_hash(&m.identifier(), Some(chunk.runtime())),
-        ChunkGraph::get_module_id(&compilation.module_ids, m.identifier()),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier()),
       )
     })
     .for_each(|(current, id)| {
@@ -336,14 +336,18 @@ async fn render_manifest(
   let output_path = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
       .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         &SourceType::Css,
         compilation.options.output.hash_digest_length,
       ))

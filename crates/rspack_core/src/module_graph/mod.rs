@@ -865,7 +865,7 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules.contains(module_id)
+    compilation.async_modules_artifact.contains(module_id)
   }
 
   pub fn set_async(
@@ -878,9 +878,9 @@ impl<'a> ModuleGraph<'a> {
       return false;
     }
     if original {
-      compilation.async_modules.remove(&module_id)
+      compilation.async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules.insert(module_id)
+      compilation.async_modules_artifact.insert(module_id)
     }
   }
 

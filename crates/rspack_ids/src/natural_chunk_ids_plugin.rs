@@ -13,7 +13,7 @@ pub struct NaturalChunkIdsPlugin;
 
 #[plugin_hook(CompilationChunkIds for NaturalChunkIdsPlugin)]
 fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
-  let module_ids = &compilation.module_ids;
+  let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.chunk_graph;
   let module_graph = &compilation.get_module_graph();
 

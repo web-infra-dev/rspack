@@ -2486,6 +2486,11 @@ export type Incremental = {
 	dependenciesDiagnostics?: boolean;
 
 	/**
+	 * Enables incremental side effects optimization.
+	 */
+	sideEffects?: boolean;
+
+	/**
 	 * Enable incremental build chunk graph.
 	 */
 	buildChunkGraph?: boolean;

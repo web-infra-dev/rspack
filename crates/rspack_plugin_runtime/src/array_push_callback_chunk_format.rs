@@ -112,7 +112,7 @@ fn render_chunk(
       "{}[{}]('{}', ",
       global_object,
       serde_json::to_string(hot_update_global).map_err(|e| error!(e.to_string()))?,
-      chunk.expect_id(&compilation.chunk_ids)
+      chunk.expect_id(&compilation.chunk_ids_artifact)
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
@@ -129,7 +129,7 @@ fn render_chunk(
       chunk_loading_global,
       global_object,
       chunk_loading_global,
-      serde_json::to_string(chunk.expect_id(&compilation.chunk_ids))
+      serde_json::to_string(chunk.expect_id(&compilation.chunk_ids_artifact))
         .expect("json stringify failed"),
     )));
     source.add(render_source.source.clone());

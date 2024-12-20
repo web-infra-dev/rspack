@@ -29,7 +29,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
             // we keep the state for the module only if the module revoke first, and then rebuild
             // otherwise we gc its state
             if !acc.contains(module) {
-              compilation.async_modules.remove(module);
+              compilation.async_modules_artifact.remove(module);
             }
           }
           _ => {}

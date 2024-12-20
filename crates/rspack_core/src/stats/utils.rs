@@ -43,7 +43,8 @@ pub fn get_stats_module_name_and_id<'s, 'c>(
 ) -> (Cow<'s, str>, Option<&'c str>) {
   let identifier = module.identifier();
   let name = module.readable_identifier(&compilation.options.context);
-  let id = ChunkGraph::get_module_id(&compilation.module_ids, identifier).map(|s| s.as_str());
+  let id =
+    ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).map(|s| s.as_str());
   (name, id)
 }
 
@@ -106,7 +107,7 @@ pub fn get_chunk_relations(
         if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = compilation.chunk_by_ukey.get(c)
-              && let Some(id) = c.id(&compilation.chunk_ids)
+              && let Some(id) = c.id(&compilation.chunk_ids_artifact)
             {
               parents.insert(id.to_string());
             }
@@ -118,7 +119,7 @@ pub fn get_chunk_relations(
         if let Some(pg) = compilation.chunk_group_by_ukey.get(p) {
           for c in &pg.chunks {
             if let Some(c) = compilation.chunk_by_ukey.get(c)
-              && let Some(id) = c.id(&compilation.chunk_ids)
+              && let Some(id) = c.id(&compilation.chunk_ids_artifact)
             {
               children.insert(id.to_string());
             }
@@ -128,8 +129,8 @@ pub fn get_chunk_relations(
 
       for c in &cg.chunks {
         if let Some(c) = compilation.chunk_by_ukey.get(c)
-          && c.id(&compilation.chunk_ids) != chunk.id(&compilation.chunk_ids)
-          && let Some(id) = c.id(&compilation.chunk_ids)
+          && c.id(&compilation.chunk_ids_artifact) != chunk.id(&compilation.chunk_ids_artifact)
+          && let Some(id) = c.id(&compilation.chunk_ids_artifact)
         {
           siblings.insert(id.to_string());
         }
@@ -173,7 +174,7 @@ pub fn get_module_trace(
       name: origin_module
         .readable_identifier(&options.context)
         .to_string(),
-      id: ChunkGraph::get_module_id(&compilation.module_ids, origin_module.identifier())
+      id: ChunkGraph::get_module_id(&compilation.module_ids_artifact, origin_module.identifier())
         .map(|s| s.to_string()),
     };
 
@@ -182,8 +183,11 @@ pub fn get_module_trace(
       name: current_module
         .readable_identifier(&options.context)
         .to_string(),
-      id: ChunkGraph::get_module_id(&compilation.module_ids, current_module.identifier())
-        .map(|s| s.to_string()),
+      id: ChunkGraph::get_module_id(
+        &compilation.module_ids_artifact,
+        current_module.identifier(),
+      )
+      .map(|s| s.to_string()),
     };
 
     module_trace.push(StatsModuleTrace {

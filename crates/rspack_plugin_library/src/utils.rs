@@ -28,7 +28,7 @@ fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilati
       format!(
         "__WEBPACK_EXTERNAL_MODULE_{}__",
         to_identifier(
-          ChunkGraph::get_module_id(&compilation.module_ids, m.identifier())
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
             .map(|s| s.as_str())
             .expect("should have module id")
         )
