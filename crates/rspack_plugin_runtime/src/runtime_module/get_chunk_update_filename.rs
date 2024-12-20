@@ -35,12 +35,12 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
           &FilenameTemplate::from(compilation.options.output.hot_update_chunk_filename.clone()),
           PathData::default()
             .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_results,
+              &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
             .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-              &compilation.chunk_hashes_results,
+              &compilation.chunk_hashes_artifact,
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             ))

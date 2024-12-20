@@ -24,10 +24,10 @@ pub fn get_initial_chunk_ids(
           .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
             let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            chunk.expect_id(&compilation.chunk_ids).clone()
+            chunk.expect_id(&compilation.chunk_ids_artifact).clone()
           })
           .collect::<HashSet<_>>();
-        js_chunks.insert(chunk.expect_id(&compilation.chunk_ids).clone());
+        js_chunks.insert(chunk.expect_id(&compilation.chunk_ids_artifact).clone());
         js_chunks
       }
       None => HashSet::default(),
@@ -130,14 +130,18 @@ pub fn get_output_dir(
   let output_dir = compilation.get_path(
     &filename,
     PathData::default()
-      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
       .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         &SourceType::JavaScript,
         compilation.options.output.hash_digest_length,
       )),
@@ -189,7 +193,7 @@ where
 
   for chunk_ukey in chunks.iter() {
     if let Some(chunk) = chunk_map.get(chunk_ukey) {
-      if let Some(chunk_id) = chunk.id(&compilation.chunk_ids) {
+      if let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) {
         if let Some(value) = f(chunk) {
           if value.as_str() == chunk_id.as_str() {
             use_id = true;

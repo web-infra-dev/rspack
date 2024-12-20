@@ -216,7 +216,7 @@ pub fn stringified_exports<'a>(
             .expect("should have css from module");
 
           let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
               .expect("should have module"),
           )
           .expect("should json stringify module id");
@@ -290,7 +290,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
             .expect("should have css from module");
 
           let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
               .expect("should have module"),
           )
           .expect("should json stringify module id");

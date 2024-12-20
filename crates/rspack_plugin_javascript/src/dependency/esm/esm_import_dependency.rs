@@ -479,10 +479,6 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
 
 #[cacheable_dyn]
 impl ModuleDependency for ESMImportSideEffectDependency {
-  fn is_export_all(&self) -> Option<bool> {
-    Some(self.export_all)
-  }
-
   fn request(&self) -> &str {
     &self.request
   }

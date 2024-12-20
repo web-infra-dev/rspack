@@ -265,7 +265,7 @@ impl ChunkGroup {
         compilation
           .chunk_by_ukey
           .get(chunk)
-          .and_then(|item| item.id(&compilation.chunk_ids))
+          .and_then(|item| item.id(&compilation.chunk_ids_artifact))
       })
       .join("+")
   }

@@ -3,8 +3,8 @@ use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeyMap, UkeySet};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
   incremental::{IncrementalPasses, Mutation, Mutations},
-  ApplyContext, ChunkGraph, ChunkUkey, Compilation, CompilationChunkIds, CompilerOptions, Logger,
-  Plugin, PluginContext,
+  ApplyContext, ChunkGraph, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationChunkIds,
+  CompilerOptions, Logger, Plugin, PluginContext,
 };
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
@@ -18,7 +18,7 @@ fn assign_named_chunk_ids(
   compilation: &Compilation,
   delimiter: &str,
   used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
-  chunk_ids: &mut UkeyMap<ChunkUkey, ChunkId>,
+  chunk_ids: &mut ChunkIdsArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ChunkUkey> {
   let context: &str = compilation.options.context.as_ref();
@@ -101,7 +101,13 @@ fn assign_named_chunk_ids(
       items.sort_unstable_by(|a, b| {
         let a = compilation.chunk_by_ukey.expect_get(a);
         let b = compilation.chunk_by_ukey.expect_get(b);
-        compare_chunks_natural(chunk_graph, &module_graph, &compilation.module_ids, a, b)
+        compare_chunks_natural(
+          chunk_graph,
+          &module_graph,
+          &compilation.module_ids_artifact,
+          a,
+          b,
+        )
       });
       let mut i = 0;
       for item in items {
@@ -126,7 +132,13 @@ fn assign_named_chunk_ids(
   unnamed_items.sort_unstable_by(|a, b| {
     let a = compilation.chunk_by_ukey.expect_get(a);
     let b = compilation.chunk_by_ukey.expect_get(b);
-    compare_chunks_natural(chunk_graph, &module_graph, &compilation.module_ids, a, b)
+    compare_chunks_natural(
+      chunk_graph,
+      &module_graph,
+      &compilation.module_ids_artifact,
+      a,
+      b,
+    )
   });
   unnamed_items
 }
@@ -154,7 +166,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
-          compilation.chunk_ids.remove(chunk);
+          compilation.chunk_ids_artifact.remove(chunk);
         }
         Mutation::ModuleSetId { module } => {
           affected_chunks.extend(compilation.chunk_graph.get_module_chunks(*module));
@@ -163,7 +175,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
       }
     }
     compilation
-      .chunk_ids
+      .chunk_ids_artifact
       .retain(|chunk, _| compilation.chunk_by_ukey.contains(chunk));
     affected_chunks
   } else {
@@ -173,7 +185,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   let mut chunks: UkeySet<ChunkUkey> = compilation
     .chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id(&compilation.chunk_ids).is_none())
+    .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())
     .map(|chunk| chunk.ukey())
     .collect();
   chunks.extend(more_chunks);
@@ -188,8 +200,11 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   chunks.retain(|chunk_ukey| {
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     if let Some(chunk_name) = chunk.name() {
-      if ChunkGraph::set_chunk_id(&mut compilation.chunk_ids, *chunk_ukey, chunk_name.into())
-        && let Some(mutations) = &mut mutations
+      if ChunkGraph::set_chunk_id(
+        &mut compilation.chunk_ids_artifact,
+        *chunk_ukey,
+        chunk_name.into(),
+      ) && let Some(mutations) = &mut mutations
       {
         mutations.add(Mutation::ChunkSetId { chunk: *chunk_ukey });
       }
@@ -199,7 +214,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   });
   let named_chunks_len = chunks_len - chunks.len();
 
-  let mut chunk_ids = std::mem::take(&mut compilation.chunk_ids);
+  let mut chunk_ids = std::mem::take(&mut compilation.chunk_ids_artifact);
   let mut used_ids: FxHashMap<ChunkId, ChunkUkey> = chunk_ids
     .iter()
     .map(|(&chunk, id)| (id.clone(), chunk))
@@ -257,7 +272,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
     compilation_mutations.extend(mutations);
   }
 
-  compilation.chunk_ids = chunk_ids;
+  compilation.chunk_ids_artifact = chunk_ids;
   Ok(())
 }
 

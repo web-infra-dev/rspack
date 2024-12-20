@@ -142,12 +142,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let current_chunk = compilation
       .chunk_by_ukey
       .iter()
-      .find(|(_, chunk)| chunk.expect_id(&compilation.chunk_ids).eq(&chunk_id))
+      .find(|(_, chunk)| {
+        chunk
+          .expect_id(&compilation.chunk_ids_artifact)
+          .eq(&chunk_id)
+      })
       .map(|(_, chunk)| chunk);
     let current_chunk_ukey = current_chunk.map(|c| c.ukey());
 
     if let Some(current_chunk) = current_chunk {
-      chunk_id = current_chunk.expect_id(&compilation.chunk_ids).clone();
+      chunk_id = current_chunk
+        .expect_id(&compilation.chunk_ids_artifact)
+        .clone();
       new_runtime = Default::default();
       // intersectRuntime
       for old_runtime in all_old_runtime.iter() {
@@ -191,7 +197,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
-      hot_update_chunk.set_id(&mut compilation.chunk_ids, chunk_id.clone());
+      hot_update_chunk.set_id(&mut compilation.chunk_ids_artifact, chunk_id.clone());
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
         current_chunk.runtime().clone()
       } else {
@@ -268,11 +274,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               PathData::default()
                 .chunk_id_optional(
                   hot_update_chunk
-                    .id(&compilation.chunk_ids)
+                    .id(&compilation.chunk_ids_artifact)
                     .map(|id| id.as_str()),
                 )
                 .chunk_name_optional(
-                  hot_update_chunk.name_for_filename_template(&compilation.chunk_ids),
+                  hot_update_chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
                 )
                 .hash_optional(
                   old_hash

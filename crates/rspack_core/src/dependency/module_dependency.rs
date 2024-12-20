@@ -36,10 +36,6 @@ pub trait ModuleDependency: Dependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     None
   }
-
-  fn is_export_all(&self) -> Option<bool> {
-    None
-  }
 }
 
 clone_trait_object!(ModuleDependency);

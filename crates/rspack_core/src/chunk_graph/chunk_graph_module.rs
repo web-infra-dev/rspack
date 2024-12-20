@@ -14,8 +14,8 @@ use tracing::instrument;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
-  RuntimeSpecMap, RuntimeSpecSet,
+  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -169,7 +169,7 @@ impl ChunkGraph {
     map: RuntimeSpecMap<RuntimeGlobals>,
   ) {
     compilation
-      .cgm_runtime_requirements_results
+      .cgm_runtime_requirements_artifact
       .set_runtime_requirements(module_identifier, map);
   }
 
@@ -179,7 +179,7 @@ impl ChunkGraph {
     runtime: &RuntimeSpec,
   ) -> Option<&'c RuntimeGlobals> {
     compilation
-      .cgm_runtime_requirements_results
+      .cgm_runtime_requirements_artifact
       .get(&module_identifier, runtime)
   }
 
@@ -198,14 +198,14 @@ impl ChunkGraph {
   }
 
   pub fn get_module_id(
-    module_ids: &IdentifierMap<ModuleId>,
+    module_ids: &ModuleIdsArtifact,
     module_identifier: ModuleIdentifier,
   ) -> Option<&ModuleId> {
     module_ids.get(&module_identifier)
   }
 
   pub fn set_module_id(
-    module_ids: &mut IdentifierMap<ModuleId>,
+    module_ids: &mut ModuleIdsArtifact,
     module_identifier: ModuleIdentifier,
     id: ModuleId,
   ) -> bool {
@@ -241,7 +241,7 @@ impl ChunkGraph {
     runtime: &RuntimeSpec,
   ) -> Option<&'c RspackHashDigest> {
     compilation
-      .cgm_hash_results
+      .cgm_hash_artifact
       .get(&module_identifier, runtime)
   }
 
@@ -251,7 +251,7 @@ impl ChunkGraph {
     hashes: RuntimeSpecMap<RspackHashDigest>,
   ) {
     compilation
-      .cgm_hash_results
+      .cgm_hash_artifact
       .set_hashes(module_identifier, hashes);
   }
 
@@ -303,7 +303,7 @@ impl ChunkGraph {
     let mut hasher = FxHasher::default();
     let mg = compilation.get_module_graph();
     let module_identifier = module.identifier();
-    Self::get_module_id(&compilation.module_ids, module_identifier).dyn_hash(&mut hasher);
+    Self::get_module_id(&compilation.module_ids_artifact, module_identifier).dyn_hash(&mut hasher);
     module.source_types().dyn_hash(&mut hasher);
     ModuleGraph::is_async(compilation, &module_identifier).dyn_hash(&mut hasher);
     mg.get_exports_info(&module_identifier)
