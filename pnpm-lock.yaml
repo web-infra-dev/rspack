@@ -1030,6 +1030,9 @@ importers:
       terser-webpack-plugin:
         specifier: ^5.3.10
         version: 5.3.10(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+      toml:
+        specifier: ^3.0.0
+        version: 3.0.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.12.7)(typescript@4.9.5)
