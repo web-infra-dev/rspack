@@ -17,7 +17,7 @@ pub struct ChunkGraph {
   pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
 
   pub(crate) chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
-  chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
+  pub chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
 }
