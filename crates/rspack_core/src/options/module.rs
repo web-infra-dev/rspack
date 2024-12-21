@@ -41,6 +41,7 @@ pub enum ParserOptions {
   JavascriptAuto(JavascriptParserOptions),
   JavascriptEsm(JavascriptParserOptions),
   JavascriptDynamic(JavascriptParserOptions),
+  Json(JsonParserOptions),
   Unknown,
 }
 
@@ -68,6 +69,7 @@ impl ParserOptions {
     JavascriptDynamic,
     JavascriptParserOptions
   );
+  get_variant!(get_json, Json, JsonParserOptions);
 }
 
 #[cacheable]
@@ -285,6 +287,12 @@ pub struct CssAutoParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JsonParserOptions {
+  pub exports_depth: Option<f64>,
 }
 
 #[derive(Debug)]

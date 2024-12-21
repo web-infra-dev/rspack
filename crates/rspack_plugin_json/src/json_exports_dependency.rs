@@ -13,13 +13,15 @@ pub struct JsonExportsDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   data: JsonValue,
+  exports_depth: f64,
 }
 
 impl JsonExportsDependency {
-  pub fn new(data: JsonValue) -> Self {
+  pub fn new(data: JsonValue, exports_depth: f64) -> Self {
     Self {
       data,
       id: DependencyId::new(),
+      exports_depth,
     }
   }
 }
@@ -31,8 +33,10 @@ impl Dependency for JsonExportsDependency {
   }
 
   fn get_exports(&self, _mg: &ModuleGraph) -> Option<ExportsSpec> {
+    let exports_depth: u64 = self.exports_depth as u64;
     Some(ExportsSpec {
-      exports: get_exports_from_data(&self.data).unwrap_or(ExportsOfExportsSpec::Null),
+      exports: get_exports_from_data(&self.data, exports_depth, 1)
+        .unwrap_or(ExportsOfExportsSpec::Null),
       ..Default::default()
     })
   }
@@ -68,7 +72,14 @@ impl DependencyTemplate for JsonExportsDependency {
   }
 }
 
-fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
+fn get_exports_from_data(
+  data: &JsonValue,
+  exports_depth: u64,
+  cur_depth: u64,
+) -> Option<ExportsOfExportsSpec> {
+  if cur_depth > exports_depth {
+    return None;
+  }
   let ret = match data {
     JsonValue::Null
     | JsonValue::Short(_)
@@ -84,11 +95,13 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
           ExportNameOrSpec::ExportSpec(ExportSpec {
             name: k.into(),
             can_mangle: Some(true),
-            exports: get_exports_from_data(v).map(|item| match item {
-              ExportsOfExportsSpec::True => unreachable!(),
-              ExportsOfExportsSpec::Null => unreachable!(),
-              ExportsOfExportsSpec::Array(arr) => arr,
-            }),
+            exports: get_exports_from_data(v, exports_depth, cur_depth + 1).map(
+              |item| match item {
+                ExportsOfExportsSpec::True => unreachable!(),
+                ExportsOfExportsSpec::Null => unreachable!(),
+                ExportsOfExportsSpec::Array(arr) => arr,
+              },
+            ),
             ..Default::default()
           })
         })
@@ -106,9 +119,11 @@ fn get_exports_from_data(data: &JsonValue) -> Option<ExportsOfExportsSpec> {
             ExportNameOrSpec::ExportSpec(ExportSpec {
               name: itoa!(i).into(),
               can_mangle: Some(true),
-              exports: get_exports_from_data(item).map(|item| match item {
-                ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),
-                ExportsOfExportsSpec::Array(arr) => arr,
+              exports: get_exports_from_data(item, exports_depth, cur_depth + 1).map(|item| {
+                match item {
+                  ExportsOfExportsSpec::True | ExportsOfExportsSpec::Null => unreachable!(),
+                  ExportsOfExportsSpec::Array(arr) => arr,
+                }
               }),
               ..Default::default()
             })

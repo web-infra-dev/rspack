@@ -32,7 +32,9 @@ mod utils;
 
 #[cacheable]
 #[derive(Debug)]
-struct JsonParserAndGenerator;
+struct JsonParserAndGenerator {
+  pub exports_depth: f64,
+}
 
 #[cacheable_dyn]
 impl ParserAndGenerator for JsonParserAndGenerator {
@@ -119,7 +121,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       rspack_core::ParseResult {
         presentational_dependencies: vec![],
         dependencies: if let Some(data) = data {
-          vec![Box::new(JsonExportsDependency::new(data))]
+          vec![Box::new(JsonExportsDependency::new(
+            data,
+            self.exports_depth,
+          ))]
         } else {
           vec![]
         },
@@ -224,7 +229,15 @@ impl Plugin for JsonPlugin {
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|_, _| Box::new(JsonParserAndGenerator {})),
+      Box::new(|p, _| {
+        let p = p
+          .and_then(|p| p.get_json())
+          .expect("should have JsonParserOptions");
+
+        Box::new(JsonParserAndGenerator {
+          exports_depth: p.exports_depth.expect("should have exports_depth"),
+        })
+      }),
     );
 
     Ok(())

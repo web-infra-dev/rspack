@@ -15,6 +15,7 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
+	type RawJsonParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
@@ -54,6 +55,7 @@ import type {
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
+	JsonParserOptions,
 	Node,
 	Optimization,
 	ParserOptionsByModuleType,
@@ -261,19 +263,19 @@ const getRawModuleRule = (
 			: undefined,
 		descriptionData: rule.descriptionData
 			? Object.fromEntries(
-					Object.entries(rule.descriptionData).map(([k, v]) => [
-						k,
-						getRawRuleSetCondition(v)
-					])
-				)
+				Object.entries(rule.descriptionData).map(([k, v]) => [
+					k,
+					getRawRuleSetCondition(v)
+				])
+			)
 			: undefined,
 		with: rule.with
 			? Object.fromEntries(
-					Object.entries(rule.with).map(([k, v]) => [
-						k,
-						getRawRuleSetCondition(v)
-					])
-				)
+				Object.entries(rule.with).map(([k, v]) => [
+					k,
+					getRawRuleSetCondition(v)
+				])
+			)
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -300,27 +302,27 @@ const getRawModuleRule = (
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf
-					.filter(Boolean)
-					.map((rule, index) =>
-						getRawModuleRule(
-							rule as RuleSetRule,
-							`${path}.oneOf[${index}]`,
-							options,
-							(rule as RuleSetRule).type ?? upperType
-						)
+				.filter(Boolean)
+				.map((rule, index) =>
+					getRawModuleRule(
+						rule as RuleSetRule,
+						`${path}.oneOf[${index}]`,
+						options,
+						(rule as RuleSetRule).type ?? upperType
 					)
+				)
 			: undefined,
 		rules: rule.rules
 			? rule.rules
-					.filter(Boolean)
-					.map((rule, index) =>
-						getRawModuleRule(
-							rule as RuleSetRule,
-							`${path}.rules[${index}]`,
-							options,
-							(rule as RuleSetRule).type ?? upperType
-						)
+				.filter(Boolean)
+				.map((rule, index) =>
+					getRawModuleRule(
+						rule as RuleSetRule,
+						`${path}.rules[${index}]`,
+						options,
+						(rule as RuleSetRule).type ?? upperType
 					)
+				)
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -490,6 +492,14 @@ function getRawParserOptions(
 			cssModule: getRawCssParserOptions(parser)
 		};
 	}
+
+	if (type === "json") {
+		return {
+			type: "json",
+			json: getRawJsonParserOptions(parser)
+		};
+	}
+
 	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
@@ -563,6 +573,14 @@ function getRawCssParserOptions(
 ): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
 	return {
 		namedExports: parser.namedExports
+	};
+}
+
+function getRawJsonParserOptions(
+	parser: JsonParserOptions
+): RawJsonParserOptions {
+	return {
+		exportsDepth: parser.exportsDepth
 	};
 }
 

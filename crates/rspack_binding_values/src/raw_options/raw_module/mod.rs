@@ -12,10 +12,10 @@ use rspack_core::{
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
   DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParserOptions,
-  ParserOptionsMap,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions,
+  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
+  ParserOptions, ParserOptionsMap,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -183,7 +183,7 @@ pub struct RawModuleRule {
 #[napi(object)]
 pub struct RawParserOptions {
   #[napi(
-    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm""#
+    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
@@ -191,6 +191,7 @@ pub struct RawParserOptions {
   pub css_auto: Option<RawCssAutoParserOptions>,
   pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
+  pub json: Option<RawJsonParserOptions>,
 }
 
 impl From<RawParserOptions> for ParserOptions {
@@ -244,6 +245,12 @@ impl From<RawParserOptions> for ParserOptions {
         value
           .css_module
           .expect("should have an \"css_module\" when RawParserOptions.type is \"css/module\"")
+          .into(),
+      ),
+      "json" => Self::Json(
+        value
+          .json
+          .expect("should have an \"json\" when RawParserOptions.type is \"json\"")
           .into(),
       ),
       _ => panic!(
@@ -421,6 +428,20 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
+pub struct RawJsonParserOptions {
+  pub exports_depth: Option<f64>,
+}
+
+impl From<RawJsonParserOptions> for JsonParserOptions {
+  fn from(value: RawJsonParserOptions) -> Self {
+    Self {
+      exports_depth: value.exports_depth,
     }
   }
 }

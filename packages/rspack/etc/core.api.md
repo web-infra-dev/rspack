@@ -2748,6 +2748,11 @@ type JsonObject_2 = {
 };
 
 // @public (undocumented)
+export type JsonParserOptions = {
+    exportsDepth?: number;
+};
+
+// @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
@@ -4460,6 +4465,7 @@ export type ParserOptionsByModuleTypeKnown = {
     "javascript/auto"?: JavascriptParserOptions;
     "javascript/dynamic"?: JavascriptParserOptions;
     "javascript/esm"?: JavascriptParserOptions;
+    json?: JsonParserOptions;
 };
 
 // @public
@@ -5308,6 +5314,7 @@ declare namespace rspackExports {
         CssAutoParserOptions,
         CssModuleParserOptions,
         JavascriptParserOptions,
+        JsonParserOptions,
         ParserOptionsByModuleTypeKnown,
         ParserOptionsByModuleTypeUnknown,
         ParserOptionsByModuleType,
@@ -10453,6 +10460,7 @@ declare namespace t {
         CssAutoParserOptions,
         CssModuleParserOptions,
         JavascriptParserOptions,
+        JsonParserOptions,
         ParserOptionsByModuleTypeKnown,
         ParserOptionsByModuleTypeUnknown,
         ParserOptionsByModuleType,

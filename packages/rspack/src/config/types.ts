@@ -1068,6 +1068,13 @@ export type JavascriptParserOptions = {
 	importDynamic?: boolean;
 };
 
+export type JsonParserOptions = {
+	/**
+	 * The depth of json dependency flagged as `exportInfo`.
+	 */
+	exportsDepth?: number;
+};
+
 /** Configure all parsers' options in one place with module.parser. */
 export type ParserOptionsByModuleTypeKnown = {
 	/** Parser options for `asset` modules. */
@@ -1093,6 +1100,9 @@ export type ParserOptionsByModuleTypeKnown = {
 
 	/** Parser options for `javascript/esm` modules. */
 	"javascript/esm"?: JavascriptParserOptions;
+
+	/** Parser options for `json` modules. */
+	json?: JsonParserOptions;
 };
 
 /** Configure all parsers' options in one place with module.parser. */
