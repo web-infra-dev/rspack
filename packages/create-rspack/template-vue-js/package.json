@@ -13,6 +13,6 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "cross-env": "^7.0.3",
-    "vue-loader": "^17.3.1"
+    "vue-loader": "^17.4.2"
   }
 }
