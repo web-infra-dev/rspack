@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use napi::{bindgen_prelude::Either3, Either};
@@ -57,9 +57,12 @@ impl WritableFileSystem for NodeFileSystem {
       .map(|_| ())
   }
 
-  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    let file = file.as_str().to_string();
-    let data = data.to_vec();
+  async fn write<'a>(&self, file: &Utf8Path, data: Cow<'a, [u8]>) -> Result<()> {
+    let file = file.to_string();
+    let data = match data {
+      Cow::Borrowed(d) => d.to_vec(),
+      Cow::Owned(d) => d,
+    };
     self
       .0
       .write_file

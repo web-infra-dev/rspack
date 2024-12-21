@@ -104,6 +104,7 @@ impl Snapshot {
 
 #[cfg(test)]
 mod tests {
+  use std::borrow::Cow;
   use std::sync::Arc;
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -131,28 +132,36 @@ mod tests {
       .await
       .unwrap();
     fs.create_dir_all("/node_modules/lib".into()).await.unwrap();
-    fs.write("/file1".into(), "abc".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abc".as_bytes())
+    fs.write("/file1".into(), Cow::Borrowed("abc".as_bytes()))
+      .await
+      .unwrap();
+    fs.write("/constant".into(), Cow::Borrowed("abc".as_bytes()))
       .await
       .unwrap();
     fs.write(
       "/node_modules/project/package.json".into(),
-      r#"{"version":"1.0.0"}"#.as_bytes(),
+      Cow::Borrowed(r#"{"version":"1.0.0"}"#.as_bytes()),
     )
     .await
     .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abc".as_bytes())
-      .await
-      .unwrap();
+    fs.write(
+      "/node_modules/project/file1".into(),
+      Cow::Borrowed("abc".as_bytes()),
+    )
+    .await
+    .unwrap();
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.1.0"}"#.as_bytes(),
+      Cow::Borrowed(r#"{"version":"1.1.0"}"#.as_bytes()),
     )
     .await
     .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abc".as_bytes())
-      .await
-      .unwrap();
+    fs.write(
+      "/node_modules/lib/file1".into(),
+      Cow::Borrowed("abc".as_bytes()),
+    )
+    .await
+    .unwrap();
 
     let snapshot = Snapshot::new(options, fs.clone(), storage);
 
@@ -168,16 +177,24 @@ mod tests {
       )
       .await;
     std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abcd".as_bytes())
+    fs.write("/file1".into(), Cow::Borrowed("abcd".as_bytes()))
       .await
       .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abcd".as_bytes())
+    fs.write("/constant".into(), Cow::Borrowed("abcd".as_bytes()))
       .await
       .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
+    fs.write(
+      "/node_modules/project/file1".into(),
+      Cow::Borrowed("abcd".as_bytes()),
+    )
+    .await
+    .unwrap();
+    fs.write(
+      "/node_modules/lib/file1".into(),
+      Cow::Borrowed("abcd".as_bytes()),
+    )
+    .await
+    .unwrap();
 
     let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
     assert!(deleted_paths.is_empty());
@@ -188,7 +205,7 @@ mod tests {
 
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.3.0"}"#.as_bytes(),
+      Cow::Borrowed(r#"{"version":"1.3.0"}"#.as_bytes()),
     )
     .await
     .unwrap();

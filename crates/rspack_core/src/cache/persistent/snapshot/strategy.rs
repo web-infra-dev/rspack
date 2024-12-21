@@ -137,7 +137,7 @@ impl StrategyHelper {
 
 #[cfg(test)]
 mod tests {
-  use std::{path::Path, sync::Arc};
+  use std::{borrow::Cow, path::Path, sync::Arc};
 
   use rspack_fs::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
 
@@ -150,17 +150,19 @@ mod tests {
     fs.create_dir_all("/packages/p2".into()).await.unwrap();
     fs.write(
       "/packages/p1/package.json".into(),
-      r#"{"version": "1.0.0"}"#.as_bytes(),
+      Cow::Borrowed(r#"{"version": "1.0.0"}"#.as_bytes()),
     )
     .await
     .unwrap();
     fs.write(
       "/packages/p2/package.json".into(),
-      r#"{"version": "1.1.0"}"#.as_bytes(),
+      Cow::Borrowed(r#"{"version": "1.1.0"}"#.as_bytes()),
     )
     .await
     .unwrap();
-    fs.write("/file1".into(), "abc".as_bytes()).await.unwrap();
+    fs.write("/file1".into(), Cow::Borrowed("abc".as_bytes()))
+      .await
+      .unwrap();
 
     // compile_time
     let Strategy::CompileTime(time1) = StrategyHelper::compile_time() else {
@@ -243,7 +245,9 @@ mod tests {
       ValidateResult::NoChanged
     ));
     std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
+    fs.write("/file1".into(), Cow::Borrowed("abcd".as_bytes()))
+      .await
+      .unwrap();
     assert!(matches!(
       helper.validate(Path::new("/file1"), &now).await,
       ValidateResult::Modified
