@@ -140,7 +140,7 @@ impl InitFragmentKey {
       | InitFragmentKey::CommonJsExports(_)
       | InitFragmentKey::Const(_) => first(fragments),
       InitFragmentKey::ESMCompatibility | InitFragmentKey::Unique(_) => {
-        debug_assert!(fragments.len() == 1, "fragment = {:?}", self);
+        debug_assert!(fragments.len() == 1, "fragment = {self:?}");
         first(fragments)
       }
     }
@@ -657,7 +657,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
         if imports_string.is_empty() {
           String::new()
         } else {
-          format!(", {}", imports_string)
+          format!(", {imports_string}")
         }
       );
     }
