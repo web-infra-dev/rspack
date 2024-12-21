@@ -1390,14 +1390,6 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     self.request = request.into();
   }
 
-  fn is_export_all(&self) -> Option<bool> {
-    if self.export_all {
-      Some(true)
-    } else {
-      None
-    }
-  }
-
   fn get_condition(&self) -> Option<DependencyCondition> {
     let id = self.id;
     Some(DependencyCondition::Fn(Arc::new(

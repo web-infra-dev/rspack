@@ -41,7 +41,7 @@ impl JsChunk {
   #[napi(getter)]
   pub fn id(&self) -> napi::Result<Either<&str, ()>> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(match chunk.id(&compilation.chunk_ids) {
+    Ok(match chunk.id(&compilation.chunk_ids_artifact) {
       Some(id) => Either::A(id.as_str()),
       None => Either::B(()),
     })
@@ -52,7 +52,7 @@ impl JsChunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .id(&compilation.chunk_ids)
+        .id(&compilation.chunk_ids_artifact)
         .map(|id| vec![id.as_str()])
         .unwrap_or_default(),
     )
@@ -107,7 +107,7 @@ impl JsChunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       match chunk
-        .hash(&compilation.chunk_hashes_results)
+        .hash(&compilation.chunk_hashes_artifact)
         .map(|d| d.encoded())
       {
         Some(hash) => Either::A(hash),
@@ -121,7 +121,7 @@ impl JsChunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .content_hash(&compilation.chunk_hashes_results)
+        .content_hash(&compilation.chunk_hashes_artifact)
         .map(|content_hash| {
           content_hash
             .iter()
@@ -137,7 +137,7 @@ impl JsChunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       match chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ) {
         Some(hash) => Either::A(hash),

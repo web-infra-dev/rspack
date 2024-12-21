@@ -6,8 +6,8 @@
 #![feature(hash_raw_entry)]
 
 use std::{fmt, sync::Arc};
-mod cgm_hash_results;
-mod cgm_runtime_requirement_results;
+mod artifacts;
+pub use artifacts::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
@@ -80,8 +80,6 @@ mod runtime;
 mod runtime_module;
 pub use runtime::*;
 pub use runtime_module::*;
-mod code_generation_results;
-pub use code_generation_results::*;
 mod entrypoint;
 pub use entrypoint::*;
 mod loader;

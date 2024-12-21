@@ -161,7 +161,9 @@ impl Module for FallbackModule {
       .get_dependencies()
       .iter()
       .filter_map(|dep| module_graph.get_module_by_dependency_id(dep))
-      .filter_map(|module| ChunkGraph::get_module_id(&compilation.module_ids, module.identifier()))
+      .filter_map(|module| {
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+      })
       .collect();
     let code = format!(
       r#"

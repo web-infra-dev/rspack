@@ -350,9 +350,10 @@ export const getNormalizedRspackOptions = (
 				options === true
 					? ({
 							make: true,
-							dependenciesDiagnostics: true,
 							inferAsyncModules: true,
 							providedExports: true,
+							dependenciesDiagnostics: true,
+							sideEffects: true,
 							buildChunkGraph: true,
 							moduleIds: true,
 							chunkIds: true,

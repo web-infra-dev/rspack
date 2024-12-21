@@ -109,7 +109,7 @@ fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "export const ids = ['{}'];\n",
-    &chunk.expect_id(&compilation.chunk_ids)
+    &chunk.expect_id(&compilation.chunk_ids_artifact)
   )));
   sources.add(RawStringSource::from_static("export const modules = "));
   sources.add(render_source.source.clone());
@@ -144,8 +144,8 @@ fn render_chunk(
 
     let mut loaded_chunks = HashSet::default();
     for (i, (module, entry)) in entries.iter().enumerate() {
-      let module_id =
-        ChunkGraph::get_module_id(&compilation.module_ids, *module).expect("should have module id");
+      let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
+        .expect("should have module id");
       let runtime_chunk = compilation
         .chunk_group_by_ukey
         .expect_get(entry)

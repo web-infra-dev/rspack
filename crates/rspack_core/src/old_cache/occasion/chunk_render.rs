@@ -35,7 +35,7 @@ impl ChunkRenderOccasion {
     };
 
     let Some(content_hash) =
-      chunk.content_hash_by_source_type(&compilation.chunk_hashes_results, source_type)
+      chunk.content_hash_by_source_type(&compilation.chunk_hashes_artifact, source_type)
     else {
       return generator().await;
     };

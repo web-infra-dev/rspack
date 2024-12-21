@@ -40,7 +40,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   let chunks = compilation
     .chunk_by_ukey
     .values()
-    .filter(|chunk| chunk.id(&compilation.chunk_ids).is_none())
+    .filter(|chunk| chunk.id(&compilation.chunk_ids_artifact).is_none())
     .collect::<Vec<_>>();
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
@@ -48,7 +48,15 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
   assign_deterministic_ids(
     chunks,
     |chunk| get_full_chunk_name(chunk, chunk_graph, &module_graph, &context),
-    |a, b| compare_chunks_natural(chunk_graph, &module_graph, &compilation.module_ids, a, b),
+    |a, b| {
+      compare_chunks_natural(
+        chunk_graph,
+        &module_graph,
+        &compilation.module_ids_artifact,
+        a,
+        b,
+      )
+    },
     |chunk, id| {
       let size = used_ids.len();
       used_ids.insert(id.to_string());
@@ -67,7 +75,7 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error:
 
   chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
     let chunk = compilation.chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.set_id(&mut compilation.chunk_ids, id.to_string());
+    chunk.set_id(&mut compilation.chunk_ids_artifact, id.to_string());
   });
 
   Ok(())

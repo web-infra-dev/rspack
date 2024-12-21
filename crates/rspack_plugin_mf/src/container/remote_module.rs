@@ -178,8 +178,8 @@ impl Module for RemoteModule {
     let mut codegen = CodeGenerationResult::default();
     let module_graph = compilation.get_module_graph();
     let module = module_graph.get_module_by_dependency_id(&self.dependencies[0]);
-    let id =
-      module.and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids, m.identifier()));
+    let id = module
+      .and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier()));
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
     codegen.data.insert(CodeGenerationDataShareInit {
       items: vec![ShareInitData {

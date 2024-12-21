@@ -16,8 +16,8 @@ use serde::{Serialize, Serializer};
 
 use crate::{
   find_graph_roots, merge_runtime, BoxModule, Chunk, ChunkByUkey, ChunkGraphModule,
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleIdentifier,
-  RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkIdsArtifact, ChunkUkey, Module, ModuleGraph,
+  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use crate::{ChunkGraph, Compilation};
 
@@ -512,7 +512,7 @@ impl ChunkGraph {
     runtime_requirements: RuntimeGlobals,
   ) {
     compilation
-      .cgc_runtime_requirements_results
+      .cgc_runtime_requirements_artifact
       .insert(chunk_ukey, runtime_requirements);
   }
 
@@ -529,7 +529,7 @@ impl ChunkGraph {
     chunk_ukey: &ChunkUkey,
   ) -> &'a RuntimeGlobals {
     compilation
-      .cgc_runtime_requirements_results
+      .cgc_runtime_requirements_artifact
       .get(chunk_ukey)
       .unwrap_or_else(|| {
         let c = compilation.chunk_graph.expect_chunk_graph_chunk(chunk_ukey);
@@ -537,7 +537,7 @@ impl ChunkGraph {
           "Chunk({:?} {:?}) should have runtime requirements, {:?}",
           c,
           chunk_ukey,
-          &compilation.cgc_runtime_requirements_results.keys()
+          &compilation.cgc_runtime_requirements_artifact.keys()
         )
       })
   }
@@ -604,7 +604,7 @@ impl ChunkGraph {
     {
       let chunk = compilation.chunk_by_ukey.expect_get(c);
       map.insert(
-        chunk.expect_id(&compilation.chunk_ids).to_string(),
+        chunk.expect_id(&compilation.chunk_ids_artifact).to_string(),
         filter(c, compilation),
       );
     }
@@ -970,14 +970,14 @@ impl ChunkGraph {
   }
 
   pub fn get_chunk_id<'a>(
-    chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>,
+    chunk_ids: &'a ChunkIdsArtifact,
     chunk_ukey: &ChunkUkey,
   ) -> Option<&'a ChunkId> {
     chunk_ids.get(chunk_ukey)
   }
 
   pub fn set_chunk_id(
-    chunk_ids: &mut UkeyMap<ChunkUkey, ChunkId>,
+    chunk_ids: &mut ChunkIdsArtifact,
     chunk_ukey: ChunkUkey,
     id: ChunkId,
   ) -> bool {

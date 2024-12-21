@@ -176,8 +176,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", itoa!(dep_modules.len()));
                 let val = (
                   import_var.clone(),
-                  ChunkGraph::get_module_id(&compilation.module_ids, mgm.module_identifier)
-                    .expect("should have module id"),
+                  ChunkGraph::get_module_id(
+                    &compilation.module_ids_artifact,
+                    mgm.module_identifier,
+                  )
+                  .expect("should have module id"),
                 );
 
                 if ModuleGraph::is_async(compilation, &mgm.module_identifier) {

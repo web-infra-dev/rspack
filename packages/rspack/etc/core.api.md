@@ -2432,6 +2432,7 @@ export type Incremental = {
     inferAsyncModules?: boolean;
     providedExports?: boolean;
     dependenciesDiagnostics?: boolean;
+    sideEffects?: boolean;
     buildChunkGraph?: boolean;
     moduleIds?: boolean;
     chunkIds?: boolean;
@@ -6410,6 +6411,7 @@ export const rspackOptions: z.ZodObject<{
             inferAsyncModules: z.ZodOptional<z.ZodBoolean>;
             providedExports: z.ZodOptional<z.ZodBoolean>;
             dependenciesDiagnostics: z.ZodOptional<z.ZodBoolean>;
+            sideEffects: z.ZodOptional<z.ZodBoolean>;
             buildChunkGraph: z.ZodOptional<z.ZodBoolean>;
             moduleIds: z.ZodOptional<z.ZodBoolean>;
             chunkIds: z.ZodOptional<z.ZodBoolean>;
@@ -6425,6 +6427,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -6440,6 +6443,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -6525,6 +6529,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -6590,6 +6595,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -7154,6 +7160,7 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
+        sideEffects?: boolean | "flag" | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | "size" | "total-size" | undefined;
         minimize?: boolean | undefined;
@@ -7211,7 +7218,6 @@ export const rspackOptions: z.ZodObject<{
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
         realContentHash?: boolean | undefined;
-        sideEffects?: boolean | "flag" | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
         mangleExports?: boolean | "deterministic" | "size" | undefined;
@@ -7220,6 +7226,7 @@ export const rspackOptions: z.ZodObject<{
     }, {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
+        sideEffects?: boolean | "flag" | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | "size" | "total-size" | undefined;
         minimize?: boolean | undefined;
@@ -7277,7 +7284,6 @@ export const rspackOptions: z.ZodObject<{
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
         realContentHash?: boolean | undefined;
-        sideEffects?: boolean | "flag" | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
         mangleExports?: boolean | "deterministic" | "size" | undefined;
@@ -8530,6 +8536,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -8843,6 +8850,7 @@ export const rspackOptions: z.ZodObject<{
     optimization?: {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
+        sideEffects?: boolean | "flag" | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | "size" | "total-size" | undefined;
         minimize?: boolean | undefined;
@@ -8900,7 +8908,6 @@ export const rspackOptions: z.ZodObject<{
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
         realContentHash?: boolean | undefined;
-        sideEffects?: boolean | "flag" | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
         mangleExports?: boolean | "deterministic" | "size" | undefined;
@@ -9132,6 +9139,7 @@ export const rspackOptions: z.ZodObject<{
             make?: boolean | undefined;
             inferAsyncModules?: boolean | undefined;
             dependenciesDiagnostics?: boolean | undefined;
+            sideEffects?: boolean | undefined;
             buildChunkGraph?: boolean | undefined;
             moduleIds?: boolean | undefined;
             chunkIds?: boolean | undefined;
@@ -9445,6 +9453,7 @@ export const rspackOptions: z.ZodObject<{
     optimization?: {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
+        sideEffects?: boolean | "flag" | undefined;
         moduleIds?: "named" | "natural" | "deterministic" | undefined;
         chunkIds?: "named" | "natural" | "deterministic" | "size" | "total-size" | undefined;
         minimize?: boolean | undefined;
@@ -9502,7 +9511,6 @@ export const rspackOptions: z.ZodObject<{
         removeAvailableModules?: boolean | undefined;
         removeEmptyChunks?: boolean | undefined;
         realContentHash?: boolean | undefined;
-        sideEffects?: boolean | "flag" | undefined;
         concatenateModules?: boolean | undefined;
         innerGraph?: boolean | undefined;
         mangleExports?: boolean | "deterministic" | "size" | undefined;

@@ -355,7 +355,8 @@ pub fn module_id(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
+    && let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
     module_id_expr(&compilation.options, request, module_id)
   } else if weak {
@@ -584,14 +585,15 @@ pub fn block_promise(
     .iter()
     .map(|c| compilation.chunk_by_ukey.expect_get(c))
     .filter(|c| {
-      !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id(&compilation.chunk_ids).is_some()
+      !c.has_runtime(&compilation.chunk_group_by_ukey)
+        && c.id(&compilation.chunk_ids_artifact).is_some()
     })
     .collect::<Vec<_>>();
 
   if chunks.len() == 1 {
     let chunk_id = serde_json::to_string(
       chunks[0]
-        .id(&compilation.chunk_ids)
+        .id(&compilation.chunk_ids_artifact)
         .expect("should have chunk.id"),
     )
     .expect("should able to json stringify");
@@ -632,8 +634,11 @@ pub fn block_promise(
         .map(|c| format!(
           "{}({}{})",
           RuntimeGlobals::ENSURE_CHUNK,
-          serde_json::to_string(c.id(&compilation.chunk_ids).expect("should have chunk.id"))
-            .expect("should able to json stringify"),
+          serde_json::to_string(
+            c.id(&compilation.chunk_ids_artifact)
+              .expect("should have chunk.id")
+          )
+          .expect("should able to json stringify"),
           fetch_priority
             .map(|x| format!(r#", "{x}""#))
             .unwrap_or_default()
@@ -656,7 +661,8 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
+    && let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(

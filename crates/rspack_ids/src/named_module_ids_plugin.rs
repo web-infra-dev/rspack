@@ -3,7 +3,7 @@ use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions, Logger, ModuleGraph, ModuleId,
-  ModuleIdentifier, Plugin, PluginContext,
+  ModuleIdentifier, ModuleIdsArtifact, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -18,7 +18,7 @@ fn assign_named_module_ids(
   context: &str,
   module_graph: &ModuleGraph,
   used_ids: &mut FxHashMap<ModuleId, ModuleIdentifier>,
-  module_ids: &mut IdentifierMap<ModuleId>,
+  module_ids: &mut ModuleIdsArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ModuleIdentifier> {
   let item_name_pair: Vec<_> = modules
@@ -123,7 +123,7 @@ pub struct NamedModuleIdsPlugin;
 
 #[plugin_hook(CompilationModuleIds for NamedModuleIdsPlugin)]
 fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
-  let mut module_ids = std::mem::take(&mut compilation.module_ids);
+  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
   let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
     .iter()
     .map(|(&module, id)| (id.clone(), module))
@@ -228,7 +228,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     compilation_mutations.extend(mutations);
   }
 
-  compilation.module_ids = module_ids;
+  compilation.module_ids_artifact = module_ids;
   Ok(())
 }
 

@@ -8,6 +8,7 @@ pub struct RawIncremental {
   pub infer_async_modules: bool,
   pub provided_exports: bool,
   pub dependencies_diagnostics: bool,
+  pub side_effects: bool,
   pub build_chunk_graph: bool,
   pub module_ids: bool,
   pub chunk_ids: bool,
@@ -34,6 +35,9 @@ impl From<RawIncremental> for IncrementalPasses {
     }
     if value.dependencies_diagnostics {
       passes.insert(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS);
+    }
+    if value.side_effects {
+      passes.insert(IncrementalPasses::SIDE_EFFECTS);
     }
     if value.build_chunk_graph {
       passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
