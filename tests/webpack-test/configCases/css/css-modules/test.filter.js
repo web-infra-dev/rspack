@@ -1,3 +1,2 @@
 // do not support webpack.ids.DeterministicModuleIdsPlugin
-// TODO: Should create a issue for this test
-module.exports = () => false;
+module.exports = () => 'https://github.com/web-infra-dev/rspack/issues/8772';
