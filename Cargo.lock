@@ -3769,6 +3769,7 @@ dependencies = [
  "rspack_plugin_devtool",
  "rspack_plugin_dll",
  "rspack_plugin_dynamic_entry",
+ "rspack_plugin_emit_dts",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
  "rspack_plugin_externals",
@@ -4094,6 +4095,8 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_paths",
+ "rspack_plugin_emit_dts",
  "rspack_plugin_javascript",
  "rspack_swc_plugin_import",
  "rspack_util",
@@ -4103,6 +4106,7 @@ dependencies = [
  "swc",
  "swc_config",
  "swc_core",
+ "swc_typescript",
  "url",
 ]
 
@@ -4349,6 +4353,18 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_emit_dts"
+version = "0.2.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_paths",
+ "serde",
  "tracing",
 ]
 

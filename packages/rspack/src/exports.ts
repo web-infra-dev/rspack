@@ -270,6 +270,7 @@ export { SourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export { CssExtractRspackPlugin } from "./builtin-plugin";
+export { SwcDtsEmitRspackPlugin } from "./builtin-plugin";
 export { ContextReplacementPlugin } from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////

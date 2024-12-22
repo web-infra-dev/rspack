@@ -13,6 +13,7 @@ mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
+mod raw_swc_dts_emit;
 mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
@@ -101,6 +102,7 @@ use self::{
   raw_mf::{RawConsumeSharedPluginOptions, RawContainerReferencePluginOptions, RawProvideOptions},
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
+  raw_swc_dts_emit::RawSwcDtsEmitRspackPluginOptions,
 };
 use crate::entry::JsEntryPluginOptions;
 use crate::{
@@ -192,6 +194,7 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  SwcDtsEmitRspackPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -510,6 +513,13 @@ impl BuiltinPlugin {
       BuiltinPluginName::CssExtractRspackPlugin => {
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::SwcDtsEmitRspackPlugin => {
+        let plugin = rspack_plugin_emit_dts::SwcDtsEmitRspackPlugin::new(
+          downcast_into::<RawSwcDtsEmitRspackPluginOptions>(self.options)?.into(),
         )
         .boxed();
         plugins.push(plugin);
