@@ -264,6 +264,22 @@ describe("CopyPlugin", () => {
 				.catch(done);
 		});
 
+		it('should work when "from" is a glob ending with /**', done => {
+			runEmit({
+				expectedAssetKeys: [
+					"directory/nested/nestedfile.txt",
+					"directory/nested/deep-nested/deepnested.txt"
+				],
+				patterns: [
+					{
+						from: "directory/nested/**"
+					}
+				]
+			})
+				.then(done)
+				.catch(done);
+		});
+
 		it.skip("should exclude path with linux path segment separators", done => {
 			runEmit({
 				expectedAssetKeys: [
