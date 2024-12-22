@@ -20,6 +20,9 @@ module.exports = {
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
+		-         "exportsDepth": Infinity,
+		+         "exportsDepth": 1,
+		@@ ... @@
 		-     "chunkIds": "natural",
 		+     "chunkIds": "named",
 		@@ ... @@

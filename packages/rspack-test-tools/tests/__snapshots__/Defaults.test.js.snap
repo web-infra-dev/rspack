@@ -192,6 +192,9 @@ Object {
         wrappedContextCritical: false,
         wrappedContextRegExp: /\\.\\*/,
       },
+      json: Object {
+        exportsDepth: Infinity,
+      },
     },
     rules: Array [],
   },
