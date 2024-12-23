@@ -69,7 +69,7 @@ impl FromNapiValue for RawExperimentCache {
     let v = match &*t {
       "persistent" => {
         let o = RawExperimentCacheOptionsPersistent::from_napi_value(env, napi_val)?;
-        Self::Persistent(o.into())
+        Self::Persistent(o)
       }
       "memory" => Self::Memory,
       _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
