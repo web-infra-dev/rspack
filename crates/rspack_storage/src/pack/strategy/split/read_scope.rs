@@ -9,8 +9,8 @@ use super::{util::get_indexed_packs, SplitPackStrategy};
 use crate::{
   error::{Error, ErrorType, Result},
   pack::{
-    data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope, ScopeMeta},
-    strategy::{PackReadStrategy, ScopeReadStrategy},
+    data::{Pack, PackFileMeta, PackKeys, PackScope, ScopeMeta},
+    strategy::{PackMainContents, PackReadStrategy, ScopeReadStrategy},
   },
   FileSystem,
 };
@@ -78,7 +78,8 @@ impl ScopeReadStrategy for SplitPackStrategy {
         .get_mut(result.bucket_id)
         .and_then(|packs| packs.get_mut(result.pack_pos))
       {
-        pack.contents.set_value(result.contents);
+        pack.contents.set_value(result.contents.contents);
+        pack.generations = result.contents.generations;
       }
     }
     Ok(())
@@ -115,7 +116,7 @@ async fn read_scope_meta(
     })
     .collect::<Result<Vec<usize>>>()?;
 
-  if option_items.len() < 2 {
+  if option_items.len() < 3 {
     return Err(Error::from_reason(
       Some(ErrorType::Load),
       Some(scope),
@@ -125,6 +126,7 @@ async fn read_scope_meta(
 
   let bucket_size = option_items[0];
   let pack_size = option_items[1];
+  let generation = option_items[2];
 
   let mut packs = vec![];
   for _ in 0..bucket_size {
@@ -153,6 +155,13 @@ async fn read_scope_meta(
                   format!("parse file meta failed: {}", e),
                 )
               })?,
+              generation: i[3].parse::<usize>().map_err(|e| {
+                Error::from_reason(
+                  Some(ErrorType::Load),
+                  Some(scope),
+                  format!("parse file meta failed: {}", e),
+                )
+              })?,
               wrote: true,
             })
           }
@@ -173,6 +182,7 @@ async fn read_scope_meta(
     path: path.to_path_buf(),
     bucket_size,
     pack_size,
+    generation,
     packs,
   }))
 }
@@ -224,7 +234,7 @@ async fn read_keys(scope: &PackScope, strategy: &SplitPackStrategy) -> Result<Ve
 struct ReadContentsResult {
   pub bucket_id: usize,
   pub pack_pos: usize,
-  pub contents: PackContents,
+  pub contents: PackMainContents,
 }
 
 fn read_contents_filter(pack: &Pack, _: &PackFileMeta) -> bool {

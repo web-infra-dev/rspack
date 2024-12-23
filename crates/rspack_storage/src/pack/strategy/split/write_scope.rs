@@ -77,6 +77,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     }
     let mut scope_meta = scope.meta.take_value().expect("should have scope meta");
     let mut scope_packs = scope.packs.take_value().expect("should have scope packs");
+    scope_meta.generation += 1;
 
     // get changed buckets
     let bucket_updates = updates
@@ -122,6 +123,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
       .map(|(bucket_id, bucket_update, bucket_packs)| {
         let packs = self.update_packs(
           scope.path.join(bucket_id.to_string()),
+          scope_meta.generation,
           scope.options.as_ref(),
           bucket_packs,
           bucket_update,
@@ -150,6 +152,12 @@ impl ScopeWriteStrategy for SplitPackStrategy {
 
     scope.packs.set_value(scope_packs);
     scope.meta.set_value(scope_meta);
+
+    Ok(())
+  }
+
+  async fn optimize_packs(&self, _: &mut PackScope) -> Result<()> {
+    // let curerent_generation = scope.meta.expect_value();
 
     Ok(())
   }
@@ -214,7 +222,13 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     let mut writer = self.fs.write_file(&path).await?;
 
     writer
-      .write_line(format!("{} {}", meta.bucket_size, meta.pack_size).as_str())
+      .write_line(
+        format!(
+          "{} {} {}",
+          meta.bucket_size, meta.pack_size, meta.generation
+        )
+        .as_str(),
+      )
       .await?;
 
     for bucket_id in 0..meta.bucket_size {
@@ -224,7 +238,12 @@ impl ScopeWriteStrategy for SplitPackStrategy {
         .map(|packs| {
           packs
             .iter()
-            .map(|meta| format!("{},{},{}", meta.name, meta.hash, meta.size))
+            .map(|meta| {
+              format!(
+                "{},{},{},{}",
+                meta.name, meta.hash, meta.size, meta.generation
+              )
+            })
             .join(" ")
         })
         .unwrap_or_default();
@@ -463,22 +482,22 @@ mod tests {
     // 200 * 16 = 3200 = 2000 + 1200
     test_short_value(scope, strategy, 0, 200).await?;
     assert_eq!(count_scope_packs(scope), 2);
-    assert_eq!(get_bucket_pack_sizes(scope), [1200, 2000]);
+    assert_eq!(get_bucket_pack_sizes(scope), [1309, 2091]);
 
     // 3200 + 100 * 16 = 4800 = 2000 + 2000 + 800
     test_short_value(scope, strategy, 200, 300).await?;
     assert_eq!(count_scope_packs(scope), 3);
-    assert_eq!(get_bucket_pack_sizes(scope), [800, 2000, 2000]);
+    assert_eq!(get_bucket_pack_sizes(scope), [918, 2091, 2091]);
 
     // 4800 + 60 * 16 = 5760 = 2000 + 2000 + 1760(>1600)
     test_short_value(scope, strategy, 300, 360).await?;
     assert_eq!(count_scope_packs(scope), 3);
-    assert_eq!(get_bucket_pack_sizes(scope), [1760, 2000, 2000]);
+    assert_eq!(get_bucket_pack_sizes(scope), [1938, 2091, 2091]);
 
     // 5760 + 160 = 5920 = 2000 + 2000 + 1760(>1600) + 160
     test_short_value(scope, strategy, 360, 370).await?;
     assert_eq!(count_scope_packs(scope), 4);
-    assert_eq!(get_bucket_pack_sizes(scope), [160, 1760, 2000, 2000]);
+    assert_eq!(get_bucket_pack_sizes(scope), [170, 1938, 2091, 2091]);
 
     Ok(())
   }
@@ -489,7 +508,7 @@ mod tests {
     for strategy in create_strategies("write_single") {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
-        pack_size: 32,
+        pack_size: 36,
       });
       let mut scope = PackScope::empty(
         "scope_name",
@@ -512,7 +531,7 @@ mod tests {
     for strategy in create_strategies("write_multi") {
       let options = Arc::new(PackOptions {
         bucket_size: 10,
-        pack_size: 32,
+        pack_size: 36,
       });
       let mut scope = PackScope::empty(
         "scope_name",
@@ -533,7 +552,7 @@ mod tests {
     for strategy in create_strategies("write_big") {
       let options = Arc::new(PackOptions {
         bucket_size: 1,
-        pack_size: 2000,
+        pack_size: 2100,
       });
       let mut scope = PackScope::empty(
         "scope_name",

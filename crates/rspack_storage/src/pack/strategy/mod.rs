@@ -6,7 +6,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
 
 use super::data::{
-  Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
+  Pack, PackContents, PackFileMeta, PackGenerations, PackKeys, PackOptions, PackScope, RootMeta,
+  RootOptions,
 };
 use crate::{
   error::{Result, ValidateResult},
@@ -45,10 +46,16 @@ pub trait RootStrategy {
   ) -> Result<()>;
 }
 
+#[derive(Debug, Default)]
+pub struct PackMainContents {
+  pub contents: PackContents,
+  pub generations: PackGenerations,
+}
+
 #[async_trait]
 pub trait PackReadStrategy {
   async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>>;
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>>;
+  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>>;
 }
 
 #[async_trait]
@@ -56,6 +63,7 @@ pub trait PackWriteStrategy {
   fn update_packs(
     &self,
     dir: Utf8PathBuf,
+    generation: usize,
     options: &PackOptions,
     packs: HashMap<PackFileMeta, Pack>,
     updates: HashMap<ItemKey, Option<ItemValue>>,
@@ -96,6 +104,7 @@ pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 pub trait ScopeWriteStrategy {
   fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
   async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+  async fn optimize_packs(&self, scope: &mut PackScope) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;

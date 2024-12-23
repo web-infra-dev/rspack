@@ -108,11 +108,18 @@ pub mod test_pack_utils {
     options: &PackOptions,
     pack_count: usize,
   ) -> Result<()> {
+    let generation = 1_usize;
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
     writer
-      .write_line(format!("{} {}", options.bucket_size, options.pack_size).as_str())
+      .write_line(
+        format!(
+          "{} {} {}",
+          options.bucket_size, options.pack_size, generation
+        )
+        .as_str(),
+      )
       .await?;
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];
@@ -120,7 +127,10 @@ pub mod test_pack_utils {
         let pack_name = format!("pack_name_{}_{}", bucket_id, pack_no);
         let pack_hash = format!("pack_hash_{}_{}", bucket_id, pack_no);
         let pack_size = 100;
-        pack_meta_list.push(format!("{},{},{}", pack_name, pack_hash, pack_size));
+        pack_meta_list.push(format!(
+          "{},{},{},{}",
+          pack_name, pack_hash, pack_size, generation
+        ));
       }
       writer.write_line(pack_meta_list.join(" ").as_str()).await?;
     }
@@ -141,6 +151,7 @@ pub mod test_pack_utils {
     let mut writer = fs.write_file(path).await?;
     let mut keys = vec![];
     let mut contents = vec![];
+    let generations = vec![1_usize; item_count];
     for i in 0..item_count {
       keys.push(format!("key_{}_{}", unique_id, i).as_bytes().to_vec());
       contents.push(format!("val_{}_{}", unique_id, i).as_bytes().to_vec());
@@ -150,6 +161,9 @@ pub mod test_pack_utils {
       .await?;
     writer
       .write_line(contents.iter().map(|k| k.len()).join(" ").as_str())
+      .await?;
+    writer
+      .write_line(generations.into_iter().join(" ").as_str())
       .await?;
     for key in keys {
       writer.write(&key).await?;

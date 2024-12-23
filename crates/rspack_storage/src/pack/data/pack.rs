@@ -6,6 +6,7 @@ use crate::{ItemKey, ItemValue};
 
 pub type PackKeys = Vec<Arc<ItemKey>>;
 pub type PackContents = Vec<Arc<ItemValue>>;
+pub type PackGenerations = Vec<usize>;
 
 #[derive(Debug, Default)]
 pub enum PackKeysState {
@@ -80,6 +81,7 @@ pub struct Pack {
   pub path: Utf8PathBuf,
   pub keys: PackKeysState,
   pub contents: PackContentsState,
+  pub generations: PackGenerations,
 }
 
 impl Pack {
@@ -88,6 +90,7 @@ impl Pack {
       path,
       keys: Default::default(),
       contents: Default::default(),
+      generations: Default::default(),
     }
   }
 
@@ -97,11 +100,20 @@ impl Pack {
   }
 
   pub fn size(&self) -> usize {
-    self
+    let key_size = self
       .keys
       .expect_value()
       .iter()
-      .chain(self.contents.expect_value().iter())
-      .fold(0_usize, |acc, item| acc + item.len())
+      .fold(0_usize, |acc, item| acc + item.len());
+    let content_size = self
+      .contents
+      .expect_value()
+      .iter()
+      .fold(0_usize, |acc, item| acc + item.len());
+    let generation_size = self
+      .generations
+      .iter()
+      .fold(0_usize, |acc, item| acc + item.to_string().len());
+    key_size + content_size + generation_size
   }
 }

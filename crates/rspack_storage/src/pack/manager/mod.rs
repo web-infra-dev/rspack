@@ -254,6 +254,8 @@ async fn save_scopes(
     scopes
       .values_mut()
       .map(|scope| async move {
+        strategy.optimize_packs(scope).await?;
+
         let mut res = WriteScopeResult::default();
         if scope.loaded() {
           res.extend(strategy.write_packs(scope).await?);

@@ -7,8 +7,8 @@ use super::SplitPackStrategy;
 use crate::{
   error::Result,
   pack::{
-    data::{PackContents, PackKeys},
-    strategy::PackReadStrategy,
+    data::PackKeys,
+    strategy::{PackMainContents, PackReadStrategy},
   },
   FSError, FSOperation,
 };
@@ -21,6 +21,7 @@ impl PackReadStrategy for SplitPackStrategy {
     }
 
     let mut reader = self.fs.read_file(path).await?;
+    // read key lengths
     let key_lengths = reader
       .read_line()
       .await?
@@ -36,8 +37,12 @@ impl PackReadStrategy for SplitPackStrategy {
       })
       .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
+    // skip content lengths
+    reader.read_line().await?;
+    // skip generations
     reader.read_line().await?;
 
+    // read keys
     let mut keys = vec![];
     for key_len in key_lengths {
       keys.push(Arc::new(reader.read(key_len).await?));
@@ -45,7 +50,7 @@ impl PackReadStrategy for SplitPackStrategy {
     Ok(Some(keys))
   }
 
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>> {
+  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -83,14 +88,32 @@ impl PackReadStrategy for SplitPackStrategy {
       })
       .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
+    let generations: Vec<usize> = reader
+      .read_line()
+      .await?
+      .split(" ")
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack generations failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
+
     reader.skip(total_key_length).await?;
 
-    let mut res = vec![];
+    let mut contents = vec![];
     for len in content_lengths {
-      res.push(Arc::new(reader.read(len).await?));
+      contents.push(Arc::new(reader.read(len).await?));
     }
 
-    Ok(Some(res))
+    Ok(Some(PackMainContents {
+      contents,
+      generations,
+    }))
   }
 }
 
@@ -142,6 +165,7 @@ mod tests {
       .read_pack_contents(path)
       .await?
       .unwrap_or_default()
+      .contents
       .into_iter()
       .map(|x| x.as_ref().to_owned())
       .collect::<HashSet<_>>();
