@@ -99,6 +99,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
         with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
 
       # Compile dependencies with optimization to make tests run faster
@@ -426,6 +427,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Pnpm Cache
