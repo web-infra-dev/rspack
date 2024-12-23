@@ -5,7 +5,9 @@ use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
-use crate::{JsDependency, JsExportsInfo, JsModule, JsModuleWrapper};
+use crate::{
+  JsDependency, JsExportsInfo, JsModule, JsModuleGraphConnectionWrapper, JsModuleWrapper,
+};
 
 #[napi]
 pub struct JsModuleGraph {
@@ -37,6 +39,25 @@ impl JsModuleGraph {
     let js_module = module
       .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation)));
     Ok(js_module)
+  }
+
+  #[napi(ts_return_type = "JsModule | null")]
+  pub fn get_resolved_module(
+    &self,
+    js_dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
+        Some(connection) => match connection.resolved_original_module_identifier {
+          Some(identifier) => compilation.module_by_identifier(&identifier).map(|module| {
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+          }),
+          None => None,
+        },
+        None => None,
+      },
+    )
   }
 
   #[napi]
@@ -86,5 +107,52 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     let exports_info = module_graph.get_exports_info(&module.identifier);
     Ok(JsExportsInfo::new(exports_info, compilation))
+  }
+
+  #[napi(ts_return_type = "JsModuleGraphConnection | null")]
+  pub fn get_connection(
+    &self,
+    dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .connection_by_dependency_id(&dependency.dependency_id)
+        .map(|connection| {
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
+        }),
+    )
+  }
+
+  #[napi(ts_return_type = "JsModuleGraphConnection[]")]
+  pub fn get_outgoing_connections(
+    &self,
+    module: &JsModule,
+  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .get_outgoing_connections(&module.identifier)
+        .map(|connection| {
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
+        })
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  #[napi(ts_return_type = "JsModuleGraphConnection[]")]
+  pub fn get_incoming_connections(
+    &self,
+    module: &JsModule,
+  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .get_incoming_connections(&module.identifier)
+        .map(|connection| {
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
+        })
+        .collect::<Vec<_>>(),
+    )
   }
 }

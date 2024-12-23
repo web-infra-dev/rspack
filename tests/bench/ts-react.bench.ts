@@ -57,4 +57,32 @@ describe("TypeScript React project", () => {
 			}
 		}
 	});
+
+	bench("Traverse module graph by connections", () => {
+		const entries = theCompilation.entries.values();
+
+		const visitedModules = new Set();
+
+		function traverse(connection) {
+			const module = connection ? connection.module : null;
+			if (module) {
+				if (visitedModules.has(module)) {
+					return;
+				}
+				const connections =
+					theCompilation.moduleGraph.getOutgoingConnections(module);
+				visitedModules.add(module);
+				for (const c of connections) {
+					traverse(c);
+				}
+			}
+		}
+
+		for (const entry of entries) {
+			for (const dependency of entry.dependencies) {
+				const connection = theCompilation.moduleGraph.getConnection(dependency);
+				traverse(connection);
+			}
+		}
+	});
 });

@@ -236,9 +236,18 @@ export declare class JsModule {
 
 export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
+  getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
+  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
+  getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+  getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+}
+
+export declare class JsModuleGraphConnection {
+  get dependency(): JsDependency
+  get module(): JsModule | null
 }
 
 export declare class JsResolver {

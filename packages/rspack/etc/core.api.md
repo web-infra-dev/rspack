@@ -50,6 +50,7 @@ import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
+import type { JsModuleGraphConnection } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -3758,11 +3759,29 @@ class ModuleGraph {
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
     // (undocumented)
+    getConnection(dependency: Dependency): ModuleGraphConnection | null;
+    // (undocumented)
     getExportsInfo(module: Module): ExportsInfo;
     // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
     getModule(dependency: Dependency): Module | null;
+    // (undocumented)
+    getOutgoingConnections(module: Module): ModuleGraphConnection[];
+    // (undocumented)
+    getResolvedModule(dependency: Dependency): Module | null;
+}
+
+// @public (undocumented)
+class ModuleGraphConnection {
+    // (undocumented)
+    static __from_binding(binding: JsModuleGraphConnection): ModuleGraphConnection;
+    // (undocumented)
+    static __to_binding(data: ModuleGraphConnection): JsModuleGraphConnection;
+    // (undocumented)
+    readonly dependency: Dependency;
+    // (undocumented)
+    readonly module: Module | null;
 }
 
 // @public (undocumented)
