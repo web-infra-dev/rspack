@@ -32,7 +32,6 @@ async function build() {
 			"--no-js",
 			// "--no-const-enum",
 			"--no-dts-header",
-			"--no-dts-cache",
 			"--pipe",
 			`"node ./scripts/dts-header.js"`
 		];
