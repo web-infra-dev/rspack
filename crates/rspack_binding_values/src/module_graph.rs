@@ -100,7 +100,7 @@ impl JsModuleGraph {
       module_graph
         .connection_by_dependency_id(&dependency.dependency_id)
         .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, &compilation)
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
         }),
     )
   }
@@ -115,7 +115,7 @@ impl JsModuleGraph {
       module_graph
         .get_outgoing_connections(&module.identifier)
         .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, &compilation)
+          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
         })
         .collect::<Vec<_>>(),
     )

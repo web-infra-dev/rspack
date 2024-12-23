@@ -4,10 +4,7 @@
 
 ```ts
 
-/// <reference types="node" />
-
 import type { Abortable } from 'node:events';
-import { Assumptions } from './assumptions';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -17,14 +14,16 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { cleanupGlobalTrace } from '@rspack/binding';
 import { Compiler as Compiler_2 } from '..';
+import type { Config as Config_2 } from '@swc/types';
 import { default as default_2 } from './util/hash';
+import type { EnvConfig } from '@swc/types';
+import type { EsParserConfig } from '@swc/types';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
-import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
-import fs from 'graceful-fs';
-import { fs as fs_2 } from 'fs';
+import { fs } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
 import { inspect } from 'node:util';
+import { IssueData } from 'zod';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import { JsAfterEmitData } from '@rspack/binding';
 import { JsAfterTemplateExecutionData } from '@rspack/binding';
@@ -34,6 +33,7 @@ import type { JsAssetInfo } from '@rspack/binding';
 import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
+import type { JscConfig } from '@swc/types';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
@@ -50,7 +50,7 @@ import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
-import { JsModuleGraphConnection } from '@rspack/binding';
+import type { JsModuleGraphConnection } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -58,6 +58,9 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
+import type { ModuleConfig } from '@swc/types';
+import type { ParserConfig } from '@swc/types';
+import { ParseReturnType } from 'zod';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -67,13 +70,21 @@ import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { registerGlobalTrace } from '@rspack/binding';
+import type { ResolveRequest } from 'enhanced-resolve';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
+import type { Source } from 'webpack-sources';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
-import sources = require('../compiled/webpack-sources');
+import sources = require('webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
+import type { TransformConfig } from '@swc/types';
+import type { TsParserConfig } from '@swc/types';
+import type Watchpack from 'watchpack';
 import type * as webpackDevServer from 'webpack-dev-server';
+import { z } from 'zod';
+import { ZodType } from 'zod';
+import { ZodTypeDef } from 'zod';
 
 // @public (undocumented)
 interface AdditionalData {
@@ -85,21 +96,10 @@ interface AdditionalData {
 type AffectedHooks = keyof Compiler["hooks"];
 
 // @public (undocumented)
-type allKeys<T> = T extends any ? keyof T : never;
-
-// @public (undocumented)
 type AllowTarget = "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | "electron-main" | `electron${number}-main` | `electron${number}.${number}-main` | "electron-renderer" | `electron${number}-renderer` | `electron${number}.${number}-renderer` | "electron-preload" | `electron${number}-preload` | `electron${number}.${number}-preload` | "nwjs" | `nwjs${number}` | `nwjs${number}.${number}` | "node-webkit" | `node-webkit${number}` | `node-webkit${number}.${number}` | "browserslist" | `browserslist:${string}`;
 
 // @public
 export type Amd = false | Record<string, any>;
-
-// @public (undocumented)
-interface AmdConfig extends BaseModuleConfig {
-    // (undocumented)
-    moduleId?: string;
-    // (undocumented)
-    type: "amd";
-}
 
 // @public
 export type AmdContainer = string;
@@ -109,12 +109,6 @@ export const applyRspackOptionsBaseDefaults: (options: RspackOptionsNormalized) 
 
 // @public (undocumented)
 export const applyRspackOptionsDefaults: (options: RspackOptionsNormalized) => void;
-
-// @public (undocumented)
-type ArrayCardinality = "many" | "atleastone";
-
-// @public (undocumented)
-type arrayOutputType<T extends ZodTypeAny, Cardinality extends ArrayCardinality = "many"> = Cardinality extends "atleastone" ? [T["_output"], ...T["_output"][]] : T["_output"][];
 
 // @public
 const asRegExp: (test: string | RegExp) => RegExp;
@@ -211,9 +205,6 @@ export type Assets = Record<string, Source>;
 // @public
 export type AsyncChunks = boolean;
 
-// @public (undocumented)
-type AsyncParseReturnType<T> = Promise<SyncParseReturnType<T>>;
-
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 
@@ -268,63 +259,11 @@ abstract class BaseCache {
     abstract storePromise<T>(data: T): Promise<void>;
 }
 
-// @public (undocumented)
-interface BaseModuleConfig {
-    // (undocumented)
-    allowTopLevelThis?: boolean;
-    exportInteropAnnotation?: boolean;
-    ignoreDynamic?: boolean;
-    importInterop?: "swc" | "babel" | "node" | "none";
-    lazy?: boolean | string[];
-    // @deprecated (undocumented)
-    noInterop?: boolean;
-    // (undocumented)
-    preserveImportMeta?: boolean;
-    strict?: boolean;
-    strictMode?: boolean;
-}
-
-// @public (undocumented)
-interface BaseResolveRequest {
-    	// (undocumented)
-    __innerRequest?: string;
-    	// (undocumented)
-    __innerRequest_relativePath?: string;
-    	// (undocumented)
-    __innerRequest_request?: string;
-    	// (undocumented)
-    context?: object;
-    	// (undocumented)
-    descriptionFileData?: JsonObject;
-    	// (undocumented)
-    descriptionFilePath?: string;
-    	// (undocumented)
-    descriptionFileRoot?: string;
-    	// (undocumented)
-    fullySpecified?: boolean;
-    	// (undocumented)
-    ignoreSymlinks?: boolean;
-    	// (undocumented)
-    path: string | false;
-    	// (undocumented)
-    relativePath?: string;
-}
-
 // @public
 export type BaseUri = string;
 
 // @public (undocumented)
 type BigIntStatsCallback = (err: NodeJS.ErrnoException | null, stats?: IBigIntStats) => void;
-
-// @public (undocumented)
-const BRAND: unique symbol;
-
-// @public (undocumented)
-type BRAND<T extends string | number | symbol> = {
-    [BRAND]: {
-        [k in T]: true;
-    };
-};
 
 // @public (undocumented)
 type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void;
@@ -333,11 +272,6 @@ type BufferCallback = (err: NodeJS.ErrnoException | null, data?: Buffer) => void
 type BufferEncodingOption = "buffer" | {
     encoding: "buffer";
 };
-
-// @public (undocumented)
-type BuiltIn = (((...args: any[]) => any) | (new (...args: any[]) => any)) | {
-    readonly [Symbol.toStringTag]: string;
-} | Date | Error | Generator | Promise<unknown> | RegExp;
 
 // @public (undocumented)
 class Cache_2 {
@@ -558,12 +492,6 @@ type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive = null | undefined | RegExp | Function | string | number | boolean | bigint | undefined;
 
 // @public (undocumented)
-interface CommonJsConfig extends BaseModuleConfig {
-    // (undocumented)
-    type: "commonjs";
-}
-
-// @public (undocumented)
 export class Compilation {
     constructor(compiler: Compiler, inner: JsCompilation);
     // @internal
@@ -698,7 +626,7 @@ export class Compilation {
         Iterable<Module>
         ], void>;
         finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
-        chunkHash: liteTapable.SyncHook<[Chunk, Hash_2], void>;
+        chunkHash: liteTapable.SyncHook<[Chunk, Hash], void>;
         chunkAsset: liteTapable.SyncHook<[Chunk, string], void>;
         processWarnings: liteTapable.SyncWaterfallHook<[Error[]]>;
         succeedModule: liteTapable.SyncHook<[Module], void>;
@@ -805,7 +733,7 @@ export class Compilation {
 
 // @public (undocumented)
 type CompilationHooks = {
-    chunkHash: liteTapable.SyncHook<[Chunk, Hash_2]>;
+    chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
 };
 
 // @public (undocumented)
@@ -958,34 +886,7 @@ type Config = {
 export const config: Config;
 
 // @public
-interface Config_2 {
-    // (undocumented)
-    env?: EnvConfig;
-    exclude?: string | string[];
-    // (undocumented)
-    inlineSourcesContent?: boolean;
-    // (undocumented)
-    jsc?: JscConfig;
-    // (undocumented)
-    minify?: boolean;
-    // (undocumented)
-    module?: ModuleConfig;
-    sourceMaps?: boolean | "inline";
-    test?: string | string[];
-}
-
-// @public
 export type Configuration = RspackOptions;
-
-// @public
-interface ConstModulesConfig {
-    // (undocumented)
-    globals?: {
-        [module: string]: {
-            [name: string]: string;
-        };
-    };
-}
 
 // @public (undocumented)
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -1312,9 +1213,6 @@ export type CssParserOptions = {
 };
 
 // @public (undocumented)
-type CustomErrorParams = Partial<util_2.Omit<ZodCustomIssue, "code">>;
-
-// @public (undocumented)
 export const DefinePlugin: {
     new (define: DefinePluginOptions): {
         name: BuiltinPluginName;
@@ -1402,76 +1300,6 @@ interface DiagnosticLocation {
 }
 
 // @public (undocumented)
-class DirectoryWatcher extends EventEmitter {
-    constructor(directoryPath: string, options: Watchpack.WatcherOptions);
-    // (undocumented)
-    close(): void;
-    // (undocumented)
-    createNestedWatcher(directoryPath: string): void;
-    // (undocumented)
-    directories: {
-        [path: string]: Watcher_2 | true;
-    };
-    // (undocumented)
-    doInitialScan(): void;
-    // (undocumented)
-    files: {
-        [path: string]: [number, number];
-    };
-    // (undocumented)
-    getTimes(): {
-        [path: string]: number;
-    };
-    // (undocumented)
-    initialScan: boolean;
-    // (undocumented)
-    initialScanRemoved: string[];
-    // (undocumented)
-    nestedWatching: boolean;
-    // (undocumented)
-    onChange(filePath: string, stat: fs.Stats): void;
-    // (undocumented)
-    onDirectoryAdded(directoryPath: string): void;
-    // (undocumented)
-    onDirectoryUnlinked(directoryPath: string): void;
-    // (undocumented)
-    onFileAdded(filePath: string, stat: fs.Stats): void;
-    // (undocumented)
-    onFileUnlinked(filePath: string): void;
-    // (undocumented)
-    onWatcherError(): void;
-    // (undocumented)
-    options: Watchpack.WatcherOptions;
-    // (undocumented)
-    path: string;
-    // (undocumented)
-    refs: number;
-    // (undocumented)
-    setDirectory(directoryPath: string, exist: boolean, initial: boolean): void;
-    // (undocumented)
-    setFileTime(filePath: string, mtime: number, initial: boolean, type?: string | boolean): void;
-    // (undocumented)
-    setNestedWatching(flag: boolean): void;
-    // (undocumented)
-    watch(filePath: string, startTime: number): Watcher_2;
-    // (undocumented)
-    watcher: fs.FSWatcher;
-    // (undocumented)
-    watchers: {
-        [path: string]: Watcher_2[];
-    };
-}
-
-// @public (undocumented)
-type DIRTY<T> = {
-    status: "dirty";
-    value: T;
-};
-
-// @public (undocumented)
-const DIRTY: <T>(value: T) => DIRTY<T>;
-
-// @public (undocumented)
 export class DllPlugin {
     constructor(options: DllPluginOptions);
     // (undocumented)
@@ -1550,9 +1378,6 @@ export class DynamicEntryPlugin extends RspackBuiltinPlugin {
 }
 
 // @public (undocumented)
-type Effect<T> = RefinementEffect<T> | TransformEffect<T> | PreprocessEffect<T>;
-
-// @public (undocumented)
 interface Electron {
     // (undocumented)
     ElectronTargetPlugin: typeof ElectronTargetPlugin;
@@ -1621,12 +1446,6 @@ type EncodingOption = ObjectEncodingOptions | BufferEncoding | undefined | null;
 
 // @public
 export type Entry = EntryStatic | EntryDynamic;
-
-// @public (undocumented)
-interface Entry_2 {
-    safeTime: number;
-    timestamp: number;
-}
 
 // @public (undocumented)
 class EntryData {
@@ -1736,33 +1555,6 @@ export interface EntryStaticNormalized {
 export type EntryUnnamed = EntryItem;
 
 // @public
-interface EnvConfig {
-    bugfixes?: boolean;
-    coreJs?: string;
-    // (undocumented)
-    debug?: boolean;
-    // (undocumented)
-    dynamicImport?: boolean;
-    // (undocumented)
-    exclude?: string[];
-    forceAllTransforms?: boolean;
-    // (undocumented)
-    include?: string[];
-    // (undocumented)
-    loose?: boolean;
-    // (undocumented)
-    mode?: "usage" | "entry";
-    // (undocumented)
-    path?: string;
-    // (undocumented)
-    shippedProposals?: boolean;
-    // (undocumented)
-    skip?: string[];
-    // (undocumented)
-    targets?: any;
-}
-
-// @public
 export type Environment = {
     arrowFunction?: boolean;
     asyncFunction?: boolean;
@@ -1791,73 +1583,9 @@ export class EnvironmentPlugin {
 }
 
 // @public (undocumented)
-type ErrorMapCtx = {
-    defaultError: string;
-    data: any;
-};
-
-// @public (undocumented)
-namespace errorUtil {
-    // (undocumented)
-    type ErrMessage = string | {
-        message?: string;
-    };
-    const // (undocumented)
-    errToObj: (message?: ErrMessage | undefined) => {
-        message?: string | undefined;
-    };
-    const // (undocumented)
-    toString: (message?: ErrMessage | undefined) => string | undefined;
-}
-
-// @public (undocumented)
 type ErrorWithDetails = Error & {
     details?: string;
 };
-
-// @public (undocumented)
-interface Es6Config extends BaseModuleConfig {
-    // (undocumented)
-    type: "es6";
-}
-
-// @public (undocumented)
-interface EsParserConfig {
-    allowReturnOutsideFunction?: boolean;
-    allowSuperOutsideMethod?: boolean;
-    autoAccessors?: boolean;
-    // @deprecated (undocumented)
-    classPrivateProperty?: boolean;
-    // @deprecated (undocumented)
-    classProperty?: boolean;
-    decorators?: boolean;
-    decoratorsBeforeExport?: boolean;
-    // @deprecated (undocumented)
-    dynamicImport?: boolean;
-    explicitResourceManagement?: boolean;
-    exportDefaultFrom?: boolean;
-    // @deprecated (undocumented)
-    exportNamespaceFrom?: boolean;
-    functionBind?: boolean;
-    // @deprecated (undocumented)
-    importAssertions?: boolean;
-    importAttributes?: boolean;
-    // @deprecated (undocumented)
-    importMeta?: boolean;
-    jsx?: boolean;
-    // @deprecated (undocumented)
-    nullishCoalescing?: boolean;
-    // @deprecated (undocumented)
-    numericSeparator?: boolean;
-    // @deprecated (undocumented)
-    optionalChaining?: boolean;
-    // @deprecated (undocumented)
-    privateMethod?: boolean;
-    // (undocumented)
-    syntax: "ecmascript";
-    // @deprecated (undocumented)
-    topLevelAwait?: boolean;
-}
 
 // @public (undocumented)
 interface Etag {
@@ -2196,13 +1924,6 @@ export function getRawResolve(resolve: Resolve): RawOptions["resolve"];
 // @public
 export type GlobalObject = string;
 
-// @public
-interface GlobalPassOption {
-    envs?: string[] | Record<string, string>;
-    typeofs?: Record<string, string>;
-    vars?: Record<string, string>;
-}
-
 // @public (undocumented)
 type GotHandler<T = any> = (result: any | null, callback: (error: Error | null) => void) => void;
 
@@ -2222,15 +1943,6 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-    	constructor();
-
-    	digest(encoding?: string): string | Buffer;
-
-    	update(data: string | Buffer, inputEncoding?: string): Hash;
-}
-
-// @public (undocumented)
-class Hash_2 {
     digest(encoding?: string): string | Buffer;
     update(data: string | Buffer, inputEncoding?: string): this;
 }
@@ -2238,11 +1950,11 @@ class Hash_2 {
 // @public (undocumented)
 interface HashableObject {
     // (undocumented)
-    updateHash(hash: Hash_2): void;
+    updateHash(hash: Hash): void;
 }
 
 // @public (undocumented)
-type HashConstructor = typeof Hash_2;
+type HashConstructor = typeof Hash;
 
 // @public
 export type HashDigest = string;
@@ -2456,9 +2168,6 @@ export type InfrastructureLogging = {
 };
 
 // @public (undocumented)
-type input<T extends ZodType<any, any, any>> = T["_input"];
-
-// @public (undocumented)
 type InputFileSystem = {
     readFile: ReadFile;
     readFileSync?: ReadFileSync;
@@ -2491,20 +2200,6 @@ type IntermediateFileSystemExtras = {
     open: Open;
     read: Read<Buffer>;
     close: (arg0: number, arg1: (arg0: null | NodeJS.ErrnoException) => void) => void;
-};
-
-// @public (undocumented)
-type INVALID = {
-    status: "aborted";
-};
-
-// @public (undocumented)
-const INVALID: INVALID;
-
-// @public (undocumented)
-type IssueData = stripPath<ZodIssueOptionalMessage> & {
-    path?: (string | number)[];
-    fatal?: boolean;
 };
 
 // @public (undocumented)
@@ -2609,45 +2304,6 @@ export type JavascriptParserOptions = {
 };
 
 // @public (undocumented)
-interface JscConfig {
-    // (undocumented)
-    assumptions?: Assumptions;
-    // (undocumented)
-    baseUrl?: string;
-    experimental?: {
-        optimizeHygiene?: boolean;
-        keepImportAttributes?: boolean;
-        emitAssertForImportAttributes?: boolean;
-        cacheRoot?: string;
-        plugins?: Array<[string, Record<string, any>]>;
-        runPluginFirst?: boolean;
-        disableBuiltinTransformsForInternalTesting?: boolean;
-        emitIsolatedDts?: boolean;
-        disableAllLints?: boolean;
-        keepImportAssertions?: boolean;
-    };
-    externalHelpers?: boolean;
-    keepClassNames?: boolean;
-    // (undocumented)
-    loose?: boolean;
-    // (undocumented)
-    minify?: JsMinifyOptions;
-    parser?: ParserConfig;
-    // (undocumented)
-    paths?: {
-        [from: string]: string[];
-    };
-    // (undocumented)
-    preserveAllComments?: boolean;
-    target?: JscTarget;
-    // (undocumented)
-    transform?: TransformConfig;
-}
-
-// @public (undocumented)
-type JscTarget = "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "esnext";
-
-// @public (undocumented)
 interface JsFormatOptions {
     asciiOnly?: boolean;
     beautify?: boolean;
@@ -2673,89 +2329,21 @@ interface JsFormatOptions {
     wrapIife?: boolean;
 }
 
-// @public
-interface JsFormatOptions_2 {
-    asciiOnly?: boolean;
-    beautify?: boolean;
-    braces?: boolean;
-    comments?: false | "some" | "all";
-    ecma?: TerserEcmaVersion_2;
-    indentLevel?: number;
-    indentStart?: number;
-    inlineScript?: boolean;
-    keepNumbers?: number;
-    keepQuotedProps?: boolean;
-    maxLineLen?: number | false;
-    preamble?: string;
-    preserveAnnotations?: boolean;
-    quoteKeys?: boolean;
-    quoteStyle?: boolean;
-    safari10?: boolean;
-    semicolons?: boolean;
-    shebang?: boolean;
-    webkit?: boolean;
-    wrapFuncArgs?: boolean;
-    wrapIife?: boolean;
-}
+// @public (undocumented)
+type JsonArray = JsonValue[];
 
 // @public (undocumented)
-interface JsMinifyOptions {
-    // (undocumented)
-    compress?: TerserCompressOptions_2 | boolean;
-    // (undocumented)
-    ecma?: TerserEcmaVersion_2;
-    // (undocumented)
-    format?: JsFormatOptions_2 & ToSnakeCaseProperties_2<JsFormatOptions_2>;
-    // (undocumented)
-    inlineSourcesContent?: boolean;
-    // (undocumented)
-    keep_classnames?: boolean;
-    // (undocumented)
-    keep_fnames?: boolean;
-    // (undocumented)
-    mangle?: TerserMangleOptions_2 | boolean;
-    // (undocumented)
-    module?: boolean | "unknown";
-    // (undocumented)
-    outputPath?: string;
-    // (undocumented)
-    safari10?: boolean;
-    // (undocumented)
-    sourceMap?: boolean;
-    // (undocumented)
-    toplevel?: boolean;
-}
-
-// @public (undocumented)
-type JsonArray = JsonValue_2[];
-
-// @public (undocumented)
-type JsonObject = { [index: string]: JsonValue } & {
-    	[index: string]:
-    		| undefined
-    		| null
-    		| string
-    		| number
-    		| boolean
-    		| JsonObject
-    		| JsonValue[];
-};
-
-// @public (undocumented)
-type JsonObject_2 = {
-    [Key in string]: JsonValue_2;
+type JsonObject = {
+    [Key in string]: JsonValue;
 } & {
-    [Key in string]?: JsonValue_2 | undefined;
+    [Key in string]?: JsonValue | undefined;
 };
 
 // @public (undocumented)
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
-
-// @public (undocumented)
-type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -3395,7 +2983,7 @@ export interface LoaderContext<OptionsType = {}> {
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
-        createHash: (algorithm?: string) => Hash_2;
+        createHash: (algorithm?: string) => Hash;
     };
     // (undocumented)
     version: 2;
@@ -3613,12 +3201,6 @@ type MakeDirectoryOptions = {
     mode?: string | number;
 };
 
-// @public (undocumented)
-type MakeReadonly<T> = T extends Map<infer K, infer V> ? ReadonlyMap<K, V> : T extends Set<infer V> ? ReadonlySet<V> : T extends [infer Head, ...infer Tail] ? readonly [Head, ...Tail] : T extends Array<infer V> ? ReadonlyArray<V> : T extends BuiltIn ? T : Readonly<T>;
-
-// @public (undocumented)
-type MapOptions = { columns?: boolean; module?: boolean };
-
 // @public
 type Matcher = string | RegExp | (string | RegExp)[];
 
@@ -3686,9 +3268,6 @@ export class Module {
     // (undocumented)
     readonly useSourceMap: boolean;
 }
-
-// @public (undocumented)
-type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -3839,8 +3418,8 @@ export class MultiCompiler {
     // (undocumented)
     _options: MultiCompilerOptions;
     // (undocumented)
-    get outputFileSystem(): fs_2;
-    set outputFileSystem(value: fs_2);
+    get outputFileSystem(): fs;
+    set outputFileSystem(value: fs);
     // (undocumented)
     get outputPath(): string;
     // (undocumented)
@@ -3935,12 +3514,6 @@ class NodeEnvironmentPlugin {
 interface NodeEnvironmentPluginOptions {
     // (undocumented)
     infrastructureLogging: InfrastructureLogging;
-}
-
-// @public (undocumented)
-interface NodeNextConfig extends BaseModuleConfig {
-    // (undocumented)
-    type: "nodenext";
 }
 
 // @public
@@ -4046,62 +3619,6 @@ type ObjectEncodingOptions = {
 };
 
 // @public (undocumented)
-namespace objectUtil {
-    // (undocumented)
-    type addQuestionMarks<T extends object, _O = any> = {
-        [K in requiredKeys<T>]: T[K];
-    } & {
-        [K in optionalKeys<T>]?: T[K];
-    } & {
-        [k in keyof T]?: unknown;
-    };
-    // (undocumented)
-    type extendShape<A extends object, B extends object> = {
-        [K in keyof A as K extends keyof B ? never : K]: A[K];
-    } & {
-        [K in keyof B]: B[K];
-    };
-    // (undocumented)
-    type flatten<T> = identity<{
-        [k in keyof T]: T[k];
-    }>;
-    // (undocumented)
-    type identity<T> = T;
-    // (undocumented)
-    type MergeShapes<U, V> = {
-        [k in Exclude<keyof U, keyof V>]: U[k];
-    } & V;
-    // (undocumented)
-    type noNever<T> = identity<{
-        [k in noNeverKeys<T>]: k extends keyof T ? T[k] : never;
-    }>;
-    // (undocumented)
-    type noNeverKeys<T> = {
-        [k in keyof T]: [T[k]] extends [never] ? never : k;
-    }[keyof T];
-    // (undocumented)
-    type optionalKeys<T extends object> = {
-        [k in keyof T]: undefined extends T[k] ? k : never;
-    }[keyof T];
-    const // (undocumented)
-    mergeShapes: <U, T>(first: U, second: T) => T & U;
-    // (undocumented)
-    type requiredKeys<T extends object> = {
-        [k in keyof T]: undefined extends T[k] ? never : k;
-    }[keyof T];
-        {  };
-}
-
-// @public (undocumented)
-type OK<T> = {
-    status: "valid";
-    value: T;
-};
-
-// @public (undocumented)
-const OK: <T>(value: T) => OK<T>;
-
-// @public (undocumented)
 type Open = (file: PathLike, flags: undefined | string | number, callback: (arg0: null | NodeJS.ErrnoException, arg1?: number) => void) => void;
 
 // @public (undocumented)
@@ -4190,18 +3707,6 @@ interface Optimize {
 // @public (undocumented)
 export const optimize: Optimize;
 
-// @public (undocumented)
-interface OptimizerConfig {
-    // (undocumented)
-    globals?: GlobalPassOption;
-    // (undocumented)
-    jsonify?: {
-        minCost: number;
-    };
-    // (undocumented)
-    simplify?: boolean;
-}
-
 // @public
 const OriginEntryPlugin: {
     new (context: string, entry: string, options?: string | EntryOptions | undefined): {
@@ -4269,9 +3774,6 @@ export type Output = {
     environment?: Environment;
     compareBeforeEmit?: boolean;
 };
-
-// @public (undocumented)
-type output<T extends ZodType<any, any, any>> = T["_output"];
 
 // @public (undocumented)
 export interface OutputFileSystem {
@@ -4400,70 +3902,6 @@ export interface OutputNormalized {
     workerWasmLoading?: WasmLoading;
 }
 
-// @public (undocumented)
-interface ParseContext {
-    // (undocumented)
-    readonly common: {
-        readonly issues: ZodIssue[];
-        readonly contextualErrorMap?: ZodErrorMap;
-        readonly async: boolean;
-    };
-    // (undocumented)
-    readonly data: any;
-    // (undocumented)
-    readonly parent: ParseContext | null;
-    // (undocumented)
-    readonly parsedType: ZodParsedType;
-    // (undocumented)
-    readonly path: ParsePath;
-    // (undocumented)
-    readonly schemaErrorMap?: ZodErrorMap;
-}
-
-// @public (undocumented)
-interface ParsedIdentifier {
-    	// (undocumented)
-    directory: boolean;
-    	// (undocumented)
-    file: boolean;
-    	// (undocumented)
-    fragment: string;
-    	// (undocumented)
-    internal: boolean;
-    	// (undocumented)
-    module: boolean;
-    	// (undocumented)
-    query: string;
-    	// (undocumented)
-    request: string;
-}
-
-// @public (undocumented)
-type ParseInput = {
-    data: any;
-    path: (string | number)[];
-    parent: ParseContext;
-};
-
-// @public (undocumented)
-type ParseParams = {
-    path: (string | number)[];
-    errorMap: ZodErrorMap;
-    async: boolean;
-};
-
-// @public (undocumented)
-type ParsePath = ParsePathComponent[];
-
-// @public (undocumented)
-type ParsePathComponent = string | number;
-
-// @public (undocumented)
-type ParserConfig = TsParserConfig | EsParserConfig;
-
-// @public (undocumented)
-type ParseReturnType<T> = SyncParseReturnType<T> | AsyncParseReturnType<T>;
-
 // @public
 export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown | ParserOptionsByModuleTypeUnknown;
 
@@ -4483,29 +3921,6 @@ export type ParserOptionsByModuleTypeKnown = {
 export type ParserOptionsByModuleTypeUnknown = {
     [x: string]: Record<string, any>;
 };
-
-// @public (undocumented)
-class ParseStatus {
-    // (undocumented)
-    abort(): void;
-    // (undocumented)
-    dirty(): void;
-    // (undocumented)
-    static mergeArray(status: ParseStatus, results: SyncParseReturnType<any>[]): SyncParseReturnType;
-    // (undocumented)
-    static mergeObjectAsync(status: ParseStatus, pairs: {
-        key: ParseReturnType<any>;
-        value: ParseReturnType<any>;
-    }[]): Promise<SyncParseReturnType<any>>;
-    // (undocumented)
-    static mergeObjectSync(status: ParseStatus, pairs: {
-        key: SyncParseReturnType<any>;
-        value: SyncParseReturnType<any>;
-        alwaysSet?: boolean;
-    }[]): SyncParseReturnType;
-    // (undocumented)
-    value: "aborted" | "dirty" | "valid";
-}
 
 // @public
 export type Path = string;
@@ -4574,15 +3989,6 @@ type PluginImportOptions = PluginImportConfig[] | undefined;
 
 // @public (undocumented)
 export type Plugins = Plugin_2[];
-
-// @public (undocumented)
-type PreprocessEffect<T> = {
-    type: "preprocess";
-    transform: (arg: T, ctx: RefinementCtx) => any;
-};
-
-// @public (undocumented)
-type Primitive = string | number | symbol | bigint | boolean | null | undefined;
 
 // @public (undocumented)
 type PrintedElement = {
@@ -4694,39 +4100,6 @@ export type PublicPath = "auto" | Filename;
 type Purge = (files?: string | string[] | Set<string>) => void;
 
 // @public (undocumented)
-type RawCreateParams = {
-    errorMap?: ZodErrorMap;
-    invalid_type_error?: string;
-    required_error?: string;
-    message?: string;
-    description?: string;
-} | undefined;
-
-// @public (undocumented)
-type RawSourceMap = {
-    	version: number;
-    	sources: string[];
-    	names: string[];
-    	sourceRoot?: string;
-    	sourcesContent?: string[];
-    	mappings: string;
-    	file: string;
-};
-
-// @public (undocumented)
-interface ReactConfig {
-    development?: boolean;
-    importSource?: string;
-    pragma?: string;
-    pragmaFrag?: string;
-    refresh?: boolean;
-    runtime?: "automatic" | "classic";
-    throwIfNamespace?: boolean;
-    // @deprecated
-    useBuiltins?: boolean;
-}
-
-// @public (undocumented)
 type Read<TBuffer extends ArrayBufferView = Buffer> = (fd: number, options: ReadAsyncOptions<TBuffer>, callback: (err: null | NodeJS.ErrnoException, bytesRead: number, buffer: TBuffer) => void) => void;
 
 // @public (undocumented)
@@ -4829,10 +4202,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
 
 // @public (undocumented)
 type Readlink = {
@@ -4868,29 +4241,6 @@ type RealPathSync = {
 type RecursiveArrayOrRecord<T> = {
     [index: string]: RecursiveArrayOrRecord<T>;
 } | Array<RecursiveArrayOrRecord<T>> | T;
-
-// @public (undocumented)
-type recursiveZodFormattedError<T> = T extends [any, ...any[]] ? {
-    [K in keyof T]?: ZodFormattedError<T[K]>;
-} : T extends any[] ? {
-    [k: number]: ZodFormattedError<T[number]>;
-} : T extends object ? {
-    [K in keyof T]?: ZodFormattedError<T[K]>;
-} : unknown;
-
-// @public (undocumented)
-interface RefinementCtx {
-    // (undocumented)
-    addIssue: (arg: IssueData) => void;
-    // (undocumented)
-    path: (string | number)[];
-}
-
-// @public (undocumented)
-type RefinementEffect<T> = {
-    type: "refinement";
-    refinement: (arg: T, ctx: RefinementCtx) => any;
-};
 
 // @public (undocumented)
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -4997,9 +4347,6 @@ class Resolver {
     // (undocumented)
     withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
 }
-
-// @public (undocumented)
-type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
 class ResolverFactory {
@@ -8647,95 +7994,6 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     } | undefined;
-    loader?: Record<string, any> | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
-    target?: false | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist" | ("async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist")[] | undefined;
-    entry?: string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }> | Promise<string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }>>) | undefined;
-    dependencies?: string[] | undefined;
     output?: {
         module?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -8837,26 +8095,6 @@ export const rspackOptions: z.ZodObject<{
         strictModuleExceptionHandling?: boolean | undefined;
     } | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externalsType?: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined;
-    externalsPresets?: {
-        web?: boolean | undefined;
-        node?: boolean | undefined;
-        nwjs?: boolean | undefined;
-        electron?: boolean | undefined;
-        electronMain?: boolean | undefined;
-        electronPreload?: boolean | undefined;
-        electronRenderer?: boolean | undefined;
-        webAsync?: boolean | undefined;
-    } | undefined;
-    infrastructureLogging?: {
-        debug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
-        colors?: boolean | undefined;
-        stream?: NodeJS.WritableStream | undefined;
-        appendOnly?: boolean | undefined;
-        console?: Console | undefined;
-        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
-    } | undefined;
-    snapshot?: {} | undefined;
     optimization?: {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
@@ -8924,6 +8162,116 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
+    bail?: boolean | undefined;
+    loader?: Record<string, any> | undefined;
+    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
+    target?: false | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist" | ("async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist")[] | undefined;
+    entry?: string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }> | Promise<string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }>>) | undefined;
+    dependencies?: string[] | undefined;
+    externalsType?: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined;
+    externalsPresets?: {
+        web?: boolean | undefined;
+        node?: boolean | undefined;
+        nwjs?: boolean | undefined;
+        electron?: boolean | undefined;
+        electronMain?: boolean | undefined;
+        electronPreload?: boolean | undefined;
+        electronRenderer?: boolean | undefined;
+        webAsync?: boolean | undefined;
+    } | undefined;
+    infrastructureLogging?: {
+        debug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
+        colors?: boolean | undefined;
+        stream?: NodeJS.WritableStream | undefined;
+        appendOnly?: boolean | undefined;
+        console?: Console | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
+    } | undefined;
+    snapshot?: {} | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     watch?: boolean | undefined;
     watchOptions?: {
@@ -8935,7 +8283,6 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     devServer?: t.DevServer | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args: unknown[]) => boolean))[] | undefined;
-    bail?: boolean | undefined;
 }, {
     module?: {
         defaultRules?: (false | "" | 0 | t.RuleSetRule | "..." | null | undefined)[] | undefined;
@@ -9249,95 +8596,6 @@ export const rspackOptions: z.ZodObject<{
         errorsSpace?: number | undefined;
         warningsSpace?: number | undefined;
     } | undefined;
-    loader?: Record<string, any> | undefined;
-    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
-    target?: false | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist" | ("async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist")[] | undefined;
-    entry?: string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }> | Promise<string | string[] | Record<string, string | string[] | {
-        import: string | string[];
-        runtime?: string | false | undefined;
-        chunkLoading?: string | false | undefined;
-        asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        library?: {
-            type: string;
-            name?: string | string[] | {
-                commonjs?: string | undefined;
-                amd?: string | undefined;
-                root?: string | string[] | undefined;
-            } | undefined;
-            amdContainer?: string | undefined;
-            auxiliaryComment?: string | {
-                commonjs?: string | undefined;
-                commonjs2?: string | undefined;
-                amd?: string | undefined;
-                root?: string | undefined;
-            } | undefined;
-            export?: string | string[] | undefined;
-            umdNamedDefine?: boolean | undefined;
-        } | undefined;
-        layer?: string | null | undefined;
-        wasmLoading?: string | false | undefined;
-        dependOn?: string | string[] | undefined;
-    }>>) | undefined;
-    dependencies?: string[] | undefined;
     output?: {
         module?: boolean | undefined;
         chunkLoading?: string | false | undefined;
@@ -9439,26 +8697,6 @@ export const rspackOptions: z.ZodObject<{
         strictModuleExceptionHandling?: boolean | undefined;
     } | undefined;
     resolveLoader?: t.ResolveOptions | undefined;
-    externalsType?: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined;
-    externalsPresets?: {
-        web?: boolean | undefined;
-        node?: boolean | undefined;
-        nwjs?: boolean | undefined;
-        electron?: boolean | undefined;
-        electronMain?: boolean | undefined;
-        electronPreload?: boolean | undefined;
-        electronRenderer?: boolean | undefined;
-        webAsync?: boolean | undefined;
-    } | undefined;
-    infrastructureLogging?: {
-        debug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
-        colors?: boolean | undefined;
-        stream?: NodeJS.WritableStream | undefined;
-        appendOnly?: boolean | undefined;
-        console?: Console | undefined;
-        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
-    } | undefined;
-    snapshot?: {} | undefined;
     optimization?: {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
@@ -9526,6 +8764,116 @@ export const rspackOptions: z.ZodObject<{
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
     } | undefined;
+    bail?: boolean | undefined;
+    loader?: Record<string, any> | undefined;
+    externals?: string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>) | (string | RegExp | Record<string, string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue> | ((args_0: t.ExternalItemFunctionData, args_1: (args_0: Error | undefined, args_1: string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue | undefined, args_2: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined, ...args: unknown[]) => void, ...args: unknown[]) => unknown) | ((args_0: t.ExternalItemFunctionData, ...args: unknown[]) => Promise<string | boolean | string[] | t.ExternalItemUmdValue | t.ExternalItemObjectValue>))[] | undefined;
+    target?: false | "async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist" | ("async-node" | `node${number}` | `async-node${number}` | `node${number}.${number}` | `async-node${number}.${number}` | `electron${number}-main` | `electron${number}.${number}-main` | `electron${number}-renderer` | `electron${number}.${number}-renderer` | `electron${number}-preload` | `electron${number}.${number}-preload` | `nwjs${number}` | `nwjs${number}.${number}` | `node-webkit${number}` | `node-webkit${number}.${number}` | `browserslist:${string}` | "web" | "webworker" | "es3" | "es5" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "node" | "electron-main" | "electron-renderer" | "electron-preload" | "nwjs" | "node-webkit" | "browserslist")[] | undefined;
+    entry?: string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }> | ((...args: unknown[]) => string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }> | Promise<string | string[] | Record<string, string | string[] | {
+        import: string | string[];
+        runtime?: string | false | undefined;
+        chunkLoading?: string | false | undefined;
+        asyncChunks?: boolean | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        baseUri?: string | undefined;
+        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        library?: {
+            type: string;
+            name?: string | string[] | {
+                commonjs?: string | undefined;
+                amd?: string | undefined;
+                root?: string | string[] | undefined;
+            } | undefined;
+            amdContainer?: string | undefined;
+            auxiliaryComment?: string | {
+                commonjs?: string | undefined;
+                commonjs2?: string | undefined;
+                amd?: string | undefined;
+                root?: string | undefined;
+            } | undefined;
+            export?: string | string[] | undefined;
+            umdNamedDefine?: boolean | undefined;
+        } | undefined;
+        layer?: string | null | undefined;
+        wasmLoading?: string | false | undefined;
+        dependOn?: string | string[] | undefined;
+    }>>) | undefined;
+    dependencies?: string[] | undefined;
+    externalsType?: "module" | "jsonp" | "import" | "var" | "assign" | "this" | "window" | "self" | "global" | "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "amd" | "amd-require" | "umd" | "umd2" | "system" | "promise" | "module-import" | "script" | "node-commonjs" | "commonjs-import" | undefined;
+    externalsPresets?: {
+        web?: boolean | undefined;
+        node?: boolean | undefined;
+        nwjs?: boolean | undefined;
+        electron?: boolean | undefined;
+        electronMain?: boolean | undefined;
+        electronPreload?: boolean | undefined;
+        electronRenderer?: boolean | undefined;
+        webAsync?: boolean | undefined;
+    } | undefined;
+    infrastructureLogging?: {
+        debug?: string | boolean | RegExp | ((args_0: string, ...args: unknown[]) => boolean) | (string | RegExp | ((args_0: string, ...args: unknown[]) => boolean))[] | undefined;
+        colors?: boolean | undefined;
+        stream?: NodeJS.WritableStream | undefined;
+        appendOnly?: boolean | undefined;
+        console?: Console | undefined;
+        level?: "error" | "warn" | "info" | "log" | "none" | "verbose" | undefined;
+    } | undefined;
+    snapshot?: {} | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     watch?: boolean | undefined;
     watchOptions?: {
@@ -9537,7 +8885,6 @@ export const rspackOptions: z.ZodObject<{
     } | undefined;
     devServer?: t.DevServer | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args: unknown[]) => boolean))[] | undefined;
-    bail?: boolean | undefined;
 }>;
 
 // @public (undocumented)
@@ -9849,23 +9196,6 @@ type RuntimePlugins = string[];
 type RuntimeSpec = string | string[] | undefined;
 
 // @public (undocumented)
-type SafeParseError<Input> = {
-    success: false;
-    error: ZodError<Input>;
-    data?: never;
-};
-
-// @public (undocumented)
-type SafeParseReturnType<Input, Output> = SafeParseSuccess<Output> | SafeParseError<Input>;
-
-// @public (undocumented)
-type SafeParseSuccess<Output> = {
-    success: true;
-    data: Output;
-    error?: never;
-};
-
-// @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
 
 // @public (undocumented)
@@ -9960,30 +9290,6 @@ export const sharing: {
 
 // @public (undocumented)
 export type SnapshotOptions = {};
-
-// @public (undocumented)
-abstract class Source {
-    	// (undocumented)
-    buffer(): Buffer;
-
-    	// (undocumented)
-    map(options?: MapOptions): RawSourceMap | null;
-
-    	// (undocumented)
-    size(): number;
-
-    	// (undocumented)
-    source(): string | Buffer;
-
-    	// (undocumented)
-    sourceAndMap(options?: MapOptions): {
-        		source: string | Buffer;
-        		map: Object;
-        	};
-
-    	// (undocumented)
-    updateHash(hash: Hash): void;
-}
 
 // @public (undocumented)
 interface SourceMap {
@@ -10295,19 +9601,6 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
-type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "base64" | {
-    includes: string;
-    position?: number;
-} | {
-    startsWith: string;
-} | {
-    endsWith: string;
-};
-
-// @public (undocumented)
-type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
-
-// @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
@@ -10361,17 +9654,6 @@ export type SwcLoaderTransformConfig = TransformConfig;
 
 // @public (undocumented)
 export type SwcLoaderTsParserConfig = TsParserConfig;
-
-// @public (undocumented)
-type SyncParseReturnType<T = any> = OK<T> | DIRTY<T> | INVALID;
-
-// @public (undocumented)
-interface SystemjsConfig {
-    // (undocumented)
-    allowTopLevelThis?: boolean;
-    // (undocumented)
-    type: "systemjs";
-}
 
 declare namespace t {
     export {
@@ -10719,126 +10001,7 @@ interface TerserCompressOptions {
 }
 
 // @public (undocumented)
-interface TerserCompressOptions_2 {
-    // (undocumented)
-    arguments?: boolean;
-    // (undocumented)
-    arrows?: boolean;
-    // (undocumented)
-    booleans?: boolean;
-    // (undocumented)
-    booleans_as_integers?: boolean;
-    // (undocumented)
-    collapse_vars?: boolean;
-    // (undocumented)
-    comparisons?: boolean;
-    // (undocumented)
-    computed_props?: boolean;
-    // (undocumented)
-    conditionals?: boolean;
-    // (undocumented)
-    const_to_let?: boolean;
-    // (undocumented)
-    dead_code?: boolean;
-    // (undocumented)
-    defaults?: boolean;
-    // (undocumented)
-    directives?: boolean;
-    // (undocumented)
-    drop_console?: boolean;
-    // (undocumented)
-    drop_debugger?: boolean;
-    // (undocumented)
-    ecma?: TerserEcmaVersion_2;
-    // (undocumented)
-    evaluate?: boolean;
-    // (undocumented)
-    expression?: boolean;
-    // (undocumented)
-    global_defs?: any;
-    // (undocumented)
-    hoist_funs?: boolean;
-    // (undocumented)
-    hoist_props?: boolean;
-    // (undocumented)
-    hoist_vars?: boolean;
-    // (undocumented)
-    ie8?: boolean;
-    // (undocumented)
-    if_return?: boolean;
-    // (undocumented)
-    inline?: 0 | 1 | 2 | 3;
-    // (undocumented)
-    join_vars?: boolean;
-    // (undocumented)
-    keep_classnames?: boolean;
-    // (undocumented)
-    keep_fargs?: boolean;
-    // (undocumented)
-    keep_fnames?: boolean;
-    // (undocumented)
-    keep_infinity?: boolean;
-    // (undocumented)
-    loops?: boolean;
-    // (undocumented)
-    module?: boolean;
-    // (undocumented)
-    negate_iife?: boolean;
-    // (undocumented)
-    passes?: number;
-    // (undocumented)
-    properties?: boolean;
-    // (undocumented)
-    pure_funcs?: string[];
-    // (undocumented)
-    pure_getters?: any;
-    // (undocumented)
-    reduce_funcs?: boolean;
-    // (undocumented)
-    reduce_vars?: boolean;
-    // (undocumented)
-    sequences?: any;
-    // (undocumented)
-    side_effects?: boolean;
-    // (undocumented)
-    switches?: boolean;
-    // (undocumented)
-    top_retain?: any;
-    // (undocumented)
-    toplevel?: any;
-    // (undocumented)
-    typeofs?: boolean;
-    // (undocumented)
-    unsafe?: boolean;
-    // (undocumented)
-    unsafe_arrows?: boolean;
-    // (undocumented)
-    unsafe_comps?: boolean;
-    // (undocumented)
-    unsafe_function?: boolean;
-    // (undocumented)
-    unsafe_math?: boolean;
-    // (undocumented)
-    unsafe_methods?: boolean;
-    // (undocumented)
-    unsafe_passes?: boolean;
-    // (undocumented)
-    unsafe_proto?: boolean;
-    // (undocumented)
-    unsafe_regexp?: boolean;
-    // (undocumented)
-    unsafe_symbols?: boolean;
-    // (undocumented)
-    unsafe_undefined?: boolean;
-    // (undocumented)
-    unused?: boolean;
-}
-
-// @public (undocumented)
 type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
-
-// @public (undocumented)
-type TerserEcmaVersion_2 = 5 | 2015 | 2016 | string | number;
 
 // @public (undocumented)
 interface TerserMangleOptions {
@@ -10861,35 +10024,7 @@ interface TerserMangleOptions {
 }
 
 // @public (undocumented)
-interface TerserMangleOptions_2 {
-    // (undocumented)
-    ie8?: boolean;
-    // @deprecated (undocumented)
-    keep_classnames?: boolean;
-    // @deprecated (undocumented)
-    keep_fnames?: boolean;
-    // @deprecated (undocumented)
-    keep_private_props?: boolean;
-    keepClassNames?: boolean;
-    keepFnNames?: boolean;
-    keepPrivateProps?: boolean;
-    // (undocumented)
-    props?: TerserManglePropertiesOptions_2;
-    // (undocumented)
-    reserved?: string[];
-    // (undocumented)
-    safari10?: boolean;
-    topLevel?: boolean;
-    // @deprecated (undocumented)
-    toplevel?: boolean;
-}
-
-// @public (undocumented)
 type TerserManglePropertiesOptions = {};
-
-// @public (undocumented)
-interface TerserManglePropertiesOptions_2 {
-}
 
 // @public (undocumented)
 const TIMERS_AGGREGATES_SYMBOL: unique symbol;
@@ -10901,37 +10036,8 @@ const TIMERS_SYMBOL: unique symbol;
 type ToSnakeCase<T extends string> = T extends `${infer A}${infer B}` ? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase<B>}` : T;
 
 // @public (undocumented)
-type ToSnakeCase_2<T extends string> = T extends `${infer A}${infer B}` ? `${A extends Lowercase<A> ? A : `_${Lowercase<A>}`}${ToSnakeCase_2<B>}` : T;
-
-// @public (undocumented)
 type ToSnakeCaseProperties<T> = {
     [K in keyof T as K extends string ? ToSnakeCase<K> : K]: T[K];
-};
-
-// @public (undocumented)
-type ToSnakeCaseProperties_2<T> = {
-    [K in keyof T as K extends string ? ToSnakeCase_2<K> : K]: T[K];
-};
-
-// @public
-interface TransformConfig {
-    // (undocumented)
-    constModules?: ConstModulesConfig;
-    decoratorMetadata?: boolean;
-    decoratorVersion?: "2021-12" | "2022-03";
-    legacyDecorator?: boolean;
-    optimizer?: OptimizerConfig;
-    react?: ReactConfig;
-    // (undocumented)
-    treatConstEnumAsEnum?: boolean;
-    // (undocumented)
-    useDefineForClassFields?: boolean;
-}
-
-// @public (undocumented)
-type TransformEffect<T> = {
-    type: "transform";
-    transform: (arg: T, ctx: RefinementCtx) => any;
 };
 
 // @public
@@ -10939,34 +10045,6 @@ export type TrustedTypes = {
     policyName?: string;
     onPolicyCreationFailure?: "continue" | "stop";
 };
-
-// @public (undocumented)
-interface TsParserConfig {
-    decorators?: boolean;
-    // @deprecated (undocumented)
-    dynamicImport?: boolean;
-    // (undocumented)
-    syntax: "typescript";
-    tsx?: boolean;
-}
-
-// @public (undocumented)
-type typeToFlattenedError<T, U = string> = {
-    formErrors: U[];
-    fieldErrors: {
-        [P in allKeys<T>]?: U[];
-    };
-};
-
-// @public (undocumented)
-interface UmdConfig extends BaseModuleConfig {
-    // (undocumented)
-    globals?: {
-        [key: string]: string;
-    };
-    // (undocumented)
-    type: "umd";
-}
 
 // @public
 export type UmdNamedDefine = boolean;
@@ -10982,51 +10060,6 @@ export const util: {
     createHash: (algorithm: "debug" | "xxhash64" | "md4" | "native-md4" | (string & {}) | (new () => default_2)) => default_2;
     cleverMerge: <First, Second>(first: First, second: Second) => First | Second | (First & Second);
 };
-
-// @public (undocumented)
-namespace util_2 {
-    // (undocumented)
-    type AssertEqual<T, U> = (<V>() => V extends T ? 1 : 2) extends <V>() => V extends U ? 1 : 2 ? true : false;
-    // (undocumented)
-    function assertIs<T>(_arg: T): void;
-    const // (undocumented)
-    assertEqual: <A, B>(val: AssertEqual<A, B>) => AssertEqual<A, B>;
-    // (undocumented)
-    function assertNever(_x: never): never;
-    // (undocumented)
-    type Exactly<T, X> = T & Record<Exclude<keyof X, keyof T>, never>;
-    // (undocumented)
-    type flatten<T> = objectUtil.flatten<T>;
-    // (undocumented)
-    type identity<T> = objectUtil.identity<T>;
-    // (undocumented)
-    type isAny<T> = 0 extends 1 & T ? true : false;
-    // (undocumented)
-    function joinValues<T extends any[]>(array: T, separator?: string): string;
-    const // (undocumented)
-    arrayToEnum: <T extends string, U extends [T, ...T[]]>(items: U) => { [k in U[number]]: k; };
-    const // (undocumented)
-    getValidEnumValues: (obj: any) => any[];
-    const // (undocumented)
-    objectValues: (obj: any) => any[];
-    const // (undocumented)
-    objectKeys: ObjectConstructor["keys"];
-    const // (undocumented)
-    find: <T>(arr: T[], checker: (arg: T) => any) => T | undefined;
-    // (undocumented)
-    type MakePartial<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-    // (undocumented)
-    type noUndefined<T> = T extends undefined ? never : T;
-    // (undocumented)
-    type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-    const // (undocumented)
-    isInteger: NumberConstructor["isInteger"];
-    // (undocumented)
-    type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>;
-    const // (undocumented)
-    jsonStringifyReplacer: (_: string, value: any) => any;
-        {  };
-}
 
 // @public (undocumented)
 export class ValidationError extends Error {
@@ -11081,23 +10114,6 @@ interface Watcher {
     getInfo(): WatcherInfo;
     // (undocumented)
     pause(): void;
-}
-
-// @public (undocumented)
-class Watcher_2 extends EventEmitter {
-    constructor(directoryWatcher: DirectoryWatcher, filePath: string, startTime: number);
-    // (undocumented)
-    checkStartTime(mtime: number, initial: boolean): boolean;
-    // (undocumented)
-    close(): void;
-    // (undocumented)
-    data: number;
-    // (undocumented)
-    directoryWatcher: DirectoryWatcher;
-    // (undocumented)
-    path: string;
-    // (undocumented)
-    startTime: number;
 }
 
 // @public (undocumented)
@@ -11173,99 +10189,6 @@ export type WatchOptions = {
     poll?: number | boolean;
     stdin?: boolean;
 };
-
-// @public (undocumented)
-class Watchpack extends EventEmitter {
-    constructor(options: Watchpack.WatchOptions);
-    // (undocumented)
-    aggregatedChanges: Set<string>;
-    // (undocumented)
-    aggregatedRemovals: Set<string>;
-    // (undocumented)
-    aggregateTimeout: NodeJS.Timer;
-    close(): void;
-    collectTimeInfoEntries(fileInfoEntries: Map<string, Entry_2>, directoryInfoEntries: Map<string, Entry_2>): void;
-    // (undocumented)
-    _dirWatcher(item: string, watcher: Watcher_2): Watcher_2;
-    // (undocumented)
-    dirWatchers: Watcher_2[];
-    // (undocumented)
-    _fileWatcher(file: string, watcher: Watcher_2): Watcher_2;
-    // (undocumented)
-    fileWatchers: Watcher_2[];
-    getAggregated(): {
-        changes: Set<string>;
-        removals: Set<string>;
-    };
-    getTimeInfoEntries(): Map<string, Entry_2>;
-    // @deprecated
-    getTimes(): {
-        [path: string]: number;
-    };
-    mtimes: {
-        [path: string]: number;
-    };
-    // (undocumented)
-    on(
-    eventName: "change",
-    listener: (
-    filePath: string,
-    modifiedTime: number,
-    explanation: string,
-    ) => void,
-    ): this;
-    // (undocumented)
-    on(
-    eventName: "remove",
-    listener: (
-    filePath: string,
-    explanation: string,
-    ) => void,
-    ): this;
-    // (undocumented)
-    on(
-    eventName: "aggregated",
-    listener: (
-    changes: Set<string>,
-    removals: Set<string>,
-    ) => void,
-    ): this;
-    // (undocumented)
-    _onChange(item: string, mtime: number, file?: string): void;
-    // (undocumented)
-    _onTimeout(): void;
-    // (undocumented)
-    options: Watchpack.WatchOptions;
-    pause(): void;
-    // (undocumented)
-    paused: boolean;
-    watch(options: {
-        files?: Iterable<string>;
-        directories?: Iterable<string>;
-        missing?: Iterable<string>;
-        startTime?: number;
-    }): void;
-    // (undocumented)
-    watcherOptions: Watchpack.WatcherOptions;
-}
-
-// @public (undocumented)
-namespace Watchpack {
-    // (undocumented)
-    interface WatcherOptions {
-        // (undocumented)
-        followSymlinks?: boolean;
-        // (undocumented)
-        ignored?: string[] | string | RegExp | ((path: string) => boolean) | undefined;
-        // (undocumented)
-        poll?: boolean | number | undefined;
-    }
-    // (undocumented)
-    interface WatchOptions extends WatcherOptions {
-        // (undocumented)
-        aggregateTimeout?: number | undefined;
-    }
-}
 
 // @public (undocumented)
 interface Web {
@@ -11346,99 +10269,6 @@ type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
 };
 
 // @public (undocumented)
-namespace z {
-        { type z_AnyZodObject as AnyZodObject, type z_AnyZodTuple as AnyZodTuple, type z_ArrayCardinality as ArrayCardinality, type z_ArrayKeys as ArrayKeys, type z_AssertArray as AssertArray, type z_AsyncParseReturnType as AsyncParseReturnType, type z_BRAND as BRAND, type z_CatchallInput as CatchallInput, type z_CatchallOutput as CatchallOutput, type z_CustomErrorParams as CustomErrorParams, z_DIRTY as DIRTY, type z_DenormalizedError as DenormalizedError, z_EMPTY_PATH as EMPTY_PATH, type z_Effect as Effect, type z_EnumLike as EnumLike, type z_EnumValues as EnumValues, type z_ErrorMapCtx as ErrorMapCtx, type z_FilterEnum as FilterEnum, z_INVALID as INVALID, type z_Indices as Indices, type z_InnerTypeOfFunction as InnerTypeOfFunction, type z_InputTypeOfTuple as InputTypeOfTuple, type z_InputTypeOfTupleWithRest as InputTypeOfTupleWithRest, type z_IpVersion as IpVersion, type z_IssueData as IssueData, type z_KeySchema as KeySchema, z_NEVER as NEVER, z_OK as OK, type z_ObjectPair as ObjectPair, type z_OuterTypeOfFunction as OuterTypeOfFunction, type z_OutputTypeOfTuple as OutputTypeOfTuple, type z_OutputTypeOfTupleWithRest as OutputTypeOfTupleWithRest, type z_ParseContext as ParseContext, type z_ParseInput as ParseInput, type z_ParseParams as ParseParams, type z_ParsePath as ParsePath, type z_ParsePathComponent as ParsePathComponent, type z_ParseResult as ParseResult, type z_ParseReturnType as ParseReturnType, z_ParseStatus as ParseStatus, type z_PassthroughType as PassthroughType, type z_PreprocessEffect as PreprocessEffect, type z_Primitive as Primitive, type z_ProcessedCreateParams as ProcessedCreateParams, type z_RawCreateParams as RawCreateParams, type z_RecordType as RecordType, type z_Refinement as Refinement, type z_RefinementCtx as RefinementCtx, type z_RefinementEffect as RefinementEffect, type z_SafeParseError as SafeParseError, type z_SafeParseReturnType as SafeParseReturnType, type z_SafeParseSuccess as SafeParseSuccess, type z_Scalars as Scalars, ZodType as Schema, type z_SomeZodObject as SomeZodObject, type z_StringValidation as StringValidation, type z_SuperRefinement as SuperRefinement, type z_SyncParseReturnType as SyncParseReturnType, type z_TransformEffect as TransformEffect, type z_TypeOf as TypeOf, type z_UnknownKeysParam as UnknownKeysParam, type z_Values as Values, type z_Writeable as Writeable, z_ZodAny as ZodAny, type z_ZodAnyDef as ZodAnyDef, z_ZodArray as ZodArray, type z_ZodArrayDef as ZodArrayDef, z_ZodBigInt as ZodBigInt, type z_ZodBigIntCheck as ZodBigIntCheck, type z_ZodBigIntDef as ZodBigIntDef, z_ZodBoolean as ZodBoolean, type z_ZodBooleanDef as ZodBooleanDef, z_ZodBranded as ZodBranded, type z_ZodBrandedDef as ZodBrandedDef, z_ZodCatch as ZodCatch, type z_ZodCatchDef as ZodCatchDef, type z_ZodCustomIssue as ZodCustomIssue, z_ZodDate as ZodDate, type z_ZodDateCheck as ZodDateCheck, type z_ZodDateDef as ZodDateDef, z_ZodDefault as ZodDefault, type z_ZodDefaultDef as ZodDefaultDef, z_ZodDiscriminatedUnion as ZodDiscriminatedUnion, type z_ZodDiscriminatedUnionDef as ZodDiscriminatedUnionDef, type z_ZodDiscriminatedUnionOption as ZodDiscriminatedUnionOption, z_ZodEffects as ZodEffects, type z_ZodEffectsDef as ZodEffectsDef, z_ZodEnum as ZodEnum, type z_ZodEnumDef as ZodEnumDef, z_ZodError as ZodError, type z_ZodErrorMap as ZodErrorMap, type z_ZodFirstPartySchemaTypes as ZodFirstPartySchemaTypes, z_ZodFirstPartyTypeKind as ZodFirstPartyTypeKind, type z_ZodFormattedError as ZodFormattedError, z_ZodFunction as ZodFunction, type z_ZodFunctionDef as ZodFunctionDef, z_ZodIntersection as ZodIntersection, type z_ZodIntersectionDef as ZodIntersectionDef, type z_ZodInvalidArgumentsIssue as ZodInvalidArgumentsIssue, type z_ZodInvalidDateIssue as ZodInvalidDateIssue, type z_ZodInvalidEnumValueIssue as ZodInvalidEnumValueIssue, type z_ZodInvalidIntersectionTypesIssue as ZodInvalidIntersectionTypesIssue, type z_ZodInvalidLiteralIssue as ZodInvalidLiteralIssue, type z_ZodInvalidReturnTypeIssue as ZodInvalidReturnTypeIssue, type z_ZodInvalidStringIssue as ZodInvalidStringIssue, type z_ZodInvalidTypeIssue as ZodInvalidTypeIssue, type z_ZodInvalidUnionDiscriminatorIssue as ZodInvalidUnionDiscriminatorIssue, type z_ZodInvalidUnionIssue as ZodInvalidUnionIssue, type z_ZodIssue as ZodIssue, type z_ZodIssueBase as ZodIssueBase, type z_ZodIssueCode as ZodIssueCode, type z_ZodIssueOptionalMessage as ZodIssueOptionalMessage, z_ZodLazy as ZodLazy, type z_ZodLazyDef as ZodLazyDef, z_ZodLiteral as ZodLiteral, type z_ZodLiteralDef as ZodLiteralDef, z_ZodMap as ZodMap, type z_ZodMapDef as ZodMapDef, z_ZodNaN as ZodNaN, type z_ZodNaNDef as ZodNaNDef, z_ZodNativeEnum as ZodNativeEnum, type z_ZodNativeEnumDef as ZodNativeEnumDef, z_ZodNever as ZodNever, type z_ZodNeverDef as ZodNeverDef, type z_ZodNonEmptyArray as ZodNonEmptyArray, type z_ZodNotFiniteIssue as ZodNotFiniteIssue, type z_ZodNotMultipleOfIssue as ZodNotMultipleOfIssue, z_ZodNull as ZodNull, type z_ZodNullDef as ZodNullDef, z_ZodNullable as ZodNullable, type z_ZodNullableDef as ZodNullableDef, type z_ZodNullableType as ZodNullableType, z_ZodNumber as ZodNumber, type z_ZodNumberCheck as ZodNumberCheck, type z_ZodNumberDef as ZodNumberDef, z_ZodObject as ZodObject, type z_ZodObjectDef as ZodObjectDef, z_ZodOptional as ZodOptional, type z_ZodOptionalDef as ZodOptionalDef, type z_ZodOptionalType as ZodOptionalType, type z_ZodParsedType as ZodParsedType, z_ZodPipeline as ZodPipeline, type z_ZodPipelineDef as ZodPipelineDef, z_ZodPromise as ZodPromise, type z_ZodPromiseDef as ZodPromiseDef, type z_ZodRawShape as ZodRawShape, z_ZodReadonly as ZodReadonly, type z_ZodReadonlyDef as ZodReadonlyDef, z_ZodRecord as ZodRecord, type z_ZodRecordDef as ZodRecordDef, ZodType as ZodSchema, z_ZodSet as ZodSet, type z_ZodSetDef as ZodSetDef, z_ZodString as ZodString, type z_ZodStringCheck as ZodStringCheck, type z_ZodStringDef as ZodStringDef, z_ZodSymbol as ZodSymbol, type z_ZodSymbolDef as ZodSymbolDef, type z_ZodTooBigIssue as ZodTooBigIssue, type z_ZodTooSmallIssue as ZodTooSmallIssue, ZodEffects as ZodTransformer, z_ZodTuple as ZodTuple, type z_ZodTupleDef as ZodTupleDef, type z_ZodTupleItems as ZodTupleItems, z_ZodType as ZodType, type z_ZodTypeAny as ZodTypeAny, type z_ZodTypeDef as ZodTypeDef, z_ZodUndefined as ZodUndefined, type z_ZodUndefinedDef as ZodUndefinedDef, z_ZodUnion as ZodUnion, type z_ZodUnionDef as ZodUnionDef, type z_ZodUnionOptions as ZodUnionOptions, z_ZodUnknown as ZodUnknown, type z_ZodUnknownDef as ZodUnknownDef, type z_ZodUnrecognizedKeysIssue as ZodUnrecognizedKeysIssue, z_ZodVoid as ZodVoid, type z_ZodVoidDef as ZodVoidDef, z_addIssueToContext as addIssueToContext, anyType as any, arrayType as array, type z_arrayOutputType as arrayOutputType, type z_baseObjectInputType as baseObjectInputType, type z_baseObjectOutputType as baseObjectOutputType, bigIntType as bigint, booleanType as boolean, z_coerce as coerce, z_custom as custom, dateType as date, z_datetimeRegex as datetimeRegex, errorMap as defaultErrorMap, type z_deoptional as deoptional, discriminatedUnionType as discriminatedUnion, effectsType as effect, enumType as enum, functionType as function, z_getErrorMap as getErrorMap, z_getParsedType as getParsedType, type TypeOf as infer, type z_inferFlattenedErrors as inferFlattenedErrors, type z_inferFormattedError as inferFormattedError, type z_input as input, instanceOfType as instanceof, intersectionType as intersection, z_isAborted as isAborted, z_isAsync as isAsync, z_isDirty as isDirty, z_isValid as isValid, z_late as late, lazyType as lazy, literalType as literal, z_makeIssue as makeIssue, mapType as map, type z_mergeTypes as mergeTypes, nanType as nan, nativeEnumType as nativeEnum, neverType as never, type z_noUnrecognized as noUnrecognized, nullType as null, nullableType as nullable, numberType as number, objectType as object, type z_objectInputType as objectInputType, type z_objectOutputType as objectOutputType, z_objectUtil as objectUtil, z_oboolean as oboolean, z_onumber as onumber, optionalType as optional, z_ostring as ostring, type z_output as output, pipelineType as pipeline, preprocessType as preprocess, promiseType as promise, z_quotelessJson as quotelessJson, recordType as record, setType as set, z_setErrorMap as setErrorMap, strictObjectType as strictObject, stringType as string, symbolType as symbol, effectsType as transformer, tupleType as tuple, type z_typeToFlattenedError as typeToFlattenedError, type z_typecast as typecast, undefinedType as undefined, unionType as union, unknownType as unknown, z_util as util, voidType as void };
-}
-
-// @public (undocumented)
-class ZodArray<T extends ZodTypeAny, Cardinality extends ArrayCardinality = "many"> extends ZodType<arrayOutputType<T, Cardinality>, ZodArrayDef<T>, Cardinality extends "atleastone" ? [T["_input"], ...T["_input"][]] : T["_input"][]> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(schema: T_1, params?: RawCreateParams) => ZodArray<T_1, "many">;
-    // (undocumented)
-    get element(): T;
-    // (undocumented)
-    length(len: number, message?: errorUtil.ErrMessage): this;
-    // (undocumented)
-    max(maxLength: number, message?: errorUtil.ErrMessage): this;
-    // (undocumented)
-    min(minLength: number, message?: errorUtil.ErrMessage): this;
-    // (undocumented)
-    nonempty(message?: errorUtil.ErrMessage): ZodArray<T, "atleastone">;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-}
-
-// @public (undocumented)
-interface ZodArrayDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    exactLength: {
-        value: number;
-        message?: string;
-    } | null;
-    // (undocumented)
-    maxLength: {
-        value: number;
-        message?: string;
-    } | null;
-    // (undocumented)
-    minLength: {
-        value: number;
-        message?: string;
-    } | null;
-    // (undocumented)
-    type: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodArray;
-}
-
-// @public (undocumented)
-class ZodBranded<T extends ZodTypeAny, B extends string | number | symbol> extends ZodType<T["_output"] & BRAND<B>, ZodBrandedDef<T>, T["_input"]> {
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<any>;
-    // (undocumented)
-    unwrap(): T;
-}
-
-// @public (undocumented)
-interface ZodBrandedDef<T extends ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    type: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodBranded;
-}
-
-// @public (undocumented)
-class ZodCatch<T extends ZodTypeAny> extends ZodType<T["_output"], ZodCatchDef<T>, unknown> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(type: T_1, params: {
-        errorMap?: ZodErrorMap | undefined;
-        invalid_type_error?: string | undefined;
-        required_error?: string | undefined;
-        message?: string | undefined;
-        description?: string | undefined;
-    } & {
-        catch: T_1["_output"] | (() => T_1["_output"]);
-    }) => ZodCatch<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    removeCatch(): T;
-}
-
-// @public (undocumented)
-interface ZodCatchDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    catchValue: (ctx: {
-        error: ZodError;
-        input: unknown;
-    }) => T["_input"];
-    // (undocumented)
-    innerType: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodCatch;
-}
-
-// @public (undocumented)
 type ZodCrossFieldsOptions = ZodTypeDef & {
     patterns: Array<{
         test: (root: RspackOptions) => boolean;
@@ -11449,628 +10279,12 @@ type ZodCrossFieldsOptions = ZodTypeDef & {
 };
 
 // @public (undocumented)
-interface ZodCustomIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.custom;
-    // (undocumented)
-    params?: {
-        [k: string]: any;
-    };
-}
-
-// @public (undocumented)
-class ZodDefault<T extends ZodTypeAny> extends ZodType<util_2.noUndefined<T["_output"]>, ZodDefaultDef<T>, T["_input"] | undefined> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(type: T_1, params: {
-        errorMap?: ZodErrorMap | undefined;
-        invalid_type_error?: string | undefined;
-        required_error?: string | undefined;
-        message?: string | undefined;
-        description?: string | undefined;
-    } & {
-        default: T_1["_input"] | (() => util_2.noUndefined<T_1["_input"]>);
-    }) => ZodDefault<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    removeDefault(): T;
-}
-
-// @public (undocumented)
-interface ZodDefaultDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    defaultValue: () => util_2.noUndefined<T["_input"]>;
-    // (undocumented)
-    innerType: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodDefault;
-}
-
-// @public (undocumented)
-class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<T>> extends ZodType<Output, ZodEffectsDef<T>, Input> {
-    // (undocumented)
-    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"], input<I>>;
-    // (undocumented)
-    static createWithPreprocess: <I extends ZodTypeAny>(preprocess: (arg: unknown, ctx: RefinementCtx) => unknown, schema: I, params?: RawCreateParams) => ZodEffects<I, I["_output"], unknown>;
-    // (undocumented)
-    innerType(): T;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    sourceType(): T;
-}
-
-// @public (undocumented)
-interface ZodEffectsDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    effect: Effect<any>;
-    // (undocumented)
-    schema: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodEffects;
-}
-
-// @public (undocumented)
-class ZodError<T = any> extends Error {
-    constructor(issues: ZodIssue[]);
-    // (undocumented)
-    addIssue: (sub: ZodIssue) => void;
-    // (undocumented)
-    addIssues: (subs?: ZodIssue[]) => void;
-    // (undocumented)
-    static assert(value: unknown): asserts value is ZodError;
-    // (undocumented)
-    static create: (issues: ZodIssue[]) => ZodError<any>;
-    // (undocumented)
-    get errors(): ZodIssue[];
-    // (undocumented)
-    flatten(): typeToFlattenedError<T>;
-    // (undocumented)
-    flatten<U>(mapper?: (issue: ZodIssue) => U): typeToFlattenedError<T, U>;
-    // (undocumented)
-    format(): ZodFormattedError<T>;
-    // (undocumented)
-    format<U>(mapper: (issue: ZodIssue) => U): ZodFormattedError<T, U>;
-    // (undocumented)
-    get formErrors(): typeToFlattenedError<T, string>;
-    // (undocumented)
-    get isEmpty(): boolean;
-    // (undocumented)
-    issues: ZodIssue[];
-    // (undocumented)
-    get message(): string;
-    // (undocumented)
-    toString(): string;
-}
-
-// @public (undocumented)
-type ZodErrorMap = (issue: ZodIssueOptionalMessage, _ctx: ErrorMapCtx) => {
-    message: string;
-};
-
-// @public (undocumented)
-enum ZodFirstPartyTypeKind {
-    // (undocumented)
-    ZodAny = "ZodAny",
-    // (undocumented)
-    ZodArray = "ZodArray",
-    // (undocumented)
-    ZodBigInt = "ZodBigInt",
-    // (undocumented)
-    ZodBoolean = "ZodBoolean",
-    // (undocumented)
-    ZodBranded = "ZodBranded",
-    // (undocumented)
-    ZodCatch = "ZodCatch",
-    // (undocumented)
-    ZodDate = "ZodDate",
-    // (undocumented)
-    ZodDefault = "ZodDefault",
-    // (undocumented)
-    ZodDiscriminatedUnion = "ZodDiscriminatedUnion",
-    // (undocumented)
-    ZodEffects = "ZodEffects",
-    // (undocumented)
-    ZodEnum = "ZodEnum",
-    // (undocumented)
-    ZodFunction = "ZodFunction",
-    // (undocumented)
-    ZodIntersection = "ZodIntersection",
-    // (undocumented)
-    ZodLazy = "ZodLazy",
-    // (undocumented)
-    ZodLiteral = "ZodLiteral",
-    // (undocumented)
-    ZodMap = "ZodMap",
-    // (undocumented)
-    ZodNaN = "ZodNaN",
-    // (undocumented)
-    ZodNativeEnum = "ZodNativeEnum",
-    // (undocumented)
-    ZodNever = "ZodNever",
-    // (undocumented)
-    ZodNull = "ZodNull",
-    // (undocumented)
-    ZodNullable = "ZodNullable",
-    // (undocumented)
-    ZodNumber = "ZodNumber",
-    // (undocumented)
-    ZodObject = "ZodObject",
-    // (undocumented)
-    ZodOptional = "ZodOptional",
-    // (undocumented)
-    ZodPipeline = "ZodPipeline",
-    // (undocumented)
-    ZodPromise = "ZodPromise",
-    // (undocumented)
-    ZodReadonly = "ZodReadonly",
-    // (undocumented)
-    ZodRecord = "ZodRecord",
-    // (undocumented)
-    ZodSet = "ZodSet",
-    // (undocumented)
-    ZodString = "ZodString",
-    // (undocumented)
-    ZodSymbol = "ZodSymbol",
-    // (undocumented)
-    ZodTuple = "ZodTuple",
-    // (undocumented)
-    ZodUndefined = "ZodUndefined",
-    // (undocumented)
-    ZodUnion = "ZodUnion",
-    // (undocumented)
-    ZodUnknown = "ZodUnknown",
-    // (undocumented)
-    ZodVoid = "ZodVoid"
-}
-
-// @public (undocumented)
-type ZodFormattedError<T, U = string> = {
-    _errors: U[];
-} & recursiveZodFormattedError<NonNullable<T>>;
-
-// @public (undocumented)
-class ZodIntersection<T extends ZodTypeAny, U extends ZodTypeAny> extends ZodType<T["_output"] & U["_output"], ZodIntersectionDef<T, U>, T["_input"] & U["_input"]> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny, U_1 extends ZodTypeAny>(left: T_1, right: U_1, params?: RawCreateParams) => ZodIntersection<T_1, U_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-}
-
-// @public (undocumented)
-interface ZodIntersectionDef<T extends ZodTypeAny = ZodTypeAny, U extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    left: T;
-    // (undocumented)
-    right: U;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodIntersection;
-}
-
-// @public (undocumented)
-interface ZodInvalidArgumentsIssue extends ZodIssueBase {
-    // (undocumented)
-    argumentsError: ZodError;
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_arguments;
-}
-
-// @public (undocumented)
-interface ZodInvalidDateIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_date;
-}
-
-// @public (undocumented)
-interface ZodInvalidEnumValueIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_enum_value;
-    // (undocumented)
-    options: (string | number)[];
-    // (undocumented)
-    received: string | number;
-}
-
-// @public (undocumented)
-interface ZodInvalidIntersectionTypesIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_intersection_types;
-}
-
-// @public (undocumented)
-interface ZodInvalidLiteralIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_literal;
-    // (undocumented)
-    expected: unknown;
-    // (undocumented)
-    received: unknown;
-}
-
-// @public (undocumented)
-interface ZodInvalidReturnTypeIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_return_type;
-    // (undocumented)
-    returnTypeError: ZodError;
-}
-
-// @public (undocumented)
-interface ZodInvalidStringIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_string;
-    // (undocumented)
-    validation: StringValidation;
-}
-
-// @public (undocumented)
-interface ZodInvalidTypeIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_type;
-    // (undocumented)
-    expected: ZodParsedType;
-    // (undocumented)
-    received: ZodParsedType;
-}
-
-// @public (undocumented)
-interface ZodInvalidUnionDiscriminatorIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_union_discriminator;
-    // (undocumented)
-    options: Primitive[];
-}
-
-// @public (undocumented)
-interface ZodInvalidUnionIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.invalid_union;
-    // (undocumented)
-    unionErrors: ZodError[];
-}
-
-// @public (undocumented)
-type ZodIssue = ZodIssueOptionalMessage & {
-    fatal?: boolean;
-    message: string;
-};
-
-// @public (undocumented)
-type ZodIssueBase = {
-    path: (string | number)[];
-    message?: string;
-};
-
-// @public (undocumented)
-const ZodIssueCode: {
-    invalid_type: "invalid_type";
-    invalid_literal: "invalid_literal";
-    custom: "custom";
-    invalid_union: "invalid_union";
-    invalid_union_discriminator: "invalid_union_discriminator";
-    invalid_enum_value: "invalid_enum_value";
-    unrecognized_keys: "unrecognized_keys";
-    invalid_arguments: "invalid_arguments";
-    invalid_return_type: "invalid_return_type";
-    invalid_date: "invalid_date";
-    invalid_string: "invalid_string";
-    too_small: "too_small";
-    too_big: "too_big";
-    invalid_intersection_types: "invalid_intersection_types";
-    not_multiple_of: "not_multiple_of";
-    not_finite: "not_finite";
-};
-
-// @public (undocumented)
-type ZodIssueCode = keyof typeof ZodIssueCode;
-
-// @public (undocumented)
-type ZodIssueOptionalMessage = ZodInvalidTypeIssue | ZodInvalidLiteralIssue | ZodUnrecognizedKeysIssue | ZodInvalidUnionIssue | ZodInvalidUnionDiscriminatorIssue | ZodInvalidEnumValueIssue | ZodInvalidArgumentsIssue | ZodInvalidReturnTypeIssue | ZodInvalidDateIssue | ZodInvalidStringIssue | ZodTooSmallIssue | ZodTooBigIssue | ZodInvalidIntersectionTypesIssue | ZodNotMultipleOfIssue | ZodNotFiniteIssue | ZodCustomIssue;
-
-// @public (undocumented)
-interface ZodNotFiniteIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.not_finite;
-}
-
-// @public (undocumented)
-interface ZodNotMultipleOfIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.not_multiple_of;
-    // (undocumented)
-    multipleOf: number | bigint;
-}
-
-// @public (undocumented)
-class ZodNullable<T extends ZodTypeAny> extends ZodType<T["_output"] | null, ZodNullableDef<T>, T["_input"] | null> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodNullable<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    unwrap(): T;
-}
-
-// @public (undocumented)
-interface ZodNullableDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    innerType: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodNullable;
-}
-
-// @public (undocumented)
-class ZodOptional<T extends ZodTypeAny> extends ZodType<T["_output"] | undefined, ZodOptionalDef<T>, T["_input"] | undefined> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodOptional<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    unwrap(): T;
-}
-
-// @public (undocumented)
-interface ZodOptionalDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    innerType: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodOptional;
-}
-
-// @public (undocumented)
-const ZodParsedType: {
-    function: "function";
-    number: "number";
-    string: "string";
-    nan: "nan";
-    integer: "integer";
-    float: "float";
-    boolean: "boolean";
-    date: "date";
-    bigint: "bigint";
-    symbol: "symbol";
-    undefined: "undefined";
-    null: "null";
-    array: "array";
-    object: "object";
-    unknown: "unknown";
-    promise: "promise";
-    void: "void";
-    never: "never";
-    map: "map";
-    set: "set";
-};
-
-// @public (undocumented)
-type ZodParsedType = keyof typeof ZodParsedType;
-
-// @public (undocumented)
-class ZodPipeline<A extends ZodTypeAny, B extends ZodTypeAny> extends ZodType<B["_output"], ZodPipelineDef<A, B>, A["_input"]> {
-    // (undocumented)
-    static create<A extends ZodTypeAny, B extends ZodTypeAny>(a: A, b: B): ZodPipeline<A, B>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<any>;
-}
-
-// @public (undocumented)
-interface ZodPipelineDef<A extends ZodTypeAny, B extends ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    in: A;
-    // (undocumented)
-    out: B;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodPipeline;
-}
-
-// @public (undocumented)
-class ZodPromise<T extends ZodTypeAny> extends ZodType<Promise<T["_output"]>, ZodPromiseDef<T>, Promise<T["_input"]>> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(schema: T_1, params?: RawCreateParams) => ZodPromise<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    unwrap(): T;
-}
-
-// @public (undocumented)
-interface ZodPromiseDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    type: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodPromise;
-}
-
-// @public (undocumented)
-class ZodReadonly<T extends ZodTypeAny> extends ZodType<MakeReadonly<T["_output"]>, ZodReadonlyDef<T>, MakeReadonly<T["_input"]>> {
-    // (undocumented)
-    static create: <T_1 extends ZodTypeAny>(type: T_1, params?: RawCreateParams) => ZodReadonly<T_1>;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-    // (undocumented)
-    unwrap(): T;
-}
-
-// @public (undocumented)
-interface ZodReadonlyDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
-    // (undocumented)
-    innerType: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodReadonly;
-}
-
-// @public (undocumented)
 class ZodRspackCrossChecker<T> extends ZodType<T> {
     constructor(params: ZodCrossFieldsOptions);
     // (undocumented)
     _getRootData(ctx: z.ParseContext): any;
     // (undocumented)
     _parse(input: z.ParseInput): z.ParseReturnType<T>;
-}
-
-// @public (undocumented)
-interface ZodTooBigIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.too_big;
-    // (undocumented)
-    exact?: boolean;
-    // (undocumented)
-    inclusive: boolean;
-    // (undocumented)
-    maximum: number | bigint;
-    // (undocumented)
-    type: "array" | "string" | "number" | "set" | "date" | "bigint";
-}
-
-// @public (undocumented)
-interface ZodTooSmallIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.too_small;
-    // (undocumented)
-    exact?: boolean;
-    // (undocumented)
-    inclusive: boolean;
-    // (undocumented)
-    minimum: number | bigint;
-    // (undocumented)
-    type: "array" | "string" | "number" | "set" | "date" | "bigint";
-}
-
-// @public (undocumented)
-abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input = Output> {
-    constructor(def: Def);
-    // (undocumented)
-    and<T extends ZodTypeAny>(incoming: T): ZodIntersection<this, T>;
-    // (undocumented)
-    array(): ZodArray<this>;
-    // (undocumented)
-    brand<B extends string | number | symbol>(brand?: B): ZodBranded<this, B>;
-    // (undocumented)
-    catch(def: Output): ZodCatch<this>;
-    // (undocumented)
-    catch(def: (ctx: {
-        error: ZodError;
-        input: Input;
-    }) => Output): ZodCatch<this>;
-    // (undocumented)
-    readonly _def: Def;
-    // (undocumented)
-    default(def: util_2.noUndefined<Input>): ZodDefault<this>;
-    // (undocumented)
-    default(def: () => util_2.noUndefined<Input>): ZodDefault<this>;
-    // (undocumented)
-    describe(description: string): this;
-    // (undocumented)
-    get description(): string | undefined;
-    // (undocumented)
-    _getOrReturnCtx(input: ParseInput, ctx?: ParseContext | undefined): ParseContext;
-    // (undocumented)
-    _getType(input: ParseInput): string;
-    // (undocumented)
-    readonly _input: Input;
-    // (undocumented)
-    isNullable(): boolean;
-    // (undocumented)
-    isOptional(): boolean;
-    // (undocumented)
-    nullable(): ZodNullable<this>;
-    // (undocumented)
-    nullish(): ZodOptional<ZodNullable<this>>;
-    // (undocumented)
-    optional(): ZodOptional<this>;
-    // (undocumented)
-    or<T extends ZodTypeAny>(option: T): ZodUnion<[this, T]>;
-    // (undocumented)
-    readonly _output: Output;
-    // (undocumented)
-    parse(data: unknown, params?: Partial<ParseParams>): Output;
-    // (undocumented)
-    abstract _parse(input: ParseInput): ParseReturnType<Output>;
-    // (undocumented)
-    parseAsync(data: unknown, params?: Partial<ParseParams>): Promise<Output>;
-    // (undocumented)
-    _parseAsync(input: ParseInput): AsyncParseReturnType<Output>;
-    // (undocumented)
-    _parseSync(input: ParseInput): SyncParseReturnType<Output>;
-    // (undocumented)
-    pipe<T extends ZodTypeAny>(target: T): ZodPipeline<this, T>;
-    // (undocumented)
-    _processInputParams(input: ParseInput): {
-        status: ParseStatus;
-        ctx: ParseContext;
-    };
-    // (undocumented)
-    promise(): ZodPromise<this>;
-    // (undocumented)
-    readonly(): ZodReadonly<this>;
-    // (undocumented)
-    refine<RefinedOutput extends Output>(check: (arg: Output) => arg is RefinedOutput, message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)): ZodEffects<this, RefinedOutput, Input>;
-    // (undocumented)
-    refine(check: (arg: Output) => unknown | Promise<unknown>, message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)): ZodEffects<this, Output, Input>;
-    // (undocumented)
-    refinement<RefinedOutput extends Output>(check: (arg: Output) => arg is RefinedOutput, refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)): ZodEffects<this, RefinedOutput, Input>;
-    // (undocumented)
-    refinement(check: (arg: Output) => boolean, refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)): ZodEffects<this, Output, Input>;
-    // (undocumented)
-    _refinement(refinement: RefinementEffect<Output>["refinement"]): ZodEffects<this, Output, Input>;
-    // (undocumented)
-    safeParse(data: unknown, params?: Partial<ParseParams>): SafeParseReturnType<Input, Output>;
-    // (undocumented)
-    safeParseAsync(data: unknown, params?: Partial<ParseParams>): Promise<SafeParseReturnType<Input, Output>>;
-    spa: (data: unknown, params?: Partial<ParseParams> | undefined) => Promise<SafeParseReturnType<Input, Output>>;
-    // (undocumented)
-    superRefine<RefinedOutput extends Output>(refinement: (arg: Output, ctx: RefinementCtx) => arg is RefinedOutput): ZodEffects<this, RefinedOutput, Input>;
-    // (undocumented)
-    superRefine(refinement: (arg: Output, ctx: RefinementCtx) => void): ZodEffects<this, Output, Input>;
-    // (undocumented)
-    superRefine(refinement: (arg: Output, ctx: RefinementCtx) => Promise<void>): ZodEffects<this, Output, Input>;
-    // (undocumented)
-    transform<NewOut>(transform: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>): ZodEffects<this, NewOut>;
-    // (undocumented)
-    readonly _type: Output;
-}
-
-// @public (undocumented)
-type ZodTypeAny = ZodType<any, any, any>;
-
-// @public (undocumented)
-interface ZodTypeDef {
-    // (undocumented)
-    description?: string;
-    // (undocumented)
-    errorMap?: ZodErrorMap;
-}
-
-// @public (undocumented)
-class ZodUnion<T extends ZodUnionOptions> extends ZodType<T[number]["_output"], ZodUnionDef<T>, T[number]["_input"]> {
-    // (undocumented)
-    static create: <T_1 extends readonly [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]>(types: T_1, params?: RawCreateParams) => ZodUnion<T_1>;
-    // (undocumented)
-    get options(): T;
-    // (undocumented)
-    _parse(input: ParseInput): ParseReturnType<this["_output"]>;
-}
-
-// @public (undocumented)
-interface ZodUnionDef<T extends ZodUnionOptions = Readonly<[
-ZodTypeAny,
-ZodTypeAny,
-...ZodTypeAny[]
-]>> extends ZodTypeDef {
-    // (undocumented)
-    options: T;
-    // (undocumented)
-    typeName: ZodFirstPartyTypeKind.ZodUnion;
-}
-
-// @public (undocumented)
-type ZodUnionOptions = Readonly<[ZodTypeAny, ...ZodTypeAny[]]>;
-
-// @public (undocumented)
-interface ZodUnrecognizedKeysIssue extends ZodIssueBase {
-    // (undocumented)
-    code: typeof ZodIssueCode.unrecognized_keys;
-    // (undocumented)
-    keys: string[];
 }
 
 // (No @packageDocumentation comment for this package)
