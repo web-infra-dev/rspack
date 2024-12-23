@@ -1379,7 +1379,7 @@ export interface RawExperiments {
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 rspackFuture?: RawRspackFuture
-cache: any
+cache: boolean | { type: "persistent" | "memory" } & RawExperimentCacheOptionsPersistent
 }
 
 export interface RawExperimentSnapshotOptions {
