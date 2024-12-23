@@ -641,11 +641,11 @@ impl RuleSetCondition {
   #[async_recursion]
   async fn match_when_empty(&self) -> Result<bool> {
     let res = match self {
-      RuleSetCondition::String(s) => s.len() == 0,
+      RuleSetCondition::String(s) => s.is_empty(),
       RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
       RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
       RuleSetCondition::Array(arr) => {
-        arr.len() != 0 && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
       }
       RuleSetCondition::Func(func) => func("".into()).await?,
     };
