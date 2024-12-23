@@ -636,6 +636,32 @@ impl RuleSetCondition {
       Self::Func(f) => f(data).await,
     }
   }
+
+  #[async_recursion]
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    let res = match self {
+      RuleSetCondition::String(s) => s.len() == 0,
+      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
+      RuleSetCondition::Array(arr) => {
+        arr.len() != 0 && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+      }
+      RuleSetCondition::Func(func) => func("".into()).await?,
+    };
+    Ok(res)
+  }
+}
+
+#[derive(Debug)]
+pub struct RuleSetConditionMatch {
+  pub condition: RuleSetCondition,
+  pub match_when_empty: Option<bool>,
+}
+
+impl RuleSetConditionMatch {
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    self.condition.try_match(data).await
+  }
 }
 
 #[derive(Debug, Default)]
@@ -665,6 +691,24 @@ impl RuleSetLogicalConditions {
     }
     Ok(true)
   }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    let mut has_condition = false;
+    let mut match_when_empty = true;
+    if let Some(and) = &self.and {
+      has_condition = true;
+      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(or) = &self.or {
+      has_condition = true;
+      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(not) = &self.not {
+      has_condition = true;
+      match_when_empty &= !not.match_when_empty().await?;
+    }
+    Ok(has_condition && match_when_empty)
+  }
 }
 
 pub struct FuncUseCtx {
@@ -693,21 +737,21 @@ pub struct ModuleRule {
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
   ///   Only for single-threaded environment interoperation purpose.
-  pub rspack_resource: Option<RuleSetCondition>,
+  pub rspack_resource: Option<RuleSetConditionMatch>,
   /// A condition matcher matching an absolute path.
-  pub test: Option<RuleSetCondition>,
-  pub include: Option<RuleSetCondition>,
-  pub exclude: Option<RuleSetCondition>,
+  pub test: Option<RuleSetConditionMatch>,
+  pub include: Option<RuleSetConditionMatch>,
+  pub exclude: Option<RuleSetConditionMatch>,
   /// A condition matcher matching an absolute path.
-  pub resource: Option<RuleSetCondition>,
+  pub resource: Option<RuleSetConditionMatch>,
   /// A condition matcher against the resource query.
-  pub resource_query: Option<RuleSetCondition>,
-  pub resource_fragment: Option<RuleSetCondition>,
-  pub dependency: Option<RuleSetCondition>,
-  pub issuer: Option<RuleSetCondition>,
-  pub issuer_layer: Option<RuleSetCondition>,
-  pub scheme: Option<RuleSetCondition>,
-  pub mimetype: Option<RuleSetCondition>,
+  pub resource_query: Option<RuleSetConditionMatch>,
+  pub resource_fragment: Option<RuleSetConditionMatch>,
+  pub dependency: Option<RuleSetConditionMatch>,
+  pub issuer: Option<RuleSetConditionMatch>,
+  pub issuer_layer: Option<RuleSetConditionMatch>,
+  pub scheme: Option<RuleSetConditionMatch>,
+  pub mimetype: Option<RuleSetConditionMatch>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
   pub one_of: Option<Vec<ModuleRule>>,
