@@ -12,7 +12,7 @@ use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::RwLock;
+use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
@@ -561,8 +561,8 @@ impl Default for CssExportsConvention {
   }
 }
 
-pub type DescriptionData = HashMap<String, RuleSetConditionMatch>;
-pub type With = HashMap<String, RuleSetConditionMatch>;
+pub type DescriptionData = HashMap<String, RuleSetConditionWithEmpty>;
+pub type With = HashMap<String, RuleSetConditionWithEmpty>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -654,16 +654,16 @@ impl RuleSetCondition {
 }
 
 #[derive(Debug)]
-pub struct RuleSetConditionMatch {
+pub struct RuleSetConditionWithEmpty {
   condition: RuleSetCondition,
-  match_when_empty: RwLock<Option<bool>>,
+  match_when_empty: OnceCell<bool>,
 }
 
-impl RuleSetConditionMatch {
+impl RuleSetConditionWithEmpty {
   pub fn new(condition: RuleSetCondition) -> Self {
     Self {
       condition,
-      match_when_empty: RwLock::new(None),
+      match_when_empty: OnceCell::new(),
     }
   }
 
@@ -672,17 +672,11 @@ impl RuleSetConditionMatch {
   }
 
   pub async fn match_when_empty(&self) -> Result<bool> {
-    if let Some(match_when_empty) = self.match_when_empty.read().await.as_ref() {
-      return Ok(*match_when_empty);
-    }
-
-    Ok(
-      *self
-        .match_when_empty
-        .write()
-        .await
-        .insert(self.condition.match_when_empty().await?),
-    )
+    self
+      .match_when_empty
+      .get_or_try_init(|| async { self.condition.match_when_empty().await })
+      .await
+      .copied()
   }
 }
 
@@ -767,13 +761,13 @@ pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
-  pub resource_query: Option<RuleSetConditionMatch>,
-  pub resource_fragment: Option<RuleSetConditionMatch>,
+  pub resource_query: Option<RuleSetConditionWithEmpty>,
+  pub resource_fragment: Option<RuleSetConditionWithEmpty>,
   pub dependency: Option<RuleSetCondition>,
-  pub issuer: Option<RuleSetConditionMatch>,
-  pub issuer_layer: Option<RuleSetConditionMatch>,
-  pub scheme: Option<RuleSetConditionMatch>,
-  pub mimetype: Option<RuleSetConditionMatch>,
+  pub issuer: Option<RuleSetConditionWithEmpty>,
+  pub issuer_layer: Option<RuleSetConditionWithEmpty>,
+  pub scheme: Option<RuleSetConditionWithEmpty>,
+  pub mimetype: Option<RuleSetConditionWithEmpty>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
   pub one_of: Option<Vec<ModuleRule>>,
