@@ -193,7 +193,7 @@ Object {
         wrappedContextRegExp: /\\.\\*/,
       },
       json: Object {
-        exportsDepth: Infinity,
+        exportsDepth: 9007199254740991,
       },
     },
     rules: Array [],

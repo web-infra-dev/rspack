@@ -292,7 +292,7 @@ pub struct CssModuleParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct JsonParserOptions {
-  pub exports_depth: Option<f64>,
+  pub exports_depth: Option<u32>,
 }
 
 #[derive(Debug)]

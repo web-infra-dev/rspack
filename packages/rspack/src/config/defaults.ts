@@ -315,7 +315,7 @@ const applyModuleDefaults = (
 	D(
 		module.parser[JSON_MODULE_TYPE],
 		"exportsDepth",
-		mode === "development" ? 1 : Number.POSITIVE_INFINITY
+		mode === "development" ? 1 : Number.MAX_SAFE_INTEGER
 	);
 
 	if (css) {

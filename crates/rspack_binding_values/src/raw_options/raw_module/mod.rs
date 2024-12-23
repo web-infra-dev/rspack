@@ -435,7 +435,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawJsonParserOptions {
-  pub exports_depth: Option<f64>,
+  pub exports_depth: Option<u32>,
 }
 
 impl From<RawJsonParserOptions> for JsonParserOptions {

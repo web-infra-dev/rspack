@@ -4,7 +4,7 @@ module.exports = {
 	module: {
 		parser: {
 			json: {
-				exportsDepth: Infinity
+				exportsDepth: Number.MAX_SAFE_INTEGER
 			}
 		}
 	}

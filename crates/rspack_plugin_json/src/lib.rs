@@ -33,7 +33,7 @@ mod utils;
 #[cacheable]
 #[derive(Debug)]
 struct JsonParserAndGenerator {
-  pub exports_depth: f64,
+  pub exports_depth: u32,
 }
 
 #[cacheable_dyn]

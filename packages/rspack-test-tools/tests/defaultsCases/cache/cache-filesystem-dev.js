@@ -22,7 +22,7 @@ module.exports = {
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
-		-         "exportsDepth": Infinity,
+		-         "exportsDepth": 9007199254740991,
 		+         "exportsDepth": 1,
 		@@ ... @@
 		-     "chunkIds": "natural",
