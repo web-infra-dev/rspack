@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
-use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
@@ -25,7 +24,6 @@ mod resolver_factory;
 pub use diagnostic::*;
 use plugins::*;
 use resolver_factory::*;
-use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
 
@@ -84,7 +82,7 @@ impl Rspack {
       compiler_path,
       compiler_options,
       plugins,
-      rspack_binding_options::buildtime_plugins::buildtime_plugins(),
+      rspack_binding_values::buildtime_plugins::buildtime_plugins(),
       Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),

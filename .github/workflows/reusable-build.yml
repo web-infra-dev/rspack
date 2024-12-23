@@ -274,6 +274,8 @@ jobs:
       - name: Run e2e
         uses: ./.github/actions/docker-run
         with:
+          # Jammy uses ubuntu 22.04
+          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
           image: mcr.microsoft.com/playwright:v1.47.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker-run
           # .tool_cache is required by pnpm

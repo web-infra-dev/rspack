@@ -67,7 +67,7 @@ fn generate_common_layers(
           ("rspack_node", default_level),
           ("rspack_plugin_javascript", default_level),
           ("rspack_plugin_split_chunks", default_level),
-          ("rspack_binding_options", default_level),
+          ("rspack_binding_values", default_level),
         ])
         .boxed(),
     );

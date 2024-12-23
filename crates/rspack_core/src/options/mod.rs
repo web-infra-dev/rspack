@@ -23,8 +23,6 @@ mod stats;
 pub use stats::*;
 mod cache;
 pub use cache::*;
-mod snapshot;
-pub use snapshot::*;
 mod experiments;
 pub use experiments::*;
 mod node;
