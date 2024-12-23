@@ -3,58 +3,96 @@ mod raw_storage;
 
 use core::panic;
 
-use napi::bindgen_prelude::Either3;
+use napi::{
+  bindgen_prelude::{FromNapiValue, Object, TypeName, ValidateNapiValue},
+  Either,
+};
 use napi_derive::napi;
 use raw_snapshot::RawExperimentSnapshotOptions;
 use raw_storage::RawStorageOptions;
 use rspack_core::{cache::persistent::PersistentCacheOptions, ExperimentCacheOptions};
 
-pub type RawExperimentCacheOptions =
-  Either3<bool, RawExperimentCacheOptionsMemory, RawExperimentCacheOptionsPersistent>;
+pub type RawExperimentCacheOptions = Either<bool, RawExperimentCache>;
 
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawExperimentCacheOptionsPersistent {
-  #[napi(ts_type = r#""persistent""#)]
-  pub r#type: String,
-  pub build_dependencies: Vec<String>,
-  pub version: String,
-  pub snapshot: RawExperimentSnapshotOptions,
-  pub storage: RawStorageOptions,
+  pub build_dependencies: Option<Vec<String>>,
+  pub version: Option<String>,
+  pub snapshot: Option<RawExperimentSnapshotOptions>,
+  pub storage: Option<RawStorageOptions>,
+}
+
+impl From<RawExperimentCacheOptionsPersistent> for PersistentCacheOptions {
+  fn from(value: RawExperimentCacheOptionsPersistent) -> Self {
+    Self {
+      build_dependencies: value
+        .build_dependencies
+        .unwrap_or_default()
+        .into_iter()
+        .map(Into::into)
+        .collect(),
+      version: value.version.unwrap_or_default(),
+      snapshot: value.snapshot.unwrap_or_default().into(),
+      storage: value.storage.unwrap_or_default().into(),
+    }
+  }
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
-pub struct RawExperimentCacheOptionsMemory {
-  #[napi(ts_type = r#""memory" | "disable""#)]
-  pub r#type: String,
+pub enum RawExperimentCache {
+  #[default]
+  Memory,
+  Persistent(RawExperimentCacheOptionsPersistent),
+}
+
+impl TypeName for RawExperimentCache {
+  fn type_name() -> &'static str {
+    "RawExperimentCache"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for RawExperimentCache {}
+
+impl FromNapiValue for RawExperimentCache {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let o = Object::from_napi_value(env, napi_val)?;
+    let t = o.get_named_property::<String>("type")?;
+
+    let v = match &*t {
+      "persistent" => {
+        let o = RawExperimentCacheOptionsPersistent::from_napi_value(env, napi_val)?;
+        Self::Persistent(o.into())
+      }
+      "memory" => Self::Memory,
+      _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
+    };
+
+    Ok(v)
+  }
 }
 
 pub fn normalize_raw_experiment_cache_options(
   options: RawExperimentCacheOptions,
 ) -> ExperimentCacheOptions {
   match options {
-    Either3::C(persistent_options) if persistent_options.r#type == "persistent" => {
-      ExperimentCacheOptions::Persistent(PersistentCacheOptions {
-        build_dependencies: persistent_options
-          .build_dependencies
-          .into_iter()
-          .map(Into::into)
-          .collect(),
-        version: persistent_options.version,
-        snapshot: persistent_options.snapshot.into(),
-        storage: persistent_options.storage.into(),
-      })
-    }
-    Either3::B(options) if options.r#type == "memory" => ExperimentCacheOptions::Memory,
-    Either3::B(options) if options.r#type == "disable" => ExperimentCacheOptions::Disabled,
-    Either3::A(options) => {
+    Either::A(options) => {
       if options {
         ExperimentCacheOptions::Memory
       } else {
         ExperimentCacheOptions::Disabled
       }
     }
-    _ => panic!("Invalid cache options"),
+    Either::B(options) => match options {
+      RawExperimentCache::Persistent(options) => ExperimentCacheOptions::Persistent(options.into()),
+      RawExperimentCache::Memory => ExperimentCacheOptions::Memory,
+    },
   }
 }

@@ -1367,16 +1367,11 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptionsMemory {
-  type: "memory" | "disable"
-}
-
 export interface RawExperimentCacheOptionsPersistent {
-  type: "persistent"
-  buildDependencies: Array<string>
-  version: string
-  snapshot: RawExperimentSnapshotOptions
-  storage: RawStorageOptions
+  buildDependencies?: Array<string>
+  version?: string
+  snapshot?: RawExperimentSnapshotOptions
+  storage?: RawStorageOptions
 }
 
 export interface RawExperiments {
