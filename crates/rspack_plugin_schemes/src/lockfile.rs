@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -139,7 +140,7 @@ impl LockfileAsync for Lockfile {
       .to_json_string()
       .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     filesystem
-      .write(utf8_path, content.as_bytes())
+      .write(utf8_path, Cow::Owned(content.into_bytes()))
       .await
       .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     Ok(())
@@ -205,7 +206,7 @@ impl LockfileCache {
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
       self
         .filesystem
-        .write(utf8_lockfile_path, content.as_bytes())
+        .write(utf8_lockfile_path, Cow::Owned(content.into_bytes()))
         .await
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     }

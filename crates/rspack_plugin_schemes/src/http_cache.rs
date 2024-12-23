@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -201,7 +202,9 @@ impl HttpCache {
 
       if should_update {
         if store_cache {
-          self.write_to_cache(url, &result.content).await?;
+          self
+            .write_to_cache(url, Cow::Borrowed(&result.content))
+            .await?;
         }
         let lockfile = self.lockfile_cache.get_lockfile().await?;
         lockfile
@@ -252,7 +255,7 @@ impl HttpCache {
     Ok(None)
   }
 
-  async fn write_to_cache(&self, resource: &str, content: &[u8]) -> Result<()> {
+  async fn write_to_cache(&self, resource: &str, content: Cow<'_, [u8]>) -> Result<()> {
     if let Some(cache_location) = &self.cache_location {
       let cache_location_path =
         Utf8Path::from_path(cache_location).expect("Invalid cache location path");
@@ -263,9 +266,13 @@ impl HttpCache {
         .map_err(|e| anyhow::anyhow!("Failed to create cache directory: {:?}", e))?;
       let cache_path_buf = cache_location.join(Path::new(&*resource.cow_replace('/', "_")));
       let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
+      let content = match content {
+        Cow::Borrowed(d) => d.to_vec(),
+        Cow::Owned(d) => d,
+      };
       self
         .filesystem
-        .write(cache_path, content)
+        .write(cache_path, content.into())
         .await
         .map_err(|e| anyhow::anyhow!("Failed to write to cache: {:?}", e))?;
     }
