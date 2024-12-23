@@ -87,7 +87,7 @@ pub async fn module_rule_matcher<'a>(
         return Ok(false);
       }
     } else {
-      if !resource_query_rule.condition.match_when_empty().await? {
+      if !resource_query_rule.match_when_empty().await? {
         return Ok(false);
       }
     }
@@ -102,11 +102,7 @@ pub async fn module_rule_matcher<'a>(
         return Ok(false);
       }
     } else {
-      if !resource_fragment_condition
-        .condition
-        .match_when_empty()
-        .await?
-      {
+      if !resource_fragment_condition.match_when_empty().await? {
         return Ok(false);
       }
     }
@@ -121,7 +117,7 @@ pub async fn module_rule_matcher<'a>(
         return Ok(false);
       }
     } else {
-      if !mimetype_condition.condition.match_when_empty().await? {
+      if !mimetype_condition.match_when_empty().await? {
         return Ok(false);
       }
     }
@@ -130,7 +126,7 @@ pub async fn module_rule_matcher<'a>(
   if let Some(scheme_condition) = &module_rule.scheme {
     let scheme = resource_data.get_scheme();
     if scheme.is_none() {
-      if !scheme_condition.condition.match_when_empty().await? {
+      if !scheme_condition.match_when_empty().await? {
         return Ok(false);
       }
     }
@@ -147,7 +143,7 @@ pub async fn module_rule_matcher<'a>(
         }
       }
       None => {
-        if !issuer_rule.condition.match_when_empty().await? {
+        if !issuer_rule.match_when_empty().await? {
           return Ok(false);
         }
       }
@@ -162,7 +158,7 @@ pub async fn module_rule_matcher<'a>(
         }
       }
       None => {
-        if !issuer_layer_rule.condition.match_when_empty().await? {
+        if !issuer_layer_rule.match_when_empty().await? {
           return Ok(false);
         }
       }

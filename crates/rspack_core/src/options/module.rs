@@ -639,7 +639,7 @@ impl RuleSetCondition {
   }
 
   #[async_recursion]
-  pub async fn match_when_empty(&self) -> Result<bool> {
+  async fn match_when_empty(&self) -> Result<bool> {
     let res = match self {
       RuleSetCondition::String(s) => s.len() == 0,
       RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
@@ -655,7 +655,7 @@ impl RuleSetCondition {
 
 #[derive(Debug)]
 pub struct RuleSetConditionMatch {
-  pub condition: RuleSetCondition,
+  condition: RuleSetCondition,
   match_when_empty: RwLock<Option<bool>>,
 }
 
@@ -759,17 +759,17 @@ pub struct ModuleRule {
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
   ///   Only for single-threaded environment interoperation purpose.
-  pub rspack_resource: Option<RuleSetConditionMatch>,
+  pub rspack_resource: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  pub test: Option<RuleSetConditionMatch>,
-  pub include: Option<RuleSetConditionMatch>,
-  pub exclude: Option<RuleSetConditionMatch>,
+  pub test: Option<RuleSetCondition>,
+  pub include: Option<RuleSetCondition>,
+  pub exclude: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  pub resource: Option<RuleSetConditionMatch>,
+  pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RuleSetConditionMatch>,
   pub resource_fragment: Option<RuleSetConditionMatch>,
-  pub dependency: Option<RuleSetConditionMatch>,
+  pub dependency: Option<RuleSetCondition>,
   pub issuer: Option<RuleSetConditionMatch>,
   pub issuer_layer: Option<RuleSetConditionMatch>,
   pub scheme: Option<RuleSetConditionMatch>,
