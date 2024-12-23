@@ -315,7 +315,7 @@ module.exports = {
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.filename
 
-- **类型：** `string`
+- **类型：** `string | function`
 
 仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
 
@@ -327,6 +327,10 @@ module.exports = {
       cacheGroups: {
         defaultVendors: {
           filename: 'vendors-[name].js',
+          // or
+          filename: (pathData, assetInfo) => {
+            return `${pathData.chunk.name}-bundle.js`;
+          },
         },
       },
     },
