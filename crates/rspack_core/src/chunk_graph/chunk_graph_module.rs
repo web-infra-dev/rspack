@@ -284,7 +284,9 @@ impl ChunkGraph {
         .expect("should have module")
         .as_ref();
       module.get_exports_type(&mg, strict).hash(&mut hasher);
-      self.get_module_graph_hash_without_connections(module, compilation, runtime);
+      self
+        .get_module_graph_hash_without_connections(module, compilation, runtime)
+        .hash(&mut hasher);
     }
     hasher.finish()
   }
