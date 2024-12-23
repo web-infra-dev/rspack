@@ -19,33 +19,31 @@ export class Dependency {
 	private constructor(binding: JsDependency) {
 		this.#inner = binding;
 
-		Object.defineProperties(this, {
-			type: {
-				enumerable: true,
-				get(): string {
-					return binding.type;
-				}
+		Object.defineProperty(this, "type", {
+			enumerable: true,
+			get(): string {
+				return binding.type;
+			}
+		});
+		Object.defineProperty(this, "category", {
+			enumerable: true,
+			get(): string {
+				return binding.category;
+			}
+		});
+		Object.defineProperty(this, "request", {
+			enumerable: true,
+			get(): string | undefined {
+				return binding.request;
+			}
+		});
+		Object.defineProperty(this, "critical", {
+			enumerable: true,
+			get(): boolean {
+				return binding.critical;
 			},
-			category: {
-				enumerable: true,
-				get(): string {
-					return binding.category;
-				}
-			},
-			request: {
-				enumerable: true,
-				get(): string | undefined {
-					return binding.request;
-				}
-			},
-			critical: {
-				enumerable: true,
-				get(): boolean {
-					return binding.critical;
-				},
-				set(val: boolean) {
-					binding.critical = val;
-				}
+			set(val: boolean) {
+				binding.critical = val;
 			}
 		});
 	}

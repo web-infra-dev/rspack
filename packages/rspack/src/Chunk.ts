@@ -38,84 +38,82 @@ export class Chunk {
 	constructor(binding: JsChunk) {
 		this.#inner = binding;
 
-		Object.defineProperties(this, {
-			name: {
-				enumerable: true,
-				get: () => {
-					return binding.name;
-				}
-			},
-			id: {
-				enumerable: true,
-				get: () => {
-					return binding.id;
-				}
-			},
-			ids: {
-				enumerable: true,
-				get: () => {
-					return binding.ids;
-				}
-			},
-			idNameHints: {
-				enumerable: true,
-				get: () => {
-					return binding.idNameHints;
-				}
-			},
-			filenameTemplate: {
-				enumerable: true,
-				get: () => {
-					return binding.filenameTemplate;
-				}
-			},
-			cssFilenameTemplate: {
-				enumerable: true,
-				get: () => {
-					return binding.cssFilenameTemplate;
-				}
-			},
-			files: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.files);
-				}
-			},
-			runtime: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.runtime);
-				}
-			},
-			hash: {
-				enumerable: true,
-				get: () => {
-					return binding.hash;
-				}
-			},
-			contentHash: {
-				enumerable: true,
-				get: () => {
-					return binding.contentHash;
-				}
-			},
-			renderedHash: {
-				enumerable: true,
-				get: () => {
-					return binding.renderedHash;
-				}
-			},
-			chunkReason: {
-				enumerable: true,
-				get: () => {
-					return binding.chunkReason;
-				}
-			},
-			auxiliaryFiles: {
-				enumerable: true,
-				get: () => {
-					return new Set(binding.auxiliaryFiles);
-				}
+		Object.defineProperty(this, "name", {
+			enumerable: true,
+			get: () => {
+				return binding.name;
+			}
+		});
+		Object.defineProperty(this, "id", {
+			enumerable: true,
+			get: () => {
+				return binding.id;
+			}
+		});
+		Object.defineProperty(this, "ids", {
+			enumerable: true,
+			get: () => {
+				return binding.ids;
+			}
+		});
+		Object.defineProperty(this, "idNameHints", {
+			enumerable: true,
+			get: () => {
+				return binding.idNameHints;
+			}
+		});
+		Object.defineProperty(this, "filenameTemplate", {
+			enumerable: true,
+			get: () => {
+				return binding.filenameTemplate;
+			}
+		});
+		Object.defineProperty(this, "cssFilenameTemplate", {
+			enumerable: true,
+			get: () => {
+				return binding.cssFilenameTemplate;
+			}
+		});
+		Object.defineProperty(this, "files", {
+			enumerable: true,
+			get: () => {
+				return new Set(binding.files);
+			}
+		});
+		Object.defineProperty(this, "runtime", {
+			enumerable: true,
+			get: () => {
+				return new Set(binding.runtime);
+			}
+		});
+		Object.defineProperty(this, "hash", {
+			enumerable: true,
+			get: () => {
+				return binding.hash;
+			}
+		});
+		Object.defineProperty(this, "contentHash", {
+			enumerable: true,
+			get: () => {
+				return binding.contentHash;
+			}
+		});
+		Object.defineProperty(this, "renderedHash", {
+			enumerable: true,
+			get: () => {
+				return binding.renderedHash;
+			}
+		});
+		Object.defineProperty(this, "chunkReason", {
+			enumerable: true,
+			get: () => {
+				return binding.chunkReason;
+			}
+		});
+		Object.defineProperty(this, "auxiliaryFiles", {
+			enumerable: true,
+			get: () => {
+				return new Set(binding.auxiliaryFiles);
 			}
 		});
 	}

@@ -57,42 +57,40 @@ export class ContextModuleFactoryBeforeResolveData {
 	private constructor(binding: JsContextModuleFactoryBeforeResolveData) {
 		this.#inner = binding;
 
-		Object.defineProperties(this, {
-			context: {
-				enumerable: true,
-				get(): string {
-					return binding.context;
-				},
-				set(val: string) {
-					binding.context = val;
-				}
+		Object.defineProperty(this, "context", {
+			enumerable: true,
+			get(): string {
+				return binding.context;
 			},
-			request: {
-				enumerable: true,
-				get(): string {
-					return binding.request;
-				},
-				set(val: string) {
-					binding.request = val;
-				}
+			set(val: string) {
+				binding.context = val;
+			}
+		});
+		Object.defineProperty(this, "request", {
+			enumerable: true,
+			get(): string {
+				return binding.request;
 			},
-			regExp: {
-				enumerable: true,
-				get(): RegExp | undefined {
-					return binding.regExp;
-				},
-				set(val: RegExp | undefined) {
-					binding.regExp = val;
-				}
+			set(val: string) {
+				binding.request = val;
+			}
+		});
+		Object.defineProperty(this, "regExp", {
+			enumerable: true,
+			get(): RegExp | undefined {
+				return binding.regExp;
 			},
-			recursive: {
-				enumerable: true,
-				get(this: ContextModuleFactoryAfterResolveData): boolean {
-					return binding.recursive;
-				},
-				set(val: boolean) {
-					binding.recursive = val;
-				}
+			set(val: RegExp | undefined) {
+				binding.regExp = val;
+			}
+		});
+		Object.defineProperty(this, "recursive", {
+			enumerable: true,
+			get(this: ContextModuleFactoryAfterResolveData): boolean {
+				return binding.recursive;
+			},
+			set(val: boolean) {
+				binding.recursive = val;
 			}
 		});
 	}
@@ -125,59 +123,55 @@ export class ContextModuleFactoryAfterResolveData {
 	private constructor(binding: JsContextModuleFactoryAfterResolveData) {
 		this.#inner = binding;
 
-		Object.defineProperties(this, {
-			resource: {
-				enumerable: true,
-				get(): string {
-					return binding.resource;
-				},
-				set(val: string) {
-					binding.resource = val;
-				}
+		Object.defineProperty(this, "resource", {
+			enumerable: true,
+			get(): string {
+				return binding.resource;
 			},
-			context: {
-				enumerable: true,
-				get(): string {
-					return binding.context;
-				},
-				set(val: string) {
-					binding.context = val;
-				}
+			set(val: string) {
+				binding.resource = val;
+			}
+		});
+		Object.defineProperty(this, "context", {
+			enumerable: true,
+			get(): string {
+				return binding.context;
 			},
-			request: {
-				enumerable: true,
-				get(): string {
-					return binding.request;
-				},
-				set(val: string) {
-					binding.request = val;
-				}
+			set(val: string) {
+				binding.context = val;
+			}
+		});
+		Object.defineProperty(this, "request", {
+			enumerable: true,
+			get(): string {
+				return binding.request;
 			},
-			regExp: {
-				enumerable: true,
-				get(): RegExp | undefined {
-					return binding.regExp;
-				},
-				set(val: RegExp | undefined) {
-					binding.regExp = val;
-				}
+			set(val: string) {
+				binding.request = val;
+			}
+		});
+		Object.defineProperty(this, "regExp", {
+			enumerable: true,
+			get(): RegExp | undefined {
+				return binding.regExp;
 			},
-			recursive: {
-				enumerable: true,
-				get(): boolean {
-					return binding.recursive;
-				},
-				set(val: boolean) {
-					binding.recursive = val;
-				}
+			set(val: RegExp | undefined) {
+				binding.regExp = val;
+			}
+		});
+		Object.defineProperty(this, "recursive", {
+			enumerable: true,
+			get(): boolean {
+				return binding.recursive;
 			},
-			dependencies: {
-				enumerable: true,
-				get(): Dependency[] {
-					return binding.dependencies.map(dep =>
-						Dependency.__from_binding(dep)
-					);
-				}
+			set(val: boolean) {
+				binding.recursive = val;
+			}
+		});
+		Object.defineProperty(this, "dependencies", {
+			enumerable: true,
+			get(): Dependency[] {
+				return binding.dependencies.map(dep => Dependency.__from_binding(dep));
 			}
 		});
 	}
@@ -235,110 +229,108 @@ export class Module {
 	constructor(module: JsModule, compilation?: Compilation) {
 		this.#inner = module;
 
-		Object.defineProperties(this, {
-			type: {
-				enumerable: true,
-				get(): string | null {
-					return module.type || null;
-				}
+		Object.defineProperty(this, "type", {
+			enumerable: true,
+			get(): string | null {
+				return module.type || null;
+			}
+		});
+		Object.defineProperty(this, "layer", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.layer;
+			}
+		});
+		Object.defineProperty(this, "context", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.context;
+			}
+		});
+		Object.defineProperty(this, "resource", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.resource;
+			}
+		});
+		Object.defineProperty(this, "request", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.request;
+			}
+		});
+		Object.defineProperty(this, "userRequest", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.userRequest;
 			},
-			layer: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.layer;
+			set(val: string) {
+				module.userRequest = val;
+			}
+		});
+		Object.defineProperty(this, "rawRequest", {
+			enumerable: true,
+			get(): string | undefined {
+				return module.rawRequest;
+			}
+		});
+		Object.defineProperty(this, "factoryMeta", {
+			enumerable: true,
+			get(): JsFactoryMeta | undefined | undefined {
+				return module.factoryMeta;
+			}
+		});
+		Object.defineProperty(this, "modules", {
+			enumerable: true,
+			get(): Module[] | undefined {
+				if (module instanceof JsModule) {
+					return module.modules
+						? module.modules.map(m => Module.__from_binding(m))
+						: undefined;
 				}
-			},
-			context: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.context;
+				return undefined;
+			}
+		});
+		Object.defineProperty(this, "buildInfo", {
+			enumerable: true,
+			get(): Record<string, any> {
+				const customModule = compilation?.__internal__getCustomModule(
+					module.moduleIdentifier
+				);
+				return customModule?.buildInfo || {};
+			}
+		});
+		Object.defineProperty(this, "buildMeta", {
+			enumerable: true,
+			get(): Record<string, any> {
+				const customModule = compilation?.__internal__getCustomModule(
+					module.moduleIdentifier
+				);
+				return customModule?.buildMeta || {};
+			}
+		});
+		Object.defineProperty(this, "blocks", {
+			enumerable: true,
+			get(): DependenciesBlock[] {
+				if ("blocks" in module) {
+					return module.blocks.map(b => DependenciesBlock.__from_binding(b));
 				}
-			},
-			resource: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.resource;
+				return [];
+			}
+		});
+		Object.defineProperty(this, "dependencies", {
+			enumerable: true,
+			get(): Dependency[] {
+				if ("dependencies" in module) {
+					return module.dependencies.map(d => Dependency.__from_binding(d));
 				}
-			},
-			request: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.request;
-				}
-			},
-			userRequest: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.userRequest;
-				},
-				set(val: string) {
-					module.userRequest = val;
-				}
-			},
-			rawRequest: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.rawRequest;
-				}
-			},
-			factoryMeta: {
-				enumerable: true,
-				get(): JsFactoryMeta | undefined | undefined {
-					return module.factoryMeta;
-				}
-			},
-			modules: {
-				enumerable: true,
-				get(): Module[] | undefined {
-					if (module instanceof JsModule) {
-						return module.modules
-							? module.modules.map(m => Module.__from_binding(m))
-							: undefined;
-					}
-					return undefined;
-				}
-			},
-			buildInfo: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildInfo || {};
-				}
-			},
-			buildMeta: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildMeta || {};
-				}
-			},
-			blocks: {
-				enumerable: true,
-				get(): DependenciesBlock[] {
-					if ("blocks" in module) {
-						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
-					}
-					return [];
-				}
-			},
-			dependencies: {
-				enumerable: true,
-				get(): Dependency[] {
-					if ("dependencies" in module) {
-						return module.dependencies.map(d => Dependency.__from_binding(d));
-					}
-					return [];
-				}
-			},
-			useSourceMap: {
-				enumerable: true,
-				get(): boolean {
-					return module.useSourceMap;
-				}
+				return [];
+			}
+		});
+		Object.defineProperty(this, "useSourceMap", {
+			enumerable: true,
+			get(): boolean {
+				return module.useSourceMap;
 			}
 		});
 	}
