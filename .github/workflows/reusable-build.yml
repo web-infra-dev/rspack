@@ -54,6 +54,10 @@ on:
         type: boolean
         required: false
         default: true
+      bench: # Run benchmarks?
+        type: boolean
+        required: false
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -95,8 +99,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
         with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-${{ inputs.target }}
+          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
 
       # Compile dependencies with optimization to make tests run faster
       - name: Add optimization to debug profile
@@ -389,3 +392,59 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
+
+  bench:
+    name: Bench
+    needs: build
+    if: ${{ inputs.bench && !inputs.skipable }}
+    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+          try-local-cache: ${{ inputs.profile == 'debug' }}
+          link-when-local: true
+
+      - name: Show restored binding
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-codspeed
+
+      - name: Build Benchmark
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Run benchmark
+        uses: CodSpeedHQ/action@v3
+        timeout-minutes: 30
+        with:
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}

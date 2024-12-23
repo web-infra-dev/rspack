@@ -21,6 +21,11 @@ on:
     tags-ignore:
       - "**"
 
+env:
+  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
+  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
+  CARGO_INCREMENTAL: 0
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
@@ -61,10 +66,10 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
-      profile: "debug"
       native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-22.04"' }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      bench: true
 
   test-release-linux:
     name: Test Release Linux
@@ -353,36 +358,6 @@ jobs:
           MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-disable-isolation
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
         run: cargo miri test --workspace --exclude rspack_node -- --nocapture
-
-  run_rust_benchmark:
-    name: Run rust benchmark
-    runs-on: ubuntu-latest
-    needs: [rust_changes, rust_check, rust_test]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-cache: ${{ github.ref_name == 'main' }}
-          shared-key: check
-
-      - name: Install Tools
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-codspeed
-
-      - name: Build Benchmark
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
-
-      - name: Run benchmark
-        uses: CodSpeedHQ/action@v3
-        timeout-minutes: 30
-        with:
-          run: cargo codspeed run
-          token: ${{ secrets.CODSPEED_TOKEN }}
 
   run_benchmark:
     name: Run benchmark
