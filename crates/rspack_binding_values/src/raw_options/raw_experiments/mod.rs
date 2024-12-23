@@ -18,9 +18,7 @@ pub struct RawExperiments {
   #[napi(ts_type = "false | { [key: string]: boolean }")]
   pub incremental: Option<WithFalse<RawIncremental>>,
   pub rspack_future: Option<RawRspackFuture>,
-  #[napi(
-    ts_type = r#"RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsMemory | boolean"#
-  )]
+  #[napi(ts_type = "any")]
   pub cache: RawExperimentCacheOptions,
 }
 
