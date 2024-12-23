@@ -1367,16 +1367,11 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptionsMemory {
-  type: "memory" | "disable"
-}
-
 export interface RawExperimentCacheOptionsPersistent {
-  type: "persistent"
-  buildDependencies: Array<string>
-  version: string
-  snapshot: RawExperimentSnapshotOptions
-  storage: RawStorageOptions
+  buildDependencies?: Array<string>
+  version?: string
+  snapshot?: RawExperimentSnapshotOptions
+  storage?: RawStorageOptions
 }
 
 export interface RawExperiments {
@@ -1384,7 +1379,7 @@ export interface RawExperiments {
   topLevelAwait: boolean
 incremental?: false | { [key: string]: boolean }
 rspackFuture?: RawRspackFuture
-cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsMemory | boolean
+cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
