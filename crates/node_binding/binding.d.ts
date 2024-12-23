@@ -32,7 +32,7 @@ export declare class EntryOptionsDto {
   get runtime(): false | string | undefined
   set runtime(chunkLoading: boolean | string | undefined)
   get chunkLoading(): string | undefined
-  set chunkLoading(chunkLoading: string | undefined)
+  set chunkLoading(chunkLoading: string | false | undefined)
   get asyncChunks(): boolean | undefined
   set asyncChunks(asyncChunks: boolean | undefined)
   get baseUri(): string | undefined
@@ -731,7 +731,7 @@ export interface JsEntryData {
 export interface JsEntryOptions {
   name?: string
   runtime?: false | string
-  chunkLoading?: string
+  chunkLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
@@ -805,7 +805,7 @@ export interface JsLibraryAuxiliaryComment {
 export interface JsLibraryCustomUmdObject {
   amd?: string
   commonjs?: string
-  root?: Array<string>
+  root?: Array<string> | string
 }
 
 export interface JsLibraryName {
@@ -816,11 +816,11 @@ export interface JsLibraryName {
 }
 
 export interface JsLibraryOptions {
-  name?: JsLibraryName
-  export?: Array<string>
-  libraryType: string
+  name?: string | Array<string> | JsLibraryCustomUmdObject
+  export?: Array<string> | string
+  type: string
   umdNamedDefine?: boolean
-  auxiliaryComment?: JsLibraryAuxiliaryComment
+  auxiliaryComment?: string | JsLibraryAuxiliaryComment
   amdContainer?: string
 }
 
@@ -1413,7 +1413,7 @@ export interface RawCacheGroupOptions {
   key: string
   priority?: number
   test?: RegExp | string | Function
-  filename?: string
+  filename?: JsFilename
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
@@ -1435,14 +1435,6 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptions {
   type: string
-  maxGenerations: number
-  maxAge: number
-  profile: boolean
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  name: string
-  version: string
 }
 
 export interface RawCacheOptions {
@@ -1826,9 +1818,9 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: RawIncremental
-  rspackFuture: RawRspackFuture
-  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+incremental?: false | { [key: string]: boolean }
+rspackFuture?: RawRspackFuture
+cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsMemory | boolean
 }
 
 export interface RawExperiments {
@@ -2525,11 +2517,11 @@ export interface RawOccurrenceChunkIdsPluginOptions {
 
 export interface RawOptimizationOptions {
   removeAvailableModules: boolean
-  sideEffects: string
-  usedExports: string
+  sideEffects: boolean | string
+  usedExports: boolean | string
   providedExports: boolean
   innerGraph: boolean
-  mangleExports: string
+  mangleExports: boolean | string
   concatenateModules: boolean
 }
 
@@ -2566,16 +2558,13 @@ export interface RawOptions {
 
 export interface RawOptions {
   mode?: undefined | 'production' | 'development' | 'none'
-  target: Array<string>
   context: string
   output: RawOutputOptions
   resolve: RawResolveOptions
   resolveLoader: RawResolveOptions
   module: RawModuleOptions
-  devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments
   node?: RawNodeOption
@@ -2591,12 +2580,12 @@ export interface RawOutputOptions {
   clean: boolean | JsCleanOptions
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
-  wasmLoading: string
+  wasmLoading: string | false
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: JsFilename
   chunkFilename: JsFilename
-  crossOriginLoading: RawCrossOriginLoading
+  crossOriginLoading: string | false
   cssFilename: JsFilename
   cssChunkFilename: JsFilename
   hotUpdateMainFilename: string
@@ -2612,7 +2601,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
-  chunkLoading: string
+  chunkLoading: string | false
   chunkLoadTimeout: number
   charset: boolean
   enabledChunkLoadingTypes?: Array<string>
@@ -2623,10 +2612,10 @@ export interface RawOutputOptions {
   hashDigestLength: number
   hashSalt?: string
   asyncChunks: boolean
-  workerChunkLoading: string
-  workerWasmLoading: string
+  workerChunkLoading: string | false
+  workerWasmLoading: string | false
   workerPublicPath: string
-  scriptType: "module" | "text/javascript" | "false"
+  scriptType: "module" | "text/javascript" | false
   environment: RawEnvironment
   compareBeforeEmit: boolean
 }

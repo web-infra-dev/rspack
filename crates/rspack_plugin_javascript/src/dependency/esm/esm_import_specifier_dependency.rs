@@ -86,16 +86,22 @@ impl ESMImportSpecifierDependency {
     }
   }
 
+  pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
+    mg.get_dep_meta_if_existing(&self.id)
+      .map(|meta| meta.ids.as_slice())
+      .unwrap_or_else(|| self.ids.as_slice())
+  }
+
   pub fn get_referenced_exports_in_destructuring(
     &self,
-    ids: Option<&Vec<Atom>>,
+    ids: Option<&[Atom]>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
       referenced_properties
         .iter()
         .map(|prop| {
           if let Some(v) = ids {
-            let mut value = v.clone();
+            let mut value = v.to_vec();
             value.push(prop.clone());
             ReferencedExport::new(value, false)
           } else {
@@ -105,7 +111,7 @@ impl ESMImportSpecifierDependency {
         .map(ExtendedReferencedExport::Export)
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
-      vec![ExtendedReferencedExport::Array(v.clone())]
+      vec![ExtendedReferencedExport::Array(v.to_vec())]
     } else {
       create_exports_object_referenced()
     }
@@ -191,7 +197,7 @@ impl DependencyTemplate for ESMImportSpecifierDependency {
           con.module_identifier(),
           &ModuleReferenceOptions {
             asi_safe: Some(self.asi_safe),
-            ids,
+            ids: ids.to_vec(),
             call: self.call,
             direct_import: self.direct_import,
             ..Default::default()
@@ -275,10 +281,8 @@ impl Dependency for ESMImportSpecifierDependency {
     ConnectionState::Bool(false)
   }
 
-  fn get_ids(&self, mg: &ModuleGraph) -> Vec<Atom> {
-    mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.clone())
-      .unwrap_or_else(|| self.ids.clone())
+  fn _get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
+    self.get_ids(mg)
   }
 
   fn resource_identifier(&self) -> Option<&str> {
@@ -294,7 +298,7 @@ impl Dependency for ESMImportSpecifierDependency {
       .get_effective_export_presence(&**module)
       && let Some(diagnostic) = esm_import_dependency_get_linking_error(
         self,
-        &self.get_ids(module_graph)[..],
+        self.get_ids(module_graph),
         module_graph,
         format!("(imported as '{}')", self.name),
         should_error,
@@ -329,7 +333,7 @@ impl Dependency for ESMImportSpecifierDependency {
           if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }
-          ids.drain(0..1);
+          ids = &ids[1..];
           namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
@@ -344,9 +348,9 @@ impl Dependency for ESMImportSpecifierDependency {
         return create_exports_object_referenced();
       }
       // remove last one
-      ids.remove(ids.len() - 1);
+      ids = &ids[..ids.len() - 1];
     }
-    self.get_referenced_exports_in_destructuring(Some(&ids))
+    self.get_referenced_exports_in_destructuring(Some(ids))
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

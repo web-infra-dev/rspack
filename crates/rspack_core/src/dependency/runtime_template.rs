@@ -100,7 +100,7 @@ pub fn export_from_import(
   default_interop: bool,
   request: &str,
   import_var: &str,
-  mut export_name: Vec<Atom>,
+  export_name: &[Atom],
   id: &DependencyId,
   is_call: bool,
   call_context: bool,
@@ -124,6 +124,7 @@ pub fn export_from_import(
 
   let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
+  let mut exclude_default_export_name = None;
   if default_interop {
     if !export_name.is_empty()
       && let Some(first_export_name) = export_name.first()
@@ -151,7 +152,7 @@ pub fn export_from_import(
           }
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          export_name = export_name[1..].to_vec();
+          exclude_default_export_name = Some(export_name[1..].to_vec());
         }
         _ => {}
       }
@@ -204,6 +205,9 @@ pub fn export_from_import(
     }
   }
 
+  let export_name = exclude_default_export_name
+    .as_deref()
+    .unwrap_or(export_name);
   if !export_name.is_empty() {
     let used_name: Cow<Vec<Atom>> = {
       let exports_info = compilation
@@ -212,7 +216,7 @@ pub fn export_from_import(
       let used = exports_info.get_used_name(
         &compilation.get_module_graph(),
         *runtime,
-        crate::UsedName::Vec(export_name.clone()),
+        crate::UsedName::Vec(export_name.to_vec()),
       );
       if let Some(used) = used {
         let used = match used {
@@ -223,12 +227,12 @@ pub fn export_from_import(
       } else {
         return format!(
           "{} undefined",
-          to_normal_comment(&property_access(&export_name, 0))
+          to_normal_comment(&property_access(export_name, 0))
         );
       }
     };
     let comment = if *used_name != export_name {
-      to_normal_comment(&property_access(&export_name, 0))
+      to_normal_comment(&property_access(export_name, 0))
     } else {
       String::new()
     };

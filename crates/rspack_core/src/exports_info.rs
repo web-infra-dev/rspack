@@ -342,14 +342,14 @@ impl ExportsInfo {
   pub fn get_nested_exports_info(
     &self,
     mg: &ModuleGraph,
-    name: Option<Vec<Atom>>,
+    name: Option<&[Atom]>,
   ) -> Option<ExportsInfo> {
     if let Some(name) = name
       && !name.is_empty()
     {
       let info = self.get_read_only_export_info(mg, &name[0]);
       if let Some(exports_info) = info.exports_info(mg) {
-        return exports_info.get_nested_exports_info(mg, Some(name[1..].to_vec()));
+        return exports_info.get_nested_exports_info(mg, Some(&name[1..]));
       } else {
         return None;
       }
@@ -1307,43 +1307,6 @@ impl ExportInfo {
     false
   }
 
-  pub fn move_target(
-    &self,
-    mg: &mut ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
-    update_original_connection: UpdateOriginalFunctionTy,
-  ) -> Option<ResolvedExportInfoTarget> {
-    let target = self.get_target_with_filter(mg, resolve_filter)?;
-    let max_target = self.get_max_target(mg);
-    let original_target = max_target
-      .values()
-      .next()
-      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
-    if original_target.dependency.as_ref() == Some(&target.dependency)
-      && original_target.export == target.export
-    {
-      return None;
-    }
-    let export_info_mut = self.as_export_info_mut(mg);
-    export_info_mut.target.clear();
-    let updated_dependency_id = update_original_connection(&target, mg);
-
-    // shadowning `export_info_mut` to reduce `&mut ModuleGraph` borrow life time, since
-    // `update_original_connection` also needs `&mut ModuleGraph`
-    let export_info_mut = self.as_export_info_mut(mg);
-    export_info_mut.target.insert(
-      None,
-      ExportInfoTargetValue {
-        dependency: updated_dependency_id,
-        export: target.export.clone(),
-        priority: 0,
-      },
-    );
-
-    export_info_mut.target_is_set = true;
-    Some(target)
-  }
-
   pub fn set_used_conditionally(
     &self,
     mg: &mut ModuleGraph,
@@ -1871,6 +1834,18 @@ impl MaybeDynamicTargetExportInfo {
     }
   }
 
+  pub fn get_target_with_filter(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+  ) -> Option<ResolvedExportInfoTarget> {
+    match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
+      None => None,
+    }
+  }
+
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
@@ -1893,6 +1868,58 @@ impl MaybeDynamicTargetExportInfo {
         data.get_target_impl(mg, resolve_filter, already_visited)
       }
     }
+  }
+
+  fn get_max_target<'a>(
+    &'a self,
+    mg: &'a ModuleGraph,
+  ) -> Cow<'a, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.get_max_target(mg),
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.get_max_target(),
+    }
+  }
+}
+
+impl MaybeDynamicTargetExportInfo {
+  pub fn can_move_target(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+  ) -> Option<ResolvedExportInfoTarget> {
+    let target = self.get_target_with_filter(mg, resolve_filter)?;
+    let max_target = self.get_max_target(mg);
+    let original_target = max_target
+      .values()
+      .next()
+      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+    if original_target.dependency.as_ref() == Some(&target.dependency)
+      && original_target.export == target.export
+    {
+      return None;
+    }
+    Some(target)
+  }
+}
+
+impl ExportInfo {
+  pub fn do_move_target(
+    &self,
+    mg: &mut ModuleGraph,
+    dependency: DependencyId,
+    target_export: Option<Vec<Atom>>,
+  ) {
+    let export_info_mut = self.as_export_info_mut(mg);
+    export_info_mut.target.clear();
+    export_info_mut.target.insert(
+      None,
+      ExportInfoTargetValue {
+        dependency: Some(dependency),
+        export: target_export,
+        priority: 0,
+      },
+    );
+    export_info_mut.target_is_set = true;
   }
 }
 

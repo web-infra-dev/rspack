@@ -2165,7 +2165,7 @@ export type OptimizationSplitChunksCacheGroup = {
 	enforce?: boolean;
 
 	/** Allows to override the filename when and only when it's an initial chunk. */
-	filename?: string;
+	filename?: Filename;
 
 	/**
 	 * Whether to reuse existing chunks when possible.
