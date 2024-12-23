@@ -12,6 +12,7 @@ use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::RwLock;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
@@ -560,8 +561,8 @@ impl Default for CssExportsConvention {
   }
 }
 
-pub type DescriptionData = HashMap<String, RuleSetCondition>;
-pub type With = HashMap<String, RuleSetCondition>;
+pub type DescriptionData = HashMap<String, RuleSetConditionMatch>;
+pub type With = HashMap<String, RuleSetConditionMatch>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -655,12 +656,33 @@ impl RuleSetCondition {
 #[derive(Debug)]
 pub struct RuleSetConditionMatch {
   pub condition: RuleSetCondition,
-  pub match_when_empty: Option<bool>,
+  match_when_empty: RwLock<Option<bool>>,
 }
 
 impl RuleSetConditionMatch {
+  pub fn new(condition: RuleSetCondition) -> Self {
+    Self {
+      condition,
+      match_when_empty: RwLock::new(None),
+    }
+  }
+
   pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
     self.condition.try_match(data).await
+  }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(match_when_empty) = self.match_when_empty.read().await.as_ref() {
+      return Ok(*match_when_empty);
+    }
+
+    Ok(
+      *self
+        .match_when_empty
+        .write()
+        .await
+        .insert(self.condition.match_when_empty().await?),
+    )
   }
 }
 

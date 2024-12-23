@@ -142,10 +142,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetConditionMatch {
   type Error = rspack_error::Error;
 
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
-    Ok(Self {
-      condition: x.try_into()?,
-      match_when_empty: None,
-    })
+    Ok(Self::new(x.try_into()?))
   }
 }
 
