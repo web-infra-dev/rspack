@@ -945,7 +945,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
+      .unwrap_or_else(|| panic!("{:?}", dep_id));
     let old_module_identifier = *connection.module_identifier();
     connection.set_module_identifier(*module_id);
 

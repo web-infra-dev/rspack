@@ -9,7 +9,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec, Unsupported},
 };
-use rspack_collections::{Identifiable, Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};

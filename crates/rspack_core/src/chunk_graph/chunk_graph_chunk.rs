@@ -8,9 +8,7 @@ use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
-use rspack_collections::{
-  DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet, UkeyMap,
-};
+use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 

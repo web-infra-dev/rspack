@@ -1,5 +1,5 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, ChunkGraph, CompilationModuleIds, CompilerOptions, Logger, ModuleGraph, ModuleId,

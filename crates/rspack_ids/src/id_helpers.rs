@@ -10,9 +10,9 @@ use itertools::{
   Itertools,
 };
 use regex::Regex;
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleId,
+  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
   ModuleIdentifier, ModuleIdsArtifact,
 };
 use rspack_util::itoa;

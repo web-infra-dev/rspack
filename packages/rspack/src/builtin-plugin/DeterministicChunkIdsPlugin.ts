@@ -15,7 +15,7 @@ export class DeterministicChunkIdsPlugin extends RspackBuiltinPlugin {
 		if (incremental.chunkIds) {
 			incremental.chunkIds = false;
 			logger.warn(
-				"`optimization.chunkIds = 'deterministic'` can't be used with `incremental.chunkIds` as deterministic chunk ids is a global effect. `incremental.chunkIds` has been overridden to false."
+				"`optimization.chunkIds = 'deterministic'` can't be used with `incremental.chunkIds` as deterministic chunk ids is a global effect. `incremental.chunkIds` has been overridden to false. We recommend enabling incremental only in the development mode."
 			);
 		}
 		return createBuiltinPlugin(this.name, undefined);

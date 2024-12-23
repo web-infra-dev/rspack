@@ -38,7 +38,6 @@ use super::{
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::Cache,
-  chunk_graph_chunk::ChunkId,
   get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
   is_source_equal,
@@ -46,8 +45,8 @@ use crate::{
   to_identifier, AsyncModulesArtifact, BoxDependency, BoxModule, CacheCount, CacheOptions,
   CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact, Chunk,
   ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact,
-  ChunkHashesResult, ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult,
-  ChunkUkey, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
+  ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
+  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,

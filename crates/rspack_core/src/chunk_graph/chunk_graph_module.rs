@@ -5,7 +5,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;

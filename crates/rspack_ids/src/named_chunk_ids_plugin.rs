@@ -1,5 +1,5 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeyMap, UkeySet};
+use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
   incremental::{IncrementalPasses, Mutation, Mutations},
