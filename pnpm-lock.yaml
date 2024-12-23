@@ -111,8 +111,8 @@ importers:
         version: link:../../npm/win32-x64-msvc
     devDependencies:
       '@napi-rs/cli':
-        specifier: 3.0.0-alpha.65
-        version: 3.0.0-alpha.65(@emnapi/runtime@1.3.1)(@types/node@20.12.7)
+        specifier: 3.0.0-alpha.64
+        version: 3.0.0-alpha.64(@emnapi/runtime@1.3.1)(@types/node@20.12.7)
       typescript:
         specifier: ^5.7.2
         version: 5.7.2
@@ -2334,8 +2334,8 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@napi-rs/cli@3.0.0-alpha.65':
-    resolution: {integrity: sha512-Ka6TnnqUt9kI+slxe91GCSzuvoDAtqXMkcQfpMdpdHrUWI4LaWiSsG2ChyTHJmN0Tu/fC1ISv8dFpfEDdqSjOg==}
+  '@napi-rs/cli@3.0.0-alpha.64':
+    resolution: {integrity: sha512-IYkNvh+SjFd4StEIJVsXa4paAeKakYG80GWTfX3PwpFlrX4fQZ7BkPR1IGWI17x5psz9MQvuEyicwjGWiHxI4A==}
     engines: {node: '>= 16'}
     hasBin: true
     peerDependencies:
@@ -11599,7 +11599,7 @@ snapshots:
 
   '@napi-rs/cli@2.18.4': {}
 
-  '@napi-rs/cli@3.0.0-alpha.65(@emnapi/runtime@1.3.1)(@types/node@20.12.7)':
+  '@napi-rs/cli@3.0.0-alpha.64(@emnapi/runtime@1.3.1)(@types/node@20.12.7)':
     dependencies:
       '@inquirer/prompts': 7.0.1(@types/node@20.12.7)
       '@napi-rs/cross-toolchain': 0.0.16
@@ -11607,7 +11607,7 @@ snapshots:
       '@octokit/rest': 21.0.2
       clipanion: 3.2.1(typanion@3.14.0)
       colorette: 2.0.20
-      debug: 4.4.0
+      debug: 4.3.7
       js-yaml: 4.1.0
       lodash-es: 4.17.21
       semver: 7.6.3
@@ -11630,7 +11630,7 @@ snapshots:
     dependencies:
       '@napi-rs/lzma': 1.4.1
       '@napi-rs/tar': 0.1.4
-      debug: 4.4.0
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
