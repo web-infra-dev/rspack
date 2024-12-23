@@ -46,6 +46,9 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      runner-type:
+        required: true
+        type: string
       profile: # Rust profile, "debug" or "release"
         default: "release"
         required: false
@@ -57,6 +60,26 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      cache-type:
+        description: "Use github or local or lynx cache"
+        required: true
+        type: string
+        # choices:
+        #   - github
+        #   - local
+        #   - lynx
+    secrets:
+      TOS_ACCESS_KEY:
+        required: false
+      TOS_SECRET_KEY:
+        required: false
+
+env:
+  TOS_ACCESS_KEY: ${{ secrets.TOS_ACCESS_KEY }}
+  TOS_SECRET_KEY: ${{ secrets.TOS_SECRET_KEY }}
+  TOS_BUCKET_NAME: ${{ vars.TOS_BUCKET_NAME }}
+  TOS_REGION: ${{ vars.TOS_REGION }}
+  TOS_ENDPOINT: ${{ vars.TOS_ENDPOINT }}
 
 jobs:
   build:
@@ -73,10 +96,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.runner-type == 'github' || inputs.runner-type == 'k8s' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && inputs.runner-type == 'hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -89,6 +112,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           save-if: ${{ github.ref_name == 'main' }}
 
       - name: Install Rust Toolchain
@@ -118,7 +142,7 @@ jobs:
 
       - name: Check local cache
         id: check_cache
-        if: ${{ inputs.profile == 'debug' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
+        if: ${{ inputs.profile == 'debug' && !inputs.ephemeral && !inputs.skipable }}
         shell: bash
         run: |
           set -e
@@ -198,15 +222,21 @@ jobs:
 
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+        run: |
+          export all_proxy=$http_proxy # Using all_proxy for updating crates.io index
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+        run: |
+          export all_proxy=$http_proxy
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
+        run: |
+          export all_proxy=$http_proxy
+          echo "$all_proxy" && RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - name: Build x86_64-apple-darwin
@@ -217,7 +247,7 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
-          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+          if [[ "${{ inputs.runner-type }}" == "github" ]]; then
             # Github runner
             sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
           fi
@@ -231,10 +261,9 @@ jobs:
         uses: ./.github/actions/upload-artifact
         if: ${{ steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          mv-when-local: true
 
   e2e:
     name: E2E Testing
@@ -246,10 +275,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.runner-type == 'github' || inputs.runner-type == 'k8s' }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ inputs.runner-type == 'hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -257,14 +286,14 @@ jobs:
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          link-when-local: true
 
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           node-version: 20
 
       - name: Run e2e
@@ -300,10 +329,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ inputs.runner-type == 'github' || inputs.runner-type == 'k8s' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && inputs.runner-type == 'hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -312,10 +341,9 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/download-artifact
         with:
+          cache-type: ${{ inputs.cache-type }}
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'debug' }}
-          link-when-local: true
 
       - name: Show restored binding
         if: ${{ !inputs.skipable }}
@@ -326,6 +354,7 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
+          type: ${{ inputs.cache-type }}
           node-version: ${{ matrix.node }}
 
       ### x86_64-unknown-linux-gnu
