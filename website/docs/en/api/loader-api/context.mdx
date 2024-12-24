@@ -133,6 +133,80 @@ function getResolve(options: ResolveOptions): resolve;
 
 Create a resolver like `this.resolve`.
 
+## this.importModule()
+
+```ts
+interface ImportModuleOptions {
+  /**
+   * Specify a layer in which this module is placed/compiled
+   */
+  layer?: string;
+  /**
+   * The public path used for the built modules
+   */
+  publicPath?: PublicPath;
+  /**
+   * Target base uri
+   */
+  baseUri?: string;
+}
+
+// with callback
+function importModule<T = any>(
+  request: string,
+  options: ImportModuleOptions | undefined,
+  callback: (err?: null | Error, exports?: T) => any,
+): void;
+// without callback, return Promise
+function importModule<T = any>(
+  request: string,
+  options?: ImportModuleOptions,
+): Promise<T>;
+```
+
+Compile and execute a module at the build time. This is an alternative lightweight solution for the child compiler.
+
+`importModule` will return a Promise if no callback is provided.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = async function loader(source) {
+  const modulePath = path.resolve(__dirname, 'some-module.ts');
+  const moduleExports = await this.importModule(modulePath, {
+    // optional options
+  });
+
+  const result = someProcessing(source, moduleExports);
+  return result;
+};
+```
+
+Or you can pass a callback to it.
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  const callback = this.async();
+  const modulePath = path.resolve(__dirname, 'some-module.ts');
+
+  this.importModule(
+    modulePath,
+    // optional options
+    undefined,
+    (err, moduleExports) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const result = someProcessing(source, moduleExports);
+      callback(null, result);
+    },
+  );
+};
+```
+
 ## this.resolve()
 
 ```ts

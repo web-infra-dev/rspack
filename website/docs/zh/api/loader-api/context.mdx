@@ -128,6 +128,80 @@ function getResolve(options: ResolveOptions): resolve;
 
 创建一个类似于 `this.resolve` 的解析函数。
 
+## this.importModule()
+
+```ts
+interface ImportModuleOptions {
+  /**
+   * 指定模块的 layer
+   */
+  layer?: string;
+  /**
+   * 构建模块时使用的 public path
+   */
+  publicPath?: PublicPath;
+  /**
+   * 目标 base uri
+   */
+  baseUri?: string;
+}
+
+// 传入回调函数
+function importModule<T = any>(
+  request: string,
+  options: ImportModuleOptions | undefined,
+  callback: (err?: null | Error, exports?: T) => any,
+): void;
+// 不传入回调函数时，返回 Promise
+function importModule<T = any>(
+  request: string,
+  options?: ImportModuleOptions,
+): Promise<T>;
+```
+
+在构建过程中编译和执行一个模块。这是 child compiler 的轻量级替代方案。
+
+在没有提供回调函数时，`importModule` 会返回一个 Promise。
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = async function loader(source) {
+  const modulePath = path.resolve(__dirname, 'some-module.ts');
+  const moduleExports = await this.importModule(modulePath, {
+    // 可选参数
+  });
+
+  const result = someProcessing(source, moduleExports);
+  return result;
+};
+```
+
+或者你可以传递一个回调函数给它。
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  const callback = this.async();
+  const modulePath = path.resolve(__dirname, 'some-module.ts');
+
+  this.importModule(
+    modulePath,
+    // 可选参数
+    undefined,
+    (err, moduleExports) => {
+      if (err) {
+        return callback(err);
+      }
+
+      const result = someProcessing(source, moduleExports);
+      callback(null, result);
+    },
+  );
+};
+```
+
 ## this.resolve()
 
 ```ts
