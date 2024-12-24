@@ -36,6 +36,13 @@ export type ResolveData = {
 	createData?: CreateData;
 };
 
+export interface LibIdentOptions {
+	/**
+	 * absolute context path to which lib ident is relative to
+	 */
+	context: string;
+}
+
 export class ContextModuleFactoryBeforeResolveData {
 	#inner: JsContextModuleFactoryBeforeResolveData;
 
@@ -366,6 +373,10 @@ export class Module {
 			return this.#inner.size(type);
 		}
 		return 0;
+	}
+
+	libIdent(options: LibIdentOptions): string | null {
+		return this.#inner.libIdent(options);
 	}
 }
 
