@@ -20,7 +20,10 @@ export function getNextName(name) {
 	if (["monorepo"].includes(name)) {
 		return name;
 	}
-	const nextName = `${name}-canary`;
+	if (name === "create-rspack") {
+		return "create-rspack-canary";
+	}
+	const nextName = name.replace(/^@rspack/, "@rspack-canary");
 	return nextName;
 }
 
