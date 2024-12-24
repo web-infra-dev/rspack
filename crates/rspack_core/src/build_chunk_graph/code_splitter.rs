@@ -1572,7 +1572,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       Vec<DependencyId>,
     > = IndexMap::default();
 
-    for dep_id in module_graph.get_ordered_all_dependencies(&module) {
+    for dep_id in module_graph.get_ordered_outgoing_connections(&module) {
       let dep = module_graph
         .dependency_by_id(dep_id)
         .expect("should have dep");

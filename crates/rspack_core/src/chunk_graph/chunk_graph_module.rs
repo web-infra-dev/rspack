@@ -270,7 +270,10 @@ impl ChunkGraph {
     let mg = compilation.get_module_graph();
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
-    for connection in mg.get_outgoing_connections(&module.identifier()) {
+    for connection in mg
+      .get_ordered_outgoing_connections(&module.identifier())
+      .filter_map(|c| mg.connection_by_dependency_id(c))
+    {
       let module_identifier = connection.module_identifier();
       if visited_modules.contains(module_identifier) {
         continue;
