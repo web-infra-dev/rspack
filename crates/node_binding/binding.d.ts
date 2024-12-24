@@ -244,6 +244,7 @@ export declare class JsModuleGraph {
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+  getParentModule(jsDependency: JsDependency): JsModule | null
 }
 
 export declare class JsModuleGraphConnection {
