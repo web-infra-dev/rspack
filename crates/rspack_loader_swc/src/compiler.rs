@@ -13,7 +13,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
 use base64::prelude::*;
-use indoc::indoc;
+use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
 use rspack_error::miette::{self, MietteDiagnostic};
@@ -369,8 +369,9 @@ impl SwcCompiler {
           },
           None => "unknown error"
         };
+        let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
         // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
-        let help_msg =  indoc!{"
+        let help_msg = formatdoc!{"
           The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
           The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
           Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.

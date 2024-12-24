@@ -5,6 +5,7 @@ const path = require('path');
 const { RawSource } = require('webpack-sources');
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
+  context: __dirname,
   entry: {
     main: './src/index.jsx',
   },
@@ -40,17 +41,17 @@ const config = {
                   useBuiltins: false,
                 },
               },
-                experimental: {
-									cacheRoot: __dirname + "/.swc",
-									plugins: [
-										[
-											__dirname + "/node_modules/swc-wasm-plugin",
-											{
-												exclude: ["error"]
-											}
-										]
-									]
-								}
+              experimental: {
+                cacheRoot: __dirname + "/.swc",
+                plugins: [
+                  [
+                    __dirname + "/node_modules/swc-wasm-plugin",
+                    {
+                      exclude: ["error"]
+                    }
+                  ]
+                ]
+              }
             },
           },
         },
@@ -69,19 +70,19 @@ const config = {
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
-		{
-			// Replace all assets with empty content to avoid evaluation that causes errors
-			apply(compiler) {
-				compiler.hooks.compilation.tap("_", (compilation) => {
-					compilation.hooks.processAssets.tap("_", (assets) => {
-						let names = Object.keys(assets);
-						names.forEach(name => {
-							assets[name] = new RawSource("")
-						})
-					})
-				})
-			}
-		}
+    {
+      // Replace all assets with empty content to avoid evaluation that causes errors
+      apply(compiler) {
+        compiler.hooks.compilation.tap("_", (compilation) => {
+          compilation.hooks.processAssets.tap("_", (assets) => {
+            let names = Object.keys(assets);
+            names.forEach(name => {
+              assets[name] = new RawSource("")
+            })
+          })
+        })
+      }
+    }
   ],
   experiments: { css: true }
 };
