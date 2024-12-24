@@ -1745,6 +1745,7 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   mangleExports: boolean | string
   concatenateModules: boolean
+  avoidEntryIife: boolean
 }
 
 export interface RawOptions {

@@ -16,6 +16,7 @@ pub struct RawOptimizationOptions {
   #[napi(ts_type = "boolean | string")]
   pub mangle_exports: WithBool<String>,
   pub concatenate_modules: bool,
+  pub avoid_entry_iife: bool,
 }
 
 macro_rules! impl_from_with_bool {
@@ -48,6 +49,7 @@ impl TryFrom<RawOptimizationOptions> for Optimization {
       inner_graph: value.inner_graph,
       mangle_exports: value.mangle_exports.into(),
       concatenate_modules: value.concatenate_modules,
+      avoid_entry_iife: value.avoid_entry_iife,
     })
   }
 }
