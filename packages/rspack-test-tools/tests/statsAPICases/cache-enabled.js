@@ -5,7 +5,6 @@ module.exports = {
 	description:
 		"should have any cache hits log of modules in incremental rebuild mode",
 	options(context) {
-		debugger;
 		return {
 			context: context.getSource(),
 			entry: "./fixtures/abc",
