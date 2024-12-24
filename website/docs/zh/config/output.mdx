@@ -150,7 +150,7 @@ module.exports = {
 
 ## output.clean
 
-- **类型：** `boolean`
+- **类型：** `boolean | { keep?: string }`
 - **默认值：** `false`
 
 在生成产物前，删除输出目录下的所有文件。
@@ -160,6 +160,13 @@ module.exports = {
   //...
   output: {
     clean: true, // Clean the output directory before emit.
+  },
+
+  // or
+  output: {
+    clean: {
+      keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
+    },
   },
 };
 ```
