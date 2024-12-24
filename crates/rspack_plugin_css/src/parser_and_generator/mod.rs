@@ -164,7 +164,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           range,
           kind,
         } => {
-          if request.is_empty() {
+          if request.trim().is_empty() {
             continue;
           }
           let request = replace_module_request_prefix(
