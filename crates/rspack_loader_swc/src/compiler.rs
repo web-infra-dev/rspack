@@ -13,8 +13,10 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, bail, Context, Error};
 use base64::prelude::*;
+use indoc::formatdoc;
 use jsonc_parser::parse_to_serde_value;
 use rspack_ast::javascript::{Ast as JsAst, Context as JsAstContext, Program as JsProgram};
+use rspack_error::miette::{self, MietteDiagnostic};
 use rspack_util::itoa;
 use rspack_util::swc::minify_file_comments;
 use serde_json::error::Category;
@@ -26,7 +28,7 @@ use swc_core::base::config::{
 };
 use swc_core::base::{sourcemap, SwcComments};
 use swc_core::common::comments::Comments;
-use swc_core::common::errors::{Handler, HANDLER};
+use swc_core::common::errors::Handler;
 use swc_core::common::SourceFile;
 use swc_core::common::{
   comments::SingleThreadedComments, FileName, FilePathMapping, Mark, SourceMap, GLOBALS,
@@ -41,6 +43,8 @@ use swc_core::{
   common::Globals,
 };
 use url::Url;
+
+use crate::compiler::miette::Report;
 
 fn parse_swcrc(s: &str) -> Result<Rc, Error> {
   fn convert_json_err(e: serde_json::Error) -> Error {
@@ -346,16 +350,37 @@ impl SwcCompiler {
     }
   }
 
-  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, Error> {
+  pub fn transform(&self, config: BuiltInput<impl Pass>) -> Result<Program, miette::Report> {
     let program = config.program;
     let mut pass = config.pass;
 
     let program = self.run(|| {
       helpers::HELPERS.set(&self.helpers, || {
-        try_with_handler(self.cm.clone(), Default::default(), |handler| {
-          HANDLER.set(handler, || Ok(program.apply(&mut pass)))
-        })
-      })
+      let result = try_with_handler(self.cm.clone(), Default::default(), |_handler| {
+        let result = program.apply(&mut pass);
+        Ok(result)
+      });
+      match result {
+        Ok(v) => Ok(v),
+        Err(err) => {
+        let error_msg = match err.downcast_ref::<String>(){
+          Some(msg) => {
+            msg
+          },
+          None => "unknown error"
+        };
+        let swc_core_version = env!("RSPACK_SWC_CORE_VERSION");
+        // FIXME: with_help has bugs, use with_help when diagnostic print is fixed
+        let help_msg = formatdoc!{"
+          The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
+          The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
+          Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
+          See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
+        let report: Report = MietteDiagnostic::new(format!("{}{}",error_msg,help_msg)).with_code("Builtin swc-loader error").into();
+        Err(report)
+      }
+    }
+    })
     });
 
     if let Some(comments) = &config.comments {

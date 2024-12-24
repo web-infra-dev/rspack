@@ -120,7 +120,7 @@ impl SwcLoader {
       keep_comments: Some(true),
     };
 
-    let program = c.transform(built).map_err(AnyhowError::from)?;
+    let program = c.transform(built)?;
     if source_map_kind.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),
