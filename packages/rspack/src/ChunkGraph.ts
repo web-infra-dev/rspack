@@ -2,6 +2,8 @@ import type { JsChunkGraph } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
 import { Module } from "./Module";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { ChunkGroup } from "./ChunkGroup";
 
 export class ChunkGraph {
 	#inner: JsChunkGraph;
@@ -64,5 +66,12 @@ export class ChunkGraph {
 
 	getModuleId(module: Module): string | null {
 		return this.#inner.getModuleId(Module.__to_binding(module));
+	}
+
+	getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null {
+		const binding = this.#inner.getBlockChunkGroup(
+			DependenciesBlock.__to_binding(depBlock)
+		);
+		return binding ? ChunkGroup.__from_binding(binding) : null;
 	}
 }
