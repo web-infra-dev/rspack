@@ -21,6 +21,7 @@ pub type ExternalItemObject = HashMap<String, ExternalItemValue>;
 
 pub struct ContextInfo {
   pub issuer: String,
+  pub issuer_layer: Option<String>,
 }
 
 pub struct ExternalItemFnCtx {
