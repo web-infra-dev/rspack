@@ -4067,6 +4067,7 @@ dependencies = [
  "base64 0.22.1",
  "cargo_toml",
  "either",
+ "indoc",
  "jsonc-parser 0.26.2",
  "rspack_ast",
  "rspack_cacheable",
