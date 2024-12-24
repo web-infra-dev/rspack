@@ -161,6 +161,13 @@ module.exports = {
   output: {
     clean: true, // Clean the output directory before emit.
   },
+
+  // or
+  output: {
+    clean: {
+      keep: 'path', // keep the files under this path
+    },
+  },
 };
 ```
 
