@@ -1,0 +1,25 @@
+# SWC 插件版本不匹配
+
+## 错误出现的原因
+
+SWC 的插件仍然是一个实验性功能，目前 SWC 的 Wasm 插件是不向后兼容的，SWC 插件的版本与 Rspack 依赖的 `swc_core` 版本存在强耦合关系。
+
+这意味着，你需要选择和当前 `swc_core` 版本匹配的 SWC 插件，才能使它正常执行。如果你使用的 SWC 插件版本与 Rspack 依赖的 `swc_core` 版本不匹配，Rspack 在执行构建时会抛出如下错误：
+
+```text
+The version of the SWC Wasm plugin you're using might not be compatible with 'builtin:swc-loader'
+```
+
+## 可能的修复方式
+
+如果你遇到了以上问题，通常可行的解决方法是将 Rspack 和 SWC 插件都升级到最新版本。
+
+此外，你也可以按照以下步骤来选择合适的 SWC 插件版本：
+
+1. 查看当前使用的 [@rspack/core](https://www.npmjs.com/package/@rspack/core) 版本。
+2. 访问 [plugins.swc.rs](https://plugins.swc.rs/)，选择你当前使用的 Rspack 版本。
+3. 该网站会列出你当前使用的 Rspack 版本所匹配的 SWC 插件版本范围，选择匹配的 SWC 插件版本使用即可。
+
+如果你使用的 SWC 插件未收录到 [plugins.swc.rs](https://plugins.swc.rs/)，你可以通过 Rust 代码仓库中的 Cargo.toml 文件来查看 `swc_core` 的版本信息。
+
+以 Rspack 仓库为例，你可以打开 [Cargo.toml](https://github.com/web-infra-dev/rspack/blob/main/Cargo.toml)，搜索 `swc_core` 关键字来查看版本，然后参考 [SWC - Selecting the version](https://swc.rs/docs/plugin/selecting-swc-core) 进行选择。

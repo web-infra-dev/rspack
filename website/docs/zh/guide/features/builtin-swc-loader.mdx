@@ -224,7 +224,9 @@ export default {
 <ApiMeta stability={Stability.Experimental} />
 
 :::warning
-Wasm 插件和 SWC 的版本存在一定的绑定关系，需要选择和对应 SWC 版本兼容的 Wasm 插件才能正常执行, [selecting-swc-core](https://swc.rs/docs/plugin/selecting-swc-core#088x--089x) 里有更多关于如何选择兼容的 Wasm 插件的信息。
+Wasm 插件和 SWC 的版本存在一定的绑定关系，需要选择和对应 SWC 版本兼容的 Wasm 插件才能正常执行。
+
+详见 [常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 :::
 
 Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以通过如下配置启用 Wasm 插件
