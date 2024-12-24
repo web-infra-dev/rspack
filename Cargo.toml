@@ -26,7 +26,7 @@ ignored = [
   "rspack_plugin_merge",
 ]
 [workspace.dependencies]
-anyhow             = { version = "1.0.94", features = ["backtrace"] }
+anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-scoped       = { version = "0.9.0" }
@@ -49,7 +49,7 @@ indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.61" }
-linked_hash_set    = { version = "0.1.4" }
+linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
@@ -67,20 +67,20 @@ rspack_resolver    = { version = "0.3.6", features = ["package_json_raw_json_api
 rspack_sources     = { version = "0.4.1" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.216" }
-serde_json         = { version = "1.0.133" }
+serde_json         = { version = "1.0.134" }
 simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.90" }
+syn                = { version = "2.0.91" }
 tokio              = { version = "1.42.0" }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
-unicase            = { version = "2.8.0" }
+unicase            = { version = "2.8.1" }
 url                = { version = "2.5.4" }
 urlencoding        = { version = "2.1.3" }
 ustr               = { package = "ustr-fxhash", version = "1.0.1" }
-xxhash-rust        = { version = "0.8.12" }
+xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
 napi        = { version = "3.0.0-alpha.24" }
