@@ -328,7 +328,7 @@ export * from "external2-alias";
 `;
 
 exports[`config config/externals/reexport-star exported tests reexport star from external module 2`] = `
-import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
 export * from "external1-alias";
 
 ;// CONCATENATED MODULE: external "external1-alias"
@@ -340,13 +340,13 @@ export * from "external1-alias";
 
 
 
-var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias__.a;
-var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias__.b;
-export { __WEBPACK_EXTERNAL_MODULE_external1_alias__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
+var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.a;
+var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.b;
+export { __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
 `;
 
 exports[`config config/externals/reexport-star exported tests reexport star from external module 3`] = `
-import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
 
 ;// CONCATENATED MODULE: external "external1-alias"
 
