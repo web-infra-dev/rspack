@@ -375,8 +375,7 @@ impl SwcCompiler {
           The version of the SWC Wasm plugin you're using might not be compatible with `builtin:swc-loader`.
           The `swc_core` version of the current `rspack_core` is {swc_core_version}. 
           Please check the `swc_core` version of SWC Wasm plugin to make sure these versions are within the compatible range.
-          Versions of `swc_core` are more likely to be located in the `Cargo.toml` file in the root directory of these plugin repositories.
-          Check out this guide as a reference for selecting the versions of SWC Wasm plugins: https://rspack.dev/errors/swc-plugin-version"};
+          See this guide as a reference for selecting SWC Wasm plugin versions: https://rspack.dev/errors/swc-plugin-version"};
         let report: Report = MietteDiagnostic::new(format!("{}{}",error_msg,help_msg)).with_code("Builtin swc-loader error").into();
         Err(report)
       }
