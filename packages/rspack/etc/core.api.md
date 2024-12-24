@@ -1113,6 +1113,7 @@ export type Context = string;
 // @public (undocumented)
 type ContextInfo = {
     issuer: string;
+    issuerLayer?: string;
 };
 
 // @public (undocumented)

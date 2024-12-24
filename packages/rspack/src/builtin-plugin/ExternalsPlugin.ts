@@ -1,6 +1,7 @@
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
+	type RawExternalItemFnCtx,
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
@@ -44,7 +45,7 @@ function getRawExternalItem(
 	}
 
 	if (typeof item === "function") {
-		return async ctx => {
+		return async (ctx: RawExternalItemFnCtx) => {
 			return await new Promise((resolve, reject) => {
 				const data = ctx.data();
 				const promise = item(
