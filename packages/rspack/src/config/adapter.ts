@@ -15,6 +15,7 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
+	type RawJsonParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
@@ -54,6 +55,7 @@ import type {
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
+	JsonParserOptions,
 	Node,
 	Optimization,
 	ParserOptionsByModuleType,
@@ -490,6 +492,14 @@ function getRawParserOptions(
 			cssModule: getRawCssParserOptions(parser)
 		};
 	}
+
+	if (type === "json") {
+		return {
+			type: "json",
+			json: getRawJsonParserOptions(parser)
+		};
+	}
+
 	// FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
 	throw new Error(`unreachable: unknow module type: ${type}`);
 }
@@ -563,6 +573,14 @@ function getRawCssParserOptions(
 ): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
 	return {
 		namedExports: parser.namedExports
+	};
+}
+
+function getRawJsonParserOptions(
+	parser: JsonParserOptions
+): RawJsonParserOptions {
+	return {
+		exportsDepth: parser.exportsDepth
 	};
 }
 

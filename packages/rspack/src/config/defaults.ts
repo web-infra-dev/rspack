@@ -12,7 +12,7 @@ import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
 
-import { ASSET_MODULE_TYPE } from "../ModuleTypeConstants";
+import { ASSET_MODULE_TYPE, JSON_MODULE_TYPE } from "../ModuleTypeConstants";
 import { Template } from "../Template";
 import {
 	LightningCssMinimizerRspackPlugin,
@@ -102,7 +102,8 @@ export const applyRspackOptionsDefaults = (
 	applyModuleDefaults(options.module, {
 		asyncWebAssembly: options.experiments.asyncWebAssembly!,
 		css: options.experiments.css,
-		targetProperties
+		targetProperties,
+		mode: options.mode
 	});
 
 	applyOutputDefaults(options.output, {
@@ -285,11 +286,13 @@ const applyModuleDefaults = (
 	{
 		asyncWebAssembly,
 		css,
-		targetProperties
+		targetProperties,
+		mode
 	}: {
 		asyncWebAssembly: boolean;
 		css?: boolean;
 		targetProperties: any;
+		mode?: Mode;
 	}
 ) => {
 	assertNotNill(module.parser);
@@ -306,6 +309,14 @@ const applyModuleDefaults = (
 	F(module.parser, "javascript", () => ({}));
 	assertNotNill(module.parser.javascript);
 	applyJavascriptParserOptionsDefaults(module.parser.javascript);
+
+	F(module.parser, JSON_MODULE_TYPE, () => ({}));
+	assertNotNill(module.parser[JSON_MODULE_TYPE]);
+	D(
+		module.parser[JSON_MODULE_TYPE],
+		"exportsDepth",
+		mode === "development" ? 1 : Number.MAX_SAFE_INTEGER
+	);
 
 	if (css) {
 		F(module.parser, "css", () => ({}));
