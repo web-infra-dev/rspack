@@ -138,6 +138,14 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   }
 }
 
+impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetConditionWithEmpty {
+  type Error = rspack_error::Error;
+
+  fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
+    Ok(Self::new(x.try_into()?))
+  }
+}
+
 type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 
 #[derive(Debug, Default)]
