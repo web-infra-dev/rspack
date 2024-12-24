@@ -88,4 +88,4 @@ jobs:
           ./x publish snapshot --tag canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
