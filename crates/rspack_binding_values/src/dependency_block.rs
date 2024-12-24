@@ -12,7 +12,7 @@ use crate::JsDependencyWrapper;
 
 #[napi]
 pub struct JsDependenciesBlock {
-  block_id: AsyncDependenciesBlockIdentifier,
+  pub(crate) block_id: AsyncDependenciesBlockIdentifier,
   compilation: NonNull<Compilation>,
 }
 
