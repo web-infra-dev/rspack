@@ -9,7 +9,6 @@ use rspack_collections::IdentifierSet;
 use rspack_collections::UkeyMap;
 use rspack_core::incremental::IncrementalPasses;
 use rspack_core::incremental::Mutation;
-use rspack_core::incremental::Mutations;
 use rspack_core::DependencyExtraMeta;
 use rspack_core::DependencyId;
 use rspack_core::Logger;
@@ -707,6 +706,12 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
           );
           modules
         }
+        Mutation::ModuleRemove { module } => {
+          for connection in module_graph.get_incoming_connections(module) {
+            side_effects_optimize_artifact.remove(&connection.dependency_id);
+          }
+          modules
+        }
         _ => modules,
       },
     );
@@ -764,10 +769,6 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     do_optimizes
   };
 
-  let mut mutations = compilation
-    .incremental
-    .can_write_mutations()
-    .then(Mutations::default);
   let mut do_optimized_count = 0;
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
@@ -776,12 +777,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     let new_connections: Vec<_> = do_optimizes
       .into_iter()
       .map(|(dependency, do_optimize)| {
-        do_optimize_connection(
-          dependency,
-          do_optimize,
-          &mut module_graph,
-          mutations.as_mut(),
-        )
+        do_optimize_connection(dependency, do_optimize, &mut module_graph)
       })
       .collect();
 
@@ -797,11 +793,6 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
   }
 
   compilation.side_effects_optimize_artifact = side_effects_optimize_artifact;
-  if let Some(more_mutations) = mutations
-    && let Some(mutations) = compilation.incremental.mutations_write()
-  {
-    mutations.extend(more_mutations);
-  }
 
   logger.log(format!("optimized {do_optimized_count} dependencies"));
   logger.time_end(start);
@@ -813,7 +804,6 @@ fn do_optimize_connection(
   dependency: DependencyId,
   do_optimize: SideEffectsDoOptimize,
   module_graph: &mut ModuleGraph,
-  mutations: Option<&mut Mutations>,
 ) -> (DependencyId, ModuleIdentifier) {
   let SideEffectsDoOptimize {
     ids,
@@ -821,11 +811,6 @@ fn do_optimize_connection(
     need_move_target,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
-  if let Some(mutations) = mutations {
-    mutations.add(Mutation::ConnectionUpdateModule {
-      connection: dependency,
-    });
-  }
   module_graph.set_dependency_extra_meta(dependency, DependencyExtraMeta { ids });
   if let Some(SideEffectsDoOptimizeMoveTarget {
     export_info,

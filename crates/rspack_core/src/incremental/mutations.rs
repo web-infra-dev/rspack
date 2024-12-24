@@ -10,7 +10,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rustc_hash::FxHasher;
 
 use crate::{
-  AffectType, ChunkGraph, ChunkUkey, Compilation, DependencyId, Logger, Module, ModuleGraph,
+  AffectType, ChunkGraph, ChunkUkey, Compilation, Logger, Module, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier,
 };
 
@@ -50,7 +50,6 @@ pub enum Mutation {
   ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
   ModuleSetId { module: ModuleIdentifier },
-  ConnectionUpdateModule { connection: DependencyId },
   ChunkSetId { chunk: ChunkUkey },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
@@ -65,9 +64,6 @@ impl fmt::Display for Mutation {
       Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
       Mutation::ModuleSetId { module } => write!(f, "set id module {}", module),
-      Mutation::ConnectionUpdateModule { connection } => {
-        write!(f, "update module for connection {}", **connection)
-      }
       Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
@@ -169,13 +165,6 @@ impl Mutations {
           match mutation {
             Mutation::ModuleSetAsync { module } => {
               affected_modules.insert(*module);
-            }
-            Mutation::ConnectionUpdateModule { connection } => {
-              if let Some(connection) = module_graph.connection_by_dependency_id(connection)
-                && let Some(original_module) = connection.original_module_identifier
-              {
-                affected_modules.insert(original_module);
-              }
             }
             Mutation::ModuleSetId { module } => {
               affected_modules.insert(*module);
