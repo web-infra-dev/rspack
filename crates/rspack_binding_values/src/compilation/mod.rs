@@ -240,7 +240,7 @@ impl JsCompilation {
     Ok(compilation.named_chunks.keys().cloned().collect::<Vec<_>>())
   }
 
-  #[napi(ts_return_type = "JsChunk")]
+  #[napi(ts_return_type = "JsChunk | null")]
   pub fn get_named_chunk(&self, name: String) -> Result<Option<JsChunkWrapper>> {
     let compilation = self.as_ref()?;
 

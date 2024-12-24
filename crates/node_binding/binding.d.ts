@@ -104,7 +104,7 @@ export declare class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk
+  getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): JsChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
