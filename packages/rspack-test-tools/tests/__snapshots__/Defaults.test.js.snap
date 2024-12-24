@@ -192,6 +192,9 @@ Object {
         wrappedContextCritical: false,
         wrappedContextRegExp: /\\.\\*/,
       },
+      json: Object {
+        exportsDepth: 9007199254740991,
+      },
     },
     rules: Array [],
   },

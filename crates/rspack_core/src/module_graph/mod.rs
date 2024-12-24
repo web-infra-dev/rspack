@@ -789,7 +789,7 @@ impl<'a> ModuleGraph<'a> {
     exports_info.get_export_info(self, export_name)
   }
 
-  pub(crate) fn get_ordered_all_dependencies(
+  pub(crate) fn get_ordered_outgoing_connections(
     &self,
     module_identifier: &ModuleIdentifier,
   ) -> impl Iterator<Item = &DependencyId> {

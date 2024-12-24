@@ -12,6 +12,7 @@ use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
@@ -41,6 +42,7 @@ pub enum ParserOptions {
   JavascriptAuto(JavascriptParserOptions),
   JavascriptEsm(JavascriptParserOptions),
   JavascriptDynamic(JavascriptParserOptions),
+  Json(JsonParserOptions),
   Unknown,
 }
 
@@ -68,6 +70,7 @@ impl ParserOptions {
     JavascriptDynamic,
     JavascriptParserOptions
   );
+  get_variant!(get_json, Json, JsonParserOptions);
 }
 
 #[cacheable]
@@ -285,6 +288,12 @@ pub struct CssAutoParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JsonParserOptions {
+  pub exports_depth: Option<u32>,
 }
 
 #[derive(Debug)]
@@ -560,8 +569,8 @@ impl Default for CssExportsConvention {
   }
 }
 
-pub type DescriptionData = HashMap<String, RuleSetCondition>;
-pub type With = HashMap<String, RuleSetCondition>;
+pub type DescriptionData = HashMap<String, RuleSetConditionWithEmpty>;
+pub type With = HashMap<String, RuleSetConditionWithEmpty>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -636,6 +645,47 @@ impl RuleSetCondition {
       Self::Func(f) => f(data).await,
     }
   }
+
+  #[async_recursion]
+  async fn match_when_empty(&self) -> Result<bool> {
+    let res = match self {
+      RuleSetCondition::String(s) => s.is_empty(),
+      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
+      RuleSetCondition::Array(arr) => {
+        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+      }
+      RuleSetCondition::Func(func) => func("".into()).await?,
+    };
+    Ok(res)
+  }
+}
+
+#[derive(Debug)]
+pub struct RuleSetConditionWithEmpty {
+  condition: RuleSetCondition,
+  match_when_empty: OnceCell<bool>,
+}
+
+impl RuleSetConditionWithEmpty {
+  pub fn new(condition: RuleSetCondition) -> Self {
+    Self {
+      condition,
+      match_when_empty: OnceCell::new(),
+    }
+  }
+
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    self.condition.try_match(data).await
+  }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    self
+      .match_when_empty
+      .get_or_try_init(|| async { self.condition.match_when_empty().await })
+      .await
+      .copied()
+  }
 }
 
 #[derive(Debug, Default)]
@@ -664,6 +714,24 @@ impl RuleSetLogicalConditions {
       return Ok(false);
     }
     Ok(true)
+  }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    let mut has_condition = false;
+    let mut match_when_empty = true;
+    if let Some(and) = &self.and {
+      has_condition = true;
+      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(or) = &self.or {
+      has_condition = true;
+      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(not) = &self.not {
+      has_condition = true;
+      match_when_empty &= !not.match_when_empty().await?;
+    }
+    Ok(has_condition && match_when_empty)
   }
 }
 
@@ -701,13 +769,13 @@ pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
-  pub resource_query: Option<RuleSetCondition>,
-  pub resource_fragment: Option<RuleSetCondition>,
+  pub resource_query: Option<RuleSetConditionWithEmpty>,
+  pub resource_fragment: Option<RuleSetConditionWithEmpty>,
   pub dependency: Option<RuleSetCondition>,
-  pub issuer: Option<RuleSetCondition>,
-  pub issuer_layer: Option<RuleSetCondition>,
-  pub scheme: Option<RuleSetCondition>,
-  pub mimetype: Option<RuleSetCondition>,
+  pub issuer: Option<RuleSetConditionWithEmpty>,
+  pub issuer_layer: Option<RuleSetConditionWithEmpty>,
+  pub scheme: Option<RuleSetConditionWithEmpty>,
+  pub mimetype: Option<RuleSetConditionWithEmpty>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
   pub one_of: Option<Vec<ModuleRule>>,

@@ -912,11 +912,12 @@ impl JsPlugin {
                       module_scope_idents,
                       used_in_non_inlined: Vec::new(),
                     };
+                    let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
 
                     self.rename_module_cache.inlined_modules_to_info.insert(
                       ident,
                       WithHash {
-                        hash: m.build_info().and_then(|i| i.hash.clone()),
+                        hash: ChunkGraph::get_module_hash(compilation, ident, runtime).cloned(),
                         value: info.clone(),
                       },
                     );
@@ -925,6 +926,7 @@ impl JsPlugin {
                   } else {
                     let mut idents_vec = vec![];
                     let module_ident = m.identifier();
+                    let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
 
                     for ident in collector.ids {
                       if ident.id.ctxt == global_ctxt {
@@ -940,7 +942,8 @@ impl JsPlugin {
                       .insert(
                         module_ident,
                         WithHash {
-                          hash: m.build_info().and_then(|i| i.hash.clone()),
+                          hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
+                            .cloned(),
                           value: idents_vec.clone(),
                         },
                       );
