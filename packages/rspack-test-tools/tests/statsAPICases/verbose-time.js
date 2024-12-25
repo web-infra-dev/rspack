@@ -60,8 +60,11 @@ module.exports = {
 		<t> remove empty chunks: X ms
 
 		LOG from rspack.SideEffectsFlagPlugin
-		    optimized 0 dependencies
-		<t> update dependencies: X ms
+		<t> prepare connections: X ms
+		<t> find optimizable connections: X ms
+		<t> do optimize connections: X ms
+		<t> update connections: X ms
+		    optimized 0 connections
 
 		LOG from rspack.SplitChunksPlugin
 		<t> prepare module group map: X ms
