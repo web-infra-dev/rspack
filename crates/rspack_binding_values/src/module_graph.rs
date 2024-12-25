@@ -49,12 +49,9 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
-        Some(connection) => match connection.resolved_original_module_identifier {
-          Some(identifier) => compilation.module_by_identifier(&identifier).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
-          }),
-          None => None,
-        },
+        Some(connection) => module_graph
+          .module_by_identifier(&connection.resolved_module)
+          .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
         None => None,
       },
     )
