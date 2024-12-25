@@ -60,6 +60,7 @@ import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import { ModuleDependency } from "./ModuleDependency";
 export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -1163,7 +1164,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err?: null | WebpackError, module?: Module) => void
+		callback: (err: WebpackError | null, module: Module | null) => void
 	) {
 		this.#addIncludeDispatcher.call(context, dependency, options, callback);
 	}
@@ -1286,9 +1287,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
-		[];
-	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+	#args: [string, ModuleDependency, binding.JsEntryOptions | undefined][] = [];
+	#cbs: ((err: WebpackError | null, module: Module | null) => void)[] = [];
 
 	#execute = () => {
 		if (this.#running) {
@@ -1307,16 +1307,20 @@ class AddIncludeDispatcher {
 			if (wholeErr) {
 				const webpackError = new WebpackError(wholeErr.message);
 				for (const cb of cbs) {
-					cb(webpackError);
+					cb(webpackError, null);
 				}
 				return;
 			}
 			for (let i = 0; i < results.length; i++) {
-				const [errMsg, moduleBinding] = results[i];
+				const [errMsg, dependencyBinding, moduleBinding] = results[i];
 				const cb = cbs[i];
+				const [_, dependency] = args[i];
+				if (dependencyBinding) {
+					bindingDependencyFactory.setBinding(dependency, dependencyBinding);
+				}
 				cb(
 					errMsg ? new WebpackError(errMsg) : null,
-					Module.__from_binding(moduleBinding)
+					moduleBinding ? Module.__from_binding(moduleBinding) : null
 				);
 			}
 		});
@@ -1331,7 +1335,7 @@ class AddIncludeDispatcher {
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err?: null | WebpackError, module?: Module) => void
+		callback: (err: WebpackError | null, module: Module | null) => void
 	) {
 		if (this.#args.length === 0) {
 			queueMicrotask(this.#execute);

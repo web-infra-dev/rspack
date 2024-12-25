@@ -34,6 +34,7 @@ use crate::JsChunkGraph;
 use crate::JsChunkGroupWrapper;
 use crate::JsChunkWrapper;
 use crate::JsCompatSource;
+use crate::JsDependencyWrapper;
 use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
@@ -724,7 +725,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void"
+    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void"
   )]
   pub fn add_include(
     &mut self,
@@ -766,61 +767,66 @@ impl JsCompilation {
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
+      let module_graph = compilation.get_module_graph();
       let results = dependency_ids
         .into_iter()
         .map(|dependency_id| {
-          let module_graph = compilation.get_module_graph();
           match module_graph.module_graph_module_by_dependency_id(&dependency_id) {
             Some(module) => match module_graph.module_by_identifier(&module.module_identifier) {
               Some(module) => {
+                let dependency = module_graph.dependency_by_id(&dependency_id).unwrap();
+                let js_dependency = JsDependencyWrapper::new(
+                  dependency.as_ref(),
+                  compilation.id(),
+                  Some(&compilation),
+                );
                 let js_module =
                   JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
-                (Either::B(()), Either::B(js_module))
+                Either::B((js_dependency, js_module))
               }
-              None => (
-                Either::A(format!(
-                  "Module created by {:#?} cannot be found",
-                  dependency_id
-                )),
-                Either::A(()),
-              ),
-            },
-            None => (
-              Either::A(format!(
+              None => Either::A(format!(
                 "Module created by {:#?} cannot be found",
                 dependency_id
               )),
-              Either::A(()),
-            ),
+            },
+            None => Either::A(format!(
+              "Module created by {:#?} cannot be found",
+              dependency_id
+            )),
           }
         })
-        .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
+        .collect::<Vec<Either<String, (JsDependencyWrapper, JsModuleWrapper)>>>();
 
       Ok(JsAddIncludeCallbackArgs(results))
     })
   }
 }
 
-pub struct JsAddIncludeCallbackArgs(Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>);
+pub struct JsAddIncludeCallbackArgs(Vec<Either<String, (JsDependencyWrapper, JsModuleWrapper)>>);
 
 impl ToNapiValue for JsAddIncludeCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
-    for (error, module) in val.0 {
-      let js_error = match error {
-        Either::A(val) => env_wrapper.create_string(&val)?.into_unknown(),
-        Either::B(_) => env_wrapper.get_undefined()?.into_unknown(),
-      };
-      let js_module = match module {
-        Either::A(_) => env_wrapper.get_undefined()?.into_unknown(),
-        Either::B(val) => {
-          let napi_val = ToNapiValue::to_napi_value(env, val)?;
-          Unknown::from_napi_value(env, napi_val)?
+    for result in val.0 {
+      let args = match result {
+        Either::A(err) => vec![env_wrapper.create_string(&err)?.into_unknown()],
+        Either::B((js_dependency, js_module)) => {
+          let js_err = env_wrapper.get_undefined()?.into_unknown();
+          let js_dependency = {
+            let napi_val = ToNapiValue::to_napi_value(env, js_dependency)?;
+            Unknown::from_napi_value(env, napi_val)?
+          };
+          let js_module = {
+            let napi_val = ToNapiValue::to_napi_value(env, js_module)?;
+            Unknown::from_napi_value(env, napi_val)?
+          };
+          vec![js_err, js_dependency, js_module]
         }
       };
-      js_array.insert(vec![js_error, js_module])?;
+      js_array.insert(args)?;
     }
+
     ToNapiValue::to_napi_value(env, js_array)
   }
 }
