@@ -57,4 +57,8 @@ export default class ModuleGraph {
 			.getOutgoingConnections(Module.__to_binding(module))
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
+
+	getParentBlockIndex(dependency: Dependency): number {
+		return this.#inner.getParentBlockIndex(Dependency.__to_binding(dependency));
+	}
 }
