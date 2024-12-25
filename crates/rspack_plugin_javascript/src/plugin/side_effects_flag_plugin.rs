@@ -709,10 +709,8 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
         let Some(dep) = module_graph.dependency_by_id(&connection.dependency_id) else {
           continue;
         };
-        if dep.is::<ESMExportImportedSpecifierDependency>() {
-          if modules.insert(original_module) {
-            affected_incoming_modules(&original_module, module_graph, modules);
-          }
+        if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
+          affected_incoming_modules(&original_module, module_graph, modules);
         }
       }
     }
