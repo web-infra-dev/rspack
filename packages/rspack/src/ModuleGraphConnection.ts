@@ -1,5 +1,5 @@
 import type { JsModuleGraphConnection } from "@rspack/binding";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { Module } from "./Module";
 
 const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
@@ -40,7 +40,10 @@ export class ModuleGraphConnection {
 			dependency: {
 				enumerable: true,
 				get(): Dependency {
-					return Dependency.__from_binding(binding.dependency);
+					return bindingDependencyFactory.create(
+						Dependency,
+						binding.dependency
+					);
 				}
 			}
 		});

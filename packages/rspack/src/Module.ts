@@ -10,7 +10,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -182,7 +182,7 @@ export class ContextModuleFactoryAfterResolveData {
 				enumerable: true,
 				get(): Dependency[] {
 					return binding.dependencies.map(dep =>
-						Dependency.__from_binding(dep)
+						bindingDependencyFactory.create(Dependency, dep)
 					);
 				}
 			}
@@ -336,7 +336,9 @@ export class Module {
 				enumerable: true,
 				get(): Dependency[] {
 					if ("dependencies" in module) {
-						return module.dependencies.map(d => Dependency.__from_binding(d));
+						return module.dependencies.map(d =>
+							bindingDependencyFactory.create(Dependency, d)
+						);
 					}
 					return [];
 				}

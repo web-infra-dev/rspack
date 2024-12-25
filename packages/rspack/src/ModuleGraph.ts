@@ -1,5 +1,5 @@
 import type { JsModuleGraph } from "@rspack/binding";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { ExportsInfo } from "./ExportsInfo";
 import { Module } from "./Module";
 import { ModuleGraphConnection } from "./ModuleGraphConnection";
@@ -16,22 +16,30 @@ export default class ModuleGraph {
 	}
 
 	getModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getModule(Dependency.__to_binding(dependency));
-		return binding ? Module.__from_binding(binding) : null;
+		const depBinding = bindingDependencyFactory.getBinding(dependency);
+		if (depBinding) {
+			const binding = this.#inner.getModule(depBinding);
+			return binding ? Module.__from_binding(binding) : null;
+		}
+		return null;
 	}
 
 	getResolvedModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getResolvedModule(
-			Dependency.__to_binding(dependency)
-		);
-		return binding ? Module.__from_binding(binding) : null;
+		const depBinding = bindingDependencyFactory.getBinding(dependency);
+		if (depBinding) {
+			const binding = this.#inner.getResolvedModule(depBinding);
+			return binding ? Module.__from_binding(binding) : null;
+		}
+		return null;
 	}
 
 	getParentModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getParentModule(
-			Dependency.__to_binding(dependency)
-		);
-		return binding ? Module.__from_binding(binding) : null;
+		const depBinding = bindingDependencyFactory.getBinding(dependency);
+		if (depBinding) {
+			const binding = this.#inner.getParentModule(depBinding);
+			return binding ? Module.__from_binding(binding) : null;
+		}
+		return null;
 	}
 
 	getIssuer(module: Module): Module | null {
@@ -46,10 +54,12 @@ export default class ModuleGraph {
 	}
 
 	getConnection(dependency: Dependency): ModuleGraphConnection | null {
-		const binding = this.#inner.getConnection(
-			Dependency.__to_binding(dependency)
-		);
-		return binding ? ModuleGraphConnection.__from_binding(binding) : null;
+		const depBinding = bindingDependencyFactory.getBinding(dependency);
+		if (depBinding) {
+			const binding = this.#inner.getConnection(depBinding);
+			return binding ? ModuleGraphConnection.__from_binding(binding) : null;
+		}
+		return null;
 	}
 
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
@@ -59,6 +69,10 @@ export default class ModuleGraph {
 	}
 
 	getParentBlockIndex(dependency: Dependency): number {
-		return this.#inner.getParentBlockIndex(Dependency.__to_binding(dependency));
+		const depBinding = bindingDependencyFactory.getBinding(dependency);
+		if (depBinding) {
+			return this.#inner.getParentBlockIndex(depBinding);
+		}
+		return -1;
 	}
 }

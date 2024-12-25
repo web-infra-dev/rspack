@@ -24,7 +24,7 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
@@ -1352,9 +1352,11 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
-		this.includeDependencies = binding.includeDependencies.map(
-			Dependency.__from_binding
+		this.dependencies = binding.dependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
+		);
+		this.includeDependencies = binding.includeDependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
 		);
 		this.options = binding.options;
 	}
