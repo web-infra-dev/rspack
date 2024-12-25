@@ -75,4 +75,8 @@ export default class ModuleGraph {
 		}
 		return -1;
 	}
+
+	isAsync(module: Module): boolean {
+		return this.#inner.isAsync(Module.__to_binding(module));
+	}
 }
