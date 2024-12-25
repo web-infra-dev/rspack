@@ -67,4 +67,8 @@ export default class ModuleGraph {
 	getParentBlockIndex(dependency: Dependency): number {
 		return this.#inner.getParentBlockIndex(Dependency.__to_binding(dependency));
 	}
+
+	isAsync(module: Module): boolean {
+		return this.#inner.isAsync(Module.__to_binding(module));
+	}
 }

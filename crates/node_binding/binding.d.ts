@@ -249,6 +249,7 @@ export declare class JsModuleGraph {
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
   getParentModule(jsDependency: JsDependency): JsModule | null
   getParentBlockIndex(jsDependency: JsDependency): number
+  isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
