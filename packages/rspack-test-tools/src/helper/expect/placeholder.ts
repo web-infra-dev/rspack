@@ -5,7 +5,10 @@ import { createSnapshotSerializer } from "path-serializer";
 // 2. replace <RSPACK_ROOT> etc
 // 3. transform win32 sep
 const placeholderSerializer = createSnapshotSerializer({
-	root: path.resolve(__dirname, "../../../../../"),
+	root: __dirname.includes("node_modules")
+		? // Use `process.cwd()` when using outside Rspack
+			process.cwd()
+		: path.resolve(__dirname, "../../../../../"),
 	replace: [
 		{
 			match: path.resolve(__dirname, "../../../"),
