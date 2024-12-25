@@ -916,7 +916,6 @@ impl Module for ContextModule {
       blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
-      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
       for context_element_dependency in context_element_dependencies {
         let group_options = self
           .options
