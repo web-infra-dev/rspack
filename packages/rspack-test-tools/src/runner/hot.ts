@@ -89,6 +89,28 @@ export class HotRunnerFactory<
 				.catch(callback);
 		};
 
+		const nextHMR = (module: any, options?: any) => {
+			return new Promise<TCompilerStatsCompilation<T> | undefined>(
+				(resolve, reject) => {
+					const callback = function (
+						err: Error | null,
+						stats?: TCompilerStatsCompilation<T>
+					): void {
+						if (err) return reject(err);
+						module.hot
+							.check(options || true)
+							.then((updatedModules: any) => {
+								if (!updatedModules)
+									return reject(new Error("No update available"));
+								resolve(stats);
+							})
+							.catch(reject);
+					};
+					next(callback);
+				}
+			);
+		};
+
 		return new WebRunner({
 			dom:
 				this.context.getValue(this.name, "documentType") || EDocumentType.JSDOM,
@@ -105,6 +127,7 @@ export class HotRunnerFactory<
 							: ms;
 
 					moduleScope.NEXT = next;
+					moduleScope.NEXT_HMR = nextHMR;
 					return moduleScope;
 				}
 			},

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { rspack } from "@rspack/core";
+import { type Compiler, rspack } from "@rspack/core";
 
 import {
 	ECompilerType,
@@ -122,6 +122,40 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
 				new rspack.HotModuleReplacementPlugin()
 			);
+			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push({
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("HMR_TEST_PLUGIN", compilation => {
+						compilation.hooks.additionalTreeRuntimeRequirements.tap(
+							"HMR_TEST_PLUGIN",
+							(chunk, set) => {
+								set.add(compiler.webpack.RuntimeGlobals.moduleCache);
+							}
+						);
+						compilation.hooks.runtimeModule.tap(
+							"HMR_TEST_PLUGIN",
+							(module: any, set) => {
+								if (
+									module.constructorName ===
+									"DefinePropertyGettersRuntimeModule"
+								) {
+									module.source.source = Buffer.from(
+										`
+										__webpack_require__.d = function (exports, definition) {
+												for (var key in definition) {
+														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
+														}
+												}
+										};
+										`,
+										"utf-8"
+									);
+								}
+							}
+						);
+					});
+				}
+			});
 		}
 		return options;
 	}
