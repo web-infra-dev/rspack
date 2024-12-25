@@ -32,7 +32,7 @@ mod test_storage_dev {
       temp_root: temp_root.into(),
       fs,
       bucket_size: 1,
-      pack_size: 200,
+      pack_size: 10000,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
       fresh_generation: Some(1),

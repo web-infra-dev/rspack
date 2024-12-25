@@ -5,12 +5,10 @@ use futures::future::join_all;
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::task::JoinError;
 
 use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
   error::Result,
-  fs::BatchFSError,
   pack::{
     data::{Pack, PackFileMeta, PackOptions},
     strategy::{split::util::get_name, PackReadStrategy, PackWriteStrategy, UpdatePacksResult},
@@ -128,7 +126,7 @@ impl PackWriteStrategy for SplitPackStrategy {
       })
       .collect::<HashSet<_>>();
 
-    let dirty_packs = refill_released_packs(
+    let dirty_packs = reload_released_packs(
       dirty_pack_index
         .into_iter()
         .map(|pack_index| {
@@ -228,16 +226,17 @@ impl PackWriteStrategy for SplitPackStrategy {
   }
 }
 
-async fn refill_released_packs(
+async fn reload_released_packs(
   packs: Vec<Pack>,
   strategy: &SplitPackStrategy,
 ) -> Result<Vec<Pack>> {
   let (released_packs, memory_packs): (Vec<_>, Vec<_>) = packs
     .into_iter()
     .partition(|pack| pack.contents.is_released());
-  let tasks = join_all(released_packs.into_iter().map(|mut pack| {
+
+  let mut res = join_all(released_packs.into_iter().map(|mut pack| {
     let strategy = strategy.to_owned();
-    tokio::spawn(tokio::task::unconstrained(async move {
+    async move {
       match strategy.read_pack_contents(&pack.path).await {
         Ok(contents) => {
           if let Some(contents) = contents {
@@ -257,16 +256,11 @@ async fn refill_released_packs(
         }
         Err(e) => Err(e),
       }
-    }))
-  }));
-
-  let mut res = BatchFSError::try_from_joined_result(
-    "refill released packs failed",
-    tasks
-      .await
-      .into_iter()
-      .collect::<std::result::Result<Vec<_>, JoinError>>(),
-  )?;
+    }
+  }))
+  .await
+  .into_iter()
+  .collect::<Result<Vec<_>>>()?;
 
   res.extend(memory_packs);
 
