@@ -16,6 +16,7 @@ module.exports = {
 	},
 	externals: "external-module",
 	optimization: {
+		avoidEntryIife: true,
 		concatenateModules: true,
 		minimize: false
 	},

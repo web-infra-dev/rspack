@@ -205,6 +205,7 @@ Object {
     global: warn,
   },
   optimization: Object {
+    avoidEntryIife: false,
     chunkIds: natural,
     concatenateModules: false,
     emitOnErrors: true,

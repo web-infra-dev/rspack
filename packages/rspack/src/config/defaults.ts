@@ -940,6 +940,8 @@ const applyOptimizationDefaults = (
 	D(optimization, "emitOnErrors", !production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
+	// IGNORE(optimization.avoidEntryIife): to update the default value of webpack and bump webpack version in Rspack.
+	D(optimization, "avoidEntryIife", false);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", production);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default

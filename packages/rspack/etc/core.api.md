@@ -4132,6 +4132,7 @@ export type Optimization = {
     mangleExports?: "size" | "deterministic" | boolean;
     nodeEnv?: string | false;
     emitOnErrors?: boolean;
+    avoidEntryIife?: boolean;
 };
 
 // @public
@@ -7178,6 +7179,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports: z.ZodOptional<z.ZodUnion<[z.ZodEnum<["size", "deterministic"]>, z.ZodBoolean]>>;
         nodeEnv: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>>;
         emitOnErrors: z.ZodOptional<z.ZodBoolean>;
+        avoidEntryIife: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
@@ -7244,6 +7246,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports?: boolean | "deterministic" | "size" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
+        avoidEntryIife?: boolean | undefined;
     }, {
         usedExports?: boolean | "global" | undefined;
         providedExports?: boolean | undefined;
@@ -7310,6 +7313,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports?: boolean | "deterministic" | "size" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
+        avoidEntryIife?: boolean | undefined;
     }>>;
     resolve: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
     resolveLoader: z.ZodOptional<z.ZodType<t.ResolveOptions, z.ZodTypeDef, t.ResolveOptions>>;
@@ -8933,6 +8937,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports?: boolean | "deterministic" | "size" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
+        avoidEntryIife?: boolean | undefined;
     } | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     watch?: boolean | undefined;
@@ -9535,6 +9540,7 @@ export const rspackOptions: z.ZodObject<{
         mangleExports?: boolean | "deterministic" | "size" | undefined;
         nodeEnv?: string | false | undefined;
         emitOnErrors?: boolean | undefined;
+        avoidEntryIife?: boolean | undefined;
     } | undefined;
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     watch?: boolean | undefined;

@@ -2340,6 +2340,11 @@ export type Optimization = {
 	 * The value is `true` in development mode.
 	 * */
 	emitOnErrors?: boolean;
+
+	/**
+	 * Avoid wrapping the entry module in an IIFE.
+	 */
+	avoidEntryIife?: boolean;
 };
 //#endregion
 
