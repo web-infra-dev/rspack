@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use futures::future::join_all;
 use itertools::Itertools;
-use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::JoinError;
 
@@ -71,7 +71,7 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
+  async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
     }
@@ -96,41 +96,47 @@ impl ScopeWriteStrategy for SplitPackStrategy {
         },
       );
 
-    let changed_buckets = bucket_updates
-      .into_iter()
-      .map(|(bucket_id, bucket_update)| {
-        let old_metas = std::mem::take(
-          scope_meta
-            .packs
-            .get_mut(bucket_id)
-            .expect("should have bucket pack metas"),
-        );
-
-        let old_packs = std::mem::take(
-          scope_packs
-            .get_mut(bucket_id)
-            .expect("should have bucket packs"),
-        );
-
-        let bucket_packs = old_metas
-          .into_iter()
-          .zip(old_packs)
-          .collect::<HashMap<_, _>>();
-
-        (bucket_id, bucket_update, bucket_packs)
-      })
-      .par_bridge()
-      .map(|(bucket_id, bucket_update, bucket_packs)| {
-        let packs = self.update_packs(
-          scope.path.join(bucket_id.to_string()),
-          scope_meta.generation,
-          scope.options.as_ref(),
-          bucket_packs,
-          bucket_update,
-        );
-        (bucket_id, packs)
-      })
-      .collect::<Vec<_>>();
+    let changed_buckets = join_all(
+      bucket_updates
+        .into_iter()
+        .map(|(bucket_id, bucket_update)| {
+          let old_metas = std::mem::take(
+            scope_meta
+              .packs
+              .get_mut(bucket_id)
+              .expect("should have bucket pack metas"),
+          );
+          let old_packs = std::mem::take(
+            scope_packs
+              .get_mut(bucket_id)
+              .expect("should have bucket packs"),
+          );
+          let bucket_packs = old_metas
+            .into_iter()
+            .zip(old_packs)
+            .collect::<HashMap<_, _>>();
+          let bucket_path = scope.path.join(bucket_id.to_string());
+          let scope_options = scope.options.clone();
+          async move {
+            match self
+              .update_packs(
+                bucket_path,
+                scope_meta.generation,
+                scope_options.as_ref(),
+                bucket_packs,
+                bucket_update,
+              )
+              .await
+            {
+              Ok(res) => Ok((bucket_id, res)),
+              Err(e) => Err(e),
+            }
+          }
+        }),
+    )
+    .await
+    .into_iter()
+    .collect::<Result<Vec<_>>>()?;
 
     let mut remain_files = HashSet::default();
     for (bucket_id, bucket_result) in changed_buckets {
@@ -156,8 +162,60 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
-  async fn optimize_packs(&self, _: &mut PackScope) -> Result<()> {
-    // let curerent_generation = scope.meta.expect_value();
+  async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
+    if !scope.loaded() {
+      panic!("scope not loaded, run `load` first");
+    }
+
+    let mut scope_meta = scope.meta.take_value().expect("should have scope meta");
+    let mut scope_packs = scope.packs.take_value().expect("should have scope packs");
+
+    for (bucket_id, raw_pack_metas) in scope_meta.packs.iter_mut().enumerate() {
+      let bucket_packs = std::mem::take(raw_pack_metas)
+        .into_iter()
+        .zip(std::mem::take(&mut scope_packs[bucket_id]))
+        .collect_vec();
+
+      let (fresh_packs, freezed_packs): (Vec<_>, Vec<_>) =
+        bucket_packs.into_iter().partition(|(meta, _)| {
+          if meta.wrote {
+            if let Some(fresh_generation) = self.fresh_generation {
+              scope_meta.generation - meta.generation <= fresh_generation
+            } else {
+              false
+            }
+          } else {
+            true
+          }
+        });
+
+      let mut final_packs = vec![];
+      final_packs.extend(freezed_packs);
+      final_packs.extend(if fresh_packs.is_empty() {
+        vec![]
+      } else {
+        let result = self
+          .optimize_packs(
+            scope.path.join(bucket_id.to_string()),
+            scope.options.as_ref(),
+            fresh_packs,
+          )
+          .await?;
+        scope.removed.extend(result.removed_files);
+        result
+          .remain_packs
+          .into_iter()
+          .chain(result.new_packs)
+          .collect_vec()
+      });
+
+      let (metas, packs): (Vec<_>, Vec<_>) = final_packs.into_iter().unzip();
+      let _ = std::mem::replace(&mut scope_packs[bucket_id], packs);
+      let _ = std::mem::replace(raw_pack_metas, metas);
+    }
+
+    scope.packs.set_value(scope_packs);
+    scope.meta.set_value(scope_meta);
 
     Ok(())
   }
@@ -194,9 +252,16 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     for bucket_pack_metas in meta.packs.iter() {
       let mut bucket_packs = vec![];
       for pack_meta in bucket_pack_metas {
-        let pack = wrote_packs
+        let mut pack = wrote_packs
           .remove(&pack_meta.hash)
           .expect("should have pack");
+
+        if let Some(release_generation) = self.release_generation {
+          if meta.generation - pack_meta.generation > release_generation {
+            pack.contents.release();
+          }
+        }
+
         bucket_packs.push(pack);
       }
 
@@ -322,7 +387,7 @@ mod tests {
     end: usize,
   ) -> Result<()> {
     let updates = mock_updates(start, end, 8, UpdateVal::Value("val".into()));
-    strategy.update_scope(scope, updates)?;
+    strategy.update_scope(scope, updates).await?;
     let contents = scope
       .get_contents()
       .into_iter()
@@ -354,7 +419,7 @@ mod tests {
   ) -> Result<()> {
     let updates = mock_updates(start, end, 24, UpdateVal::Value("val".into()));
     let pre_item_count = scope.get_contents().len();
-    strategy.update_scope(scope, updates)?;
+    strategy.update_scope(scope, updates).await?;
     let contents = scope
       .get_contents()
       .into_iter()
@@ -380,7 +445,7 @@ mod tests {
   async fn test_update_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
     let updates = mock_updates(0, 1, 8, UpdateVal::Value("new".into()));
     let pre_item_count = scope.get_contents().len();
-    strategy.update_scope(scope, updates)?;
+    strategy.update_scope(scope, updates).await?;
     let contents = scope
       .get_contents()
       .into_iter()
@@ -401,7 +466,7 @@ mod tests {
   async fn test_remove_value(scope: &mut PackScope, strategy: &SplitPackStrategy) -> Result<()> {
     let updates = mock_updates(1, 2, 8, UpdateVal::Removed);
     let pre_item_count = scope.get_contents().len();
-    strategy.update_scope(scope, updates)?;
+    strategy.update_scope(scope, updates).await?;
     let contents = scope
       .get_contents()
       .into_iter()

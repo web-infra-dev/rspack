@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures::future::join_all;
 use itertools::Itertools;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use tokio::task::JoinError;
 
 use super::{handle_file::redirect_to_path, SplitPackStrategy};
 use crate::{
   error::Result,
+  fs::BatchFSError,
   pack::{
     data::{Pack, PackFileMeta, PackOptions},
-    strategy::{split::util::get_name, PackWriteStrategy, UpdatePacksResult},
+    strategy::{split::util::get_name, PackReadStrategy, PackWriteStrategy, UpdatePacksResult},
     ScopeUpdate,
   },
-  ItemKey, ItemValue,
+  FSError, FSOperation, ItemKey, ItemValue,
 };
 
 #[derive(Debug, Eq)]
@@ -37,15 +40,35 @@ impl PartialEq for PackItemCandidate {
 
 #[async_trait]
 impl PackWriteStrategy for SplitPackStrategy {
-  fn update_packs(
+  async fn optimize_packs(
+    &self,
+    dir: Utf8PathBuf,
+    options: &PackOptions,
+    packs: Vec<(PackFileMeta, Pack)>,
+  ) -> Result<UpdatePacksResult> {
+    let mut removed_files = vec![];
+    let items = packs
+      .into_iter()
+      .fold(HashSet::default(), |mut acc, (_, mut pack)| {
+        removed_files.push(pack.path.clone());
+        pour_pack(&mut acc, &mut pack);
+        acc
+      });
+    Ok(UpdatePacksResult {
+      new_packs: create(&dir, options, items),
+      remain_packs: vec![],
+      removed_files,
+    })
+  }
+
+  async fn update_packs(
     &self,
     dir: Utf8PathBuf,
     generation: usize,
     options: &PackOptions,
     packs: HashMap<PackFileMeta, Pack>,
     updates: ScopeUpdate,
-  ) -> UpdatePacksResult {
-    let pack_dir = dir.to_path_buf();
+  ) -> Result<UpdatePacksResult> {
     let mut indexed_packs = packs.into_iter().enumerate().collect::<HashMap<_, _>>();
     let mut indexed_updates = updates.into_iter().enumerate().collect::<HashMap<_, _>>();
 
@@ -62,7 +85,7 @@ impl PackWriteStrategy for SplitPackStrategy {
           acc
         });
 
-    let mut dirty_packs = HashSet::default();
+    let mut dirty_pack_index = HashSet::default();
     let mut insert_items = HashSet::default();
     let mut remove_items = HashSet::default();
 
@@ -71,7 +94,7 @@ impl PackWriteStrategy for SplitPackStrategy {
     // pour out items from non-full packs
     for (index, (pack_meta, _)) in indexed_packs.iter() {
       if (pack_meta.size as f64) < (options.pack_size as f64) * 0.8_f64 {
-        dirty_packs.insert(*index);
+        dirty_pack_index.insert(*index);
       }
     }
 
@@ -80,12 +103,12 @@ impl PackWriteStrategy for SplitPackStrategy {
       if val.is_some() {
         insert_items.insert(*index);
         if let Some(pack_index) = current_items_belong.get(key) {
-          dirty_packs.insert(*pack_index);
+          dirty_pack_index.insert(*pack_index);
         }
       } else {
         remove_items.insert(*index);
         if let Some(pack_index) = current_items_belong.get(key) {
-          dirty_packs.insert(*pack_index);
+          dirty_pack_index.insert(*pack_index);
         }
       }
     }
@@ -105,41 +128,27 @@ impl PackWriteStrategy for SplitPackStrategy {
       })
       .collect::<HashSet<_>>();
 
+    let dirty_packs = refill_released_packs(
+      dirty_pack_index
+        .into_iter()
+        .map(|pack_index| {
+          indexed_packs
+            .remove(&pack_index)
+            .expect("should have bucket pack")
+            .1
+        })
+        .collect_vec(),
+      &self,
+    )
+    .await?;
+
     // pour out items from dirty packs
     items.extend(
       dirty_packs
-        .iter()
-        .fold(HashSet::default(), |mut acc, pack_index| {
-          let (_, mut old_pack) = indexed_packs
-            .remove(pack_index)
-            .expect("should have bucket pack");
-
-          removed_files.push(old_pack.path.clone());
-
-          let (Some(keys), Some(contents), generations) = (
-            old_pack.keys.take_value(),
-            old_pack.contents.take_value(),
-            std::mem::take(&mut old_pack.generations),
-          ) else {
-            return acc;
-          };
-
-          if keys.len() != contents.len() || keys.len() != generations.len() {
-            return acc;
-          }
-
-          acc.extend(
-            keys
-              .into_iter()
-              .zip(contents.into_iter().zip(generations))
-              .map(|(key, (value, generation))| PackItemCandidate {
-                key,
-                value,
-                generation,
-              })
-              .collect::<HashSet<_>>(),
-          );
-
+        .into_iter()
+        .fold(HashSet::default(), |mut acc, mut pack| {
+          removed_files.push(pack.path.clone());
+          pour_pack(&mut acc, &mut pack);
           acc
         }),
     );
@@ -156,13 +165,13 @@ impl PackWriteStrategy for SplitPackStrategy {
 
     // generate packs
     let remain_packs = indexed_packs.into_values().collect_vec();
-    let new_packs: Vec<(PackFileMeta, Pack)> = create(&pack_dir, options, items);
+    let new_packs: Vec<(PackFileMeta, Pack)> = create(&dir, options, items);
 
-    UpdatePacksResult {
+    Ok(UpdatePacksResult {
       new_packs,
       remain_packs,
       removed_files,
-    }
+    })
   }
 
   async fn write_pack(&self, pack: &Pack) -> Result<()> {
@@ -217,6 +226,77 @@ impl PackWriteStrategy for SplitPackStrategy {
 
     Ok(())
   }
+}
+
+async fn refill_released_packs(
+  packs: Vec<Pack>,
+  strategy: &SplitPackStrategy,
+) -> Result<Vec<Pack>> {
+  let (released_packs, memory_packs): (Vec<_>, Vec<_>) = packs
+    .into_iter()
+    .partition(|pack| pack.contents.is_released());
+  let tasks = join_all(released_packs.into_iter().map(|mut pack| {
+    let strategy = strategy.to_owned();
+    tokio::spawn(tokio::task::unconstrained(async move {
+      match strategy.read_pack_contents(&pack.path).await {
+        Ok(contents) => {
+          if let Some(contents) = contents {
+            pack.contents.set_value(contents.contents);
+            pack.generations = contents.generations;
+            Ok(pack)
+          } else {
+            Err(
+              FSError::from_message(
+                &pack.path,
+                FSOperation::Read,
+                format!("pack `{}` is released and deleted", pack.path),
+              )
+              .into(),
+            )
+          }
+        }
+        Err(e) => Err(e),
+      }
+    }))
+  }));
+
+  let mut res = BatchFSError::try_from_joined_result(
+    "refill released packs failed",
+    tasks
+      .await
+      .into_iter()
+      .collect::<std::result::Result<Vec<_>, JoinError>>(),
+  )?;
+
+  res.extend(memory_packs);
+
+  Ok(res)
+}
+
+fn pour_pack(items: &mut HashSet<PackItemCandidate>, pack: &mut Pack) {
+  let (Some(keys), Some(contents), generations) = (
+    pack.keys.take_value(),
+    pack.contents.take_value(),
+    std::mem::take(&mut pack.generations),
+  ) else {
+    panic!("should have pack keys and contents");
+  };
+
+  if keys.len() != contents.len() || keys.len() != generations.len() {
+    panic!("should have same length keys, contents, and generations");
+  }
+
+  items.extend(
+    keys
+      .into_iter()
+      .zip(contents.into_iter().zip(generations))
+      .map(|(key, (value, generation))| PackItemCandidate {
+        key,
+        value,
+        generation,
+      })
+      .collect::<HashSet<_>>(),
+  );
 }
 
 fn create(
@@ -388,13 +468,15 @@ mod tests {
 
     // half pack
     let mut packs = HashMap::default();
-    let res = strategy.update_packs(
-      dir.clone(),
-      0_usize,
-      &options,
-      packs,
-      mock_updates(0, 50, 10, UpdateVal::Value("val".into())),
-    );
+    let res = strategy
+      .update_packs(
+        dir.clone(),
+        0_usize,
+        &options,
+        packs,
+        mock_updates(0, 50, 10, UpdateVal::Value("val".into())),
+      )
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 0);
     assert_eq!(get_pack_sizes(&res), vec![1050]);
@@ -402,13 +484,15 @@ mod tests {
     packs = update_packs(res);
 
     // full pack
-    let res = strategy.update_packs(
-      dir.clone(),
-      1_usize,
-      &options,
-      packs,
-      mock_updates(50, 100, 10, UpdateVal::Value("val".into())),
-    );
+    let res = strategy
+      .update_packs(
+        dir.clone(),
+        1_usize,
+        &options,
+        packs,
+        mock_updates(50, 100, 10, UpdateVal::Value("val".into())),
+      )
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 0);
     assert_eq!(res.removed_files.len(), 1);
@@ -417,13 +501,15 @@ mod tests {
     packs = update_packs(res);
 
     // almost full pack
-    let res = strategy.update_packs(
-      dir.clone(),
-      2_usize,
-      &options,
-      packs,
-      mock_updates(100, 190, 10, UpdateVal::Value("val".into())),
-    );
+    let res = strategy
+      .update_packs(
+        dir.clone(),
+        2_usize,
+        &options,
+        packs,
+        mock_updates(100, 190, 10, UpdateVal::Value("val".into())),
+      )
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 1);
     assert_eq!(res.removed_files.len(), 0);
@@ -431,13 +517,15 @@ mod tests {
 
     packs = update_packs(res);
 
-    let res = strategy.update_packs(
-      dir.clone(),
-      3_usize,
-      &options,
-      packs,
-      mock_updates(190, 200, 10, UpdateVal::Value("val".into())),
-    );
+    let res = strategy
+      .update_packs(
+        dir.clone(),
+        3_usize,
+        &options,
+        packs,
+        mock_updates(190, 200, 10, UpdateVal::Value("val".into())),
+      )
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 2);
     assert_eq!(res.removed_files.len(), 0);
@@ -448,7 +536,9 @@ mod tests {
     // long item pack
     let mut updates = mock_updates(0, 1, 1200, UpdateVal::Value("val".into()));
     updates.extend(mock_updates(1, 2, 900, UpdateVal::Value("val".into())));
-    let res = strategy.update_packs(dir.clone(), 4_usize, &options, packs, updates);
+    let res = strategy
+      .update_packs(dir.clone(), 4_usize, &options, packs, updates)
+      .await?;
     assert_eq!(res.new_packs.len(), 3);
     assert_eq!(res.remain_packs.len(), 2);
     assert_eq!(res.removed_files.len(), 1);
@@ -457,13 +547,15 @@ mod tests {
     packs = update_packs(res);
 
     // remove items pack
-    let res = strategy.update_packs(
-      dir.clone(),
-      5_usize,
-      &options,
-      packs,
-      mock_updates(100, 130, 10, UpdateVal::Removed),
-    );
+    let res = strategy
+      .update_packs(
+        dir.clone(),
+        5_usize,
+        &options,
+        packs,
+        mock_updates(100, 130, 10, UpdateVal::Removed),
+      )
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 3);
     assert_eq!(res.removed_files.len(), 2);
@@ -477,7 +569,9 @@ mod tests {
       format!("{:0>6}_key", 131).as_bytes().to_vec(),
       Some(format!("{:0>6}_valaaa", 131).as_bytes().to_vec()),
     );
-    let res = strategy.update_packs(dir.clone(), 6_usize, &options, packs, updates);
+    let res = strategy
+      .update_packs(dir.clone(), 6_usize, &options, packs, updates)
+      .await?;
     assert_eq!(res.new_packs.len(), 1);
     assert_eq!(res.remain_packs.len(), 3);
     assert_eq!(res.removed_files.len(), 1);

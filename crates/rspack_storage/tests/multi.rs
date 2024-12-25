@@ -35,6 +35,8 @@ mod test_storage_multi {
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     }
   }
 

@@ -47,6 +47,7 @@ pub enum PackContentsState {
   #[default]
   Pending,
   Value(PackContents),
+  Released,
 }
 
 impl PackContentsState {
@@ -60,12 +61,14 @@ impl PackContentsState {
     match self {
       PackContentsState::Value(v) => Some(v),
       PackContentsState::Pending => None,
+      PackContentsState::Released => None,
     }
   }
   pub fn expect_value(&self) -> &PackContents {
     match self {
       PackContentsState::Value(v) => v,
       PackContentsState::Pending => panic!("pack content is not ready"),
+      PackContentsState::Released => panic!("pack content has been released"),
     }
   }
   pub fn take_value(&mut self) -> Option<PackContents> {
@@ -73,6 +76,12 @@ impl PackContentsState {
       PackContentsState::Value(v) => Some(std::mem::take(&mut *v)),
       _ => None,
     }
+  }
+  pub fn release(&mut self) {
+    *self = PackContentsState::Released;
+  }
+  pub fn is_released(&self) -> bool {
+    matches!(self, Self::Released)
   }
 }
 
@@ -96,7 +105,8 @@ impl Pack {
 
   pub fn loaded(&self) -> bool {
     matches!(self.keys, PackKeysState::Value(_))
-      && matches!(self.contents, PackContentsState::Value(_))
+      && (matches!(self.contents, PackContentsState::Value(_))
+        || matches!(self.contents, PackContentsState::Released))
   }
 
   pub fn size(&self) -> usize {

@@ -38,7 +38,7 @@ pub trait RootStrategy {
   async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
   async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult>;
-  async fn clean_unused(
+  async fn clean(
     &self,
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
@@ -60,14 +60,20 @@ pub trait PackReadStrategy {
 
 #[async_trait]
 pub trait PackWriteStrategy {
-  fn update_packs(
+  async fn update_packs(
     &self,
     dir: Utf8PathBuf,
     generation: usize,
     options: &PackOptions,
     packs: HashMap<PackFileMeta, Pack>,
     updates: HashMap<ItemKey, Option<ItemValue>>,
-  ) -> UpdatePacksResult;
+  ) -> Result<UpdatePacksResult>;
+  async fn optimize_packs(
+    &self,
+    dir: Utf8PathBuf,
+    options: &PackOptions,
+    packs: Vec<(PackFileMeta, Pack)>,
+  ) -> Result<UpdatePacksResult>;
   async fn write_pack(&self, pack: &Pack) -> Result<()>;
 }
 
@@ -102,9 +108,9 @@ impl WriteScopeResult {
 pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
+  async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
   async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
-  async fn optimize_packs(&self, scope: &mut PackScope) -> Result<()>;
+  async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;

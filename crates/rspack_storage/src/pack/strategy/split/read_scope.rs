@@ -238,7 +238,7 @@ struct ReadContentsResult {
 }
 
 fn read_contents_filter(pack: &Pack, _: &PackFileMeta) -> bool {
-  pack.keys.loaded() && !pack.contents.loaded()
+  pack.keys.loaded() && (!pack.contents.loaded() || pack.contents.is_released())
 }
 
 async fn read_contents(

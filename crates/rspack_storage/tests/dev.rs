@@ -35,6 +35,8 @@ mod test_storage_dev {
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     }
   }
 
@@ -53,7 +55,7 @@ mod test_storage_dev {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?;
+    storage.trigger_save()?.await.expect("should save")?;
 
     assert_eq!(storage.load("test_scope").await?.len(), 300);
     for i in 300..700 {

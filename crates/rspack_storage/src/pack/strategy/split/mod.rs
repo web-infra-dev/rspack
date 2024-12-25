@@ -32,14 +32,24 @@ pub struct SplitPackStrategy {
   pub fs: Arc<dyn FileSystem>,
   pub root: Arc<Utf8PathBuf>,
   pub temp_root: Arc<Utf8PathBuf>,
+  pub fresh_generation: Option<usize>,
+  pub release_generation: Option<usize>,
 }
 
 impl SplitPackStrategy {
-  pub fn new(root: Utf8PathBuf, temp_root: Utf8PathBuf, fs: Arc<dyn FileSystem>) -> Self {
+  pub fn new(
+    root: Utf8PathBuf,
+    temp_root: Utf8PathBuf,
+    fs: Arc<dyn FileSystem>,
+    fresh_generation: Option<usize>,
+    release_generation: Option<usize>,
+  ) -> Self {
     Self {
       fs,
       root: Arc::new(root),
       temp_root: Arc::new(temp_root),
+      fresh_generation,
+      release_generation,
     }
   }
 
@@ -124,7 +134,7 @@ impl RootStrategy for SplitPackStrategy {
     }
   }
 
-  async fn clean_unused(
+  async fn clean(
     &self,
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,

@@ -290,7 +290,15 @@ pub mod test_pack_utils {
     ];
 
     fs.into_iter()
-      .map(|(fs, root)| SplitPackStrategy::new(root.join("cache"), root.join("temp"), fs.clone()))
+      .map(|(fs, root)| {
+        SplitPackStrategy::new(
+          root.join("cache"),
+          root.join("temp"),
+          fs.clone(),
+          Some(1_usize),
+          Some(2_usize),
+        )
+      })
       .collect_vec()
   }
 }
