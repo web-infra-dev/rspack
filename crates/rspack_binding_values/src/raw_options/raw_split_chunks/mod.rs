@@ -6,6 +6,7 @@ mod raw_split_chunk_size;
 use std::sync::Arc;
 
 use derive_more::Debug;
+use napi::bindgen_prelude::Either3;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
@@ -13,7 +14,7 @@ use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
-use rspack_napi::string::JsStringExt;
+use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
@@ -76,7 +77,7 @@ pub struct RawCacheGroupOptions {
   pub r#type: Option<Either<RspackRegex, JsString>>,
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
-  pub layer: Option<Either<RspackRegex, JsString>>,
+  pub layer: Option<Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -130,6 +131,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
 
     let overall_min_size = create_sizes(raw_opts.min_size);
 
+    println!("overall_min_size {:#?}", overall_min_size);
     let overall_max_size = create_sizes(raw_opts.max_size);
 
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
@@ -153,6 +155,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
           } else {
             &overall_min_size
           });
+          println!("min_size {:#?}", &min_size);
 
           let max_size = create_sizes(v.max_size);
 
@@ -293,18 +296,15 @@ fn create_module_type_filter(
 }
 
 fn create_module_layer_filter(
-  raw: Either<RspackRegex, JsString>,
+  raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either::A(regex) => Arc::new(move |m| {
-      m.get_layer()
-        .map(|layer| regex.test(layer))
-        .unwrap_or_default()
-    }),
-    Either::B(js_str) => {
+    Either3::A(regex) => {
+      Arc::new(move |layer| layer.map(|layer| regex.test(&layer)).unwrap_or_default())
+    }
+    Either3::B(js_str) => {
       let test = js_str.into_string();
-      Arc::new(move |m| {
-        let layer = m.get_layer();
+      Arc::new(move |layer| {
         if let Some(layer) = layer {
           layer.starts_with(&test)
         } else {
@@ -312,5 +312,6 @@ fn create_module_layer_filter(
         }
       })
     }
+    Either3::C(ts_fn) => Arc::new(move |layer| ts_fn.blocking_call_with_sync(layer).unwrap()),
   }
 }
