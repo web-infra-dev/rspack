@@ -32,6 +32,8 @@ pub fn create_storage(
         pack_size: 500 * 1024,
         expire: 7 * 24 * 60 * 60 * 1000,
         fs: Arc::new(BridgeFileSystem(fs)),
+        fresh_generation: Some(1),
+        release_generation: Some(2),
         version,
       };
       Arc::new(PackStorage::new(option))
