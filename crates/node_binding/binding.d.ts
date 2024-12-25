@@ -1514,6 +1514,7 @@ export interface RawIncremental {
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  sideEffects: boolean
   buildChunkGraph: boolean
   moduleIds: boolean
   chunkIds: boolean

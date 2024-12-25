@@ -1238,7 +1238,7 @@ impl Module for ConcatenatedModule {
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
             serde_json::to_string(
-              ChunkGraph::get_module_id(&compilation.module_ids, info.module)
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                 .expect("should have module id")
             )
             .expect("should json stringify module id")
@@ -1350,7 +1350,7 @@ impl Module for ConcatenatedModule {
           .update_hash(hasher, compilation, generation_runtime)?,
         ConcatenationEntry::External(e) => {
           ChunkGraph::get_module_id(
-            &compilation.module_ids,
+            &compilation.module_ids_artifact,
             e.module(&compilation.get_module_graph()),
           )
           .dyn_hash(hasher);

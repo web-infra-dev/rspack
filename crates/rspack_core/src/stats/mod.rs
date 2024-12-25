@@ -121,7 +121,7 @@ impl Stats<'_> {
           .par_iter()
           .map(|chunk| {
             chunk
-              .id(&self.compilation.chunk_ids)
+              .id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.to_string())
           })
           .collect();
@@ -143,7 +143,7 @@ impl Stats<'_> {
           .par_iter()
           .map(|chunk| {
             chunk
-              .id(&self.compilation.chunk_ids)
+              .id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.to_string())
           })
           .collect();
@@ -345,7 +345,7 @@ impl Stats<'_> {
               let module_id = origin
                 .module
                 .map(|identifier| {
-                  ChunkGraph::get_module_id(&self.compilation.module_ids, identifier)
+                  ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
                     .map(|s| s.to_string())
                     .unwrap_or_default()
                 })
@@ -374,7 +374,9 @@ impl Stats<'_> {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c.id(&self.compilation.chunk_ids).map(|id| id.to_string()),
+          id: c
+            .id(&self.compilation.chunk_ids_artifact)
+            .map(|id| id.to_string()),
           id_hints,
           names: c.name().map(|n| vec![n.to_owned()]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
@@ -392,7 +394,7 @@ impl Stats<'_> {
           origins,
           hash: c
             .rendered_hash(
-              &self.compilation.chunk_hashes_results,
+              &self.compilation.chunk_hashes_artifact,
               self.compilation.options.output.hash_digest_length,
             )
             .map(ToOwned::to_owned),
@@ -429,7 +431,7 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(c)
-          .id(&self.compilation.chunk_ids)
+          .id(&self.compilation.chunk_ids_artifact)
           .map(|id| id.to_string())
       })
       .collect();
@@ -594,7 +596,10 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id(&self.compilation.chunk_ids).map(|id| id.to_string())),
+          chunk_id: chunk.and_then(|c| {
+            c.id(&self.compilation.chunk_ids_artifact)
+              .map(|id| id.to_string())
+          }),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -645,7 +650,10 @@ impl Stats<'_> {
           chunk_name: chunk.and_then(|c| c.name().map(ToOwned::to_owned)),
           chunk_entry: chunk.map(|c| c.has_runtime(&self.compilation.chunk_group_by_ukey)),
           chunk_initial: chunk.map(|c| c.can_be_initial(&self.compilation.chunk_group_by_ukey)),
-          chunk_id: chunk.and_then(|c| c.id(&self.compilation.chunk_ids).map(|id| id.to_string())),
+          chunk_id: chunk.and_then(|c| {
+            c.id(&self.compilation.chunk_ids_artifact)
+              .map(|id| id.to_string())
+          }),
           details: d.details(),
           stack: d.stack(),
           module_trace,
@@ -851,7 +859,8 @@ impl Stats<'_> {
       stats.id = if executed {
         None
       } else {
-        ChunkGraph::get_module_id(&self.compilation.module_ids, identifier).map(|s| s.as_str())
+        ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, identifier)
+          .map(|s| s.as_str())
       };
       stats.issuer_id = issuer_id.and_then(|i| i);
 
@@ -869,7 +878,7 @@ impl Stats<'_> {
               .compilation
               .chunk_by_ukey
               .expect_get(k)
-              .id(&self.compilation.chunk_ids)
+              .id(&self.compilation.chunk_ids_artifact)
               .map(|id| id.to_string())
           })
           .collect()
@@ -1142,7 +1151,7 @@ impl Stats<'_> {
           .compilation
           .chunk_by_ukey
           .expect_get(k)
-          .id(&self.compilation.chunk_ids)
+          .id(&self.compilation.chunk_ids_artifact)
           .map(|id| id.to_string())
       })
       .collect();

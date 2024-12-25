@@ -865,7 +865,7 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules.contains(module_id)
+    compilation.async_modules_artifact.contains(module_id)
   }
 
   pub fn set_async(
@@ -878,9 +878,9 @@ impl<'a> ModuleGraph<'a> {
       return false;
     }
     if original {
-      compilation.async_modules.remove(&module_id)
+      compilation.async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules.insert(module_id)
+      compilation.async_modules_artifact.insert(module_id)
     }
   }
 
@@ -945,7 +945,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
+      .unwrap_or_else(|| panic!("{:?}", dep_id));
     let old_module_identifier = *connection.module_identifier();
     connection.set_module_identifier(*module_id);
 

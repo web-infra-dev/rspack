@@ -36,6 +36,7 @@ Object {
       modulesHashes: false,
       modulesRuntimeRequirements: false,
       providedExports: false,
+      sideEffects: false,
     },
     layers: false,
     lazyCompilation: false,

@@ -1347,6 +1347,7 @@ const incremental = z.strictObject({
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	dependenciesDiagnostics: z.boolean().optional(),
+	sideEffects: z.boolean().optional(),
 	buildChunkGraph: z.boolean().optional(),
 	moduleIds: z.boolean().optional(),
 	chunkIds: z.boolean().optional(),

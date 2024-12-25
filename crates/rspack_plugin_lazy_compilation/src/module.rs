@@ -204,7 +204,7 @@ impl Module for LazyCompilationProxyModule {
 
     let client = format!(
       "var client = __webpack_require__(\"{}\");\nvar data = \"{}\"",
-      ChunkGraph::get_module_id(&compilation.module_ids, *client_module)
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
       self.data
     );
@@ -258,7 +258,7 @@ impl Module for LazyCompilationProxyModule {
           "import()",
           false
         ),
-        ChunkGraph::get_module_id(&compilation.module_ids, *module)
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
           .map(|s| s.as_str())
           .expect("should have module id")
           .cow_replace('"', r#"\""#),

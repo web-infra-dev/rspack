@@ -301,7 +301,7 @@ impl JsPlugin {
               compilation
                 .chunk_by_ukey
                 .expect_get(chunk_ukey)
-                .expect_id(&compilation.chunk_ids)
+                .expect_id(&compilation.chunk_ids_artifact)
                 .to_string()
             })
             .collect::<Vec<_>>();
@@ -374,7 +374,7 @@ impl JsPlugin {
             buf2.push("// This entry module used 'module' so it can't be inlined".into());
           }
 
-          let module_id = ChunkGraph::get_module_id(&compilation.module_ids, *module)
+          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id");
           let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {

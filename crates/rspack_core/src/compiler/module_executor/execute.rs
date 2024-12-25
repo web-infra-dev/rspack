@@ -101,7 +101,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
 
     if let Some(name) = chunk.name() {
-      chunk.set_id(&mut compilation.chunk_ids, name);
+      chunk.set_id(&mut compilation.chunk_ids_artifact, name);
     }
     let runtime: RuntimeSpec = once("build time".into()).collect();
 
@@ -141,7 +141,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // Assign ids to modules and modules to the chunk
     for &m in &modules {
       chunk_graph.add_module(m);
-      ChunkGraph::set_module_id(&mut compilation.module_ids, m, m.as_str().into());
+      ChunkGraph::set_module_id(&mut compilation.module_ids_artifact, m, m.as_str().into());
       chunk_graph.connect_chunk_and_module(chunk_ukey, m);
     }
 

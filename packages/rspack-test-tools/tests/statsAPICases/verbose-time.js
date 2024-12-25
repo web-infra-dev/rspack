@@ -59,6 +59,10 @@ module.exports = {
 		LOG from rspack.RemoveEmptyChunksPlugin
 		<t> remove empty chunks: X ms
 
+		LOG from rspack.SideEffectsFlagPlugin
+		    optimized 0 dependencies
+		<t> update dependencies: X ms
+
 		LOG from rspack.SplitChunksPlugin
 		<t> prepare module group map: X ms
 		<t> ensure min size fit: X ms

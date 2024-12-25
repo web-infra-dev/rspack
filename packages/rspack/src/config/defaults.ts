@@ -222,6 +222,7 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
 		D(experiments.incremental, "dependenciesDiagnostics", false);
+		D(experiments.incremental, "sideEffects", false);
 		D(experiments.incremental, "buildChunkGraph", false);
 		D(experiments.incremental, "moduleIds", false);
 		D(experiments.incremental, "chunkIds", false);

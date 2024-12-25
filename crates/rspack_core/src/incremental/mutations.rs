@@ -358,7 +358,7 @@ fn compute_affected_modules_with_chunk_graph(
       };
       for chunk in &chunk_group.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.id(&compilation.chunk_ids).hash(&mut hasher);
+        chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
       }
     }
     hasher.finish()
