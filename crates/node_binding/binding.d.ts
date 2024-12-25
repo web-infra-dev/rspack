@@ -653,6 +653,7 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   assets: Array<string>
   id: number
+  error?: string
 }
 
 export interface JsFactorizeArgs {
