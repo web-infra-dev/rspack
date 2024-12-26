@@ -350,11 +350,11 @@ fn create(
   new_packs
 }
 
-fn create_pack(dir: &Utf8Path, candiates: Vec<PackItemCandidate>) -> (PackFileMeta, Pack) {
+fn create_pack(dir: &Utf8Path, candidates: Vec<PackItemCandidate>) -> (PackFileMeta, Pack) {
   let mut keys = vec![];
   let mut contents = vec![];
   let mut generations = vec![];
-  for candidate in candiates {
+  for candidate in candidates {
     keys.push(candidate.key);
     contents.push(candidate.value);
     generations.push(candidate.generation);
