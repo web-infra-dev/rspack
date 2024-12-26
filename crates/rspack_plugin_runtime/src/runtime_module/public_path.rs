@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   has_hash_placeholder, impl_runtime_module,
@@ -24,18 +23,22 @@ impl RuntimeModule for PublicPathRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/public_path.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(
-        include_str!("runtime/public_path.js")
-          .cow_replace(
-            "__PUBLIC_PATH_PLACEHOLDER__",
-            &PublicPath::render_filename(compilation, &self.public_path),
-          )
-          .into_owned(),
-      )
-      .boxed(),
-    )
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "PUBLIC_PATH_PLACEHOLDER": &PublicPath::render_filename(compilation, &self.public_path),
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   // be cacheable only when the template does not contain a hash placeholder

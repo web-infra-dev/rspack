@@ -1,14 +1,14 @@
 var policy;
-__webpack_require__.tt = function () {
+<%- GET_TRUSTED_TYPES_POLICY  %> = <%- basicFunction("") %> {
     // Create Trusted Type policy if Trusted Types are available and the policy doesn't exist yet.
     if (policy === undefined) {
         policy = {
-            $policyContent$
+            <%- POLICY_CONTENT %>
         };
         if (typeof trustedTypes !== "undefined" && trustedTypes.createPolicy) {
-            $wrapPolicyCreationTryCatchStart$
-            policy = trustedTypes.createPolicy("$policyName$", policy);
-            $wrapPolicyCreationTryCatchEnd$
+            <%- WRAP_POLICY_CREATION_TRY_CATCH_START %>
+            policy = trustedTypes.createPolicy("<%- POLICY_NAME %>", policy);
+            <%- WARP_POLICY_CREATION_TRY_CATCH_END %>
         }
     }
     return policy;

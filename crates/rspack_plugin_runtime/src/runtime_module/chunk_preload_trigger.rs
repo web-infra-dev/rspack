@@ -1,6 +1,5 @@
 use std::hash::BuildHasherDefault;
 
-use cow_utils::CowUtils;
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
 use rspack_collections::Identifier;
@@ -34,18 +33,22 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(
-        include_str!("runtime/chunk_preload_trigger.js")
-          .cow_replace(
-            "$CHUNK_MAP$",
-            &serde_json::to_string(&self.chunk_map).expect("invalid json tostring"),
-          )
-          .into_owned(),
-      )
-      .boxed(),
-    )
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/chunk_preload_trigger.ejs").to_string(),
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "CHUNK_MAP": &self.chunk_map,
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn stage(&self) -> RuntimeModuleStage {

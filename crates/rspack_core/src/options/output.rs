@@ -468,11 +468,21 @@ pub struct LibraryCustomUmdObject {
   pub root: Option<Vec<String>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Environment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
+  pub async_function: Option<bool>,
+  pub big_int_literal: Option<bool>,
+  pub destructuring: Option<bool>,
+  pub document: Option<bool>,
+  pub dynamic_import: Option<bool>,
+  pub for_of: Option<bool>,
+  pub global_this: Option<bool>,
+  pub module: Option<bool>,
+  pub optional_chaining: Option<bool>,
+  pub template_literal: Option<bool>,
 }
 
 impl Environment {
@@ -486,5 +496,45 @@ impl Environment {
 
   pub fn supports_node_prefix_for_core_modules(&self) -> bool {
     self.node_prefix_for_core_modules.unwrap_or_default()
+  }
+
+  pub fn supports_async_function(&self) -> bool {
+    self.async_function.unwrap_or_default()
+  }
+
+  pub fn supports_big_int_literal(&self) -> bool {
+    self.big_int_literal.unwrap_or_default()
+  }
+
+  pub fn supports_destructuring(&self) -> bool {
+    self.destructuring.unwrap_or_default()
+  }
+
+  pub fn supports_document(&self) -> bool {
+    self.document.unwrap_or_default()
+  }
+
+  pub fn supports_dynamic_import(&self) -> bool {
+    self.dynamic_import.unwrap_or_default()
+  }
+
+  pub fn supports_for_of(&self) -> bool {
+    self.for_of.unwrap_or_default()
+  }
+
+  pub fn supports_global_this(&self) -> bool {
+    self.global_this.unwrap_or_default()
+  }
+
+  pub fn supports_module(&self) -> bool {
+    self.module.unwrap_or_default()
+  }
+
+  pub fn supports_optional_chaining(&self) -> bool {
+    self.optional_chaining.unwrap_or_default()
+  }
+
+  pub fn supports_template_literal(&self) -> bool {
+    self.template_literal.unwrap_or_default()
   }
 }

@@ -46,6 +46,16 @@ pub struct RawEnvironment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
   pub node_prefix_for_core_modules: Option<bool>,
+  pub async_function: Option<bool>,
+  pub big_int_literal: Option<bool>,
+  pub destructuring: Option<bool>,
+  pub document: Option<bool>,
+  pub dynamic_import: Option<bool>,
+  pub for_of: Option<bool>,
+  pub global_this: Option<bool>,
+  pub module: Option<bool>,
+  pub optional_chaining: Option<bool>,
+  pub template_literal: Option<bool>,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -54,6 +64,16 @@ impl From<RawEnvironment> for Environment {
       r#const: value.r#const,
       arrow_function: value.arrow_function,
       node_prefix_for_core_modules: value.node_prefix_for_core_modules,
+      async_function: value.async_function,
+      big_int_literal: value.big_int_literal,
+      destructuring: value.destructuring,
+      document: value.document,
+      dynamic_import: value.dynamic_import,
+      for_of: value.for_of,
+      global_this: value.global_this,
+      module: value.module,
+      optional_chaining: value.optional_chaining,
+      template_literal: value.template_literal,
     }
   }
 }

@@ -3,7 +3,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -28,6 +28,13 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/runtime_module.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -47,14 +54,14 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
           .to_string(),
       );
 
-      Ok(
-        RawStringSource::from(format!(
-          "{} = {};",
-          RuntimeGlobals::RUNTIME_ID,
-          serde_json::to_string(&id).expect("Invalid json string")
-        ))
-        .boxed(),
-      )
+      let source = compilation.runtime_template.render(
+        &self.id,
+        Some(serde_json::json!({
+          "ID": serde_json::to_string(&id).expect("Invalid json string"),
+        })),
+      )?;
+
+      Ok(RawStringSource::from(source).boxed())
     } else {
       unreachable!("should attach chunk for css_loading")
     }

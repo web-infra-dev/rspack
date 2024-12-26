@@ -1,3 +1,5 @@
+use std::vec;
+
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -30,6 +32,13 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_main_filename.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -54,16 +63,16 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
           .hash(format!("\" + {}() + \"", RuntimeGlobals::GET_FULL_HASH).as_str())
           .runtime(chunk.runtime().as_str()),
       )?;
-      Ok(
-        RawStringSource::from(format!(
-          "{} = function () {{
-            return \"{}\";
-         }};
-        ",
-          self.global, filename
-        ))
-        .boxed(),
-      )
+
+      let source = compilation.runtime_template.render(
+        &self.id,
+        Some(serde_json::json!({
+          "FILENAME": format!("\"{}\"", filename),
+          "$GLOBAL$": self.global.name(),
+        })),
+      )?;
+
+      Ok(RawStringSource::from(source).boxed())
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }

@@ -23,6 +23,9 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn should_isolate(&self) -> bool {
     true
   }
+  fn template(&self) -> Vec<(String, String)> {
+    vec![]
+  }
 
   fn generate_with_custom(
     &self,

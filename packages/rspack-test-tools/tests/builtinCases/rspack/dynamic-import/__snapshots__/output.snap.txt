@@ -4,7 +4,7 @@
 "./child/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 const a = "a";
 
@@ -20,7 +20,7 @@ const a = "a";
 "./child/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  b: function() { return b; }
+  b: () => (b)
 });
 const b = "b";
 

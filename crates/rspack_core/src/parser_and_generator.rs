@@ -14,7 +14,8 @@ use swc_core::common::Span;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxLoader, BuildInfo, BuildMeta, CodeGenerationData,
   Compilation, CompilerOptions, DependencyTemplate, Module, ModuleDependency, ModuleIdentifier,
-  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeGlobals, RuntimeSpec,
+  RuntimeTemplate, SourceType,
 };
 use crate::{ChunkGraph, ConcatenationScope, Context, ModuleGraph};
 
@@ -82,6 +83,7 @@ pub struct GenerateContext<'a> {
   pub requested_source_type: SourceType,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
+  pub runtime_template: &'a RuntimeTemplate,
 }
 
 #[cacheable_dyn]

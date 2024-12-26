@@ -2,7 +2,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  Compilation, RuntimeGlobals, RuntimeModule,
+  Compilation, RuntimeModule,
 };
 
 #[impl_runtime_module]
@@ -22,7 +22,16 @@ impl RuntimeModule for NonceRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from(format!("{} = undefined;", RuntimeGlobals::SCRIPT_NONCE)).boxed())
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/nonce.ejs").to_string(),
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }

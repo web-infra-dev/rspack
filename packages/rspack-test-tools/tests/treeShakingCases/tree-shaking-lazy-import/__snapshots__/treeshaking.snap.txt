@@ -4,7 +4,7 @@
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 /* ESM import */var _test__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 
@@ -18,7 +18,7 @@ function myanswer() {
 }),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 function test() {}
 
@@ -35,7 +35,7 @@ function test() {}
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  answer: function() { return answer; }
+  answer: () => (answer)
 });
 const answer = 30;
 

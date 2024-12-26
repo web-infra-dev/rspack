@@ -26,17 +26,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14017,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14017,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 676,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 676,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -44,10 +44,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 858,
+		              size: 843,
 		            },
 		          ],
-		          assetsSize: 858,
+		          assetsSize: 843,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,
@@ -77,10 +77,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk.js,
-		        size: 858,
+		        size: 843,
 		      },
 		    ],
-		    assetsSize: 858,
+		    assetsSize: 843,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: chunk.js.map,
@@ -215,17 +215,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14017,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14017,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 676,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 676,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -233,10 +233,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 858,
+		              size: 843,
 		            },
 		          ],
-		          assetsSize: 858,
+		          assetsSize: 843,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,

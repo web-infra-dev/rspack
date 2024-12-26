@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  something: function() { return /* reexport safe */ _lib__WEBPACK_IMPORTED_MODULE_0__["default"]; }
+  something: () => (/* reexport safe */ _lib__WEBPACK_IMPORTED_MODULE_0__["default"])
 });
 /* ESM import */var _lib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./lib.js");
 /* ESM import */var _src_a__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/a.js");
@@ -22,7 +22,7 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return /* export default binding */ __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (/* export default binding */ __WEBPACK_DEFAULT_EXPORT__)
 });
 const secret = "888";
 const result = 20000;

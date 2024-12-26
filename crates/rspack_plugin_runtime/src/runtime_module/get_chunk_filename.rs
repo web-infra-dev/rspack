@@ -82,6 +82,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_chunk_filename.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
@@ -344,25 +351,17 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-    Ok(
-      RawStringSource::from(format!(
-        "// This function allow to reference chunks
-        {} = function (chunkId) {{
-          // return url for filenames not based on template
-          {}
-          // return url for filenames based on template
-          return {};
-        }};
-      ",
-        self.global,
-        static_urls
-          .iter()
-          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-          .join("\n"),
-        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-      ))
-      .boxed(),
-    )
+
+    let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
+      "$GLOBAL$": self.global,
+      "STATIC_URLS": static_urls
+      .iter()
+      .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+      .join("\n"),
+      "DYNAMIC_URL":dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type)),
+    })))?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

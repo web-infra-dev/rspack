@@ -51,7 +51,8 @@ use crate::{
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
   ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 pub type BuildDependency = (
@@ -219,6 +220,7 @@ pub struct Compilation {
   pub build_dependencies: IndexSet<ArcPath, BuildHasherDefault<FxHasher>>,
 
   pub value_cache_versions: ValueCacheVersions,
+  pub runtime_template: RuntimeTemplate,
 
   import_var_map: IdentifierDashMap<ImportVarMap>,
 
@@ -273,6 +275,8 @@ impl Compilation {
     output_filesystem: Arc<dyn WritableFileSystem>,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
+    let runtime_template = RuntimeTemplate::new(options.output.environment);
+
     Self {
       id: CompilationId::new(),
       hot_index: 0,
@@ -341,6 +345,7 @@ impl Compilation {
 
       intermediate_filesystem,
       output_filesystem,
+      runtime_template,
     }
   }
 
@@ -2142,6 +2147,7 @@ impl Compilation {
     module.attach(*chunk_ukey);
 
     self.chunk_graph.add_module(runtime_module_identifier);
+    self.runtime_template.add_templates(module.template());
     self
       .chunk_graph
       .connect_chunk_and_module(*chunk_ukey, runtime_module_identifier);
