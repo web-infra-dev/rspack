@@ -15,3 +15,4 @@ export * from "./stats-output";
 export * from "./treeshaking";
 export * from "./watch";
 export * from "./new-incremental";
+export * from "./cache";
