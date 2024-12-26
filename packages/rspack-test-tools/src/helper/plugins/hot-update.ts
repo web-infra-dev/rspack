@@ -1,5 +1,5 @@
-import { Compiler } from "@rspack/core";
-import { TUpdateOptions } from "../../type";
+import type { Compiler } from "@rspack/core";
+import type { TUpdateOptions } from "../../type";
 
 export class TestHotUpdatePlugin {
 	constructor(private updateOptions: TUpdateOptions) {}

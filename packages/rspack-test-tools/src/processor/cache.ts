@@ -1,6 +1,7 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
 
+import { TestHotUpdatePlugin } from "../helper/plugins";
 import {
 	ECompilerType,
 	type ITestContext,
@@ -10,7 +11,6 @@ import {
 	type TUpdateOptions
 } from "../type";
 import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
-import { TestHotUpdatePlugin } from "../helper/plugins";
 
 export interface ICacheProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {

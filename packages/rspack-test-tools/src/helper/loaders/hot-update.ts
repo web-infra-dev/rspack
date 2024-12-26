@@ -1,4 +1,4 @@
-import { TUpdateOptions } from "../../type";
+import type { TUpdateOptions } from "../../type";
 
 export default function (this: any, c: string) {
 	let content = c;
