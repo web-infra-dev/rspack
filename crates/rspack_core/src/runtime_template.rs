@@ -107,7 +107,7 @@ impl RuntimeTemplate {
               .insert(k, v);
           }
         }
-        _ => panic!("Should recive a map value"),
+        _ => panic!("Should receive a map value"),
       }
     }
 
