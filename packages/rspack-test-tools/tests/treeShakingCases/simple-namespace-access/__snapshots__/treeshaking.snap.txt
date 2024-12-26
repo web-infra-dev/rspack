@@ -13,8 +13,8 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0__.square);
 }),
 "./maths.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  square: function() { return square; },
-  xxx: function() { return /* reexport module object */ _test_js__WEBPACK_IMPORTED_MODULE_0__; }
+  square: () => (square),
+  xxx: () => (/* reexport module object */ _test_js__WEBPACK_IMPORTED_MODULE_0__)
 });
 /* ESM import */var _test_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./test.js");
 // maths.js
@@ -38,7 +38,7 @@ function cube(x) {
 }),
 "./test.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  test: function() { return test; }
+  test: () => (test)
 });
 function test() {}
 function ccc() {}

@@ -8,7 +8,7 @@ const a = "bar";
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 /* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 const a = "foo";
