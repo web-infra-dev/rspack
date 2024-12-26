@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  c: function() { return c; }
+  c: () => (c)
 });
 const c = "a";
 
@@ -17,9 +17,9 @@ const c = "bar";
 }),
 "./c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  b: function() { return /* reexport safe */ _foo__WEBPACK_IMPORTED_MODULE_0__.b; },
-  c: function() { return /* reexport safe */ _foo__WEBPACK_IMPORTED_MODULE_0__.c; }
+  a: () => (a),
+  b: () => (/* reexport safe */ _foo__WEBPACK_IMPORTED_MODULE_0__.b),
+  c: () => (/* reexport safe */ _foo__WEBPACK_IMPORTED_MODULE_0__.c)
 });
 /* ESM import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");
@@ -31,8 +31,8 @@ const a = 3;
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  b: function() { return b; },
-  c: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.c; }
+  b: () => (b),
+  c: () => (/* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.c)
 });
 /* ESM import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 

@@ -3,5 +3,5 @@ import { A } from './b.js';
 it("should not generate duplicated ESM exports when using named exports and named exports from", () => {
 	A;
 	let file = fs.readFileSync(__filename, "utf-8")
-	expect(file.split(`A: function() { return /* reexport safe */`)).toHaveLength(3)
+	expect(file.split(`A: () => (/* reexport safe */`)).toHaveLength(3)
 })

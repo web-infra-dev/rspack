@@ -1,5 +1,5 @@
 // define __esModule on exports
-__webpack_require__.r = function(exports) {
+<%- MAKE_NAMESPACE_OBJECT %> = <%- basicFunction("exports") %> {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

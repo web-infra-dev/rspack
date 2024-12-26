@@ -4,8 +4,8 @@
 "./index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Button: function() { return Button; },
-  button: function() { return button; }
+  Button: () => (Button),
+  button: () => (button)
 });
 /*! Legal Comment */ // normal comment
 const Button = ()=>/*#__PURE__*/ jsx('button', {});

@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "../node_modules/pmodule/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 /* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var a = "a";
@@ -19,7 +19,7 @@ var c = "c";
 }),
 "../node_modules/pmodule/b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return x; }
+  x: () => (x)
 });
 /* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
@@ -35,7 +35,7 @@ var y = "y";
 }),
 "../node_modules/pmodule/c.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  z: function() { return z; }
+  z: () => (z)
 });
 /* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
@@ -49,7 +49,7 @@ var z = "z";
 }),
 "../node_modules/pmodule/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 /* ESM import */var _tracker__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("../node_modules/pmodule/tracker.js");
 
@@ -64,8 +64,8 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "../node_modules/pmodule/tracker.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  log: function() { return log; },
-  track: function() { return track; }
+  log: () => (log),
+  track: () => (track)
 });
 function track(file) {
 	log.push(file);

@@ -14,7 +14,7 @@ console.log("index", _lib__WEBPACK_IMPORTED_MODULE_0__.foo);
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  foo: function() { return foo; }
+  foo: () => (foo)
 });
 //#!/usr/bin/env node
 

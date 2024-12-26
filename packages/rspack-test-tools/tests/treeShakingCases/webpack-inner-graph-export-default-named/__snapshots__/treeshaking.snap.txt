@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return abc; }
+  "default": () => (abc)
 });
 /* ESM import */var _dep_a__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?a");
 
@@ -38,7 +38,7 @@ abc();
 }),
 "./d.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return def; }
+  "default": () => (def)
 });
 /* ESM import */var _dep_d__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./dep.js?d");
 
@@ -53,8 +53,8 @@ class def {
 }),
 "./dep.js?a": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
-  x: function() { return x; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  x: () => (x)
 });
 const x = "x";
 
@@ -64,7 +64,7 @@ const x = "x";
 }),
 "./dep.js?b": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 const x = "x";
 
@@ -74,8 +74,8 @@ const x = "x";
 }),
 "./dep.js?c": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
-  x: function() { return x; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  x: () => (x)
 });
 const x = "x";
 
@@ -85,8 +85,8 @@ const x = "x";
 }),
 "./dep.js?d": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
-  x: function() { return x; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  x: () => (x)
 });
 const x = "x";
 
@@ -96,7 +96,7 @@ const x = "x";
 }),
 "./dep.js?e": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 const x = "x";
 
@@ -106,8 +106,8 @@ const x = "x";
 }),
 "./dep.js?f": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; },
-  x: function() { return x; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+  x: () => (x)
 });
 const x = "x";
 

@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./Something.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  something: function() { return something; }
+  something: () => (something)
 });
 function something() {}
 
@@ -11,7 +11,7 @@ function something() {}
 }),
 "./export.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return a; }
+  "default": () => (a)
 });
 /* ESM import */var _Something__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./Something.js");
 

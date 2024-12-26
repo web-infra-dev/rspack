@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -26,27 +25,43 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.id.to_string(),
+        include_str!("runtime/ensure_chunk.ejs").to_string(),
+      ),
+      (
+        format!("{}-inline", self.id),
+        include_str!("runtime/ensure_chunk_with_inline.ejs").to_string(),
+      ),
+    ]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    Ok(
-      RawStringSource::from(
-        match runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-          true => include_str!("runtime/ensure_chunk.js")
-            .cow_replace(
-              "$FETCH_PRIORITY$",
-              if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
-                ", fetchPriority"
-              } else {
-                ""
-              },
-            )
-            .into_owned(),
-          false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
-        },
-      )
-      .boxed(),
-    )
+    let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+      let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+        ", fetchPriority"
+      } else {
+        ""
+      };
+
+      compilation.runtime_template.render(
+        &self.id,
+        Some(serde_json::json!({
+          "ARGS": format!("chunkId{}", fetch_priority),
+          "FETCH_PRIORITY": fetch_priority,
+        })),
+      )?
+    } else {
+      compilation
+        .runtime_template
+        .render(&format!("{}-inline", self.id), None)?
+    };
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -35,11 +35,11 @@ it("export should be unused when only unused functions use it", () => {
 }),
 "./inner.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  A: function() { return A; },
-  B: function() { return B; },
-  exportAUsed: function() { return exportAUsed; },
-  exportBUsed: function() { return exportBUsed; },
-  exportCUsed: function() { return exportCUsed; }
+  A: () => (A),
+  B: () => (B),
+  exportAUsed: () => (exportAUsed),
+  exportBUsed: () => (exportBUsed),
+  exportCUsed: () => (exportCUsed)
 });
 function A(s) {
 	return s + "A";
@@ -59,7 +59,7 @@ const exportCUsed = false;
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  y: function() { return y; }
+  y: () => (y)
 });
 /* ESM import */var _inner__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./inner.js");
 
