@@ -264,23 +264,11 @@ export class Compilation {
 	};
 	needAdditionalPass: boolean;
 
-	/**
-	 * Records the dynamically added fields for Module on the JavaScript side, using the Module identifier for association.
-	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 */
-	#customModules: Record<
-		string,
-		{
-			buildInfo: Record<string, unknown>;
-			buildMeta: Record<string, unknown>;
-		}
-	>;
 	#addIncludeDispatcher: AddIncludeDispatcher;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
 		this.#shutdown = false;
-		this.#customModules = {};
 
 		const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
 			"assets"
@@ -458,15 +446,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 	get modules(): ReadonlySet<Module> {
 		return new Set(
-			this.#inner.modules.map(module => Module.__from_binding(module, this))
+			this.#inner.modules.map(module => Module.__from_binding(module))
 		);
 	}
 
 	get builtModules(): ReadonlySet<Module> {
 		return new Set(
-			this.#inner.builtModules.map(module =>
-				Module.__from_binding(module, this)
-			)
+			this.#inner.builtModules.map(module => Module.__from_binding(module))
 		);
 	}
 
@@ -540,22 +526,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				}
 			}
 		);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__getCustomModule(moduleIdentifier: string) {
-		let module = this.#customModules[moduleIdentifier];
-		if (!module) {
-			module = this.#customModules[moduleIdentifier] = {
-				buildInfo: {},
-				buildMeta: {}
-			};
-		}
-		return module;
 	}
 
 	getCache(name: string) {
@@ -1138,7 +1108,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 						for (const [id, callback] of args) {
 							const m = modules.find(item => item.moduleIdentifier === id);
 							if (m) {
-								callback(err, Module.__from_binding(m, compilation));
+								callback(err, Module.__from_binding(m));
 							} else {
 								callback(err || new Error("module no found"), null as any);
 							}

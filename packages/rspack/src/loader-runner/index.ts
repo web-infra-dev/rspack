@@ -747,10 +747,7 @@ export async function runLoaders(
 
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler._lastCompilation!;
-	loaderContext._module = Module.__from_binding(
-		context._module,
-		compiler._lastCompilation
-	);
+	loaderContext._module = Module.__from_binding(context._module);
 
 	loaderContext.getOptions = () => {
 		const loader = getCurrentLoader(loaderContext);

@@ -207,30 +207,31 @@ export class Module {
 	declare readonly type: string;
 	declare readonly layer: null | string;
 	declare readonly factoryMeta?: JsFactoryMeta;
-	/**
-	 * Records the dynamically added fields for Module on the JavaScript side.
-	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
-	 */
-	declare readonly buildInfo: Record<string, any>;
 
-	/**
-	 * Records the dynamically added fields for Module on the JavaScript side.
-	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
-	 */
-	declare readonly buildMeta: Record<string, any>;
 	declare readonly modules: Module[] | undefined;
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
 
-	static __from_binding(binding: JsModule, compilation?: Compilation) {
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 */
+	buildInfo: Record<string, any>;
+
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 * @see {@link Compilation#customModules}
+	 */
+	buildMeta: Record<string, any>;
+
+	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
 		if (module) {
 			return module;
 		}
-		module = new Module(binding, compilation);
+		module = new Module(binding);
 		MODULE_MAPPINGS.set(binding, module);
 		return module;
 	}
@@ -239,8 +240,10 @@ export class Module {
 		return module.#inner;
 	}
 
-	constructor(module: JsModule, compilation?: Compilation) {
+	constructor(module: JsModule) {
 		this.#inner = module;
+		this.buildInfo = {};
+		this.buildMeta = {};
 
 		Object.defineProperties(this, {
 			type: {
@@ -303,24 +306,6 @@ export class Module {
 							: undefined;
 					}
 					return undefined;
-				}
-			},
-			buildInfo: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildInfo || {};
-				}
-			},
-			buildMeta: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildMeta || {};
 				}
 			},
 			blocks: {
