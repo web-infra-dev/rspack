@@ -181,6 +181,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .issuer
               .clone()
               .map_or("".to_string(), |i| i.to_string()),
+            issuer_layer: data.issuer_layer.clone(),
           },
           resolve_options_with_dependency_type: ResolveOptionsWithDependencyType {
             resolve_options: data
