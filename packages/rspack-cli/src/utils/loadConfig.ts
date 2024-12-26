@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { MultiRspackOptions, RspackOptions } from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
-import crossImport, { dynamicImport } from "./crossImport";
+import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
 import isEsmFile from "./isEsmFile";
 import isTsFile from "./isTsFile";
@@ -22,7 +22,7 @@ const registerLoader = async (configPath: string) => {
 		return;
 	}
 
-	const { default: interpret } = await dynamicImport("interpret");
+	const { default: interpret } = await import("interpret");
 	const extensions = Object.fromEntries(
 		Object.entries(interpret.extensions).filter(([key]) => key === ext)
 	);
@@ -31,7 +31,7 @@ const registerLoader = async (configPath: string) => {
 	}
 
 	try {
-		const { default: rechoir } = await dynamicImport("rechoir");
+		const { default: rechoir } = await import("rechoir");
 		rechoir.prepare(extensions, configPath);
 	} catch (error) {
 		const failures = (error as RechoirError)?.failures;
