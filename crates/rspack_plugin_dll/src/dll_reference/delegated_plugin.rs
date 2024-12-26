@@ -83,7 +83,7 @@ async fn compilation(
 async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<BoxModule>> {
   if let Some(scope) = &self.options.scope {
     if let Some(dependency) = data.dependencies[0].as_module_dependency() {
-      let scope_prefix = format!("{}/", scope);
+      let scope_prefix = format!("{scope}/");
       let request = dependency.request();
       if request.starts_with(&scope_prefix) {
         let inner_request = format!(
@@ -102,7 +102,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         }
 
         for extension in self.options.extensions.iter() {
-          let request_plus_ext = format!("{}{}", inner_request, extension);
+          let request_plus_ext = format!("{inner_request}{extension}");
 
           if let Some(resolved) = self.options.content.get(&request_plus_ext) {
             return Ok(Some(Box::new(DelegatedModule::new(
@@ -110,7 +110,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               resolved.clone(),
               self.options.r#type.clone(),
               request_plus_ext,
-              format!("{}{}", request, extension).into(),
+              format!("{request}{extension}").into(),
             ))));
           }
         }
