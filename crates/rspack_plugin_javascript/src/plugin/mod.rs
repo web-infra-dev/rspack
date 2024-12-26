@@ -301,7 +301,7 @@ impl JsPlugin {
               compilation
                 .chunk_by_ukey
                 .expect_get(chunk_ukey)
-                .expect_id(&compilation.chunk_ids)
+                .expect_id(&compilation.chunk_ids_artifact)
                 .to_string()
             })
             .collect::<Vec<_>>();
@@ -374,7 +374,7 @@ impl JsPlugin {
             buf2.push("// This entry module used 'module' so it can't be inlined".into());
           }
 
-          let module_id = ChunkGraph::get_module_id(&compilation.module_ids, *module)
+          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id");
           let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
@@ -637,13 +637,18 @@ impl JsPlugin {
         )));
       }
 
-      let renamed_inline_modules = self.rename_inline_modules(
-        &all_modules,
-        inlined_modules,
-        compilation,
-        chunk_ukey,
-        all_strict,
-      )?;
+      let renamed_inline_modules = if compilation.options.optimization.avoid_entry_iife {
+        self.get_renamed_inline_module(
+          &all_modules,
+          inlined_modules,
+          compilation,
+          chunk_ukey,
+          all_strict,
+          has_chunk_modules_result,
+        )?
+      } else {
+        None
+      };
 
       for (m_identifier, _) in inlined_modules {
         let m = module_graph
@@ -655,10 +660,12 @@ impl JsPlugin {
           continue;
         };
 
-        if renamed_inline_modules.contains_key(m_identifier) {
-          if let Some(source) = renamed_inline_modules.get(m_identifier) {
-            rendered_module = source.clone();
-          };
+        if let Some(renamed_inline_modules) = &renamed_inline_modules {
+          if renamed_inline_modules.contains_key(m_identifier) {
+            if let Some(source) = renamed_inline_modules.get(m_identifier) {
+              rendered_module = source.clone();
+            };
+          }
         }
 
         chunk_init_fragments.extend(fragments);
@@ -673,9 +680,11 @@ impl JsPlugin {
         let webpack_exports_argument = matches!(exports_argument, ExportsArgument::WebpackExports);
         let webpack_exports = exports && webpack_exports_argument;
         let iife: Option<Cow<str>> = if inner_strict {
-          Some("it need to be in strict mode.".into())
+          Some("it needs to be in strict mode.".into())
         } else if inlined_modules.len() > 1 {
-          Some("it need to be isolated against other entry modules.".into())
+          Some("it needs to be isolated against other entry modules.".into())
+        } else if has_chunk_modules_result && renamed_inline_modules.is_none() {
+          Some("it needs to be isolated against other modules in the chunk.".into())
         } else if exports && !webpack_exports {
           Some(format!("it uses a non-standard name for the exports ({exports_argument}).").into())
         } else {
@@ -687,7 +696,7 @@ impl JsPlugin {
         let footer;
         if let Some(iife) = iife {
           startup_sources.add(RawStringSource::from(format!(
-            "// This entry need to be wrapped in an IIFE because {iife}\n"
+            "// This entry needs to be wrapped in an IIFE because {iife}\n"
           )));
           if supports_arrow_function {
             startup_sources.add(RawStringSource::from_static("(() => {\n"));
@@ -784,14 +793,33 @@ impl JsPlugin {
     })
   }
 
-  pub fn rename_inline_modules(
+  pub fn get_renamed_inline_module(
     &self,
     all_modules: &[&BoxModule],
     inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     all_strict: bool,
-  ) -> Result<IdentifierMap<Arc<dyn Source>>> {
+    has_chunk_modules_result: bool,
+  ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
+    let inner_strict = !all_strict
+      && all_modules.iter().all(|m| {
+        let build_info = m
+          .build_info()
+          .expect("should have build_info in rename_inline_modules");
+        build_info.strict
+      });
+    let is_multiple_entries = inlined_modules.len() > 1;
+    let single_entry_with_modules = inlined_modules.len() == 1 && has_chunk_modules_result;
+
+    // TODO:
+    // This step is before the IIFE reason calculation. Ideally, it should only be executed when this function can optimize the
+    // IIFE reason. Otherwise, it should directly return false. There are four reasons now, we have skipped two already, the left
+    // one is 'it uses a non-standard name for the exports'.
+    if is_multiple_entries || inner_strict || !single_entry_with_modules {
+      return Ok(None);
+    }
+
     let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
     let mut all_used_names = HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item)));
@@ -1076,7 +1104,7 @@ impl JsPlugin {
       renamed_inline_modules.insert(*module_id, Arc::clone(&source));
     }
 
-    Ok(renamed_inline_modules)
+    Ok(Some(renamed_inline_modules))
   }
 
   pub async fn render_chunk(

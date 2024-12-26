@@ -23,5 +23,8 @@ module.exports = [
 		experiments: {
 			outputModule: true
 		},
+		optimization: {
+			avoidEntryIife: true,
+		},
 	},
 ];

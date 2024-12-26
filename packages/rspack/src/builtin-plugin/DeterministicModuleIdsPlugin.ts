@@ -15,7 +15,7 @@ export class DeterministicModuleIdsPlugin extends RspackBuiltinPlugin {
 		if (incremental.moduleIds) {
 			incremental.moduleIds = false;
 			logger.warn(
-				"`optimization.moduleIds = 'deterministic'` can't be used with `incremental.moduleIds` as deterministic module ids is a global effect. `incremental.moduleIds` has been overridden to false."
+				"`optimization.moduleIds = 'deterministic'` can't be used with `incremental.moduleIds` as deterministic module ids is a global effect. `incremental.moduleIds` has been overridden to false. We recommend enabling incremental only in the development mode."
 			);
 		}
 		return createBuiltinPlugin(this.name, undefined);

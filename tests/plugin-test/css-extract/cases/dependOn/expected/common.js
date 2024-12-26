@@ -147,9 +147,13 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 })();
 /************************************************************************/
 var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _styleB_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./styleB.css");
 
+
+})();
 
 __webpack_exports__ = __webpack_require__.O(__webpack_exports__);
 })()

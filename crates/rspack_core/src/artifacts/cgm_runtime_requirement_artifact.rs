@@ -3,11 +3,11 @@ use rspack_collections::IdentifierMap;
 use crate::{ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap};
 
 #[derive(Debug, Default)]
-pub struct CgmRuntimeRequirementsResults {
+pub struct CgmRuntimeRequirementsArtifact {
   module_to_runtime_requirements: IdentifierMap<RuntimeSpecMap<RuntimeGlobals>>,
 }
 
-impl CgmRuntimeRequirementsResults {
+impl CgmRuntimeRequirementsArtifact {
   pub fn is_empty(&self) -> bool {
     self.module_to_runtime_requirements.is_empty()
   }

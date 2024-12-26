@@ -15,7 +15,7 @@ pub struct NaturalModuleIdsPlugin;
 fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
   let (used_ids, mut modules_in_natural_order) = get_used_module_ids_and_modules(compilation, None);
 
-  let mut module_ids = std::mem::take(&mut compilation.module_ids);
+  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
   let module_graph = compilation.get_module_graph();
 
   modules_in_natural_order
@@ -28,7 +28,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
 
   assign_ascending_module_ids(&used_ids, modules_in_natural_order, &mut module_ids);
 
-  compilation.module_ids = module_ids;
+  compilation.module_ids_artifact = module_ids;
 
   Ok(())
 }

@@ -222,6 +222,7 @@ const applyExperimentsDefaults = (
 		D(experiments.incremental, "inferAsyncModules", false);
 		D(experiments.incremental, "providedExports", false);
 		D(experiments.incremental, "dependenciesDiagnostics", false);
+		D(experiments.incremental, "sideEffects", false);
 		D(experiments.incremental, "buildChunkGraph", false);
 		D(experiments.incremental, "moduleIds", false);
 		D(experiments.incremental, "chunkIds", false);
@@ -940,6 +941,8 @@ const applyOptimizationDefaults = (
 	D(optimization, "emitOnErrors", !production);
 	D(optimization, "runtimeChunk", false);
 	D(optimization, "realContentHash", production);
+	// IGNORE(optimization.avoidEntryIife): to update the default value of webpack and bump webpack version in Rspack.
+	D(optimization, "avoidEntryIife", false);
 	D(optimization, "minimize", production);
 	D(optimization, "concatenateModules", production);
 	// IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default

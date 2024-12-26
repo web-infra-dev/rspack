@@ -32,6 +32,9 @@ module.exports = (env, { testPath }) => [
 		},
 		experiments: {
 			outputModule: true
+		},
+		optimization: {
+			avoidEntryIife: true
 		}
 	},
 	{

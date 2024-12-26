@@ -4,5 +4,8 @@ module.exports = {
         library: {
             type: 'modern-module'
         }
-    }
+    },
+		optimization: {
+			avoidEntryIife: true,
+		},
 }

@@ -13,7 +13,6 @@ import {
 } from "@rspack/core";
 import * as rspackCore from "@rspack/core";
 import { createColors, isColorSupported } from "colorette";
-import semver from "semver";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { BuildCommand } from "./commands/build";
@@ -100,12 +99,6 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
-		if (semver.lt(semver.clean(process.version)!, "14.0.0")) {
-			this.getLogger().warn(
-				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
-			);
-		}
-
 		this.program.showHelpOnFail(false);
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");

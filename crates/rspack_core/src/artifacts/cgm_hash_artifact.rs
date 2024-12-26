@@ -4,11 +4,11 @@ use rspack_hash::RspackHashDigest;
 use crate::{ModuleIdentifier, RuntimeSpec, RuntimeSpecMap};
 
 #[derive(Debug, Default)]
-pub struct CgmHashResults {
+pub struct CgmHashArtifact {
   module_to_hashes: IdentifierMap<RuntimeSpecMap<RspackHashDigest>>,
 }
 
-impl CgmHashResults {
+impl CgmHashArtifact {
   pub fn is_empty(&self) -> bool {
     self.module_to_hashes.is_empty()
   }

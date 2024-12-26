@@ -686,6 +686,7 @@ impl JsCompilation {
           .collect(),
         assets: res.assets.into_iter().collect(),
         id: res.id,
+        error: res.error,
       };
       Ok(js_result)
     })
@@ -900,6 +901,7 @@ pub struct JsExecuteModuleResult {
   pub cacheable: bool,
   pub assets: Vec<String>,
   pub id: u32,
+  pub error: Option<String>,
 }
 
 #[napi(object)]

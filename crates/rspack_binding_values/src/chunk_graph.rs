@@ -125,7 +125,7 @@ impl JsChunkGraph {
   pub fn get_module_id(&self, js_module: &JsModule) -> napi::Result<Option<&str>> {
     let compilation = self.as_ref()?;
     Ok(
-      ChunkGraph::get_module_id(&compilation.module_ids, js_module.identifier)
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, js_module.identifier)
         .map(|module_id| module_id.as_str()),
     )
   }

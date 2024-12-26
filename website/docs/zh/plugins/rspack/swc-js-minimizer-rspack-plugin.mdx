@@ -160,7 +160,7 @@ const defaultOptions = {
   minify: true,
   mangle: true,
   compress: {
-    passes: 1,
+    passes: 2,
   }
   format: {
     comments: false,
@@ -176,6 +176,18 @@ const defaultOptions = {
 new rspack.SwcJsMinimizerRspackPlugin({
   minimizerOptions: {
     mangle: false,
+  },
+});
+```
+
+例如，设置更高的 `passes` 来运行更多的压缩次数。在一些情况下，这可能会输出更小的包体积，但执行次数越多，压缩需要的时间就越长。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      passes: 4,
+    },
   },
 });
 ```

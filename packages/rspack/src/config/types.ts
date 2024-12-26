@@ -2340,6 +2340,11 @@ export type Optimization = {
 	 * The value is `true` in development mode.
 	 * */
 	emitOnErrors?: boolean;
+
+	/**
+	 * Avoid wrapping the entry module in an IIFE.
+	 */
+	avoidEntryIife?: boolean;
 };
 //#endregion
 
@@ -2494,6 +2499,11 @@ export type Incremental = {
 	 * Enables diagnostics for dependencies.
 	 */
 	dependenciesDiagnostics?: boolean;
+
+	/**
+	 * Enables incremental side effects optimization.
+	 */
+	sideEffects?: boolean;
 
 	/**
 	 * Enable incremental build chunk graph.

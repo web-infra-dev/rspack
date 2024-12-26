@@ -661,6 +661,7 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   assets: Array<string>
   id: number
+  error?: string
 }
 
 export interface JsFactorizeArgs {
@@ -1525,6 +1526,7 @@ export interface RawIncremental {
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  sideEffects: boolean
   buildChunkGraph: boolean
   moduleIds: boolean
   chunkIds: boolean
@@ -1758,6 +1760,7 @@ export interface RawOptimizationOptions {
   innerGraph: boolean
   mangleExports: boolean | string
   concatenateModules: boolean
+  avoidEntryIife: boolean
 }
 
 export interface RawOptions {

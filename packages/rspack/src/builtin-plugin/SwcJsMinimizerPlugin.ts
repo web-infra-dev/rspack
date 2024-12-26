@@ -277,14 +277,16 @@ export const SwcJsMinimizerRspackPlugin = create(
 			...options?.minimizerOptions?.format
 		};
 
+		// terser defaults to 1, SWC defaults to 3
+		// Rspack uses 2 to balance the build performance and the bundle size
 		if (compress && typeof compress === "object") {
 			compress = {
-				passes: 1, // terser and swc use different default value: 0
+				passes: 2,
 				...compress
 			};
 		} else if (compress) {
 			compress = {
-				passes: 1
+				passes: 2
 			};
 		}
 

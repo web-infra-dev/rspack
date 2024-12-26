@@ -38,7 +38,7 @@ impl fmt::Display for Mutations {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "[")?;
     for mutation in self.iter() {
-      writeln!(f, "{},", mutation)?;
+      writeln!(f, "{mutation},")?;
     }
     writeln!(f, "]")
   }
@@ -60,10 +60,10 @@ pub enum Mutation {
 impl fmt::Display for Mutation {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
-      Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
-      Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
-      Mutation::ModuleSetId { module } => write!(f, "set id module {}", module),
+      Mutation::ModuleBuild { module } => write!(f, "build module {module}"),
+      Mutation::ModuleRemove { module } => write!(f, "remove module {module}"),
+      Mutation::ModuleSetAsync { module } => write!(f, "set async module {module}"),
+      Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
       Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
@@ -358,7 +358,7 @@ fn compute_affected_modules_with_chunk_graph(
       };
       for chunk in &chunk_group.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.id(&compilation.chunk_ids).hash(&mut hasher);
+        chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
       }
     }
     hasher.finish()

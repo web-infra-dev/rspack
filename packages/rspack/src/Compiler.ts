@@ -1055,69 +1055,73 @@ class Compiler {
 						codegenResults,
 						runtimeModules
 					}: binding.JsExecuteModuleArg) {
-						const __webpack_require__: any = (id: string) => {
-							const cached = moduleCache[id];
-							if (cached !== undefined) {
-								if (cached.error) throw cached.error;
-								return cached.exports;
-							}
+						try {
+							const __webpack_require__: any = (id: string) => {
+								const cached = moduleCache[id];
+								if (cached !== undefined) {
+									if (cached.error) throw cached.error;
+									return cached.exports;
+								}
 
-							const execOptions = {
-								id,
-								module: {
+								const execOptions = {
 									id,
-									exports: {},
-									loaded: false,
-									error: undefined
-								},
-								require: __webpack_require__
+									module: {
+										id,
+										exports: {},
+										loaded: false,
+										error: undefined
+									},
+									require: __webpack_require__
+								};
+
+								for (const handler of interceptModuleExecution) {
+									handler(execOptions);
+								}
+
+								const result = codegenResults.map[id]["build time"];
+								const moduleObject = execOptions.module;
+
+								if (id) moduleCache[id] = moduleObject;
+
+								tryRunOrWebpackError(
+									() =>
+										queried.call(
+											{
+												codeGenerationResult: new CodeGenerationResult(result),
+												moduleObject
+											},
+											{ __webpack_require__ }
+										),
+									"Compilation.hooks.executeModule"
+								);
+								moduleObject.loaded = true;
+								return moduleObject.exports;
 							};
 
-							for (const handler of interceptModuleExecution) {
-								handler(execOptions);
-							}
-
-							const result = codegenResults.map[id]["build time"];
-							const moduleObject = execOptions.module;
-
-							if (id) moduleCache[id] = moduleObject;
-
-							tryRunOrWebpackError(
-								() =>
-									queried.call(
-										{
-											codeGenerationResult: new CodeGenerationResult(result),
-											moduleObject
-										},
-										{ __webpack_require__ }
-									),
-								"Compilation.hooks.executeModule"
-							);
-							moduleObject.loaded = true;
-							return moduleObject.exports;
-						};
-
-						const moduleCache: Record<string, any> = (__webpack_require__[
-							RuntimeGlobals.moduleCache.replace(
-								`${RuntimeGlobals.require}.`,
-								""
-							)
-						] = {});
-						const interceptModuleExecution: ((execOptions: any) => void)[] =
-							(__webpack_require__[
-								RuntimeGlobals.interceptModuleExecution.replace(
+							const moduleCache: Record<string, any> = (__webpack_require__[
+								RuntimeGlobals.moduleCache.replace(
 									`${RuntimeGlobals.require}.`,
 									""
 								)
-							] = []);
+							] = {});
+							const interceptModuleExecution: ((execOptions: any) => void)[] =
+								(__webpack_require__[
+									RuntimeGlobals.interceptModuleExecution.replace(
+										`${RuntimeGlobals.require}.`,
+										""
+									)
+								] = []);
 
-						for (const runtimeModule of runtimeModules) {
-							__webpack_require__(runtimeModule);
+							for (const runtimeModule of runtimeModules) {
+								__webpack_require__(runtimeModule);
+							}
+
+							const executeResult = __webpack_require__(entry);
+							that.deref()!.#moduleExecutionResultsMap.set(id, executeResult);
+						} catch (e) {
+							that.deref()!.#moduleExecutionResultsMap.set(id, e);
+							throw e;
 						}
-
-						const executeResult = __webpack_require__(entry);
-
-						that.deref()!.#moduleExecutionResultsMap.set(id, executeResult);
 					};
 				}
 			),

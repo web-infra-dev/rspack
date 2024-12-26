@@ -36,6 +36,7 @@ Object {
       modulesHashes: false,
       modulesRuntimeRequirements: false,
       providedExports: false,
+      sideEffects: false,
     },
     layers: false,
     lazyCompilation: false,
@@ -205,6 +206,7 @@ Object {
     global: warn,
   },
   optimization: Object {
+    avoidEntryIife: false,
     chunkIds: natural,
     concatenateModules: false,
     emitOnErrors: true,

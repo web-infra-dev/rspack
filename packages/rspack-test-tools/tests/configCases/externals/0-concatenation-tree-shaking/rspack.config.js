@@ -12,6 +12,9 @@ module.exports = {
 			type: "modern-module",
 		}
 	},
+	optimization: {
+		avoidEntryIife: true,
+	},
 	experiments: {
 		outputModule: true
 	},

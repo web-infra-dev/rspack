@@ -1263,7 +1263,8 @@ const optimization = z.strictObject({
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
-	emitOnErrors: z.boolean().optional()
+	emitOnErrors: z.boolean().optional(),
+	avoidEntryIife: z.boolean().optional()
 }) satisfies z.ZodType<t.Optimization>;
 //#endregion
 
@@ -1346,6 +1347,7 @@ const incremental = z.strictObject({
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	dependenciesDiagnostics: z.boolean().optional(),
+	sideEffects: z.boolean().optional(),
 	buildChunkGraph: z.boolean().optional(),
 	moduleIds: z.boolean().optional(),
 	chunkIds: z.boolean().optional(),

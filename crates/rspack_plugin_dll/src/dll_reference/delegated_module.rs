@@ -160,10 +160,10 @@ impl Module for DelegatedModule {
 
         match self.delegation_type.as_ref() {
           "require" => {
-            s += &format!("({})", request);
+            s += &format!("({request})");
           }
           "object" => {
-            s += &format!("[{}]", request);
+            s += &format!("[{request}]");
           }
           _ => panic!("delegation_type should be 'require' or 'object'"),
         }

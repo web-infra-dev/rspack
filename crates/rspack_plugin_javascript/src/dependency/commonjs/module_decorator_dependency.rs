@@ -59,9 +59,10 @@ impl DependencyTemplate for ModuleDecoratorDependency {
     let module_argument = module.get_module_argument();
 
     // ref: tests/webpack-test/cases/scope-hoisting/issue-5096 will return a `null` as module id
-    let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier())
-      .map(|s| s.to_string())
-      .unwrap_or_default();
+    let module_id =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+        .map(|s| s.to_string())
+        .unwrap_or_default();
 
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(

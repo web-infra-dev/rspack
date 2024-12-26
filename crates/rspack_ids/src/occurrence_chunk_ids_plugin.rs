@@ -68,7 +68,13 @@ fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
         return b_occurs.cmp(&a_occurs);
       }
 
-      compare_chunks_natural(chunk_graph, module_graph, &compilation.module_ids, a, b)
+      compare_chunks_natural(
+        chunk_graph,
+        module_graph,
+        &compilation.module_ids_artifact,
+        a,
+        b,
+      )
     })
     .map(|chunk| chunk.ukey())
     .collect::<Vec<_>>();

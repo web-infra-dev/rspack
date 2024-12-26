@@ -2,7 +2,7 @@
 
 exports[`StatsTestCases should print correct stats for asset 1`] = `
 "asset c560fa876f51d750.png 26.1 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
-asset bundle.js 13 KiB [emitted] (name: main)
+asset bundle.js 13.1 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 runtime modules 1.61 KiB 2 modules
 modules by path ./ 9.34 KiB (javascript) 14.6 KiB (asset)
@@ -269,7 +269,7 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
-"asset react.js 3.76 KiB [emitted] (name: react)
+"asset react.js 2.08 KiB [emitted] (name: react)
 ./react.js 74 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
@@ -329,7 +329,7 @@ exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`
 `;
 
 exports[`StatsTestCases should print correct stats for custom-terser 1`] = `
-"asset bundle.js 630 bytes [emitted] [minimized] (name: main)
+"asset bundle.js 593 bytes [emitted] [minimized] (name: main)
 ./index.js 128 bytes [built] [code generated]
   [no exports]
   [no exports used]
@@ -341,7 +341,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for exclude-with-loader 1`] = `
 "hidden assets 34 bytes 1 asset
-asset bundle.js 4.52 KiB [emitted] (name: main)
+asset bundle.js 4.64 KiB [emitted] (name: main)
 runtime modules 2.27 KiB 5 modules
 hidden modules 99 bytes 2 modules
 cacheable modules 119 bytes
@@ -351,7 +351,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for external 1`] = `
-"asset main.js 891 bytes [emitted] (name: main)
+"asset main.js 1020 bytes [emitted] (name: main)
 ./index.js 17 bytes [built] [code generated]
 external \\"test\\" 42 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -461,7 +461,7 @@ asset 7342054f673663df.js 167 bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
-"asset entry.js 9.97 KiB [emitted] (name: entry)
+"asset entry.js 10.1 KiB [emitted] (name: entry)
 asset 228.js 422 bytes [emitted]
 asset 271.js 422 bytes [emitted]
 asset 536.js 422 bytes [emitted]
@@ -576,7 +576,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
 "1 chunks:
-  asset bundle1.js 3.93 KiB [emitted] (name: main)
+  asset bundle1.js 4.06 KiB [emitted] (name: main)
   chunk (runtime: main) bundle1.js (main) 357 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
     ./a.js 22 bytes [dependent] [built] [code generated]
     ./c.js 30 bytes [dependent] [built] [code generated]
@@ -597,7 +597,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   1 chunks (Rspack x.x.x) compiled with 1 warning in X.23
 
 2 chunks:
-  asset bundle2.js 10.5 KiB [emitted] (name: main)
+  asset bundle2.js 10.6 KiB [emitted] (name: main)
   asset 76.bundle2.js 553 bytes [emitted] (name: c)
   chunk (runtime: main) 76.bundle2.js (c) 96 bytes <{76}> <{909}> >{76}< [rendered]
     dependent modules 44 bytes [dependent]
@@ -621,7 +621,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   2 chunks (Rspack x.x.x) compiled with 1 warning in X.23
 
 3 chunks:
-  asset bundle3.js 10.5 KiB [emitted] (name: main)
+  asset bundle3.js 10.6 KiB [emitted] (name: main)
   asset 76.bundle3.js 387 bytes [emitted] (name: c)
   asset 588.bundle3.js 242 bytes [emitted]
   chunk (runtime: main) 588.bundle3.js 66 bytes <{76}> <{909}> [rendered]
@@ -646,7 +646,7 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
   3 chunks (Rspack x.x.x) compiled with 1 warning in X.23
 
 4 chunks:
-  asset bundle4.js 10.5 KiB [emitted] (name: main)
+  asset bundle4.js 10.6 KiB [emitted] (name: main)
   asset 76.bundle4.js 387 bytes [emitted] (name: c)
   asset 345.bundle4.js 186 bytes [emitted]
   asset 272.bundle4.js 130 bytes [emitted]
@@ -681,7 +681,7 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for max-modules 1`] = `
-"asset main.js 4.63 KiB [emitted] (name: main)
+"asset main.js 4.75 KiB [emitted] (name: main)
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
@@ -706,7 +706,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for max-modules-default 1`] = `
-"asset main.js 4.63 KiB [emitted] (name: main)
+"asset main.js 4.75 KiB [emitted] (name: main)
 ./index.js 181 bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
@@ -752,9 +752,9 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication 1`] = `
-"asset e1.js 9.88 KiB [emitted] (name: e1)
-asset e2.js 9.88 KiB [emitted] (name: e2)
-asset e3.js 9.88 KiB [emitted] (name: e3)
+"asset e1.js 10 KiB [emitted] (name: e1)
+asset e2.js 10 KiB [emitted] (name: e2)
+asset e3.js 10 KiB [emitted] (name: e3)
 asset 106.js 768 bytes [emitted]
 asset 511.js 768 bytes [emitted]
 asset 637.js 768 bytes [emitted]
@@ -792,9 +792,9 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for module-deduplication-named 1`] = `
-"asset e1.js 9.74 KiB [emitted] (name: e1)
-asset e2.js 9.74 KiB [emitted] (name: e2)
-asset e3.js 9.74 KiB [emitted] (name: e3)
+"asset e1.js 9.87 KiB [emitted] (name: e1)
+asset e2.js 9.87 KiB [emitted] (name: e2)
+asset e3.js 9.87 KiB [emitted] (name: e3)
 asset async1.js 880 bytes [emitted] (name: async1)
 asset async2.js 879 bytes [emitted] (name: async2)
 asset async3.js 879 bytes [emitted] (name: async3)
@@ -855,7 +855,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
-"assets by status 1.58 KiB [cached] 1 asset
+"assets by status 1.7 KiB [cached] 1 asset
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -888,7 +888,7 @@ Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
-"assets by status 1.58 KiB [cached] 1 asset
+"assets by status 1.7 KiB [cached] 1 asset
 modules with errors 53 bytes [errors]
   ./not-existing.js 26 bytes [built] [code generated] [1 error]
   ./parse-error.js 27 bytes [built] [code generated] [1 error]
@@ -992,7 +992,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for optimize-chunks 1`] = `
-"asset main.js 9.17 KiB {909} [emitted] (name: main)
+"asset main.js 9.29 KiB {909} [emitted] (name: main)
 asset cir2 from cir1.js 355 bytes {334} [emitted] (name: cir2 from cir1)
 asset cir1.js 327 bytes {228} [emitted] (name: cir1)
 asset cir2.js 327 bytes {787} [emitted] (name: cir2)
@@ -1141,9 +1141,9 @@ Rspack x.x.x compiled with 3 warnings in X.23"
 
 exports[`StatsTestCases should print correct stats for performance-no-async-chunks-shown 1`] = `
 "asset <CLR=33,BOLD>main.js</CLR> <CLR=33,BOLD>294 KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: main)
-asset <CLR=32,BOLD>sec.js</CLR> 1.01 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
+asset <CLR=32,BOLD>sec.js</CLR> 1.13 KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> 294 KiB = <CLR=32,BOLD>main.js</CLR>
-Entrypoint <CLR=BOLD>sec</CLR> 1.01 KiB = <CLR=32,BOLD>sec.js</CLR>
+Entrypoint <CLR=BOLD>sec</CLR> 1.13 KiB = <CLR=32,BOLD>sec.js</CLR>
 <CLR=BOLD>./index.js</CLR> 32 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./index2.js</CLR> 48 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> 293 KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
@@ -1153,12 +1153,12 @@ Entrypoint <CLR=BOLD>sec</CLR> 1.01 KiB = <CLR=32,BOLD>sec.js</CLR>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=33>│<CLR=0> Assets:
-  <CLR=33>│<CLR=0>   main.js (293.892 KiB)
+  <CLR=33>│<CLR=0>   main.js (294.018 KiB)
 <CLR=0>
 
 <CLR=33,BOLD>WARNING</CLR> in <CLR=33>⚠<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.
   <CLR=33>│<CLR=0> Entrypoints:
-  <CLR=33>│<CLR=0>   main (293.892 KiB)
+  <CLR=33>│<CLR=0>   main (294.018 KiB)
   <CLR=33>│<CLR=0>       main.js
 <CLR=0>
 
@@ -1181,15 +1181,15 @@ Entrypoint <CLR=BOLD>sec</CLR> <CLR=33,BOLD>[big]</CLR> 294 KiB = <CLR=32,BOLD>s
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Assets:
-  <CLR=31>│<CLR=0>   main.js (293.812 KiB)
-  <CLR=31>│<CLR=0>   sec.js (293.812 KiB)
+  <CLR=31>│<CLR=0>   main.js (293.938 KiB)
+  <CLR=31>│<CLR=0>   sec.js (293.938 KiB)
 <CLR=0>
 
 <CLR=31,BOLD>ERROR</CLR> in <CLR=31>×<CLR=0> entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.
   <CLR=31>│<CLR=0> Entrypoints:
-  <CLR=31>│<CLR=0>   main (293.812 KiB)
+  <CLR=31>│<CLR=0>   main (293.938 KiB)
   <CLR=31>│<CLR=0>       main.js
-  <CLR=31>│<CLR=0>   sec (293.812 KiB)
+  <CLR=31>│<CLR=0>   sec (293.938 KiB)
   <CLR=31>│<CLR=0>       sec.js
 <CLR=0>
 
@@ -1320,61 +1320,61 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 "default:
-  assets by path *.br 13.9 KiB
-    asset default-main.js.br 11.9 KiB [emitted]
-    asset default-main.js.map.br 673 bytes [emitted]
+  assets by path *.br 14 KiB
+    asset default-main.js.br 12 KiB [emitted]
+    asset default-main.js.map.br 675 bytes [emitted]
     + 6 assets
-  assets by path *.gz 13.9 KiB
-    asset default-main.js.gz 11.9 KiB [emitted]
-    asset default-main.js.map.gz 673 bytes [emitted]
+  assets by path *.gz 14 KiB
+    asset default-main.js.gz 12 KiB [emitted]
+    asset default-main.js.map.gz 675 bytes [emitted]
     asset default-chunk_js.js.gz 611 bytes [emitted]
     + 5 assets
-  assets by path *.js 12.5 KiB
-    asset default-main.js 11.9 KiB [emitted] (name: main)
+  assets by path *.js 12.6 KiB
+    asset default-main.js 12 KiB [emitted] (name: main)
     asset default-chunk_js.js 611 bytes [emitted]
   assets by path *.css 142 bytes
     asset default-chunk_js.css 73 bytes [emitted]
     asset default-main.css 69 bytes [emitted] (name: main)
 
 relatedAssets:
-  assets by path *.br 13.9 KiB
-    asset relatedAssets-main.js.br 11.9 KiB [emitted]
-    asset relatedAssets-main.js.map.br 679 bytes [emitted]
+  assets by path *.br 14 KiB
+    asset relatedAssets-main.js.br 12 KiB [emitted]
+    asset relatedAssets-main.js.map.br 681 bytes [emitted]
     + 6 assets
-  assets by path *.gz 13.9 KiB
-    asset relatedAssets-main.js.gz 11.9 KiB [emitted]
-    asset relatedAssets-main.js.map.gz 679 bytes [emitted]
+  assets by path *.gz 14 KiB
+    asset relatedAssets-main.js.gz 12 KiB [emitted]
+    asset relatedAssets-main.js.map.gz 681 bytes [emitted]
     asset relatedAssets-chunk_js.js.gz 617 bytes [emitted]
     + 5 assets
-  assets by path *.js 12.5 KiB
-    asset relatedAssets-main.js 11.9 KiB [emitted] (name: main)
+  assets by path *.js 12.6 KiB
+    asset relatedAssets-main.js 12 KiB [emitted] (name: main)
     asset relatedAssets-chunk_js.js 617 bytes [emitted]
   assets by path *.css 154 bytes
     asset relatedAssets-chunk_js.css 79 bytes [emitted]
     asset relatedAssets-main.css 75 bytes [emitted] (name: main)
 
 exclude1:
-  hidden assets 27.7 KiB 16 assets
-  assets by status 12.6 KiB [emitted]
-    assets by path *.js 12.5 KiB
-      asset exclude1-main.js 11.9 KiB [emitted] (name: main)
+  hidden assets 28 KiB 16 assets
+  assets by status 12.7 KiB [emitted]
+    assets by path *.js 12.6 KiB
+      asset exclude1-main.js 12 KiB [emitted] (name: main)
       asset exclude1-chunk_js.js 612 bytes [emitted]
     assets by path *.css 144 bytes
       asset exclude1-chunk_js.css 74 bytes [emitted]
       asset exclude1-main.css 70 bytes [emitted] (name: main)
 
 exclude2:
-  assets by path *.br 13.9 KiB
-    asset exclude2-main.js.br 11.9 KiB [emitted]
-    asset exclude2-main.js.map.br 674 bytes [emitted]
+  assets by path *.br 14 KiB
+    asset exclude2-main.js.br 12 KiB [emitted]
+    asset exclude2-main.js.map.br 676 bytes [emitted]
     + 6 assets
-  assets by path *.gz 13.9 KiB
-    asset exclude2-main.js.gz 11.9 KiB [emitted]
-    asset exclude2-main.js.map.gz 674 bytes [emitted]
+  assets by path *.gz 14 KiB
+    asset exclude2-main.js.gz 12 KiB [emitted]
+    asset exclude2-main.js.map.gz 676 bytes [emitted]
     asset exclude2-chunk_js.js.gz 612 bytes [emitted]
     + 5 assets
-  assets by path *.js 12.5 KiB
-    asset exclude2-main.js 11.9 KiB [emitted] (name: main)
+  assets by path *.js 12.6 KiB
+    asset exclude2-main.js 12 KiB [emitted] (name: main)
     asset exclude2-chunk_js.js 612 bytes [emitted]
   assets by path *.css 144 bytes
     asset exclude2-chunk_js.css 74 bytes [emitted]
@@ -1382,24 +1382,24 @@ exclude2:
 
 exclude3:
   hidden assets 2.89 KiB 10 assets
-  assets by status 37.4 KiB [emitted]
-    assets by path *.br 12.8 KiB
-      asset exclude3-main.js.br 11.9 KiB [emitted]
-      asset exclude3-main.js.map.br 674 bytes [emitted]
+  assets by status 37.8 KiB [emitted]
+    assets by path *.br 12.9 KiB
+      asset exclude3-main.js.br 12 KiB [emitted]
+      asset exclude3-main.js.map.br 676 bytes [emitted]
       asset exclude3-main.css.map.br 171 bytes [emitted]
       asset exclude3-main.css.br 70 bytes [emitted]
-    assets by path *.gz 12.8 KiB
-      asset exclude3-main.js.gz 11.9 KiB [emitted]
-      asset exclude3-main.js.map.gz 674 bytes [emitted]
+    assets by path *.gz 12.9 KiB
+      asset exclude3-main.js.gz 12 KiB [emitted]
+      asset exclude3-main.js.map.gz 676 bytes [emitted]
       asset exclude3-main.css.map.gz 171 bytes [emitted]
       asset exclude3-main.css.gz 70 bytes [emitted]
-    assets by chunk 11.9 KiB (name: main)
-      asset exclude3-main.js 11.9 KiB [emitted] (name: main)
+    assets by chunk 12.1 KiB (name: main)
+      asset exclude3-main.js 12 KiB [emitted] (name: main)
       asset exclude3-main.css 70 bytes [emitted] (name: main)"
 `;
 
 exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] = `
-"asset main.js 4.63 KiB [emitted] (name: main)
+"asset main.js 4.75 KiB [emitted] (name: main)
 ./index.js 181 bytes [built] [code generated]
 ./c.js?9 33 bytes [built] [code generated]
 ./c.js?8 33 bytes [built] [code generated]
@@ -1454,8 +1454,8 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for runtime-specific-used-exports 1`] = `
 "production:
-  asset production-a.js 10.6 KiB [emitted] (name: a)
-  asset production-b.js 10.6 KiB [emitted] (name: b)
+  asset production-a.js 10.7 KiB [emitted] (name: a)
+  asset production-b.js 10.7 KiB [emitted] (name: b)
   asset production-dx_js.js 952 bytes [emitted]
   asset production-dw_js-_b3b00.js 928 bytes [emitted]
   asset production-dw_js-_b3b01.js 928 bytes [emitted]
@@ -1613,8 +1613,8 @@ development:
   development (Rspack x.x.x) compiled successfully in X.23
 
 global:
-  asset global-a.js 10.7 KiB [emitted] (name: a)
-  asset global-b.js 10.7 KiB [emitted] (name: b)
+  asset global-a.js 10.8 KiB [emitted] (name: a)
+  asset global-b.js 10.8 KiB [emitted] (name: b)
   asset global-dw_js.js 952 bytes [emitted]
   asset global-dx_js.js 952 bytes [emitted]
   asset global-dy_js.js 952 bytes [emitted]
@@ -1724,7 +1724,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
-"asset main.js 9.98 KiB [emitted] (name: main)
+"asset main.js 10.1 KiB [emitted] (name: main)
 asset 0.js 578 bytes [emitted]
 runtime modules 7.26 KiB 9 modules
 cacheable modules 967 bytes

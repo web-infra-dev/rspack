@@ -23,6 +23,7 @@ module.exports = {
 		-       "modulesHashes": false,
 		-       "modulesRuntimeRequirements": false,
 		-       "providedExports": false,
+		-       "sideEffects": false,
 		-     },
 		+     "incremental": false,
 		@@ ... @@
