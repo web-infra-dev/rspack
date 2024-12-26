@@ -136,7 +136,7 @@ impl PackWriteStrategy for SplitPackStrategy {
             .1
         })
         .collect_vec(),
-      &self,
+      self,
     )
     .await?;
 
