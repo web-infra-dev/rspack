@@ -11,6 +11,12 @@ impl Debug for TaskQueue {
   }
 }
 
+impl Default for TaskQueue {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl TaskQueue {
   pub fn new() -> Self {
     TaskQueue(LazyLock::new(|| {

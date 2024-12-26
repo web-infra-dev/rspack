@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test_storage_dev {
+mod test_storage_release {
   use std::{path::PathBuf, sync::Arc};
 
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
@@ -10,13 +10,13 @@ mod test_storage_dev {
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
-      .join("rspack_test/storage/test_storage_dev")
+      .join("rspack_test/storage/test_storage_release")
       .join(p);
     (base.join("cache"), base.join("temp"))
   }
 
   pub fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
-    let base = PathBuf::from("/rspack_test/storage/test_storage_dev/").join(p);
+    let base = PathBuf::from("/rspack_test/storage/test_storage_release/").join(p);
     (base.join("cache"), base.join("temp"))
   }
 
@@ -32,7 +32,7 @@ mod test_storage_dev {
       temp_root: temp_root.into(),
       fs,
       bucket_size: 1,
-      pack_size: 10000,
+      pack_size: 1000,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
       fresh_generation: Some(1),
@@ -40,71 +40,136 @@ mod test_storage_dev {
     }
   }
 
-  async fn test_initial_dev(
+  async fn get_scope_generations(storage: &PackStorage, scope_name: &str) -> Result<Vec<usize>> {
+    let mut res = vec![0; 10];
+    let scopes = storage.manager.scopes.lock().await;
+    let scope = scopes.get(scope_name).expect("should have scope");
+
+    for pack in scope.packs.expect_value().iter().flatten() {
+      for generation in pack.generations.iter() {
+        res[*generation] += 1;
+      }
+    }
+
+    Ok(res)
+  }
+
+  async fn get_scope_released_count(storage: &PackStorage, scope_name: &str) -> Result<usize> {
+    let mut res = 0_usize;
+    let scopes = storage.manager.scopes.lock().await;
+    let scope = scopes.get(scope_name).expect("should have scope");
+
+    for pack in scope.packs.expect_value().iter().flatten() {
+      if pack.contents.is_released() {
+        res += pack.keys.expect_value().len();
+      }
+    }
+
+    Ok(res)
+  }
+
+  async fn test_initial(
     root: &Utf8PathBuf,
     fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
-    let data = storage.load("test_scope").await?;
+    let scope_name = "test_scope";
+    let data = storage.load(scope_name).await?;
     assert!(data.is_empty());
     for i in 0..1000 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
 
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 1000, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 0);
+
     for i in 0..100 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
+
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 900, 100, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 0);
 
     for i in 100..200 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
+
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 800, 100, 100, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 0);
 
     for i in 200..300 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
+
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 700, 100, 100, 100, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 660);
 
     for i in 300..400 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
+
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 600, 100, 100, 100, 100, 0, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 660);
 
     for i in 400..500 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
     storage.trigger_save()?.await.expect("should save")?;
 
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 500, 100, 100, 100, 100, 100, 0, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 660);
+
     for i in 500..600 {
       storage.set(
-        "test_scope",
+        scope_name,
         format!("key_{:0>3}", i).as_bytes().to_vec(),
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
@@ -112,10 +177,16 @@ mod test_storage_dev {
     storage.trigger_save()?.await.expect("should save")?;
 
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
+    assert_eq!(
+      get_scope_generations(&storage, scope_name).await?,
+      vec![0, 400, 100, 100, 100, 100, 100, 100, 0, 0]
+    );
+    assert_eq!(get_scope_released_count(&storage, scope_name).await?, 660);
+
     Ok(())
   }
 
-  async fn test_recovery_modify(options: PackStorageOptions) -> Result<()> {
+  async fn test_recovery(options: PackStorageOptions) -> Result<()> {
     let storage = PackStorage::new(options);
     let data = storage.load("test_scope").await?;
     assert_eq!(data.len(), 1000);
@@ -124,14 +195,14 @@ mod test_storage_dev {
 
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
-  async fn test_dev() {
+  async fn test_release() {
     let cases = [
       (
-        get_native_path("test_dev_native"),
+        get_native_path("test_release_native"),
         Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
-        get_memory_path("test_dev_memory"),
+        get_memory_path("test_release_memory"),
         Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
@@ -145,7 +216,7 @@ mod test_storage_dev {
         .await
         .expect("should remove temp root");
 
-      let _ = test_initial_dev(
+      let _ = test_initial(
         &root.join(&version),
         fs.clone(),
         create_pack_options(&root, &temp_root, &version, fs.clone()),
@@ -153,7 +224,7 @@ mod test_storage_dev {
       .await
       .map_err(|e| panic!("{}", e));
 
-      let _ = test_recovery_modify(create_pack_options(&root, &temp_root, &version, fs.clone()))
+      let _ = test_recovery(create_pack_options(&root, &temp_root, &version, fs.clone()))
         .await
         .map_err(|e| panic!("{}", e));
     }

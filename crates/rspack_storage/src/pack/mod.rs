@@ -19,8 +19,8 @@ use crate::{error::Result, FileSystem, ItemKey, ItemPairs, ItemValue, Storage};
 pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]
 pub struct PackStorage {
-  manager: ScopeManager,
-  updates: Mutex<ScopeUpdates>,
+  pub manager: ScopeManager,
+  pub updates: Mutex<ScopeUpdates>,
 }
 
 pub struct PackStorageOptions {
