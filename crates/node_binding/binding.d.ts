@@ -254,6 +254,8 @@ export declare class JsModuleGraph {
 export declare class JsModuleGraphConnection {
   get dependency(): JsDependency
   get module(): JsModule | null
+  get resolvedModule(): JsModule | null
+  get originModule(): JsModule | null
 }
 
 export declare class JsResolver {

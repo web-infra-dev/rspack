@@ -45,6 +45,22 @@ export class ModuleGraphConnection {
 						binding.dependency
 					);
 				}
+			},
+			resolvedModule: {
+				enumerable: true,
+				get(): Module | null {
+					return binding.resolvedModule
+						? Module.__from_binding(binding.resolvedModule)
+						: null;
+				}
+			},
+			originModule: {
+				enumerable: true,
+				get(): Module | null {
+					return binding.originModule
+						? Module.__from_binding(binding.originModule)
+						: null;
+				}
 			}
 		});
 	}
