@@ -58,7 +58,6 @@ import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
-import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
 export type { AssetInfo } from "./util/AssetInfo";
 
@@ -399,27 +398,24 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all assets.
 	 */
 	get assets(): Record<string, Source> {
-		return memoizeValue(() => this.#createCachedAssets());
+		return this.#createCachedAssets();
 	}
 
 	/**
 	 * Get a map of all entrypoints.
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		return memoizeValue(
-			() =>
-				new Map(
-					Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-						n,
-						Entrypoint.__from_binding(e)
-					])
-				)
+		return new Map(
+			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
+				n,
+				Entrypoint.__from_binding(e)
+			])
 		);
 	}
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
-		return memoizeValue(() =>
-			this.#inner.chunkGroups.map(binding => ChunkGroup.__from_binding(binding))
+		return this.#inner.chunkGroups.map(binding =>
+			ChunkGroup.__from_binding(binding)
 		);
 	}
 
@@ -456,7 +452,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return memoizeValue(() => new Set(this.__internal__getChunks()));
+		return new Set(this.__internal__getChunks());
 	}
 
 	/**
