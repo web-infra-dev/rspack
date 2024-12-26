@@ -160,7 +160,7 @@ const defaultOptions = {
   minify: true,
   mangle: true,
   compress: {
-    passes: 1,
+    passes: 2,
   }
   format: {
     comments: false,
@@ -176,6 +176,18 @@ For example, disable `mangle` to avoid mangling variable names:
 new rspack.SwcJsMinimizerRspackPlugin({
   minimizerOptions: {
     mangle: false,
+  },
+});
+```
+
+For example, set a higher `passes` to run more compression passes. In some cases this may result in a smaller bundle size, but the more passes that are run, the more time it takes to compress.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      passes: 4,
+    },
   },
 });
 ```
