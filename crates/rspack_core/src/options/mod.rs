@@ -35,3 +35,5 @@ mod clean_options;
 pub use clean_options::*;
 mod target;
 pub use target::*;
+mod devtool;
+pub use devtool::*;
