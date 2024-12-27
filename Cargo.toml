@@ -59,7 +59,7 @@ path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.3" }
 pollster           = { version = "0.4.0" }
 proc-macro2        = { version = "1.0.92" }
-quote              = { version = "1.0.37" }
+quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
@@ -72,7 +72,7 @@ simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.91" }
+syn                = { version = "2.0.92" }
 tokio              = { version = "1.42.0" }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
