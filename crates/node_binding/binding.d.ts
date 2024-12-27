@@ -236,6 +236,7 @@ export declare class JsModule {
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
+  get resourceResolveData(): JsResourceData | undefined
 }
 
 export declare class JsModuleGraph {

@@ -334,6 +334,12 @@ export class Module {
 				get(): boolean {
 					return module.useSourceMap;
 				}
+			},
+			resourceResolveData: {
+				enumerable: true,
+				get(): ResolveData | undefined {
+					return module.resourceResolveData as any;
+				}
 			}
 		});
 	}
