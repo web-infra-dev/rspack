@@ -11,8 +11,10 @@ import alibabaLogo from './assets/alibaba.svg';
 import amazonLogo from './assets/amazon.svg';
 import bitDevLogo from './assets/bit.svg';
 import bytedanceLogo from './assets/bytedance.svg';
+import deepseekLogo from './assets/deepseek.svg';
 import discordLogo from './assets/discord.svg';
 import getaroundLogo from './assets/getaround.svg';
+import googleLogo from './assets/google.svg';
 import intuitLogo from './assets/intuit.svg';
 import kuaishouLogo from './assets/kuaishou.svg';
 import microsoftLogo from './assets/microsoft.svg';
@@ -55,10 +57,16 @@ const companyList: Company[] = [
     width: 180,
   },
   {
+    name: 'Google',
+    logo: googleLogo,
+    url: 'https://google.com',
+    width: 110,
+  },
+  {
     name: 'Alibaba',
     logo: alibabaLogo,
     url: 'https://www.alibaba.com',
-    width: 170,
+    width: 160,
   },
   {
     name: 'bit.dev',
@@ -114,6 +122,12 @@ const companyList: Company[] = [
     logo: kuaishouLogo,
     url: 'https://ir.kuaishou.com/',
     width: 160,
+  },
+  {
+    name: 'DeepSeek',
+    logo: deepseekLogo,
+    url: 'https://deepseek.com',
+    width: 140,
   },
 ];
 
