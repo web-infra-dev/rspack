@@ -26,6 +26,7 @@ const config = {
 	},
 	cache: false,
 	transformIgnorePatterns: [root],
+	maxWorkers: "80%",
 	snapshotFormat: {
 		escapeString: true,
 		printBasicPrototype: true
