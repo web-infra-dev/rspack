@@ -10,12 +10,4 @@ it("should store and resume asset parser and generator states", async () => {
 	if (COMPILER_INDEX == 1) {
 		expect(value).toBe(3);
 	}
-
-	//		expect(value).toBe(1);
-	//		await NEXT_START();
-	//	}
-	//	if (COMPILER_INDEX == 1) {
-
-	//		expect(value).toBe(2);
-	//	}
 });

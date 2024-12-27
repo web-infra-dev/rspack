@@ -1,4 +1,4 @@
-import { readFile, stat, writeFile } from "fs-extra";
+import { readFile, writeFile } from "fs-extra";
 
 export async function refreshModifyTime(file: string) {
 	const data = await readFile(file);

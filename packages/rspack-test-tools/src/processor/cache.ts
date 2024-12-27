@@ -95,7 +95,8 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 	): TCompilerOptions<T> {
 		const options = {
 			context: context.getSource(),
-			mode: "development",
+			mode: "production",
+			cache: true,
 			devtool: false,
 			output: {
 				path: context.getDist(),
