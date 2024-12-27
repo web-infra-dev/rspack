@@ -129,7 +129,7 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     .map(|(&module, id)| (id.clone(), module))
     .collect();
   let module_graph = compilation.get_module_graph();
-  let mut modules: IdentifierSet = if let Some(mutations) = compilation
+  if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)
     && !module_ids.is_empty()
@@ -154,21 +154,28 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
           _ => {}
         };
         acc
-      })
-  } else {
-    module_graph.modules().keys().copied().collect()
-  };
+      });
+  }
 
-  modules.retain(|m| {
-    let m = module_graph
-      .module_by_identifier(m)
-      .expect("should have module");
-    m.need_id()
-      && compilation
-        .chunk_graph
-        .get_number_of_module_chunks(m.identifier())
-        != 0
-  });
+  let modules: IdentifierSet = module_graph
+    .modules()
+    .iter()
+    .filter(|&(module_identifier, module)| {
+      let not_used =
+        if let Some(module_id) = ChunkGraph::get_module_id(&module_ids, *module_identifier) {
+          !used_ids.contains_key(module_id.as_str())
+        } else {
+          true
+        };
+      not_used
+        && module.need_id()
+        && compilation
+          .chunk_graph
+          .get_number_of_module_chunks(*module_identifier)
+          != 0
+    })
+    .map(|(m, _)| *m)
+    .collect();
   let modules_len = modules.len();
 
   let context: &str = compilation.options.context.as_ref();
