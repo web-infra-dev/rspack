@@ -1,8 +1,8 @@
 function loadUpdateChunk(chunkId, updatedModulesList) {
     var success = false;
-    $globalObject$[$hotUpdateGlobal$] = function (_, moreModules, runtime) {
+    <%- GLOBAL_OBJECT %>[<%- HOT_UPDATE_GLOBAL %>] = <%- basicFunction("_, moreModules, runtime") %> {
         for (var moduleId in moreModules) {
-            if (__webpack_require__.o(moreModules, moduleId)) {
+            if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
                 currentUpdate[moduleId] = moreModules[moduleId];
                 if (updatedModulesList) updatedModulesList.push(moduleId);
             }
@@ -11,6 +11,6 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
         success = true;
     };
     // start update chunk loading
-    importScripts($URL$);
+    importScripts(<%- URL %>);
     if (!success) throw new Error("Loading update chunk failed for unknown reason");
 }
