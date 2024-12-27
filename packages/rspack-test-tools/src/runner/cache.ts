@@ -1,6 +1,7 @@
 import type { StatsCompilation } from "@rspack/core";
 
 import checkArrayExpectation from "../helper/legacy/checkArrayExpectation";
+import { refreshModifyTime } from "../helper/util/refreshModifyTime";
 import {
 	type ECompilerType,
 	EDocumentType,
@@ -12,6 +13,8 @@ import {
 } from "../type";
 import { BasicRunnerFactory } from "./basic";
 import { WebRunner } from "./runner/web";
+
+const MAX_COMPILER_INDEX = 100;
 
 export class CacheRunnerFactory<
 	T extends ECompilerType
@@ -105,6 +108,11 @@ export class CacheRunnerFactory<
 			await compiler.close();
 			compiler.createCompiler();
 
+			await Promise.all(
+				hotUpdateContext.changedFiles.map(async file => {
+					await refreshModifyTime(file);
+				})
+			);
 			hotUpdateContext.changedFiles = [];
 			hotUpdateContext.updateIndex++;
 			const stats = await compiler.build();
@@ -138,6 +146,11 @@ export class CacheRunnerFactory<
 			env.it(
 				`NEXT_START run with compilerIndex==${compilerIndex + 1}`,
 				async () => {
+					if (compilerIndex > MAX_COMPILER_INDEX) {
+						throw new Error(
+							"NEXT_START has been called more than the maximum times"
+						);
+					}
 					compilerIndex++;
 					return getWebRunner().run(file);
 				}
