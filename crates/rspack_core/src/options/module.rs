@@ -164,11 +164,11 @@ impl From<&str> for JavascriptParserUrl {
 #[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserOrder {
   Disable,
-  Order(u32),
+  Order(i32),
 }
 
 impl JavascriptParserOrder {
-  pub fn get_order(&self) -> Option<u32> {
+  pub fn get_order(&self) -> Option<i32> {
     match self {
       Self::Disable => None,
       Self::Order(o) => Some(*o),
@@ -182,7 +182,7 @@ impl From<&str> for JavascriptParserOrder {
       "false" => Self::Disable,
       "true" => Self::Order(0),
       _ => {
-        if let Ok(order) = value.parse::<u32>() {
+        if let Ok(order) = value.parse::<i32>() {
           Self::Order(order)
         } else {
           Self::Order(0)
