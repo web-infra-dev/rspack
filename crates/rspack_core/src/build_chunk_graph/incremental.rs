@@ -31,6 +31,7 @@ impl ChunkReCreation {
     match self {
       ChunkReCreation::Entry(entry) => {
         let input = splitter.prepare_entry_input(&entry, compilation)?;
+        splitter.set_entry_runtime_and_depend_on(&entry, compilation)?;
         splitter.prepare_entries(std::iter::once(input).collect(), compilation)?;
         Ok(())
       }
