@@ -196,6 +196,7 @@ export declare class JsDependency {
   get request(): string | undefined
   get critical(): boolean
   set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {

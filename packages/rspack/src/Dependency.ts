@@ -63,4 +63,11 @@ export class Dependency {
 			binding.critical = val;
 		}
 	}
+
+	get ids(): string[] | undefined {
+		const binding = bindingDependencyFactory.getBinding(this);
+		if (binding) {
+			return binding.ids;
+		}
+	}
 }
