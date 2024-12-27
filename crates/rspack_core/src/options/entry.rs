@@ -15,6 +15,7 @@ pub struct EntryDescription {
   pub public_path: Option<PublicPath>,
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
+  pub depend_on: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default, Clone)]

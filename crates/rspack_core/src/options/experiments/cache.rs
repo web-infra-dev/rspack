@@ -1,6 +1,6 @@
 use crate::cache::persistent::PersistentCacheOptions;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CacheOptions {
   Disabled,
   Memory,

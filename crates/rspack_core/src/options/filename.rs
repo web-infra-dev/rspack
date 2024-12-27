@@ -171,6 +171,12 @@ impl<F> FromStr for Filename<F> {
   }
 }
 
+impl<F> From<&str> for Filename<F> {
+  fn from(value: &str) -> Self {
+    Filename::from_str(value).expect("infallible")
+  }
+}
+
 #[inline]
 fn hash_len(hash: &str, len: Option<usize>) -> usize {
   let hash_len = hash.len();
