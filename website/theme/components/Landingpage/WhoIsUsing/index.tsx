@@ -66,7 +66,7 @@ const companyList: Company[] = [
     name: 'Alibaba',
     logo: alibabaLogo,
     url: 'https://www.alibaba.com',
-    width: 170,
+    width: 160,
   },
   {
     name: 'bit.dev',
@@ -127,7 +127,7 @@ const companyList: Company[] = [
     name: 'DeepSeek',
     logo: deepseekLogo,
     url: 'https://deepseek.com',
-    width: 160,
+    width: 140,
   },
 ];
 
