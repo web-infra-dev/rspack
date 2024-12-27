@@ -8,13 +8,28 @@ Loader 上下文表示 loader 内部可用的属性，这些属性在 loader 中
 
 ## this.addContextDependency()
 
+- **类型：**
+
 ```ts
 function addContextDependency(directory: string): void;
 ```
 
 添加目录作为 loader 结果的依赖，使目录中文件的任何变化可以被监听到。
 
+例如，添加 `src/static` 目录作为依赖，当目录中的文件发生变化时，会触发重新构建。
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addContextDependency(path.resolve(this.rootContext, 'src/static'));
+  return source;
+};
+```
+
 ## this.addDependency()
+
+- **类型：**
 
 ```ts
 function addDependency(file: string): void;
@@ -22,27 +37,45 @@ function addDependency(file: string): void;
 
 添加一个文件作为 loader 结果的依赖，使它们的任何变化可以被监听到。例如，`sass-loader`、`less-loader` 就使用了这个技巧，当导入的样式文件发生变化时就会重新编译。
 
-## this.dependency()
+```js title="loader.js"
+const path = require('node:path');
 
-```ts
-function dependency(file: string): void;
+module.exports = function loader(source) {
+  this.addDependency(path.resolve(this.rootContext, 'src/styles/foo.scss'));
+  return source;
+};
 ```
 
-`this.addDependency()` 的别名。
-
 ## this.addMissingDependency()
+
+- **类型：**
 
 ```ts
 function addMissingDependency(file: string): void;
 ```
 
-添加一个不存在的文件作为 loader 结果的依赖项，以使它们可监听。
+添加一个当前不存在的文件作为 loader 结果的依赖，使它们的创建和任何变化可以被监听到。例如，当该路径下新建了文件时，会触发重新构建。
+
+```js title="loader.js"
+const path = require('node:path');
+
+module.exports = function loader(source) {
+  this.addMissingDependency(
+    path.resolve(this.rootContext, 'src/dynamic-file.json'),
+  );
+  return source;
+};
+```
 
 ## this.async()
 
-告诉 Rspack 这个 loader 将会异步被调用。返回 `this.callback`。
+- **类型：** `() => LoaderContextCallback`
+
+告诉 Rspack 这个 loader 将会异步被调用。返回值为 [this.callback](#thiscallback)。
 
 ## this.cacheable()
+
+- **类型：**
 
 ```ts
 function cacheable(flag: boolean = true): void;
@@ -52,6 +85,8 @@ function cacheable(flag: boolean = true): void;
 
 ## this.clearDependencies()
 
+- **类型：**
+
 ```ts
 function clearDependencies(): void;
 ```
@@ -59,6 +94,8 @@ function clearDependencies(): void;
 移除 loader 结果的所有依赖。
 
 ## this.callback()
+
+- **类型：**
 
 ```ts
 function callback(
@@ -82,13 +119,40 @@ function callback(
 
 ## this.context
 
-当前模块所在的目录。
+- **类型：** `string | null`
+
+当前被处理的模块所在的目录路径，会随着每个被处理的模块的位置而变化。
+
+例如，如果 loader 处理的是 `/project/src/components/Button.js`，那么 `this.context` 的值就是 `/project/src/components`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.context); // '/project/src/components'
+  return source;
+};
+```
+
+如果被处理的是模块不是来自文件系统，例如虚拟模块，那么 `this.context` 的值为 `null`。
 
 ## this.data
 
+- **类型：** `unknown`
+
 用于在 pitch 和 normal 阶段之间共享数据。
 
+## this.dependency()
+
+- **类型：**
+
+```ts
+function dependency(file: string): void;
+```
+
+[this.addDependency()](#thisadddependency) 的别名。
+
 ## this.emitError()
+
+- **类型：**
 
 ```ts
 function emitError(err: Error): void;
@@ -98,6 +162,8 @@ function emitError(err: Error): void;
 
 ## this.emitWarning()
 
+- **类型：**
+
 ```ts
 function emitWarning(warning: Error): void;
 ```
@@ -106,21 +172,114 @@ function emitWarning(warning: Error): void;
 
 ## this.emitFile()
 
+- **类型：**
+
 ```ts
 function emitFile(
   name: string,
-  content: Buffer | string,
-  sourceMap: SourceMap,
+  content: string | Buffer,
+  sourceMap?: string,
+  assetInfo?: JsAssetInfo,
 ): void;
 ```
 
-产生一个文件。
+输出一个新文件。这个方法允许你在 loader 执行过程中创建新的文件。
 
-## this.getOptions(schema)
+- 基础示例：
 
-提取给定的 loader 选项，接受一个可选的 JSON schema 作为参数。
+```js title="loader.js"
+module.exports = function loader(source) {
+  // 输出一个新文件，该文件将在产物目录中输出为 `foo.js`
+  this.emitFile('foo.js', 'console.log("Hello, world!");');
+  return source;
+};
+```
+
+- 带有 asset info 的示例：
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  this.emitFile(
+    'foo.js',
+    'console.log("Hello, world!");',
+    undefined, // no sourcemap
+    {
+      sourceFilename: this.resourcePath,
+    },
+  );
+
+  return source;
+};
+```
+
+## this.getOptions()
+
+- **类型：**
+
+```ts
+function getOptions(schema?: any): OptionsType;
+```
+
+获取 loader 的使用者传入的选项。
+
+例如：
+
+```js title="rspack.config.js"
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.txt$/,
+        use: {
+          loader: './my-loader.js',
+          options: {
+            foo: 'bar',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+在 `my-loader.js` 中获取传入的选项：
+
+```js title="my-loader.js"
+module.exports = function myLoader(source) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+};
+```
+
+在 TypeScript 中，你可以通过 `LoaderContext` 的泛型来设置 options 的类型。
+
+```ts title="my-loader.ts"
+import type { LoaderContext } from '@rspack/core';
+
+type MyLoaderOptions = {
+  foo: string;
+};
+
+export default function myLoader(
+  this: LoaderContext<MyLoaderOptions>,
+  source: string,
+) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+}
+```
+
+:::tip
+参数 `schema` 是可选的，在 Rspack 中不会被使用。
+
+为了提供最佳性能，Rspack 不会执行 schema 验证。如果你的 loader 需要 schema 验证，请自行调用 [scheme-utils](https://github.com/webpack/scheme-utils) 或其他 schema 验证库。
+:::
 
 ## this.getResolve()
+
+- **类型：**
 
 ```ts
 function getResolve(options: ResolveOptions): resolve;
@@ -129,6 +288,8 @@ function getResolve(options: ResolveOptions): resolve;
 创建一个类似于 `this.resolve` 的解析函数。
 
 ## this.importModule()
+
+- **类型：**
 
 ```ts
 interface ImportModuleOptions {
@@ -167,7 +328,7 @@ function importModule<T = any>(
 const path = require('node:path');
 
 module.exports = async function loader(source) {
-  const modulePath = path.resolve(__dirname, 'some-module.ts');
+  const modulePath = path.resolve(this.rootContext, 'some-module.ts');
   const moduleExports = await this.importModule(modulePath, {
     // 可选参数
   });
@@ -184,7 +345,7 @@ const path = require('node:path');
 
 module.exports = function loader(source) {
   const callback = this.async();
-  const modulePath = path.resolve(__dirname, 'some-module.ts');
+  const modulePath = path.resolve(this.rootContext, 'some-module.ts');
 
   this.importModule(
     modulePath,
@@ -204,6 +365,8 @@ module.exports = function loader(source) {
 
 ## this.resolve()
 
+- **类型：**
+
 ```ts
 function resolve(
   context: string,
@@ -220,39 +383,104 @@ function resolve(
 
 ## this.mode
 
-当 Rspack 运行时读取 [mode](/config/mode) 的值
+- **类型：** `Mode`
 
-可能的值为：`'production'`、`'development'`、`'none'`
+当 Rspack 运行时读取 [mode](/config/mode) 的值，可能的值为：`'production'`、`'development'`、`'none'`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.mode); // 'production' or other values
+  return source;
+};
+```
 
 ## this.target
 
-当 Rspack 运行时读取 [target](/config/target) 的值
+- **类型：** `Target`
+
+当 Rspack 运行时读取 [target](/config/target) 的值。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.target); // 'web' or other values
+  return source;
+};
+```
 
 ## this.resource
 
+- **类型：** `string`
+
 当前模块的路径字符串。比如 `'/abc/resource.js?query#hash'`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resource); // '/abc/resource.js?query#hash'
+  return source;
+};
+```
 
 ## this.resourcePath
 
+- **类型：** `string`
+
 当前模块的路径字符串，不包括 query 和 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'/abc/resource.js'`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourcePath); // '/abc/resource.js'
+  return source;
+};
+```
 
 ## this.resourceQuery
 
+- **类型：** `string`
+
 当前模块的路径字符串的 query 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'?query'`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourceQuery); // '?query'
+  return source;
+};
+```
 
 ## this.resourceFragment
 
+- **类型：** `string`
+
 当前模块的路径字符串的 fragment 参数。比如 `'/abc/resource.js?query#hash'` 中的 `'#hash'`。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.resourceFragment); // '#hash'
+  return source;
+};
+```
 
 ## this.rootContext
 
-config 中配置的项目所在的目录
+- **类型：** `string`
+
+Rspack config 中通过 [context](/config/context) 配置的基础路径。
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  console.log(this.rootContext); // /path/to/project
+  return source;
+};
+```
 
 ## this.sourceMap
+
+- **类型：** `boolean`
 
 是否应该生成一个 source map。
 
 ## this.getLogger()
+
+- **类型：**
 
 ```ts
 function getLogger(name?: string): void;
