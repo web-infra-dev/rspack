@@ -9,5 +9,7 @@ it("should store and resume asset parser and generator states", async () => {
 	}
 	if (COMPILER_INDEX == 1) {
 		expect(value).toBe(3);
+		await NEXT_HMR();
+		expect(value).toBe(4);
 	}
 });
