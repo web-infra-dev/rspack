@@ -17,7 +17,7 @@
   "devDependencies": {
     "@babel/preset-react": "^7.24.7",
     "@rspack/core": "workspace:*",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.17.10",
     "@types/watchpack": "^2.4.0",
     "@types/webpack-sources": "3.2.3",
     "@types/ws": "8.5.10",
