@@ -11,6 +11,7 @@ pub struct PackFileMeta {
   pub name: String,
   pub size: usize,
   pub wrote: bool,
+  pub generation: usize,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -52,6 +53,7 @@ pub struct ScopeMeta {
   pub path: Utf8PathBuf,
   pub bucket_size: usize,
   pub pack_size: usize,
+  pub generation: usize,
   pub packs: Vec<Vec<PackFileMeta>>,
 }
 
@@ -65,6 +67,7 @@ impl ScopeMeta {
       path: Self::get_path(dir),
       bucket_size: options.bucket_size,
       pack_size: options.pack_size,
+      generation: 0,
       packs,
     }
   }
