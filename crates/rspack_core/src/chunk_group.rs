@@ -133,7 +133,10 @@ impl ChunkGroup {
             return parent.get_runtime_chunk(chunk_group_by_ukey);
           }
         }
-        panic!("Entrypoint should set_runtime_chunk at build_chunk_graph before get_runtime_chunk")
+        panic!(
+          "Entrypoint({:?}) should set_runtime_chunk at build_chunk_graph before get_runtime_chunk",
+          self.name()
+        )
       }),
       ChunkGroupKind::Normal { .. } => {
         unreachable!("Normal chunk group doesn't have runtime chunk")
