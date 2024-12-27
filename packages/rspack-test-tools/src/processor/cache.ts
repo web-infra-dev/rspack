@@ -1,5 +1,6 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
+import { removeSync } from "fs-extra";
 
 import { TestHotUpdatePlugin } from "../helper/plugins";
 import {
@@ -35,6 +36,25 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			..._cacheOptions
 		});
 		this.updateOptions = fakeUpdateLoaderOptions;
+	}
+
+	async build(context: ITestContext): Promise<void> {
+		// clear cache directory first time.
+		const experiments =
+			this.getCompiler(context).getOptions().experiments || {};
+		let directory = "";
+		if (
+			"cache" in experiments &&
+			typeof experiments.cache === "object" &&
+			experiments.cache.type === "persistent"
+		) {
+			directory = experiments.cache.storage?.directory || directory;
+		}
+		removeSync(
+			path.join(context.getSource(), directory || "node_modules/.cache")
+		);
+
+		await super.build(context);
 	}
 
 	async run(env: ITestEnv, context: ITestContext) {

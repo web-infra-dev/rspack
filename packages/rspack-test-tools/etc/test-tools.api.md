@@ -112,6 +112,8 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
     // (undocumented)
     afterAll(context: ITestContext): Promise<void>;
     // (undocumented)
+    build(context: ITestContext): Promise<void>;
+    // (undocumented)
     protected _cacheOptions: ICacheProcessorOptions<T>;
     // (undocumented)
     static defaultOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): TCompilerOptions<T>;
