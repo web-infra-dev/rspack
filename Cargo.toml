@@ -102,7 +102,7 @@ swc_html_minifier   = { version = "=6.0.0", default-features = false }
 swc_node_comments   = { version = "=5.0.0" }
 
 
-rspack_dojang = { version = "0.1.9" }
+rspack_dojang = { version = "0.1.9", git = "https://github.com/rspack-contrib/rspack-dojang.git", branch = "feat/pub-templates" }
 
 
 # all rspack workspace dependencies

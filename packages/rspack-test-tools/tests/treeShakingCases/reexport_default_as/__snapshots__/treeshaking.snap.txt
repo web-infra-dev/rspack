@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return test; }
+  "default": () => (test)
 });
 function test() {}
 
@@ -11,7 +11,7 @@ function test() {}
 }),
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  Select: function() { return /* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__["default"]; }
+  Select: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__["default"])
 });
 /* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 

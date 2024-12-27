@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "../../../../../node_modules/<PNPM_INNER>/@swc/helpers/esm/_create_class.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  _: function() { return _create_class; }
+  _: () => (_create_class)
 });
 function _defineProperties(target, props) {
     for (var i = 0; i < props.length; i++) {

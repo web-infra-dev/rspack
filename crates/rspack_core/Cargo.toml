@@ -32,6 +32,7 @@ ropey = { workspace = true }
 rspack_ast = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
+rspack_dojang = { workspace = true }
 rspack_error = { workspace = true }
 rspack_fs = { workspace = true }
 rspack_futures = { workspace = true }

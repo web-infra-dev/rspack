@@ -3,8 +3,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  bar: function() { return bar; },
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  bar: () => (bar),
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 var foo = function () {
 	return 42;

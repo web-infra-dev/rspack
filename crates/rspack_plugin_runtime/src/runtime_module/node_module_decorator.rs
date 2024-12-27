@@ -22,7 +22,16 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(RawStringSource::from_static(include_str!("runtime/node_module_decorator.js")).boxed())
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/node_module_decorator.ejs").to_string(),
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }
