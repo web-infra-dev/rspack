@@ -644,7 +644,8 @@ impl NormalModuleFactory {
 
   fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
     let mut resolved: Option<Resolve> = None;
-    for rule in module_rules {
+    // TODO: 为了 alias 的优先级临时修改，之后修改
+    for rule in module_rules.iter().rev() {
       if let Some(rule_resolve) = &rule.resolve {
         if let Some(r) = resolved {
           resolved = Some(r.merge(rule_resolve.to_owned()));
