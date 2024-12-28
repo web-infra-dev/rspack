@@ -1,5 +1,7 @@
 use std::{
   fmt::{self, Debug},
+  ops::{Deref, DerefMut},
+  str::FromStr,
   sync::Arc,
 };
 
@@ -16,8 +18,22 @@ use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
+
+impl Deref for ParserOptionsMap {
+  type Target = HashMap<String, ParserOptions>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for ParserOptionsMap {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
 
 impl FromIterator<(String, ParserOptions)> for ParserOptionsMap {
   fn from_iter<I: IntoIterator<Item = (String, ParserOptions)>>(i: I) -> Self {
@@ -148,11 +164,11 @@ impl From<&str> for JavascriptParserUrl {
 #[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserOrder {
   Disable,
-  Order(u32),
+  Order(i32),
 }
 
 impl JavascriptParserOrder {
-  pub fn get_order(&self) -> Option<u32> {
+  pub fn get_order(&self) -> Option<i32> {
     match self {
       Self::Disable => None,
       Self::Order(o) => Some(*o),
@@ -166,7 +182,7 @@ impl From<&str> for JavascriptParserOrder {
       "false" => Self::Disable,
       "true" => Self::Order(0),
       _ => {
-        if let Ok(order) = value.parse::<u32>() {
+        if let Ok(order) = value.parse::<i32>() {
           Self::Order(order)
         } else {
           Self::Order(0)
@@ -230,7 +246,7 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: Option<DynamicImportMode>,
   pub dynamic_import_preload: Option<JavascriptParserOrder>,
@@ -296,8 +312,22 @@ pub struct JsonParserOptions {
   pub exports_depth: Option<u32>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GeneratorOptionsMap(HashMap<String, GeneratorOptions>);
+
+impl Deref for GeneratorOptionsMap {
+  type Target = HashMap<String, GeneratorOptions>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for GeneratorOptionsMap {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
 
 impl FromIterator<(String, GeneratorOptions)> for GeneratorOptionsMap {
   fn from_iter<I: IntoIterator<Item = (String, GeneratorOptions)>>(i: I) -> Self {
@@ -515,6 +545,14 @@ impl From<String> for LocalIdentName {
   }
 }
 
+impl From<&str> for LocalIdentName {
+  fn from(value: &str) -> Self {
+    Self {
+      template: crate::FilenameTemplate::from_str(value).expect("should be infalliable"),
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 struct ExportsConventionFlags(u8);
@@ -688,6 +726,12 @@ impl RuleSetConditionWithEmpty {
   }
 }
 
+impl From<RuleSetCondition> for RuleSetConditionWithEmpty {
+  fn from(condition: RuleSetCondition) -> Self {
+    Self::new(condition)
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct RuleSetLogicalConditions {
   pub and: Option<Vec<RuleSetCondition>>,
@@ -755,7 +799,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
@@ -783,7 +827,7 @@ pub struct ModuleRule {
   pub effect: ModuleRuleEffect,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.

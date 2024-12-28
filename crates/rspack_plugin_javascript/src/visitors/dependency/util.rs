@@ -228,12 +228,12 @@ pub mod expr_name {
   pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
 }
 
-pub fn parse_order_string(x: &str) -> Option<u32> {
+pub fn parse_order_string(x: &str) -> Option<i32> {
   match x {
     "true" => Some(0),
     "false" => None,
     _ => {
-      if let Ok(order) = x.parse::<u32>() {
+      if let Ok(order) = x.parse::<i32>() {
         Some(order)
       } else {
         None

@@ -35,6 +35,8 @@ mod test_storage_expire {
       pack_size: 200,
       expire: 0,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     let data = storage.load("test_scope").await?;
     assert!(data.is_empty());
@@ -71,6 +73,8 @@ mod test_storage_expire {
       pack_size: 200,
       expire: 0,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()
@@ -96,6 +100,8 @@ mod test_storage_expire {
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     let data = storage.load("test_scope").await?;
     assert!(data.is_empty());

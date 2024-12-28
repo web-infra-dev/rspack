@@ -98,6 +98,8 @@ mod test_storage_lock {
       pack_size: 100,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     let data = storage.load("test_scope").await?;
     assert!(data.is_empty());
@@ -134,6 +136,8 @@ mod test_storage_lock {
       pack_size: 100,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     assert_eq!(storage.load("test_scope").await?.len(), 100);
     Ok(())
@@ -154,6 +158,8 @@ mod test_storage_lock {
       pack_size: 100,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     });
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()

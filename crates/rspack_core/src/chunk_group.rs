@@ -137,7 +137,10 @@ impl ChunkGroup {
             return parent.get_runtime_chunk(chunk_group_by_ukey);
           }
         }
-        panic!("Entrypoint should set_runtime_chunk at build_chunk_graph before get_runtime_chunk")
+        panic!(
+          "Entrypoint({:?}) should set_runtime_chunk at build_chunk_graph before get_runtime_chunk",
+          self.name()
+        )
       }),
       ChunkGroupKind::Normal { .. } => {
         unreachable!("Normal chunk group doesn't have runtime chunk")
@@ -510,16 +513,16 @@ impl Display for ChunkGroupOrderKey {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
-  pub preload_order: Option<u32>,
-  pub prefetch_order: Option<u32>,
+  pub preload_order: Option<i32>,
+  pub prefetch_order: Option<i32>,
   pub fetch_priority: Option<DynamicImportFetchPriority>,
 }
 
 impl ChunkGroupOptions {
   pub fn new(
     name: Option<String>,
-    preload_order: Option<u32>,
-    prefetch_order: Option<u32>,
+    preload_order: Option<i32>,
+    prefetch_order: Option<i32>,
     fetch_priority: Option<DynamicImportFetchPriority>,
   ) -> Self {
     Self {

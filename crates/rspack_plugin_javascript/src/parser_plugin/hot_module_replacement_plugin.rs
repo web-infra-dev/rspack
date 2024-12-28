@@ -44,7 +44,7 @@ impl JavascriptParser<'_> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot"),
+        Some("hot".into()),
         span.into(),
         Some(self.source_map.clone()),
       )));
@@ -59,7 +59,7 @@ impl JavascriptParser<'_> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot.accept"),
+        Some("hot.accept".into()),
         call_expr.callee.span().into(),
         Some(self.source_map.clone()),
       )));
@@ -95,7 +95,7 @@ impl JavascriptParser<'_> {
     self
       .presentational_dependencies
       .push(Box::new(ModuleArgumentDependency::new(
-        Some("hot.decline"),
+        Some("hot.decline".into()),
         call_expr.callee.span().into(),
         Some(self.source_map.clone()),
       )));

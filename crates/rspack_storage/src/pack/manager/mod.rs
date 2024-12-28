@@ -3,10 +3,8 @@ mod queue;
 use std::sync::Arc;
 
 use futures::future::join_all;
-use itertools::Itertools;
 use pollster::block_on;
 use queue::TaskQueue;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
@@ -57,7 +55,9 @@ impl ScopeManager {
         updates,
         pack_options.clone(),
         strategy.as_ref(),
-      ) {
+      )
+      .await
+      {
         Ok(_) => {
           *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
             scopes_guard
@@ -204,7 +204,7 @@ impl ScopeManager {
   }
 }
 
-fn update_scopes(
+async fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
@@ -220,22 +220,25 @@ fn update_scopes(
     });
   }
 
-  scopes
-    .iter_mut()
-    .filter_map(|(name, scope)| {
-      updates
-        .remove(name.to_string().as_str())
-        .and_then(|scope_update| {
-          if scope_update.is_empty() {
-            None
-          } else {
-            Some((scope, scope_update))
-          }
-        })
-    })
-    .par_bridge()
-    .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update))
-    .collect::<Result<Vec<_>>>()?;
+  join_all(
+    scopes
+      .iter_mut()
+      .filter_map(|(name, scope)| {
+        updates
+          .remove(name.to_string().as_str())
+          .and_then(|scope_update| {
+            if scope_update.is_empty() {
+              None
+            } else {
+              Some((scope, scope_update))
+            }
+          })
+      })
+      .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update)),
+  )
+  .await
+  .into_iter()
+  .collect::<Result<Vec<_>>>()?;
 
   Ok(())
 }
@@ -250,19 +253,23 @@ async fn save_scopes(
 
   strategy.before_all(&mut scopes).await?;
 
-  let changed = join_all(
+  join_all(
     scopes
       .values_mut()
-      .map(|scope| async move {
-        let mut res = WriteScopeResult::default();
-        if scope.loaded() {
-          res.extend(strategy.write_packs(scope).await?);
-          res.extend(strategy.write_meta(scope).await?);
-        }
-        Ok(res)
-      })
-      .collect_vec(),
+      .map(|scope| strategy.optimize_scope(scope)),
   )
+  .await
+  .into_iter()
+  .collect::<Result<Vec<_>>>()?;
+
+  let changed = join_all(scopes.values_mut().map(|scope| async move {
+    let mut res = WriteScopeResult::default();
+    if scope.loaded() {
+      res.extend(strategy.write_packs(scope).await?);
+      res.extend(strategy.write_meta(scope).await?);
+    }
+    Ok(res)
+  }))
   .await
   .into_iter()
   .collect::<Result<Vec<WriteScopeResult>>>()?
@@ -275,9 +282,7 @@ async fn save_scopes(
   strategy.write_root_meta(root_meta).await?;
   strategy.merge_changed(changed).await?;
   strategy.after_all(&mut scopes).await?;
-  strategy
-    .clean_unused(root_meta, &scopes, root_options)
-    .await?;
+  strategy.clean(root_meta, &scopes, root_options).await?;
 
   Ok(scopes.into_iter().collect())
 }
@@ -341,6 +346,8 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options, pack_options, strategy);
 
@@ -395,6 +402,8 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options, pack_options, strategy);
 
@@ -478,6 +487,8 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options.clone(), pack_options.clone(), strategy.clone());
     // should report error when invalid failed

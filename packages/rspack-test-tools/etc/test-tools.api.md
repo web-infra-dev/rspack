@@ -107,6 +107,35 @@ export class BuiltinProcessor<T extends ECompilerType> extends SnapshotProcessor
 }
 
 // @public (undocumented)
+export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
+    constructor(_cacheOptions: ICacheProcessorOptions<T>);
+    // (undocumented)
+    afterAll(context: ITestContext): Promise<void>;
+    // (undocumented)
+    build(context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected _cacheOptions: ICacheProcessorOptions<T>;
+    // (undocumented)
+    static defaultOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): TCompilerOptions<T>;
+    // (undocumented)
+    static findBundle<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext): string[];
+    // (undocumented)
+    static overrideOptions<T extends ECompilerType>(this: CacheProcessor<T>, context: ITestContext, options: TCompilerOptions<T>): void;
+    // (undocumented)
+    run(env: ITestEnv, context: ITestContext): Promise<void>;
+    // (undocumented)
+    protected runner: ITestRunner | null;
+    // (undocumented)
+    protected updateOptions: TUpdateOptions;
+}
+
+// @public (undocumented)
+export class CacheRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
+    // (undocumented)
+    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+}
+
+// @public (undocumented)
 export function checkChunkModules(statsJson: any, chunkModulesMap: any, strict?: boolean): boolean;
 
 // @public (undocumented)
@@ -152,6 +181,9 @@ export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor
 
 // @public (undocumented)
 export function createBuiltinCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createCacheCase(name: string, src: string, dist: string, target: TCompilerOptions<ECompilerType.Rspack>["target"]): void;
 
 // @public (undocumented)
 export function createCompilerCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -568,6 +600,12 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
 
 // @public (undocumented)
 export interface IBuiltinProcessorOptions<T extends ECompilerType> extends Omit<ISnapshotProcessorOptions<T>, "runable"> {
+}
+
+// @public (undocumented)
+export interface ICacheProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    target: TCompilerOptions<T>["target"];
 }
 
 // @public (undocumented)
