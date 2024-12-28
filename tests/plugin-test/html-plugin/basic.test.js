@@ -9,7 +9,7 @@ const path = require("path");
 const fs = require("fs");
 /// DIFF const webpack = require("webpack");
 const webpack = require("@rspack/core");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const _ = require("lodash");
 /// DIFF const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const MiniCssExtractPlugin = webpack.CssExtractRspackPlugin;
@@ -119,8 +119,8 @@ function getChunksInfoFromStats(stats) {
 }
 
 describe("HtmlWebpackPlugin", () => {
-  beforeEach((done) => {
-    rimraf(OUTPUT_DIR, done);
+  beforeEach(() => {
+    rimrafSync(OUTPUT_DIR);
   });
 
   it("generates a default index.html file for a single entry point", (done) => {

@@ -86,7 +86,7 @@ pub async fn module_rule_matcher<'a>(
       {
         return Ok(false);
       }
-    } else {
+    } else if !resource_query_rule.match_when_empty().await? {
       return Ok(false);
     }
   }
@@ -99,7 +99,7 @@ pub async fn module_rule_matcher<'a>(
       {
         return Ok(false);
       }
-    } else {
+    } else if !resource_fragment_condition.match_when_empty().await? {
       return Ok(false);
     }
   }
@@ -112,14 +112,14 @@ pub async fn module_rule_matcher<'a>(
       {
         return Ok(false);
       }
-    } else {
+    } else if !mimetype_condition.match_when_empty().await? {
       return Ok(false);
     }
   }
 
   if let Some(scheme_condition) = &module_rule.scheme {
     let scheme = resource_data.get_scheme();
-    if scheme.is_none() {
+    if scheme.is_none() && !scheme_condition.match_when_empty().await? {
       return Ok(false);
     }
     if !scheme_condition.try_match(scheme.as_str().into()).await? {
@@ -134,7 +134,11 @@ pub async fn module_rule_matcher<'a>(
           return Ok(false);
         }
       }
-      None => return Ok(false),
+      None => {
+        if !issuer_rule.match_when_empty().await? {
+          return Ok(false);
+        }
+      }
     }
   }
 
@@ -145,7 +149,11 @@ pub async fn module_rule_matcher<'a>(
           return Ok(false);
         }
       }
-      None => return Ok(false),
+      None => {
+        if !issuer_layer_rule.match_when_empty().await? {
+          return Ok(false);
+        }
+      }
     };
   }
 
@@ -167,12 +175,16 @@ pub async fn module_rule_matcher<'a>(
           if !matcher.try_match(v.into()).await? {
             return Ok(false);
           }
-        } else {
+        } else if !matcher.match_when_empty().await? {
           return Ok(false);
         }
       }
     } else {
-      return Ok(false);
+      for matcher in description_data.values() {
+        if !matcher.match_when_empty().await? {
+          return Ok(false);
+        }
+      }
     }
   }
 
@@ -183,12 +195,16 @@ pub async fn module_rule_matcher<'a>(
           if !matcher.try_match(v.into()).await? {
             return Ok(false);
           }
-        } else {
+        } else if !matcher.match_when_empty().await? {
           return Ok(false);
         }
       }
     } else {
-      return Ok(false);
+      for matcher in with.values() {
+        if !matcher.match_when_empty().await? {
+          return Ok(false);
+        }
+      }
     }
   }
 

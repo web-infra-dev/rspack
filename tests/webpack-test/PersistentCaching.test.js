@@ -3,7 +3,7 @@
 const path = require("path");
 const util = require("util");
 const fs = require("fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const vm = require("vm");
 
 const readdir = util.promisify(fs.readdir);
@@ -37,8 +37,8 @@ describe.skip("Persistent Caching", () => {
 		}
 	};
 
-	beforeEach(done => {
-		rimraf(tempPath, done);
+	beforeEach(() => {
+		rimrafSync(tempPath);
 	});
 
 	const updateSrc = async data => {

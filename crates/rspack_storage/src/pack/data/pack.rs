@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use rspack_paths::Utf8PathBuf;
 
-use crate::{StorageItemKey, StorageItemValue};
+use crate::{ItemKey, ItemValue};
 
-pub type PackKeys = Vec<Arc<StorageItemKey>>;
-pub type PackContents = Vec<Arc<StorageItemValue>>;
+pub type PackKeys = Vec<Arc<ItemKey>>;
+pub type PackContents = Vec<Arc<ItemValue>>;
+pub type PackGenerations = Vec<usize>;
 
 #[derive(Debug, Default)]
 pub enum PackKeysState {
@@ -46,6 +47,7 @@ pub enum PackContentsState {
   #[default]
   Pending,
   Value(PackContents),
+  Released,
 }
 
 impl PackContentsState {
@@ -59,12 +61,14 @@ impl PackContentsState {
     match self {
       PackContentsState::Value(v) => Some(v),
       PackContentsState::Pending => None,
+      PackContentsState::Released => None,
     }
   }
   pub fn expect_value(&self) -> &PackContents {
     match self {
       PackContentsState::Value(v) => v,
       PackContentsState::Pending => panic!("pack content is not ready"),
+      PackContentsState::Released => panic!("pack content has been released"),
     }
   }
   pub fn take_value(&mut self) -> Option<PackContents> {
@@ -73,6 +77,12 @@ impl PackContentsState {
       _ => None,
     }
   }
+  pub fn release(&mut self) {
+    *self = PackContentsState::Released;
+  }
+  pub fn is_released(&self) -> bool {
+    matches!(self, Self::Released)
+  }
 }
 
 #[derive(Debug)]
@@ -80,6 +90,7 @@ pub struct Pack {
   pub path: Utf8PathBuf,
   pub keys: PackKeysState,
   pub contents: PackContentsState,
+  pub generations: PackGenerations,
 }
 
 impl Pack {
@@ -88,20 +99,31 @@ impl Pack {
       path,
       keys: Default::default(),
       contents: Default::default(),
+      generations: Default::default(),
     }
   }
 
   pub fn loaded(&self) -> bool {
     matches!(self.keys, PackKeysState::Value(_))
-      && matches!(self.contents, PackContentsState::Value(_))
+      && (matches!(self.contents, PackContentsState::Value(_))
+        || matches!(self.contents, PackContentsState::Released))
   }
 
   pub fn size(&self) -> usize {
-    self
+    let key_size = self
       .keys
       .expect_value()
       .iter()
-      .chain(self.contents.expect_value().iter())
-      .fold(0_usize, |acc, item| acc + item.len())
+      .fold(0_usize, |acc, item| acc + item.len());
+    let content_size = self
+      .contents
+      .expect_value()
+      .iter()
+      .fold(0_usize, |acc, item| acc + item.len());
+    let generation_size = self
+      .generations
+      .iter()
+      .fold(0_usize, |acc, item| acc + item.to_string().len());
+    key_size + content_size + generation_size
   }
 }

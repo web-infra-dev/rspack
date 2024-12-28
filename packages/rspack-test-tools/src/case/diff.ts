@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "fs-extra";
-import rimraf from "rimraf";
+import { rimrafSync } from "rimraf";
 
 import createLazyTestEnv from "../helper/legacy/createLazyTestEnv";
 import { DiffProcessor, type IDiffProcessorOptions } from "../processor";
@@ -43,7 +43,7 @@ export function createDiffCase(name: string, src: string, dist: string) {
 	});
 
 	beforeAll(async () => {
-		rimraf.sync(dist);
+		rimrafSync(dist);
 		await tester.prepare();
 	});
 

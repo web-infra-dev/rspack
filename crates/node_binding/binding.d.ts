@@ -32,7 +32,7 @@ export declare class EntryOptionsDto {
   get runtime(): false | string | undefined
   set runtime(chunkLoading: boolean | string | undefined)
   get chunkLoading(): string | undefined
-  set chunkLoading(chunkLoading: string | undefined)
+  set chunkLoading(chunkLoading: string | false | undefined)
   get asyncChunks(): boolean | undefined
   set asyncChunks(asyncChunks: boolean | undefined)
   get baseUri(): string | undefined
@@ -140,6 +140,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
+  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -235,9 +236,18 @@ export declare class JsModule {
 
 export declare class JsModuleGraph {
   getModule(jsDependency: JsDependency): JsModule | null
+  getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
+  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
+  getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+  getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+}
+
+export declare class JsModuleGraphConnection {
+  get dependency(): JsDependency
+  get module(): JsModule | null
 }
 
 export declare class JsResolver {
@@ -315,6 +325,7 @@ export declare enum BuiltinPluginName {
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
+  OccurrenceChunkIdsPlugin = 'OccurrenceChunkIdsPlugin',
   RealContentHashPlugin = 'RealContentHashPlugin',
   RemoveEmptyChunksPlugin = 'RemoveEmptyChunksPlugin',
   EnsureChunkConditionsPlugin = 'EnsureChunkConditionsPlugin',
@@ -360,6 +371,7 @@ export declare function cleanupGlobalTrace(): void
 
 export interface ContextInfo {
   issuer: string
+  issuerLayer?: string
 }
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
@@ -610,7 +622,7 @@ export interface JsEntryData {
 export interface JsEntryOptions {
   name?: string
   runtime?: false | string
-  chunkLoading?: string
+  chunkLoading?: false | string
   asyncChunks?: boolean
   publicPath?: "auto" | JsFilename
   baseUri?: string
@@ -641,6 +653,7 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   assets: Array<string>
   id: number
+  error?: string
 }
 
 export interface JsFactorizeArgs {
@@ -684,7 +697,7 @@ export interface JsLibraryAuxiliaryComment {
 export interface JsLibraryCustomUmdObject {
   amd?: string
   commonjs?: string
-  root?: Array<string>
+  root?: Array<string> | string
 }
 
 export interface JsLibraryName {
@@ -695,11 +708,11 @@ export interface JsLibraryName {
 }
 
 export interface JsLibraryOptions {
-  name?: JsLibraryName
-  export?: Array<string>
-  libraryType: string
+  name?: string | Array<string> | JsLibraryCustomUmdObject
+  export?: Array<string> | string
+  type: string
   umdNamedDefine?: boolean
-  auxiliaryComment?: JsLibraryAuxiliaryComment
+  auxiliaryComment?: string | JsLibraryAuxiliaryComment
   amdContainer?: string
 }
 
@@ -1111,9 +1124,9 @@ export interface RawAliasOptionItem {
   redirect: Array<string | false>
 }
 
-export interface RawAssetGeneratorDataUrlFnArgs {
+export interface RawAssetGeneratorDataUrlFnCtx {
   filename: string
-  content: string
+  module: JsModule
 }
 
 export interface RawAssetGeneratorDataUrlOptions {
@@ -1124,12 +1137,13 @@ export interface RawAssetGeneratorDataUrlOptions {
 export interface RawAssetGeneratorOptions {
   emit?: boolean
   filename?: JsFilename
+  outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
 export interface RawAssetInlineGeneratorOptions {
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((arg: RawAssetGeneratorDataUrlFnArgs) => string)
+  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
 }
 
 export interface RawAssetParserDataUrl {
@@ -1148,6 +1162,7 @@ export interface RawAssetParserOptions {
 export interface RawAssetResourceGeneratorOptions {
   emit?: boolean
   filename?: JsFilename
+  outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
 }
 
@@ -1172,7 +1187,7 @@ export interface RawCacheGroupOptions {
   key: string
   priority?: number
   test?: RegExp | string | Function
-  filename?: string
+  filename?: JsFilename
   idHint?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
@@ -1194,14 +1209,6 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptions {
   type: string
-  maxGenerations: number
-  maxAge: number
-  profile: boolean
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  name: string
-  version: string
 }
 
 export interface RawConsumeOptions {
@@ -1270,12 +1277,6 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCrossOriginLoading {
-  type: "bool" | "string"
-  stringPayload?: string
-  boolPayload?: boolean
-}
-
 export interface RawCssAutoGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
@@ -1316,6 +1317,10 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
+}
+
+export interface RawDependency {
+  request: string
 }
 
 export interface RawDllEntryPluginOptions {
@@ -1373,22 +1378,19 @@ export interface RawEvalDevToolModulePluginOptions {
   sourceUrlComment?: string
 }
 
-export interface RawExperimentCacheOptionsCommon {
-  type: "disable"|"memory"
-}
-
 export interface RawExperimentCacheOptionsPersistent {
-  type: "persistent"
-  snapshot: RawExperimentSnapshotOptions
-  storage: Array<RawStorageOptions>
+  buildDependencies?: Array<string>
+  version?: string
+  snapshot?: RawExperimentSnapshotOptions
+  storage?: RawStorageOptions
 }
 
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: RawIncremental
-  rspackFuture: RawRspackFuture
-  cache: RawExperimentCacheOptionsPersistent | RawExperimentCacheOptionsCommon
+incremental?: false | { [key: string]: boolean }
+rspackFuture?: RawRspackFuture
+cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -1512,6 +1514,7 @@ export interface RawIncremental {
   inferAsyncModules: boolean
   providedExports: boolean
   dependenciesDiagnostics: boolean
+  sideEffects: boolean
   buildChunkGraph: boolean
   moduleIds: boolean
   chunkIds: boolean
@@ -1571,6 +1574,10 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+}
+
+export interface RawJsonParserOptions {
+  exportsDepth?: number
 }
 
 export interface RawLazyCompilationOption {
@@ -1729,28 +1736,30 @@ export interface RawNonStandard {
   deepSelectorCombinator: boolean
 }
 
+export interface RawOccurrenceChunkIdsPluginOptions {
+  prioritiseInitial?: boolean
+}
+
 export interface RawOptimizationOptions {
   removeAvailableModules: boolean
-  sideEffects: string
-  usedExports: string
+  sideEffects: boolean | string
+  usedExports: boolean | string
   providedExports: boolean
   innerGraph: boolean
-  mangleExports: string
+  mangleExports: boolean | string
   concatenateModules: boolean
+  avoidEntryIife: boolean
 }
 
 export interface RawOptions {
   mode?: undefined | 'production' | 'development' | 'none'
-  target: Array<string>
   context: string
   output: RawOutputOptions
   resolve: RawResolveOptions
   resolveLoader: RawResolveOptions
   module: RawModuleOptions
-  devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments
   node?: RawNodeOption
@@ -1766,12 +1775,12 @@ export interface RawOutputOptions {
   clean: boolean | JsCleanOptions
   publicPath: "auto" | JsFilename
   assetModuleFilename: JsFilename
-  wasmLoading: string
+  wasmLoading: string | false
   enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: JsFilename
   chunkFilename: JsFilename
-  crossOriginLoading: RawCrossOriginLoading
+  crossOriginLoading: string | false
   cssFilename: JsFilename
   cssChunkFilename: JsFilename
   hotUpdateMainFilename: string
@@ -1787,7 +1796,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
-  chunkLoading: string
+  chunkLoading: string | false
   chunkLoadTimeout: number
   charset: boolean
   enabledChunkLoadingTypes?: Array<string>
@@ -1798,21 +1807,22 @@ export interface RawOutputOptions {
   hashDigestLength: number
   hashSalt?: string
   asyncChunks: boolean
-  workerChunkLoading: string
-  workerWasmLoading: string
+  workerChunkLoading: string | false
+  workerWasmLoading: string | false
   workerPublicPath: string
-  scriptType: "module" | "text/javascript" | "false"
+  scriptType: "module" | "text/javascript" | false
   environment: RawEnvironment
   compareBeforeEmit: boolean
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm"
+  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
   cssAuto?: RawCssAutoParserOptions
   cssModule?: RawCssModuleParserOptions
   javascript?: RawJavascriptParserOptions
+  json?: RawJsonParserOptions
 }
 
 export interface RawPathData {
@@ -1947,10 +1957,6 @@ export interface RawSizeLimitsPluginOptions {
   hints?: "error" | "warning"
   maxAssetSize?: number
   maxEntrypointSize?: number
-}
-
-export interface RawSnapshotOptions {
-
 }
 
 export interface RawSourceMapDevToolPluginOptions {

@@ -1,7 +1,12 @@
 // TODO add #[cfg(test)]
 mod memory;
 
+use std::{path::PathBuf, sync::Arc};
+
 pub use memory::MemoryStorage;
+use rspack_fs::IntermediateFileSystem;
+pub use rspack_storage::Storage;
+use rspack_storage::{BridgeFileSystem, PackStorage, PackStorageOptions};
 
 /// Storage Options
 ///
@@ -9,15 +14,29 @@ pub use memory::MemoryStorage;
 /// Since MemoryStorage is only used in unit test, there is no need to add it here.
 #[derive(Debug, Clone)]
 pub enum StorageOptions {
-  // TODO change to FileSystem(configuration)
-  FileSystem,
+  FileSystem { directory: PathBuf },
 }
 
-// TODO: add batch set/remove
-pub trait Storage: std::fmt::Debug + Sync + Send {
-  fn load(&self, scope: &str) -> Vec<(Vec<u8>, Vec<u8>)>;
-  // using immutable reference to support concurrency
-  fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>);
-  fn remove(&self, scope: &str, key: &[u8]);
-  fn trigger_save(&self);
+pub fn create_storage(
+  options: StorageOptions,
+  version: String,
+  fs: Arc<dyn IntermediateFileSystem>,
+) -> Arc<dyn Storage> {
+  match options {
+    StorageOptions::FileSystem { directory } => {
+      let option = PackStorageOptions {
+        temp_root: directory.join(".temp"),
+        root: directory,
+        clean: true,
+        bucket_size: 20,
+        pack_size: 500 * 1024,
+        expire: 7 * 24 * 60 * 60 * 1000,
+        fs: Arc::new(BridgeFileSystem(fs)),
+        fresh_generation: Some(1),
+        release_generation: Some(2),
+        version,
+      };
+      Arc::new(PackStorage::new(option))
+    }
+  }
 }

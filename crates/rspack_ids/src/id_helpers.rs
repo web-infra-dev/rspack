@@ -10,10 +10,10 @@ use itertools::{
   Itertools,
 };
 use regex::Regex;
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
-  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleId,
-  ModuleIdentifier,
+  compare_runtime, BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph,
+  ModuleIdentifier, ModuleIdsArtifact,
 };
 use rspack_util::itoa;
 use rspack_util::{
@@ -46,7 +46,8 @@ pub fn get_used_module_ids_and_modules(
     .values()
     .filter(|m| m.need_id())
     .for_each(|module| {
-      let module_id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier());
+      let module_id =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
       if let Some(module_id) = module_id {
         used_ids.insert(module_id.to_string());
       } else {
@@ -157,7 +158,7 @@ pub fn assign_deterministic_ids<T: Copy>(
 pub fn assign_ascending_module_ids(
   used_ids: &FxHashSet<String>,
   modules: Vec<&BoxModule>,
-  module_ids: &mut IdentifierMap<ModuleId>,
+  module_ids: &mut ModuleIdsArtifact,
 ) {
   let mut next_id = 0;
   let mut assign_id = |module: &BoxModule| {
@@ -319,7 +320,7 @@ pub fn request_to_id(request: &str) -> String {
 pub fn get_used_chunk_ids(compilation: &Compilation) -> FxHashSet<String> {
   let mut used_ids = FxHashSet::default();
   for chunk in compilation.chunk_by_ukey.values() {
-    if let Some(id) = chunk.id(&compilation.chunk_ids) {
+    if let Some(id) = chunk.id(&compilation.chunk_ids_artifact) {
       used_ids.insert(id.to_string());
     }
   }
@@ -333,19 +334,19 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
   if !used_ids.is_empty() {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids).is_none() {
+      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.set_id(&mut compilation.chunk_ids, next_id.to_string());
+        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
         next_id += 1;
       }
     }
   } else {
     for chunk in chunks {
       let chunk = compilation.chunk_by_ukey.expect_get_mut(chunk);
-      if chunk.id(&compilation.chunk_ids).is_none() {
-        chunk.set_id(&mut compilation.chunk_ids, next_id.to_string());
+      if chunk.id(&compilation.chunk_ids_artifact).is_none() {
+        chunk.set_id(&mut compilation.chunk_ids_artifact, next_id.to_string());
         next_id += 1;
       }
     }
@@ -355,7 +356,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compil
 fn compare_chunks_by_modules(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-  module_ids: &IdentifierMap<ModuleId>,
+  module_ids: &ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {
@@ -397,7 +398,7 @@ fn compare_chunks_by_modules(
 pub fn compare_chunks_natural(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-  module_ids: &IdentifierMap<ModuleId>,
+  module_ids: &ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
 ) -> Ordering {

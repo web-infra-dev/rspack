@@ -10,17 +10,17 @@ version     = "0.2.0"
 [dependencies]
 anyhow             = { workspace = true, features = ["backtrace"] }
 cow-utils          = { workspace = true }
-derivative         = { workspace = true }
+derive_more        = { workspace = true, features = ["debug"] }
 futures            = { workspace = true }
-miette             = { version = "5", features = ["fancy"] }
+miette             = { version = "7.2.0", features = ["fancy"] }
 once_cell          = { workspace = true }
-owo-colors         = "3.5.0"
+owo-colors         = "4.0.0"
 rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_paths       = { workspace = true }
 swc_core           = { workspace = true, features = ["common", "common_concurrent"] }
 termcolor          = "1.4.1"
-textwrap           = "0.15.2"
+textwrap           = "0.16.1"
 thiserror          = "1.0.69"
 
 unicode-width = "0.2.0"

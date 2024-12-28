@@ -1,4 +1,4 @@
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, Module};
 
@@ -13,8 +13,7 @@ use crate::{common::SplitChunkSizes, CacheGroup};
 ///  A `ModuleGroup` would be transform into multiple `Chunk`s if the `name` dynamic computed
 ///
 /// The original name of `ModuleGroup` is `ChunkInfoItem` borrowed from Webpack
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub(crate) struct ModuleGroup {
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
   idx: CacheGroupIdx,
@@ -27,7 +26,7 @@ pub(crate) struct ModuleGroup {
   pub chunk_name: Option<String>,
   pub sizes: SplitChunkSizes,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks: UkeySet<ChunkUkey>,
 }
 

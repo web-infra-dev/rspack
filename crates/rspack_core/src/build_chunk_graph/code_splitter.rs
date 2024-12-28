@@ -1208,10 +1208,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       let ordinal = self.ordinal_by_module.get(&module).unwrap_or_else(|| {
-        panic!(
-          "expected a module ordinal for identifier '{}', but none was found.",
-          module
-        )
+        panic!("expected a module ordinal for identifier '{module}', but none was found.")
       });
       if active_state.is_true() && min_available_modules.bit(*ordinal) {
         // already in parent chunks, skip it for now
@@ -1280,8 +1277,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mut entrypoint: Option<ChunkGroupUkey> = None;
     let mut c: Option<ChunkGroupUkey> = None;
 
-    let mut add_origin = None;
-
     let cgi = if let Some(cgi) = cgi {
       let cgi = self.chunk_group_infos.expect_get(cgi);
       let module_graph = compilation.get_module_graph();
@@ -1300,7 +1295,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_ukey = if let Some(chunk_name) = compilation
         .get_module_graph()
         .block_by_id(&block_id)
-        .unwrap_or_else(|| panic!("should have block: {:?}", block_id))
+        .unwrap_or_else(|| panic!("should have block: {block_id:?}"))
         .get_group_options()
         .and_then(|x| x.name())
       {
@@ -1335,7 +1330,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let cgi =
           if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
             let cgi = self.chunk_group_infos.expect_get(cgi);
-            add_origin = Some((cgi.chunk_group, loc, request));
+
+            compilation
+              .chunk_group_by_ukey
+              .expect_get_mut(&cgi.chunk_group)
+              .add_origin(Some(module_id), loc, request);
+
             compilation
               .chunk_graph
               .connect_block_and_chunk_group(block_id, cgi.chunk_group);
@@ -1435,7 +1435,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             cgi = item_chunk_group_info;
           }
 
-          add_origin = Some((cgi.chunk_group, loc.clone(), request));
+          compilation
+            .chunk_group_by_ukey
+            .expect_get_mut(&cgi.chunk_group)
+            .add_origin(Some(module_id), loc, request);
 
           compilation
             .chunk_graph
@@ -1516,13 +1519,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .expect_get_mut(&item_chunk_group);
       item_chunk_group.add_async_entrypoint(entrypoint);
     }
-
-    if let Some((chunk_group_ukey, loc, request)) = add_origin {
-      let chunk_group = compilation
-        .chunk_group_by_ukey
-        .expect_get_mut(&chunk_group_ukey);
-      chunk_group.add_origin(None, loc, request);
-    }
   }
 
   fn get_block_modules(
@@ -1573,7 +1569,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       Vec<DependencyId>,
     > = IndexMap::default();
 
-    for dep_id in module_graph.get_ordered_all_dependencies(&module) {
+    for dep_id in module_graph.get_ordered_outgoing_connections(&module) {
       let dep = module_graph
         .dependency_by_id(dep_id)
         .expect("should have dep");
@@ -1697,10 +1693,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .iter()
         .filter_map(|module| {
           let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
-            panic!(
-              "expected a module ordinal for identifier '{}', but none was found.",
-              module
-            )
+            panic!("expected a module ordinal for identifier '{module}', but none was found.")
           });
           if !cgi.min_available_modules.bit(*ordinal) {
             Some(*module)
@@ -1737,10 +1730,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           if active_state.is_true() {
             active_connections.push(i);
             let module_ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
-              panic!(
-                "expected a module ordinal for identifier '{}', but none was found.",
-                module
-              )
+              panic!("expected a module ordinal for identifier '{module}', but none was found.")
             });
             if cgi.min_available_modules.bit(*module_ordinal) {
               cgi.skipped_items.insert(*module);

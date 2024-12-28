@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
 const { URL, pathToFileURL, fileURLToPath } = require("url");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const deprecationTracking = require("./helpers/deprecationTracking");
@@ -174,7 +174,7 @@ const describeCases = config => {
 							testConfig = undefined;
 						});
 						beforeAll(() => {
-							rimraf.sync(cacheDirectory);
+							rimrafSync(cacheDirectory);
 						});
 						const handleFatalError = (err, done) => {
 							const fakeStats = {
@@ -204,7 +204,7 @@ const describeCases = config => {
 							it(
 								`${testName} should pre-compile to fill disk cache (1st)`,
 								done => {
-									rimraf.sync(outputDirectory);
+									rimrafSync(outputDirectory);
 									fs.mkdirSync(outputDirectory, { recursive: true });
 									infraStructureLog.length = 0;
 									const deprecationTracker = deprecationTracking.start();
@@ -248,7 +248,7 @@ const describeCases = config => {
 							it(
 								`${testName} should pre-compile to fill disk cache (2nd)`,
 								done => {
-									rimraf.sync(outputDirectory);
+									rimrafSync(outputDirectory);
 									fs.mkdirSync(outputDirectory, { recursive: true });
 									infraStructureLog.length = 0;
 									const deprecationTracker = deprecationTracking.start();
@@ -321,7 +321,7 @@ const describeCases = config => {
 						it(
 							`${testName} should compile`,
 							done => {
-								rimraf.sync(outputDirectory);
+								rimrafSync(outputDirectory);
 								fs.mkdirSync(outputDirectory, { recursive: true });
 								infraStructureLog.length = 0;
 								const deprecationTracker = deprecationTracking.start();

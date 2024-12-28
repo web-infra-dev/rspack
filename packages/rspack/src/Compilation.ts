@@ -39,6 +39,7 @@ import {
 	type StatsError,
 	type StatsModule
 } from "./Stats";
+import type { EntryOptions, EntryPlugin } from "./builtin-plugin";
 import type {
 	Filename,
 	OutputNormalized,
@@ -47,6 +48,7 @@ import type {
 	StatsOptions,
 	StatsValue
 } from "./config";
+import WebpackError from "./lib/WebpackError";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
@@ -259,6 +261,7 @@ export class Compilation {
 			return null;
 		}
 	};
+	needAdditionalPass: boolean;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side, using the Module identifier for association.
@@ -271,8 +274,7 @@ export class Compilation {
 			buildMeta: Record<string, unknown>;
 		}
 	>;
-
-	needAdditionalPass: boolean;
+	#addIncludeDispatcher: AddIncludeDispatcher;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.#inner = inner;
@@ -391,6 +393,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
 		this.chunkGraph = ChunkGraph.__from_binding(inner.chunkGraph);
 		this.moduleGraph = ModuleGraph.__from_binding(inner.moduleGraph);
+
+		this.#addIncludeDispatcher = new AddIncludeDispatcher(
+			inner.addInclude.bind(inner)
+		);
 	}
 
 	get hash(): Readonly<string | null> {
@@ -1153,6 +1159,15 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
+	addInclude(
+		context: string,
+		dependency: ReturnType<typeof EntryPlugin.createDependency>,
+		options: EntryOptions,
+		callback: (err?: null | WebpackError, module?: Module) => void
+	) {
+		this.#addIncludeDispatcher.call(context, dependency, options, callback);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
@@ -1259,6 +1274,72 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER = 3000;
 	static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
+}
+
+// The AddIncludeDispatcher class has two responsibilities:
+//
+// 1. It is responsible for combining multiple addInclude calls that occur within the same event loop.
+// The purpose of this is to send these combined calls to the add_include method on the Rust side in a unified manner, thereby optimizing the call process and avoiding the overhead of multiple scattered calls.
+//
+// 2. It should be noted that the add_include method on the Rust side has a limitation. It does not allow multiple calls to execute in parallel.
+// Based on this limitation, the AddIncludeDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
+class AddIncludeDispatcher {
+	#inner: binding.JsCompilation["addInclude"];
+	#running: boolean;
+	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
+		[];
+	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+
+	#execute = () => {
+		if (this.#running) {
+			return;
+		}
+
+		const args = this.#args;
+		this.#args = [];
+		const cbs = this.#cbs;
+		this.#cbs = [];
+		this.#inner(args, (wholeErr, results) => {
+			if (this.#args.length !== 0) {
+				queueMicrotask(this.#execute);
+			}
+
+			if (wholeErr) {
+				const webpackError = new WebpackError(wholeErr.message);
+				for (const cb of cbs) {
+					cb(webpackError);
+				}
+				return;
+			}
+			for (let i = 0; i < results.length; i++) {
+				const [errMsg, moduleBinding] = results[i];
+				const cb = cbs[i];
+				cb(
+					errMsg ? new WebpackError(errMsg) : null,
+					Module.__from_binding(moduleBinding)
+				);
+			}
+		});
+	};
+
+	constructor(binding: binding.JsCompilation["addInclude"]) {
+		this.#inner = binding;
+		this.#running = false;
+	}
+
+	call(
+		context: string,
+		dependency: ReturnType<typeof EntryPlugin.createDependency>,
+		options: EntryOptions,
+		callback: (err?: null | WebpackError, module?: Module) => void
+	) {
+		if (this.#args.length === 0) {
+			queueMicrotask(this.#execute);
+		}
+
+		this.#args.push([context, dependency, options as any]);
+		this.#cbs.push(callback);
+	}
 }
 
 export class EntryData {

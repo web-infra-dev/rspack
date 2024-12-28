@@ -77,7 +77,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "8354dce72f13f87a3b3f";
+	return "d026823092eb39bd50f7";
 };
 
 })();
@@ -397,12 +397,16 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 })();
 /************************************************************************/
 var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _style_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./style.css");
 
 
 /* eslint-disable-next-line no-unused-expressions */
 __webpack_require__.e(/* import() | async */ "async").then(__webpack_require__.bind(__webpack_require__, "./async.css"));
+
+})();
 
 })()
 ;

@@ -4,11 +4,10 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
-#![feature(option_get_or_insert_default)]
 
 use std::{fmt, sync::Arc};
-mod cgm_hash_results;
-mod cgm_runtime_requirement_results;
+mod artifacts;
+pub use artifacts::*;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
@@ -81,8 +80,6 @@ mod runtime;
 mod runtime_module;
 pub use runtime::*;
 pub use runtime_module::*;
-mod code_generation_results;
-pub use code_generation_results::*;
 mod entrypoint;
 pub use entrypoint::*;
 mod loader;
@@ -315,7 +312,7 @@ impl ChunkByUkey {
   pub fn get_many_mut<const N: usize>(
     &mut self,
     ukeys: [&ChunkUkey; N],
-  ) -> Option<[&mut Chunk; N]> {
+  ) -> [Option<&mut Chunk>; N] {
     self.inner.get_many_mut(ukeys)
   }
 
@@ -393,7 +390,7 @@ impl ChunkGroupByUkey {
   pub fn get_many_mut<const N: usize>(
     &mut self,
     ukeys: [&ChunkGroupUkey; N],
-  ) -> Option<[&mut ChunkGroup; N]> {
+  ) -> [Option<&mut ChunkGroup>; N] {
     self.inner.get_many_mut(ukeys)
   }
 

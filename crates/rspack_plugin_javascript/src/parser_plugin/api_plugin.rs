@@ -401,7 +401,7 @@ impl JavascriptParserPlugin for APIPlugin {
       parser
         .presentational_dependencies
         .push(Box::new(ModuleArgumentDependency::new(
-          Some("id"),
+          Some("id".into()),
           expr.span().into(),
           Some(parser.source_map.clone()),
         )));

@@ -12,9 +12,12 @@ use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::BoxDependency;
 use rspack_core::Compilation;
 use rspack_core::CompilationAsset;
 use rspack_core::CompilationId;
+use rspack_core::EntryDependency;
+use rspack_core::EntryOptions;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
@@ -23,6 +26,7 @@ use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use super::{JsFilename, PathWithInfo};
+use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
 use crate::JsAddingRuntimeModule;
 use crate::JsChunk;
@@ -34,6 +38,7 @@ use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
+use crate::RawDependency;
 use crate::ToJsCompatSource;
 use crate::{JsAsset, JsAssetInfo, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
@@ -678,6 +683,7 @@ impl JsCompilation {
           .collect(),
         assets: res.assets.into_iter().collect(),
         id: res.id,
+        error: res.error,
       };
       Ok(js_result)
     })
@@ -716,6 +722,107 @@ impl JsCompilation {
   pub fn chunk_graph(&self) -> napi::Result<JsChunkGraph> {
     let compilation = self.as_ref()?;
     Ok(JsChunkGraph::new(compilation))
+  }
+
+  #[napi(
+    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void"
+  )]
+  pub fn add_include(
+    &mut self,
+    env: Env,
+    js_args: Vec<(String, RawDependency, Option<JsEntryOptions>)>,
+    f: Function,
+  ) -> napi::Result<()> {
+    let compilation = self.as_mut()?;
+
+    let args = js_args
+      .into_iter()
+      .map(|(js_context, js_dependency, js_options)| {
+        let layer = match &js_options {
+          Some(options) => options.layer.clone(),
+          None => None,
+        };
+        let dependency = Box::new(EntryDependency::new(
+          js_dependency.request,
+          js_context.into(),
+          layer,
+          false,
+        )) as BoxDependency;
+        let options = match js_options {
+          Some(js_opts) => js_opts.into(),
+          None => EntryOptions::default(),
+        };
+        (dependency, options)
+      })
+      .collect::<Vec<(BoxDependency, EntryOptions)>>();
+
+    callbackify(env, f, async move {
+      let dependency_ids = args
+        .iter()
+        .map(|(dependency, _)| *dependency.id())
+        .collect::<Vec<_>>();
+
+      compilation
+        .add_include(args)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+
+      let results = dependency_ids
+        .into_iter()
+        .map(|dependency_id| {
+          let module_graph = compilation.get_module_graph();
+          match module_graph.module_graph_module_by_dependency_id(&dependency_id) {
+            Some(module) => match module_graph.module_by_identifier(&module.module_identifier) {
+              Some(module) => {
+                let js_module =
+                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
+                (Either::B(()), Either::B(js_module))
+              }
+              None => (
+                Either::A(format!(
+                  "Module created by {:#?} cannot be found",
+                  dependency_id
+                )),
+                Either::A(()),
+              ),
+            },
+            None => (
+              Either::A(format!(
+                "Module created by {:#?} cannot be found",
+                dependency_id
+              )),
+              Either::A(()),
+            ),
+          }
+        })
+        .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
+
+      Ok(JsAddIncludeCallbackArgs(results))
+    })
+  }
+}
+
+pub struct JsAddIncludeCallbackArgs(Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>);
+
+impl ToNapiValue for JsAddIncludeCallbackArgs {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    let env_wrapper = Env::from_raw(env);
+    let mut js_array = env_wrapper.create_array(0)?;
+    for (error, module) in val.0 {
+      let js_error = match error {
+        Either::A(val) => env_wrapper.create_string(&val)?.into_unknown(),
+        Either::B(_) => env_wrapper.get_undefined()?.into_unknown(),
+      };
+      let js_module = match module {
+        Either::A(_) => env_wrapper.get_undefined()?.into_unknown(),
+        Either::B(val) => {
+          let napi_val = ToNapiValue::to_napi_value(env, val)?;
+          Unknown::from_napi_value(env, napi_val)?
+        }
+      };
+      js_array.insert(vec![js_error, js_module])?;
+    }
+    ToNapiValue::to_napi_value(env, js_array)
   }
 }
 
@@ -784,6 +891,7 @@ pub struct JsExecuteModuleResult {
   pub cacheable: bool,
   pub assets: Vec<String>,
   pub id: u32,
+  pub error: Option<String>,
 }
 
 #[napi(object)]

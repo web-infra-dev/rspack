@@ -1,16 +1,17 @@
 use std::{
   fmt,
   hash::{Hash, Hasher},
+  sync::RwLock,
 };
 
 use once_cell::sync::OnceCell;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet, UkeySet};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
 use rustc_hash::FxHasher;
 
 use crate::{
-  AffectType, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier,
+  AffectType, ChunkGraph, ChunkUkey, Compilation, Logger, Module, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -19,7 +20,17 @@ pub struct Mutations {
 
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
   affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
-  modules_with_chunk_graph_cache: IdentifierDashMap<Option<u64>>,
+  // we need the cache to check the affected modules (with chunk graph) is really affected or not
+  // because usually people will still enable splitChunks for dev mode, and that will cause lots of
+  // chunks can't reuse from the previous compilation by incremental build chunk graph (code splitting),
+  // and affect lots of modules, but actually most of the affected modules are not really affected, which
+  // can be detected by this cache.
+  // An alternative way is to give chunk a chunk identifier, but currently I don't have a good idea to
+  // choose what as the chunk identifier.
+  // (probably the chunk name, and the chunk index in its chunk group, webpack RecordIdsPlugin use this way:
+  // https://github.com/webpack/webpack/blob/3612d36e44bda5644dc3b353e2cade7fe442ba59/lib/RecordIdsPlugin.js#L126)
+  // I leave it at that for now. I leave it to future to decide :)
+  modules_with_chunk_graph_cache: RwLock<IdentifierMap<Option<u64>>>,
   affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
 }
 
@@ -27,7 +38,7 @@ impl fmt::Display for Mutations {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "[")?;
     for mutation in self.iter() {
-      writeln!(f, "{},", mutation)?;
+      writeln!(f, "{mutation},")?;
     }
     writeln!(f, "]")
   }
@@ -49,10 +60,10 @@ pub enum Mutation {
 impl fmt::Display for Mutation {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Mutation::ModuleBuild { module } => write!(f, "build module {}", module),
-      Mutation::ModuleRemove { module } => write!(f, "remove module {}", module),
-      Mutation::ModuleSetAsync { module } => write!(f, "set async module {}", module),
-      Mutation::ModuleSetId { module } => write!(f, "set id module {}", module),
+      Mutation::ModuleBuild { module } => write!(f, "build module {module}"),
+      Mutation::ModuleRemove { module } => write!(f, "remove module {module}"),
+      Mutation::ModuleSetAsync { module } => write!(f, "set async module {module}"),
+      Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
       Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
@@ -77,7 +88,6 @@ impl Mutations {
     self.inner.is_empty()
   }
 
-  // TODO: remove this
   pub fn swap_modules_with_chunk_graph_cache(&mut self, to: &mut Self) {
     std::mem::swap(
       &mut self.modules_with_chunk_graph_cache,
@@ -148,26 +158,41 @@ impl Mutations {
       .affected_modules_with_chunk_graph
       .get_or_init(|| {
         let module_graph = compilation.get_module_graph();
-        let mut updated_modules =
+        let mut affected_modules =
           self.get_affected_modules_with_module_graph(&compilation.get_module_graph());
+        let mut maybe_affected_modules = IdentifierSet::default();
         for mutation in self.iter() {
           match mutation {
             Mutation::ModuleSetAsync { module } => {
-              updated_modules.insert(*module);
+              affected_modules.insert(*module);
             }
             Mutation::ModuleSetId { module } => {
-              updated_modules.insert(*module);
-              updated_modules.extend(
+              affected_modules.insert(*module);
+              affected_modules.extend(
                 module_graph
                   .get_incoming_connections(module)
                   .filter_map(|c| c.original_module_identifier),
+              );
+            }
+            Mutation::ChunkSetId { chunk } => {
+              let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+              maybe_affected_modules.extend(
+                chunk
+                  .groups()
+                  .iter()
+                  .flat_map(|group| {
+                    let group = compilation.chunk_group_by_ukey.expect_get(group);
+                    group.origins()
+                  })
+                  .filter_map(|origin| origin.module),
               );
             }
             _ => {}
           }
         }
         compute_affected_modules_with_chunk_graph(
-          updated_modules,
+          affected_modules,
+          maybe_affected_modules,
           self
             .iter()
             .filter_map(|mutation| match mutation {
@@ -308,11 +333,16 @@ fn compute_affected_modules_with_module_graph(
 
 #[tracing::instrument(skip_all)]
 fn compute_affected_modules_with_chunk_graph(
-  updated_modules: IdentifierSet,
+  sure_affected_modules: IdentifierSet,
+  maybe_affected_modules: IdentifierSet,
   revoked_modules: IdentifierSet,
-  cache: &IdentifierDashMap<Option<u64>>,
+  cache: &RwLock<IdentifierMap<Option<u64>>>,
   compilation: &Compilation,
 ) -> IdentifierSet {
+  let logger = compilation.get_logger("rspack.incremental (affected modules with chunk graph)");
+  let sure_affected_modules_len = sure_affected_modules.len();
+  let maybe_affected_modules_len = maybe_affected_modules.len();
+
   #[tracing::instrument(skip_all, fields(module = ?module.identifier()))]
   fn create_block_invalidate_key(
     chunk_graph: &ChunkGraph,
@@ -328,42 +358,60 @@ fn compute_affected_modules_with_chunk_graph(
       };
       for chunk in &chunk_group.chunks {
         let chunk = compilation.chunk_by_ukey.expect_get(chunk);
-        chunk.id(&compilation.chunk_ids).hash(&mut hasher);
+        chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
       }
     }
     hasher.finish()
   }
 
-  for module in revoked_modules {
-    cache.remove(&module);
-  }
-  for module in updated_modules {
-    cache.insert(module, None);
+  {
+    let mut write_cache = cache.write().expect("should have write lock");
+    // GC the revoked modules from the cache
+    for module in revoked_modules {
+      write_cache.remove(&module);
+    }
+    for module in &sure_affected_modules {
+      write_cache.insert(*module, None);
+    }
   }
 
-  let module_graph = compilation.get_module_graph();
-  let affected_modules: IdentifierMap<u64> = cache
-    .par_iter()
-    .filter_map(|item| {
-      let (module_identifier, &old_invalidate_key) = item.pair();
-      let module = module_graph
-        .module_by_identifier(module_identifier)
-        .expect("should have module");
-      let invalidate_key =
-        create_block_invalidate_key(&compilation.chunk_graph, compilation, module.as_ref());
-      if old_invalidate_key.is_none()
-        || matches!(old_invalidate_key, Some(old) if old != invalidate_key)
-      {
-        Some((*module_identifier, invalidate_key))
-      } else {
-        None
-      }
-    })
-    .collect();
-  for (&module_identifier, &invalidate_key) in affected_modules.iter() {
-    cache.insert(module_identifier, Some(invalidate_key));
+  // Only check the cache for the updated modules, which is "maybe affected"
+  let update_cache_entries: IdentifierMap<Option<u64>> = {
+    let module_graph = compilation.get_module_graph();
+    let read_cache = cache.read().expect("should have read lock");
+    sure_affected_modules
+      .into_par_iter()
+      .chain(maybe_affected_modules)
+      .filter_map(|module_identifier| {
+        let module = module_graph
+          .module_by_identifier(&module_identifier)
+          .expect("should have module");
+        let invalidate_key =
+          create_block_invalidate_key(&compilation.chunk_graph, compilation, module.as_ref());
+        if let Some(Some(old_invalidate_key)) = read_cache.get(&module_identifier)
+          && *old_invalidate_key == invalidate_key
+        {
+          return None;
+        }
+        Some((module_identifier, Some(invalidate_key)))
+      })
+      .collect()
+  };
+
+  // Update the cache for those really affected modules
+  let affected_modules: IdentifierSet = update_cache_entries.keys().copied().collect();
+  {
+    let mut write_cache = cache.write().expect("should have write lock");
+    write_cache.extend(update_cache_entries);
   }
-  affected_modules.keys().copied().collect()
+
+  logger.log(format!(
+    "{} modules are really affected, {} modules are maybe affected",
+    affected_modules.len() - sure_affected_modules_len,
+    maybe_affected_modules_len,
+  ));
+
+  affected_modules
 }
 
 fn compute_affected_chunks_with_chunk_graph(

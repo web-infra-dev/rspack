@@ -12,7 +12,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use crate::chunk_graph_chunk::ChunkId;
 use crate::{
   compare_chunk_group, merge_runtime, sort_group_by_index, ChunkGraph, ChunkGroupOrderKey,
-  RenderManifestEntry,
+  ChunkIdsArtifact, RenderManifestEntry,
 };
 use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, SourceType};
 use crate::{Compilation, EntryOptions, Filename, ModuleGraph, RuntimeSpec};
@@ -108,21 +108,17 @@ impl Chunk {
     self.css_filename_template = filename_template;
   }
 
-  pub fn id<'a>(&self, chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>) -> Option<&'a ChunkId> {
+  pub fn id<'a>(&self, chunk_ids: &'a ChunkIdsArtifact) -> Option<&'a ChunkId> {
     ChunkGraph::get_chunk_id(chunk_ids, &self.ukey)
   }
 
-  pub fn expect_id<'a>(&self, chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>) -> &'a ChunkId {
+  pub fn expect_id<'a>(&self, chunk_ids: &'a ChunkIdsArtifact) -> &'a ChunkId {
     self
       .id(chunk_ids)
       .expect("Should set id before calling expect_id")
   }
 
-  pub fn set_id(
-    &self,
-    chunk_ids: &mut UkeyMap<ChunkUkey, ChunkId>,
-    id: impl Into<ChunkId>,
-  ) -> bool {
+  pub fn set_id(&self, chunk_ids: &mut ChunkIdsArtifact, id: impl Into<ChunkId>) -> bool {
     let id = id.into();
     ChunkGraph::set_chunk_id(chunk_ids, self.ukey, id)
   }
@@ -157,6 +153,10 @@ impl Chunk {
 
   pub fn remove_group(&mut self, chunk_group: &ChunkGroupUkey) -> bool {
     self.groups.remove(chunk_group)
+  }
+
+  pub fn get_number_of_groups(&self) -> usize {
+    self.groups.len()
   }
 
   pub fn runtime(&self) -> &RuntimeSpec {
@@ -590,7 +590,7 @@ impl Chunk {
 
   pub fn name_for_filename_template<'a>(
     &'a self,
-    chunk_ids: &'a UkeyMap<ChunkUkey, ChunkId>,
+    chunk_ids: &'a ChunkIdsArtifact,
   ) -> Option<&'a str> {
     if self.name.is_some() {
       self.name.as_deref()
@@ -608,7 +608,7 @@ impl Chunk {
   }
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
-    self.id(&compilation.chunk_ids).hash(hasher);
+    self.id(&compilation.chunk_ids_artifact).hash(hasher);
     for module in compilation
       .chunk_graph
       .get_ordered_chunk_modules(&self.ukey, &compilation.get_module_graph())
@@ -641,7 +641,7 @@ impl Chunk {
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
-      ChunkGraph::get_module_id(&compilation.module_ids, *module).hash(hasher);
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module).hash(hasher);
       if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
         chunk_group.id(compilation).hash(hasher);
       }
@@ -733,7 +733,7 @@ impl Chunk {
               compilation
                 .chunk_by_ukey
                 .expect_get(chunk_ukey)
-                .id(&compilation.chunk_ids)
+                .id(&compilation.chunk_ids_artifact)
                 .cloned()
             })
           })
@@ -760,7 +760,7 @@ impl Chunk {
     ) {
       let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
       if let (Some(chunk_id), Some(child_chunk_ids)) = (
-        chunk.id(&compilation.chunk_ids).cloned(),
+        chunk.id(&compilation.chunk_ids_artifact).cloned(),
         chunk.get_child_ids_by_order(order, compilation),
       ) {
         result

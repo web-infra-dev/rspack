@@ -10,7 +10,7 @@ use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::JS_DEFAULT_KEYWORD;
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
       self.block_pre_walk_module_item(statement);

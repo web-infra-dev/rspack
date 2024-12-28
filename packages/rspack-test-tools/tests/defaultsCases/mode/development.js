@@ -14,8 +14,14 @@ module.exports = {
 		-   "devtool": false,
 		+   "devtool": "eval",
 		@@ ... @@
+		-     "cache": false,
+		+     "cache": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
+		@@ ... @@
+		-         "exportsDepth": 9007199254740991,
+		+         "exportsDepth": 1,
 		@@ ... @@
 		-     "chunkIds": "natural",
 		+     "chunkIds": "named",

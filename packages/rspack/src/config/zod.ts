@@ -599,9 +599,10 @@ const assetGeneratorDataUrlOptions = z.strictObject({
 const assetGeneratorDataUrlFunction = z
 	.function()
 	.args(
+		z.instanceof(Buffer),
 		z.strictObject({
-			content: z.string(),
-			filename: z.string()
+			filename: z.string(),
+			module: z.custom<Module>()
 		})
 	)
 	.returns(z.string()) satisfies z.ZodType<t.AssetGeneratorDataUrlFunction>;
@@ -1217,7 +1218,7 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
-	filename: z.string().optional(),
+	filename: filename.optional(),
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
@@ -1244,7 +1245,9 @@ const optimizationSplitChunksOptions = z.strictObject({
 
 const optimization = z.strictObject({
 	moduleIds: z.enum(["named", "natural", "deterministic"]).optional(),
-	chunkIds: z.enum(["natural", "named", "deterministic"]).optional(),
+	chunkIds: z
+		.enum(["natural", "named", "deterministic", "size", "total-size"])
+		.optional(),
 	minimize: z.boolean().optional(),
 	minimizer: z.literal("...").or(plugin).array().optional(),
 	mergeDuplicateChunks: z.boolean().optional(),
@@ -1260,7 +1263,8 @@ const optimization = z.strictObject({
 	usedExports: z.enum(["global"]).or(z.boolean()).optional(),
 	mangleExports: z.enum(["size", "deterministic"]).or(z.boolean()).optional(),
 	nodeEnv: z.union([z.string(), z.literal(false)]).optional(),
-	emitOnErrors: z.boolean().optional()
+	emitOnErrors: z.boolean().optional(),
+	avoidEntryIife: z.boolean().optional()
 }) satisfies z.ZodType<t.Optimization>;
 //#endregion
 
@@ -1296,15 +1300,29 @@ const experimentCacheOptions = z
 	.or(
 		z.object({
 			type: z.enum(["persistent"]),
-			snapshot: z.strictObject({
-				immutablePaths: z.string().or(z.instanceof(RegExp)).array(),
-				unmanagedPaths: z.string().or(z.instanceof(RegExp)).array(),
-				managedPaths: z.string().or(z.instanceof(RegExp)).array()
-			}),
-			storage: z.strictObject({
-				type: z.enum(["filesystem"]),
-				directory: z.string()
-			})
+			buildDependencies: z.string().array().optional(),
+			version: z.string().optional(),
+			snapshot: z
+				.object({
+					immutablePaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					unmanagedPaths: z
+						.string()
+						.or(z.instanceof(RegExp))
+						.array()
+						.optional(),
+					managedPaths: z.string().or(z.instanceof(RegExp)).array().optional()
+				})
+				.optional(),
+			storage: z
+				.object({
+					type: z.enum(["filesystem"]),
+					directory: z.string().optional()
+				})
+				.optional()
 		})
 	);
 
@@ -1329,6 +1347,7 @@ const incremental = z.strictObject({
 	inferAsyncModules: z.boolean().optional(),
 	providedExports: z.boolean().optional(),
 	dependenciesDiagnostics: z.boolean().optional(),
+	sideEffects: z.boolean().optional(),
 	buildChunkGraph: z.boolean().optional(),
 	moduleIds: z.boolean().optional(),
 	chunkIds: z.boolean().optional(),

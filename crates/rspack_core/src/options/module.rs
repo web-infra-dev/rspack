@@ -1,11 +1,12 @@
 use std::{
   fmt::{self, Debug},
+  ops::{Deref, DerefMut},
+  str::FromStr,
   sync::Arc,
 };
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
-use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
@@ -13,11 +14,26 @@ use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{try_all, try_any, MergeFrom};
 use rustc_hash::FxHashMap as HashMap;
+use tokio::sync::OnceCell;
 
-use crate::{Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
+
+impl Deref for ParserOptionsMap {
+  type Target = HashMap<String, ParserOptions>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for ParserOptionsMap {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
 
 impl FromIterator<(String, ParserOptions)> for ParserOptionsMap {
   fn from_iter<I: IntoIterator<Item = (String, ParserOptions)>>(i: I) -> Self {
@@ -42,6 +58,7 @@ pub enum ParserOptions {
   JavascriptAuto(JavascriptParserOptions),
   JavascriptEsm(JavascriptParserOptions),
   JavascriptDynamic(JavascriptParserOptions),
+  Json(JsonParserOptions),
   Unknown,
 }
 
@@ -69,6 +86,7 @@ impl ParserOptions {
     JavascriptDynamic,
     JavascriptParserOptions
   );
+  get_variant!(get_json, Json, JsonParserOptions);
 }
 
 #[cacheable]
@@ -146,11 +164,11 @@ impl From<&str> for JavascriptParserUrl {
 #[derive(Debug, Clone, Copy, MergeFrom)]
 pub enum JavascriptParserOrder {
   Disable,
-  Order(u32),
+  Order(i32),
 }
 
 impl JavascriptParserOrder {
-  pub fn get_order(&self) -> Option<u32> {
+  pub fn get_order(&self) -> Option<i32> {
     match self {
       Self::Disable => None,
       Self::Order(o) => Some(*o),
@@ -164,7 +182,7 @@ impl From<&str> for JavascriptParserOrder {
       "false" => Self::Disable,
       "true" => Self::Order(0),
       _ => {
-        if let Ok(order) = value.parse::<u32>() {
+        if let Ok(order) = value.parse::<i32>() {
           Self::Order(order)
         } else {
           Self::Order(0)
@@ -228,7 +246,7 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: Option<DynamicImportMode>,
   pub dynamic_import_preload: Option<JavascriptParserOrder>,
@@ -288,8 +306,28 @@ pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
 }
 
-#[derive(Debug)]
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct JsonParserOptions {
+  pub exports_depth: Option<u32>,
+}
+
+#[derive(Debug, Default)]
 pub struct GeneratorOptionsMap(HashMap<String, GeneratorOptions>);
+
+impl Deref for GeneratorOptionsMap {
+  type Target = HashMap<String, GeneratorOptions>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for GeneratorOptionsMap {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
 
 impl FromIterator<(String, GeneratorOptions)> for GeneratorOptionsMap {
   fn from_iter<I: IntoIterator<Item = (String, GeneratorOptions)>>(i: I) -> Self {
@@ -334,6 +372,17 @@ impl GeneratorOptions {
       .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
   }
 
+  pub fn asset_output_path(&self) -> Option<&Filename> {
+    self
+      .get_asset()
+      .and_then(|x| x.output_path.as_ref())
+      .or_else(|| {
+        self
+          .get_asset_resource()
+          .and_then(|x| x.output_path.as_ref())
+      })
+  }
+
   pub fn asset_public_path(&self) -> Option<&PublicPath> {
     self
       .get_asset()
@@ -371,6 +420,7 @@ pub struct AssetInlineGeneratorOptions {
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
+  pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
 }
 
@@ -379,17 +429,19 @@ pub struct AssetResourceGeneratorOptions {
 pub struct AssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
+  pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
-pub struct AssetGeneratorDataUrlFnArgs {
+pub struct AssetGeneratorDataUrlFnCtx<'a> {
   pub filename: String,
-  pub content: String,
+  pub module: &'a dyn Module,
+  pub compilation: &'a Compilation,
 }
 
 pub type AssetGeneratorDataUrlFn =
-  Arc<dyn Fn(AssetGeneratorDataUrlFnArgs) -> Result<String> + Sync + Send>;
+  Arc<dyn Fn(Vec<u8>, AssetGeneratorDataUrlFnCtx) -> Result<String> + Sync + Send>;
 
 #[cacheable]
 pub enum AssetGeneratorDataUrl {
@@ -493,6 +545,14 @@ impl From<String> for LocalIdentName {
   }
 }
 
+impl From<&str> for LocalIdentName {
+  fn from(value: &str) -> Self {
+    Self {
+      template: crate::FilenameTemplate::from_str(value).expect("should be infalliable"),
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 struct ExportsConventionFlags(u8);
@@ -547,8 +607,8 @@ impl Default for CssExportsConvention {
   }
 }
 
-pub type DescriptionData = HashMap<String, RuleSetCondition>;
-pub type With = HashMap<String, RuleSetCondition>;
+pub type DescriptionData = HashMap<String, RuleSetConditionWithEmpty>;
+pub type With = HashMap<String, RuleSetConditionWithEmpty>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(DataRef) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -623,6 +683,53 @@ impl RuleSetCondition {
       Self::Func(f) => f(data).await,
     }
   }
+
+  #[async_recursion]
+  async fn match_when_empty(&self) -> Result<bool> {
+    let res = match self {
+      RuleSetCondition::String(s) => s.is_empty(),
+      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
+      RuleSetCondition::Array(arr) => {
+        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+      }
+      RuleSetCondition::Func(func) => func("".into()).await?,
+    };
+    Ok(res)
+  }
+}
+
+#[derive(Debug)]
+pub struct RuleSetConditionWithEmpty {
+  condition: RuleSetCondition,
+  match_when_empty: OnceCell<bool>,
+}
+
+impl RuleSetConditionWithEmpty {
+  pub fn new(condition: RuleSetCondition) -> Self {
+    Self {
+      condition,
+      match_when_empty: OnceCell::new(),
+    }
+  }
+
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    self.condition.try_match(data).await
+  }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    self
+      .match_when_empty
+      .get_or_try_init(|| async { self.condition.match_when_empty().await })
+      .await
+      .copied()
+  }
+}
+
+impl From<RuleSetCondition> for RuleSetConditionWithEmpty {
+  fn from(condition: RuleSetCondition) -> Self {
+    Self::new(condition)
+  }
 }
 
 #[derive(Debug, Default)]
@@ -652,6 +759,24 @@ impl RuleSetLogicalConditions {
     }
     Ok(true)
   }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    let mut has_condition = false;
+    let mut match_when_empty = true;
+    if let Some(and) = &self.and {
+      has_condition = true;
+      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(or) = &self.or {
+      has_condition = true;
+      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+    }
+    if let Some(not) = &self.not {
+      has_condition = true;
+      match_when_empty &= !not.match_when_empty().await?;
+    }
+    Ok(has_condition && match_when_empty)
+  }
 }
 
 pub struct FuncUseCtx {
@@ -674,7 +799,7 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleRule {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
@@ -688,13 +813,13 @@ pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
-  pub resource_query: Option<RuleSetCondition>,
-  pub resource_fragment: Option<RuleSetCondition>,
+  pub resource_query: Option<RuleSetConditionWithEmpty>,
+  pub resource_fragment: Option<RuleSetConditionWithEmpty>,
   pub dependency: Option<RuleSetCondition>,
-  pub issuer: Option<RuleSetCondition>,
-  pub issuer_layer: Option<RuleSetCondition>,
-  pub scheme: Option<RuleSetCondition>,
-  pub mimetype: Option<RuleSetCondition>,
+  pub issuer: Option<RuleSetConditionWithEmpty>,
+  pub issuer_layer: Option<RuleSetConditionWithEmpty>,
+  pub scheme: Option<RuleSetConditionWithEmpty>,
+  pub mimetype: Option<RuleSetConditionWithEmpty>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
   pub one_of: Option<Vec<ModuleRule>>,
@@ -702,14 +827,12 @@ pub struct ModuleRule {
   pub effect: ModuleRuleEffect,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub layer: Option<String>,
-  #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
@@ -728,21 +851,20 @@ impl Default for ModuleRuleUse {
   }
 }
 
-fn fmt_use(
-  r#use: &ModuleRuleUse,
-  f: &mut std::fmt::Formatter,
-) -> std::result::Result<(), std::fmt::Error> {
-  match r#use {
-    ModuleRuleUse::Array(array_use) => write!(
-      f,
-      "{}",
-      array_use
-        .iter()
-        .map(|l| &*l.loader)
-        .collect::<Vec<_>>()
-        .join("!")
-    ),
-    ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
+impl Debug for ModuleRuleUse {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+    match self {
+      ModuleRuleUse::Array(array_use) => write!(
+        f,
+        "{}",
+        array_use
+          .iter()
+          .map(|l| &*l.loader)
+          .collect::<Vec<_>>()
+          .join("!")
+      ),
+      ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
+    }
   }
 }
 

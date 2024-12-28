@@ -18,7 +18,7 @@ pub struct DeterministicModuleIdsPlugin;
 fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
   let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
 
-  let mut module_ids = std::mem::take(&mut compilation.module_ids);
+  let mut module_ids = std::mem::take(&mut compilation.module_ids_artifact);
   let context = compilation.options.context.as_ref();
   let max_length = 3;
   let fail_on_conflict = false;
@@ -49,7 +49,7 @@ fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     used_ids_len,
     salt,
   );
-  compilation.module_ids = module_ids;
+  compilation.module_ids_artifact = module_ids;
   if fail_on_conflict && conflicts > 0 {
     // TODO: better error msg
     panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");

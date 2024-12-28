@@ -54,8 +54,8 @@ pub struct CompilerHooks {
 pub struct Compiler {
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
-  pub output_filesystem: Box<dyn WritableFileSystem>,
-  pub intermediate_filesystem: Box<dyn IntermediateFileSystem>,
+  pub output_filesystem: Arc<dyn WritableFileSystem>,
+  pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn FileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
@@ -77,8 +77,8 @@ impl Compiler {
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
     buildtime_plugins: Vec<BoxPlugin>,
-    output_filesystem: Option<Box<dyn WritableFileSystem>>,
-    intermediate_filesystem: Option<Box<dyn IntermediateFileSystem>>,
+    output_filesystem: Option<Arc<dyn WritableFileSystem>>,
+    intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
     input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
@@ -92,6 +92,9 @@ impl Compiler {
       }
     }
     let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+    let output_filesystem = output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+    let intermediate_filesystem =
+      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
 
     let resolver_factory = resolver_factory.unwrap_or_else(|| {
       Arc::new(ResolverFactory::new(
@@ -110,12 +113,14 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let cache = new_cache(options.clone(), input_filesystem.clone());
+    let cache = new_cache(
+      &compiler_path,
+      options.clone(),
+      input_filesystem.clone(),
+      intermediate_filesystem.clone(),
+    );
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
-    let output_filesystem = output_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
-    let intermediate_filesystem =
-      intermediate_filesystem.unwrap_or_else(|| Box::new(NativeFileSystem {}));
 
     Self {
       compiler_path,
@@ -133,6 +138,8 @@ impl Compiler {
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
+        intermediate_filesystem.clone(),
+        output_filesystem.clone(),
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -174,14 +181,20 @@ impl Compiler {
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
+        self.intermediate_filesystem.clone(),
+        self.output_filesystem.clone(),
       ),
     );
-    self.cache.before_compile(&mut self.compilation);
+    if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
 
     self.compile().await?;
     self.old_cache.begin_idle();
     self.compile_done().await?;
-    self.cache.after_compile(&self.compilation);
+    if let Err(err) = self.cache.after_compile(&self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
     Ok(())
   }
 
@@ -209,7 +222,13 @@ impl Compiler {
     let logger = self.compilation.get_logger("rspack.Compiler");
     let make_start = logger.time("make");
     let make_hook_start = logger.time("make hook");
-    self.cache.before_make(&mut self.compilation.make_artifact);
+    if let Err(err) = self
+      .cache
+      .before_make(&mut self.compilation.make_artifact)
+      .await
+    {
+      self.compilation.push_diagnostic(err.into());
+    }
     if let Some(e) = self
       .plugin_driver
       .compiler_hooks
@@ -235,7 +254,9 @@ impl Compiler {
 
     let start = logger.time("finish compilation");
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    self.cache.after_make(&self.compilation.make_artifact);
+    if let Err(err) = self.cache.after_make(&self.compilation.make_artifact).await {
+      self.compilation.push_diagnostic(err.into());
+    }
     logger.time_end(start);
     let start = logger.time("seal compilation");
     self.compilation.seal(self.plugin_driver.clone()).await?;
@@ -332,8 +353,8 @@ impl Compiler {
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
-      let (filename, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(filename);
+      let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
+      let file_path = output_path.join(target_file);
       self
         .output_filesystem
         .create_dir_all(
@@ -348,9 +369,9 @@ impl Compiler {
       let mut immutable = asset.info.immutable.unwrap_or(false);
       if !query.is_empty() {
         immutable = immutable
-          && (include_hash(filename, &asset.info.content_hash)
-            || include_hash(filename, &asset.info.chunk_hash)
-            || include_hash(filename, &asset.info.full_hash));
+          && (include_hash(target_file, &asset.info.content_hash)
+            || include_hash(target_file, &asset.info.chunk_hash)
+            || include_hash(target_file, &asset.info.full_hash));
       }
 
       let stat = match self

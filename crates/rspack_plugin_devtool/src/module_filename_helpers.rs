@@ -74,9 +74,10 @@ impl ModuleFilenameHelpers {
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
-        let module_id = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
-          .map(|s| s.to_string())
-          .unwrap_or_default();
+        let module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+            .map(|s| s.to_string())
+            .unwrap_or_default();
         let absolute_resource_path = "".to_string();
 
         let hash = get_hash(&identifier, output_options);

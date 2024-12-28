@@ -112,7 +112,7 @@ module.exports = {
 
 React Compiler 是 React 19 引入的一个实验性编译器，它可以自动优化你的 React 代码。
 
-在开始使用 React Compiler 之前，建议阅读 [React Compiler 文档](https://react.dev/learn/react-compiler)，以了解 React Compiler 的功能、当前状态和使用方法。
+在开始使用 React Compiler 之前，建议阅读 [React Compiler 文档](https://zh-hans.react.dev/learn/react-compiler)，以了解 React Compiler 的功能、当前状态和使用方法。
 
 :::tip
 React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
@@ -122,7 +122,7 @@ React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
 
 在 Rspack 中使用 React Compiler 的步骤如下：
 
-1. 升级 `react` 和 `react-dom` 版本到 19。
+1. 升级 `react` 和 `react-dom` 版本到 19。如果你暂时无法升级，可以在 React 17 或 18 项目中安装 [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime)，以允许编译后的代码在 19 之前的版本上运行。
 2. 目前 React Compiler 仅提供了 Babel 插件，你需要安装：
 
 - [@babel/core](https://www.npmjs.com/package/@babel/core)
@@ -167,7 +167,6 @@ module.exports = {
 4. 创建 `babel.config.js` 并配置插件：
 
 ```js title="babel.config.js"
-// babel.config.js
 const ReactCompilerConfig = {
   /* ... */
 };
@@ -179,6 +178,14 @@ module.exports = function () {
       '@babel/plugin-syntax-jsx',
     ],
   };
+};
+```
+
+对于 React 17 和 18 的项目，除了安装 [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime)，还需要指定 `target`：
+
+```js title="babel.config.js"
+const ReactCompilerConfig = {
+  target: '18', // '17' | '18' | '19'
 };
 ```
 

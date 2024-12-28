@@ -39,14 +39,14 @@ pub trait Replacer {
   fn get_replacer(&mut self, hash_len: Option<usize>) -> Cow<'_, str>;
 }
 
-impl<'a> Replacer for &'a str {
+impl Replacer for &str {
   #[inline]
   fn get_replacer(&mut self, _: Option<usize>) -> Cow<'_, str> {
     Cow::Borrowed(self)
   }
 }
 
-impl<'a> Replacer for &'a String {
+impl Replacer for &String {
   #[inline]
   fn get_replacer(&mut self, _: Option<usize>) -> Cow<'_, str> {
     Cow::Borrowed(self.as_str())

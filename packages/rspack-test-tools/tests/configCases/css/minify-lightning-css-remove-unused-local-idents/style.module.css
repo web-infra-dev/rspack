@@ -5,3 +5,11 @@
 .b {
   color: blue;
 }
+
+.local\/used {
+  color: red;
+}
+
+.local\/unused {
+  color: blue
+}

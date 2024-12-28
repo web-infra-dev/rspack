@@ -2,7 +2,7 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 body {
-  & ._-ec1c834ac8cc99e-used {
+  & ._-_6ec1c834ac8cc99e-used {
     color: #00f;
   }
 }
@@ -12,7 +12,7 @@ exports[`config config/builtin-lightningcss-loader/minify exported tests css con
 
 exports[`config config/builtins/css-auto exported tests css/auto can handle css module correctly 1`] = `
 Object {
-  style: -ec1c834ac8cc99e-style,
+  style: -_6ec1c834ac8cc99e-style,
 }
 `;
 
@@ -27,21 +27,21 @@ exports[`config config/builtins/css-modules-composes-preprocessers exported test
 Object {
   class: -bd00b1e0e0954270-class -a700d75440d0c95b-lessClass,
   ghi: -bd00b1e0e0954270-ghi,
-  other: -bd00b1e0e0954270-other -c82bab3b83825a-scssClass,
+  other: -bd00b1e0e0954270-other -_59c82bab3b83825a-scssClass,
   otherClassName: -bd00b1e0e0954270-otherClassName globalClassName,
 }
 `;
 
 exports[`config config/builtins/css-modules-composes-sass exported tests css modules in scss 1`] = `
 Object {
-  bar: -f71ebaec3a61562-bar -d2e32b33f9cd5760-foo,
+  bar: -_6f71ebaec3a61562-bar -d2e32b33f9cd5760-foo,
 }
 `;
 
 exports[`config config/builtins/css-modules-dedupe exported tests css modules dedupe 1`] = `
 Object {
-  backButton: -f9dde4a2b9fd39e-backButton -c0cdf795e5ee8e4-secondaryButton -ff2973456bd9e-button,
-  nextButton: -f9dde4a2b9fd39e-nextButton -fe530a949364eca-primaryButton -ff2973456bd9e-button,
+  backButton: -_1f9dde4a2b9fd39e-backButton -_3c0cdf795e5ee8e4-secondaryButton -_542ff2973456bd9e-button,
+  nextButton: -_1f9dde4a2b9fd39e-nextButton -_7fe530a949364eca-primaryButton -_542ff2973456bd9e-button,
 }
 `;
 
@@ -54,54 +54,54 @@ Object {
 
 exports[`config config/builtins/css-modules-local-ident-name-hash exported tests css modules localIdentName with hash 1`] = `
 Object {
-  #: c36b985d54c6917,
-  ##: ab513cc8abd7e7d,
-  #.#.#: b6aa9e623eb8be,
-  #fake-id: d65fd648c910d0f,
-  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.: fe85c4cd33dc7b53,
-  -a-b-c-: b1d2002fed1364,
-  -a0-34a___f: bd6992764ef,
-  .: f8dc72200543c02,
-  123: fc54982b169de010,
-  1a2b3c: e0d288534c575c7c,
-  :): ce45aa5fbb24,
-  :\`(: c3a47328b233,
-  :hover: c9cb40d597d6145,
-  :hover:focus:active: adb078f8a010,
-  <><<<>><>: e57bed6057bf,
-  <p>: d4d795aa031981a3,
-  ?: ca312bbe575926f7,
-  @: e73735f9a6fa1e2a,
-  B&W?: c28b11d8276955d9,
-  [attr=value]: aefb3cf784f22f09,
-  _: b892aeed406cef6,
-  _test: f95d7802389a,
-  className: b88ec9c3ddaa088,
-  f!o!o: bc20be6f8aa6ba2b,
-  f'o'o: a1ad39e5bcb2a,
-  f*o*o: ee490440b4d27dd,
-  f+o+o: b2f2e8203ab92e0,
-  f/o/o: e8e6467eba546855,
-  f\\o\\o: ac4b388a402f1b,
-  foo.bar: bf09604a510669,
-  foo/bar: f06b4ed00041408a,
-  foo/bar/baz: b62901907350b529,
-  foo\\bar: cf1721b3e29,
-  foo\\bar\\baz: db46f3e1d8ecc82b,
-  f~o~o: e22953bae58b7,
-  m_x_@: eede355cc6b0366,
+  #: ab5b3430521fed0b,
+  ##: _94cb547534b9bb8e,
+  #.#.#: _8a4c570203a26b7a,
+  #fake-id: _48f7b6eb7b0e0c18,
+  ++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.: c40d0c7abfea21c2,
+  -a-b-c-: _41b1d2002fed1364,
+  -a0-34a___f: _76004bd6992764ef,
+  .: _562aba9a87983bb4,
+  123: _44fc0eed74768cf0,
+  1a2b3c: _45189cd4a1680594,
+  :): f173228435cfb0b1,
+  :\`(: _2c028ead51dd2190,
+  :hover: _4bcf55b240a0c8c3,
+  :hover:focus:active: a9b6b582b414966b,
+  <><<<>><>: _2c75f56ad7787952,
+  <p>: aeefcae4950d33f5,
+  ?: _5e40713fc7c65c3f,
+  @: _81cd391b9e31254d,
+  B&W?: _8daaf197c50aa167,
+  [attr=value]: _64fa72982cc3b312,
+  _: _7814922bd050c4fe,
+  _test: _4011f95d7802389a,
+  className: _8b88ec9c3ddaa088,
+  f!o!o: _6ae3ae8c7841a7dc,
+  f'o'o: _1df77f78fe66aae2,
+  f*o*o: a7fec00e3ce42886,
+  f+o+o: _6eb6cf0061b2d78e,
+  f/o/o: d0e703c722b26d0c,
+  f\\o\\o: a496c6306a14d13d,
+  foo.bar: cd2e4302e8b6edf3,
+  foo/bar: _7cd90db0f2125295,
+  foo/bar/baz: f253f688730bc76e,
+  foo\\bar: _47141eb2a9acb231,
+  foo\\bar\\baz: b41adbd8ba363134,
+  f~o~o: _104b5f0b0aac1e4e,
+  m_x_@: deacd91fcb5633e3,
   someId: f39bfe4a4606a57c,
   subClass: dbb85e97d7af8a70,
   test: db0a8ac9537cb87c,
-  {}: c849d7d50310c200,
-  ©: fc4038317,
-  “‘’”: b1f8cf023766,
-  ⌘⌥: cad802,
-  ☺☃: a5266303d99e4a3,
-  ♥: b3f2fd830,
+  {}: _0b674276dd02fd15,
+  ©: _4721925fc4038317,
+  “‘’”: _6295b1f8cf023766,
+  ⌘⌥: _5464233501cad802,
+  ☺☃: _8a5266303d99e4a3,
+  ♥: _8573640b3f2fd830,
   𝄞♪♩♫♬: c573deb3b242a81b,
-  💩: f17b76fb4694950,
-  😍: d57d2641b441,
+  💩: _0f17b76fb4694950,
+  😍: _5653d57d2641b441,
 }
 `;
 
@@ -205,7 +205,7 @@ Object {
 
 exports[`config config/builtins/css-modules-simple exported tests css modules simple test 1`] = `
 Object {
-  style: -ec1c834ac8cc99e-style,
+  style: -_6ec1c834ac8cc99e-style,
 }
 `;
 
@@ -328,7 +328,7 @@ export * from "external2-alias";
 `;
 
 exports[`config config/externals/reexport-star exported tests reexport star from external module 2`] = `
-import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
 export * from "external1-alias";
 
 ;// CONCATENATED MODULE: external "external1-alias"
@@ -340,13 +340,13 @@ export * from "external1-alias";
 
 
 
-var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias__.a;
-var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias__.b;
-export { __WEBPACK_EXTERNAL_MODULE_external1_alias__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
+var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.a;
+var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.b;
+export { __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };
 `;
 
 exports[`config config/externals/reexport-star exported tests reexport star from external module 3`] = `
-import * as __WEBPACK_EXTERNAL_MODULE_external1_alias__ from "external1-alias";
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
 
 ;// CONCATENATED MODULE: external "external1-alias"
 

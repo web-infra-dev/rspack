@@ -789,7 +789,7 @@ impl<'a> ModuleGraph<'a> {
     exports_info.get_export_info(self, export_name)
   }
 
-  pub(crate) fn get_ordered_all_dependencies(
+  pub(crate) fn get_ordered_outgoing_connections(
     &self,
     module_identifier: &ModuleIdentifier,
   ) -> impl Iterator<Item = &DependencyId> {
@@ -865,7 +865,7 @@ impl<'a> ModuleGraph<'a> {
   }
 
   pub fn is_async(compilation: &Compilation, module_id: &ModuleIdentifier) -> bool {
-    compilation.async_modules.contains(module_id)
+    compilation.async_modules_artifact.contains(module_id)
   }
 
   pub fn set_async(
@@ -878,9 +878,9 @@ impl<'a> ModuleGraph<'a> {
       return false;
     }
     if original {
-      compilation.async_modules.remove(&module_id)
+      compilation.async_modules_artifact.remove(&module_id)
     } else {
-      compilation.async_modules.insert(module_id)
+      compilation.async_modules_artifact.insert(module_id)
     }
   }
 
@@ -928,25 +928,27 @@ impl<'a> ModuleGraph<'a> {
     self.loop_partials(|p| p.dep_meta_map.get(id))
   }
 
-  pub fn set_dep_meta(&mut self, dep_id: DependencyId, ids: Vec<Atom>) {
+  pub fn set_dependency_extra_meta(&mut self, dep_id: DependencyId, extra: DependencyExtraMeta) {
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
-    active_partial
-      .dep_meta_map
-      .insert(dep_id, DependencyExtraMeta { ids });
+    active_partial.dep_meta_map.insert(dep_id, extra);
   }
 
-  pub fn update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
+  pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
+    let connection = self
+      .connection_by_dependency_id(dep_id)
+      .expect("should have connection");
+    connection.module_identifier() != module_id
+  }
+
+  pub fn do_update_module(&mut self, dep_id: &DependencyId, module_id: &ModuleIdentifier) {
     let connection = self
       .connection_by_dependency_id_mut(dep_id)
-      .expect("should have connection");
+      .unwrap_or_else(|| panic!("{dep_id:?}"));
     let old_module_identifier = *connection.module_identifier();
-    if &old_module_identifier == module_id {
-      return false;
-    }
-
     connection.set_module_identifier(*module_id);
+
     // remove dep_id from old module mgm incoming connection
     let old_mgm = self
       .module_graph_module_by_identifier_mut(&old_module_identifier)
@@ -958,7 +960,6 @@ impl<'a> ModuleGraph<'a> {
       .module_graph_module_by_identifier_mut(module_id)
       .expect("should exist mgm");
     new_mgm.add_incoming_connection(*dep_id);
-    true
   }
 
   pub fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {

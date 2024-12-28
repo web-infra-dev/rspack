@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rspack_error::Result;
 use rspack_paths::Utf8Path;
 
 use super::SplitPackStrategy;
-use crate::pack::{
-  data::{PackContents, PackKeys},
-  strategy::PackReadStrategy,
+use crate::{
+  error::Result,
+  pack::{
+    data::PackKeys,
+    strategy::{PackMainContents, PackReadStrategy},
+  },
+  FSError, FSOperation,
 };
 
 #[async_trait]
@@ -18,15 +21,28 @@ impl PackReadStrategy for SplitPackStrategy {
     }
 
     let mut reader = self.fs.read_file(path).await?;
-    let key_lengths: Vec<usize> = reader
+    // read key lengths
+    let key_lengths = reader
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
-      .collect();
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack key lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
+    // skip content lengths
+    reader.read_line().await?;
+    // skip generations
     reader.read_line().await?;
 
+    // read keys
     let mut keys = vec![];
     for key_len in key_lengths {
       keys.push(Arc::new(reader.read(key_len).await?));
@@ -34,7 +50,7 @@ impl PackReadStrategy for SplitPackStrategy {
     Ok(Some(keys))
   }
 
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>> {
+  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>> {
     if !self.fs.exists(path).await? {
       return Ok(None);
     }
@@ -44,37 +60,75 @@ impl PackReadStrategy for SplitPackStrategy {
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack key lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?
+      .iter()
       .sum::<usize>();
 
     let content_lengths: Vec<usize> = reader
       .read_line()
       .await?
       .split(" ")
-      .map(|item| item.parse::<usize>().expect("should have meta info"))
-      .collect();
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack content lengths failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
+
+    let generations: Vec<usize> = reader
+      .read_line()
+      .await?
+      .split(" ")
+      .map(|item| {
+        item.parse::<usize>().map_err(|e| {
+          FSError::from_message(
+            path,
+            FSOperation::Read,
+            format!("parse pack generations failed: {}", e),
+          )
+        })
+      })
+      .collect::<std::result::Result<Vec<_>, FSError>>()?;
 
     reader.skip(total_key_length).await?;
 
-    let mut res = vec![];
+    let mut contents = vec![];
     for len in content_lengths {
-      res.push(Arc::new(reader.read(len).await?));
+      contents.push(Arc::new(reader.read(len).await?));
     }
 
-    Ok(Some(res))
+    Ok(Some(PackMainContents {
+      contents,
+      generations,
+    }))
   }
 }
 
 #[cfg(test)]
 mod tests {
 
-  use rspack_error::Result;
   use rspack_paths::Utf8PathBuf;
   use rustc_hash::FxHashSet as HashSet;
 
-  use crate::pack::strategy::{
-    split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
-    PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+  use crate::{
+    error::Result,
+    pack::strategy::{
+      split::util::test_pack_utils::{clean_strategy, create_strategies, mock_pack_file},
+      PackReadStrategy, ScopeReadStrategy, SplitPackStrategy,
+    },
   };
 
   async fn test_read_keys_non_exists(strategy: &SplitPackStrategy) -> Result<()> {
@@ -111,6 +165,7 @@ mod tests {
       .read_pack_contents(path)
       .await?
       .unwrap_or_default()
+      .contents
       .into_iter()
       .map(|x| x.as_ref().to_owned())
       .collect::<HashSet<_>>();

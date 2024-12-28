@@ -35,7 +35,6 @@ use swc_node_comments::SwcComments;
 /// This transformer shifts orphaned comments to the next closest known span
 /// while making a best-effort to preserve the "general orientation" of
 /// comments.
-
 pub fn dropped_comments_preserver(comments: Option<SwcComments>) -> impl VisitMut {
   visit_mut_pass(DroppedCommentsPreserver {
     comments,

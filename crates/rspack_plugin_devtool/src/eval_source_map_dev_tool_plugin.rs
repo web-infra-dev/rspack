@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use dashmap::DashMap;
-use derivative::Derivative;
+use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
@@ -26,12 +26,11 @@ use crate::{
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
 
 #[plugin]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct EvalSourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   source_root: Option<String>,

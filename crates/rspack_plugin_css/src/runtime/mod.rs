@@ -54,7 +54,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let id = compilation
           .chunk_by_ukey
           .expect_get(chunk_ukey)
-          .expect_id(&compilation.chunk_ids)
+          .expect_id(&compilation.chunk_ids_artifact)
           .clone();
         if chunk_has_css(chunk_ukey, compilation) {
           initial_chunk_ids.insert(id);

@@ -4,6 +4,9 @@
 	extends: [":dependencyDashboard"],
 	schedule: ["before 8am on wednesday"],
 	enabledManagers: ["github-actions", "cargo", "npm"],
+	lockFileMaintenance: {
+		enabled: true
+	},
 	ignorePaths: [
 		"**/fixtures/**",
 		"**/tests/**",
@@ -57,7 +60,8 @@
 				"owo-colors",
 				"miette",
 				"rkyv",
-				"rspack_resolver"
+				"rspack_resolver",
+				"inventory"
 			]
 		},
 		{
@@ -90,7 +94,14 @@
 		{
 			groupName: "ignored crates",
 			matchManagers: ["cargo"],
-			matchPackageNames: ["ustr", "textwrap", "owo-colors", "miette", "rkyv"],
+			matchPackageNames: [
+				"ustr",
+				"textwrap",
+				"owo-colors",
+				"miette",
+				"rkyv",
+				"inventory"
+			],
 			enabled: false
 		},
 		{

@@ -184,7 +184,7 @@ async fn content_hash(
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
     self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
   } else {
-    chunk.id(&compilation.chunk_ids).hash(&mut hasher);
+    chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
   }
 
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
@@ -205,7 +205,7 @@ async fn content_hash(
         compilation
           .code_generation_results
           .get_hash(&mgm.identifier(), Some(chunk.runtime())),
-        ChunkGraph::get_module_id(&compilation.module_ids, mgm.identifier()),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, mgm.identifier()),
       )
     })
     .for_each(|(current, id)| {
@@ -277,13 +277,17 @@ async fn render_manifest(
     &filename_template,
     PathData::default()
       .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         &SourceType::JavaScript,
         compilation.options.output.hash_digest_length,
       ))

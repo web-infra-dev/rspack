@@ -28,7 +28,7 @@ use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^\d+").expect("Invalid regexp"));
+  LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
 pub static PREFIX_UNDERSCORE_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
 
@@ -69,7 +69,7 @@ impl<'a> LocalIdentOptions<'a> {
       }
       let hash = hasher.digest(&output.hash_digest);
       LEADING_DIGIT_REGEX
-        .replace_all(hash.rendered(output.hash_digest_length), "")
+        .replace(hash.rendered(output.hash_digest_length), "_${1}")
         .into_owned()
     };
     LocalIdentNameRenderOptions {
@@ -192,7 +192,7 @@ pub fn stringified_exports<'a>(
     let content = elements
       .iter()
       .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&unescape(ident)),
+        None => json_stringify(&ident),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -216,7 +216,7 @@ pub fn stringified_exports<'a>(
             .expect("should have css from module");
 
           let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
               .expect("should have module"),
           )
           .expect("should json stringify module id");
@@ -233,7 +233,7 @@ pub fn stringified_exports<'a>(
     writeln!(
       stringified_exports,
       "  {}: {},",
-      json_stringify(&unescape(key)),
+      json_stringify(&key),
       content
     )
     .map_err(|e| error!(e.to_string()))?;
@@ -266,7 +266,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let content = elements
       .iter()
       .map(|CssExport { ident, from, id: _ }| match from {
-        None => json_stringify(&unescape(ident)),
+        None => json_stringify(&ident),
         Some(from_name) => {
           let from = module
             .get_dependencies()
@@ -290,14 +290,14 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
             .expect("should have css from module");
 
           let from = serde_json::to_string(
-            ChunkGraph::get_module_id(&compilation.module_ids, from.module_identifier)
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
               .expect("should have module"),
           )
           .expect("should json stringify module id");
           format!(
             "{}({from})[{}]",
             RuntimeGlobals::REQUIRE,
-            json_stringify(&unescape(ident))
+            json_stringify(&ident)
           )
         }
       })
@@ -306,7 +306,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
     let mut identifier = to_identifier(key);
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
-      identifier = Cow::Owned(format!("{key}{}", itoa!(i)));
+      identifier = Cow::Owned(format!("{identifier}{}", itoa!(i)));
       i += 1;
     }
     // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -314,7 +314,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
       "var {identifier} = {content};\n"
     )));
     used_identifiers.insert(identifier.clone());
-    scope.register_export(unescape(key).as_ref().into(), identifier.into_owned());
+    scope.register_export(key.into(), identifier.into_owned());
   }
   Ok(())
 }
@@ -330,6 +330,7 @@ static UNESCAPE: LazyLock<Regex> =
 
 static DATA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
 
+// `\/foo` in css should be treated as `foo` in js
 pub fn unescape(s: &str) -> Cow<str> {
   UNESCAPE.replace_all(s.as_ref(), |caps: &Captures| {
     caps

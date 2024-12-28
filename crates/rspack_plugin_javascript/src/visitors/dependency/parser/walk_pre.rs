@@ -12,7 +12,7 @@ use super::JavascriptParser;
 use crate::parser_plugin::JavascriptParserPlugin;
 use crate::utils::eval;
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
       self.pre_walk_module_item(statement);

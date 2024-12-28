@@ -1,6 +1,8 @@
 mod compiler_options;
+mod compiler_options_builder;
 
 pub use compiler_options::*;
+pub use compiler_options_builder::*;
 mod entry;
 pub use entry::*;
 mod optimizations;
@@ -23,8 +25,6 @@ mod stats;
 pub use stats::*;
 mod cache;
 pub use cache::*;
-mod snapshot;
-pub use snapshot::*;
 mod experiments;
 pub use experiments::*;
 mod node;
@@ -33,3 +33,5 @@ mod filename;
 pub use filename::*;
 mod clean_options;
 pub use clean_options::*;
+mod target;
+pub use target::*;

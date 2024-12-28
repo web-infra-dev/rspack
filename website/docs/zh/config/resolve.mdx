@@ -73,6 +73,27 @@ module.exports = {
 };
 ```
 
+## resolve.exportsFields
+
+- **类型：** `string[]`
+- **默认值：** `["exports"]`
+
+自定义 package.json 中的 exports 字段，例如：
+
+```json title="lib/package.json"
+{
+  "name": "lib",
+  "testExports": {
+    ".": "./test.js"
+  },
+  "exports": {
+    ".": "./index.js"
+  }
+}
+```
+
+则当配置为 `["testExports", "exports"]` 时, `import value from 'lib'` 的结果为 `lib/test.js`。
+
 ## resolve.extensions
 
 - **类型：** `string[]`
@@ -172,54 +193,6 @@ module.exports = {
 };
 ```
 
-## resolve.mainFields
-
-- **类型：** `string[]`
-- **默认值：**
-  - `target` 为 web 时为 `["browser", "module", "main"]`
-  - 其他则为 `["module", "main"]`
-
-尝试解析 package.json 中的字段，例如：
-
-```json
-// package.json
-{
-  "name": "lib",
-  "module": "es/index.js"
-}
-```
-
-则 `import value from 'lib'` 的结果为 `lib/es/index.js`。
-
-## resolve.mainFiles
-
-- **类型：** `string[]`
-- **默认值：** `["index"]`
-
-解析目录时的文件名后缀，例如 `require('./dir/')` 会尝试解析 `'./dir/index'`。
-
-## resolve.exportsFields
-
-- **类型：** `string[]`
-- **默认值：** `["exports"]`
-
-自定义 package.json 中的 exports 字段，例如：
-
-```json
-// lib/package.json
-{
-  "name": "lib",
-  "testExports": {
-    ".": "./test.js"
-  },
-  "exports": {
-    ".": "./index.js"
-  }
-}
-```
-
-则当配置为 `["testExports", "exports"]` 时, `import value from 'lib'` 的结果为 `lib/test.js`。
-
 ## resolve.importsFields
 
 - **类型：** `string[]`
@@ -229,21 +202,76 @@ module.exports = {
 
 例如：
 
-```
-// package.json
+```json title="package.json"
 {
   "name": "lib",
   "imports": {
     "#foo": "./src/foo.js",
     "#common/*": "./src/common/*.js"
-  }
+  },
   "testImports": {
-    "#foo": "./src/test/foo.js",
+    "#foo": "./src/test/foo.js"
   }
 }
 ```
 
 则当配置为 ["testImports", "imports"] 时, 当前包内 `import value from '#foo'` 的结果为 `src/test/foo.js`。
+
+## resolve.mainFields
+
+- **类型：** `string[]`
+- **默认值：** 根据 [target](/config/target) 选项确定
+
+当从 npm 包导入时，例如 `import React from 'react'`，`resolve.mainFields` 用于确定其 `package.json` 中的哪些字段会被解析。
+
+当 `target` 配置为 `'web'`, `'webworker'`, 或未指定时，默认值为 `["browser", "module", "main"]`。
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFields: ['browser', 'module', 'main'],
+  },
+};
+```
+
+对于任何其他 `target`（包括 `'node'`）, 默认值为 `["module", "main"]`。
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFields: ['module', 'main'],
+  },
+};
+```
+
+例如，对于一个名为 `foo` 的库，它的 `package.json` 包含以下字段：
+
+```json title="package.json"
+{
+  "name": "foo",
+  "browser": "./dist/browser.js",
+  "module": "./dist/module.js"
+}
+```
+
+当 `import foo from 'foo'` 时，Rspack 会解析到 `browser` 字段中的模块，因为 `browser` 字段在 `mainFields` 数组中优先级最高。
+
+## resolve.mainFiles
+
+- **类型：** `string[]`
+- **默认值：** `["index"]`
+
+解析目录时的文件名后缀，例如 `require('./dir/')` 会尝试解析 `'./dir/index'`。
+
+可以配置多个文件名后缀：
+
+```js title="rspack.config.js"
+module.exports = {
+  resolve: {
+    mainFiles: ['index', 'main'],
+  },
+};
+```
 
 ## resolve.modules
 

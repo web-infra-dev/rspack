@@ -24,16 +24,16 @@ impl TemplateContext<'_, '_, '_> {
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
     let data_fragments = self.data.get::<ChunkInitFragments>();
     if data_fragments.is_some() {
-      return self
+      self
         .data
         .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments");
+        .expect("should have chunk_init_fragments")
     } else {
       self.data.insert(ChunkInitFragments::default());
-      return self
+      self
         .data
         .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments");
+        .expect("should have chunk_init_fragments")
     }
   }
 }

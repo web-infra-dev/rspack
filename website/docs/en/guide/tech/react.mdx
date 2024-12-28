@@ -124,7 +124,7 @@ At present, React Compiler only supports Babel compilation, which may slow down 
 
 The steps to use React Compiler in Rspack:
 
-1. Upgrade versions of `react` and `react-dom` to 19.
+1. Upgrade versions of `react` and `react-dom` to 19. If you are unable to upgrade, you can install the extra [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime) package which will allow the compiled code to run on versions prior to 19.
 2. React Compiler currently only provides a Babel plugin, you need to install:
 
 - [@babel/core](https://www.npmjs.com/package/@babel/core)
@@ -169,7 +169,6 @@ module.exports = {
 4. Create a `babel.config.js` and configure the plugins:
 
 ```js title="babel.config.js"
-// babel.config.js
 const ReactCompilerConfig = {
   /* ... */
 };
@@ -181,6 +180,14 @@ module.exports = function () {
       '@babel/plugin-syntax-jsx',
     ],
   };
+};
+```
+
+For React 17 and 18 projects, you need to install [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime) and specify the `target`:
+
+```js title="babel.config.js"
+const ReactCompilerConfig = {
+  target: '18', // '17' | '18' | '19'
 };
 ```
 

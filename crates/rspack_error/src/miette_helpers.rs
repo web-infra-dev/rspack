@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use derivative::Derivative;
+use derive_more::Debug;
 use miette::Diagnostic;
 use once_cell::sync::OnceCell;
 use thiserror::Error;
@@ -55,7 +55,7 @@ impl miette::Diagnostic for WithHelp {
   fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
     let help = self.wrap_help.get_or_init(|| {
       let prev = self.err.help().map(|h| h.to_string());
-      let help = self.help.as_ref().cloned();
+      let help = self.help.as_ref();
       if let Some(prev) = prev {
         if let Some(help) = &help {
           Some(format!("{prev}\n{help}").into())
@@ -63,7 +63,7 @@ impl miette::Diagnostic for WithHelp {
           Some(prev.into())
         }
       } else if help.is_some() {
-        help
+        help.cloned()
       } else {
         None
       }
@@ -94,12 +94,11 @@ impl miette::Diagnostic for WithHelp {
 }
 
 /// Wrap diagnostic with label.
-#[derive(Error, Derivative)]
-#[derivative(Debug)]
+#[derive(Debug, Error)]
 #[error("{err}")]
 pub(crate) struct WithLabel {
   err: Error,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   labels: Option<Vec<miette::LabeledSpan>>,
 }
 

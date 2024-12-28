@@ -6,11 +6,10 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
-use rspack_binding_options::BuiltinPlugin;
 use rspack_core::{Compilation, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
@@ -25,7 +24,6 @@ mod resolver_factory;
 pub use diagnostic::*;
 use plugins::*;
 use resolver_factory::*;
-use rspack_binding_options::*;
 use rspack_binding_values::*;
 use rspack_tracing::chrome::FlushGuard;
 
@@ -71,9 +69,9 @@ impl Rspack {
     let loader_resolver_factory = (*resolver_factory_reference)
       .get_loader_resolver_factory(compiler_options.resolve_loader.clone());
 
-    let intermediate_filesystem: Option<Box<dyn IntermediateFileSystem>> =
+    let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
       if let Some(fs) = intermediate_filesystem {
-        Some(Box::new(NodeFileSystem::new(fs).map_err(|e| {
+        Some(Arc::new(NodeFileSystem::new(fs).map_err(|e| {
           Error::from_reason(format!("Failed to create intermediate filesystem: {e}",))
         })?))
       } else {
@@ -84,8 +82,8 @@ impl Rspack {
       compiler_path,
       compiler_options,
       plugins,
-      rspack_binding_options::buildtime_plugins::buildtime_plugins(),
-      Some(Box::new(NodeFileSystem::new(output_filesystem).map_err(
+      rspack_binding_values::buildtime_plugins::buildtime_plugins(),
+      Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
       intermediate_filesystem,

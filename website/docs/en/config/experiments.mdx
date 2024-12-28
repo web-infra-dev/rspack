@@ -155,7 +155,7 @@ In addition, you can also configure a `test` parameter for more fine-grained con
 The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
 :::
 
-### experiments.lazyCompilation.backend.listen
+### lazyCompilation.backend.listen
 
 - **Type:** `number | ListenOptions`
 
@@ -244,6 +244,7 @@ type Incremental = {
   inferAsyncModules?: boolean;
   providedExports?: boolean;
   dependenciesDiagnostics?: boolean;
+  sideEffects?: boolean;
   buildChunkGraph?: boolean;
   moduleIds?: boolean;
   chunkIds?: boolean;
@@ -301,7 +302,7 @@ This feature is experimental. You can check its relevant progress at [rspack#810
 
 Used to control whether to enable Rspack future default options, check out the details [here](https://github.com/web-infra-dev/rspack/pull/4107).
 
-### experiments.rspackFuture.bundlerInfo
+### rspackFuture.bundlerInfo
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -331,6 +332,157 @@ The default injection can be disabled by setting `force` to `false`. Then inject
 module.exports = {
   experiments: {
     rspackFuture: { bundlerInfo: { force: false } },
+  },
+};
+```
+
+## experiments.cache
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `ExperimentCacheOptions`
+
+- **Default:** production mode is `false`, development mode is `true`
+
+```ts
+type ExperimentCacheOptions =
+  | boolean
+  | {
+      type: 'memory';
+    }
+  | {
+      type: 'persistent';
+      buildDependencies?: string[];
+      version?: string;
+      snapshot?: {
+        immutablePaths?: Array<string | RegExp>;
+        unmanagedPaths?: Array<string | RegExp>;
+        managedPaths?: Array<string | RegExp>;
+      };
+      storage?: {
+        type: 'filesystem';
+        directory?: string;
+      };
+    };
+```
+
+Control experimental caching behavior. This will only work if [global cache](/config/cache) is set to `true`.
+
+### Disable cache
+
+Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [global cache](/config/cache) to `false`.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: false,
+  },
+};
+```
+
+### Memory cache
+
+Configuring `experiment.cache` to `true` or `{ "type": "memory" }` to enable memory cache.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: true,
+  },
+};
+```
+
+### Persistent cache
+
+Configuring `experiment.cache` to `{ "type": "persistent" }` to enable persistent cache.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+    },
+  },
+};
+```
+
+#### cache.buildDependencies
+
+- **Type:** `string[]`
+
+- **Default:** `[]`
+
+`cache.buildDependencies` is an array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
+
+:::tip
+It's recommended to set `cache.buildDependencies`: [__filename] in your rspack configuration to get the latest configuration.
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+      buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+    },
+  },
+};
+```
+
+#### cache.version
+
+- **Type:** `string`
+
+- **Default:** `""`
+
+Cache versions, different versions of caches are isolated from each other.
+
+#### cache.snapshot
+
+Configure snapshot strategy. Snapshot is used to determine which files have been modified during shutdown. The following configurations are supported:
+
+##### snapshot.immutablePaths
+
+- **Type:** `(RegExp | string)[]`
+
+- **Default:** `[]`
+
+An array of paths to immutable files, changes to these paths will be ignored during hot restart.
+
+##### snapshot.managedPaths
+
+- **Type:** `(RegExp | string)[]`
+
+- **Default:** `[/\/node_modules\//]`
+
+An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
+
+##### snapshot.unmanagedPaths
+
+- **Type:** `(RegExp | string)[]`
+
+- **Default:** `[]`
+
+Specifies an array of paths in `snapshot.managedPaths` that are not managed by the package manager
+
+#### cache.storage
+
+- **Type:** `{ type: 'filesystem', directory: string }`
+
+- **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
+
+Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+      storage: {
+        type: 'filesystem',
+        directory: 'node_modules/.cache/rspack',
+      },
+    },
   },
 };
 ```

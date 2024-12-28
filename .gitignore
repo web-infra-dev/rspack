@@ -190,7 +190,7 @@ esbuild.cpuprofile
 !packages/rspack-test-tools/tests/treeShakingCases/node_modules
 
 # Binding artifacts
-artifacts
+/artifacts/
 
 # Node Addons
 npm/**/*.node

@@ -2,12 +2,12 @@
 
 const path = require("path");
 // eslint-disable-next-line node/no-unpublished-require
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const { run } = require("../../utils/test-utils");
 
 describe("cache", () => {
   it("should work", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-default-development"),
     );
 
@@ -30,10 +30,10 @@ describe("cache", () => {
   });
 
   it("should work in multi compiler mode", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-first-development"),
     );
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-second-development"),
     );
 
@@ -56,7 +56,7 @@ describe("cache", () => {
   });
 
   it("should work in multi compiler mode with the `--config-name` argument", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-third-development"),
     );
 
@@ -93,7 +93,7 @@ describe("cache", () => {
   });
 
   it("should work with the `--merge` argument", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-fourth-development"),
     );
 
@@ -132,7 +132,7 @@ describe("cache", () => {
   });
 
   it("should work with the `--config-name` and `--merge` argument", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(__dirname, "../../../node_modules/.cache/webpack/cache-test-fifth-development"),
     );
 
@@ -179,7 +179,7 @@ describe("cache", () => {
   });
 
   it("should work with autoloading configuration", async () => {
-    rimraf.sync(
+    rimrafSync(
       path.join(
         __dirname,
         "../../../node_modules/.cache/webpack/cache-test-autoloading-development",

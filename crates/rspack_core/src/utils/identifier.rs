@@ -43,7 +43,7 @@ pub fn stringify_loaders_and_resource<'a>(
       .map(|i| &*i.loader)
       .collect::<Vec<_>>()
       .join("!");
-    Cow::Owned(format!("{s}!{}", resource))
+    Cow::Owned(format!("{s}!{resource}"))
   } else {
     Cow::Borrowed(resource)
   }

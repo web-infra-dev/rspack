@@ -1,5 +1,4 @@
 mod data;
-mod fs;
 mod manager;
 mod strategy;
 
@@ -9,32 +8,32 @@ use std::{
 };
 
 use data::{PackOptions, RootOptions};
-pub use fs::{PackBridgeFS, PackFS};
 use manager::ScopeManager;
-use rspack_error::Result;
 use rspack_paths::AssertUtf8;
 use rustc_hash::FxHashMap as HashMap;
 use strategy::{ScopeUpdate, SplitPackStrategy};
 use tokio::sync::oneshot::Receiver;
 
-use crate::{Storage, StorageContent, StorageItemKey, StorageItemValue};
+use crate::{error::Result, FileSystem, ItemKey, ItemPairs, ItemValue, Storage};
 
 pub type ScopeUpdates = HashMap<&'static str, ScopeUpdate>;
 #[derive(Debug)]
 pub struct PackStorage {
-  manager: ScopeManager,
-  updates: Mutex<ScopeUpdates>,
+  pub manager: ScopeManager,
+  pub updates: Mutex<ScopeUpdates>,
 }
 
 pub struct PackStorageOptions {
   pub root: PathBuf,
   pub temp_root: PathBuf,
-  pub fs: Arc<dyn PackFS>,
+  pub fs: Arc<dyn FileSystem>,
   pub bucket_size: usize,
   pub pack_size: usize,
   pub expire: u64,
   pub version: String,
   pub clean: bool,
+  pub fresh_generation: Option<usize>,
+  pub release_generation: Option<usize>,
 }
 
 impl PackStorage {
@@ -54,6 +53,8 @@ impl PackStorage {
           options.root.join(&options.version).assert_utf8(),
           options.temp_root.join(&options.version).assert_utf8(),
           options.fs,
+          options.fresh_generation,
+          options.release_generation,
         )),
       ),
       updates: Default::default(),
@@ -63,10 +64,10 @@ impl PackStorage {
 
 #[async_trait::async_trait]
 impl Storage for PackStorage {
-  async fn load(&self, name: &'static str) -> Result<StorageContent> {
+  async fn load(&self, name: &'static str) -> Result<ItemPairs> {
     self.manager.load(name).await
   }
-  fn set(&self, scope: &'static str, key: StorageItemKey, value: StorageItemValue) {
+  fn set(&self, scope: &'static str, key: ItemKey, value: ItemValue) {
     let mut updates = self.updates.lock().expect("should get lock");
     let scope_update = updates.entry(scope).or_default();
     scope_update.insert(key, Some(value));

@@ -59,14 +59,18 @@ module.exports = {
 		LOG from rspack.RemoveEmptyChunksPlugin
 		<t> remove empty chunks: X ms
 
+		LOG from rspack.SideEffectsFlagPlugin
+		<t> prepare connections: X ms
+		<t> find optimizable connections: X ms
+		<t> do optimize connections: X ms
+		<t> update connections: X ms
+		    optimized 0 connections
+
 		LOG from rspack.SplitChunksPlugin
 		<t> prepare module group map: X ms
 		<t> ensure min size fit: X ms
 		<t> process module group map: X ms
 		<t> ensure max size fit: X ms
-
-		LOG from rspack.WarnCaseSensitiveModulesPlugin
-		<t> check case sensitive modules: X ms
 
 		LOG from rspack.buildChunkGraph
 		<t> prepare entrypoints: X ms

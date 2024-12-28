@@ -327,11 +327,9 @@ impl SplitChunksPlugin {
         // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
         let is_match_the_test = match &cache_group.test {
           CacheGroupTest::String(str) => module
-            .name_for_condition()
-            .map_or(false, |name| name.starts_with(str)),
+            .name_for_condition().is_some_and(|name| name.starts_with(str)),
           CacheGroupTest::RegExp(regexp) => module
-            .name_for_condition()
-            .map_or(false, |name| regexp.test(&name)),
+            .name_for_condition().is_some_and(|name| regexp.test(&name)),
           CacheGroupTest::Fn(f) => {
             let ctx = CacheGroupTestFnCtx { compilation, module };
             f(ctx)?.unwrap_or_default()

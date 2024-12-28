@@ -1,15 +1,18 @@
 mod split;
 
 use async_trait::async_trait;
-use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 pub use split::SplitPackStrategy;
 
 use super::data::{
-  Pack, PackContents, PackFileMeta, PackKeys, PackOptions, PackScope, RootMeta, RootOptions,
+  Pack, PackContents, PackFileMeta, PackGenerations, PackKeys, PackOptions, PackScope, RootMeta,
+  RootOptions,
 };
-use crate::{StorageItemKey, StorageItemValue};
+use crate::{
+  error::{Result, ValidateResult},
+  ItemKey, ItemValue,
+};
 
 pub struct UpdatePacksResult {
   pub new_packs: Vec<(PackFileMeta, Pack)>,
@@ -31,10 +34,11 @@ pub trait ScopeStrategy:
 
 #[async_trait]
 pub trait RootStrategy {
+  async fn before_load(&self) -> Result<()>;
   async fn read_root_meta(&self) -> Result<Option<RootMeta>>;
   async fn write_root_meta(&self, root_meta: &RootMeta) -> Result<()>;
-  async fn validate_root(&self, root_meta: &RootMeta, expire: u64) -> Result<ValidateResult>;
-  async fn clean_unused(
+  async fn validate_root(&self, root_meta: &RootMeta) -> Result<ValidateResult>;
+  async fn clean(
     &self,
     root_meta: &RootMeta,
     scopes: &HashMap<String, PackScope>,
@@ -42,21 +46,34 @@ pub trait RootStrategy {
   ) -> Result<()>;
 }
 
+#[derive(Debug, Default)]
+pub struct PackMainContents {
+  pub contents: PackContents,
+  pub generations: PackGenerations,
+}
+
 #[async_trait]
 pub trait PackReadStrategy {
   async fn read_pack_keys(&self, path: &Utf8Path) -> Result<Option<PackKeys>>;
-  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackContents>>;
+  async fn read_pack_contents(&self, path: &Utf8Path) -> Result<Option<PackMainContents>>;
 }
 
 #[async_trait]
 pub trait PackWriteStrategy {
-  fn update_packs(
+  async fn update_packs(
+    &self,
+    dir: Utf8PathBuf,
+    generation: usize,
+    options: &PackOptions,
+    packs: HashMap<PackFileMeta, Pack>,
+    updates: HashMap<ItemKey, Option<ItemValue>>,
+  ) -> Result<UpdatePacksResult>;
+  async fn optimize_packs(
     &self,
     dir: Utf8PathBuf,
     options: &PackOptions,
-    packs: HashMap<PackFileMeta, Pack>,
-    updates: HashMap<StorageItemKey, Option<StorageItemValue>>,
-  ) -> UpdatePacksResult;
+    packs: Vec<(PackFileMeta, Pack)>,
+  ) -> Result<UpdatePacksResult>;
   async fn write_pack(&self, pack: &Pack) -> Result<()>;
 }
 
@@ -69,74 +86,13 @@ pub trait ScopeReadStrategy {
   async fn ensure_contents(&self, scope: &mut PackScope) -> Result<()>;
 }
 
-#[derive(Debug)]
-pub struct InvalidDetail {
-  pub reason: String,
-  pub packs: Vec<String>,
-}
-
-#[derive(Debug)]
-pub enum ValidateResult {
-  NotExists,
-  Valid,
-  Invalid(InvalidDetail),
-}
-
-impl ValidateResult {
-  pub fn invalid(reason: &str) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs: vec![],
-    })
-  }
-  pub fn invalid_with_packs(reason: &str, packs: Vec<String>) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs,
-    })
-  }
-  pub fn is_valid(&self) -> bool {
-    matches!(self, ValidateResult::Valid)
-  }
-}
-
-impl std::fmt::Display for ValidateResult {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ValidateResult::NotExists => write!(f, "validation failed due to not exists"),
-      ValidateResult::Valid => write!(f, "validation passed"),
-      ValidateResult::Invalid(e) => {
-        let mut pack_info_lines = e
-          .packs
-          .iter()
-          .map(|p| format!("- {}", p))
-          .collect::<Vec<_>>();
-        if pack_info_lines.len() > 5 {
-          pack_info_lines.truncate(5);
-          pack_info_lines.push("...".to_string());
-        }
-        write!(
-          f,
-          "validation failed due to {}{}",
-          e.reason,
-          if pack_info_lines.is_empty() {
-            "".to_string()
-          } else {
-            format!(":\n{}", pack_info_lines.join("\n"))
-          }
-        )
-      }
-    }
-  }
-}
-
 #[async_trait]
 pub trait ScopeValidateStrategy {
   async fn validate_meta(&self, scope: &mut PackScope) -> Result<ValidateResult>;
   async fn validate_packs(&self, scope: &mut PackScope) -> Result<ValidateResult>;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct WriteScopeResult {
   pub wrote_files: HashSet<Utf8PathBuf>,
   pub removed_files: HashSet<Utf8PathBuf>,
@@ -149,19 +105,14 @@ impl WriteScopeResult {
   }
 }
 
-pub type ScopeUpdate = HashMap<StorageItemKey, Option<StorageItemValue>>;
+pub type ScopeUpdate = HashMap<ItemKey, Option<ItemValue>>;
 #[async_trait]
 pub trait ScopeWriteStrategy {
-  fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
-  fn before_all(&self, scope: &mut PackScope) -> Result<()>;
-  async fn before_write(&self, scope: &PackScope) -> Result<()>;
+  async fn update_scope(&self, scope: &mut PackScope, updates: ScopeUpdate) -> Result<()>;
+  async fn before_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
+  async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()>;
   async fn write_packs(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
   async fn write_meta(&self, scope: &mut PackScope) -> Result<WriteScopeResult>;
-  async fn after_write(
-    &self,
-    scope: &PackScope,
-    wrote_files: HashSet<Utf8PathBuf>,
-    removed_files: HashSet<Utf8PathBuf>,
-  ) -> Result<()>;
-  fn after_all(&self, scope: &mut PackScope) -> Result<()>;
+  async fn merge_changed(&self, changed: WriteScopeResult) -> Result<()>;
+  async fn after_all(&self, scopes: &mut HashMap<String, PackScope>) -> Result<()>;
 }

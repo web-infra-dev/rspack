@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
-  rspack_sources::{RawSource, Source},
+  rspack_sources::{RawBufferSource, RawSource, Source},
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
 };
 use rspack_napi::{
@@ -503,6 +503,9 @@ impl TryFrom<StatsModule<'_>> for JsStatsModule {
 
   fn try_from(stats: StatsModule) -> std::result::Result<Self, Self::Error> {
     let source = stats.source.map(|source| {
+      if let Some(raw_source) = source.as_any().downcast_ref::<RawBufferSource>() {
+        return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));
+      }
       if let Some(raw_source) = source.as_any().downcast_ref::<RawSource>() {
         if raw_source.is_buffer() {
           return JsStatsModuleSource::B(Buffer::from(raw_source.buffer().to_vec()));

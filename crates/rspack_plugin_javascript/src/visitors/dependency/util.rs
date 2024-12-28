@@ -228,12 +228,12 @@ pub mod expr_name {
   pub const IMPORT_META_WEBPACK_CONTEXT: &str = "import.meta.webpackContext";
 }
 
-pub fn parse_order_string(x: &str) -> Option<u32> {
+pub fn parse_order_string(x: &str) -> Option<i32> {
   match x {
     "true" => Some(0),
     "false" => None,
     _ => {
-      if let Ok(order) = x.parse::<u32>() {
+      if let Ok(order) = x.parse::<i32>() {
         Some(order)
       } else {
         None
@@ -277,18 +277,16 @@ pub fn extract_require_call_info(
 
 pub fn is_require_call_start(expr: &Expr) -> bool {
   match expr {
-    Expr::Call(CallExpr { callee, .. }) => {
-      return callee
-        .as_expr()
-        .map(|callee| {
-          if expr_matcher::is_require(&**callee) || expr_matcher::is_module_require(&**callee) {
-            true
-          } else {
-            is_require_call_start(callee)
-          }
-        })
-        .unwrap_or(false);
-    }
+    Expr::Call(CallExpr { callee, .. }) => callee
+      .as_expr()
+      .map(|callee| {
+        if expr_matcher::is_require(&**callee) || expr_matcher::is_module_require(&**callee) {
+          true
+        } else {
+          is_require_call_start(callee)
+        }
+      })
+      .unwrap_or(false),
     Expr::Member(MemberExpr { obj, .. }) => is_require_call_start(obj),
     _ => false,
   }

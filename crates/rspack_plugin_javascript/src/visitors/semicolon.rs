@@ -15,7 +15,7 @@ pub(crate) struct InsertedSemicolons<'a> {
   pub(crate) tokens: &'a Vec<TokenAndSpan>,
 }
 
-impl<'a> InsertedSemicolons<'a> {
+impl InsertedSemicolons<'_> {
   /// Find the starting token of this span.
   /// Returns [None] if there's no token is found.
   /// This might be happen if there's an error in the lexer.
@@ -76,7 +76,7 @@ impl<'a> InsertedSemicolons<'a> {
   }
 }
 
-impl<'a> Visit for InsertedSemicolons<'a> {
+impl Visit for InsertedSemicolons<'_> {
   fn visit_expr_stmt(&mut self, n: &swc_core::ecma::ast::ExprStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)

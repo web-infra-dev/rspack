@@ -2,14 +2,14 @@ use std::sync::Arc;
 use std::{borrow::Cow, hash::Hash};
 
 use cow_utils::CowUtils;
-use derivative::Derivative;
+use derive_more::Debug;
 use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsPreset, AsVec, Unsupported},
 };
-use rspack_collections::{Identifiable, Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
@@ -28,7 +28,7 @@ use crate::{
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleLayer, ModuleType,
+  ImportAttributes, LibIdentOptions, Module, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleType,
   RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 
@@ -161,8 +161,7 @@ pub type ResolveContextModuleDependencies =
 
 #[impl_source_map_config]
 #[cacheable]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -171,7 +170,7 @@ pub struct ContextModule {
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
 }
@@ -194,7 +193,7 @@ impl ContextModule {
     }
   }
 
-  pub fn get_module_id<'a>(&self, module_ids: &'a IdentifierMap<ModuleId>) -> &'a ModuleId {
+  pub fn get_module_id<'a>(&self, module_ids: &'a ModuleIdsArtifact) -> &'a ModuleId {
     ChunkGraph::get_module_id(module_ids, self.identifier).expect("module id not found")
   }
 
@@ -217,7 +216,8 @@ impl ContextModule {
           .map(|m| (m, dep_id))
       })
       .filter_map(|(m, dep)| {
-        ChunkGraph::get_module_id(&compilation.module_ids, *m).map(|id| (id.to_string(), dep))
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m)
+          .map(|id| (id.to_string(), dep))
       })
       .sorted_unstable_by_key(|(module_id, _)| module_id.to_string());
     for (module_id, dep) in sorted_modules {
@@ -312,7 +312,7 @@ impl ContextModule {
         });
         let module_id = module_graph
           .module_identifier_by_dependency_id(dep_id)
-          .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids, *module))
+          .and_then(|module| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module))
           .map(|s| s.to_string());
         // module_id could be None in weak mode
         dep.map(|dep| (dep, module_id))
@@ -338,7 +338,7 @@ impl ContextModule {
       module.exports = webpackEmptyAsyncContext;
       "#,
       keys = returning_function(&compilation.options.output.environment, "[]", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     })
     .boxed()
   }
@@ -356,7 +356,7 @@ impl ContextModule {
       module.exports = webpackEmptyContext;
       "#,
       keys = returning_function(&compilation.options.output.environment, "[]", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     })
     .boxed()
   }
@@ -453,7 +453,7 @@ impl ContextModule {
           })?;
         let module_id = module_graph
           .module_identifier_by_dependency_id(d)
-          .and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids, *m))?;
+          .and_then(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m))?;
         Some((chunks, user_request, module_id.to_string()))
       })
       .collect::<Vec<_>>();
@@ -479,7 +479,7 @@ impl ContextModule {
               let chunk_id = compilation
                 .chunk_by_ukey
                 .expect_get(c)
-                .id(&compilation.chunk_ids)
+                .id(&compilation.chunk_ids_artifact)
                 .expect("should have chunk id in code generation");
               serde_json::json!(chunk_id)
             }))
@@ -561,7 +561,7 @@ impl ContextModule {
       "#,
       map = json_stringify(&map),
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     }));
     source.boxed()
   }
@@ -623,7 +623,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     };
     RawStringSource::from(source).boxed()
   }
@@ -669,7 +669,7 @@ impl ContextModule {
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     };
     RawStringSource::from(source).boxed()
   }
@@ -710,7 +710,7 @@ impl ContextModule {
       module_factories = RuntimeGlobals::MODULE_FACTORIES,
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     };
     RawStringSource::from(source).boxed()
   }
@@ -761,7 +761,7 @@ impl ContextModule {
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
       keys = returning_function(&compilation.options.output.environment, "Object.keys(map)", ""),
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     };
     RawStringSource::from(source).boxed()
   }
@@ -798,7 +798,7 @@ impl ContextModule {
       map = json_stringify(&map),
       fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
       has_own_property = RuntimeGlobals::HAS_OWN_PROPERTY,
-      id = json_stringify(self.get_module_id(&compilation.module_ids))
+      id = json_stringify(self.get_module_id(&compilation.module_ids_artifact))
     };
     RawStringSource::from(source).boxed()
   }
@@ -916,7 +916,6 @@ impl Module for ContextModule {
       blocks.push(Box::new(block));
     } else if matches!(self.options.context_options.mode, ContextMode::Lazy) {
       let mut index = 0;
-      // TODO(shulaoda): add loc for ContextElementDependency and AsyncDependenciesBlock
       for context_element_dependency in context_element_dependencies {
         let group_options = self
           .options
@@ -1114,13 +1113,13 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
     }
     id += "|groupOptions: {";
     if let Some(o) = group.prefetch_order {
-      id.push_str(&format!("prefetchOrder: {},", o));
+      id.push_str(&format!("prefetchOrder: {o},"));
     }
     if let Some(o) = group.preload_order {
-      id.push_str(&format!("preloadOrder: {},", o));
+      id.push_str(&format!("preloadOrder: {o},"));
     }
     if let Some(o) = group.fetch_priority {
-      id.push_str(&format!("fetchPriority: {},", o));
+      id.push_str(&format!("fetchPriority: {o},"));
     }
     id += "}";
   }

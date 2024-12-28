@@ -72,12 +72,16 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let target_path = compilation.get_path(
       &self.options.path,
       PathData::default()
-        .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+        .chunk_id_optional(
+          chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|id| id.as_str()),
+        )
         .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_results,
+          &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
         ))
-        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids)),
+        .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact)),
     )?;
 
     if use_paths.contains(&target_path) {
@@ -91,14 +95,18 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         .get_path(
           name,
           PathData::default()
-            .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+            .chunk_id_optional(
+              chunk
+                .id(&compilation.chunk_ids_artifact)
+                .map(|id| id.as_str()),
+            )
             .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_results,
+              &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             ))
-            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+            .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
             .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-              &compilation.chunk_hashes_results,
+              &compilation.chunk_hashes_artifact,
               &SourceType::JavaScript,
               compilation.options.output.hash_digest_length,
             )),
@@ -140,7 +148,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           _ => None,
         };
 
-        let id = ChunkGraph::get_module_id(&compilation.module_ids, module.identifier());
+        let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
 
         let build_meta = module.build_meta();
 
@@ -164,9 +172,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let format = self.options.format.unwrap_or_default();
 
     let manifest_json = if format {
-      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
+      serde_json::to_string_pretty(&manifest).map_err(|e| Error::msg(format!("{e}")))?
     } else {
-      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{}", e)))?
+      serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{e}")))?
     };
 
     let asset = Arc::new(RawStringSource::from(manifest_json)) as BoxSource;

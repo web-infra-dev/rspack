@@ -41,7 +41,7 @@ impl ContextElementDependency {
     path: &Utf8Path,
     attributes: Option<&ImportAttributes>,
   ) -> String {
-    let mut ident = format!("context{}|{}", resource, path);
+    let mut ident = format!("context{resource}|{path}");
     if let Some(attributes) = attributes {
       ident += &json_stringify(&attributes);
     }

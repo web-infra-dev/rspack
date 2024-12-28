@@ -1,15 +1,14 @@
 use std::sync::{atomic::Ordering::Relaxed, Arc};
 
-use rspack_cacheable::{
-  cacheable, from_bytes, to_bytes, with::Inline, DeserializeError, SerializeError,
-};
+use rspack_cacheable::{cacheable, from_bytes, to_bytes, with::Inline};
 use rspack_collections::IdentifierSet;
+use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::Storage;
 use crate::{BuildDependency, DEPENDENCY_ID};
 
-const SCOPE: &str = "occasion::make::meta";
+const SCOPE: &str = "occasion_make_meta";
 
 /// The value struct of current storage scope
 #[cacheable]
@@ -34,23 +33,26 @@ pub fn save_meta(
   make_failed_dependencies: &HashSet<BuildDependency>,
   make_failed_module: &IdentifierSet,
   storage: &Arc<dyn Storage>,
-) -> Result<(), SerializeError> {
+) {
   let meta = MetaRef {
     make_failed_dependencies,
     make_failed_module,
     next_dependencies_id: DEPENDENCY_ID.load(Relaxed),
   };
-  storage.set(SCOPE, "default".as_bytes().to_vec(), to_bytes(&meta, &())?);
-  Ok(())
+  storage.set(
+    SCOPE,
+    "default".as_bytes().to_vec(),
+    to_bytes(&meta, &()).expect("should to bytes success"),
+  );
 }
 
-pub fn recovery_meta(
+pub async fn recovery_meta(
   storage: &Arc<dyn Storage>,
-) -> Result<(HashSet<BuildDependency>, IdentifierSet), DeserializeError> {
-  let Some((_, value)) = storage.load(SCOPE).pop() else {
-    return Err(DeserializeError::MessageError("can not get meta data"));
+) -> Result<(HashSet<BuildDependency>, IdentifierSet)> {
+  let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
+    return Ok(Default::default());
   };
-  let meta: Meta = from_bytes(&value, &())?;
+  let meta: Meta = from_bytes(&value, &()).expect("should from bytes success");
   // TODO make dependency id to string like module id
   if DEPENDENCY_ID.load(Relaxed) < meta.next_dependencies_id {
     DEPENDENCY_ID.store(meta.next_dependencies_id, Relaxed);

@@ -402,12 +402,50 @@ export async function runLoaders(
 		missingDependencies.length = 0;
 		context.cacheable = true;
 	};
+
 	loaderContext.importModule = function importModule(
+		this: LoaderContext,
 		request,
 		userOptions,
 		callback
 	) {
 		const options = userOptions ? userOptions : {};
+		const context = this;
+		function finalCallback(
+			onError: (err: Error) => void,
+			onDone: (res: any) => void
+		) {
+			return function (err?: Error, res?: any) {
+				if (err) {
+					onError(err);
+				} else {
+					for (const dep of res.buildDependencies) {
+						context.addBuildDependency(dep);
+					}
+					for (const dep of res.contextDependencies) {
+						context.addContextDependency(dep);
+					}
+					for (const dep of res.missingDependencies) {
+						context.addMissingDependency(dep);
+					}
+					for (const dep of res.fileDependencies) {
+						context.addDependency(dep);
+					}
+					if (res.cacheable === false) {
+						context.cacheable(false);
+					}
+
+					if (res.error) {
+						onError(
+							compiler.__internal__getModuleExecutionResult(res.id) ??
+								new Error(err)
+						);
+					} else {
+						onDone(compiler.__internal__getModuleExecutionResult(res.id));
+					}
+				}
+			};
+		}
 		if (!callback) {
 			return new Promise((resolve, reject) => {
 				compiler
@@ -417,80 +455,25 @@ export async function runLoaders(
 						options.layer,
 						options.publicPath,
 						options.baseUri,
-						context._module.moduleIdentifier,
+						context._module.identifier(),
 						loaderContext.context,
-						(err: Error, res: any) => {
-							if (err) reject(err);
-							else {
-								for (const dep of res.buildDependencies) {
-									this.addBuildDependency(dep);
-								}
-								for (const dep of res.contextDependencies) {
-									this.addContextDependency(dep);
-								}
-								for (const dep of res.missingDependencies) {
-									this.addMissingDependency(dep);
-								}
-								for (const dep of res.fileDependencies) {
-									this.addDependency(dep);
-								}
-								if (res.cacheable === false) {
-									this.cacheable(false);
-								}
-
-								if (res.error) {
-									reject(new Error(res.error));
-								} else {
-									resolve(
-										compiler.__internal__getModuleExecutionResult(res.id)
-									);
-								}
-							}
-						}
+						finalCallback(reject, resolve)
 					);
 			});
 		}
-		return compiler
-			._lastCompilation!.__internal_getInner()
-			.importModule(
-				request,
-				options.layer,
-				options.publicPath,
-				options.baseUri,
-				context._module.moduleIdentifier,
-				loaderContext.context,
-				(err: Error, res: any) => {
-					if (err) {
-						callback(err, undefined);
-					} else {
-						for (const dep of res.buildDependencies) {
-							this.addBuildDependency(dep);
-						}
-						for (const dep of res.contextDependencies) {
-							this.addContextDependency(dep);
-						}
-						for (const dep of res.missingDependencies) {
-							this.addMissingDependency(dep);
-						}
-						for (const dep of res.fileDependencies) {
-							this.addDependency(dep);
-						}
-						if (res.cacheable === false) {
-							this.cacheable(false);
-						}
-
-						if (res.error) {
-							callback(new Error(err), undefined);
-						} else {
-							callback(
-								undefined,
-								compiler.__internal__getModuleExecutionResult(res.id)
-							);
-						}
-					}
-				}
-			);
-	};
+		return compiler._lastCompilation!.__internal_getInner().importModule(
+			request,
+			options.layer,
+			options.publicPath,
+			options.baseUri,
+			context._module.identifier(),
+			loaderContext.context,
+			finalCallback(
+				err => callback(err),
+				res => callback(undefined, res)
+			)
+		);
+	} as LoaderContext["importModule"];
 	Object.defineProperty(loaderContext, "resource", {
 		enumerable: true,
 		get: () => {

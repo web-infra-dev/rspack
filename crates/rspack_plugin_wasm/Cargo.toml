@@ -23,7 +23,7 @@ rspack_util        = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["__ecma"] }
 tracing            = { workspace = true }
-wasmparser         = "0.221.2"
+wasmparser         = "0.222.0"
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

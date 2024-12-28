@@ -5,7 +5,7 @@ require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
 const { createFilteredDescribe } = require("./lib/util/filterUtil");
@@ -51,7 +51,7 @@ const describeCases = config => {
 									category.name,
 									testName
 								);
-								rimraf.sync(outputDirectory);
+								rimrafSync(outputDirectory);
 								const recordsPath = path.join(outputDirectory, "records.json");
 								const fakeUpdateLoaderOptions = {
 									updateIndex: 0

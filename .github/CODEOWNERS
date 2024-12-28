@@ -28,7 +28,6 @@ pnpm-lock.yaml
 /crates/node_binding
 /crates/rspack_ast_viewer
 /crates/rspack_base64
-/crates/rspack_binding_options
 /crates/rspack_core
 /crates/rspack_core/src/compiler/make @jerrykingxyz
 /crates/rspack_error

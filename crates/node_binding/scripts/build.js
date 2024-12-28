@@ -13,10 +13,10 @@ let releaseDebug = process.argv.includes("--release-debug");
 let watch = process.argv.includes("--watch");
 
 build().then((value) => {
-  // Regarding cargo's non-zero exit code as an error.
-  if (value !== CARGO_SAFELY_EXIT_CODE) {
-    process.exit(value)
-  }
+	// Regarding cargo's non-zero exit code as an error.
+	if (value !== CARGO_SAFELY_EXIT_CODE) {
+		process.exit(value)
+	}
 }).catch(err => {
 	console.error(err);
 	process.exit(1);

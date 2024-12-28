@@ -24,6 +24,7 @@ module.exports = {
 	},
 	optimization: {
 		concatenateModules: true,
+		avoidEntryIife: true,
 		minimize: false
 	},
 	plugins: [

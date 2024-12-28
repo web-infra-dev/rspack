@@ -3,10 +3,10 @@ mod entry;
 mod execute;
 mod overwrite;
 
-use dashmap::DashMap;
-use dashmap::{mapref::entry::Entry, DashSet};
-pub use execute::ExecuteModuleId;
-pub use execute::ExecutedRuntimeModule;
+use std::sync::Arc;
+
+use dashmap::{mapref::entry::Entry, DashMap, DashSet};
+pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::{
@@ -23,7 +23,7 @@ use self::{
 use super::make::cutout::Cutout;
 use super::make::repair::repair;
 use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
-use crate::cache::new_cache;
+use crate::cache::MemoryCache;
 use crate::incremental::Mutation;
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
@@ -92,14 +92,7 @@ impl ModuleExecutor {
       .await
       .unwrap_or_default();
 
-    let mut ctx = MakeTaskContext::new(
-      compilation,
-      make_artifact,
-      new_cache(
-        compilation.options.clone(),
-        compilation.input_filesystem.clone(),
-      ),
-    );
+    let mut ctx = MakeTaskContext::new(compilation, make_artifact, Arc::new(MemoryCache));
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
     self.event_sender = Some(event_sender.clone());

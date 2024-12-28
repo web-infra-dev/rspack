@@ -1068,6 +1068,13 @@ export type JavascriptParserOptions = {
 	importDynamic?: boolean;
 };
 
+export type JsonParserOptions = {
+	/**
+	 * The depth of json dependency flagged as `exportInfo`.
+	 */
+	exportsDepth?: number;
+};
+
 /** Configure all parsers' options in one place with module.parser. */
 export type ParserOptionsByModuleTypeKnown = {
 	/** Parser options for `asset` modules. */
@@ -1093,6 +1100,9 @@ export type ParserOptionsByModuleTypeKnown = {
 
 	/** Parser options for `javascript/esm` modules. */
 	"javascript/esm"?: JavascriptParserOptions;
+
+	/** Parser options for `json` modules. */
+	json?: JsonParserOptions;
 };
 
 /** Configure all parsers' options in one place with module.parser. */
@@ -1110,10 +1120,13 @@ export type AssetGeneratorDataUrlOptions = {
 	mimetype?: string;
 };
 
-export type AssetGeneratorDataUrlFunction = (options: {
-	filename: string;
-	content: string;
-}) => string;
+export type AssetGeneratorDataUrlFunction = (
+	content: Buffer,
+	context: {
+		filename: string;
+		module: Module;
+	}
+) => string;
 
 export type AssetGeneratorDataUrl =
 	| AssetGeneratorDataUrlOptions
@@ -1125,6 +1138,9 @@ export type AssetInlineGeneratorOptions = {
 	dataUrl?: AssetGeneratorDataUrl;
 };
 
+/** Emit the asset in the specified folder relative to 'output.path'. */
+export type AssetModuleOutputPath = Filename;
+
 /** Options for asset modules. */
 export type AssetResourceGeneratorOptions = {
 	/**
@@ -1135,6 +1151,9 @@ export type AssetResourceGeneratorOptions = {
 
 	/** This option determines the name of each asset resource output bundle.*/
 	filename?: Filename;
+
+	/** Emit the asset in the specified folder relative to 'output.path' */
+	outputPath?: AssetModuleOutputPath;
 
 	/** This option determines the URL prefix of the referenced 'asset' or 'asset/resource'*/
 	publicPath?: PublicPath;
@@ -2156,7 +2175,7 @@ export type OptimizationSplitChunksCacheGroup = {
 	enforce?: boolean;
 
 	/** Allows to override the filename when and only when it's an initial chunk. */
-	filename?: string;
+	filename?: Filename;
 
 	/**
 	 * Whether to reuse existing chunks when possible.
@@ -2208,7 +2227,7 @@ export type Optimization = {
 	/**
 	 * Which algorithm to use when choosing chunk ids.
 	 */
-	chunkIds?: "natural" | "named" | "deterministic";
+	chunkIds?: "natural" | "named" | "deterministic" | "size" | "total-size";
 
 	/**
 	 * Whether to minimize the bundle.
@@ -2321,6 +2340,11 @@ export type Optimization = {
 	 * The value is `true` in development mode.
 	 * */
 	emitOnErrors?: boolean;
+
+	/**
+	 * Avoid wrapping the entry module in an IIFE.
+	 */
+	avoidEntryIife?: boolean;
 };
 //#endregion
 
@@ -2343,14 +2367,16 @@ export type ExperimentCacheOptions =
 	  }
 	| {
 			type: "persistent";
-			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
+			buildDependencies?: string[];
+			version?: string;
+			snapshot?: {
+				immutablePaths?: Array<string | RegExp>;
+				unmanagedPaths?: Array<string | RegExp>;
+				managedPaths?: Array<string | RegExp>;
 			};
-			storage: {
+			storage?: {
 				type: "filesystem";
-				directory: string;
+				directory?: string;
 			};
 	  };
 
@@ -2473,6 +2499,11 @@ export type Incremental = {
 	 * Enables diagnostics for dependencies.
 	 */
 	dependenciesDiagnostics?: boolean;
+
+	/**
+	 * Enables incremental side effects optimization.
+	 */
+	sideEffects?: boolean;
 
 	/**
 	 * Enable incremental build chunk graph.

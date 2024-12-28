@@ -1,3 +1,4 @@
+import { ApiMeta } from '@components/ApiMeta';
 import PropertyType from '../../../components/PropertyType.tsx';
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -54,8 +55,11 @@ The following string values are supported:
 
 | option            | description                                                                                                                                    |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'natural'`       | Use numeric ids in order of usage.                                                                                                             |
 | `'named'`         | Readable ids for better debugging.                                                                                                             |
 | `'deterministic'` | Short numeric ids which will not be changing between compilation. Good for long term caching. By default a minimum length of 3 digits is used. |
+| `'size'`          | Use numeric ids to make the initial download package smaller.                                                                                  |
+| `'total-size'`    | Use numeric ids to make the overall download package smaller.                                                                                  |
 
 ```js title=rspack.config.js
 module.exports = {
@@ -464,3 +468,26 @@ module.exports = {
   },
 };
 ```
+
+## optimization.avoidEntryIife
+
+<ApiMeta addedVersion="1.1.9" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Use `optimization.avoidEntryIife` to avoid wrapping the entry module in an IIFE when it is required (search for `"This entry needs to be wrapped in an IIFE because"` in [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs)). This approach helps optimize performance for JavaScript engines and helps tree shaking when building ESM libraries.
+
+Currently, `optimization.avoidEntryIife` can only optimize a single entry module along with other modules.
+
+```js title="rspack.config.js"
+module.exports = {
+  //...
+  optimization: {
+    avoidEntryIife: true,
+  },
+};
+```
+
+:::warning
+The `⁠optimization.avoidEntryIife` option can negatively affect build performance, if you prioritize build performance over these optimizations, consider do not enable this option.
+:::

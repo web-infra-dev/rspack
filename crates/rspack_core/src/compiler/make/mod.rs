@@ -135,7 +135,9 @@ pub async fn make_module_graph(
   artifact.built_modules = Default::default();
   artifact.revoked_modules = Default::default();
   artifact.diagnostics = Default::default();
-  artifact.has_module_graph_change = false;
+  if artifact.initialized {
+    artifact.has_module_graph_change = false;
+  }
 
   artifact = update_module_graph(compilation, artifact, params).await?;
   Ok(artifact)

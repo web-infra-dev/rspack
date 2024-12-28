@@ -434,7 +434,7 @@ Generator options for `asset` modules.
 
 #### module.generator.asset.dataUrl
 
-- **Type:** `Object | (options: { content: string, filename: string }) => string`
+- **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **Default:** `{}`
 
 Only for modules with module type `'asset'` or `'asset/inline'`.
@@ -505,6 +505,15 @@ module.exports = {
   },
 };
 ```
+
+#### module.generator.asset.outputPath
+
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **Default:** `undefined`
+
+Emit the asset in the specified folder relative to [`output.path`](/config/output#outputpath).
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
 
 #### module.generator.asset.publicPath
 
@@ -585,6 +594,10 @@ Generator options for `asset/resource` modules.
 #### module.generator["asset/resource"].filename
 
 Same as [`module.generator["asset"].filename`](#modulegeneratorassetfilename).
+
+#### module.generator["asset/resource"].outputPath
+
+Same as [`module.generator["asset"].outputPath`](#modulegeneratorassetoutputpath).
 
 #### module.generator["asset/resource"].publicPath
 

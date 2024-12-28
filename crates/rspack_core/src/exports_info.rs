@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
+use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
@@ -310,17 +311,45 @@ impl ExportsInfo {
     new_info_id
   }
 
+  // An alternative version of `get_export_info`, and don't need `&mut ModuleGraph`.
+  // You can use this when you can't or don't want to use `&mut ModuleGraph`.
+  // Currently this function is used to finding a reexport's target.
+  pub fn get_export_info_without_mut_module_graph(
+    &self,
+    mg: &ModuleGraph,
+    name: &Atom,
+  ) -> MaybeDynamicTargetExportInfo {
+    let exports_info = mg.get_exports_info_by_id(self);
+    let redirect_id = exports_info.redirect_to;
+    let other_exports_info_id = exports_info.other_exports_info;
+    let export_info_id = exports_info.exports.get(name);
+    if let Some(export_info_id) = export_info_id {
+      return MaybeDynamicTargetExportInfo::Static(*export_info_id);
+    }
+    if let Some(redirect_id) = redirect_id {
+      return redirect_id.get_export_info_without_mut_module_graph(mg, name);
+    }
+
+    let other_export_info = mg.get_export_info_by_id(&other_exports_info_id);
+    let data = ExportInfoData::new(Some(name.clone()), Some(other_export_info));
+    MaybeDynamicTargetExportInfo::Dynamic {
+      export_name: name.clone(),
+      other_export_info: other_exports_info_id,
+      data,
+    }
+  }
+
   pub fn get_nested_exports_info(
     &self,
     mg: &ModuleGraph,
-    name: Option<Vec<Atom>>,
+    name: Option<&[Atom]>,
   ) -> Option<ExportsInfo> {
     if let Some(name) = name
       && !name.is_empty()
     {
       let info = self.get_read_only_export_info(mg, &name[0]);
       if let Some(exports_info) = info.exports_info(mg) {
-        return exports_info.get_nested_exports_info(mg, Some(name[1..].to_vec()));
+        return exports_info.get_nested_exports_info(mg, Some(&name[1..]));
       } else {
         return None;
       }
@@ -1177,167 +1206,45 @@ impl ExportInfo {
     false
   }
 
-  // This is a limited version of [ExportInfo::get_target_mut]:
-  // 1. mg is &ModuleGraph -> Won't modify module graph, more friendly for cache and parallel
-  // 2. don't support resolve_filter -> Just get the target module of the terminal binding
   pub fn get_target(&self, mg: &ModuleGraph) -> Option<ResolvedExportInfoTarget> {
-    let mut already_visited = UkeySet::default();
-    match self._get_target(mg, &mut already_visited) {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
-      None => None,
-    }
+    self.get_target_with_filter(mg, Rc::new(|_, _| true))
   }
 
-  fn _get_target(
+  pub fn get_target_with_filter(
     &self,
     mg: &ModuleGraph,
-    already_visited: &mut UkeySet<ExportInfo>,
-  ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    let self_export_info = mg.get_export_info_by_id(self);
-    if !self_export_info.target_is_set || self_export_info.target.is_empty() {
-      return None;
-    }
-    if already_visited.contains(self) {
-      return Some(ResolvedExportInfoTargetWithCircular::Circular);
-    }
-    already_visited.insert(*self);
-
-    let max_target = self.get_max_target(mg);
-    let mut values = max_target.values().map(|item| UnResolvedExportInfoTarget {
-      dependency: item.dependency,
-      export: item.export.clone(),
-    });
-
-    let target = resolve_target(values.next(), already_visited, mg);
-
-    match target {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-        Some(ResolvedExportInfoTargetWithCircular::Circular)
-      }
-      None => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        for val in values {
-          let resolved_target = resolve_target(Some(val), already_visited, mg);
-          match resolved_target {
-            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-              return Some(ResolvedExportInfoTargetWithCircular::Circular);
-            }
-            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
-              if target.module != tt.module {
-                return None;
-              }
-              if target.export != tt.export {
-                return None;
-              }
-            }
-            None => return None,
-          }
-        }
-        Some(ResolvedExportInfoTargetWithCircular::Target(target))
-      }
-    }
-  }
-
-  // This is the complete port of the webpack `getTarget`, with a mutable ModuleGraph
-  // For now only side_effects_flag_plugin need to modify module graph when getting
-  // the target module, to better support dynamic-reexports (webpack-test/cases/side-effects/dynamic-reexports)
-  pub fn get_target_mut(
-    &self,
-    mg: &mut ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
   ) -> Option<ResolvedExportInfoTarget> {
-    let mut already_visited = UkeySet::default();
-    match self._get_target_mut(mg, resolve_filter, &mut already_visited) {
+    match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
       None => None,
     }
   }
 
-  fn _get_target_mut(
+  fn get_target_impl(
     &self,
-    mg: &mut ModuleGraph,
+    mg: &ModuleGraph,
     resolve_filter: ResolveFilterFnTy,
-    already_visited: &mut UkeySet<ExportInfo>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
-    let self_export_info = mg.get_export_info_by_id(self);
-    if !self_export_info.target_is_set || self_export_info.target.is_empty() {
+    let data = self.as_export_info(mg);
+    if !data.target_is_set || data.target.is_empty() {
       return None;
     }
-    if already_visited.contains(self) {
+    let hash_key = MaybeDynamicTargetExportInfoHashKey::ExportInfo(*self);
+    if already_visited.contains(&hash_key) {
       return Some(ResolvedExportInfoTargetWithCircular::Circular);
     }
-    already_visited.insert(*self);
-
-    let max_target = self.get_max_target(mg);
-    let mut values = max_target
-      .values()
-      .map(|item| UnResolvedExportInfoTarget {
-        dependency: item.dependency,
-        export: item.export.clone(),
-      })
-      .collect::<VecDeque<_>>();
-    let target = resolve_target_mut(
-      values.pop_front(),
-      already_visited,
-      resolve_filter.clone(),
-      mg,
-    );
-
-    match target {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-        Some(ResolvedExportInfoTargetWithCircular::Circular)
-      }
-      None => None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
-        for val in values {
-          let resolved_target =
-            resolve_target_mut(Some(val), already_visited, resolve_filter.clone(), mg);
-          match resolved_target {
-            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-              return Some(ResolvedExportInfoTargetWithCircular::Circular);
-            }
-            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
-              if target.module != tt.module {
-                return None;
-              }
-              if target.export != tt.export {
-                return None;
-              }
-            }
-            None => return None,
-          }
-        }
-        Some(ResolvedExportInfoTargetWithCircular::Target(target))
-      }
-    }
+    already_visited.insert(hash_key);
+    data.get_target_impl(mg, resolve_filter, already_visited)
   }
 
   fn get_max_target<'a>(
     &self,
     mg: &'a ModuleGraph,
   ) -> Cow<'a, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
-    let info = self.as_export_info(mg);
-    if info.target.len() <= 1 {
-      return Cow::Borrowed(&info.target);
-    }
-    let mut max_priority = u8::MIN;
-    let mut min_priority = u8::MAX;
-    for value in info.target.values() {
-      max_priority = max_priority.max(value.priority);
-      min_priority = min_priority.min(value.priority);
-    }
-    if max_priority == min_priority {
-      return Cow::Borrowed(&info.target);
-    }
-    let mut map = HashMap::default();
-    for (k, v) in info.target.iter() {
-      if max_priority == v.priority {
-        map.insert(*k, v.clone());
-      }
-    }
-    Cow::Owned(map)
+    self.as_export_info(mg).get_max_target()
   }
 
   fn set_used_without_info(&self, mg: &mut ModuleGraph, runtime: Option<&RuntimeSpec>) -> bool {
@@ -1398,49 +1305,6 @@ impl ExportInfo {
       }
     }
     false
-  }
-
-  pub fn move_target<'a>(
-    &'a self,
-    mg: &'a mut ModuleGraph<'a>,
-    resolve_filter: ResolveFilterFnTy,
-    update_original_connection: UpdateOriginalFunctionTy,
-  ) -> Option<ResolvedExportInfoTarget> {
-    let target = self._get_target_mut(mg, resolve_filter, &mut UkeySet::default());
-
-    let target = match target {
-      Some(ResolvedExportInfoTargetWithCircular::Circular) => return None,
-      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => target,
-      None => return None,
-    };
-    let max_target = self.get_max_target(mg);
-    let original_target = max_target
-      .values()
-      .next()
-      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
-    if original_target.dependency.as_ref() == Some(&target.dependency)
-      && original_target.export == target.export
-    {
-      return None;
-    }
-    let export_info_mut = self.as_export_info_mut(mg);
-    export_info_mut.target.clear();
-    let updated_dependency_id = update_original_connection(&target, mg);
-
-    // shadowning `export_info_mut` to reduce `&mut ModuleGraph` borrow life time, since
-    // `update_original_connection` also needs `&mut ModuleGraph`
-    let export_info_mut = self.as_export_info_mut(mg);
-    export_info_mut.target.insert(
-      None,
-      ExportInfoTargetValue {
-        dependency: updated_dependency_id,
-        export: target.export.clone(),
-        priority: 0,
-      },
-    );
-
-    export_info_mut.target_is_set = true;
-    Some(target)
   }
 
   pub fn set_used_conditionally(
@@ -1530,75 +1394,18 @@ impl ExportInfo {
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
   ) -> FindTargetRetEnum {
-    self._find_target(mg, valid_target_module_filter, &mut UkeySet::default())
+    self.find_target_impl(mg, valid_target_module_filter, &mut Default::default())
   }
 
-  fn _find_target(
+  fn find_target_impl(
     &self,
     mg: &ModuleGraph,
     valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-    visited: &mut UkeySet<ExportInfo>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> FindTargetRetEnum {
-    let export_info = self.as_export_info(mg);
-    if !export_info.target_is_set || export_info.target.is_empty() {
-      return FindTargetRetEnum::Undefined;
-    }
-
-    let max_target = self.get_max_target(mg);
-    let raw_target = max_target.values().next();
-    let Some(raw_target) = raw_target else {
-      return FindTargetRetEnum::Undefined;
-    };
-    let mut target = FindTargetRetValue {
-      module: *raw_target
-        .dependency
-        .and_then(|dep_id| mg.connection_by_dependency_id(&dep_id))
-        .expect("should have connection")
-        .module_identifier(),
-      export: raw_target.export.clone(),
-    };
-    loop {
-      if valid_target_module_filter(&target.module) {
-        return FindTargetRetEnum::Value(target);
-      }
-      let exports_info = mg.get_exports_info(&target.module);
-      let export_info = exports_info
-        .get_read_only_export_info(mg, &target.export.as_ref().expect("should have export")[0]);
-      if visited.contains(&export_info) {
-        return FindTargetRetEnum::Undefined;
-      }
-      visited.insert(export_info);
-      let new_target = export_info._find_target(mg, valid_target_module_filter.clone(), visited);
-      let new_target = match new_target {
-        FindTargetRetEnum::Undefined => return FindTargetRetEnum::False,
-        FindTargetRetEnum::False => return FindTargetRetEnum::False,
-        FindTargetRetEnum::Value(target) => target,
-      };
-      if target.export.as_ref().map(|item| item.len()) == Some(1) {
-        target = new_target;
-      } else {
-        target = FindTargetRetValue {
-          module: new_target.module,
-          export: if let Some(export) = new_target.export {
-            Some(
-              [
-                export,
-                target
-                  .export
-                  .as_ref()
-                  .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
-                  .unwrap_or_default(),
-              ]
-              .concat(),
-            )
-          } else {
-            target
-              .export
-              .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
-          },
-        }
-      }
-    }
+    self
+      .as_export_info(mg)
+      .find_target_impl(mg, valid_target_module_filter, visited)
   }
 
   pub fn can_mangle(&self, mg: &ModuleGraph) -> Option<bool> {
@@ -1806,15 +1613,323 @@ impl ExportInfoData {
   pub fn id(&self) -> ExportInfo {
     self.id
   }
+
+  fn get_max_target(&self) -> Cow<HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    if self.target.len() <= 1 {
+      return Cow::Borrowed(&self.target);
+    }
+    let mut max_priority = u8::MIN;
+    let mut min_priority = u8::MAX;
+    for value in self.target.values() {
+      max_priority = max_priority.max(value.priority);
+      min_priority = min_priority.min(value.priority);
+    }
+    if max_priority == min_priority {
+      return Cow::Borrowed(&self.target);
+    }
+    let mut map = HashMap::default();
+    for (k, v) in self.target.iter() {
+      if max_priority == v.priority {
+        map.insert(*k, v.clone());
+      }
+    }
+    Cow::Owned(map)
+  }
+
+  fn find_target_impl(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  ) -> FindTargetRetEnum {
+    if !self.target_is_set || self.target.is_empty() {
+      return FindTargetRetEnum::Undefined;
+    }
+
+    let max_target = self.get_max_target();
+    let raw_target = max_target.values().next();
+    let Some(raw_target) = raw_target else {
+      return FindTargetRetEnum::Undefined;
+    };
+    let mut target = FindTargetRetValue {
+      module: *raw_target
+        .dependency
+        .and_then(|dep_id| mg.connection_by_dependency_id(&dep_id))
+        .expect("should have connection")
+        .module_identifier(),
+      export: raw_target.export.clone(),
+    };
+    loop {
+      if valid_target_module_filter(&target.module) {
+        return FindTargetRetEnum::Value(target);
+      }
+      let exports_info = mg.get_exports_info(&target.module);
+      let export_info = exports_info.get_export_info_without_mut_module_graph(
+        mg,
+        &target.export.as_ref().expect("should have export")[0],
+      );
+      let export_info_hash_key = export_info.as_hash_key();
+      if visited.contains(&export_info_hash_key) {
+        return FindTargetRetEnum::Undefined;
+      }
+      visited.insert(export_info_hash_key);
+      let new_target =
+        export_info.find_target_impl(mg, valid_target_module_filter.clone(), visited);
+      let new_target = match new_target {
+        FindTargetRetEnum::Undefined => return FindTargetRetEnum::False,
+        FindTargetRetEnum::False => return FindTargetRetEnum::False,
+        FindTargetRetEnum::Value(target) => target,
+      };
+      if target.export.as_ref().map(|item| item.len()) == Some(1) {
+        target = new_target;
+      } else {
+        target = FindTargetRetValue {
+          module: new_target.module,
+          export: if let Some(export) = new_target.export {
+            Some(
+              [
+                export,
+                target
+                  .export
+                  .as_ref()
+                  .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+                  .unwrap_or_default(),
+              ]
+              .concat(),
+            )
+          } else {
+            target
+              .export
+              .and_then(|export| export.get(1..).map(|slice| slice.to_vec()))
+          },
+        }
+      }
+    }
+  }
+
+  fn get_target_impl(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    let max_target = self.get_max_target();
+    let mut values = max_target
+      .values()
+      .map(|item| UnResolvedExportInfoTarget {
+        dependency: item.dependency,
+        export: item.export.clone(),
+      })
+      .collect::<VecDeque<_>>();
+    let target = resolve_target(
+      values.pop_front(),
+      already_visited,
+      resolve_filter.clone(),
+      mg,
+    );
+
+    match target {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+        Some(ResolvedExportInfoTargetWithCircular::Circular)
+      }
+      None => None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
+        for val in values {
+          let resolved_target =
+            resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+          match resolved_target {
+            Some(ResolvedExportInfoTargetWithCircular::Circular) => {
+              return Some(ResolvedExportInfoTargetWithCircular::Circular);
+            }
+            Some(ResolvedExportInfoTargetWithCircular::Target(tt)) => {
+              if target.module != tt.module {
+                return None;
+              }
+              if target.export != tt.export {
+                return None;
+              }
+            }
+            None => return None,
+          }
+        }
+        Some(ResolvedExportInfoTargetWithCircular::Target(target))
+      }
+    }
+  }
 }
 
-pub type ResolveFilterFnTy = Rc<dyn Fn(&ResolvedExportInfoTarget, &mut ModuleGraph) -> bool>;
+// The return value of `get_export_info_without_mut_module_graph`, when a module's exportType
+// is undefined, FlagDependencyExportsPlugin can't analyze the exports statically. In webpack,
+// it's possible to add a exportInfo with `provided: null` by `get_export_info` in some
+// optimization plugins:
+//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/ExportsInfo.js#L1367 called by SideEffectsFlagPlugin
+//   - https://github.com/webpack/webpack/blob/964c0315df0ee86a2b4edfdf621afa19db140d4f/lib/optimize/ConcatenatedModule.js#L399 called by ModuleConcatenationPlugin
+// So the Dynamic variant is used to represent this situation without mutate the ModuleGraph,
+// and the Static variant represents the most situation which FlagDependencyExportsPlugin can
+// analyze the exports statically.
+#[derive(Debug)]
+pub enum MaybeDynamicTargetExportInfo {
+  Static(ExportInfo),
+  Dynamic {
+    export_name: Atom,
+    other_export_info: ExportInfo,
+    data: ExportInfoData,
+  },
+}
 
-fn resolve_target_mut(
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum MaybeDynamicTargetExportInfoHashKey {
+  ExportInfo(ExportInfo),
+  TemporaryData {
+    export_name: Atom,
+    other_export_info: ExportInfo,
+  },
+}
+
+impl MaybeDynamicTargetExportInfo {
+  pub fn as_hash_key(&self) -> MaybeDynamicTargetExportInfoHashKey {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
+        MaybeDynamicTargetExportInfoHashKey::ExportInfo(*export_info)
+      }
+      MaybeDynamicTargetExportInfo::Dynamic {
+        export_name,
+        other_export_info,
+        ..
+      } => MaybeDynamicTargetExportInfoHashKey::TemporaryData {
+        export_name: export_name.clone(),
+        other_export_info: *other_export_info,
+      },
+    }
+  }
+
+  pub fn provided<'a>(&'a self, mg: &'a ModuleGraph) -> Option<&'a ExportInfoProvided> {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.provided(mg),
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.provided.as_ref(),
+    }
+  }
+
+  pub fn find_target(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+  ) -> FindTargetRetEnum {
+    self.find_target_impl(mg, valid_target_module_filter, &mut Default::default())
+  }
+
+  fn find_target_impl(
+    &self,
+    mg: &ModuleGraph,
+    valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
+    visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  ) -> FindTargetRetEnum {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
+        export_info.find_target_impl(mg, valid_target_module_filter, visited)
+      }
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
+        data.find_target_impl(mg, valid_target_module_filter, visited)
+      }
+    }
+  }
+
+  pub fn get_target_with_filter(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+  ) -> Option<ResolvedExportInfoTarget> {
+    match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
+      Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
+      Some(ResolvedExportInfoTargetWithCircular::Target(target)) => Some(target),
+      None => None,
+    }
+  }
+
+  fn get_target_impl(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
+  ) -> Option<ResolvedExportInfoTargetWithCircular> {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => {
+        export_info.get_target_impl(mg, resolve_filter, already_visited)
+      }
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => {
+        if !data.target_is_set || data.target.is_empty() {
+          return None;
+        }
+        let hash_key = self.as_hash_key();
+        if already_visited.contains(&hash_key) {
+          return Some(ResolvedExportInfoTargetWithCircular::Circular);
+        }
+        already_visited.insert(hash_key);
+        data.get_target_impl(mg, resolve_filter, already_visited)
+      }
+    }
+  }
+
+  fn get_max_target<'a>(
+    &'a self,
+    mg: &'a ModuleGraph,
+  ) -> Cow<'a, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+    match self {
+      MaybeDynamicTargetExportInfo::Static(export_info) => export_info.get_max_target(mg),
+      MaybeDynamicTargetExportInfo::Dynamic { data, .. } => data.get_max_target(),
+    }
+  }
+}
+
+impl MaybeDynamicTargetExportInfo {
+  pub fn can_move_target(
+    &self,
+    mg: &ModuleGraph,
+    resolve_filter: ResolveFilterFnTy,
+  ) -> Option<ResolvedExportInfoTarget> {
+    let target = self.get_target_with_filter(mg, resolve_filter)?;
+    let max_target = self.get_max_target(mg);
+    let original_target = max_target
+      .values()
+      .next()
+      .expect("should have export info target"); // refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ExportsInfo.js#L1388-L1394
+    if original_target.dependency.as_ref() == Some(&target.dependency)
+      && original_target.export == target.export
+    {
+      return None;
+    }
+    Some(target)
+  }
+}
+
+impl ExportInfo {
+  pub fn do_move_target(
+    &self,
+    mg: &mut ModuleGraph,
+    dependency: DependencyId,
+    target_export: Option<Vec<Atom>>,
+  ) {
+    let export_info_mut = self.as_export_info_mut(mg);
+    export_info_mut.target.clear();
+    export_info_mut.target.insert(
+      None,
+      ExportInfoTargetValue {
+        dependency: Some(dependency),
+        export: target_export,
+        priority: 0,
+      },
+    );
+    export_info_mut.target_is_set = true;
+  }
+}
+
+pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a>;
+
+fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
-  already_visited: &mut UkeySet<ExportInfo>,
+  already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   resolve_filter: ResolveFilterFnTy,
-  mg: &mut ModuleGraph,
+  mg: &ModuleGraph,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
   if let Some(input_target) = input_target {
     let mut target = ResolvedExportInfoTarget {
@@ -1840,11 +1955,12 @@ fn resolve_target_mut(
       };
 
       let exports_info = mg.get_exports_info(&target.module);
-      let export_info = exports_info.get_export_info(mg, name);
-      if already_visited.contains(&export_info) {
+      let export_info = exports_info.get_export_info_without_mut_module_graph(mg, name);
+      let export_info_hash_key = export_info.as_hash_key();
+      if already_visited.contains(&export_info_hash_key) {
         return Some(ResolvedExportInfoTargetWithCircular::Circular);
       }
-      let new_target = export_info._get_target_mut(mg, resolve_filter.clone(), already_visited);
+      let new_target = export_info.get_target_impl(mg, resolve_filter.clone(), already_visited);
 
       match new_target {
         Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1874,71 +1990,7 @@ fn resolve_target_mut(
       if !resolve_filter(&target, mg) {
         return Some(ResolvedExportInfoTargetWithCircular::Target(target));
       }
-      already_visited.insert(export_info);
-    }
-  } else {
-    None
-  }
-}
-
-fn resolve_target(
-  input_target: Option<UnResolvedExportInfoTarget>,
-  already_visited: &mut UkeySet<ExportInfo>,
-  mg: &ModuleGraph,
-) -> Option<ResolvedExportInfoTargetWithCircular> {
-  if let Some(input_target) = input_target {
-    let mut target = ResolvedExportInfoTarget {
-      module: *input_target
-        .dependency
-        .and_then(|dep_id| mg.connection_by_dependency_id(&dep_id))
-        .expect("should have connection")
-        .module_identifier(),
-      export: input_target.export,
-      dependency: input_target.dependency.expect("should have dependency"),
-    };
-    if target.export.is_none() {
-      return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-    }
-    loop {
-      let name = if let Some(export) = target.export.as_ref().and_then(|exports| exports.first()) {
-        export
-      } else {
-        return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-      };
-
-      let exports_info = mg.get_exports_info(&target.module);
-      let export_info = exports_info.get_read_only_export_info(mg, name);
-      if already_visited.contains(&export_info) {
-        return Some(ResolvedExportInfoTargetWithCircular::Circular);
-      }
-      let new_target = export_info._get_target(mg, already_visited);
-
-      match new_target {
-        Some(ResolvedExportInfoTargetWithCircular::Circular) => {
-          return Some(ResolvedExportInfoTargetWithCircular::Circular);
-        }
-        None => return Some(ResolvedExportInfoTargetWithCircular::Target(target)),
-        Some(ResolvedExportInfoTargetWithCircular::Target(t)) => {
-          // SAFETY: if the target.exports is None, program will not reach here
-          let target_exports = target.export.as_ref().expect("should have exports");
-          if target_exports.len() == 1 {
-            target = t;
-            if target.export.is_none() {
-              return Some(ResolvedExportInfoTargetWithCircular::Target(target));
-            }
-          } else {
-            target.module = t.module;
-            target.dependency = t.dependency;
-            target.export = if let Some(mut exports) = t.export {
-              exports.extend_from_slice(&target_exports[1..]);
-              Some(exports)
-            } else {
-              Some(target_exports[1..].to_vec())
-            }
-          }
-        }
-      }
-      already_visited.insert(export_info);
+      already_visited.insert(export_info_hash_key);
     }
   } else {
     None

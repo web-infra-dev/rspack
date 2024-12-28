@@ -37,7 +37,7 @@ impl Compiler {
     for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
       if chunk.kind() != ChunkKind::HotUpdate {
         old_chunks.push((
-          chunk.expect_id(&old.compilation.chunk_ids).clone(),
+          chunk.expect_id(&old.compilation.chunk_ids_artifact).clone(),
           chunk.runtime().clone(),
         ));
       }
@@ -81,11 +81,12 @@ impl Compiler {
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
+        self.intermediate_filesystem.clone(),
+        self.output_filesystem.clone(),
       );
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
-      // TODO: remove this
       if let Some(mutations) = new_compilation.incremental.mutations_write()
         && let Some(old_mutations) = self.compilation.incremental.mutations_write()
       {
@@ -112,32 +113,42 @@ impl Compiler {
         .incremental
         .can_read_mutations(IncrementalPasses::INFER_ASYNC_MODULES)
       {
-        new_compilation.async_modules = std::mem::take(&mut self.compilation.async_modules);
+        new_compilation.async_modules_artifact =
+          std::mem::take(&mut self.compilation.async_modules_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::DEPENDENCIES_DIAGNOSTICS)
       {
-        new_compilation.dependencies_diagnostics =
-          std::mem::take(&mut self.compilation.dependencies_diagnostics);
+        new_compilation.dependencies_diagnostics_artifact =
+          std::mem::take(&mut self.compilation.dependencies_diagnostics_artifact);
+      }
+      if new_compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::SIDE_EFFECTS)
+      {
+        new_compilation.side_effects_optimize_artifact =
+          std::mem::take(&mut self.compilation.side_effects_optimize_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MODULE_IDS)
       {
-        new_compilation.module_ids = std::mem::take(&mut self.compilation.module_ids);
+        new_compilation.module_ids_artifact =
+          std::mem::take(&mut self.compilation.module_ids_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::CHUNK_IDS)
       {
-        new_compilation.chunk_ids = std::mem::take(&mut self.compilation.chunk_ids);
+        new_compilation.chunk_ids_artifact =
+          std::mem::take(&mut self.compilation.chunk_ids_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MODULES_HASHES)
       {
-        new_compilation.cgm_hash_results = std::mem::take(&mut self.compilation.cgm_hash_results);
+        new_compilation.cgm_hash_artifact = std::mem::take(&mut self.compilation.cgm_hash_artifact);
       }
       if new_compilation
         .incremental
@@ -150,43 +161,47 @@ impl Compiler {
         .incremental
         .can_read_mutations(IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS)
       {
-        new_compilation.cgm_runtime_requirements_results =
-          std::mem::take(&mut self.compilation.cgm_runtime_requirements_results);
+        new_compilation.cgm_runtime_requirements_artifact =
+          std::mem::take(&mut self.compilation.cgm_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS)
       {
-        new_compilation.cgc_runtime_requirements_results =
-          std::mem::take(&mut self.compilation.cgc_runtime_requirements_results);
+        new_compilation.cgc_runtime_requirements_artifact =
+          std::mem::take(&mut self.compilation.cgc_runtime_requirements_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::CHUNKS_HASHES)
       {
-        new_compilation.chunk_hashes_results =
-          std::mem::take(&mut self.compilation.chunk_hashes_results);
+        new_compilation.chunk_hashes_artifact =
+          std::mem::take(&mut self.compilation.chunk_hashes_artifact);
       }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::CHUNKS_RENDER)
       {
-        new_compilation.chunk_render_results =
-          std::mem::take(&mut self.compilation.chunk_render_results);
+        new_compilation.chunk_render_artifact =
+          std::mem::take(&mut self.compilation.chunk_render_artifact);
       }
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       fast_set(&mut self.compilation, new_compilation);
-      self.cache.before_compile(&mut self.compilation);
+      if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
+        self.compilation.push_diagnostic(err.into());
+      }
       self.compile().await?;
 
       self.old_cache.begin_idle();
     }
 
     self.compile_done().await?;
-    self.cache.after_compile(&self.compilation);
+    if let Err(err) = self.cache.after_compile(&self.compilation).await {
+      self.compilation.push_diagnostic(err.into());
+    }
 
     Ok(())
   }
@@ -212,7 +227,7 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
     .keys()
     .par_bridge()
     .filter_map(|identifier| {
-      let cid = ChunkGraph::get_module_id(&compilation.module_ids, *identifier);
+      let cid = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier);
       // TODO: Determine how to calc module hash if module related to multiple runtime code
       // gen
       if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)

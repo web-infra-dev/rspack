@@ -157,7 +157,7 @@ impl TraceableError {
       message,
       severity: Default::default(),
       src,
-      label: SourceSpan::new(start.into(), end.saturating_sub(start).into()),
+      label: SourceSpan::new(start.into(), end.saturating_sub(start)),
       help: None,
       url: None,
       hide_stack: None,

@@ -164,7 +164,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           range,
           kind,
         } => {
-          if request.is_empty() {
+          if request.trim().is_empty() {
             continue;
           }
           let request = replace_module_request_prefix(
@@ -215,6 +215,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
         css_module_lexer::Dependency::LocalClass { name, range, .. }
         | css_module_lexer::Dependency::LocalId { name, range, .. } => {
           let (_prefix, name) = name.split_at(1); // split '#' or '.'
+          let name = unescape(name);
+
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -223,13 +225,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(name);
+          .get_local_ident(&name);
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
           let exports = self.exports.get_or_insert_default();
-          let convention_names = export_locals_convention(name, convention);
+          let convention_names = export_locals_convention(&name, convention);
           for name in convention_names.iter() {
             update_css_exports(
               exports,
@@ -249,6 +251,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )));
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
+          let name = unescape(name);
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -257,13 +260,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(name);
+          .get_local_ident(&name);
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          let convention_names = export_locals_convention(name, convention);
+          let convention_names = export_locals_convention(&name, convention);
           for name in convention_names.iter() {
             update_css_exports(
               exports,
@@ -285,6 +288,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )));
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
+          let name = unescape(name);
           let local_ident = LocalIdentOptions::new(
             resource_data,
             self
@@ -293,13 +297,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
               .expect("should have local_ident_name for module_type css/auto or css/module"),
             compiler_options,
           )
-          .get_local_ident(name);
+          .get_local_ident(&name);
           let exports = self.exports.get_or_insert_default();
           let convention = self
             .convention
             .as_ref()
             .expect("should have local_ident_name for module_type css/auto or css/module");
-          let convention_names = export_locals_convention(name, convention);
+          let convention_names = export_locals_convention(&name, convention);
           for name in convention_names.iter() {
             update_css_exports(
               exports,
@@ -324,6 +328,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
           from,
           range,
         } => {
+          let local_classes = local_classes
+            .into_iter()
+            .map(|s| unescape(s).to_string())
+            .collect::<Vec<_>>();
+          let names = names
+            .into_iter()
+            .map(|s| unescape(s).to_string())
+            .collect::<Vec<_>>();
+
           let mut dep_id = None;
           if let Some(from) = from
             && from != "global"
@@ -331,31 +344,31 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let from = from.trim_matches(|c| c == '\'' || c == '"');
             let dep = CssComposeDependency::new(
               from.to_string(),
-              names.iter().map(|s| (*s).into()).collect(),
+              names.iter().map(|s| s.to_owned().into()).collect(),
               DependencyRange::new(range.start, range.end),
             );
             dep_id = Some(*dep.id());
             dependencies.push(Box::new(dep));
           } else if from.is_none() {
             dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
-              names.iter().map(|s| (*s).into()).collect(),
+              names.iter().map(|s| s.to_string()).collect(),
               vec![],
             )));
           }
           let exports = self.exports.get_or_insert_default();
           for name in names {
-            for &local_class in local_classes.iter() {
-              if let Some(existing) = exports.get(name)
+            for local_class in local_classes.iter() {
+              if let Some(existing) = exports.get(name.as_str())
                 && from.is_none()
               {
                 let existing = existing.clone();
                 exports
-                  .get_mut(local_class)
+                  .get_mut(local_class.as_str())
                   .expect("composes local class must already added to exports")
                   .extend(existing);
               } else {
                 exports
-                  .get_mut(local_class)
+                  .get_mut(local_class.as_str())
                   .expect("composes local class must already added to exports")
                   .insert(CssExport {
                     ident: name.to_string(),

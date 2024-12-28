@@ -39,6 +39,10 @@ on:
       target:
         required: true
         type: string
+      native:
+        required: false
+        type: boolean
+        default: false
       runner: # Runner labels
         required: true
         type: string
@@ -50,6 +54,10 @@ on:
         type: boolean
         required: false
         default: true
+      bench: # Run benchmarks?
+        type: boolean
+        required: false
+        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -92,7 +100,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-${{ inputs.target }}
+          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
 
       # Compile dependencies with optimization to make tests run faster
       - name: Add optimization to debug profile
@@ -103,6 +111,14 @@ jobs:
           echo 'opt-level = 3' >> Cargo.toml
           echo 'codegen-units = 64' >> Cargo.toml
           echo 'incremental = false' >> Cargo.toml
+
+      - name: Trim paths
+        if: ${{ !inputs.skipable }}
+        shell: bash
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo '[unstable]' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
 
       - name: Check local cache
         id: check_cache
@@ -126,7 +142,7 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable && !inputs.native }}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
@@ -141,7 +157,8 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
-          pre: export CC_aarch64_unknown_linux_gnu=clang
+          pre: |
+            export CC_aarch64_unknown_linux_gnu=clang
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -150,6 +167,12 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           profile: ${{ inputs.profile }}
+          pre: |
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -160,11 +183,20 @@ jobs:
           profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            # musl will enable clang-sys static linking
+            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
+            # llvm19-dev is used to install llvm-config
+            # clang19-static is used to install libclang.a
+            apk add llvm19-dev clang19-static
 
       # setup rust target for windows and macos
       - name: Setup Rust Target
-        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
+        if: ${{ (!contains(inputs.target, 'linux') || inputs.native) && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
+
+      - name: Build ${{ inputs.target }}
+        if: ${{ inputs.native && contains(inputs.target, 'linux') && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Windows
 
@@ -242,6 +274,8 @@ jobs:
       - name: Run e2e
         uses: ./.github/actions/docker-run
         with:
+          # Jammy uses ubuntu 22.04
+          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
           image: mcr.microsoft.com/playwright:v1.47.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker-run
           # .tool_cache is required by pnpm
@@ -359,3 +393,60 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
+
+  bench:
+    name: Bench
+    needs: build
+    if: ${{ inputs.bench && !inputs.skipable }}
+    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+          try-local-cache: ${{ inputs.profile == 'debug' }}
+          link-when-local: true
+
+      - name: Show restored binding
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-codspeed
+
+      - name: Build Benchmark
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Run benchmark
+        uses: CodSpeedHQ/action@v3
+        timeout-minutes: 30
+        with:
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}

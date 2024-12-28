@@ -11,7 +11,7 @@ version     = "0.2.0"
 async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }
-derivative               = { workspace = true }
+derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
 itertools                = { workspace = true }
 rayon                    = { workspace = true }

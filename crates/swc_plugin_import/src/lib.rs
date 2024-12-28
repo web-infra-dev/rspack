@@ -329,7 +329,7 @@ pub struct ImportPlugin<'a> {
   pub renderer: handlebars::Handlebars<'a>,
 }
 
-impl<'a> ImportPlugin<'a> {
+impl ImportPlugin<'_> {
   // return (import_es, import_css)
   fn transform(&self, name: String, config: &ImportOptions) -> (Option<String>, Option<String>) {
     let should_ignore = &config
@@ -444,7 +444,7 @@ impl<'a> ImportPlugin<'a> {
   }
 }
 
-impl<'a> VisitMut for ImportPlugin<'a> {
+impl VisitMut for ImportPlugin<'_> {
   fn visit_mut_module(&mut self, module: &mut Module) {
     // use visitor to collect all ident reference, and then remove imported component and type that is never referenced
     let mut visitor = IdentComponent {

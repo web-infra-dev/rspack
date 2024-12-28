@@ -4,7 +4,7 @@ use std::sync::{Arc, LazyLock};
 use std::{borrow::Cow, path::Path};
 
 use cow_utils::CowUtils;
-use derivative::Derivative;
+use derive_more::Debug;
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -50,16 +50,15 @@ pub enum Append {
   Disabled,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct SourceMapDevToolPluginOptions {
   // Appends the given value to the original asset. Usually the #sourceMappingURL comment. [url] is replaced with a URL to the source map file. false disables the appending.
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub append: Option<Append>,
   // Indicates whether column mappings should be used (defaults to true).
   pub columns: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap used only if 'moduleFilenameTemplate' would result in a conflict.
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub fallback_module_filename_template: Option<ModuleFilenameTemplate>,
   // Path prefix to which the [file] placeholder is relative to.
   pub file_context: Option<String>,
@@ -68,7 +67,7 @@ pub struct SourceMapDevToolPluginOptions {
   // Indicates whether SourceMaps from loaders should be used (defaults to true).
   pub module: bool,
   // Generator string or function to create identifiers of modules for the 'sources' array in the SourceMap.
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub module_filename_template: Option<ModuleFilenameTemplate>,
   // Namespace prefix to allow multiple webpack roots in the devtools.
   pub namespace: Option<String>,
@@ -100,21 +99,21 @@ pub(crate) struct MappedAsset {
 }
 
 #[plugin]
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct SourceMapDevToolPlugin {
   source_map_filename: Option<FilenameTemplate>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   module_filename_template: ModuleFilenameTemplate,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   fallback_module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   columns: bool,
   no_sources: bool,
   public_path: Option<String>,
+  #[expect(dead_code)]
   module: bool,
   source_root: Option<Arc<str>>,
   test: Option<AssetConditions>,
@@ -423,12 +422,18 @@ impl SourceMapDevToolPlugin {
             let data = PathData::default().filename(&filename);
             let data = match chunk {
               Some(chunk) => data
-                .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+                .chunk_id_optional(
+                  chunk
+                    .id(&compilation.chunk_ids_artifact)
+                    .map(|id| id.as_str()),
+                )
                 .chunk_hash_optional(chunk.rendered_hash(
-                  &compilation.chunk_hashes_results,
+                  &compilation.chunk_hashes_artifact,
                   compilation.options.output.hash_digest_length,
                 ))
-                .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+                .chunk_name_optional(
+                  chunk.name_for_filename_template(&compilation.chunk_ids_artifact),
+                )
                 .content_hash_optional(Some(digest.encoded())),
               None => data,
             };

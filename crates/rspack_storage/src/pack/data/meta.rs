@@ -11,19 +11,29 @@ pub struct PackFileMeta {
   pub name: String,
   pub size: usize,
   pub wrote: bool,
+  pub generation: usize,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum RootMetaFrom {
+  #[default]
+  New,
+  File,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct RootMeta {
-  pub last_modified: u64,
+  pub expire_time: u64,
   pub scopes: HashSet<String>,
+  pub from: RootMetaFrom,
 }
 
 impl RootMeta {
-  pub fn new(scopes: HashSet<String>) -> Self {
+  pub fn new(scopes: HashSet<String>, expire: u64) -> Self {
     Self {
       scopes,
-      last_modified: current_time(),
+      expire_time: current_time() + expire,
+      from: RootMetaFrom::New,
     }
   }
   pub fn get_path(dir: &Utf8Path) -> Utf8PathBuf {
@@ -43,6 +53,7 @@ pub struct ScopeMeta {
   pub path: Utf8PathBuf,
   pub bucket_size: usize,
   pub pack_size: usize,
+  pub generation: usize,
   pub packs: Vec<Vec<PackFileMeta>>,
 }
 
@@ -56,6 +67,7 @@ impl ScopeMeta {
       path: Self::get_path(dir),
       bucket_size: options.bucket_size,
       pack_size: options.pack_size,
+      generation: 0,
       packs,
     }
   }

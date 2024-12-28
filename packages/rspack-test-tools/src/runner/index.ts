@@ -6,3 +6,4 @@ export * from "./normal";
 export * from "./runner";
 export * from "./type";
 export * from "./watch";
+export * from "./cache";

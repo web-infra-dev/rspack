@@ -73,11 +73,11 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     return Cow::Borrowed(maybe_absolute_path);
   };
 
-  return if let Some(query_part) = query_part {
+  if let Some(query_part) = query_part {
     Cow::Owned(concat_string!(relative_resource, query_part))
   } else {
     Cow::Owned(relative_resource)
-  };
+  }
 }
 
 /// # Context

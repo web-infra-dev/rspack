@@ -10,7 +10,7 @@ use std::{
 };
 
 use dashmap::DashSet;
-use derivative::Derivative;
+use derive_more::Debug;
 use futures::future::BoxFuture;
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
@@ -91,11 +91,10 @@ pub enum ToOption {
   Fn(ToFn),
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct CopyPattern {
   pub from: String,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub to: Option<ToOption>,
   pub context: Option<Utf8PathBuf>,
   pub to_type: Option<ToType>,
@@ -104,7 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub transform: Option<Transformer>,
 }
 
@@ -440,10 +439,17 @@ impl CopyRspackPlugin {
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
-        if Path::new(orig_from).is_absolute() {
+        let glob_query = if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
           context.join(orig_from).as_str().to_string()
+        };
+        // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
+        // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
+        if glob_query.ends_with("/**") {
+          format!("{glob_query}/*")
+        } else {
+          glob_query
         }
       }
     };

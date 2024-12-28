@@ -155,7 +155,7 @@ module.exports = {
 当前 lazy compilation 是对齐 webpack 实现的，**并且仍处于实验性阶段**。在部分场景下，lazy compilation 可能无法按照预期工作，或是性能提升不明显。
 :::
 
-### experiments.lazyCompilation.backend.listen
+### lazyCompilation.backend.listen
 
 - **类型：** `number | ListenOptions`
 
@@ -242,6 +242,7 @@ type Incremental = {
   inferAsyncModules?: boolean;
   providedExports?: boolean;
   dependenciesDiagnostics?: boolean;
+  sideEffects?: boolean;
   buildChunkGraph?: boolean;
   moduleIds?: boolean;
   chunkIds?: boolean;
@@ -298,7 +299,7 @@ module.exports = {
 
 用于控制是否开启 Rspack 未来的默认行为，详情请参考[这里](https://github.com/web-infra-dev/rspack/pull/4107)。
 
-### experiments.rspackFuture.bundlerInfo
+### rspackFuture.bundlerInfo
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -329,6 +330,157 @@ module.exports = {
   experiments: {
     rspackFuture: {
       bundlerInfo: { force: false },
+    },
+  },
+};
+```
+
+## experiments.cache
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **类型：** `ExperimentCacheOptions`
+
+- **默认值：** production 模式 为 `false`, development 模式 为 `true`
+
+```ts
+type ExperimentCacheOptions =
+  | boolean
+  | {
+      type: 'memory';
+    }
+  | {
+      type: 'persistent';
+      buildDependencies?: string[];
+      version?: string;
+      snapshot?: {
+        immutablePaths?: Array<string | RegExp>;
+        unmanagedPaths?: Array<string | RegExp>;
+        managedPaths?: Array<string | RegExp>;
+      };
+      storage?: {
+        type: 'filesystem';
+        directory?: string;
+      };
+    };
+```
+
+控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [全局cache](/config/cache) 为 `true` 才有效。
+
+### 禁用缓存
+
+可以配置 `experiment.cache` 为 `false` 来禁用缓存，此时与配置 [全局cache](/config/cache) 为 `false` 没有差别。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: false,
+  },
+};
+```
+
+### 内存缓存
+
+可以配置 `experiment.cache` 为 `true` 或者 `{ "type": "memory" }` 来启动内存缓存。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: true,
+  },
+};
+```
+
+### 持久化缓存
+
+可以配置 `experiment.cache` 为 `{ "type": "persistent" }` 来启用持久化缓存。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+    },
+  },
+};
+```
+
+#### cache.buildDependencies
+
+- **类型：** `string[]`
+
+- **默认值：** `[]`
+
+`cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 将使用其中每个文件的哈希值来使持久化缓存无效。
+
+:::tip
+推荐添加 \_\_filename 到 buildDependencies 中
+:::
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+      buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+    },
+  },
+};
+```
+
+#### cache.version
+
+- **类型：** `string`
+
+- **默认值：** `""`
+
+缓存数据的版本，不同版本缓存相互隔离。
+
+#### cache.snapshot
+
+配置快照策略，Snapshot 用于在热启动时判断哪些文件在停机时被修改。支持以下配置:
+
+##### snapshot.immutablePaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[]`
+
+不可变文件的路径数组，这些文件的变动在热启动时会被忽略。
+
+##### snapshot.managedPaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[/\/node_modules\//]`
+
+由包管理器管理的路径数组，热启动时会通过 package.json 中的版本来判断是否修改。
+
+##### snapshot.unmanagedPaths
+
+- **类型：** `(RegExp | string)[]`
+
+- **默认值：** `[]`
+
+指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组。
+
+#### cache.storage
+
+- **类型：** `{ type: 'filesystem', directory: string }`
+
+- **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
+
+配置缓存存储，目前仅支持文件系统存储，可以通过 `directory` 设置缓存路径，默认为 `node_modules/.cache/rspack`。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiment: {
+    cache: {
+      type: 'persistent',
+      storage: {
+        type: 'filesystem',
+        directory: 'node_modules/.cache/rspack',
+      },
     },
   },
 };

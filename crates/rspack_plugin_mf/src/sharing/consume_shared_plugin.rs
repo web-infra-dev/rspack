@@ -115,7 +115,7 @@ async fn get_description_file(
     {
       if satisfies_description_file_data
         .as_ref()
-        .map_or(false, |f| !f(Some(data.clone())))
+        .is_some_and(|f| !f(Some(data.clone())))
       {
         checked_file_paths.insert(description_file.to_string_lossy().to_string());
       } else {
@@ -247,14 +247,9 @@ impl ConsumeSharedPlugin {
           context.as_ref(),
           Some(|data: Option<serde_json::Value>| {
             if let Some(data) = data {
-              let name_matches = data
-                .get("name")
-                .and_then(|n| n.as_str())
-                .map_or(false, |name| name == package_name);
+              let name_matches = data.get("name").and_then(|n| n.as_str()) == Some(package_name);
               let version_matches = get_required_version_from_description_file(data, package_name)
-                .map_or(false, |version| {
-                  matches!(version, ConsumeVersion::Version(_))
-                });
+                .is_some_and(|version| matches!(version, ConsumeVersion::Version(_)));
               name_matches || version_matches
             } else {
               false

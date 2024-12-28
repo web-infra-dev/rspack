@@ -12,7 +12,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }
 dashmap = { workspace = true, features = ["rayon"] }
-derivative = { workspace = true }
+derive_more = { workspace = true, features = ["debug"] }
 dyn-clone = "1.0.17"
 either = { workspace = true }
 futures = { workspace = true }
@@ -28,6 +28,7 @@ once_cell = { workspace = true }
 paste = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
+ropey = { workspace = true }
 rspack_ast = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_collections = { workspace = true }
@@ -42,6 +43,7 @@ rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
 rspack_sources = { workspace = true }
+rspack_storage = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }

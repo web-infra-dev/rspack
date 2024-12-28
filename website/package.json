@@ -22,7 +22,7 @@
     "antd": "5.19.3",
     "axios": "^1.6.1",
     "markdown-to-jsx": "^7.2.1",
-    "mermaid": "^10.9.0",
+    "mermaid": "^11.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "semver": "^7.6.2",
@@ -30,8 +30,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@rspress/plugin-rss": "1.37.3",
-    "@types/node": "^20.12.7",
+    "@rspress/plugin-rss": "1.39.2",
+    "@types/node": "^20.17.10",
     "@types/react": "^18.2.48",
     "@types/semver": "^7.5.6",
     "case-police": "0.7.0",
@@ -40,9 +40,9 @@
     "prettier": "3.4.2",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.0.2",
-    "rspress": "1.37.3",
+    "rspress": "1.39.2",
     "rspress-plugin-font-open-sans": "1.0.0",
     "rspress-plugin-sitemap": "^1.1.1",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.2"
   }
 }

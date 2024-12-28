@@ -47,7 +47,7 @@ pub struct ApplyContext<'c> {
   pub concatenated_module_hooks: &'c mut ConcatenatedModuleHooks,
 }
 
-impl<'c> ApplyContext<'c> {
+impl ApplyContext<'_> {
   pub fn register_parser_and_generator_builder(
     &mut self,
     module_type: ModuleType,

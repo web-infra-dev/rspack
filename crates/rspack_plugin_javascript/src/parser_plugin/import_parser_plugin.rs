@@ -131,7 +131,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       let source_map: SharedSourceMap = parser.source_map.clone();
       let mut block = AsyncDependenciesBlock::new(
         *parser.module_identifier,
-        Some(Into::<DependencyRange>::into(node.span).to_loc(Some(source_map).as_ref())),
+        Into::<DependencyRange>::into(node.span).to_loc(Some(&source_map)),
         None,
         vec![dep],
         Some(param.string().clone()),

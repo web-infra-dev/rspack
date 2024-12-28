@@ -4,215 +4,190 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-此插件可以用来压缩 JS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+此插件使用 [SWC](https://swc.rs/) 来压缩 JavaScript 代码。
+
+## 示例
+
+通过 [optimization.minimizer](/config/optimization#optimizationminimizer) 使用此插件：
 
 ```js
 module.exports = {
   // ...
   optimization: {
-    minimizer: [new rspack.SwcJsMinimizerRspackPlugin(options)],
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // options
+      }),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
   },
 };
 ```
 
-- options
+:::tip
+当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用，因此我们需要同时添加 [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 来压缩 CSS 文件。
+:::
 
-  - **类型：**
+## 选项
 
-  如需获取配置项的更多信息，请点击[这里](https://swc.rs/docs/configuration/minification).
+### test
 
-  ```ts
-  type SwcJsMinimizerRspackPluginOptions = {
-    test?: AssetConditions;
-    exclude?: AssetConditions;
-    include?: AssetConditions;
-    extractComments?: boolean | RegExp;
-    minimizerOptions?: {
-      minify?: boolean;
-      compress?: TerserCompressOptions | boolean;
-      mangle?: TerserMangleOptions | boolean;
-      module?: boolean;
-      format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+指定需要被压缩的产物文件。可以使用正则表达式或者文件路径字符串，只有匹配的文件会被压缩。
+
+例如，构建生成了 `/dist/foo.[hash].js` 和其他 JS 文件，我们仅对 `foo.js` 进行压缩：
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  test: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### include
+
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+与 `test` 的作用一致，指定需要被压缩的产物文件。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  include: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### exclude
+
+- **类型：** `string | RegExp | Array<string | RegExp>`
+- **默认值：** `undefined`
+
+指定需要被排除的产物文件。可以使用正则表达式或者文件路径字符串，匹配的文件不会被压缩。
+
+例如，构建生成了 `/dist/foo.[hash].js` 和其他 JS 文件，我们排除 `foo.js` 的压缩：
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  exclude: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### extractComments
+
+- **类型：**
+
+```ts
+type ExtractCommentsOptions =
+  | boolean
+  | RegExp
+  | {
+      condition?: boolean | RegExp | undefined;
+      banner?: string | boolean | undefined;
     };
-  };
+```
 
-  type AssetCondition = string | RegExp;
-  type AssetConditions = AssetCondition | AssetCondition[];
+- **默认值：** `undefined`
 
-  interface JsFormatOptions {
-    /**
-     * Currently noop.
-     * @default false
-     * @alias ascii_only
-     */
-    asciiOnly?: boolean;
-    /**
-     * Currently noop.
-     * @default false
-     */
-    beautify?: boolean;
-    /**
-     * Currently noop.
-     * @default false
-     */
-    braces?: boolean;
-    /**
-     * - `false`: removes all comments
-     * - `'some'`: preserves some comments
-     * - `'all'`: preserves all comments
-     * @default false
-     */
-    comments?: false | 'some' | 'all';
-    /**
-     * Currently noop.
-     * @default 5
-     */
-    ecma?: TerserEcmaVersion;
-    /**
-     * Currently noop.
-     * @alias indent_level
-     */
-    indentLevel?: number;
-    /**
-     * Currently noop.
-     * @alias indent_start
-     */
-    indentStart?: number;
-    /**
-     * Currently noop.
-     * @alias inline_script
-     */
-    inlineScript?: number;
-    /**
-     * Currently noop.
-     * @alias keep_numbers
-     */
-    keepNumbers?: number;
-    /**
-     * Currently noop.
-     * @alias keep_quoted_props
-     */
-    keepQuotedProps?: boolean;
-    /**
-     * Currently noop.
-     * @alias max_line_len
-     */
-    maxLineLen?: number | false;
-    /**
-     * Currently noop.
-     */
-    preamble?: string;
-    /**
-     * Currently noop.
-     * @alias quote_keys
-     */
-    quoteKeys?: boolean;
-    /**
-     * Currently noop.
-     * @alias quote_style
-     */
-    quoteStyle?: boolean;
-    /**
-     * Currently noop.
-     * @alias preserve_annotations
-     */
-    preserveAnnotations?: boolean;
-    /**
-     * Currently noop.
-     */
-    safari10?: boolean;
-    /**
-     * Currently noop.
-     */
-    semicolons?: boolean;
-    /**
-     * Currently noop.
-     */
-    shebang?: boolean;
-    /**
-     * Currently noop.
-     */
-    webkit?: boolean;
-    /**
-     * Currently noop.
-     * @alias wrap_iife
-     */
-    wrapIife?: boolean;
-    /**
-     * Currently noop.
-     * @alias wrap_func_args
-     */
-    wrapFuncArgs?: boolean;
-  }
+是否将注释提取到单独的文件中。如果原始文件名是 `foo.js`，则注释将提取到 `foo.js.LICENSE.txt` 文件中。
 
-  type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
-  interface TerserCompressOptions {
-    arguments?: boolean;
-    arrows?: boolean;
-    booleans?: boolean;
-    booleans_as_integers?: boolean;
-    collapse_vars?: boolean;
-    comparisons?: boolean;
-    computed_props?: boolean;
-    conditionals?: boolean;
-    dead_code?: boolean;
-    defaults?: boolean;
-    directives?: boolean;
-    drop_console?: boolean;
-    drop_debugger?: boolean;
-    ecma?: TerserEcmaVersion;
-    evaluate?: boolean;
-    expression?: boolean;
-    global_defs?: any;
-    hoist_funs?: boolean;
-    hoist_props?: boolean;
-    hoist_vars?: boolean;
-    ie8?: boolean;
-    if_return?: boolean;
-    inline?: 0 | 1 | 2 | 3;
-    join_vars?: boolean;
-    keep_classnames?: boolean;
-    keep_fargs?: boolean;
-    keep_fnames?: boolean;
-    keep_infinity?: boolean;
-    loops?: boolean;
-    negate_iife?: boolean;
-    passes?: number;
-    properties?: boolean;
-    pure_getters?: any;
-    pure_funcs?: string[];
-    reduce_funcs?: boolean;
-    reduce_vars?: boolean;
-    sequences?: any;
-    side_effects?: boolean;
-    switches?: boolean;
-    top_retain?: any;
-    toplevel?: any;
-    typeofs?: boolean;
-    unsafe?: boolean;
-    unsafe_passes?: boolean;
-    unsafe_arrows?: boolean;
-    unsafe_comps?: boolean;
-    unsafe_function?: boolean;
-    unsafe_math?: boolean;
-    unsafe_symbols?: boolean;
-    unsafe_methods?: boolean;
-    unsafe_proto?: boolean;
-    unsafe_regexp?: boolean;
-    unsafe_undefined?: boolean;
-    unused?: boolean;
-    const_to_let?: boolean;
-    module?: boolean;
+#### boolean
+
+如果值为 `true`，等同于 `/@preserve|@lic|@cc_on|^\**!/` 正则表达式，并移除其他的注释。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+  },
+});
+```
+
+如果值为 `false`，则移除所有注释。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: false,
+});
+```
+
+#### RegExp
+
+如果值为 `RegExp`，则将匹配的注释提取到单独的文件中。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: /@preserve|@lic|@cc_on|^\**!/,
+});
+```
+
+#### object
+
+如果值为 `object`，则可以使用 `condition` 和 `banner` 来自定义注释的提取。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    // 将匹配的注释提取到单独的文件中
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+    // 在 `*.LICENSE.txt` 文件顶部的横幅
+    // 如果为 `true`，则使用默认的横幅 `/*! For license information please see {relative} */`
+    // 如果为 `false`，则不添加横幅
+    // 如果为 `string`，则使用给定的横幅
+    banner: true,
+  },
+});
+```
+
+### minimizerOptions
+
+- **类型：**
+
+```ts
+type MinimizerOptions = {
+  minify?: boolean;
+  module?: boolean;
+  mangle?: TerserMangleOptions | boolean;
+  compress?: TerserCompressOptions | boolean;
+  format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+};
+```
+
+- **默认值：**
+
+```js
+const defaultOptions = {
+  minify: true,
+  mangle: true,
+  compress: {
+    passes: 2,
   }
-  interface TerserMangleOptions {
-    props?: TerserManglePropertiesOptions;
-    toplevel?: boolean;
-    keep_classnames?: boolean;
-    keep_fnames?: boolean;
-    keep_private_props?: boolean;
-    ie8?: boolean;
-    safari10?: boolean;
-    reserved?: string[];
-  }
-  interface TerserManglePropertiesOptions {}
-  ```
+  format: {
+    comments: false,
+  },
+};
+```
+
+类似于 SWC 的 `jsc.minify` 选项，请参考 [SWC - Minification](https://swc.rs/docs/configuration/minification) 了解所有可用的选项。
+
+例如，关闭 `mangle` 来避免对变量名进行混淆：
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    mangle: false,
+  },
+});
+```
+
+例如，设置更高的 `passes` 来运行更多的压缩次数。在一些情况下，这可能会输出更小的包体积，但执行次数越多，压缩需要的时间就越长。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      passes: 4,
+    },
+  },
+});
+```

@@ -100,7 +100,7 @@ pub fn export_from_import(
   default_interop: bool,
   request: &str,
   import_var: &str,
-  mut export_name: Vec<Atom>,
+  export_name: &[Atom],
   id: &DependencyId,
   is_call: bool,
   call_context: bool,
@@ -124,6 +124,7 @@ pub fn export_from_import(
 
   let exports_type = get_exports_type(&compilation.get_module_graph(), id, &module.identifier());
 
+  let mut exclude_default_export_name = None;
   if default_interop {
     if !export_name.is_empty()
       && let Some(first_export_name) = export_name.first()
@@ -151,7 +152,7 @@ pub fn export_from_import(
           }
         }
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-          export_name = export_name[1..].to_vec();
+          exclude_default_export_name = Some(export_name[1..].to_vec());
         }
         _ => {}
       }
@@ -204,6 +205,9 @@ pub fn export_from_import(
     }
   }
 
+  let export_name = exclude_default_export_name
+    .as_deref()
+    .unwrap_or(export_name);
   if !export_name.is_empty() {
     let used_name: Cow<Vec<Atom>> = {
       let exports_info = compilation
@@ -212,7 +216,7 @@ pub fn export_from_import(
       let used = exports_info.get_used_name(
         &compilation.get_module_graph(),
         *runtime,
-        crate::UsedName::Vec(export_name.clone()),
+        crate::UsedName::Vec(export_name.to_vec()),
       );
       if let Some(used) = used {
         let used = match used {
@@ -223,12 +227,12 @@ pub fn export_from_import(
       } else {
         return format!(
           "{} undefined",
-          to_normal_comment(&property_access(&export_name, 0))
+          to_normal_comment(&property_access(export_name, 0))
         );
       }
     };
     let comment = if *used_name != export_name {
-      to_normal_comment(&property_access(&export_name, 0))
+      to_normal_comment(&property_access(export_name, 0))
     } else {
       String::new()
     };
@@ -351,7 +355,8 @@ pub fn module_id(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
+    && let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
     module_id_expr(&compilation.options, request, module_id)
   } else if weak {
@@ -580,14 +585,15 @@ pub fn block_promise(
     .iter()
     .map(|c| compilation.chunk_by_ukey.expect_get(c))
     .filter(|c| {
-      !c.has_runtime(&compilation.chunk_group_by_ukey) && c.id(&compilation.chunk_ids).is_some()
+      !c.has_runtime(&compilation.chunk_group_by_ukey)
+        && c.id(&compilation.chunk_ids_artifact).is_some()
     })
     .collect::<Vec<_>>();
 
   if chunks.len() == 1 {
     let chunk_id = serde_json::to_string(
       chunks[0]
-        .id(&compilation.chunk_ids)
+        .id(&compilation.chunk_ids_artifact)
         .expect("should have chunk.id"),
     )
     .expect("should able to json stringify");
@@ -628,8 +634,11 @@ pub fn block_promise(
         .map(|c| format!(
           "{}({}{})",
           RuntimeGlobals::ENSURE_CHUNK,
-          serde_json::to_string(c.id(&compilation.chunk_ids).expect("should have chunk.id"))
-            .expect("should able to json stringify"),
+          serde_json::to_string(
+            c.id(&compilation.chunk_ids_artifact)
+              .expect("should have chunk.id")
+          )
+          .expect("should able to json stringify"),
           fetch_priority
             .map(|x| format!(r#", "{x}""#))
             .unwrap_or_default()
@@ -652,7 +661,8 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(id)
-    && let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids, *module_identifier)
+    && let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
   {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     format!(
@@ -690,7 +700,7 @@ fn throw_missing_module_error_function(request: &str) -> String {
 }
 
 pub fn throw_missing_module_error_block(request: &str) -> String {
-  let e = format!("Cannot find module '{}'", request);
+  let e = format!("Cannot find module '{request}'");
   format!(
     "var e = new Error({}); e.code = 'MODULE_NOT_FOUND'; throw e;",
     json!(e)

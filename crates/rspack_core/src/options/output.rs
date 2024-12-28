@@ -1,7 +1,6 @@
 use std::sync::LazyLock;
 use std::{borrow::Cow, fmt::Debug, hash::Hash, str::FromStr, string::ParseError};
 
-use derivative::Derivative;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
@@ -97,15 +96,6 @@ pub struct TrustedTypes {
 pub enum ChunkLoading {
   Enable(ChunkLoadingType),
   Disable,
-}
-
-impl From<&str> for ChunkLoading {
-  fn from(value: &str) -> Self {
-    match value {
-      "false" => ChunkLoading::Disable,
-      v => ChunkLoading::Enable(v.into()),
-    }
-  }
 }
 
 impl From<ChunkLoading> for String {
@@ -211,13 +201,12 @@ impl std::fmt::Display for CrossOriginLoading {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       CrossOriginLoading::Disable => write!(f, "false"),
-      CrossOriginLoading::Enable(value) => write!(f, "\"{}\"", value),
+      CrossOriginLoading::Enable(value) => write!(f, "\"{value}\""),
     }
   }
 }
 
-#[derive(Derivative, Default, Clone, Copy)]
-#[derivative(Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct PathData<'a> {
   pub filename: Option<&'a str>,
   pub chunk_name: Option<&'a str>,

@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fs, sync::Arc};
 
 use cow_utils::CowUtils;
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::define_hook;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
@@ -47,8 +47,7 @@ pub enum AfterResolveResult {
   Data(Box<AfterResolveData>),
 }
 
-#[derive(Derivative)]
-#[derivative(Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct AfterResolveData {
   pub compilation_id: CompilationId,
   pub resource: Utf8PathBuf,
@@ -72,7 +71,7 @@ pub struct AfterResolveData {
   // type_prefix: String,
   // category: String,
   // referenced_exports
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub resolve_dependencies: ResolveContextModuleDependencies,
 }
 
@@ -85,12 +84,11 @@ pub struct ContextModuleFactoryHooks {
   pub after_resolve: ContextModuleFactoryAfterResolveHook,
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct ContextModuleFactory {
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   resolve_dependencies: ResolveContextModuleDependencies,
 }
 
@@ -408,7 +406,7 @@ fn visit_dirs(
       if options.context_options.recursive {
         visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
       }
-    } else if path.file_name().map_or(false, |name| name.starts_with('.')) {
+    } else if path.file_name().is_some_and(|name| name.starts_with('.')) {
       // ignore hidden files
       continue;
     } else {
@@ -523,7 +521,7 @@ fn alternative_requests(
     items.push(item.clone());
     for module in resolve_options.modules() {
       let dir = module.cow_replace('\\', "/");
-      if item.request.starts_with(&format!("./{}/", dir)) {
+      if item.request.starts_with(&format!("./{dir}/")) {
         items.push(AlternativeRequest::new(
           item.context.clone(),
           item.request[dir.len() + 3..].to_string(),

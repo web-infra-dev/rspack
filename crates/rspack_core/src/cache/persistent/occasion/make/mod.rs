@@ -4,7 +4,7 @@ mod module_graph;
 
 use std::sync::Arc;
 
-use rspack_cacheable::DeserializeError;
+use rspack_error::Result;
 
 use super::super::{cacheable_context::CacheableContext, Storage};
 use crate::make::MakeArtifact;
@@ -48,8 +48,7 @@ impl MakeOccasion {
       missing_dependencies,
       build_dependencies,
       &self.storage,
-    )
-    .expect("should save dependencies success");
+    );
 
     module_graph::save_module_graph(
       module_graph_partial,
@@ -59,31 +58,35 @@ impl MakeOccasion {
       &self.context,
     );
 
-    meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage)
-      .expect("should save make meta");
+    meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage);
   }
 
   #[tracing::instrument(name = "MakeOccasion::recovery", skip_all)]
-  pub fn recovery(&self) -> Result<MakeArtifact, DeserializeError> {
+  pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
+    // TODO can call recovery with multi thread
+    // TODO return DeserializeError not panic
     let (file_dependencies, context_dependencies, missing_dependencies, build_dependencies) =
-      dependencies::recovery_dependencies_info(&self.storage)?;
+      dependencies::recovery_dependencies_info(&self.storage).await?;
     artifact.file_dependencies = file_dependencies;
     artifact.context_dependencies = context_dependencies;
     artifact.missing_dependencies = missing_dependencies;
     artifact.build_dependencies = build_dependencies;
 
-    let (make_failed_dependencies, make_failed_module) = meta::recovery_meta(&self.storage)?;
+    let (make_failed_dependencies, make_failed_module) = meta::recovery_meta(&self.storage).await?;
     artifact.make_failed_dependencies = make_failed_dependencies;
     artifact.make_failed_module = make_failed_module;
 
     let (partial, make_failed_dependencies) =
-      module_graph::recovery_module_graph(&self.storage, &self.context)?;
+      module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
     artifact
       .make_failed_dependencies
       .extend(make_failed_dependencies);
+
+    // TODO remove it after code splitting support incremental rebuild
+    artifact.has_module_graph_change = true;
 
     Ok(artifact)
   }

@@ -158,7 +158,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   } = code_generatable_context;
   let ref_module = module_graph.module_identifier_by_dependency_id(module_dependency.id());
   let import_var = compilation.get_import_var(module_dependency.id());
-  //
+
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = ref_module
     .map(|i| i.as_str())
@@ -404,7 +404,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    Some(self.range.to_loc(self.source_map.as_ref()))
+    self.range.to_loc(self.source_map.as_ref())
   }
 
   fn range(&self) -> Option<&DependencyRange> {
@@ -479,10 +479,6 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
 
 #[cacheable_dyn]
 impl ModuleDependency for ESMImportSideEffectDependency {
-  fn is_export_all(&self) -> Option<bool> {
-    Some(self.export_all)
-  }
-
   fn request(&self) -> &str {
     &self.request
   }

@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_core::{Chunk, Compilation, Module, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -41,7 +41,7 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 }
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
-  Arc::new(move |chunk, _| Ok(chunk.name().map_or(false, |name| re.test(name))))
+  Arc::new(move |chunk, _| Ok(chunk.name().is_some_and(|name| re.test(name))))
 }
 
 #[derive(Debug, Default, Clone)]
@@ -122,6 +122,10 @@ impl SplitChunkSizes {
   pub fn add_by(&mut self, other: &Self) {
     self.combine_with(other, &|a, b| a + b)
   }
+
+  pub fn subtract_by(&mut self, other: &Self) {
+    self.combine_with(other, &|a, b| a - b)
+  }
 }
 
 impl Deref for SplitChunkSizes {
@@ -138,10 +142,9 @@ impl DerefMut for SplitChunkSizes {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct FallbackCacheGroup {
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub chunks_filter: ChunkFilter,
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,

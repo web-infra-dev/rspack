@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 let first_asset_mtime;
 
@@ -18,7 +18,7 @@ module.exports = {
     };
   },
   async build(context, compiler) {
-    rimraf.sync(context.getDist());
+    rimrafSync(context.getDist());
     await new Promise(resolve => {
       compiler.run(() => {
         first_asset_mtime = fs.statSync(path.join(context.getDist("main.js")))?.mtime;

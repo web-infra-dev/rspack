@@ -1,4 +1,3 @@
-use std::ffi::CStr;
 use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::ptr;
@@ -47,7 +46,7 @@ impl<Resolver: FnOnce(Env)> JsCallback<Resolver> {
   /// The provided `env` must be a valid `napi_env`.
   pub unsafe fn new(env: sys::napi_env) -> Result<Self> {
     let mut async_resource_name = ptr::null_mut();
-    let s = unsafe { CStr::from_bytes_with_nul_unchecked(b"napi_js_callback\0") };
+    let s = c"napi_js_callback";
     check_status!(
       unsafe { sys::napi_create_string_utf8(env, s.as_ptr(), 16, &mut async_resource_name) },
       "Create async resource name in JsCallback failed"

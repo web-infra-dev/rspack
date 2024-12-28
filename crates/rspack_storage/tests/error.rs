@@ -1,22 +1,22 @@
 #[cfg(test)]
-#[cfg_attr(miri, ignore)]
 mod test_storage_error {
   use std::{path::PathBuf, sync::Arc};
 
-  use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-  use rspack_storage::{PackBridgeFS, PackFS, PackStorage, PackStorageOptions, Storage};
+  use rspack_storage::{
+    BridgeFileSystem, FileSystem, PackStorage, PackStorageOptions, Result, Storage,
+  };
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
-      .join("./rspack_test/storage/test_storage_error")
+      .join("rspack_test/storage/test_storage_error")
       .join(p);
     (base.join("cache"), base.join("temp"))
   }
 
   pub fn get_memory_path(p: &str) -> (PathBuf, PathBuf) {
-    let base = PathBuf::from("/test_storage_error/").join(p);
+    let base = PathBuf::from("/rspack_test/storage/test_storage_error/").join(p);
     (base.join("cache"), base.join("temp"))
   }
 
@@ -24,7 +24,7 @@ mod test_storage_error {
     root: &Utf8PathBuf,
     temp_root: &Utf8PathBuf,
     version: &str,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn FileSystem>,
   ) -> PackStorageOptions {
     PackStorageOptions {
       version: version.to_string(),
@@ -35,12 +35,14 @@ mod test_storage_error {
       pack_size: 200,
       expire: 7 * 24 * 60 * 60 * 1000,
       clean: true,
+      fresh_generation: Some(1),
+      release_generation: Some(2),
     }
   }
 
   async fn test_initial_error(
     root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -63,7 +65,7 @@ mod test_storage_error {
 
   async fn test_recovery_invalid_meta(
     root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -93,7 +95,7 @@ mod test_storage_error {
   async fn get_first_pack(
     scope_name: &str,
     meta_path: &Utf8Path,
-    fs: &dyn PackFS,
+    fs: &dyn FileSystem,
   ) -> Result<Utf8PathBuf> {
     let mut reader = fs.read_file(meta_path).await?;
     reader.read_line().await?;
@@ -113,7 +115,7 @@ mod test_storage_error {
 
   async fn test_recovery_remove_pack(
     root: &Utf8PathBuf,
-    fs: Arc<dyn PackFS>,
+    fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -127,7 +129,7 @@ mod test_storage_error {
     // test
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()
-        .contains("validation failed due to some packs are modified")
+        .contains("validate scope `test_scope` failed due to some packs are modified")
     }));
 
     // resume
@@ -140,7 +142,7 @@ mod test_storage_error {
 
   async fn test_recovery_modified_pack(
     _root: &Utf8PathBuf,
-    _fs: Arc<dyn PackFS>,
+    _fs: Arc<dyn FileSystem>,
     options: PackStorageOptions,
   ) -> Result<()> {
     let storage = PackStorage::new(options);
@@ -148,22 +150,23 @@ mod test_storage_error {
     // test
     assert!(storage.load("test_scope").await.is_err_and(|e| {
       e.to_string()
-        .contains("validation failed due to some packs are modified")
+        .contains("validate scope `test_scope` failed due to some packs are modified")
     }));
 
     Ok(())
   }
 
   #[tokio::test]
+  #[cfg_attr(miri, ignore)]
   async fn test_error() {
     let cases = [
       (
-        get_native_path("test_recovery_native"),
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        get_native_path("test_error_native"),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
       ),
       (
-        get_memory_path("test_recovery_memory"),
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        get_memory_path("test_error_memory"),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
       ),
     ];
     let version = "xxx".to_string();

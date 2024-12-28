@@ -299,12 +299,12 @@ impl PluginCssExtract {
     (result, conflicts)
   }
 
-  async fn render_content_asset<'comp>(
+  async fn render_content_asset(
     &self,
     chunk: &Chunk,
     rendered_modules: &[&dyn Module],
     filename: &str,
-    compilation: &'comp Compilation,
+    compilation: &'_ Compilation,
   ) -> (BoxSource, Vec<Diagnostic>) {
     let module_graph = compilation.get_module_graph();
     // mini-extract-plugin has different conflict order in some cases,
@@ -330,7 +330,9 @@ despite it was not able to fulfill desired ordering with these modules:
 {}"#,
             chunk
               .name()
-              .or_else(|| chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+              .or_else(|| chunk
+                .id(&compilation.chunk_ids_artifact)
+                .map(|id| id.as_str()))
               .unwrap_or_default(),
             fallback_module.readable_identifier(&compilation.options.context),
             conflict
@@ -526,7 +528,7 @@ fn runtime_requirement_in_tree(
         |_| false,
         move |chunk, compilation| {
           chunk
-            .content_hash(&compilation.chunk_hashes_results)?
+            .content_hash(&compilation.chunk_hashes_artifact)?
             .contains_key(&SOURCE_TYPE[0])
             .then(|| {
               if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
@@ -622,14 +624,18 @@ async fn render_manifest(
   let filename = compilation.get_path_with_info(
     filename_template,
     PathData::default()
-      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str()))
+      .chunk_id_optional(
+        chunk
+          .id(&compilation.chunk_ids_artifact)
+          .map(|id| id.as_str()),
+      )
       .chunk_hash_optional(chunk.rendered_hash(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         compilation.options.output.hash_digest_length,
       ))
-      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids))
+      .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact))
       .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-        &compilation.chunk_hashes_results,
+        &compilation.chunk_hashes_artifact,
         &SOURCE_TYPE[0],
         compilation.options.output.hash_digest_length,
       )),

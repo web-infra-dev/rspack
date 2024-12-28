@@ -1,7 +1,6 @@
 use std::hash::Hasher;
 
 use itertools::Itertools;
-use rspack_error::Result;
 use rustc_hash::FxHasher;
 
 use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
@@ -9,43 +8,50 @@ use crate::pack::data::{Pack, PackContents, PackFileMeta, PackKeys, PackScope};
 pub type PackIndexList = Vec<(usize, usize)>;
 pub type PackInfoList<'a> = Vec<(&'a PackFileMeta, &'a Pack)>;
 
+pub fn flag_scope_wrote(scope: &mut PackScope) {
+  let scope_meta = scope.meta.expect_value_mut();
+  for bucket in scope_meta.packs.iter_mut() {
+    for pack in bucket {
+      pack.wrote = true;
+    }
+  }
+}
+
 pub fn get_indexed_packs<'a>(
   scope: &'a PackScope,
   filter: Option<&dyn Fn(&'a Pack, &'a PackFileMeta) -> bool>,
-) -> Result<(PackIndexList, PackInfoList<'a>)> {
+) -> (PackIndexList, PackInfoList<'a>) {
   let meta = scope.meta.expect_value();
   let packs = scope.packs.expect_value();
 
-  Ok(
-    meta
-      .packs
-      .iter()
-      .enumerate()
-      .flat_map(|(bucket_id, pack_meta_list)| {
-        let bucket_packs = packs.get(bucket_id).expect("should have bucket packs");
-        pack_meta_list
-          .iter()
-          .enumerate()
-          .map(|(pack_pos, pack_meta)| {
+  meta
+    .packs
+    .iter()
+    .enumerate()
+    .flat_map(|(bucket_id, pack_meta_list)| {
+      let bucket_packs = packs.get(bucket_id).expect("should have bucket packs");
+      pack_meta_list
+        .iter()
+        .enumerate()
+        .map(|(pack_pos, pack_meta)| {
+          (
+            (bucket_id, pack_pos),
             (
-              (bucket_id, pack_pos),
-              (
-                pack_meta,
-                bucket_packs.get(pack_pos).expect("should have bucket pack"),
-              ),
-            )
-          })
-          .collect_vec()
-      })
-      .filter(|(_, (pack_meta, pack))| {
-        if let Some(filter) = filter {
-          filter(pack, pack_meta)
-        } else {
-          true
-        }
-      })
-      .unzip(),
-  )
+              pack_meta,
+              bucket_packs.get(pack_pos).expect("should have bucket pack"),
+            ),
+          )
+        })
+        .collect_vec()
+    })
+    .filter(|(_, (pack_meta, pack))| {
+      if let Some(filter) = filter {
+        filter(pack, pack_meta)
+      } else {
+        true
+      }
+    })
+    .unzip()
 }
 
 pub fn get_name(keys: &PackKeys, _: &PackContents) -> String {
@@ -68,21 +74,24 @@ pub mod test_pack_utils {
   use std::sync::Arc;
 
   use itertools::Itertools;
-  use rspack_error::Result;
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
+  use super::flag_scope_wrote;
   use crate::{
+    error::Result,
     pack::{
       data::{current_time, PackOptions, PackScope},
-      fs::PackFS,
-      strategy::{ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy, WriteScopeResult},
+      strategy::{
+        split::handle_file::prepare_scope, ScopeUpdate, ScopeWriteStrategy, SplitPackStrategy,
+        WriteScopeResult,
+      },
     },
-    PackBridgeFS,
+    BridgeFileSystem, FileSystem,
   };
 
-  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn PackFS) -> Result<()> {
+  pub async fn mock_root_meta_file(path: &Utf8Path, fs: &dyn FileSystem) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
@@ -95,15 +104,22 @@ pub mod test_pack_utils {
 
   pub async fn mock_scope_meta_file(
     path: &Utf8Path,
-    fs: &dyn PackFS,
+    fs: &dyn FileSystem,
     options: &PackOptions,
     pack_count: usize,
   ) -> Result<()> {
+    let generation = 1_usize;
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
     writer
-      .write_line(format!("{} {}", options.bucket_size, options.pack_size).as_str())
+      .write_line(
+        format!(
+          "{} {} {}",
+          options.bucket_size, options.pack_size, generation
+        )
+        .as_str(),
+      )
       .await?;
     for bucket_id in 0..options.bucket_size {
       let mut pack_meta_list = vec![];
@@ -111,7 +127,10 @@ pub mod test_pack_utils {
         let pack_name = format!("pack_name_{}_{}", bucket_id, pack_no);
         let pack_hash = format!("pack_hash_{}_{}", bucket_id, pack_no);
         let pack_size = 100;
-        pack_meta_list.push(format!("{},{},{}", pack_name, pack_hash, pack_size));
+        pack_meta_list.push(format!(
+          "{},{},{},{}",
+          pack_name, pack_hash, pack_size, generation
+        ));
       }
       writer.write_line(pack_meta_list.join(" ").as_str()).await?;
     }
@@ -125,13 +144,14 @@ pub mod test_pack_utils {
     path: &Utf8Path,
     unique_id: &str,
     item_count: usize,
-    fs: &dyn PackFS,
+    fs: &dyn FileSystem,
   ) -> Result<()> {
     fs.ensure_dir(path.parent().expect("should have parent"))
       .await?;
     let mut writer = fs.write_file(path).await?;
     let mut keys = vec![];
     let mut contents = vec![];
+    let generations = vec![1_usize; item_count];
     for i in 0..item_count {
       keys.push(format!("key_{}_{}", unique_id, i).as_bytes().to_vec());
       contents.push(format!("val_{}_{}", unique_id, i).as_bytes().to_vec());
@@ -141,6 +161,9 @@ pub mod test_pack_utils {
       .await?;
     writer
       .write_line(contents.iter().map(|k| k.len()).join(" ").as_str())
+      .await?;
+    writer
+      .write_line(generations.into_iter().join(" ").as_str())
       .await?;
     for key in keys {
       writer.write(&key).await?;
@@ -215,7 +238,7 @@ pub mod test_pack_utils {
       .expect("should remove dir");
   }
 
-  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  pub async fn flush_file_mtime(path: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
     let content = fs.read_file(path).await?.read_to_end().await?;
     fs.write_file(path).await?.write_all(&content).await?;
 
@@ -226,15 +249,21 @@ pub mod test_pack_utils {
     scope: &mut PackScope,
     strategy: &SplitPackStrategy,
   ) -> Result<WriteScopeResult> {
-    let mut res = WriteScopeResult::default();
-    strategy.before_write(scope).await?;
-    res.extend(strategy.write_packs(scope).await?);
-    res.extend(strategy.write_meta(scope).await?);
-    strategy
-      .after_write(scope, res.wrote_files.clone(), res.removed_files.clone())
-      .await?;
-    strategy.after_all(scope)?;
-    Ok(res)
+    prepare_scope(
+      &scope.path,
+      &strategy.root,
+      &strategy.temp_root,
+      strategy.fs.clone(),
+    )
+    .await?;
+
+    let mut changed = WriteScopeResult::default();
+    changed.extend(strategy.write_packs(scope).await?);
+    changed.extend(strategy.write_meta(scope).await?);
+    strategy.merge_changed(changed.clone()).await?;
+    flag_scope_wrote(scope);
+
+    Ok(changed)
   }
 
   pub fn get_native_path(p: &str) -> Utf8PathBuf {
@@ -251,17 +280,25 @@ pub mod test_pack_utils {
   pub fn create_strategies(case: &str) -> Vec<SplitPackStrategy> {
     let fs = [
       (
-        Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default()))),
+        Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default()))),
         get_memory_path(case),
       ),
       (
-        Arc::new(PackBridgeFS(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
         get_native_path(case),
       ),
     ];
 
     fs.into_iter()
-      .map(|(fs, root)| SplitPackStrategy::new(root.join("cache"), root.join("temp"), fs.clone()))
+      .map(|(fs, root)| {
+        SplitPackStrategy::new(
+          root.join("cache"),
+          root.join("temp"),
+          fs.clone(),
+          Some(1_usize),
+          Some(2_usize),
+        )
+      })
       .collect_vec()
   }
 }

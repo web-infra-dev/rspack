@@ -4,6 +4,7 @@ mod strategy;
 use std::{path::Path, sync::Arc};
 
 use rspack_cacheable::{from_bytes, to_bytes};
+use rspack_error::Result;
 use rspack_fs::FileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
@@ -21,15 +22,10 @@ const SCOPE: &str = "snapshot";
 #[derive(Debug)]
 pub struct Snapshot {
   options: SnapshotOptions,
-  // TODO
-  // 1. update compiler.input_file_system to async file system
-  // 2. update this fs to AsyncReadableFileSystem
-  // 3. update add/calc_modified_files to async fn
   fs: Arc<dyn FileSystem>,
   storage: Arc<dyn Storage>,
 }
 
-// TODO remove all of `.expect()` to return error
 impl Snapshot {
   pub fn new(options: SnapshotOptions, fs: Arc<dyn FileSystem>, storage: Arc<dyn Storage>) -> Self {
     Self {
@@ -39,20 +35,24 @@ impl Snapshot {
     }
   }
 
-  pub fn add(&self, paths: impl Iterator<Item = &Path>) {
+  pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
     let default_strategy = StrategyHelper::compile_time();
     let mut helper = StrategyHelper::new(self.fs.clone());
     // TODO use multi thread
     // TODO merge package version file
     for path in paths {
-      // TODO check path exists
-      // TODO directory check all sub file
-      let path_str = path.assert_utf8().as_str();
+      let utf8_path = path.assert_utf8();
+      // check path exists
+      if self.fs.metadata(utf8_path).is_err() {
+        continue;
+      }
+      // TODO directory path should check all sub file
+      let path_str = utf8_path.as_str();
       if self.options.is_immutable_path(path_str) {
         continue;
       }
       if self.options.is_managed_path(path_str) {
-        if let Some(v) = helper.package_version(path) {
+        if let Some(v) = helper.package_version(path).await {
           self.storage.set(
             SCOPE,
             path.as_os_str().as_encoded_bytes().to_vec(),
@@ -78,17 +78,17 @@ impl Snapshot {
     }
   }
 
-  pub fn calc_modified_paths(&self) -> (HashSet<ArcPath>, HashSet<ArcPath>) {
+  pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
     let mut helper = StrategyHelper::new(self.fs.clone());
     let mut modified_path = HashSet::default();
     let mut deleted_path = HashSet::default();
 
     // TODO use multi thread
-    for (key, value) in self.storage.load(SCOPE) {
+    for (key, value) in self.storage.load(SCOPE).await? {
       let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
       let strategy: Strategy =
         from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
-      match helper.validate(&path, &strategy) {
+      match helper.validate(&path, &strategy).await {
         ValidateResult::Modified => {
           modified_path.insert(path);
         }
@@ -98,7 +98,7 @@ impl Snapshot {
         ValidateResult::NoChanged => {}
       }
     }
-    (modified_path, deleted_path)
+    Ok((modified_path, deleted_path))
   }
 }
 
@@ -108,7 +108,7 @@ mod tests {
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 
-  use super::super::MemoryStorage;
+  use super::super::storage::MemoryStorage;
   use super::{PathMatcher, Snapshot, SnapshotOptions};
 
   macro_rules! p {
@@ -156,15 +156,17 @@ mod tests {
 
     let snapshot = Snapshot::new(options, fs.clone(), storage);
 
-    snapshot.add(
-      [
-        p!("/file1"),
-        p!("/constant"),
-        p!("/node_modules/project/file1"),
-        p!("/node_modules/lib/file1"),
-      ]
-      .into_iter(),
-    );
+    snapshot
+      .add(
+        [
+          p!("/file1"),
+          p!("/constant"),
+          p!("/node_modules/project/file1"),
+          p!("/node_modules/lib/file1"),
+        ]
+        .into_iter(),
+      )
+      .await;
     std::thread::sleep(std::time::Duration::from_millis(100));
     fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
     fs.write("/constant".into(), "abcd".as_bytes())
@@ -177,7 +179,7 @@ mod tests {
       .await
       .unwrap();
 
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths();
+    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
     assert!(modified_paths.contains(p!("/file1")));
@@ -190,8 +192,8 @@ mod tests {
     )
     .await
     .unwrap();
-    snapshot.add([p!("/file1")].into_iter());
-    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths();
+    snapshot.add([p!("/file1")].into_iter()).await;
+    let (modified_paths, deleted_paths) = snapshot.calc_modified_paths().await.unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(p!("/constant")));
     assert!(!modified_paths.contains(p!("/file1")));

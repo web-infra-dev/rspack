@@ -8,8 +8,7 @@ use rspack_util::ext::DynHash;
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleArgumentDependency {
-  #[cacheable(with=Skip)]
-  id: Option<&'static str>,
+  id: Option<String>,
   range: DependencyRange,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
@@ -17,7 +16,7 @@ pub struct ModuleArgumentDependency {
 
 impl ModuleArgumentDependency {
   pub fn new(
-    id: Option<&'static str>,
+    id: Option<String>,
     range: DependencyRange,
     source_map: Option<SharedSourceMap>,
   ) -> Self {
@@ -29,7 +28,7 @@ impl ModuleArgumentDependency {
   }
 
   pub fn loc(&self) -> Option<DependencyLocation> {
-    Some(self.range.to_loc(self.source_map.as_ref()))
+    self.range.to_loc(self.source_map.as_ref())
   }
 }
 
@@ -55,7 +54,7 @@ impl DependencyTemplate for ModuleArgumentDependency {
       .expect("should have mgm")
       .get_module_argument();
 
-    let content = if let Some(id) = self.id {
+    let content = if let Some(id) = &self.id {
       format!("{module_argument}.{id}")
     } else {
       format!("{module_argument}")

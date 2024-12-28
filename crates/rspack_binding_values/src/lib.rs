@@ -1,4 +1,6 @@
+#![feature(let_chains)]
 #![feature(try_blocks)]
+
 mod asset;
 mod asset_condition;
 mod chunk;
@@ -16,9 +18,12 @@ mod html;
 mod identifier;
 mod module;
 mod module_graph;
+mod module_graph_connection;
 mod normal_module_factory;
 mod options;
 mod path_data;
+mod plugins;
+mod raw_options;
 mod resolver;
 mod resource_data;
 mod rspack_error;
@@ -43,9 +48,13 @@ pub use filename::*;
 pub use html::*;
 pub use module::*;
 pub use module_graph::*;
+pub use module_graph_connection::*;
 pub use normal_module_factory::*;
 pub use options::*;
 pub use path_data::*;
+pub use plugins::buildtime_plugins;
+pub(crate) use plugins::*;
+pub use raw_options::*;
 pub use resolver::*;
 pub use resource_data::*;
 pub use rspack_error::*;

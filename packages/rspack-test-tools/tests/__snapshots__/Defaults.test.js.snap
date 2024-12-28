@@ -18,7 +18,7 @@ Object {
   },
   experiments: Object {
     asyncWebAssembly: false,
-    cache: true,
+    cache: false,
     css: undefined,
     futureDefaults: false,
     incremental: Object {
@@ -36,6 +36,7 @@ Object {
       modulesHashes: false,
       modulesRuntimeRequirements: false,
       providedExports: false,
+      sideEffects: false,
     },
     layers: false,
     lazyCompilation: false,
@@ -192,6 +193,9 @@ Object {
         wrappedContextCritical: false,
         wrappedContextRegExp: /\\.\\*/,
       },
+      json: Object {
+        exportsDepth: 9007199254740991,
+      },
     },
     rules: Array [],
   },
@@ -202,6 +206,7 @@ Object {
     global: warn,
   },
   optimization: Object {
+    avoidEntryIife: false,
     chunkIds: natural,
     concatenateModules: false,
     emitOnErrors: true,

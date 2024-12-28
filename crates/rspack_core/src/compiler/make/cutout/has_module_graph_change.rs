@@ -61,8 +61,9 @@ impl ModuleDeps {
         dep.dependency_type(),
         crate::DependencyType::EsmImportSpecifier
       ) {
-        let dep_ids = dep.get_ids(module_graph);
-        ids.extend(dep_ids.into_iter());
+        // TODO: remove Dependency::get_ids once incremental build chunk graph is stable.
+        let dep_ids = dep._get_ids(module_graph);
+        ids.extend(dep_ids.iter().cloned());
       }
     }
 
@@ -142,13 +143,12 @@ impl HasModuleGraphChange {
 mod t {
   use std::borrow::Cow;
 
-  use itertools::Itertools;
   use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
   use rspack_macros::impl_source_map_config;
   use rspack_sources::Source;
-  use rspack_util::source_map::SourceMapKind;
+  use rspack_util::{atom::Atom, source_map::SourceMapKind};
 
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
@@ -162,12 +162,12 @@ mod t {
   #[derive(Debug, Clone)]
   struct TestDep {
     #[cacheable(with=Skip)]
-    ids: Vec<&'static str>,
+    ids: Vec<Atom>,
     id: DependencyId,
   }
 
   impl TestDep {
-    fn new(ids: Vec<&'static str>) -> Self {
+    fn new(ids: Vec<Atom>) -> Self {
       Self {
         ids,
         id: DependencyId::new(),
@@ -187,12 +187,8 @@ mod t {
       &self.id
     }
 
-    fn get_ids(&self, _mg: &ModuleGraph) -> Vec<swc_core::atoms::Atom> {
-      self
-        .ids
-        .iter()
-        .map(|id| (*id).to_string().into())
-        .collect_vec()
+    fn _get_ids<'a>(&'a self, _mg: &'a ModuleGraph) -> &'a [Atom] {
+      &self.ids
     }
 
     fn could_affect_referencing_module(&self) -> AffectType {
@@ -354,7 +350,7 @@ mod t {
     let mut partial = ModuleGraphPartial::default();
     let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
 
-    let dep1 = Box::new(TestDep::new(vec!["foo"]));
+    let dep1 = Box::new(TestDep::new(vec!["foo".into()]));
     let dep1_id = *dep1.id();
     let module_orig = Box::new(TestModule::new("app", vec![dep1_id]));
     let module_orig_id = module_orig.identifier();
@@ -374,7 +370,7 @@ mod t {
 
     assert_eq!(module_deps_1, module_deps_2);
 
-    let dep2 = Box::new(TestDep::new(vec!["bar"]));
+    let dep2 = Box::new(TestDep::new(vec!["bar".into()]));
     let dep2_id = *dep2.id();
     let module_orig: &mut TestModule = mg
       .module_by_identifier_mut(&module_orig_id)

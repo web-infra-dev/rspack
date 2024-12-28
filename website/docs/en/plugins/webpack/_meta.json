@@ -3,6 +3,8 @@
   "banner-plugin",
   "context-replacement-plugin",
   "define-plugin",
+  "dll-plugin",
+  "dll-reference-plugin",
   "electron-target-plugin",
   "enable-chunk-loading-plugin",
   "enable-library-plugin",
@@ -26,7 +28,6 @@
   "runtime-chunk-plugin",
   "source-map-dev-tool-plugin",
   "split-chunks-plugin",
-  "internal-plugins",
-  "dll-plugin",
-  "dll-reference-plugin"
+  "warn-case-sensitive-modules-plugin",
+  "internal-plugins"
 ]

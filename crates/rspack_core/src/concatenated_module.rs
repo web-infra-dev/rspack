@@ -47,11 +47,11 @@ use crate::{
   ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationExportsFinalNames, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfo, ExportInfoProvided, ExportsArgument,
-  ExportsType, FactoryMeta, IdentCollector, LibIdentOptions, Module, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
-  NAMESPACE_OBJECT_EXPORT,
+  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType,
+  FactoryMeta, IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
+  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -754,7 +754,7 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, &format!(": {}", new_name), None);
+                  source.insert(high, &format!(": {new_name}"), None);
                   continue;
                 }
 
@@ -1195,11 +1195,7 @@ impl Module for ConcatenatedModule {
       match info {
         ModuleInfo::Concatenated(info) => {
           result.add(RawStringSource::from(
-            format!(
-              "\n;// CONCATENATED MODULE: {}\n",
-              module_readable_identifier
-            )
-            .as_str(),
+            format!("\n;// CONCATENATED MODULE: {module_readable_identifier}\n").as_str(),
           ));
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
           result.add(info.source.clone().expect("should have source"));
@@ -1213,8 +1209,7 @@ impl Module for ConcatenatedModule {
         }
         ModuleInfo::External(info) => {
           result.add(RawStringSource::from(format!(
-            "\n// EXTERNAL MODULE: {}\n",
-            module_readable_identifier
+            "\n// EXTERNAL MODULE: {module_readable_identifier}\n"
           )));
 
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -1230,7 +1225,7 @@ impl Module for ConcatenatedModule {
 
           if condition != "true" {
             is_conditional = true;
-            result.add(RawStringSource::from(format!("if ({}) {{\n", condition)));
+            result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
           }
 
           result.add(RawStringSource::from(format!(
@@ -1238,7 +1233,7 @@ impl Module for ConcatenatedModule {
             info.name.as_ref().expect("should have name"),
             RuntimeGlobals::REQUIRE,
             serde_json::to_string(
-              ChunkGraph::get_module_id(&compilation.module_ids, info.module)
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                 .expect("should have module id")
             )
             .expect("should json stringify module id")
@@ -1350,7 +1345,7 @@ impl Module for ConcatenatedModule {
           .update_hash(hasher, compilation, generation_runtime)?,
         ConcatenationEntry::External(e) => {
           ChunkGraph::get_module_id(
-            &compilation.module_ids,
+            &compilation.module_ids_artifact,
             e.module(&compilation.get_module_graph()),
           )
           .dyn_hash(hasher);
@@ -1704,7 +1699,7 @@ impl ConcatenatedModule {
       let module_graph = compilation.get_module_graph();
       let module = module_graph
         .module_by_identifier(&module_id)
-        .unwrap_or_else(|| panic!("should have module {}", module_id));
+        .unwrap_or_else(|| panic!("should have module {module_id}"));
       let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
       let CodeGenerationResult {
         mut inner,
@@ -1850,7 +1845,7 @@ impl ConcatenatedModule {
             info
               .internal_names
               .iter()
-              .map(|(name, symbol)| format!("{}: {}", name, symbol))
+              .map(|(name, symbol)| format!("{name}: {symbol}"))
               .collect::<Vec<String>>()
               .join(", ")
           )
@@ -1867,11 +1862,11 @@ impl ConcatenatedModule {
     };
     if is_property_access && as_call && !call_context {
       return if asi_safe.unwrap_or_default() {
-        format!("(0,{})", reference)
+        format!("(0,{reference})")
       } else if let Some(_asi_safe) = asi_safe {
-        format!(";(0,{})", reference)
+        format!(";(0,{reference})")
       } else {
-        format!("/*#__PURE__*/Object({})", reference)
+        format!("/*#__PURE__*/Object({reference})")
       };
     }
     reference
@@ -1888,7 +1883,7 @@ impl ConcatenatedModule {
     as_call: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<ExportInfo>,
+    already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Binding {
     let info = module_to_info_map
       .get(info_id)
@@ -1989,13 +1984,13 @@ impl ConcatenatedModule {
               .cloned()
               .expect("should have default access name");
             let default_export = if as_call {
-              format!("{}()", default_access_name)
+              format!("{default_access_name}()")
             } else if let Some(true) = asi_safe {
-              format!("({}())", default_access_name)
+              format!("({default_access_name}())")
             } else if let Some(false) = asi_safe {
-              format!(";({}())", default_access_name)
+              format!(";({default_access_name}())")
             } else {
-              format!("{}.a", default_access_name)
+              format!("{default_access_name}.a")
             };
 
             return Binding::Raw(RawBinding {
@@ -2048,11 +2043,12 @@ impl ConcatenatedModule {
     }
 
     let exports_info = mg.get_exports_info(&info.id());
-    // webpack use get_exports_info here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
-    // But in our arch, there is no way to modify module graph during code_generation phase
-    let export_info = exports_info.get_read_only_export_info(mg, &export_name[0]);
+    // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
+    // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
+    let export_info = exports_info.get_export_info_without_mut_module_graph(mg, &export_name[0]);
+    let export_info_hash_key = export_info.as_hash_key();
 
-    if already_visited.contains(&export_info) {
+    if already_visited.contains(&export_info_hash_key) {
       return Binding::Raw(RawBinding {
         raw_name: "/* circular reexport */ Object(function x() { x() }())".into(),
         ids: Vec::new(),
@@ -2062,7 +2058,7 @@ impl ConcatenatedModule {
       });
     }
 
-    already_visited.insert(export_info);
+    already_visited.insert(export_info_hash_key);
 
     match info {
       ModuleInfo::Concatenated(info) => {

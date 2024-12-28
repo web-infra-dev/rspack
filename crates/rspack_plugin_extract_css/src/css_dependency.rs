@@ -23,8 +23,6 @@ pub struct CssDependency {
   pub(crate) identifier_index: u32,
 
   // determine module's postOrderIndex
-  // @TODO(shulaoda) Does this have any additional side effects?
-  // pub(crate) order_index: u32,
   range: DependencyRange,
   resource_identifier: String,
   pub(crate) cacheable: bool,

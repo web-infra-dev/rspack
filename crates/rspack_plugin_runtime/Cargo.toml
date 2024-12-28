@@ -10,7 +10,7 @@ version     = "0.2.0"
 [dependencies]
 async-trait              = { workspace = true }
 cow-utils                = { workspace = true }
-derivative               = { workspace = true }
+derive_more              = { workspace = true, features = ["debug"] }
 indexmap                 = { workspace = true }
 itertools                = { workspace = true }
 rspack_cacheable         = { workspace = true }

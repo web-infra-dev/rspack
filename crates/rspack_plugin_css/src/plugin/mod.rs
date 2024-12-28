@@ -180,9 +180,9 @@ impl CssPlugin {
       // Remove the selected module from all lists
       for SortedModules { set, list } in &mut modules_by_chunk_group {
         let last_module = list.last();
-        if last_module.map_or(false, |last_module| {
-          last_module.identifier() == selected_module.identifier()
-        }) {
+        if last_module
+          .is_some_and(|last_module| last_module.identifier() == selected_module.identifier())
+        {
           list.pop();
           set.remove(&selected_module.identifier());
         } else if has_failed.is_some() && set.contains(&selected_module.identifier()) {

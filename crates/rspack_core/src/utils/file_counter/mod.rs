@@ -53,7 +53,7 @@ impl FileCounter {
         self.inner.remove(path);
       }
     } else {
-      panic!("can not remove file {:?}", path);
+      panic!("can not remove file {path:?}");
     }
   }
 

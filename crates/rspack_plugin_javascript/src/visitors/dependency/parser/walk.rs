@@ -30,7 +30,7 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
 }
 
-impl<'parser> JavascriptParser<'parser> {
+impl JavascriptParser<'_> {
   fn in_block_scope<F>(&mut self, f: F)
   where
     F: FnOnce(&mut Self),

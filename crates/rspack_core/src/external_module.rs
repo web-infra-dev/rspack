@@ -1,8 +1,9 @@
-use std::{borrow::Cow, iter};
+use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -313,7 +314,7 @@ impl ExternalModule {
         }
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
-        let id = ChunkGraph::get_module_id(&compilation.module_ids, self.identifier())
+        let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.identifier())
           .map(|s| s.as_str())
           .expect("should have module id");
         format!(
@@ -334,7 +335,19 @@ impl ExternalModule {
       ),
       "module" if let Some(request) = request => {
         if compilation.options.output.module {
-          let id = to_identifier(&request.primary);
+          let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary {
+            let mut hasher = RspackHash::from(&compilation.options.output);
+            request.primary.hash(&mut hasher);
+            let hash_suffix = hasher.digest(&compilation.options.output.hash_digest);
+            Cow::Owned(format!(
+              "{}_{}",
+              to_identifier(&request.primary),
+              hash_suffix.rendered(8)
+            ))
+          } else {
+            to_identifier(&request.primary)
+          };
+
           chunk_init_fragments.push(
             NormalInitFragment::new(
               format!(
@@ -362,7 +375,7 @@ impl ExternalModule {
           );
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{}__", id);
+            let external_module_id = format!("__WEBPACK_EXTERNAL_MODULE_{id}__");
             let namespace_export_with_name =
               format!("{}{}", NAMESPACE_OBJECT_EXPORT, &external_module_id);
             concatenation_scope.register_namespace_export(&namespace_export_with_name);

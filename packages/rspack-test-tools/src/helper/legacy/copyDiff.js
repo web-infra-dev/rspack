@@ -1,7 +1,7 @@
 // @ts-nocheck
 const fs = require("node:fs");
 const path = require("node:path");
-const rimraf = require("rimraf");
+const { rimrafSync } = require("rimraf");
 
 module.exports = function copyDiff(src, dest, initial) {
 	fs.mkdirSync(dest, { recursive: true });
@@ -17,7 +17,7 @@ module.exports = function copyDiff(src, dest, initial) {
 			if (/^DELETE\s*$/.test(content.toString("utf-8"))) {
 				fs.unlinkSync(destFile);
 			} else if (/^DELETE_DIRECTORY\s*$/.test(content.toString("utf-8"))) {
-				rimraf.sync(destFile);
+				rimrafSync(destFile);
 			} else {
 				fs.writeFileSync(destFile, content);
 				if (initial) {

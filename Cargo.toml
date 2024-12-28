@@ -1,5 +1,3 @@
-cargo-features = ["trim-paths"]
-
 [workspace]
 members  = ["crates/*", "tasks/*"]
 resolver = "2"                     # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
@@ -28,8 +26,8 @@ ignored = [
   "rspack_plugin_merge",
 ]
 [workspace.dependencies]
-anyhow             = { version = "1.0.94", features = ["backtrace"] }
-anymap             = { version = "=1.0.0-beta.2" }
+anyhow             = { version = "1.0.95", features = ["backtrace"] }
+anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-scoped       = { version = "0.9.0" }
 async-trait        = { version = "0.1.83" }
@@ -39,11 +37,11 @@ concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
 css-module-lexer   = { version = "0.0.15" }
 dashmap            = { version = "6.1.0" }
-derivative         = { version = "2.2.0" }
+derive_more        = { version = "1.0.0" }
 either             = { version = "1.13.0" }
 futures            = { version = "0.3.31" }
 glob               = { version = "0.3.1" }
-hashlink           = { version = "0.9.1" }
+hashlink           = { version = "0.10.0" }
 heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.7.0" }
@@ -51,7 +49,7 @@ indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.61" }
-linked_hash_set    = { version = "0.1.4" }
+linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
@@ -61,42 +59,42 @@ path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.3" }
 pollster           = { version = "0.4.0" }
 proc-macro2        = { version = "1.0.92" }
-quote              = { version = "1.0.37" }
+quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
-rspack_resolver    = { version = "0.3.5", features = ["package_json_raw_json_api"] }
-rspack_sources     = { version = "=0.3.6" }
+rspack_resolver    = { version = "0.3.6", features = ["package_json_raw_json_api"] }
+rspack_sources     = { version = "0.4.1" }
 rustc-hash         = { version = "2.1.0" }
-serde              = { version = "1.0.215" }
-serde_json         = { version = "1.0.133" }
-simd-json          = { version = "0.14.0-rc.2" }
+serde              = { version = "1.0.216" }
+serde_json         = { version = "1.0.134" }
+simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.90" }
+syn                = { version = "2.0.92" }
 tokio              = { version = "1.42.0" }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
-unicase            = { version = "2.8.0" }
+unicase            = { version = "2.8.1" }
 url                = { version = "2.5.4" }
 urlencoding        = { version = "2.1.3" }
-ustr               = { package = "ustr-fxhash", version = "1.0.0" }
-xxhash-rust        = { version = "0.8.12" }
+ustr               = { package = "ustr-fxhash", version = "1.0.1" }
+xxhash-rust        = { version = "0.8.14" }
 
 # Pinned
-napi        = { version = "3.0.0-alpha.22" }
-napi-build  = { version = "2.1.3" }
-napi-derive = { version = "3.0.0-alpha.21" }
+napi        = { version = "3.0.0-alpha.24" }
+napi-build  = { version = "2.1.4" }
+napi-derive = { version = "3.0.0-alpha.22" }
 
 # Serialize and Deserialize
 inventory = { version = "=0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=9.0.0" }
+swc                 = { version = "=9.0.1" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=9.0.0", default-features = false }
+swc_core            = { version = "=9.0.2", default-features = false }
 swc_ecma_minifier   = { version = "=6.0.1", default-features = false }
 swc_error_reporters = { version = "=6.0.0" }
 swc_html            = { version = "=6.0.0" }
@@ -112,7 +110,6 @@ rspack_allocator                       = { version = "0.2.0", path = "crates/rsp
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
 rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
-rspack_binding_options                 = { version = "0.2.0", path = "crates/rspack_binding_options" }
 rspack_binding_values                  = { version = "0.2.0", path = "crates/rspack_binding_values" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
 rspack_cacheable                       = { version = "0.2.0", path = "crates/rspack_cacheable" }
@@ -182,6 +179,7 @@ rspack_plugin_wasm                     = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_web_worker_template      = { version = "0.2.0", path = "crates/rspack_plugin_web_worker_template" }
 rspack_plugin_worker                   = { version = "0.2.0", path = "crates/rspack_plugin_worker" }
 rspack_regex                           = { version = "0.2.0", path = "crates/rspack_regex" }
+rspack_storage                         = { version = "0.2.0", path = "crates/rspack_storage" }
 rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc_plugin_import" }
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
@@ -264,6 +262,7 @@ no_effect_underscore_binding = "warn"
 ref_binding_to_reference     = "warn"
 ref_option_ref               = "warn"
 stable_sort_primitive        = "warn"
+uninlined_format_args        = "warn"
 unnecessary_box_returns      = "warn"
 unnecessary_join             = "warn"
 unnested_or_patterns         = "warn"

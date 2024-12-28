@@ -4,215 +4,190 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 <ApiMeta specific={['Rspack']} />
 
-This plugin can be used to compress JS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
+This plugin is used to minify JavaScript files using [SWC](https://swc.rs/).
+
+## Example
+
+Use this plugin via [optimization.minimizer](/config/optimization#optimizationminimizer):
 
 ```js
 module.exports = {
   // ...
   optimization: {
-    minimizer: [new rspack.SwcJsMinimizerRspackPlugin(options)],
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        // options
+      }),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
   },
 };
 ```
 
-- options
+:::tip
+When `optimization.minimizer` is set, the default minimizers are disabled, so we need to add [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to minify CSS files.
+:::
 
-  - **Type:**
+## Options
 
-  For details of each options, please visit [here](https://swc.rs/docs/configuration/minification).
+### test
 
-  ```ts
-  type SwcJsMinimizerRspackPluginOptions = {
-    test?: AssetConditions;
-    exclude?: AssetConditions;
-    include?: AssetConditions;
-    extractComments?: boolean | RegExp;
-    minimizerOptions?: {
-      minify?: boolean;
-      compress?: TerserCompressOptions | boolean;
-      mangle?: TerserMangleOptions | boolean;
-      module?: boolean;
-      format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Specify the files to be minimized. You can use regular expressions or file path strings, and only the files that match will be minimized.
+
+For example, the build generates `/dist/foo.[hash].js` and some other JS files, we only minify `foo.js`:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  test: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### include
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Same as `test`, specify the files to be minimized.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  include: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### exclude
+
+- **Type:** `string | RegExp | Array<string | RegExp>`
+- **Default:** `undefined`
+
+Specify the files to be excluded. You can use regular expressions or file path strings, and the files that match will not be minimized.
+
+For example, the build generates `/dist/foo.[hash].js` and some other JS files, we exclude the minimization of `foo.js`:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  exclude: /dist\/foo\.\w+\.js$/,
+});
+```
+
+### extractComments
+
+- **Type:**
+
+```ts
+type ExtractCommentsOptions =
+  | boolean
+  | RegExp
+  | {
+      condition?: boolean | RegExp | undefined;
+      banner?: string | boolean | undefined;
     };
-  };
+```
 
-  type AssetCondition = string | RegExp;
-  type AssetConditions = AssetCondition | AssetCondition[];
+- **Default:** `undefined`
 
-  interface JsFormatOptions {
-    /**
-     * Currently noop.
-     * @default false
-     * @alias ascii_only
-     */
-    asciiOnly?: boolean;
-    /**
-     * Currently noop.
-     * @default false
-     */
-    beautify?: boolean;
-    /**
-     * Currently noop.
-     * @default false
-     */
-    braces?: boolean;
-    /**
-     * - `false`: removes all comments
-     * - `'some'`: preserves some comments
-     * - `'all'`: preserves all comments
-     * @default false
-     */
-    comments?: false | 'some' | 'all';
-    /**
-     * Currently noop.
-     * @default 5
-     */
-    ecma?: TerserEcmaVersion;
-    /**
-     * Currently noop.
-     * @alias indent_level
-     */
-    indentLevel?: number;
-    /**
-     * Currently noop.
-     * @alias indent_start
-     */
-    indentStart?: number;
-    /**
-     * Currently noop.
-     * @alias inline_script
-     */
-    inlineScript?: number;
-    /**
-     * Currently noop.
-     * @alias keep_numbers
-     */
-    keepNumbers?: number;
-    /**
-     * Currently noop.
-     * @alias keep_quoted_props
-     */
-    keepQuotedProps?: boolean;
-    /**
-     * Currently noop.
-     * @alias max_line_len
-     */
-    maxLineLen?: number | false;
-    /**
-     * Currently noop.
-     */
-    preamble?: string;
-    /**
-     * Currently noop.
-     * @alias quote_keys
-     */
-    quoteKeys?: boolean;
-    /**
-     * Currently noop.
-     * @alias quote_style
-     */
-    quoteStyle?: boolean;
-    /**
-     * Currently noop.
-     * @alias preserve_annotations
-     */
-    preserveAnnotations?: boolean;
-    /**
-     * Currently noop.
-     */
-    safari10?: boolean;
-    /**
-     * Currently noop.
-     */
-    semicolons?: boolean;
-    /**
-     * Currently noop.
-     */
-    shebang?: boolean;
-    /**
-     * Currently noop.
-     */
-    webkit?: boolean;
-    /**
-     * Currently noop.
-     * @alias wrap_iife
-     */
-    wrapIife?: boolean;
-    /**
-     * Currently noop.
-     * @alias wrap_func_args
-     */
-    wrapFuncArgs?: boolean;
-  }
+Whether comments shall be extracted to a separate file. If the original file is named `foo.js`, then the comments will be stored to `foo.js.LICENSE.txt`.
 
-  type TerserEcmaVersion = 5 | 2015 | 2016 | string | number;
-  interface TerserCompressOptions {
-    arguments?: boolean;
-    arrows?: boolean;
-    booleans?: boolean;
-    booleans_as_integers?: boolean;
-    collapse_vars?: boolean;
-    comparisons?: boolean;
-    computed_props?: boolean;
-    conditionals?: boolean;
-    dead_code?: boolean;
-    defaults?: boolean;
-    directives?: boolean;
-    drop_console?: boolean;
-    drop_debugger?: boolean;
-    ecma?: TerserEcmaVersion;
-    evaluate?: boolean;
-    expression?: boolean;
-    global_defs?: any;
-    hoist_funs?: boolean;
-    hoist_props?: boolean;
-    hoist_vars?: boolean;
-    ie8?: boolean;
-    if_return?: boolean;
-    inline?: 0 | 1 | 2 | 3;
-    join_vars?: boolean;
-    keep_classnames?: boolean;
-    keep_fargs?: boolean;
-    keep_fnames?: boolean;
-    keep_infinity?: boolean;
-    loops?: boolean;
-    negate_iife?: boolean;
-    passes?: number;
-    properties?: boolean;
-    pure_getters?: any;
-    pure_funcs?: string[];
-    reduce_funcs?: boolean;
-    reduce_vars?: boolean;
-    sequences?: any;
-    side_effects?: boolean;
-    switches?: boolean;
-    top_retain?: any;
-    toplevel?: any;
-    typeofs?: boolean;
-    unsafe?: boolean;
-    unsafe_passes?: boolean;
-    unsafe_arrows?: boolean;
-    unsafe_comps?: boolean;
-    unsafe_function?: boolean;
-    unsafe_math?: boolean;
-    unsafe_symbols?: boolean;
-    unsafe_methods?: boolean;
-    unsafe_proto?: boolean;
-    unsafe_regexp?: boolean;
-    unsafe_undefined?: boolean;
-    unused?: boolean;
-    const_to_let?: boolean;
-    module?: boolean;
+#### boolean
+
+If value is `true`, it is equivalent to `/@preserve|@lic|@cc_on|^\**!/` regexp condition and remove remaining comments.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+  },
+});
+```
+
+If value is `false`, all comments will be removed.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: false,
+});
+```
+
+#### RegExp
+
+If value is `RegExp`, all comments that match the given expression will be extracted to the separate file.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: /@preserve|@lic|@cc_on|^\**!/,
+});
+```
+
+#### object
+
+If value is `object`, it can use `condition` and `banner` to customize the extraction.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  extractComments: {
+    // add comments that match the condition will be extracted
+    condition: /@preserve|@lic|@cc_on|^\**!/,
+    // add banner to the top of the `*.LICENSE.txt` file
+    // If `true`, use the default banner `/*! For license information please see {relative} */`
+    // If `false`, no banner will be added
+    // If `string`, use the given banner
+    banner: true,
+  },
+});
+```
+
+### minimizerOptions
+
+- **Type:**
+
+```ts
+type MinimizerOptions = {
+  minify?: boolean;
+  module?: boolean;
+  mangle?: TerserMangleOptions | boolean;
+  compress?: TerserCompressOptions | boolean;
+  format?: JsFormatOptions & ToSnakeCaseProperties<JsFormatOptions>;
+};
+```
+
+- **Default:**
+
+```js
+const defaultOptions = {
+  minify: true,
+  mangle: true,
+  compress: {
+    passes: 2,
   }
-  interface TerserMangleOptions {
-    props?: TerserManglePropertiesOptions;
-    toplevel?: boolean;
-    keep_classnames?: boolean;
-    keep_fnames?: boolean;
-    keep_private_props?: boolean;
-    ie8?: boolean;
-    safari10?: boolean;
-    reserved?: string[];
-  }
-  interface TerserManglePropertiesOptions {}
-  ```
+  format: {
+    comments: false,
+  },
+};
+```
+
+Similar to the `jsc.minify` option of SWC, please refer to [SWC - Minification](https://swc.rs/docs/configuration/minification) for all available options.
+
+For example, disable `mangle` to avoid mangling variable names:
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    mangle: false,
+  },
+});
+```
+
+For example, set a higher `passes` to run more compression passes. In some cases this may result in a smaller bundle size, but the more passes that are run, the more time it takes to compress.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      passes: 4,
+    },
+  },
+});
+```

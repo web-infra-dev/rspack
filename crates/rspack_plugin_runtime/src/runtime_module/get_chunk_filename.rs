@@ -180,7 +180,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       let chunk_id = "\" + chunkId + \"";
       let chunk_name = stringify_dynamic_chunk_map(
         |c| {
-          c.name_for_filename_template(&compilation.chunk_ids)
+          c.name_for_filename_template(&compilation.chunk_ids_artifact)
             .map(|s| s.to_string())
         },
         &chunks,
@@ -191,7 +191,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         |c| {
           let hash = c
             .rendered_hash(
-              &compilation.chunk_hashes_results,
+              &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
             )
             .map(|hash| hash.to_string());
@@ -207,7 +207,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       let content_hash = stringify_dynamic_chunk_map(
         |c| {
           c.rendered_content_hash_by_source_type(
-            &compilation.chunk_hashes_results,
+            &compilation.chunk_hashes_artifact,
             &self.source_type,
             compilation.options.output.hash_digest_length,
           )
@@ -260,35 +260,35 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         let (fake_filename, hash_len_map) = get_filename_without_hash_length(filename_template);
 
         let chunk_id = chunk
-          .id(&compilation.chunk_ids)
+          .id(&compilation.chunk_ids_artifact)
           .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str()));
         let chunk_name = match chunk.name() {
           Some(chunk_name) => Some(unquoted_stringify(
-            chunk.id(&compilation.chunk_ids),
+            chunk.id(&compilation.chunk_ids_artifact),
             chunk_name,
           )),
           None => chunk
-            .id(&compilation.chunk_ids)
+            .id(&compilation.chunk_ids_artifact)
             .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str())),
         };
         let chunk_hash = chunk
           .rendered_hash(
-            &compilation.chunk_hashes_results,
+            &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,
           )
           .map(|chunk_hash| {
-            let hash = unquoted_stringify(chunk.id(&compilation.chunk_ids), chunk_hash);
+            let hash = unquoted_stringify(chunk.id(&compilation.chunk_ids_artifact), chunk_hash);
             match hash_len_map.get("[chunkhash]") {
               Some(hash_len) => hash[..*hash_len].to_string(),
               None => hash,
             }
           });
         let content_hash = chunk
-          .content_hash(&compilation.chunk_hashes_results)
+          .content_hash(&compilation.chunk_hashes_artifact)
           .and_then(|content_hash| content_hash.get(&self.source_type))
           .map(|i| {
             let hash = unquoted_stringify(
-              chunk.id(&compilation.chunk_ids),
+              chunk.id(&compilation.chunk_ids_artifact),
               i.rendered(compilation.options.output.hash_digest_length),
             );
             match hash_len_map.get("[contenthash]") {
@@ -316,7 +316,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .render(
                     PathData::default()
                       .chunk_name_optional(chunk.name())
-                      .chunk_id_optional(chunk.id(&compilation.chunk_ids).map(|id| id.as_str())),
+                      .chunk_id_optional(
+                        chunk
+                          .id(&compilation.chunk_ids_artifact)
+                          .map(|id| id.as_str()),
+                      ),
                     None,
                   )?
                   .as_str(),
@@ -332,7 +336,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           )
           .always_ok();
 
-        if let Some(chunk_id) = chunk.id(&compilation.chunk_ids) {
+        if let Some(chunk_id) = chunk.id(&compilation.chunk_ids_artifact) {
           static_urls
             .entry(filename)
             .or_insert(Vec::new())

@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use derivative::Derivative;
+use derive_more::Debug;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
@@ -32,12 +32,11 @@ impl State {
   }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct LoaderContext<Context> {
   pub hot: bool,
   pub resource_data: Arc<ResourceData>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub context: Context,
   pub parse_meta: FxHashMap<String, String>,
 
@@ -57,7 +56,7 @@ pub struct LoaderContext<Context> {
   pub(crate) state: State,
   pub loader_index: i32,
   pub loader_items: Vec<LoaderItem<Context>>,
-  #[derivative(Debug = "ignore")]
+  #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
 

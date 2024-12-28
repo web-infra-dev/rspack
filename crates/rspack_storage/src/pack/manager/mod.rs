@@ -3,19 +3,17 @@ mod queue;
 use std::sync::Arc;
 
 use futures::future::join_all;
-use itertools::Itertools;
 use pollster::block_on;
 use queue::TaskQueue;
-use rayon::iter::{ParallelBridge, ParallelIterator};
-use rspack_error::{error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
 use tokio::sync::{oneshot, Mutex};
 
 use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
-use super::strategy::{ScopeStrategy, ValidateResult, WriteScopeResult};
+use super::strategy::{ScopeStrategy, WriteScopeResult};
 use super::ScopeUpdates;
-use crate::StorageContent;
+use crate::error::{Error, ErrorType, ValidateResult};
+use crate::{ItemPairs, Result};
 
 type ScopeMap = HashMap<String, PackScope>;
 
@@ -57,7 +55,9 @@ impl ScopeManager {
         updates,
         pack_options.clone(),
         strategy.as_ref(),
-      ) {
+      )
+      .await
+      {
         Ok(_) => {
           *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
             scopes_guard
@@ -65,10 +65,11 @@ impl ScopeManager {
               .filter(|(_, scope)| scope.loaded())
               .map(|(name, _)| name.clone())
               .collect::<HashSet<_>>(),
+            self.root_options.expire,
           )));
           Ok(())
         }
-        Err(e) => Err(Error::from(e)),
+        Err(e) => Err(e),
       }
     })?;
 
@@ -99,25 +100,43 @@ impl ScopeManager {
     Ok(rx)
   }
 
-  pub async fn load(&self, name: &'static str) -> Result<StorageContent> {
+  async fn clear_scope(&self, name: &str) {
+    self
+      .scopes
+      .lock()
+      .await
+      .get_mut(name)
+      .expect("should have scope")
+      .clear();
+  }
+
+  pub async fn load(&self, name: &'static str) -> Result<ItemPairs> {
+    self
+      .scopes
+      .lock()
+      .await
+      .entry(name.to_string())
+      .or_insert_with(|| {
+        PackScope::new(
+          name,
+          self.strategy.get_path(name),
+          self.pack_options.clone(),
+        )
+      });
+
+    // only check lock file and root meta for the first time
     if matches!(*self.root_meta.lock().await, RootMetaState::Pending) {
-      let loaded = self.strategy.read_root_meta().await?;
-      if let Some(meta) = &loaded {
-        for scope_name in meta.scopes.clone() {
-          self
-            .scopes
-            .lock()
-            .await
-            .entry(scope_name.clone())
-            .or_insert_with(|| {
-              PackScope::new(
-                self.strategy.get_path(&scope_name),
-                self.pack_options.clone(),
-              )
-            });
+      match self.strategy.before_load().await {
+        Ok(()) => {
+          let loaded = self.strategy.read_root_meta().await?;
+          *self.root_meta.lock().await = RootMetaState::Value(loaded);
+        }
+        Err(err) => {
+          *self.root_meta.lock().await = RootMetaState::Value(None);
+          self.clear_scope(name).await;
+          return Err(err);
         }
       }
-      *self.root_meta.lock().await = RootMetaState::Value(loaded);
     }
 
     match self.validate_scope(name).await {
@@ -131,38 +150,27 @@ impl ScopeManager {
         }
         // create empty scope if not exists
         ValidateResult::NotExists => {
-          self
-            .scopes
-            .lock()
-            .await
-            .entry(name.to_string())
-            .or_insert_with(|| {
-              PackScope::empty(self.strategy.get_path(name), self.pack_options.clone())
-            });
+          self.clear_scope(name).await;
           Ok(vec![])
         }
         // clear scope if invalid
-        ValidateResult::Invalid(_) => {
-          self
-            .scopes
-            .lock()
-            .await
-            .get_mut(name)
-            .expect("should have scope")
-            .clear();
-          Err(error!(validated.to_string()))
+        ValidateResult::Invalid(detail) => {
+          self.clear_scope(name).await;
+          Err(Error::from_detail(
+            Some(ErrorType::Validate),
+            Some(name),
+            detail,
+          ))
         }
       },
       Err(e) => {
         // clear scope if error
-        self
-          .scopes
-          .lock()
-          .await
-          .get_mut(name)
-          .expect("should have scope")
-          .clear();
-        Err(Error::from(e))
+        self.clear_scope(name).await;
+        Err(Error::from_error(
+          Some(ErrorType::Validate),
+          Some(name),
+          Box::new(e),
+        ))
       }
     }
   }
@@ -180,10 +188,7 @@ impl ScopeManager {
     };
 
     // scope exists, validate it
-    let validated = self
-      .strategy
-      .validate_root(root_meta, self.root_options.expire)
-      .await?;
+    let validated = self.strategy.validate_root(root_meta).await?;
     if validated.is_valid() {
       self.strategy.ensure_meta(scope).await?;
       let validated = self.strategy.validate_meta(scope).await?;
@@ -199,34 +204,41 @@ impl ScopeManager {
   }
 }
 
-fn update_scopes(
+async fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
   pack_options: Arc<PackOptions>,
   strategy: &dyn ScopeStrategy,
 ) -> Result<()> {
   for (scope_name, _) in updates.iter() {
-    scopes
-      .entry(scope_name.to_string())
-      .or_insert_with(|| PackScope::empty(strategy.get_path(scope_name), pack_options.clone()));
+    scopes.entry(scope_name.to_string()).or_insert_with(|| {
+      PackScope::empty(
+        scope_name,
+        strategy.get_path(scope_name),
+        pack_options.clone(),
+      )
+    });
   }
 
-  scopes
-    .iter_mut()
-    .filter_map(|(name, scope)| {
-      updates
-        .remove(name.to_string().as_str())
-        .and_then(|scope_update| {
-          if scope_update.is_empty() {
-            None
-          } else {
-            Some((scope, scope_update))
-          }
-        })
-    })
-    .par_bridge()
-    .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update))
-    .collect::<Result<Vec<_>>>()?;
+  join_all(
+    scopes
+      .iter_mut()
+      .filter_map(|(name, scope)| {
+        updates
+          .remove(name.to_string().as_str())
+          .and_then(|scope_update| {
+            if scope_update.is_empty() {
+              None
+            } else {
+              Some((scope, scope_update))
+            }
+          })
+      })
+      .map(|(scope, scope_update)| strategy.update_scope(scope, scope_update)),
+  )
+  .await
+  .into_iter()
+  .collect::<Result<Vec<_>>>()?;
 
   Ok(())
 }
@@ -239,67 +251,38 @@ async fn save_scopes(
 ) -> Result<ScopeMap> {
   scopes.retain(|_, scope| scope.loaded());
 
-  for (_, scope) in scopes.iter_mut() {
-    strategy.before_all(scope)?;
-  }
+  strategy.before_all(&mut scopes).await?;
 
   join_all(
     scopes
-      .values()
-      .map(|scope| async move { strategy.before_write(scope).await })
-      .collect_vec(),
+      .values_mut()
+      .map(|scope| strategy.optimize_scope(scope)),
   )
   .await
   .into_iter()
   .collect::<Result<Vec<_>>>()?;
 
-  let wrote_results = join_all(
-    scopes
-      .values_mut()
-      .map(|scope| async move {
-        let mut res = WriteScopeResult::default();
-        if scope.loaded() {
-          res.extend(strategy.write_packs(scope).await?);
-          res.extend(strategy.write_meta(scope).await?);
-        }
-        Ok(res)
-      })
-      .collect_vec(),
-  )
+  let changed = join_all(scopes.values_mut().map(|scope| async move {
+    let mut res = WriteScopeResult::default();
+    if scope.loaded() {
+      res.extend(strategy.write_packs(scope).await?);
+      res.extend(strategy.write_meta(scope).await?);
+    }
+    Ok(res)
+  }))
   .await
   .into_iter()
   .collect::<Result<Vec<WriteScopeResult>>>()?
   .into_iter()
-  .collect_vec();
-
-  join_all(
-    scopes
-      .values()
-      .zip(wrote_results)
-      .map(|(scope, scope_wrote_result)| async move {
-        strategy
-          .after_write(
-            scope,
-            scope_wrote_result.wrote_files,
-            scope_wrote_result.removed_files,
-          )
-          .await
-      })
-      .collect_vec(),
-  )
-  .await
-  .into_iter()
-  .collect::<Result<Vec<_>>>()?;
+  .fold(WriteScopeResult::default(), |mut acc, res| {
+    acc.extend(res);
+    acc
+  });
 
   strategy.write_root_meta(root_meta).await?;
-
-  for (_, scope) in scopes.iter_mut() {
-    strategy.after_all(scope)?;
-  }
-
-  strategy
-    .clean_unused(root_meta, &scopes, root_options)
-    .await?;
+  strategy.merge_changed(changed).await?;
+  strategy.after_all(&mut scopes).await?;
+  strategy.clean(root_meta, &scopes, root_options).await?;
 
   Ok(scopes.into_iter().collect())
 }
@@ -308,28 +291,27 @@ async fn save_scopes(
 mod tests {
   use std::sync::Arc;
 
-  use rspack_error::Result;
   use rspack_fs::MemoryFileSystem;
   use rspack_paths::{Utf8Path, Utf8PathBuf};
   use rustc_hash::FxHashMap as HashMap;
 
   use crate::{
+    error::Result,
     pack::{
       data::{PackOptions, RootOptions},
-      fs::{PackBridgeFS, PackFS},
       manager::ScopeManager,
       strategy::SplitPackStrategy,
     },
-    StorageItemKey, StorageItemValue,
+    BridgeFileSystem, FileSystem, ItemKey, ItemValue,
   };
 
-  fn mock_key(id: usize) -> StorageItemKey {
+  fn mock_key(id: usize) -> ItemKey {
     format!("{:0>length$}_key", id, length = 46)
       .as_bytes()
       .to_vec()
   }
 
-  fn mock_insert_value(id: usize) -> Option<StorageItemValue> {
+  fn mock_insert_value(id: usize) -> Option<ItemValue> {
     Some(
       format!("{:0>length$}_val", id, length = 46)
         .as_bytes()
@@ -337,7 +319,7 @@ mod tests {
     )
   }
 
-  fn mock_update_value(id: usize) -> Option<StorageItemValue> {
+  fn mock_update_value(id: usize) -> Option<ItemValue> {
     Some(
       format!("{:0>length$}_new", id, length = 46)
         .as_bytes()
@@ -345,7 +327,11 @@ mod tests {
     )
   }
 
-  async fn test_cold_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_cold_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn FileSystem>,
+  ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -360,6 +346,8 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options, pack_options, strategy);
 
@@ -399,7 +387,7 @@ mod tests {
     Ok(())
   }
 
-  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_hot_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn FileSystem>) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -414,6 +402,8 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options, pack_options, strategy);
 
@@ -477,7 +467,11 @@ mod tests {
     Ok(())
   }
 
-  async fn test_invalid_start(root: &Utf8Path, temp: &Utf8Path, fs: Arc<dyn PackFS>) -> Result<()> {
+  async fn test_invalid_start(
+    root: &Utf8Path,
+    temp: &Utf8Path,
+    fs: Arc<dyn FileSystem>,
+  ) -> Result<()> {
     let root_options = Arc::new(RootOptions {
       expire: 60000,
       root: root.parent().expect("should get parent").to_path_buf(),
@@ -493,12 +487,14 @@ mod tests {
       root.to_path_buf(),
       temp.to_path_buf(),
       fs.clone(),
+      Some(1),
+      Some(2),
     ));
     let manager = ScopeManager::new(root_options.clone(), pack_options.clone(), strategy.clone());
     // should report error when invalid failed
     assert_eq!(
       manager.load("scope1").await.unwrap_err().to_string(),
-      "validation failed due to `options.bucketSize` changed"
+      "validate scope `scope1` failed due to `options.bucketSize` changed"
     );
 
     // clear after invalid, can be used as a empty scope
@@ -524,7 +520,7 @@ mod tests {
   }
 
   async fn test_manager() -> Result<()> {
-    let fs = Arc::new(PackBridgeFS(Arc::new(MemoryFileSystem::default())));
+    let fs = Arc::new(BridgeFileSystem(Arc::new(MemoryFileSystem::default())));
     let root = Utf8PathBuf::from("/cache/test_manager");
     let temp = Utf8PathBuf::from("/temp/test_manager");
     test_cold_start(&root, &temp, fs.clone()).await?;

@@ -17,6 +17,7 @@ import { type LoaderObject, parsePathQueryFragment } from "../loader-runner";
 import type { Logger } from "../logging/Logger";
 import { isNil } from "../util";
 import type Hash from "../util/hash";
+import type { RspackOptionsNormalized } from "./normalization";
 import type {
 	Mode,
 	PublicPath,
@@ -29,7 +30,6 @@ import type {
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
 export interface ComposeJsUseOptions {
-	devtool: RawOptions["devtool"];
 	context: RawOptions["context"];
 	mode: RawOptions["mode"];
 	experiments: RawOptions["experiments"];
@@ -93,6 +93,21 @@ export interface Diagnostic {
 
 interface LoaderExperiments {
 	emitDiagnostic(diagnostic: Diagnostic): void;
+}
+
+export interface ImportModuleOptions {
+	/**
+	 * Specify a layer in which this module is placed/compiled
+	 */
+	layer?: string;
+	/**
+	 * The public path used for the built modules
+	 */
+	publicPath?: PublicPath;
+	/**
+	 * Target base uri
+	 */
+	baseUri?: string;
 }
 
 export interface LoaderContext<OptionsType = {}> {
@@ -173,11 +188,30 @@ export interface LoaderContext<OptionsType = {}> {
 	getContextDependencies(): string[];
 	getMissingDependencies(): string[];
 	addBuildDependency(file: string): void;
-	importModule(
+
+	/**
+	 * Compile and execute a module at the build time.
+	 * This is an alternative lightweight solution for the child compiler.
+	 * `importModule` will return a Promise if no callback is provided.
+	 *
+	 * @example
+	 * ```ts
+	 * const modulePath = path.resolve(__dirname, 'some-module.ts');
+	 * const moduleExports = await this.importModule(modulePath, {
+	 *   // optional options
+	 * });
+	 * ```
+	 */
+	importModule<T = any>(
 		request: string,
-		options: { layer?: string; publicPath?: PublicPath; baseUri?: string },
-		callback: (err?: Error, res?: any) => void
+		options: ImportModuleOptions | undefined,
+		callback: (err?: null | Error, exports?: T) => any
 	): void;
+	importModule<T = any>(
+		request: string,
+		options?: ImportModuleOptions
+	): Promise<T>;
+
 	fs: any;
 	/**
 	 * This is an experimental API and maybe subject to change.
@@ -370,13 +404,23 @@ function resolveStringifyLoaders(
 	return obj.path + obj.query + obj.fragment;
 }
 
-export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
+export function isUseSourceMap(
+	devtool: RspackOptionsNormalized["devtool"]
+): boolean {
+	if (!devtool) {
+		return false;
+	}
 	return (
 		devtool.includes("source-map") &&
 		(devtool.includes("module") || !devtool.includes("cheap"))
 	);
 }
 
-export function isUseSimpleSourceMap(devtool: RawOptions["devtool"]): boolean {
+export function isUseSimpleSourceMap(
+	devtool: RspackOptionsNormalized["devtool"]
+): boolean {
+	if (!devtool) {
+		return false;
+	}
 	return devtool.includes("source-map") && !isUseSourceMap(devtool);
 }
