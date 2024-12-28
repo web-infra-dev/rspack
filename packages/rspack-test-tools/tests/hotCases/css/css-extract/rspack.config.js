@@ -17,7 +17,14 @@ module.exports = {
 							esModule: true,
 						}
           },
-          "css-loader",
+          {
+            loader: "css-loader",
+            options: {
+              modules: {
+                namedExport: false,
+              }
+            }
+          },
 					"./loader.js"
         ]
       },

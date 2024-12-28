@@ -16,6 +16,7 @@ module.exports = {
 						options: {
 							modules: {
 								localIdentName: "foo__[name]__[local]",
+								exportLocalsConvention: 'camel-case-only',
 								exportOnlyLocals: true
 							}
 						}

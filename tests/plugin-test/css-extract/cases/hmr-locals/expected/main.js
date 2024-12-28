@@ -229,10 +229,12 @@ function cssReload(moduleId, options) {
 "./index.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  x: function() { return _1; }
 });
 // extracted by css-extract-rspack-plugin
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ({"x":"VoofDB21D_QzDbRdwMiY"});
+var _1 = "VoofDB21D_QzDbRdwMiY";
+
+
     if(true) {
       (function() {
         var localsJsonString = "{\"x\":\"VoofDB21D_QzDbRdwMiY\"}";

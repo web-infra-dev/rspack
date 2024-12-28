@@ -120,7 +120,10 @@ describe("emit option", () => {
 								{
 									loader: "css-loader",
 									options: {
-										modules: true
+										modules: {
+											namedExport: false,
+											exportLocalsConvention: "as-is"
+										}
 									}
 								}
 							]
@@ -190,7 +193,10 @@ describe("emit option", () => {
 							{
 								loader: "css-loader",
 								options: {
-									modules: true
+									modules: {
+										namedExport: false,
+										exportLocalsConvention: "as-is"
+									}
 								}
 							}
 						]
