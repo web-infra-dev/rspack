@@ -412,6 +412,6 @@ Object {
 
 exports[`ConfigTestCases css large exported tests should allow to create css modules: prod 1`] = `
 Object {
-  "placeholder": "-d72b53b84605386-placeholder-gray-700",
+  "placeholder": "-_6d72b53b84605386-placeholder-gray-700",
 }
 `;

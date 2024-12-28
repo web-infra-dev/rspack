@@ -12,9 +12,9 @@ _index_module_css__WEBPACK_IMPORTED_MODULE_0__.compose;
 }),
 "./index.module.css": (function (module, __unused_webpack_exports, __webpack_require__) {
 var exports = {
-  "foo": "__rspack_test__-ec1c834ac8cc99e-foo",
-  "bar": "__rspack_test__-ec1c834ac8cc99e-bar",
-  "compose": "__rspack_test__-ec1c834ac8cc99e-compose" + " " + "__rspack_test__-ec1c834ac8cc99e-bar",
+  "foo": "__rspack_test__-_6ec1c834ac8cc99e-foo",
+  "bar": "__rspack_test__-_6ec1c834ac8cc99e-bar",
+  "compose": "__rspack_test__-_6ec1c834ac8cc99e-compose" + " " + "__rspack_test__-_6ec1c834ac8cc99e-bar",
 };
 
 module.exports = exports;
