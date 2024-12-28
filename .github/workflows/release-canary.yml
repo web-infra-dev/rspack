@@ -7,6 +7,14 @@ on:
         required: true
         type: string
         description: "Commit SHA"
+      profile:
+        required: true
+        type: choice
+        default: release
+        options:
+          - release
+          - release-debug
+        description: "release-debug means release with debug info for profile"
 
 permissions:
   # To publish packages with provenance
@@ -49,6 +57,7 @@ jobs:
       ref: ${{inputs.commit}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      profile: ${{inputs.profile}}
       test: false
 
   release:
