@@ -3,7 +3,16 @@
 var __webpack_modules__ = ({
 "./style.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "a-class": function() { return _1; },
+  b__class: function() { return _2; },
+  cClass: function() { return _3; }
+});
 // extracted by css-extract-rspack-plugin
+var _1 = "foo__style__a-class";
+var _2 = "foo__style__b__class";
+var _3 = "foo__style__cClass";
+
 
 
 }),
@@ -34,6 +43,23 @@ return module.exports;
 }
 
 /************************************************************************/
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = function (obj, prop) {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+
+})();
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports

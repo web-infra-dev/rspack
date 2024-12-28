@@ -15,7 +15,8 @@ module.exports = {
           loader: "css-loader",
           options: {
             modules: {
-              namedExport: true
+              namedExport: true,
+              exportLocalsConvention: 'camel-case-only'
             }
           }
         },
