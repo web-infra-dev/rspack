@@ -13,7 +13,9 @@ module.exports = {
 						loader: "css-loader",
 						options: {
 							modules: {
-								localIdentName: "[name]__[local]--[contenthash]"
+								namedExport: false,
+								localIdentName: "[name]__[local]--[contenthash]",
+								exportLocalsConvention: 'camel-case',
 							}
 						}
 					}

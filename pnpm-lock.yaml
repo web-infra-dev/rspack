@@ -568,8 +568,8 @@ importers:
         specifier: 3.38.1
         version: 3.38.1
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^7.1.2
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
@@ -746,8 +746,8 @@ importers:
         specifier: 3.38.1
         version: 3.38.1
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^7.1.2
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
       fs-extra:
         specifier: ^11.2.0
         version: 11.2.0
@@ -797,8 +797,8 @@ importers:
         specifier: ^0.2.37
         version: 0.2.37(@swc/core@1.10.1(@swc/helpers@0.5.15))
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
+        specifier: ^7.1.2
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0)))
       del:
         specifier: ^6.0.0
         version: 6.1.1
@@ -860,8 +860,8 @@ importers:
         specifier: 3.36.1
         version: 3.36.1
       css-loader:
-        specifier: ^6.11.0
-        version: 6.11.0(@rspack/core@1.1.8(@swc/helpers@0.5.15))(webpack@5.94.0)
+        specifier: ^7.1.2
+        version: 7.1.2(@rspack/core@1.1.8(@swc/helpers@0.5.15))(webpack@5.94.0)
       date-fns:
         specifier: ^2.29.3
         version: 2.30.0
@@ -4809,12 +4809,12 @@ packages:
     peerDependencies:
       webpack: ^4.27.0 || ^5.0.0
 
-  css-loader@6.11.0:
-    resolution: {integrity: sha512-CTJ+AEQJjq5NzLga5pE39qdiSV56F8ywCIsqNIRF0r7BDgWsN25aazToqAFg7ZrtA/U016xudB3ffgweORxX7g==}
-    engines: {node: '>= 12.13.0'}
+  css-loader@7.1.2:
+    resolution: {integrity: sha512-6WvYYn7l/XEGN8Xu2vWFt9nVzrCn39vKyTEFf/ExEyoksJjjSZV/0/35XPlMbpnr6VGhZIUg5yJrL8tGfes/FA==}
+    engines: {node: '>= 18.12.0'}
     peerDependencies:
       '@rspack/core': 0.x || 1.x
-      webpack: ^5.0.0
+      webpack: ^5.27.0
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
@@ -14418,7 +14418,7 @@ snapshots:
       semver: 7.6.3
       webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))
 
-  css-loader@6.11.0(@rspack/core@1.1.8(@swc/helpers@0.5.15))(webpack@5.94.0):
+  css-loader@7.1.2(@rspack/core@1.1.8(@swc/helpers@0.5.15))(webpack@5.94.0):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.49)
       postcss: 8.4.49
@@ -14432,7 +14432,7 @@ snapshots:
       '@rspack/core': 1.1.8(@swc/helpers@0.5.15)
       webpack: 5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4)
 
-  css-loader@6.11.0(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))):
+  css-loader@7.1.2(@rspack/core@packages+rspack)(webpack@5.94.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.94.0))):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.49)
       postcss: 8.4.49
