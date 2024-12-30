@@ -338,7 +338,7 @@ module.exports = {
 
 ## experiments.cache
 
-<ApiMeta addedVersion="1.2.0" />
+<ApiMeta addedVersion="1.2.0-alpha.0" />
 
 - **Type:** `ExperimentCacheOptions`
 
@@ -374,7 +374,7 @@ Configuring `experiment.cache` to `false` to disable cache, which is no differen
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: false,
   },
 };
@@ -386,7 +386,7 @@ Configuring `experiment.cache` to `true` or `{ "type": "memory" }` to enable mem
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: true,
   },
 };
@@ -398,7 +398,7 @@ Configuring `experiment.cache` to `{ "type": "persistent" }` to enable persisten
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
     },
@@ -420,7 +420,7 @@ It's recommended to set `cache.buildDependencies`: [__filename] in your rspack c
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
       buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
@@ -475,7 +475,7 @@ Configure cache storage. Currently only file system storage is supported. The ca
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
       storage: {

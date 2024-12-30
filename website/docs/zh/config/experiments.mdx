@@ -337,7 +337,7 @@ module.exports = {
 
 ## experiments.cache
 
-<ApiMeta addedVersion="1.2.0" />
+<ApiMeta addedVersion="1.2.0-alpha.0" />
 
 - **类型：** `ExperimentCacheOptions`
 
@@ -373,7 +373,7 @@ type ExperimentCacheOptions =
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: false,
   },
 };
@@ -385,7 +385,7 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: true,
   },
 };
@@ -397,7 +397,7 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
     },
@@ -419,7 +419,7 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
       buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
@@ -474,7 +474,7 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-  experiment: {
+  experiments: {
     cache: {
       type: 'persistent',
       storage: {
