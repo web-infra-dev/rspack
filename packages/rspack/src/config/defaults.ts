@@ -1055,7 +1055,8 @@ const getResolveDefaults = ({
 	});
 
 	const resolveOptions: ResolveOptions = {
-		enablePnp: true,
+		// enable pnp only in pnp environment, see https://yarnpkg.com/advanced/pnpapi#processversionspnp
+		enablePnp: !!process.versions.pnp,
 		modules: ["node_modules"],
 		conditionNames: conditions,
 		mainFiles: ["index"],

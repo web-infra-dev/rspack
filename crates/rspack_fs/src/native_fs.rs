@@ -12,6 +12,7 @@ use crate::{
 };
 #[derive(Debug)]
 struct NativeFileSystemOptions {
+  // enable yarn pnp feature
   enable_pnp: bool,
 }
 #[derive(Debug)]
