@@ -57,10 +57,47 @@ pub fn relative(from: &Path, to: &Path) -> PathBuf {
 
   let to_iter = to.into_iter().skip(common_parts);
   for part in to_iter {
-    result.push(part.as_os_str());
+    result.push(part);
   }
 
   result
+}
+
+pub fn join(paths: &[&Path]) -> PathBuf {
+  let paths = paths
+    .iter()
+    .filter(|path| path.components().last().is_some())
+    .collect::<Vec<_>>();
+  if paths.is_empty() {
+    return PathBuf::from(".");
+  }
+  let mut buf = PathBuf::new();
+  for (index, path) in paths.iter().enumerate() {
+    for component in path.components() {
+      match component {
+        Component::RootDir => {
+          if index == 0 {
+            buf.push(component)
+          }
+        }
+        Component::CurDir => (),
+        Component::ParentDir => {
+          if matches!(buf.components().last(), Some(Component::ParentDir) | None) {
+            buf.push(component);
+          } else {
+            buf.pop();
+          }
+        }
+        _ => {
+          buf.push(component);
+        }
+      }
+    }
+  }
+  if buf.components().last().is_none() {
+    buf.push(Component::CurDir);
+  }
+  buf
 }
 
 #[cfg(test)]
@@ -71,7 +108,7 @@ mod test {
 
   #[cfg(not(target_os = "windows"))]
   #[test]
-  fn test_posix() {
+  fn test_relative_posix() {
     let test_cases = vec![
       ("/var/lib", "/var", ".."),
       ("/var/lib", "/bin", "../../bin"),
@@ -104,7 +141,7 @@ mod test {
 
   #[cfg(target_os = "windows")]
   #[test]
-  fn test_win32() {
+  fn test_relative_win32() {
     let test_cases = vec![
       ("c:/blah\\blah", "d:/games", "d:\\games"),
       ("c:/aaaa/bbbb", "c:/aaaa", ".."),
@@ -148,6 +185,65 @@ mod test {
       let actual = relative(Path::new(from), Path::new(to))
         .to_string_lossy()
         .to_string();
+      assert_eq!(actual, expected.to_string());
+    }
+  }
+
+  #[test]
+  fn test_join() {
+    let test_cases = vec![
+      (vec![".", "x/b", "..", "/b/c.js"], "x/b/c.js"),
+      (vec![], "."),
+      (vec!["/.", "x/b", "..", "/b/c.js"], "/x/b/c.js"),
+      (vec!["/foo", "../../../bar"], "/bar"),
+      (vec!["foo", "../../../bar"], "../../bar"),
+      (vec!["foo/", "../../../bar"], "../../bar"),
+      (vec!["foo/x", "../../../bar"], "../bar"),
+      (vec!["foo/x", "./bar"], "foo/x/bar"),
+      (vec!["foo/x/", "./bar"], "foo/x/bar"),
+      (vec!["foo/x/", ".", "bar"], "foo/x/bar"),
+      // (vec!["./"], "./"),
+      // (vec![".", "./"], "./"),
+      (vec![".", ".", "."], "."),
+      (vec![".", "./", "."], "."),
+      (vec![".", "/./", "."], "."),
+      (vec![".", "/////./", "."], "."),
+      (vec!["."], "."),
+      (vec!["", "."], "."),
+      (vec!["", "foo"], "foo"),
+      (vec!["foo", "/bar"], "foo/bar"),
+      (vec!["", "/foo"], "/foo"),
+      (vec!["", "", "/foo"], "/foo"),
+      (vec!["", "", "foo"], "foo"),
+      (vec!["foo", ""], "foo"),
+      // (vec!["foo/", ""], "foo/"),
+      (vec!["foo", "", "/bar"], "foo/bar"),
+      (vec!["./", "..", "/foo"], "../foo"),
+      (vec!["./", "..", "..", "/foo"], "../../foo"),
+      (vec![".", "..", "..", "/foo"], "../../foo"),
+      (vec!["", "..", "..", "/foo"], "../../foo"),
+      (vec!["/"], "/"),
+      (vec!["/", "."], "/"),
+      (vec!["/", ".."], "/"),
+      (vec!["/", "..", ".."], "/"),
+      // [[""], "."],
+      // [["", ""], "."],
+      // [[" /foo"], " /foo"],
+      // [[" ", "foo"], " /foo"],
+      // [[" ", "."], " "],
+      // [[" ", "/"], " /"],
+      // [[" ", ""], " "],
+      // [["/", "foo"], "/foo"],
+      // [["/", "/foo"], "/foo"],
+      // [["/", "//foo"], "/foo"],
+      // [["/", "", "/foo"], "/foo"],
+      // [["", "/", "foo"], "/foo"],
+      // [["", "/", "/foo"], "/foo"],
+    ];
+
+    for (paths, expected) in test_cases {
+      let paths = paths.iter().map(Path::new).collect::<Vec<_>>();
+      let actual = join(&paths).to_string_lossy().to_string();
       assert_eq!(actual, expected.to_string());
     }
   }
