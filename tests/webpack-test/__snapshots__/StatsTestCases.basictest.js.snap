@@ -2242,6 +2242,19 @@ chunk (runtime: main) main.js (main) (id hint: common) xx bytes (javascript) xx 
 production (Rspack x.x.x) compiled successfully"
 `;
 
+exports[`StatsTestCases should print correct stats for split-chunks-cache-group-filename 1`] = `
+"Entrypoint main 5.88 KiB = 990.vendors.js 352 bytes 961.vendors.js 352 bytes 727.vendors.js 352 bytes main.js 4.85 KiB
+chunk (runtime: main) 727.vendors.js (id hint: vendors) 20 bytes [initial] [rendered] split chunk (cache group: vendors)
+  ./node_modules/c.js 20 bytes [built] [code generated]
+chunk (runtime: main) main.js (main) 80 bytes (javascript) 2.86 KiB (runtime) [entry] [rendered]
+  ./index.js 80 bytes [built] [code generated]
+chunk (runtime: main) 961.vendors.js (id hint: vendors) 20 bytes [initial] [rendered]
+  ./node_modules/b.js 20 bytes [built] [code generated]
+chunk (runtime: main) 990.vendors.js (id hint: vendors) 20 bytes [initial] [rendered]
+  ./node_modules/a.js 20 bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
+`;
+
 exports[`StatsTestCases should print correct stats for split-chunks-chunk-name 1`] = `
 "Entrypoint main xx KiB = default/main.js
 chunk (runtime: main) default/async-xxx.js (async-a) xx bytes <{909}> [rendered]
