@@ -72,7 +72,7 @@ jobs:
           workflow_file_name: "ecosystem-ci-pr.yml"
           github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
-          client_payload: '{"branchName":"${{ github.ref_name }}","prNumber":"{{ steps.get-pr-number.outputs.result.num }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
+          client_payload: '{"branchName":"${{ github.ref_name }}","prNumber":"0","repo":"web-infra-dev/rspack","suite":"rslib","suiteRefType":"precoded","suiteRef":"precoded"}'
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
