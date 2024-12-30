@@ -306,6 +306,34 @@ impl JsModule {
       None => Either::B(()),
     })
   }
+
+  #[napi(getter)]
+  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
+    let module = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(module) => match &module.match_resource() {
+        Some(match_resource) => Either::A(&match_resource.resource),
+        None => Either::B(()),
+      },
+      None => Either::B(()),
+    })
+  }
+
+  #[napi(getter)]
+  pub fn loaders(&mut self) -> napi::Result<Either<Vec<&str>, ()>> {
+    let module = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(module) => {
+        let ids = module
+          .loaders()
+          .iter()
+          .map(|loader| loader.identifier().as_str())
+          .collect::<Vec<_>>();
+        Either::A(ids)
+      }
+      None => Either::B(()),
+    })
+  }
 }
 
 type ModuleInstanceRefs = IdentifierMap<OneShotRef<JsModule>>;

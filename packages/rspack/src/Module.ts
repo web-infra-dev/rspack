@@ -320,6 +320,12 @@ export class Module {
 				get(): ResolveData | undefined {
 					return module.resourceResolveData as any;
 				}
+			},
+			matchResource: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.matchResource;
+				}
 			}
 		});
 	}
