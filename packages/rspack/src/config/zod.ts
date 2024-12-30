@@ -916,6 +916,12 @@ const externalItem = z
 			.function()
 			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
 			.returns(z.promise(externalItemValue))
+	)
+	.or(
+		z
+			.function()
+			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
+			.returns(externalItemValue)
 	) satisfies z.ZodType<t.ExternalItem>;
 
 const externals = externalItem
