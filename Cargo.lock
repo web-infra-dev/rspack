@@ -4052,7 +4052,6 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
- "rspack_resolver",
  "tokio",
 ]
 
