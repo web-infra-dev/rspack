@@ -145,7 +145,7 @@ class Compiler {
 
 	running: boolean;
 	idle: boolean;
-	resolverFactory: ResolverFactory;
+	resolverFactory!: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 
