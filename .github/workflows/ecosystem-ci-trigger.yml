@@ -69,7 +69,7 @@ jobs:
         with:
           owner: "rspack-contrib"
           repo: "rspack-ecosystem-ci"
-          workflow_file_name: "ecosystem-ci-pr.yml"
+          workflow_file_name: "ecosystem-ci-from-pr.yml"
           github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
           client_payload: '{"branchName":"${{ github.ref_name }}","prNumber":"0","repo":"web-infra-dev/rspack","suite":"rslib","suiteRefType":"precoded","suiteRef":"precoded"}'
