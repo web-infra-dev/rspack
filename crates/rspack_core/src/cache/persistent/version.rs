@@ -2,11 +2,11 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_paths::AssertUtf8;
 
 pub fn get_version(
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<dyn ReadableFileSystem>,
   dependencies: &Vec<PathBuf>,
   salt: Vec<&str>,
 ) -> String {

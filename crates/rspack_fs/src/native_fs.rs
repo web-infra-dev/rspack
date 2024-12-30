@@ -6,13 +6,12 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, FileSystem, IntermediateFileSystem, IntermediateFileSystemExtras,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 #[derive(Debug)]
 pub struct NativeFileSystem;
-impl FileSystem for NativeFileSystem {}
 #[async_trait::async_trait]
 impl WritableFileSystem for NativeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {

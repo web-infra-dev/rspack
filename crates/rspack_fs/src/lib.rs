@@ -1,5 +1,3 @@
-mod fs;
-pub use fs::FileSystem;
 mod read;
 pub use read::ReadableFileSystem;
 

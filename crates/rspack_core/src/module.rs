@@ -12,7 +12,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
 use rspack_sources::Source;
@@ -37,7 +37,7 @@ pub struct BuildContext {
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<dyn ReadableFileSystem>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
