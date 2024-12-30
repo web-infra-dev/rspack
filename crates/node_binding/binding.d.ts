@@ -19,13 +19,6 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
-  get options(): EntryOptionsDto
-}
-export type EntryDataDTO = EntryDataDto
-
 export declare class EntryOptionsDto {
   get name(): string | undefined
   set name(name: string | undefined)
@@ -142,7 +135,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void): void
+  addInclude(args: [string, RawDependency, RawEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -203,11 +196,19 @@ export declare class JsEntries {
   clear(): void
   get size(): number
   has(key: string): boolean
-  set(key: string, value: JsEntryData | EntryDataDto): void
+  set(key: string, value: RawEntryData): void
   delete(key: string): boolean
-  get(key: string): EntryDataDto | undefined
+  get(key: string): JsEntryData | undefined
   keys(): Array<string>
-  values(): Array<EntryDataDto>
+  values(): Array<JsEntryData>
+}
+
+export declare class JsEntryData {
+  get dependencies(): JsDependency[]
+  set dependencies(dependencies: Array<JsDependency>)
+  get includeDependencies(): JsDependency[]
+  set includeDependencies(dependencies: Array<JsDependency>)
+  get options(): EntryOptionsDto
 }
 
 export declare class JsExportsInfo {
@@ -623,12 +624,6 @@ export interface JsDiagnosticLocation {
   column: number
   /** Length in bytes */
   length: number
-}
-
-export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
-  options: JsEntryOptions
 }
 
 export interface JsEntryOptions {
@@ -1375,6 +1370,12 @@ export interface RawDraft {
 export interface RawDynamicEntryPluginOptions {
   context: string
   entry: () => Promise<RawEntryDynamicResult[]>
+}
+
+export interface RawEntryData {
+  dependencies: Array<JsDependency>
+  includeDependencies: Array<JsDependency>
+  options: JsEntryOptions
 }
 
 export interface RawEntryDynamicResult {

@@ -1313,8 +1313,7 @@ class AddIncludeDispatcher {
 }
 
 export class EntryData {
-	dependencies: Dependency[];
-	includeDependencies: Dependency[];
+	#binding: binding.JsEntryData;
 	options: binding.JsEntryOptions;
 
 	static __from_binding(binding: binding.JsEntryData): EntryData {
@@ -1322,13 +1321,57 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(d =>
-			bindingDependencyFactory.create(Dependency, d)
-		);
-		this.includeDependencies = binding.includeDependencies.map(d =>
-			bindingDependencyFactory.create(Dependency, d)
-		);
+		this.#binding = binding;
 		this.options = binding.options;
+	}
+
+	get dependencies(): Dependency[] {
+		const array = this.#binding.dependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
+		);
+		return new Proxy(array, {
+			deleteProperty: (target, propertyKey) => {
+				Reflect.deleteProperty(target, propertyKey);
+				this.dependencies = array;
+				return true;
+			},
+			set: (target, propertyKey, value) => {
+				Reflect.set(target, propertyKey, value);
+				this.dependencies = array;
+				return true;
+			}
+		});
+	}
+
+	set dependencies(dependencies: Dependency[]) {
+		this.#binding.dependencies = dependencies.map(
+			dependency => bindingDependencyFactory.getBinding(dependency)!
+		);
+	}
+
+	get includeDependencies(): Dependency[] {
+		const array = this.#binding.includeDependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
+		);
+		const proxy = new Proxy(array, {
+			deleteProperty: (target, propertyKey) => {
+				Reflect.deleteProperty(target, propertyKey);
+				this.includeDependencies = array;
+				return true;
+			},
+			set: (target, propertyKey, value) => {
+				Reflect.set(target, propertyKey, value);
+				this.includeDependencies = array;
+				return true;
+			}
+		});
+		return proxy;
+	}
+
+	set includeDependencies(dependencies: Dependency[]) {
+		this.#binding.includeDependencies = dependencies.map(
+			dependency => bindingDependencyFactory.getBinding(dependency)!
+		);
 	}
 }
 
@@ -1351,8 +1394,7 @@ export class Entries implements Map<string, EntryData> {
 		) => void,
 		thisArg?: any
 	): void {
-		for (const [key, binding] of this) {
-			const value = EntryData.__from_binding(binding);
+		for (const [key, value] of this) {
 			callback.call(thisArg, value, key, this);
 		}
 	}

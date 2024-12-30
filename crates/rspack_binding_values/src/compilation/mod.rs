@@ -53,30 +53,28 @@ pub struct JsCompilation {
 impl JsCompilation {
   fn as_ref(&self) -> napi::Result<&'static Compilation> {
     let compilation = unsafe { self.inner.as_ref() };
-    return Ok(compilation);
-    // if compilation.id() == self.id {
-    //   return Ok(compilation);
-    // }
+    if compilation.id() == self.id {
+      return Ok(compilation);
+    }
 
-    // Err(napi::Error::from_reason(format!(
-    //   "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-    //   self.id,
-    //   compilation.id()
-    // )))
+    Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
+    )))
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
     let compilation = unsafe { self.inner.as_mut() };
-    return Ok(compilation);
-    // if compilation.id() == self.id {
-    //   return Ok(compilation);
-    // }
+    if compilation.id() == self.id {
+      return Ok(compilation);
+    }
 
-    // Err(napi::Error::from_reason(format!(
-    //   "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-    //   self.id,
-    //   compilation.id()
-    // )))
+    Err(napi::Error::from_reason(format!(
+      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
+      self.id,
+      compilation.id()
+    )))
   }
 }
 
@@ -728,7 +726,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void"
+    ts_args_type = "args: [string, RawDependency, RawEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void"
   )]
   pub fn add_include(
     &mut self,
