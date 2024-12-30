@@ -119,7 +119,7 @@ function getRawExternalItem(
 						e => reject(e)
 					);
 				} else if (item.length === 1) {
-					// no callback and no promise return, regard as sync function
+					// No callback and no promise returned, regarded as a synchronous function
 					resolve({
 						result: getRawExternalItemValueFormFnResult(
 							promise as ExternalItemValue | undefined
