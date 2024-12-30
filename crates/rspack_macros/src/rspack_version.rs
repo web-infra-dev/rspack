@@ -1,5 +1,5 @@
 pub fn rspack_version() -> String {
-  let re = regex::Regex::new(r#""version": ?"([0-9\.]+)""#).expect("should create regex");
+  let re = regex::Regex::new(r#""version": ?"([0-9a-zA-Z\.-]+)""#).expect("should create regex");
   // package.json in project root directory
   let package_json = include_str!("../../../package.json");
   let version = re
