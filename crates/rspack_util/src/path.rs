@@ -64,37 +64,47 @@ pub fn relative(from: &Path, to: &Path) -> PathBuf {
 }
 
 pub fn join(paths: &[&Path]) -> PathBuf {
-  let paths = paths
-    .iter()
-    .filter(|path| path.components().last().is_some())
-    .collect::<Vec<_>>();
   if paths.is_empty() {
     return PathBuf::from(".");
   }
+  let mut accept_root = true;
   let mut buf = PathBuf::new();
-  for (index, path) in paths.iter().enumerate() {
+  for path in paths.iter() {
     for component in path.components() {
       match component {
         Component::RootDir => {
-          if index == 0 {
+          if accept_root {
             buf.push(component)
           }
+          accept_root = false;
         }
-        Component::CurDir => (),
+        Component::CurDir => {
+          accept_root = false;
+        }
         Component::ParentDir => {
+          accept_root = false;
           if matches!(buf.components().last(), Some(Component::ParentDir) | None) {
             buf.push(component);
           } else {
             buf.pop();
           }
         }
-        _ => {
+        Component::Prefix(_) => {
+          if accept_root {
+            buf.push(component);
+          }
+        }
+        Component::Normal(os_str) => {
+          if os_str.is_empty() {
+            continue;
+          }
+          accept_root = false;
           buf.push(component);
         }
       }
     }
   }
-  if buf.components().last().is_none() {
+  if matches!(buf.components().last(), Some(Component::Prefix(_)) | None) {
     buf.push(Component::CurDir);
   }
   buf
