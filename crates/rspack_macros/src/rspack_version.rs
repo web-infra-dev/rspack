@@ -1,9 +1,10 @@
 pub fn rspack_version() -> String {
-  let re = regex::Regex::new(r#""version": ?"([0-9a-zA-Z\.-]+)""#).expect("should create regex");
   // package.json in project root directory
   let package_json = include_str!("../../../package.json");
-  let version = re
-    .captures(package_json)
-    .expect("can not found version field in project package.json");
-  version[1].to_string()
+  let mut pkg =
+    json::parse(package_json).expect("can not parse package.json in project root directory");
+  let Some(version) = pkg["version"].take_string() else {
+    panic!("version field in package.json is not a string");
+  };
+  version
 }

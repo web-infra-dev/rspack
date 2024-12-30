@@ -4096,9 +4096,9 @@ dependencies = [
 name = "rspack_macros"
 version = "0.2.0"
 dependencies = [
+ "json",
  "proc-macro2",
  "quote",
- "regex",
  "syn 2.0.92",
 ]
 
