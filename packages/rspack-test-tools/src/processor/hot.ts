@@ -1,6 +1,7 @@
 import path from "node:path";
-import { type Compiler, rspack } from "@rspack/core";
+import { rspack } from "@rspack/core";
 
+import { TestHotUpdatePlugin } from "../helper/plugins";
 import {
 	ECompilerType,
 	type ITestContext,
@@ -120,42 +121,9 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			options.plugins ??= [];
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-				new rspack.HotModuleReplacementPlugin()
+				new rspack.HotModuleReplacementPlugin(),
+				new TestHotUpdatePlugin(this.updateOptions)
 			);
-			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push({
-				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("HMR_TEST_PLUGIN", compilation => {
-						compilation.hooks.additionalTreeRuntimeRequirements.tap(
-							"HMR_TEST_PLUGIN",
-							(chunk, set) => {
-								set.add(compiler.webpack.RuntimeGlobals.moduleCache);
-							}
-						);
-						compilation.hooks.runtimeModule.tap(
-							"HMR_TEST_PLUGIN",
-							(module: any, set) => {
-								if (
-									module.constructorName ===
-									"DefinePropertyGettersRuntimeModule"
-								) {
-									module.source.source = Buffer.from(
-										`
-										__webpack_require__.d = function (exports, definition) {
-												for (var key in definition) {
-														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
-														}
-												}
-										};
-										`,
-										"utf-8"
-									);
-								}
-							}
-						);
-					});
-				}
-			});
 		}
 		return options;
 	}
@@ -181,10 +149,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			test: /\.(js|css|json)/,
 			use: [
 				{
-					loader: path.resolve(
-						__dirname,
-						"../helper/legacy/fake-update-loader.js"
-					),
+					loader: path.resolve(__dirname, "../helper/loaders/hot-update.js"),
 					options: this.updateOptions
 				}
 			]

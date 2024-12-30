@@ -196,9 +196,12 @@ export class HotSnapshotProcessor<
 			runtime: string[];
 		}> = [];
 		const hotUpdateManifest: Array<{ name: string; content: string }> = [];
-		const changedFiles: string[] = this.updateOptions.changedFiles.map(
-			(i: string) => escapeSep(path.relative(context.getSource(), i))
-		);
+		const changedFiles: string[] =
+			this.updateOptions.updateIndex === 0
+				? []
+				: this.updateOptions.changedFiles.map((i: string) =>
+						escapeSep(path.relative(context.getSource(), i))
+					);
 		changedFiles.sort();
 
 		const hashes: Record<string, string> = {

@@ -125,27 +125,21 @@ export class WatchProcessor<
 				warnings.push(...jsonStats.warnings);
 			}
 		}
-		await new Promise<void>((resolve, reject) => {
-			checkArrayExpectation(
-				path.join(context.getSource(), this._watchOptions.stepName),
-				{ errors },
-				"error",
-				"Error",
-				reject
-			);
-			resolve();
-		});
+		await checkArrayExpectation(
+			path.join(context.getSource(), this._watchOptions.stepName),
+			{ errors },
+			"error",
+			"errors",
+			"Error"
+		);
 
-		await new Promise<void>((resolve, reject) => {
-			checkArrayExpectation(
-				path.join(context.getSource(), this._watchOptions.stepName),
-				{ warnings },
-				"warning",
-				"Warning",
-				reject
-			);
-			resolve();
-		});
+		await checkArrayExpectation(
+			path.join(context.getSource(), this._watchOptions.stepName),
+			{ warnings },
+			"warning",
+			"warnings",
+			"Warning"
+		);
 
 		// clear error if checked
 		if (fs.existsSync(context.getSource("errors.js"))) {
