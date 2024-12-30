@@ -26,8 +26,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             })
-            // TODO: use context.payload.inputs.branch
-            const targetBranch = github.ref_name;
+            // context.payload.inputs.branch
+            const targetBranch = "enable-eco-ci";
 
             const pr = prs.find(pr => pr.head.ref === targetBranch);
 
@@ -40,7 +40,7 @@ jobs:
                 repo: pr.head.repo.full_name
               }
             } else {
-              console.log(`can't find PR for branch: ${github.ref_name}`)
+              console.log(`can't find PR for branch: ${targetBranch}`)
             }
 
       - id: create-comment
@@ -73,13 +73,6 @@ jobs:
           github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
           client_payload: '{"branchName":"${{ github.ref_name }}","prNumber":"{{ steps.get-pr-number.outputs.result.num }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
-        # id: run-eco-ci
-        # run: |
-        #   git clone --single-branch --depth 1 https://github.com/rspack-contrib/rspack-ecosystem-ci.git
-        #   cd rspack-ecosystem-ci
-        #   pnpm i
-        #   result=$(pnpm tsx ecosystem-ci.ts --branch $github.event.inputs.branch)
-        #   echo "$result"
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
