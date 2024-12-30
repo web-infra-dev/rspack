@@ -51,7 +51,7 @@ export class CacheProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			directory = experiments.cache.storage?.directory || directory;
 		}
 		removeSync(
-			path.join(context.getSource(), directory || "node_modules/.cache")
+			path.resolve(context.getSource(), directory || "node_modules/.cache")
 		);
 
 		await super.build(context);
