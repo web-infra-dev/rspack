@@ -1,102 +1,94 @@
 name: ecosystem-ci trigger
 
-# TODO: switch to workflow_dispatch
-# on:
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch of the Ecosystem CI run'
+        required: true
+        default: 'main'
 
 jobs:
-  trigger:
+  ecosystem_ci:
+    name: Run Ecosystem CI
     runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rspack' && github.event.issue.pull_request && startsWith(github.event.comment.body, '!eco-ci')
+    if: github.repository == 'web-infra-dev/rspack'
     steps:
-      - uses: actions/github-script@v7
+      - id: get-pr-number
+        uses: actions/github-script@v7
+        name: Get PR Number
         with:
           script: |
-            const user = context.payload.sender.login
-            console.log(`Validate user: ${user}`)
-
-            let hasTriagePermission = false
-            try {
-              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                username: user,
-              });
-              hasTriagePermission = data.user.permissions.triage
-            } catch (e) {
-              console.warn(e)
-            }
-
-            if (hasTriagePermission) {
-              console.log('Allowed')
-              await github.rest.reactions.createForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id,
-                content: '+1',
-              })
-            } else {
-              console.log('Not allowed')
-              await github.rest.reactions.createForIssueComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: context.payload.comment.id,
-                content: '-1',
-              })
-              throw new Error('not allowed')
-            }
-      - uses: actions/github-script@v7
-        id: get-pr-data
-        with:
-          script: |
-            console.log(`Get PR info: ${context.repo.owner}/${context.repo.repo}#${context.issue.number}`)
-            const { data: pr } = await github.rest.pulls.get({
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
             })
-            return {
-              num: context.issue.number,
-              branchName: pr.head.ref,
-              repo: pr.head.repo.full_name
+
+            const pr = prs.find(pr => pr.head.ref === context.payload.inputs.branch);
+
+            if(pr) {
+              console.log(`Get PR info: ${pr.url}`)
+
+              return {
+                num: pr.number,
+                branchName: pr.head.ref,
+                repo: pr.head.repo.full_name
+              }
+            } else {
+              console.log(`can't find PR for branch: ${context.payload.inputs.branch}`)
             }
-      - uses: actions/github-script@v7
-        id: trigger
-        env:
-          COMMENT: ${{ github.event.comment.body }}
+
+      - id: create-comment
+        name: Create Comment
+        uses: actions/github-script@v7
+        if: steps.get-pr-number.outputs.result
         with:
-          github-token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
           result-encoding: string
           script: |
-            const comment = process.env.COMMENT.trim()
-            const command = comment.split('\n')[0]
-            const prData = ${{ steps.get-pr-data.outputs.result }}
+            const url = `${context.serverUrl}//${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const urlLink = `[Open](${url})`
+            const prData = ${{ steps.get-pr-number.outputs.result }}
 
-            const [suite, suiteRefType, suiteRef] = command.replace(/^!eco-ci/, '').trim().split(' ')
-            const allSuites = suite === '' || suite === '-'
+            const { data: comment } = await github.rest.issues.createComment({
+              issue_number: prData.num,
+              owner: 'web-infra-dev',
+              repo: 'rspack',
+              body: `⏳ Triggered ecosystem CI: ${urlLink}`
+            })
+            return comment.id
 
-            function normalizeSuiteRefType(suiteRefType) {
-              const prefix = '--suite-'
-              if (allSuites || suiteRefType === undefined || !suiteRefType.startsWith(prefix)) {
-                return 'precoded'
-              }
-              return suiteRefType.slice(prefix.length)
-            }
+      - name: Run Ecosystem CI
+        id: eco_ci
+        uses: convictional/trigger-workflow-and-wait@v1.6.5
+        continue-on-error: true
+        with:
+          owner: "rspack-contrib"
+          repo: "rspack-ecosystem-ci"
+          workflow_file_name: "ecosystem-ci-selected.yml"
+          github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
+          ref: "main"
+          client_payload: '{"ref":"${{ github.event.inputs.branch }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
 
-            function normalizeSuiteRef(suiteRef) {
-              return (allSuites || suiteRef === undefined) ? 'precoded' : suiteRef
-            }
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 1
 
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'rspack-contrib',
-              repo: 'rspack-ecosystem-ci',
-              workflow_id: 'ecosystem-ci-from-pr.yml',
-              ref: 'main',
-              inputs: {
-                prNumber: '' + prData.num,
-                branchName: prData.branchName,
-                repo: prData.repo,
-                suite: allSuites ? '-' : suite,
-                suiteRefType: normalizeSuiteRefType(suiteRefType),
-                suiteRef: normalizeSuiteRef(suiteRef),
-              }
+      - id: eco-ci-result
+        uses: ./.github/actions/eco-ci-result
+        name: Get CI Result
+        with:
+          workflow-output: ${{ toJson(steps.eco_ci.outputs) }}
+
+      - id: update-comment
+        uses: actions/github-script@v7
+        if: steps.get-pr-number.outputs.result
+        name: Update Comment
+        with:
+          script: |
+            await github.rest.issues.updateComment({
+              owner: 'web-infra-dev',
+              repo: 'rspack',
+              comment_id: ${{ steps.create-comment.outputs.result }},
+              body: ${{ steps.eco-ci-result.outputs.result }}
             })

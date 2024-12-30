@@ -379,9 +379,7 @@ jobs:
   run_ecosystem_ci:
     name: Run Ecosystem CI
     runs-on: ubuntu-latest
-    # TODO: enable it after security tokens are added
-    # if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
-    if: false
+    if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
     steps:
       - name: Run Ecosystem CI
         id: eco_ci
@@ -391,7 +389,7 @@ jobs:
           owner: "rspack-contrib"
           repo: "rspack-ecosystem-ci"
           workflow_file_name: "ecosystem-ci-from-commit.yml"
-          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
+          github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
           client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
 
@@ -411,6 +409,26 @@ jobs:
             commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
           URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
           LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
+
+      - name: Get CI Result
+        id: eco-ci-result
+        if: steps.eco_ci.outcome == 'failure'
+        uses: ./.github/actions/eco-ci-result
+        with:
+          workflow-output: ${{ toJson(steps.eco_ci.outputs) }}
+
+      - id: create-commit-comment
+        uses: actions/github-script@v7
+        if: steps.eco_ci.outcome == 'failure'
+        name: Create Commit Comment
+        with:
+          script: |
+            await github.rest.repos.createCommitComment({
+              commit_sha: github.sha,
+              owner: 'web-infra-dev',
+              repo: 'rspack',
+              body: ${{ steps.eco-ci-result.outputs.result }}
+            })
 
   failure_notification:
     name: Failure Notification

@@ -1,0 +1,63 @@
+name: 'Eco CI Result'
+description: 'Get ecosystem CI result and format it'
+
+inputs:
+  workflow-output:
+    description: 'The output from ecosystem CI workflow'
+    required: true
+
+outputs:
+  result:
+    description: 'Formatted CI result'
+    value: ${{ steps.get-result.outputs.result }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: get-result
+      uses: actions/github-script@v7
+      env:
+        CI_OUTPUT: ${{ inputs.workflow-output }}
+      with:
+        script: |
+          const owner = "rspack-contrib"
+          const repo = "rspack-ecosystem-ci"
+          const runId = JSON.parse(process.env.CI_OUTPUT).workflow_id
+
+          const { data: { jobs } = {} } = await github.rest.actions.listJobsForWorkflowRun({
+            owner,
+            repo,
+            run_id: runId,
+          })
+
+          if (!jobs) {
+            return 'cannot find CI result'
+          }
+
+          let result = jobs
+              .filter(job => job.name.startsWith('execute-all '))
+              .map(job => {
+                const suite = job.name.replace(/^execute-all \(([^)]+)\)$/, "$1")
+                return { suite, conclusion: job.conclusion, link: job.html_url }
+              })
+
+          const url = `https://github.com/${owner}/${repo}/actions/runs/${runId}`
+          const urlLink = `[Open](${url})`
+
+          const conclusionEmoji = {
+            success: ":white_check_mark:",
+            failure: ":x:",
+            cancelled: ":stop_button:"
+          }
+
+          const body = `
+          📝 Ran ecosystem CI: ${urlLink}
+
+          | suite | result |
+          |-------|--------|
+          ${result.map(r => `| [${r.suite}](${r.link}) | ${conclusionEmoji[r.conclusion]} ${r.conclusion} |`).join("\n")}
+          `
+
+          console.log(body);
+
+          return body;
