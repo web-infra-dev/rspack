@@ -75,25 +75,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
 				`errors${hotUpdateContext.updateIndex}`,
-				"Error",
-				function (err: any) {
-					throw err;
-				}
+				"Error"
 			);
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${hotUpdateContext.updateIndex}`,
-				"Warning",
-				function (err: any) {
-					throw err;
-				}
+				"Warning"
 			);
 
 			const updatedModules = await m.hot.check(options || true);
@@ -123,25 +117,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
 				`errors${hotUpdateContext.updateIndex}`,
-				"Error",
-				function (err: any) {
-					throw err;
-				}
+				"Error"
 			);
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${hotUpdateContext.updateIndex}`,
-				"Warning",
-				function (err: any) {
-					throw err;
-				}
+				"Warning"
 			);
 			env.it(
 				`NEXT_START run with compilerIndex==${compilerIndex + 1}`,

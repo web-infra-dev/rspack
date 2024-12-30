@@ -165,27 +165,21 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 				warnings.push(...jsonStats.warnings);
 			}
 		}
-		await new Promise<void>((resolve, reject) => {
-			checkArrayExpectation(
-				context.getSource(),
-				{ errors },
-				"error",
-				"Error",
-				reject
-			);
-			resolve();
-		});
+		await checkArrayExpectation(
+			context.getSource(),
+			{ errors },
+			"error",
+			"errors",
+			"Error"
+		);
 
-		await new Promise<void>((resolve, reject) => {
-			checkArrayExpectation(
-				context.getSource(),
-				{ warnings },
-				"warning",
-				"Warning",
-				reject
-			);
-			resolve();
-		});
+		await checkArrayExpectation(
+			context.getSource(),
+			{ warnings },
+			"warning",
+			"warnings",
+			"Warning"
+		);
 
 		// clear error if checked
 		if (fs.existsSync(context.getSource("errors.js"))) {

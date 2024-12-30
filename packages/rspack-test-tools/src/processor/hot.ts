@@ -1,6 +1,7 @@
 import path from "node:path";
 import { rspack } from "@rspack/core";
 
+import { TestHotUpdatePlugin } from "../helper/plugins";
 import {
 	ECompilerType,
 	type ITestContext,
@@ -120,7 +121,8 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 		if (this._hotOptions.compilerType === ECompilerType.Rspack) {
 			options.plugins ??= [];
 			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
-				new rspack.HotModuleReplacementPlugin()
+				new rspack.HotModuleReplacementPlugin(),
+				new TestHotUpdatePlugin(this.updateOptions)
 			);
 		}
 		return options;
@@ -147,10 +149,7 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			test: /\.(js|css|json)/,
 			use: [
 				{
-					loader: path.resolve(
-						__dirname,
-						"../helper/legacy/fake-update-loader.js"
-					),
+					loader: path.resolve(__dirname, "../helper/loaders/hot-update.js"),
 					options: this.updateOptions
 				}
 			]
