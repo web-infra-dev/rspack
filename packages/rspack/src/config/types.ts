@@ -1425,6 +1425,7 @@ export type ExternalItem =
 	| string
 	| RegExp
 	| ExternalItemObjectUnknown
+	| ((data: ExternalItemFunctionData) => ExternalItemValue)
 	| ((
 			data: ExternalItemFunctionData,
 			callback: (

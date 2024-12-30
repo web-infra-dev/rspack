@@ -108,9 +108,9 @@ function getRawExternalItem(
 							externalType: type
 						});
 					}
-				) as Promise<ExternalItemValue>;
-				if (promise?.then) {
-					promise.then(
+				) as Promise<ExternalItemValue> | ExternalItemValue | undefined;
+				if ((promise as Promise<ExternalItemValue>)?.then) {
+					(promise as Promise<ExternalItemValue>).then(
 						result =>
 							resolve({
 								result: getRawExternalItemValueFormFnResult(result),
@@ -118,6 +118,14 @@ function getRawExternalItem(
 							}),
 						e => reject(e)
 					);
+				} else if (item.length === 1) {
+					// No callback and no promise returned, regarded as a synchronous function
+					resolve({
+						result: getRawExternalItemValueFormFnResult(
+							promise as ExternalItemValue | undefined
+						),
+						externalType: undefined
+					});
 				}
 			});
 		};
