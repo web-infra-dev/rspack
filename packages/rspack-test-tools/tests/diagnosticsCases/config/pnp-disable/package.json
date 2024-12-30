@@ -1,0 +1,13 @@
+{
+  "name": "rspack-pnp-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "the-answer": "1.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "yarn@3.8.4"
+}

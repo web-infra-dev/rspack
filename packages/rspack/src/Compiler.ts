@@ -239,7 +239,6 @@ class Compiler {
 		this.records = {};
 
 		this.options = options;
-		this.resolverFactory = new ResolverFactory();
 		this.context = context;
 		this.cache = new Cache();
 
@@ -1644,7 +1643,11 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
-			ResolverFactory.__to_binding(this.resolverFactory)
+			ResolverFactory.__to_binding(
+				(this.resolverFactory = new ResolverFactory(
+					rawOptions.resolve.enablePnp ?? false
+				))
+			)
 		);
 
 		callback(null, this.#instance);

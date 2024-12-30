@@ -798,6 +798,8 @@ export type ResolveOptions = {
 
 	/** Customize the Resolve configuration based on the module type. */
 	byDependency?: Record<string, ResolveOptions>;
+	/** enable yarn pnp */
+	enablePnp?: boolean;
 };
 
 /** Used to configure the Rspack module resolution */

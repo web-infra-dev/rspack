@@ -1055,6 +1055,7 @@ const getResolveDefaults = ({
 	});
 
 	const resolveOptions: ResolveOptions = {
+		enablePnp: true,
 		modules: ["node_modules"],
 		conditionNames: conditions,
 		mainFiles: ["index"],
