@@ -449,6 +449,7 @@ Object {
       production,
       browser,
     ],
+    enablePnp: false,
     exportsFields: Array [
       exports,
     ],
