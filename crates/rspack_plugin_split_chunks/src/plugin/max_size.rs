@@ -448,6 +448,9 @@ impl SplitChunksPlugin {
           };
           let new_part_ukey = new_part.ukey();
           chunk.split(new_part, &mut compilation.chunk_group_by_ukey);
+          if let Some(filename_template) = chunk.filename_template() {
+            new_part.set_filename_template(Some(filename_template.clone()));
+          }
           if let Some(mutations) = compilation.incremental.mutations_write() {
             mutations.add(Mutation::ChunkSplit {
               from: old_chunk,
