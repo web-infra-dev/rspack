@@ -1056,6 +1056,7 @@ const getResolveDefaults = ({
 
 	const resolveOptions: ResolveOptions = {
 		// enable pnp only in pnp environment, see https://yarnpkg.com/advanced/pnpapi#processversionspnp
+		// IGNORE(resolve.enablePnp): Rspack use `resolve.enable` to enable yarn pnp feature
 		enablePnp: !!process.versions.pnp,
 		modules: ["node_modules"],
 		conditionNames: conditions,
