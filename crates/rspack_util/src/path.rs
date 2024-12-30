@@ -132,10 +132,8 @@ mod test {
     ];
 
     for (from, to, expected) in test_cases {
-      let actual = relative(Path::new(from), Path::new(to))
-        .to_string_lossy()
-        .to_string();
-      assert_eq!(actual, expected.to_string());
+      let actual = relative(Path::new(from), Path::new(to));
+      assert_eq!(actual, Path::new(expected));
     }
   }
 
@@ -182,10 +180,8 @@ mod test {
     ];
 
     for (from, to, expected) in test_cases {
-      let actual = relative(Path::new(from), Path::new(to))
-        .to_string_lossy()
-        .to_string();
-      assert_eq!(actual, expected.to_string());
+      let actual = relative(Path::new(from), Path::new(to));
+      assert_eq!(actual, Path::new(expected));
     }
   }
 
@@ -202,8 +198,8 @@ mod test {
       (vec!["foo/x", "./bar"], "foo/x/bar"),
       (vec!["foo/x/", "./bar"], "foo/x/bar"),
       (vec!["foo/x/", ".", "bar"], "foo/x/bar"),
-      // (vec!["./"], "./"),
-      // (vec![".", "./"], "./"),
+      (vec!["./"], "./"),
+      (vec![".", "./"], "./"),
       (vec![".", ".", "."], "."),
       (vec![".", "./", "."], "."),
       (vec![".", "/./", "."], "."),
@@ -216,7 +212,7 @@ mod test {
       (vec!["", "", "/foo"], "/foo"),
       (vec!["", "", "foo"], "foo"),
       (vec!["foo", ""], "foo"),
-      // (vec!["foo/", ""], "foo/"),
+      (vec!["foo/", ""], "foo/"),
       (vec!["foo", "", "/bar"], "foo/bar"),
       (vec!["./", "..", "/foo"], "../foo"),
       (vec!["./", "..", "..", "/foo"], "../../foo"),
@@ -231,7 +227,7 @@ mod test {
       (vec![" /foo"], " /foo"),
       (vec![" ", "foo"], " /foo"),
       (vec![" ", "."], " "),
-      // (vec![" ", "/"], " /"),
+      (vec![" ", "/"], " /"),
       (vec![" ", ""], " "),
       (vec!["/", "foo"], "/foo"),
       (vec!["/", "/foo"], "/foo"),
@@ -243,8 +239,66 @@ mod test {
 
     for (paths, expected) in test_cases {
       let paths = paths.iter().map(Path::new).collect::<Vec<_>>();
-      let actual = join(&paths).to_string_lossy().to_string();
-      assert_eq!(actual, expected.to_string());
+      let actual = join(&paths);
+      assert_eq!(actual, Path::new(expected).to_path_buf());
+    }
+  }
+
+  #[cfg(target_os = "windows")]
+  #[test]
+  fn test_join_win32() {
+    let test_cases = vec![
+      // UNC path expected
+      (vec!["//foo/bar"], "\\\\foo\\bar\\"),
+      (vec!["\\/foo/bar"], "\\\\foo\\bar\\"),
+      (vec!["\\\\foo/bar"], "\\\\foo\\bar\\"),
+      // UNC path expected - server and share separate
+      (vec!["//foo", "bar"], "\\\\foo\\bar\\"),
+      (vec!["//foo/", "bar"], "\\\\foo\\bar\\"),
+      (vec!["//foo", "/bar"], "\\\\foo\\bar\\"),
+      // UNC path expected - questionable
+      (vec!["//foo", "", "bar"], "\\\\foo\\bar\\"),
+      (vec!["//foo/", "", "bar"], "\\\\foo\\bar\\"),
+      (vec!["//foo/", "", "/bar"], "\\\\foo\\bar\\"),
+      // UNC path expected - even more questionable
+      (vec!["", "//foo", "bar"], "\\\\foo\\bar\\"),
+      (vec!["", "//foo/", "bar"], "\\\\foo\\bar\\"),
+      (vec!["", "//foo/", "/bar"], "\\\\foo\\bar\\"),
+      // No UNC path expected (no double slash in first component)
+      (vec!["\\", "foo/bar"], "\\foo\\bar"),
+      (vec!["\\", "/foo/bar"], "\\foo\\bar"),
+      (vec!["", "/", "/foo/bar"], "\\foo\\bar"),
+      // No UNC path expected (no non-slashes in first component -
+      // questionable)
+      (vec!["//", "foo/bar"], "\\foo\\bar"),
+      (vec!["//", "/foo/bar"], "\\foo\\bar"),
+      (vec!["\\\\", "/", "/foo/bar"], "\\foo\\bar"),
+      (vec!["//"], "\\"),
+      // No UNC path expected (share name missing - questionable).
+      (vec!["//foo"], "\\foo"),
+      (vec!["//foo/"], "\\foo\\"),
+      (vec!["//foo", "/"], "\\foo\\"),
+      (vec!["//foo", "", "/"], "\\foo\\"),
+      // No UNC path expected (too many leading slashes - questionable)
+      (vec!["///foo/bar"], "\\foo\\bar"),
+      (vec!["////foo", "bar"], "\\foo\\bar"),
+      (vec!["\\\\\\/foo/bar"], "\\foo\\bar"),
+      // Drive-relative vs drive-absolute paths. This merely describes the
+      // status quo, rather than being obviously right
+      (vec!["c:"], "c:."),
+      (vec!["c:."], "c:."),
+      (vec!["c:", ""], "c:."),
+      (vec!["", "c:"], "c:."),
+      (vec!["c:.", "/"], "c:.\\"),
+      (vec!["c:.", "file"], "c:file"),
+      (vec!["c:", "/"], "c:\\"),
+      (vec!["c:", "file"], "c:\\file"),
+    ];
+
+    for (paths, expected) in test_cases {
+      let paths = paths.iter().map(Path::new).collect::<Vec<_>>();
+      let actual = join(&paths);
+      assert_eq!(actual, Path::new(expected));
     }
   }
 }
