@@ -1,6 +1,6 @@
-import value from "./file";
+import value from "./test_lib";
 
-it("should store and resume asset parser and generator states", async () => {
+it("should snapshot managed-paths work", async () => {
 	if (COMPILER_INDEX == 0) {
 		expect(value).toBe(1);
 		await NEXT_HMR();
@@ -8,7 +8,7 @@ it("should store and resume asset parser and generator states", async () => {
 		await NEXT_START();
 	}
 	if (COMPILER_INDEX == 1) {
-		expect(value).toBe(3);
+		expect(value).toBe(2);
 		await NEXT_HMR();
 		expect(value).toBe(4);
 	}

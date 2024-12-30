@@ -1,0 +1,5 @@
+{
+  "name": "test_lib",
+  "version": "0.0.1",
+  "main": "./file.js"
+}
