@@ -20,22 +20,15 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
   {
     mutations
       .iter()
-      .rfold(IdentifierSet::default(), |mut acc, mutation| {
-        match mutation {
-          Mutation::ModuleBuild { module } => {
-            acc.insert(*module);
-          }
-          Mutation::ModuleRemove { module } => {
-            // we keep the state for the module only if the module revoke first, and then rebuild
-            // otherwise we gc its state
-            if !acc.contains(module) {
-              compilation.async_modules_artifact.remove(module);
-            }
-          }
-          _ => {}
-        };
-        acc
+      .filter_map(|mutation| match mutation {
+        Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => Some(*module),
+        Mutation::ModuleRemove { module } => {
+          compilation.async_modules_artifact.remove(module);
+          None
+        }
+        _ => None,
       })
+      .collect()
   } else {
     compilation
       .get_module_graph()

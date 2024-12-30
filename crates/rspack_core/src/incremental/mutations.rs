@@ -46,7 +46,8 @@ impl fmt::Display for Mutations {
 
 #[derive(Debug)]
 pub enum Mutation {
-  ModuleBuild { module: ModuleIdentifier },
+  ModuleAdd { module: ModuleIdentifier },
+  ModuleUpdate { module: ModuleIdentifier },
   ModuleRemove { module: ModuleIdentifier },
   ModuleSetAsync { module: ModuleIdentifier },
   ModuleSetId { module: ModuleIdentifier },
@@ -60,7 +61,8 @@ pub enum Mutation {
 impl fmt::Display for Mutation {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Mutation::ModuleBuild { module } => write!(f, "build module {module}"),
+      Mutation::ModuleAdd { module } => write!(f, "add module {module}"),
+      Mutation::ModuleUpdate { module } => write!(f, "update module {module}"),
       Mutation::ModuleRemove { module } => write!(f, "remove module {module}"),
       Mutation::ModuleSetAsync { module } => write!(f, "set async module {module}"),
       Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
@@ -144,7 +146,8 @@ impl Mutations {
           self
             .iter()
             .filter_map(|mutation| match mutation {
-              Mutation::ModuleBuild { module } => Some(*module),
+              Mutation::ModuleAdd { module } => Some(*module),
+              Mutation::ModuleUpdate { module } => Some(*module),
               _ => None,
             })
             .collect(),

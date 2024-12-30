@@ -1,4 +1,4 @@
-use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
@@ -134,27 +134,23 @@ fn module_ids(&self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     .mutations_read(IncrementalPasses::MODULE_IDS)
     && !module_ids.is_empty()
   {
-    mutations
-      .iter()
-      .rfold(IdentifierSet::default(), |mut acc, mutation| {
-        match mutation {
-          Mutation::ModuleBuild { module } => {
-            acc.insert(*module);
+    mutations.iter().for_each(|mutation| {
+      match mutation {
+        Mutation::ModuleUpdate { module } => {
+          // Delete from used_ids even the module is updated module, so we can reuse its module_id
+          if let Some(id) = ChunkGraph::get_module_id(&module_ids, *module) {
+            used_ids.remove(id);
           }
-          Mutation::ModuleRemove { module } => {
-            // Delete from used_ids even the module is updated module, so we can reuse its module_id
-            if let Some(id) = ChunkGraph::get_module_id(&module_ids, *module) {
-              used_ids.remove(id);
-            }
-            // Keep the module_id for updated module (revoke first, then rebuild)
-            if !acc.contains(module) {
-              module_ids.remove(module);
-            }
+        }
+        Mutation::ModuleRemove { module } => {
+          if let Some(id) = ChunkGraph::get_module_id(&module_ids, *module) {
+            used_ids.remove(id);
           }
-          _ => {}
-        };
-        acc
-      });
+          module_ids.remove(module);
+        }
+        _ => {}
+      }
+    });
   }
 
   let modules: IdentifierSet = module_graph
