@@ -7,6 +7,9 @@ on:
         description: 'The branch of the Ecosystem CI run'
         required: true
         default: 'main'
+  push:
+    branches:
+      - enable-eco-ci
 
 jobs:
   ecosystem_ci:
@@ -64,10 +67,10 @@ jobs:
         with:
           owner: "rspack-contrib"
           repo: "rspack-ecosystem-ci"
-          workflow_file_name: "ecosystem-ci-selected.yml"
+          workflow_file_name: "ecosystem-ci-pr.yml"
           github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
-          client_payload: '{"ref":"${{ github.event.inputs.branch }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
+          client_payload: '{"branchName":"${{ github.event.inputs.branch }}","prNumber":"{{ steps.get-pr-number.outputs.result.num }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
 
       - name: Checkout
         uses: actions/checkout@v4.2.2
