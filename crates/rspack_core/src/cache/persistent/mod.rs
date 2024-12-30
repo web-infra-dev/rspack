@@ -8,7 +8,7 @@ use std::{path::PathBuf, sync::Arc};
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
 use rspack_error::Result;
-use rspack_fs::{FileSystem, IntermediateFileSystem};
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_macros::rspack_version;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
@@ -42,7 +42,7 @@ impl PersistentCache {
     compiler_path: &str,
     option: &PersistentCacheOptions,
     compiler_options: Arc<CompilerOptions>,
-    input_filesystem: Arc<dyn FileSystem>,
+    input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
     let async_mode = compiler_options.mode.is_development();

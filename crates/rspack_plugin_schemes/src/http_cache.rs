@@ -7,7 +7,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_base64::encode_to_string;
-use rspack_fs::FileSystem;
+use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
@@ -70,7 +70,7 @@ pub enum FetchResultType {
 pub struct HttpCache {
   cache_location: Option<PathBuf>,
   lockfile_cache: LockfileCache,
-  filesystem: Arc<dyn FileSystem + Send + Sync>,
+  filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
   http_client: Arc<dyn HttpClient>,
 }
 
@@ -78,7 +78,7 @@ impl HttpCache {
   pub fn new(
     cache_location: Option<String>,
     lockfile_location: Option<String>,
-    filesystem: Arc<dyn FileSystem + Send + Sync>,
+    filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
     http_client: Option<Arc<dyn HttpClient>>,
   ) -> Self {
     let cache_location = cache_location.map(PathBuf::from);
@@ -227,10 +227,10 @@ impl HttpCache {
         let current_time = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         let is_valid = entry.valid_until > current_time;
 
-        if is_valid && self.filesystem.async_read(cache_path).await.is_ok() {
+        if is_valid && self.filesystem.read_file(cache_path).await.is_ok() {
           let cached_content = self
             .filesystem
-            .async_read(cache_path)
+            .read_file(cache_path)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to read cached content: {:?}", e))?;
 

@@ -1,7 +1,7 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::task::spawn_blocking;
@@ -27,7 +27,7 @@ impl<Context> LoaderContext<Context> {
 
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = &loader_context.plugin
     && let Some(processed_resource) = plugin
@@ -108,7 +108,7 @@ pub async fn run_loaders<Context: Send>(
   resource_data: Arc<ResourceData>,
   plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .into_iter()

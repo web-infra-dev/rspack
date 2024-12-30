@@ -1,14 +1,14 @@
 use std::{any::Any, sync::Arc};
 
 use rspack_cacheable::{cacheable, with::AsConverter, DeserializeError, SerializeError};
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 
 use crate::CompilerOptions;
 
 #[derive(Debug)]
 pub struct CacheableContext {
   pub options: Arc<CompilerOptions>,
-  pub input_filesystem: Arc<dyn FileSystem>,
+  pub input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
 #[cacheable]

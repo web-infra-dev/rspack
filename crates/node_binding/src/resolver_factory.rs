@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use napi_derive::napi;
 use rspack_core::{Resolve, ResolverFactory};
-use rspack_fs::{FileSystem, NativeFileSystem};
+use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 
 use crate::{
   raw_resolve::{
@@ -15,7 +15,7 @@ use crate::{
 pub struct JsResolverFactory {
   pub(crate) resolver_factory: Option<Arc<ResolverFactory>>,
   pub(crate) loader_resolver_factory: Option<Arc<ResolverFactory>>,
-  pub(crate) input_filesystem: Arc<dyn FileSystem>,
+  pub(crate) input_filesystem: Arc<dyn ReadableFileSystem>,
 }
 
 #[napi]

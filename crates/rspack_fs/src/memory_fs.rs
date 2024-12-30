@@ -8,8 +8,8 @@ use std::{
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, FileSystem, IntermediateFileSystem, IntermediateFileSystemExtras,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
 
 fn current_time() -> u64 {
@@ -74,7 +74,6 @@ impl FileType {
 pub struct MemoryFileSystem {
   files: Arc<Mutex<HashMap<Utf8PathBuf, FileType>>>,
 }
-impl FileSystem for MemoryFileSystem {}
 
 impl MemoryFileSystem {
   pub fn clear(&self) {

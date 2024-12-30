@@ -10,7 +10,7 @@ use rspack_core::{
   NormalModuleReadResource, Plugin, PluginContext, ResourceData, Scheme,
 };
 use rspack_error::Result;
-use rspack_fs::FileSystem;
+use rspack_fs::WritableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::http_cache::{fetch_content, FetchResultType, HttpClient};
@@ -38,7 +38,7 @@ pub struct HttpUriPluginOptions {
   pub lockfile_location: Option<String>,
   pub proxy: Option<String>,
   pub upgrade: Option<bool>,
-  pub filesystem: Arc<dyn FileSystem>,
+  pub filesystem: Arc<dyn WritableFileSystem>,
   pub http_client: Option<Arc<dyn HttpClient>>,
 }
 
