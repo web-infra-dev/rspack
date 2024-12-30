@@ -1191,15 +1191,22 @@ impl Compilation {
         self
           .make_artifact
           .revoked_modules
-          .iter()
+          .difference(&self.make_artifact.built_modules)
           .map(|&module| Mutation::ModuleRemove { module }),
       );
       mutations.extend(
         self
           .make_artifact
           .built_modules
-          .iter()
-          .map(|&module| Mutation::ModuleBuild { module }),
+          .intersection(&self.make_artifact.revoked_modules)
+          .map(|&module| Mutation::ModuleUpdate { module }),
+      );
+      mutations.extend(
+        self
+          .make_artifact
+          .built_modules
+          .difference(&self.make_artifact.revoked_modules)
+          .map(|&module| Mutation::ModuleAdd { module }),
       );
     }
 
@@ -2046,6 +2053,7 @@ impl Compilation {
     Ok(())
   }
 
+  #[instrument(skip_all)]
   async fn process_chunk_hash(
     &self,
     chunk_ukey: ChunkUkey,

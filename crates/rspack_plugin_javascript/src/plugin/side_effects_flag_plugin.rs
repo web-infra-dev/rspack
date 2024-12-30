@@ -718,7 +718,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
     let modules: IdentifierSet = mutations.iter().fold(
       IdentifierSet::default(),
       |mut modules, mutation| match mutation {
-        Mutation::ModuleBuild { module } => {
+        Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
           if modules.insert(*module) {
             affected_incoming_modules(module, &module_graph, &mut modules);
           }
