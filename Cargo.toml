@@ -64,7 +64,7 @@ rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
 rspack_resolver    = { version = "0.3.6", features = ["package_json_raw_json_api"] }
-rspack_sources     = { version = "0.4.1" }
+rspack_sources     = { git = "https://github.com/web-infra-dev/rspack-sources.git", ref = "f706b2c00090b3c8ab467058ed4e992cea404ce6" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.216" }
 serde_json         = { version = "1.0.134" }
