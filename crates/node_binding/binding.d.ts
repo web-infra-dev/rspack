@@ -455,6 +455,7 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
+  CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
   ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
@@ -1490,6 +1491,17 @@ export interface RawCacheGroupOptions {
 export interface RawCacheOptions {
   type: string
   maxGenerations?: number
+}
+
+export interface RawCircularDependencyRspackPluginOptions {
+  failOnError?: boolean
+  allowAsyncCycles?: boolean
+  exclude?: RspackRegex
+  ignoredConnections?: Array<[ConnectionPattern, ConnectionPattern]>
+  onDetected?: (entrypoint: Module, modules: string[], compilation: Compilation) => void
+  onIgnored?: (entrypoint: Module, modules: string[], compilation: Compilation) => void
+  onStart?: (compilation: Compilation) => void
+  onEnd?: (compilation: Compilation) => void
 }
 
 export interface RawConsumeOptions {
