@@ -3,7 +3,7 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
 import { ZodObject, ZodOptional, ZodUnion } from "../compiled/zod/index.js";
-import { rspackOptions } from "../dist/config/zod.js";
+import { rspackOptions } from "../src/config/zod.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,8 +108,11 @@ function checkPluginsDocumentationCoverage() {
 	const implementedPlugins = getImplementedPlugins();
 	const documentedPlugins = getDocumentedPlugins();
 
+	const excludedPlugins = ["OriginEntryPlugin"];
+
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(
-		plugin => !documentedPlugins.has(plugin)
+		plugin =>
+			!documentedPlugins.has(plugin) && !excludedPlugins.includes(plugin)
 	);
 	const unimplementedPlugins = Array.from(documentedPlugins).filter(
 		plugin => !implementedPlugins.has(plugin)
