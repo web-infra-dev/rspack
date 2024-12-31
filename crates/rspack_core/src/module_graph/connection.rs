@@ -11,6 +11,7 @@ pub struct ModuleGraphConnection {
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub resolved_original_module_identifier: Option<ModuleIdentifier>,
+  pub resolved_module: ModuleIdentifier,
 
   /// The referenced module identifier
   module_identifier: ModuleIdentifier,
@@ -46,6 +47,7 @@ impl ModuleGraphConnection {
       active,
       conditional,
       resolved_original_module_identifier: original_module_identifier,
+      resolved_module: module_identifier,
     }
   }
 

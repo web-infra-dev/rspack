@@ -354,7 +354,15 @@ impl Compiler {
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(target_file);
+      let file_path = {
+        let target_path = Utf8Path::new(target_file);
+        if target_path.is_absolute() {
+          output_path.join(target_path.strip_prefix("/").unwrap())
+        } else {
+          output_path.join(target_path)
+        }
+      };
+
       self
         .output_filesystem
         .create_dir_all(

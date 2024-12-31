@@ -644,7 +644,8 @@ impl NormalModuleFactory {
 
   fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
     let mut resolved: Option<Resolve> = None;
-    for rule in module_rules {
+    // TODO: 为了 alias 的优先级临时修改，之后修改
+    for rule in module_rules.iter().rev() {
       if let Some(rule_resolve) = &rule.resolve {
         if let Some(r) = resolved {
           resolved = Some(r.merge(rule_resolve.to_owned()));
@@ -686,7 +687,7 @@ impl NormalModuleFactory {
     &self,
     module_type: &ModuleType,
     parser: Option<ParserOptions>,
-    generator: Option<GeneratorOptions>,
+    mut generator: Option<GeneratorOptions>,
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
     let global_parser = self
       .options
@@ -714,12 +715,7 @@ impl NormalModuleFactory {
         }
         _ => p.get(module_type.as_str()).cloned(),
       });
-    let global_generator = self
-      .options
-      .module
-      .generator
-      .as_ref()
-      .and_then(|g| g.get(module_type.as_str()).cloned());
+
     let parser = rspack_util::merge_from_optional_with(
       global_parser,
       parser.as_ref(),
@@ -741,21 +737,38 @@ impl NormalModuleFactory {
         (global, _) => global,
       },
     );
-    let generator = rspack_util::merge_from_optional_with(
-      global_generator,
-      generator.as_ref(),
-      |global, local| match (&global, local) {
-        (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
-        | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
-        | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
-        | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
-        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
-          global.merge_from(local)
+
+    {
+      let module_type = module_type.as_str();
+      for (index, c) in module_type.as_bytes().iter().enumerate() {
+        if *c == b'/' || index == module_type.len() - 1 {
+          let current = &module_type[..index];
+          let global_generator = self
+            .options
+            .module
+            .generator
+            .as_ref()
+            .and_then(|g| g.get(current).cloned());
+
+          generator = rspack_util::merge_from_optional_with(
+            global_generator,
+            generator.as_ref(),
+            |global, local| match (&global, local) {
+              (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
+              | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
+              | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
+              | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
+              | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
+              | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
+                global.merge_from(local)
+              }
+              _ => global,
+            },
+          );
         }
-        _ => global,
-      },
-    );
+      }
+    }
+
     (parser, generator)
   }
 

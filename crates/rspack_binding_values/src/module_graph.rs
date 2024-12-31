@@ -49,12 +49,9 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
-        Some(connection) => match connection.resolved_original_module_identifier {
-          Some(identifier) => compilation.module_by_identifier(&identifier).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
-          }),
-          None => None,
-        },
+        Some(connection) => module_graph
+          .module_by_identifier(&connection.resolved_module)
+          .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
         None => None,
       },
     )
@@ -154,5 +151,38 @@ impl JsModuleGraph {
         })
         .collect::<Vec<_>>(),
     )
+  }
+
+  #[napi(ts_return_type = "JsModule | null")]
+  pub fn get_parent_module(
+    &self,
+    js_dependency: &JsDependency,
+  ) -> napi::Result<Option<JsModuleWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      match module_graph.get_parent_module(&js_dependency.dependency_id) {
+        Some(identifier) => compilation
+          .module_by_identifier(identifier)
+          .map(|module| JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))),
+        None => None,
+      },
+    )
+  }
+
+  #[napi]
+  pub fn get_parent_block_index(&self, js_dependency: &JsDependency) -> napi::Result<i64> {
+    let (_, module_graph) = self.as_ref()?;
+    Ok(
+      match module_graph.get_parent_block_index(&js_dependency.dependency_id) {
+        Some(block_index) => block_index as i64,
+        None => -1,
+      },
+    )
+  }
+
+  #[napi]
+  pub fn is_async(&self, module: &JsModule) -> napi::Result<bool> {
+    let (compilation, _) = self.as_ref()?;
+    Ok(ModuleGraph::is_async(compilation, &module.identifier))
   }
 }

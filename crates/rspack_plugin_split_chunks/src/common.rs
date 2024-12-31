@@ -9,13 +9,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter = Arc<dyn Fn(&Chunk, &Compilation) -> Result<bool> + Send + Sync>;
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
+pub type ModuleLayerFilter = Arc<dyn Fn(Option<String>) -> bool + Send + Sync>;
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
   Arc::new(|_| true)
 }
 
-pub fn create_default_module_layer_filter() -> ModuleTypeFilter {
+pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
   Arc::new(|_| true)
 }
 

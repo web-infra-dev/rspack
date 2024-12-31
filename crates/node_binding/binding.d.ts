@@ -19,13 +19,6 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
-  get options(): EntryOptionsDto
-}
-export type EntryDataDTO = EntryDataDto
-
 export declare class EntryOptionsDto {
   get name(): string | undefined
   set name(name: string | undefined)
@@ -76,6 +69,7 @@ export declare class JsChunkGraph {
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
   getModuleId(jsModule: JsModule): string | null
+  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -83,6 +77,7 @@ export declare class JsChunkGroup {
   get index(): number | undefined
   get name(): string | undefined
   get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): JsChunkGroup[]
   isInitial(): boolean
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
@@ -99,7 +94,7 @@ export declare class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk
+  getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): JsChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
@@ -140,7 +135,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, RawDependency, RawEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -194,17 +189,26 @@ export declare class JsDependency {
   get request(): string | undefined
   get critical(): boolean
   set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
   clear(): void
   get size(): number
   has(key: string): boolean
-  set(key: string, value: JsEntryData | EntryDataDto): void
+  set(key: string, value: RawEntryData): void
   delete(key: string): boolean
-  get(key: string): EntryDataDto | undefined
+  get(key: string): JsEntryData | undefined
   keys(): Array<string>
-  values(): Array<EntryDataDto>
+  values(): Array<JsEntryData>
+}
+
+export declare class JsEntryData {
+  get dependencies(): JsDependency[]
+  set dependencies(dependencies: Array<JsDependency>)
+  get includeDependencies(): JsDependency[]
+  set includeDependencies(dependencies: Array<JsDependency>)
+  get options(): EntryOptionsDto
 }
 
 export declare class JsExportsInfo {
@@ -232,6 +236,10 @@ export declare class JsModule {
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  get resourceResolveData(): JsResourceData | undefined
+  get matchResource(): string | undefined
+  get loaders(): Array<string> | undefined
 }
 
 export declare class JsModuleGraph {
@@ -243,11 +251,16 @@ export declare class JsModuleGraph {
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+  getParentModule(jsDependency: JsDependency): JsModule | null
+  getParentBlockIndex(jsDependency: JsDependency): number
+  isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
   get dependency(): JsDependency
   get module(): JsModule | null
+  get resolvedModule(): JsModule | null
+  get originModule(): JsModule | null
 }
 
 export declare class JsResolver {
@@ -613,12 +626,6 @@ export interface JsDiagnosticLocation {
   length: number
 }
 
-export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
-  options: JsEntryOptions
-}
-
 export interface JsEntryOptions {
   name?: string
   runtime?: false | string
@@ -685,6 +692,10 @@ export interface JsHtmlPluginTag {
   voidTag: boolean
   innerHTML?: string
   asset?: string
+}
+
+export interface JsLibIdentOptions {
+  context: string
 }
 
 export interface JsLibraryAuxiliaryComment {
@@ -1359,6 +1370,12 @@ export interface RawDraft {
 export interface RawDynamicEntryPluginOptions {
   context: string
   entry: () => Promise<RawEntryDynamicResult[]>
+}
+
+export interface RawEntryData {
+  dependencies: Array<JsDependency>
+  includeDependencies: Array<JsDependency>
+  options: JsEntryOptions
 }
 
 export interface RawEntryDynamicResult {

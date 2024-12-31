@@ -28,7 +28,7 @@ impl From<JsEntryRuntimeWrapper> for EntryRuntime {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct JsEntryOptions {
   pub name: Option<String>,

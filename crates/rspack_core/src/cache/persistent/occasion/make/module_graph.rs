@@ -133,12 +133,13 @@ pub async fn recovery_module_graph(
   for (_, v) in storage.load(SCOPE).await? {
     let mut node: Node =
       from_bytes(&v, context).expect("unexpected module graph deserialize failed");
-    for (dep, parent_block) in node.dependencies {
+    for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
       mg.set_parents(
         *dep.id(),
         DependencyParents {
           block: parent_block,
           module: node.module.identifier(),
+          index_in_block,
         },
       );
       mg.add_dependency(dep);

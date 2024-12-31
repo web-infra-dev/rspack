@@ -10,7 +10,7 @@ import type { Source } from "webpack-sources";
 
 import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -36,6 +36,13 @@ export type ResolveData = {
 	contextDependencies: string[];
 	createData?: CreateData;
 };
+
+export interface LibIdentOptions {
+	/**
+	 * absolute context path to which lib ident is relative to
+	 */
+	context: string;
+}
 
 export class ContextModuleFactoryBeforeResolveData {
 	#inner: JsContextModuleFactoryBeforeResolveData;
@@ -176,7 +183,7 @@ export class ContextModuleFactoryAfterResolveData {
 				enumerable: true,
 				get(): Dependency[] {
 					return binding.dependencies.map(dep =>
-						Dependency.__from_binding(dep)
+						bindingDependencyFactory.create(Dependency, dep)
 					);
 				}
 			}
@@ -201,30 +208,31 @@ export class Module {
 	declare readonly type: string;
 	declare readonly layer: null | string;
 	declare readonly factoryMeta?: JsFactoryMeta;
-	/**
-	 * Records the dynamically added fields for Module on the JavaScript side.
-	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
-	 */
-	declare readonly buildInfo: Record<string, any>;
 
-	/**
-	 * Records the dynamically added fields for Module on the JavaScript side.
-	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
-	 */
-	declare readonly buildMeta: Record<string, any>;
 	declare readonly modules: Module[] | undefined;
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
 
-	static __from_binding(binding: JsModule, compilation?: Compilation) {
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 */
+	buildInfo: Record<string, any>;
+
+	/**
+	 * Records the dynamically added fields for Module on the JavaScript side.
+	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
+	 * @see {@link Compilation#customModules}
+	 */
+	buildMeta: Record<string, any>;
+
+	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
 		if (module) {
 			return module;
 		}
-		module = new Module(binding, compilation);
+		module = new Module(binding);
 		MODULE_MAPPINGS.set(binding, module);
 		return module;
 	}
@@ -233,8 +241,10 @@ export class Module {
 		return module.#inner;
 	}
 
-	constructor(module: JsModule, compilation?: Compilation) {
+	constructor(module: JsModule) {
 		this.#inner = module;
+		this.buildInfo = {};
+		this.buildMeta = {};
 
 		Object.defineProperties(this, {
 			type: {
@@ -299,24 +309,6 @@ export class Module {
 					return undefined;
 				}
 			},
-			buildInfo: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildInfo || {};
-				}
-			},
-			buildMeta: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildMeta || {};
-				}
-			},
 			blocks: {
 				enumerable: true,
 				get(): DependenciesBlock[] {
@@ -330,7 +322,9 @@ export class Module {
 				enumerable: true,
 				get(): Dependency[] {
 					if ("dependencies" in module) {
-						return module.dependencies.map(d => Dependency.__from_binding(d));
+						return module.dependencies.map(d =>
+							bindingDependencyFactory.create(Dependency, d)
+						);
 					}
 					return [];
 				}
@@ -339,6 +333,18 @@ export class Module {
 				enumerable: true,
 				get(): boolean {
 					return module.useSourceMap;
+				}
+			},
+			resourceResolveData: {
+				enumerable: true,
+				get(): ResolveData | undefined {
+					return module.resourceResolveData as any;
+				}
+			},
+			matchResource: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.matchResource;
 				}
 			}
 		});
@@ -367,6 +373,10 @@ export class Module {
 			return this.#inner.size(type);
 		}
 		return 0;
+	}
+
+	libIdent(options: LibIdentOptions): string | null {
+		return this.#inner.libIdent(options);
 	}
 }
 

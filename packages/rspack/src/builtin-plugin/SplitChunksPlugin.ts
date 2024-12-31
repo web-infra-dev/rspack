@@ -51,7 +51,7 @@ function toRawSplitChunksOptions(
 					return name(undefined);
 				}
 				return name(
-					Module.__from_binding(ctx.module, compiler._lastCompilation),
+					Module.__from_binding(ctx.module),
 					getChunks(ctx.chunks),
 					ctx.cacheGroupKey
 				);
@@ -70,9 +70,7 @@ function toRawSplitChunksOptions(
 				if (typeof ctx.module === "undefined") {
 					return test(undefined);
 				}
-				return test(
-					Module.__from_binding(ctx.module, compiler._lastCompilation)
-				);
+				return test(Module.__from_binding(ctx.module));
 			};
 		}
 		return test;
