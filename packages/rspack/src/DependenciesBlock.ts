@@ -18,18 +18,16 @@ export class DependenciesBlock {
 	private constructor(binding: JsDependenciesBlock) {
 		this.#binding = binding;
 
-		Object.defineProperties(this, {
-			dependencies: {
-				enumerable: true,
-				get(): Dependency[] {
-					return binding.dependencies.map(d => Dependency.__from_binding(d));
-				}
-			},
-			blocks: {
-				enumerable: true,
-				get(): DependenciesBlock[] {
-					return binding.blocks.map(b => DependenciesBlock.__from_binding(b));
-				}
+		Object.defineProperty(this, "dependencies", {
+			enumerable: true,
+			get(): Dependency[] {
+				return binding.dependencies.map(d => Dependency.__from_binding(d));
+			}
+		});
+		Object.defineProperty(this, "blocks", {
+			enumerable: true,
+			get(): DependenciesBlock[] {
+				return binding.blocks.map(b => DependenciesBlock.__from_binding(b));
 			}
 		});
 	}

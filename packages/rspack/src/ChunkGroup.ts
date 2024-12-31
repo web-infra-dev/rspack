@@ -26,37 +26,33 @@ export class ChunkGroup {
 	protected constructor(inner: JsChunkGroup) {
 		this.#inner = inner;
 
-		Object.defineProperties(this, {
-			chunks: {
-				enumerable: true,
-				get: () => {
-					return this.#inner.chunks.map(binding =>
-						Chunk.__from_binding(binding)
-					);
-				}
-			},
-			index: {
-				enumerable: true,
-				get: () => {
-					return this.#inner.index;
-				}
-			},
-			name: {
-				enumerable: true,
-				get: () => {
-					return this.#inner.name;
-				}
-			},
-			origins: {
-				enumerable: true,
-				get: () => {
-					return this.#inner.origins.map(origin => ({
-						module: origin.module
-							? Module.__from_binding(origin.module)
-							: undefined,
-						request: origin.request
-					}));
-				}
+		Object.defineProperty(this, "chunks", {
+			enumerable: true,
+			get: () => {
+				return this.#inner.chunks.map(binding => Chunk.__from_binding(binding));
+			}
+		});
+		Object.defineProperty(this, "index", {
+			enumerable: true,
+			get: () => {
+				return this.#inner.index;
+			}
+		});
+		Object.defineProperty(this, "name", {
+			enumerable: true,
+			get: () => {
+				return this.#inner.name;
+			}
+		});
+		Object.defineProperty(this, "origins", {
+			enumerable: true,
+			get: () => {
+				return this.#inner.origins.map(origin => ({
+					module: origin.module
+						? Module.__from_binding(origin.module)
+						: undefined,
+					request: origin.request
+				}));
 			}
 		});
 	}
