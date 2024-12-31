@@ -133,7 +133,7 @@ export const checkVersion = () => {
 
 	if (!isMatch) {
 		return (result = new Error(
-			`Unmatched version @rspack/core@${CORE_VERSION}, @rspack/binding@${BINDING_VERSION}, @rspack/binding-${platformArchAbi}@${ADDON_VERSION}.\nRspack requires these versions to be the same or you may have installed the wrong version. Otherwise, rspack may not work properly.`
+			`Unmatched version @rspack/core@${CORE_VERSION}, @rspack/binding@${BINDING_VERSION}, @rspack/binding-${platformArchAbi}@${ADDON_VERSION}.\nRspack requires these versions to be the same or you may have installed the wrong version. Otherwise, Rspack may not work properly.`
 		));
 	}
 
