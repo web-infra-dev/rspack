@@ -5,10 +5,9 @@ import type {
 	JsCreateData,
 	JsFactoryMeta
 } from "@rspack/binding";
-import { JsModule } from "@rspack/binding";
+import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
-import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
@@ -291,30 +290,21 @@ export class Module {
 			modules: {
 				enumerable: true,
 				get(): Module[] | undefined {
-					if (module instanceof JsModule) {
-						return module.modules
-							? module.modules.map(m => Module.__from_binding(m))
-							: undefined;
-					}
-					return undefined;
+					return module.modules
+						? module.modules.map(m => Module.__from_binding(m))
+						: undefined;
 				}
 			},
 			blocks: {
 				enumerable: true,
 				get(): DependenciesBlock[] {
-					if ("blocks" in module) {
-						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
-					}
-					return [];
+					return module.blocks.map(b => DependenciesBlock.__from_binding(b));
 				}
 			},
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					if ("dependencies" in module) {
-						return module.dependencies.map(d => Dependency.__from_binding(d));
-					}
-					return [];
+					return module.dependencies.map(d => Dependency.__from_binding(d));
 				}
 			},
 			useSourceMap: {

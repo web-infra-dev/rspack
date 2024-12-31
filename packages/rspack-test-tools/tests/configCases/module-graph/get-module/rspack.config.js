@@ -8,11 +8,15 @@ class Plugin {
      */
     apply(compiler) {
         compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-            compilation.hooks.finishModules.tap(PLUGIN_NAME, () => {
+            compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
                 const entry = Array.from(compilation.entries.values())[0];
                 const entryDependency = entry.dependencies[0];
-                const refModule = compilation.moduleGraph.getModule(entryDependency);
-                expect(normalize(refModule.request)).toBe(normalize(join(__dirname, 'index.js')));
+
+                const module = compilation.moduleGraph.getModule(entryDependency);
+                expect(module.modules.length).toBe(2);
+
+                const resolvedModule = compilation.moduleGraph.getResolvedModule(entryDependency);
+                expect(normalize(resolvedModule.request)).toBe(normalize(join(__dirname, 'index.js')));
             });
         });
 
@@ -28,5 +32,8 @@ module.exports = {
     },
     plugins: [
         new Plugin()
-    ]
+    ],
+    optimization: {
+        concatenateModules: true
+    }
 };
