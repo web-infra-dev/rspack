@@ -204,14 +204,12 @@ export class Module {
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
 	 */
 	buildInfo: Record<string, any>;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
 	 */
 	buildMeta: Record<string, any>;
 	declare readonly modules: Module[] | undefined;
