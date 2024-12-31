@@ -577,11 +577,6 @@ export class Compilation {
     // @internal
     __internal__getChunks(): Chunk[];
     // @internal
-    __internal__getCustomModule(moduleIdentifier: string): {
-        buildInfo: Record<string, unknown>;
-        buildMeta: Record<string, unknown>;
-    };
-    // @internal
     __internal__hasAsset(name: string): boolean;
     // @internal
     __internal__pushDiagnostic(diagnostic: ExternalObject<"Diagnostic">): void;
@@ -3653,15 +3648,15 @@ export type Mode = "development" | "production" | "none";
 
 // @public (undocumented)
 export class Module {
-    constructor(module: JsModule, compilation?: Compilation);
+    constructor(module: JsModule);
     // (undocumented)
-    static __from_binding(binding: JsModule, compilation?: Compilation): Module;
+    static __from_binding(binding: JsModule): Module;
     // (undocumented)
     static __to_binding(module: Module): JsModule;
     // (undocumented)
     readonly blocks: DependenciesBlock[];
-    readonly buildInfo: Record<string, any>;
-    readonly buildMeta: Record<string, any>;
+    buildInfo: Record<string, any>;
+    buildMeta: Record<string, any>;
     // (undocumented)
     readonly context?: string;
     // (undocumented)
