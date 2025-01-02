@@ -7,9 +7,6 @@ on:
         description: 'The branch of the Ecosystem CI run'
         required: true
         default: 'main'
-  push:
-    branches:
-      - enable-eco-ci
 
 jobs:
   ecosystem_ci:
@@ -26,8 +23,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             })
-            // context.payload.inputs.branch
-            const targetBranch = "enable-eco-ci";
+            const targetBranch = context.payload.inputs.branch;
 
             const pr = prs.find(pr => pr.head.ref === targetBranch);
 
@@ -72,7 +68,7 @@ jobs:
           workflow_file_name: "ecosystem-ci-from-pr.yml"
           github_token: ${{ secrets.REPO_RSPACK_ECO_CI_GITHUB_TOKEN }}
           ref: "main"
-          client_payload: '{"branchName":"${{ github.ref_name }}","prNumber":"0","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
+          client_payload: '{"branchName":"${{ github.event.inputs.branch }}","prNumber":"0","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
