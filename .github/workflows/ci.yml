@@ -424,7 +424,7 @@ jobs:
         with:
           script: |
             await github.rest.repos.createCommitComment({
-              commit_sha: github.sha,
+              commit_sha: context.sha,
               owner: 'web-infra-dev',
               repo: 'rspack',
               body: ${{ steps.eco-ci-result.outputs.result }}
