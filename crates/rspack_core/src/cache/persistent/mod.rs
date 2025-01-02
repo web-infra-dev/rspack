@@ -3,7 +3,7 @@ mod occasion;
 pub mod snapshot;
 pub mod storage;
 mod version;
-use std::{path::PathBuf, sync::Arc};
+use std::{hash::Hash, path::PathBuf, sync::Arc};
 
 pub use cacheable_context::{CacheableContext, FromContext};
 use occasion::MakeOccasion;
@@ -49,7 +49,13 @@ impl PersistentCache {
     let version = version::get_version(
       input_filesystem.clone(),
       &option.build_dependencies,
-      vec![compiler_path, &option.version, rspack_version!()],
+      |hasher| {
+        compiler_path.hash(hasher);
+        option.version.hash(hasher);
+        rspack_version!().hash(hasher);
+        compiler_options.name.hash(hasher);
+        compiler_options.mode.hash(hasher);
+      },
     );
     let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
     let context = Arc::new(CacheableContext {

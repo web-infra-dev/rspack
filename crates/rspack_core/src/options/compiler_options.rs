@@ -5,6 +5,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct CompilerOptions {
+  pub name: Option<String>,
   pub context: Context,
   pub output: OutputOptions,
   pub mode: Mode,
