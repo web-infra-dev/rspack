@@ -8,6 +8,7 @@
     },
     "devDependencies": {
         "@codspeed/vitest-plugin": "^4.0.0",
+        "@rspack/binding": "workspace:*",
         "@rspack/cli": "workspace:*",
         "@rspack/core": "workspace:*",
         "@rspack/plugin-react-refresh": "1.0.0",

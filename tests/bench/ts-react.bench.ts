@@ -22,9 +22,11 @@ beforeAll(() => {
 			(err, stats) => {
 				if (err) {
 					reject(err);
+					return;
 				}
 				if (stats?.hasErrors()) {
 					reject(new Error(stats.toString({})));
+					return;
 				}
 				resolve(undefined);
 			}
