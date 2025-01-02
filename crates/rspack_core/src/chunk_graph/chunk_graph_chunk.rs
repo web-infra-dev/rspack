@@ -78,7 +78,7 @@ pub struct ChunkGraphChunk {
   ///
   /// use `LinkedHashMap` to keep the ordered from entry array.
   pub(super) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
-  pub(super) modules: IdentifierSet,
+  pub modules: IdentifierSet,
   pub(super) runtime_modules: Vec<ModuleIdentifier>,
 
   pub(super) source_types_by_module: Option<IdentifierMap<FxHashSet<SourceType>>>,

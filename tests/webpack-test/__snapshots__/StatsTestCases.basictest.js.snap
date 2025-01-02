@@ -1210,14 +1210,14 @@ asset normal.js 102 bytes {615} [emitted] (name: normal)
 asset prefetched2.js 102 bytes {424} [emitted] (name: prefetched2)
 asset prefetched3.js 102 bytes {182} [emitted] (name: prefetched3)
 Entrypoint main 13.9 KiB = main.js
-  prefetch: prefetched.js {674} (name: prefetched), prefetched3.js {182} (name: prefetched3), prefetched2.js {424} (name: prefetched2)
+  prefetch: prefetched2.js {424} (name: prefetched2), prefetched.js {674} (name: prefetched), prefetched3.js {182} (name: prefetched3)
 chunk {182} (runtime: main) prefetched3.js (prefetched3) 1 bytes <{909}> [rendered]
 chunk {424} (runtime: main) prefetched2.js (prefetched2) 1 bytes <{909}> [rendered]
 chunk {481} (runtime: main) inner.js (inner) 1 bytes <{674}> [rendered]
 chunk {615} (runtime: main) normal.js (normal) 1 bytes <{909}> [rendered]
-chunk {674} (runtime: main) prefetched.js (prefetched) 228 bytes <{909}> >{481}< >{857}< (prefetch: {857} {481}) [rendered]
+chunk {674} (runtime: main) prefetched.js (prefetched) 228 bytes <{909}> >{481}< >{857}< (prefetch: {481}) [rendered]
 chunk {857} (runtime: main) inner2.js (inner2) 2 bytes <{674}> [rendered]
-chunk {909} (runtime: main) main.js (main) 436 bytes (javascript) 11 KiB (runtime) >{182}< >{424}< >{615}< >{674}< (prefetch: {674} {182} {424}) [entry] [rendered]"
+chunk {909} (runtime: main) main.js (main) 436 bytes (javascript) 11 KiB (runtime) >{182}< >{424}< >{615}< >{674}< (prefetch: {424} {674} {182}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for prefetch-preload-mixed 1`] = `
@@ -1243,14 +1243,14 @@ asset normal.js 102 bytes [emitted] (name: normal)
 asset preloaded2.js 101 bytes [emitted] (name: preloaded2)
 asset preloaded3.js 100 bytes [emitted] (name: preloaded3)
 Entrypoint main 12.5 KiB = main.js
-  preload: preloaded.js {154} (name: preloaded), preloaded3.js {551} (name: preloaded3), preloaded2.js {577} (name: preloaded2)
+  preload: preloaded2.js {577} (name: preloaded2), preloaded.js {154} (name: preloaded), preloaded3.js {551} (name: preloaded3)
 chunk (runtime: main) preloaded.js (preloaded) 226 bytes (preload: {857} {481}) [rendered]
 chunk (runtime: main) inner.js (inner) 1 bytes [rendered]
 chunk (runtime: main) preloaded3.js (preloaded3) 1 bytes [rendered]
 chunk (runtime: main) preloaded2.js (preloaded2) 1 bytes [rendered]
 chunk (runtime: main) normal.js (normal) 1 bytes [rendered]
 chunk (runtime: main) inner2.js (inner2) 2 bytes [rendered]
-chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.78 KiB (runtime) (preload: {154} {551} {577}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.78 KiB (runtime) (preload: {577} {154} {551}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-errors-only 1`] = `""`;

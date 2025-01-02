@@ -96,7 +96,7 @@ impl CssPlugin {
       })
       .collect::<Vec<_>>();
 
-    if modules_by_chunk_group.len() == 1 {
+    if modules_by_chunk_group.len() <= 1 {
       let mut ret = modules_by_chunk_group
         .into_iter()
         .next()
