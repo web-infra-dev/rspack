@@ -28,7 +28,7 @@
     "dev:js": "tsup --watch",
     "prepare": "prebundle",
     "prepare-container-runtime": "node ./scripts/prepare-container-runtime.js",
-    "doc-coverage": "tsx scripts/check-documentation-coverage.mjs",
+    "doc-coverage": "tsx ./scripts/check-documentation-coverage.ts",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/core.api.md etc/core.api.md"
   },
