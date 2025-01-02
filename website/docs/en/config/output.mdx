@@ -598,7 +598,9 @@ type ModulePathData = {
 ```
 
 :::warning
-When debugging locally using [`@rspack/dev-server`](/config/dev-server) and [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin), the page entry and the chunks split from it by [`output.splitChunks`](/plugins/webpack/split-chunks-plugin) will be loaded by the HTML file with `script` tags. At this time, if the file name contains hash values, the hot update will fail due to the inability of dynamic loading of HTML.
+When developing locally, it's recommended to avoid using hash values in filenames.
+
+This is because entry files and chunks split by [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) are loaded via `<script>` tags in HTML files. If filenames contain hash values, HMR will not work as HTML files cannot be dynamically loaded.
 :::
 
 ## output.globalObject
