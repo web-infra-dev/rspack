@@ -594,7 +594,7 @@ type ModulePathData = {
 :::warning
 在进行本地开发时，建议避免在文件名中使用 hash 值。
 
-这是因为入口文件以及被 [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin)  拆分出的 chunks 都会通过 HTML 文件中的 `<script>` 标签进行加载。此时若文件名内包含 hash 值，则会由于 HTML 无法被动态加载而使得热更新失效。
+这是因为入口文件以及被 [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) 拆分出的 chunks 都会通过 HTML 文件中的 `<script>` 标签进行加载。此时若文件名内包含 hash 值，则会由于 HTML 无法被动态加载而使得热更新失效。
 :::
 
 ## output.globalObject
