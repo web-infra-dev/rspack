@@ -36,6 +36,7 @@ runs:
 
           let result = jobs
               .filter(job => job.name.startsWith('execute-all '))
+              .filter(job => job.conclusion !== 'skipped')
               .map(job => {
                 const suite = job.name.replace(/^execute-all \(([^)]+)\)$/, "$1")
                 return { suite, conclusion: job.conclusion, link: job.html_url }
@@ -50,13 +51,13 @@ runs:
             cancelled: ":stop_button:"
           }
 
-          const body = `
+          const body = result.length ? `
           📝 Ran ecosystem CI: ${urlLink}
 
           | suite | result |
           |-------|--------|
           ${result.map(r => `| [${r.suite}](${r.link}) | ${conclusionEmoji[r.conclusion]} ${r.conclusion} |`).join("\n")}
-          `
+          ` : ` 📝 Ran ecosystem CI: ${urlLink}`
 
           console.log(body);
 
