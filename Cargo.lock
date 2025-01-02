@@ -5125,6 +5125,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_rsdoctor"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "cow-utils",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rustc-hash 2.1.0",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_runtime"
 version = "0.2.0"
 dependencies = [
