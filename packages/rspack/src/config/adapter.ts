@@ -76,6 +76,7 @@ export const getRawOptions = (
 	const mode = options.mode;
 	const experiments = options.experiments as Required<ExperimentsNormalized>;
 	return {
+		name: options.name,
 		mode,
 		context: options.context!,
 		output: options.output as Required<OutputNormalized>,

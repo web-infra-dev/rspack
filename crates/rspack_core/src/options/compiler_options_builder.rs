@@ -32,6 +32,7 @@ macro_rules! f {
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
+  name: Option<String>,
   target: Option<Target>,
   entry: IndexMap<String, EntryDescription>,
   context: Option<Context>,
@@ -50,6 +51,11 @@ impl CompilerOptions {
 }
 
 impl CompilerOptionsBuilder {
+  pub fn name(&mut self, name: String) -> &mut Self {
+    self.name = Some(name);
+    self
+  }
+
   pub fn target(&mut self, target: Target) -> &mut Self {
     self.target = Some(target);
     self
@@ -108,6 +114,7 @@ impl CompilerOptionsBuilder {
   }
 
   pub fn build(&mut self) -> CompilerOptions {
+    let name = self.name.take();
     let context = self.context.take().unwrap_or_else(|| {
       std::env::current_dir()
         .expect("`current_dir` should be available")
@@ -160,6 +167,7 @@ impl CompilerOptionsBuilder {
     );
 
     CompilerOptions {
+      name,
       context,
       output,
       mode,
