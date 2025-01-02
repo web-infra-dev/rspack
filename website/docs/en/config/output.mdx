@@ -506,51 +506,51 @@ The template string below can be used to replace the corresponding file name. Di
 
 Content that can be replaced at the compilation level.
 
-| Template   | Description              |
-| ---------- | ------------------------ |
-| [fullhash] | full hash of compilation |
+| Template     | Description              |
+| ------------ | ------------------------ |
+| `[fullhash]` | full hash of compilation |
 
 ### Chunk Context
 
 Content that can be replaced at the chunk level.
 
-| template      | description                                                                                                                                                                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [id]          | The current chunk id                                                                                                                                                                                                                      |
-| [name]        | Use name when chunk name exists, otherwise use chunk id                                                                                                                                                                                   |
-| [chunkhash]   | The hash value of the chunk, computed from all elements of type in the current chunk                                                                                                                                                      |
-| [contenthash] | The hash value of the chunk, computed from the elements that contain only the content of that type. For example, if a module of type JavaScript is generated, only the hash of all JavaScript-typed modules in the current chunk is used. |
+| template        | description                                                                                                                                                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[id]`          | The current chunk id                                                                                                                                                                                                                      |
+| `[name]`        | Use name when chunk name exists, otherwise use chunk id                                                                                                                                                                                   |
+| `[chunkhash]`   | The hash value of the chunk, computed from all elements of type in the current chunk                                                                                                                                                      |
+| `[contenthash]` | The hash value of the chunk, computed from the elements that contain only the content of that type. For example, if a module of type JavaScript is generated, only the hash of all JavaScript-typed modules in the current chunk is used. |
 
 ### Module Context
 
 Content that can be replaced at the module level.
 
-| Template      | Description            |
-| ------------- | ---------------------- |
-| [id]          | The id of the module   |
-| [hash]        | The hash of the module |
-| [contenthash] | hash of module content |
+| Template        | Description            |
+| --------------- | ---------------------- |
+| `[id]`          | The id of the module   |
+| `[hash]`        | The hash of the module |
+| `[contenthash]` | hash of module content |
 
 ### File Context
 
 Content that can be replaced at the file level.
 
-| Template   | Description                                                                       |
-| ---------- | --------------------------------------------------------------------------------- |
-| [file]     | Filename and path, without query or fragment                                      |
-| [query]    | Query with leading `?`                                                            |
-| [fragment] | Fragment with leading `#`                                                         |
-| [base]     | Only filename (including extensions), without path                                |
-| [filebase] | Same, but deprecated                                                              |
-| [path]     | Only path, without filename                                                       |
-| [name]     | Only filename without extension or path                                           |
-| [ext]      | Extension with leading `.` (not available for [output.filename](#outputfilename)) |
+| Template     | Description                                                                       |
+| ------------ | --------------------------------------------------------------------------------- |
+| `[file]`     | Filename and path, without query or fragment                                      |
+| `[query]`    | Query with leading `?`                                                            |
+| `[fragment]` | Fragment with leading `#`                                                         |
+| `[base]`     | Only filename (including extensions), without path                                |
+| `[filebase]` | Same, but deprecated                                                              |
+| `[path]`     | Only path, without filename                                                       |
+| `[name]`     | Only filename without extension or path                                           |
+| `[ext]`      | Extension with leading `.` (not available for [output.filename](#outputfilename)) |
 
 Substitutions available on URL-level:
 
 | Template | Description |
 | -------- | ----------- |
-| [url]    | URL         |
+| `[url]`  | URL         |
 
 :::tip
 
@@ -596,6 +596,12 @@ type ModulePathData = {
   hashWithLength: (number) => string;
 };
 ```
+
+:::warning
+When developing locally, it's recommended to avoid using hash values in filenames.
+
+This is because entry files and chunks split by [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) are loaded via `<script>` tags in HTML files. If filenames contain hash values, HMR will not work as HTML files cannot be dynamically loaded.
+:::
 
 ## output.globalObject
 
