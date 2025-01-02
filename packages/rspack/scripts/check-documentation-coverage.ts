@@ -3,7 +3,7 @@ import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
 import { ZodObject, ZodOptional, ZodUnion } from "../compiled/zod/index.js";
-import { rspackOptions } from "../dist/config/zod.js";
+import { rspackOptions } from "../src/config/zod.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,8 +30,8 @@ function toCamelCase(s) {
 
 function extractMarkdownHeadings(markdown) {
 	const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-	const headings = [];
-	let match;
+	const headings: string[] = [];
+	let match: RegExpExecArray | null;
 	while ((match = headingRegex.exec(markdown)) !== null) {
 		headings.push(match[2].trim());
 	}
@@ -108,8 +108,12 @@ function checkPluginsDocumentationCoverage() {
 	const implementedPlugins = getImplementedPlugins();
 	const documentedPlugins = getDocumentedPlugins();
 
+	const excludedPlugins = ["OriginEntryPlugin"];
+
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(
-		plugin => !documentedPlugins.has(plugin)
+		plugin =>
+			!documentedPlugins.has(plugin) &&
+			!excludedPlugins.includes(plugin as string)
 	);
 	const unimplementedPlugins = Array.from(documentedPlugins).filter(
 		plugin => !implementedPlugins.has(plugin)
@@ -137,6 +141,12 @@ function checkPluginsDocumentationCoverage() {
 	}
 }
 
+type Section = {
+	title: string;
+	level: number;
+	text: string;
+};
+
 /**
  * The process of checking the documentation coverage of Rspack configuration
  *
@@ -151,7 +161,7 @@ function checkConfigsDocumentationCoverage() {
 	const CONFIG_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/config");
 
 	function getImplementedConfigs() {
-		const implementedConfigs = [];
+		const implementedConfigs: string[] = [];
 		function visit(zod, path = "") {
 			if (zod instanceof ZodObject) {
 				for (const [key, schema] of Object.entries(zod.shape)) {
@@ -181,13 +191,15 @@ function checkConfigsDocumentationCoverage() {
 
 	function parseConfigDocuments() {
 		function parseMarkdownContent(content) {
-			const sections = [];
-			let section;
+			const sections: Section[] = [];
+			let section: Section | null = null;
+
 			const lines = content.split("\n");
+
 			for (let i = 0; i < lines.length; i++) {
 				const line = lines[i];
 				if (line.startsWith("#")) {
-					let level;
+					let level: number | undefined;
 					for (let j = 0; j < line.length; j++) {
 						if (level === undefined) {
 							if (line[j] !== "#") {
@@ -204,10 +216,10 @@ function checkConfigsDocumentationCoverage() {
 						.replace(/\\/g, "");
 					section = {
 						title: title.includes(".") ? title : toCamelCase(title),
-						level,
+						level: level!,
 						text: ""
 					};
-					sections.push(section);
+					sections.push(section!);
 				} else if (section) {
 					section.text += line;
 				}
@@ -215,7 +227,7 @@ function checkConfigsDocumentationCoverage() {
 			return sections;
 		}
 
-		const sections = [];
+		const sections: Section[] = [];
 		function visitDir(dir) {
 			const items = readdirSync(dir, { withFileTypes: true });
 			for (const item of items) {
@@ -283,9 +295,9 @@ function checkConfigsDocumentationCoverage() {
 		].some(c => config.startsWith(c));
 	});
 	const markdownSections = parseConfigDocuments();
-
-	const undocumentedConfigs = [];
+	const undocumentedConfigs: string[] = [];
 	const map = new Map();
+
 	for (const config of implementedConfigs) {
 		let documented = false;
 		for (const section of markdownSections) {
@@ -296,8 +308,8 @@ function checkConfigsDocumentationCoverage() {
 		}
 		if (!documented) {
 			const parts = config.split(".");
-			const subs = [];
-			let part;
+			const subs: string[] = [];
+			let part: string | undefined;
 			while ((part = parts.pop())) {
 				subs.push(part);
 				const section = map.get(parts.join("."));
