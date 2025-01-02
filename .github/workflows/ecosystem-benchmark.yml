@@ -1,4 +1,4 @@
-name: ecosystem-benchmark
+name: Ecosystem Benchmark
 
 on:
   workflow_dispatch:
