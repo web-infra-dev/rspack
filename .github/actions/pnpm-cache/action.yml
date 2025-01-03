@@ -24,14 +24,10 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    # https://pnpm.io/continuous-integration#github-actions
-    # Uses `packageManagement` field from package.json
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        dest: ${{ runner.tool_cache }}/pnpm
-        # Use `@pnpm/exe` for Node 16
-        standalone: ${{ inputs.node-version == '16' }}
+    - name: Enable corepack
+      shell: bash
+      run: |
+        corepack enable
 
     - name: Get pnpm store directory
       id: pnpm-cache
