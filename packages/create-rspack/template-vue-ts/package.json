@@ -7,7 +7,7 @@
     "build": "cross-env NODE_ENV=production rspack build"
   },
   "dependencies": {
-    "vue": "^3.4.21"
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
