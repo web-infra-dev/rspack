@@ -1,5 +1,22 @@
-# Compatibility Status
+# Overview
+
+## Compatibility Status
 
 Rspack is committed to being compatible with the loaders within the webpack ecosystem. We ensure that Rspack is as compatible as possible with the webpack loader API, allowing more existing webpack loaders to be directly used in Rspack.
 
-We have already made most of the webpack loader APIs compatible. You can visit [this page](https://github.com/orgs/web-infra-dev/projects/10) to learn about the current compatibility status of webpack loader APIs.
+Currently, Rspack is compatible with most of webpack's loader APIs. If you find that a webpack loader cannot be used in Rspack, feel free to file an issue in the [Rspack repository](https://github.com/web-infra-dev/rspack).
+
+## Examples
+
+We provide some basic examples of different types of loaders. If you want to write a loader, you can refer to [these examples](./examples) to get started.
+
+If you need to use an existing loader, you can refer to [Features - Loader](/guide/features/loader) to learn how to use it.
+
+## Loader API
+
+Loader API includes:
+
+- [Loader Context](/api/loader-api/context): Represents the properties that are available inside of a loader assigned to the `this` property.
+- [Compiler internal specific properties](/api/loader-api/rspack-specific-properties): In rare cases you might need access to the compiler API itself.
+- [Inline loader](/api/loader-api/inline): Specify a loader in an `import` statement.
+- [Inline matchResource](/api/loader-api/inline-match-resource): Allows you to dynamically change the matching rules when loading resources.
