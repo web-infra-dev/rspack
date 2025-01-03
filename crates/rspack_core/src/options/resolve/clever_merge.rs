@@ -2277,4 +2277,31 @@ mod test {
       }
     )
   }
+
+  #[test]
+  fn test_merge_resolver_options_20() {
+    let first = Resolve {
+      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignore])]),
+      ..Default::default()
+    };
+
+    let second = Resolve {
+      alias: Some(vec![(
+        "c".to_string(),
+        vec![AliasMap::Path("ccc".to_string())],
+      )]),
+      ..Default::default()
+    };
+
+    pretty_assertions::assert_eq!(
+      merge_resolve(first, second),
+      Resolve {
+        alias: Some(vec![(
+          "c".to_string(),
+          vec![AliasMap::Path("ccc".to_string())],
+        )]),
+        ..Default::default()
+      }
+    )
+  }
 }
