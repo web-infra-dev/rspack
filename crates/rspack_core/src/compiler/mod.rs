@@ -91,10 +91,15 @@ impl Compiler {
         debug_info.with_context(options.context.to_string());
       }
     }
-    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
-    let output_filesystem = output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+    let enable_pnp = options.resolve.enable_pnp.unwrap_or(false);
+    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
+    let input_filesystem =
+      input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(enable_pnp)));
+
+    let output_filesystem =
+      output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
     let intermediate_filesystem =
-      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
 
     let resolver_factory = resolver_factory.unwrap_or_else(|| {
       Arc::new(ResolverFactory::new(

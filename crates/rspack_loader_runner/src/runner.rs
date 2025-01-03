@@ -439,7 +439,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()
@@ -457,7 +457,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()
@@ -541,7 +541,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {}),
+      Arc::new(NativeFileSystem::new(false)),
     )
     .await
     .unwrap();
@@ -608,7 +608,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()

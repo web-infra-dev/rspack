@@ -199,7 +199,7 @@ mod test_storage_release {
     let cases = [
       (
         get_native_path("test_release_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_release_memory"),

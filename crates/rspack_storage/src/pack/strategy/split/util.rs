@@ -284,7 +284,7 @@ pub mod test_pack_utils {
         get_memory_path(case),
       ),
       (
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
         get_native_path(case),
       ),
     ];

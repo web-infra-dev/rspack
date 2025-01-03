@@ -12,7 +12,6 @@ pub struct FileMetadata {
   pub ctime_ms: u64,
   pub size: u64,
 }
-
 impl TryFrom<Metadata> for FileMetadata {
   type Error = Error;
 

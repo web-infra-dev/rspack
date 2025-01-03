@@ -6,8 +6,7 @@
     "**/CVS": true,
     "**/.DS_Store": true,
     "**/*.bk": true,
-    "/target": true,
-    "**/.yarn": true
+    "/target": true
   },
   "[typescript]": {
     "editor.formatOnSave": true
