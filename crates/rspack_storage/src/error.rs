@@ -34,10 +34,37 @@ impl ValidateResult {
 }
 
 #[derive(Debug)]
-enum ErrorReason {
+pub enum ErrorReason {
   Reason(String),
   Detail(InvalidDetail),
   Error(Box<dyn std::error::Error + Send + Sync>),
+}
+
+impl std::fmt::Display for ErrorReason {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ErrorReason::Detail(detail) => {
+        write!(f, "{}", detail.reason)?;
+        for line in detail.packs.iter().take(5) {
+          write!(f, "\n{}", line)?;
+        }
+        if detail.packs.len() > 5 {
+          write!(f, "\n...")?;
+        }
+      }
+      ErrorReason::Error(e) => {
+        if let Some(e) = e.downcast_ref::<Error>() {
+          write!(f, "{}", e.inner)?;
+        } else {
+          write!(f, "{}", e)?;
+        }
+      }
+      ErrorReason::Reason(e) => {
+        write!(f, "{}", e)?;
+      }
+    };
+    Ok(())
+  }
 }
 
 #[derive(Debug)]
@@ -124,40 +151,27 @@ impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     if let Some(t) = &self.r#type {
       write!(f, "{} ", t)?;
+      if let Some(scope) = self.scope {
+        write!(f, "scope `{}` ", scope)?;
+      }
+      write!(f, "failed due to")?;
+      write!(f, " {}", self.inner)?;
+    } else {
+      write!(f, "{}", self.inner)?;
     }
-    if let Some(scope) = self.scope {
-      write!(f, "scope `{}` ", scope)?;
-    }
-    write!(f, "failed due to")?;
 
-    match &self.inner {
-      ErrorReason::Detail(detail) => {
-        write!(f, " {}", detail.reason)?;
-        let mut pack_info_lines = detail
-          .packs
-          .iter()
-          .map(|p| format!("- {}", p))
-          .collect::<Vec<_>>();
-        if pack_info_lines.len() > 5 {
-          pack_info_lines.truncate(5);
-          pack_info_lines.push("...".to_string());
-        }
-        if !pack_info_lines.is_empty() {
-          write!(f, ":\n{}", pack_info_lines.join("\n"))?;
-        }
-      }
-      ErrorReason::Error(e) => {
-        write!(f, " {}", e)?;
-      }
-      ErrorReason::Reason(e) => {
-        write!(f, " {}", e)?;
-      }
-    }
     Ok(())
   }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    match &self.inner {
+      ErrorReason::Error(error) => error.source(),
+      _ => None,
+    }
+  }
+}
 
 impl miette::Diagnostic for Error {
   fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
