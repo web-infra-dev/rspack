@@ -453,8 +453,13 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
 fn extend_alias(a: &Alias, b: Alias) -> Alias {
   // FIXME: I think this to_vec can be removed
   let mut a = a.to_vec();
-  a.extend(b);
-  a.dedup();
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
   a
 }
 
