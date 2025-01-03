@@ -1388,6 +1388,7 @@ impl NormalModuleFactoryBeforeResolve for NormalModuleFactoryBeforeResolveTap {
           .as_ref()
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
+        issuer_layer: data.issuer_layer.clone(),
       })
       .await
     {
@@ -1424,6 +1425,7 @@ impl NormalModuleFactoryFactorize for NormalModuleFactoryFactorizeTap {
           .as_ref()
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
+        issuer_layer: data.issuer_layer.clone(),
       })
       .await
     {
@@ -1461,6 +1463,7 @@ impl NormalModuleFactoryResolve for NormalModuleFactoryResolveTap {
           .as_ref()
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
+        issuer_layer: data.issuer_layer.clone(),
       })
       .await
     {
@@ -1523,6 +1526,7 @@ impl NormalModuleFactoryAfterResolve for NormalModuleFactoryAfterResolveTap {
           .as_ref()
           .map(|issuer| issuer.to_string())
           .unwrap_or_default(),
+        issuer_layer: data.issuer_layer.clone(),
         file_dependencies: data
           .file_dependencies
           .clone()

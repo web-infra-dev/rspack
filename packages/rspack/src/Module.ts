@@ -25,7 +25,7 @@ export type ResourceDataWithData = ResourceData & {
 export type CreateData = Partial<JsCreateData>;
 export type ContextInfo = {
 	issuer: string;
-	issuerLayer?: string;
+	issuerLayer?: string | null;
 };
 export type ResolveData = {
 	contextInfo: ContextInfo;

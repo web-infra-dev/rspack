@@ -1295,7 +1295,8 @@ class Compiler {
 						return async function (resolveData: binding.JsBeforeResolveArgs) {
 							const normalizedResolveData: ResolveData = {
 								contextInfo: {
-									issuer: resolveData.issuer
+									issuer: resolveData.issuer,
+									issuerLayer: resolveData.issuerLayer ?? null,
 								},
 								request: resolveData.request,
 								context: resolveData.context,
@@ -1322,7 +1323,8 @@ class Compiler {
 					return async function (resolveData: binding.JsFactorizeArgs) {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
-								issuer: resolveData.issuer
+								issuer: resolveData.issuer,
+								issuerLayer: resolveData.issuerLayer ?? null,
 							},
 							request: resolveData.request,
 							context: resolveData.context,
@@ -1349,7 +1351,8 @@ class Compiler {
 					return async function (resolveData: binding.JsFactorizeArgs) {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
-								issuer: resolveData.issuer
+								issuer: resolveData.issuer,
+								issuerLayer: resolveData.issuerLayer ?? null,
 							},
 							request: resolveData.request,
 							context: resolveData.context,
@@ -1394,7 +1397,8 @@ class Compiler {
 					return async function (arg: binding.JsAfterResolveData) {
 						const data: ResolveData = {
 							contextInfo: {
-								issuer: arg.issuer
+								issuer: arg.issuer,
+								issuerLayer: arg.issuerLayer ?? null,
 							},
 							request: arg.request,
 							context: arg.context,
