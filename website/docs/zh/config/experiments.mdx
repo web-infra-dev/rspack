@@ -440,6 +440,15 @@ module.exports = {
 
 缓存数据的版本，不同版本缓存相互隔离。
 
+:::tip title="持久化缓存失效"
+
+除了 [buildDependencies](#cachebuilddependencies) 和 [version](#cacheversion) 配置会影响持久化缓存失效，Rspack 还会在以下字段变化时使持久化缓存失效。
+
+- [config.name](/config/other-options#name)
+- [config.mode](/config/mode#mode)
+
+:::
+
 #### cache.snapshot
 
 配置快照策略，Snapshot 用于在热启动时判断哪些文件在停机时被修改。支持以下配置:
