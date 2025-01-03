@@ -1,0 +1,231 @@
+name: Ecosystem CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        type: number
+        description: "Run ecosystem ci PR number"
+        required: true
+      suite:
+        description: "testsuite to run. runs all testsuits when `-`."
+        required: false
+        type: choice
+        options:
+          - "-"
+          - modernjs
+          # - nx
+          - rspress
+          - rsbuild
+          - rslib
+          - examples
+          - devserver
+      suiteRef:
+        description: "suite ref to use"
+        required: true
+        type: string
+        default: "-"
+#  push:
+#    branches:
+#      - main
+#    paths-ignore:
+#      - "**/*.md"
+#      - "website/**"
+#    tags-ignore:
+#      - "**"
+
+jobs:
+  get-runner-labels:
+    name: Get Runner Labels
+    uses: ./.github/workflows/get-runner-labels.yml
+
+  build:
+    name: Test Linux
+    needs: [get-runner-labels]
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-22.04"' }}
+      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+      ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
+      test: false
+      bench: false
+
+  create-comment:
+    runs-on: ubuntu-latest
+    outputs:
+      comment-id: ${{ steps.create-comment.outputs.result }}
+    steps:
+      - id: create-comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const url = `${context.serverUrl}//${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const urlLink = `[Open](${url})`
+            const body = `⏳ Triggered ecosystem ci: ${urlLink}`
+
+            if (context.eventName === 'workflow_dispatch') {
+              const { data: comment } = await github.rest.issues.createComment({
+                issue_number: context.payload.inputs.pr,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body
+              })
+              return comment.id
+            }
+
+            const { data: comment } = await github.rest.repos.createCommitComment({
+              commit_sha: context.sha,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            })
+            return comment.id
+
+  calculate-eco-ci-suite:
+    runs-on: ubuntu-latest
+    outputs:
+      suites: ${{ steps.calculate.outputs.result }}
+    steps:
+      - id: calculate
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`;
+            let result = [
+              "modernjs",
+              // "nx",
+              "rspress",
+              "rslib",
+              "rsbuild",
+              "rsdoctor",
+              "examples",
+              "devserver",
+              "nuxt",
+            ]
+            if (suiteName !== "-") {
+              result = allSuite.filter(item => item === suiteName)
+            }
+            return JSON.stringify({
+              include: result.map(suite => ({ suite }))
+            })
+
+  eco-ci:
+    needs: [build, calculate-eco-ci-suite]
+    strategy:
+      matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
+      fail-fast: false
+    name: eco-ci (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+#    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
+
+#      - name: Clean
+#        uses: ./.github/actions/clean
+#        with:
+#          target: x86_64-unknown-linux-gnu
+
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+          try-local-cache: false
+
+      - name: Show restored binding
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Run rspack-ecosystem-ci
+        run: |
+          # prepare rspack
+          cp ./crates/node_binding/*.node ./npm/linux-x64-gnu/
+
+          RSPACK_DIR=$(pwd)
+          cd ..
+          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-ci.git
+          cd rspack-ecosystem-ci
+          pnpm i --frozen-lockfile
+
+          mkdir -p ./workspace
+          ln -s $RSPACK_DIR ./workspace/rspack
+
+          SUITE='${{ matrix.suite }}'
+          SUITE_REF='${{ inputs.suiteRef || '-' }}'
+          if [[ "$SUITE_REF" != "-" ]]; then
+            # run test suite with suiteRef
+            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE"
+            echo "finish run $SUITE with $SUITE_REF"
+          else
+            # run test suite
+            pnpm tsx ecosystem-ci.ts run-suites "$SUITE"
+            echo "finish run $SUITE"
+          fi
+
+  comment-compare-results:
+    runs-on: ubuntu-latest
+    needs: [create-comment, eco-ci]
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data } = await github.rest.actions.listJobsForWorkflowRunAttempt({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+              attempt_number: ${{ github.run_attempt }},
+            })
+            const jobs = data?.jobs || []
+
+            let result = jobs
+              .filter(job => job.name.startsWith('eco-ci '))
+              .filter(job => job.conclusion !== 'skipped')
+              .map(job => {
+                const suite = job.name.replace(/^eco-ci \(([^)]+)\)$/, "$1")
+                return { suite, conclusion: job.conclusion, link: job.html_url }
+              })
+
+            const conclusionEmoji = {
+              success: ":white_check_mark:",
+              failure: ":x:",
+              cancelled: ":stop_button:"
+            }
+            const url = `${context.serverUrl}//${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const urlLink = `[Open](${url})`
+            const body = result.length ? ` 📝 Ecosystem CI detail: ${urlLink}
+            | suite | result |
+            |-------|--------|
+            ${result.map(r => `| [${r.suite}](${r.link}) | ${conclusionEmoji[r.conclusion]} ${r.conclusion} |`).join("\n")}
+            ` : ` 📝 Ecosystem CI failed: ${urlLink}`
+
+            if (context.eventName === 'workflow_dispatch') {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: `${{ needs.create-comment.outputs.comment-id }}`,
+                body
+              })
+            } else {
+              await github.rest.repos.updateCommitComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: `${{ needs.create-comment.outputs.comment-id }}`,
+                body,
+              });
+            }
