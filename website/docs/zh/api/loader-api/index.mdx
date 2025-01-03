@@ -1,5 +1,22 @@
-# 兼容情况
+# 总览
+
+## 兼容情况
 
 Rspack 致力于兼容 webpack 生态中的 loader。我们确保 Rspack 尽可能地去兼容 webpack 的 loader API，使更多现有的 webpack loader 能够在 Rspack 中直接使用。
 
-我们已兼容了大部分 webpack 的 loader API，你可以访问[这个页面](https://github.com/orgs/web-infra-dev/projects/10)来了解目前 webpack Loader API 的兼容情况。
+目前 Rspack 已经兼容了绝大部分 webpack 的 loader API，如果你发现某个 webpack loader 无法在 Rspack 中使用，欢迎到 [Rspack 仓库](https://github.com/web-infra-dev/rspack) 通过 issue 反馈。
+
+## 示例
+
+我们提供了不同类型 loader 的一些基本示例，如果你想要编写一个 loader，可以参考 [这些示例](/api/loader-api/examples) 来上手。
+
+如果你需要使用一个已有的 loader，可以参考 [特性 - loader](/guide/features/loader) 来了解如何使用。
+
+## Loader API
+
+Loader API 包含：
+
+- [Loader 上下文](/api/loader-api/context)：表示 loader 内部可用的属性，这些属性在 loader 中通过 `this` 属性进行访问。
+- [编译器特定属性](/api/loader-api/rspack-specific-properties)：在极少数情况下，你可能需要访问编译器 API 本身。
+- [内联 loader](/api/loader-api/inline)：在 `import` 语句中指定 loader。
+- [内联 matchResource](/api/loader-api/inline-match-resource)：允许你在加载资源时动态改变匹配规则。
