@@ -25,14 +25,14 @@ on:
         required: true
         type: string
         default: "-"
-#  push:
-#    branches:
-#      - main
-#    paths-ignore:
-#      - "**/*.md"
-#      - "website/**"
-#    tags-ignore:
-#      - "**"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+      - "website/**"
+    tags-ignore:
+      - "**"
 
 jobs:
   get-runner-labels:
