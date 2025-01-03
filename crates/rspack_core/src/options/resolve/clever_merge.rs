@@ -451,19 +451,19 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
 }
 
 fn extend_alias(a: &Alias, b: Alias) -> Alias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+  // FIXME: I think this to_vec can be removed
+  let mut a = a.to_vec();
+  a.extend(b);
+  a.dedup();
+  a
 }
 
 fn extend_extension_alias(a: &ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+  // FIXME: I think this to_vec can be removed
+  let mut a = a.to_vec();
+  a.extend(b);
+  a.dedup();
+  a
 }
 
 #[cfg(test)]
