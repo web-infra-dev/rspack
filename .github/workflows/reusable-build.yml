@@ -271,6 +271,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Run e2e
         uses: ./.github/actions/docker-run
         with:
