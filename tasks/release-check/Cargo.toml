@@ -13,7 +13,7 @@ repository.workspace = true
 [dependencies]
 toml = { version = "0.8.19"}
 miette             = { version = "7.2.0", features = ["fancy"] }
-thiserror          = "1.0.69"
+thiserror          = "2.0.9"
 
 [lints]
 workspace = true
