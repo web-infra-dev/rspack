@@ -378,20 +378,15 @@ impl JsCompilation {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "Record<string, JsChunkGroup>")]
-  pub fn entrypoints(&self) -> Result<HashMap<&String, JsChunkGroupWrapper>> {
+  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
+  pub fn entrypoints(&self) -> Result<Vec<JsChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .entrypoints()
-        .iter()
-        .map(|(n, _)| {
-          (
-            n,
-            JsChunkGroupWrapper::new(compilation.entrypoint_by_name(n).ukey, compilation),
-          )
-        })
+        .values()
+        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
         .collect(),
     )
   }

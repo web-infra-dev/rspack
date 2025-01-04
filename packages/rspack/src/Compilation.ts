@@ -406,10 +406,10 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
-			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-				n,
-				Entrypoint.__from_binding(e)
-			])
+			this.#inner.entrypoints.map((binding) => {
+				const entrypoint = Entrypoint.__from_binding(binding);
+				return [entrypoint.name!, entrypoint]
+			})
 		);
 	}
 
