@@ -40,10 +40,9 @@ Loader 是用来转换模块内容的。例如，我们可以使用 loader 将 T
 
 ## module type（模块类型）
 
-module specifier
 模块类型是模块的一种属性，它们可以通过不同的方式进行解析和处理。我们可以通过指明模块的模块类型来告诉 Rspack 如何处理它们。例如，我们可以通过指定模块类型为 JavaScript 来告诉 Rspack 该模块是一个 JavaScript 模块，然后 Rspack 就会使用 JavaScript 解析器来解析该模块，如果指定的模块类型为 CSS，那么 Rspack 就会使用 CSS 解析器来解析该模块。
 
-## （模块标识符）
+## module specifier（模块标识符）
 
 模块标识符是一个可以解析为模块文件路径的字符串。例如，在下面的代码中，`./modules/foo.js` 就是模块标识符。
 
