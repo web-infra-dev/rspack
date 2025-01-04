@@ -2615,6 +2615,10 @@ export type Experiments = {
 	 */
 	incremental?: boolean | Incremental;
 	/**
+	 * Enable multi-threaded code splitting algorithm.
+	 */
+	parallelCodeSplitting?: boolean;
+	/**
 	 * Enable future default options.
 	 */
 	futureDefaults?: boolean;

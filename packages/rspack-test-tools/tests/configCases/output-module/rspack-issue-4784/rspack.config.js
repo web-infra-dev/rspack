@@ -1,6 +1,4 @@
-const path = require("path");
-const fs = require("fs");
-const assert = require("assert");
+const {RawSource} = require('webpack-sources')
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -25,20 +23,15 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				compiler.hooks.afterEmit.tap("test", () => {
-					const dest = path.resolve(
-						__dirname,
-						"../../.././js/config/output-module/rspack-issue-4784/m.mjs"
-					);
-					assert(fs.existsSync(dest));
-					const testRaw = `
-import { a, b } from './main.mjs';
+				compiler.hooks.thisCompilation.tap('test', (compilation) => {
+					compilation.hooks.processAssets.tap('test', (assets) => {
+							compilation.updateAsset('m.mjs', new RawSource(`import { a, b } from './main.mjs';
 it('should get correctly exports', () => {
 	expect(a).toBe('a')
 	expect(b).toBe('b')
-})`;
-					fs.writeFileSync(dest, testRaw);
-				});
+})`))
+					})
+				})
 			}
 		}
 	]

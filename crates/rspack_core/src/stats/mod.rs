@@ -250,7 +250,6 @@ impl Stats<'_> {
       modules.extend(runtime_modules);
     }
 
-    modules.sort_by_key(|a| a.identifier);
     sort_modules(&mut modules);
 
     Ok(f(modules))

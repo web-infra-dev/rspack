@@ -42,7 +42,7 @@ where
   let has_change = compilation.has_module_import_export_change();
 
   if !has_change
-    || (std::env::var("LEGACY_CODE_SPLITTING").is_ok()
+    || (!compilation.options.experiments.parallel_code_splitting
       && compilation
         .incremental
         .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH))

@@ -2190,6 +2190,7 @@ pub struct ExperimentsBuilder {
   output_module: Option<bool>,
   future_defaults: Option<bool>,
   css: Option<bool>,
+  parallel_code_splitting: Option<bool>,
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
 }
@@ -2230,6 +2231,11 @@ impl ExperimentsBuilder {
     self
   }
 
+  pub fn parallel_code_splitting(&mut self, parallel_code_splitting: bool) -> &mut Self {
+    self.parallel_code_splitting = Some(parallel_code_splitting);
+    self
+  }
+
   pub fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
@@ -2260,11 +2266,14 @@ impl ExperimentsBuilder {
     w!(self.async_web_assembly, *future_defaults);
     w!(self.output_module, false);
 
+    let parallel_code_splitting = d!(self.parallel_code_splitting, false);
+
     Experiments {
       layers,
       incremental,
       top_level_await,
       rspack_future,
+      parallel_code_splitting,
       cache,
     }
   }
