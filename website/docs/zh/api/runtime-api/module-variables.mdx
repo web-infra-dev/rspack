@@ -210,7 +210,7 @@ Rspack 在编译时，会通过静态分析来解析 `import.meta.webpackContext
 
 这个函数有三个属性：`resolve`，`keys` 与 `id`。
 
-- `resolve` 是一个函数，它返回 request 被解析后得到的模块 id。
+- `resolve` 是一个函数，它返回模块标识符被解析后得到的模块 id。
 - `keys` 也是一个函数，它返回一个数组，由所有可能被此上下文模块处理的请求组成。
 - `id` 是上下文模块的模块 id. 它可能在使用 `module.hot.accept` 时会用到。
 
