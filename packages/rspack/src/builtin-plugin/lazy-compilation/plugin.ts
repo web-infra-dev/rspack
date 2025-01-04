@@ -31,12 +31,12 @@ export default class LazyCompilationPlugin {
 
 	apply(compiler: Compiler) {
 		const backend = getBackend({
-			...this.backend,
 			client: require.resolve(
 				`../hot/lazy-compilation-${
 					compiler.options.externalsPresets.node ? "node" : "web"
 				}.js`
-			)
+			),
+			...this.backend
 		});
 
 		new BuiltinLazyCompilationPlugin(
