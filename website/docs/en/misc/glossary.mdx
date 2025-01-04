@@ -46,6 +46,14 @@ An application can be split into multiple files called modules, which may be Jav
 
 A module's type determines how it will be parsed and handled by the bundler. For example, we can tell Rspack that the module is a JavaScript module by specifying the module type as JavaScript, and Rspack will use the JavaScript parser to parse the module. If the specified module type is CSS, then Rspack will use a CSS parser to parse the module.
 
+## module specifier
+
+A module specifier is a string that can be resolved to a path to the module file. For example, in the following code, `./modules/foo.js` is a module specifier.
+
+```js
+import { foo } from './modules/foo.js';
+```
+
 ## module resolution
 
 Module resolution is the process of calculating the file path indicated by a module specifier. For example, an import statement includes a module specifier, and Rspack will use the module resolution algorithm to find the corresponding file path.

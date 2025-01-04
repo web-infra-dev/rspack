@@ -113,7 +113,7 @@ compiler.hooks.compilation.tap(
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
-在模块的请求被解析后调用。
+在模块标识符被解析后调用。
 
 `afterResolve` 用于在模块解析完成之后，进一步处理或修改模块的解析结果。它在模块解析过程的末尾触发，意味着在这个阶段，模块的路径、请求信息等已经确定。
 
@@ -143,9 +143,9 @@ compiler.hooks.compilation.tap(
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`
 
-在带有 scheme 的解析（URI）请求之前调用。
+在解析带有 scheme（URI）的模块标识符之前调用。
 
-`resolveForScheme` 通常用于处理具有特定协议的模块请求，例如 `file://`、`https://` 等。
+`resolveForScheme` 通常用于处理具有特定协议的模块标识符，例如 `file://`、`https://` 等。
 
 ```js
 compiler.hooks.compilation.tap(

@@ -284,7 +284,7 @@ function requireContext(
 
 ```js
 // Create a context, with files from the test directory that
-// can be required with a request ending with `.test.js`.
+// can be required with a module specifier ending with `.test.js`.
 const context = require.context('./test', false, /\.test\.js$/);
 ```
 
@@ -342,7 +342,7 @@ function requireEnsure(
    * By passing the same chunkName to various require.ensure() calls,
    * we can combine their code into a single chunk, resulting in only one bundle that the browser must load.
    */
-  chunkName?: String
+  chunkName?: string
 ): Context;
 ```
 

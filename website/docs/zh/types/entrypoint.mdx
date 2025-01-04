@@ -8,7 +8,7 @@ type Entrypoint = {
   origins: ReadonlyArray<{
     // entrypoint 被引入的来源
     module?: Module;
-    request?: String;
+    request?: string;
   }>;
   isInitial(): boolean; // 是否在页面初始加载
   getFiles(): ReadonlyArray<string>; // 关联的文件列表
