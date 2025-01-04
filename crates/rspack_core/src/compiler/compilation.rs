@@ -1318,10 +1318,10 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      if std::env::var("LEGACY_CODE_SPLITTING").is_ok() {
-        build_chunk_graph(compilation)?;
-      } else {
+      if compilation.options.experiments.parallel_code_splitting {
         build_chunk_graph_new(compilation)?;
+      } else {
+        build_chunk_graph(compilation)?;
       }
       Ok(compilation)
     })

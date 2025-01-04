@@ -1205,7 +1205,7 @@ exports[`StatsTestCases should print correct stats for prefetch 1`] = `
 "asset main.js 13.9 KiB {909} [emitted] (name: main)
 asset prefetched.js 554 bytes {674} [emitted] (name: prefetched)
 asset inner2.js 130 bytes {857} [emitted] (name: inner2)
-asset inner.js 102 bytes {481} [emitted] (name: inner)
+asset inner.js 103 bytes {481} [emitted] (name: inner)
 asset normal.js 102 bytes {615} [emitted] (name: normal)
 asset prefetched2.js 102 bytes {424} [emitted] (name: prefetched2)
 asset prefetched3.js 102 bytes {182} [emitted] (name: prefetched3)
@@ -1215,7 +1215,7 @@ chunk {182} (runtime: main) prefetched3.js (prefetched3) 1 bytes <{909}> [render
 chunk {424} (runtime: main) prefetched2.js (prefetched2) 1 bytes <{909}> [rendered]
 chunk {481} (runtime: main) inner.js (inner) 1 bytes <{674}> [rendered]
 chunk {615} (runtime: main) normal.js (normal) 1 bytes <{909}> [rendered]
-chunk {674} (runtime: main) prefetched.js (prefetched) 228 bytes <{909}> >{481}< >{857}< (prefetch: {481}) [rendered]
+chunk {674} (runtime: main) prefetched.js (prefetched) 228 bytes <{909}> >{481}< >{857}< (prefetch: {857} {481}) [rendered]
 chunk {857} (runtime: main) inner2.js (inner2) 2 bytes <{674}> [rendered]
 chunk {909} (runtime: main) main.js (main) 436 bytes (javascript) 11 KiB (runtime) >{182}< >{424}< >{615}< >{674}< (prefetch: {424} {674} {182}) [entry] [rendered]"
 `;
