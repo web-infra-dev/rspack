@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "bench": "vitest bench --run",
-        "bench:debug": "vitest bench --run --disable-console-intercept"
+        "bench:debug": "vitest bench --disable-console-intercept --run"
     },
     "devDependencies": {
         "@codspeed/vitest-plugin": "^4.0.0",

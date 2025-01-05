@@ -7,6 +7,7 @@ beforeAll(() => {
 	const use: string[] = [];
 	const loader = require.resolve("./loaders/noop");
 	for (let i = 0; i < 100; i++) {
+		use.push('builtin:swc-loader');
 		use.push(loader);
 	}
 
@@ -58,5 +59,9 @@ describe("Noop loader", () => {
 	bench("Rust dispatch javascript loader", async () => {
 		breakpoint.next();
 		await breakpoint.paused();
+	}, {
+		async setup() {
+			await breakpoint.paused();
+		}
 	});
 });

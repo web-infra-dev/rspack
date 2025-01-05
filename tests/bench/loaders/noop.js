@@ -1,7 +1,13 @@
 class Breakpoint {
     #callback = null;
-    #promise = Promise.resolve();
-    #resolve = () => { };
+    #promise;
+    #resolve;
+
+    constructor() {
+        this.#promise = new Promise(resolve => {
+            this.#resolve = resolve;
+        });
+    }
 
     next() {
         if (this.#callback) {
