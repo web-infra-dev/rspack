@@ -4,7 +4,8 @@
     "license": "MIT",
     "type": "module",
     "scripts": {
-        "bench": "vitest bench --run"
+        "bench": "vitest bench --run",
+        "bench:debug": "vitest bench --run --disable-console-intercept"
     },
     "devDependencies": {
         "@codspeed/vitest-plugin": "^4.0.0",
