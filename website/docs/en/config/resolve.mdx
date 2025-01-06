@@ -369,3 +369,10 @@ When enabled, symlinked resources are resolved to their real path, not their sym
 - **Type:** `Record<string, Resolve>`.
 
 Customize the Resolve configuration based on the module type.
+
+## resolve.enablePnp
+
+- **Type:** `boolean`
+- **Default:** `!!process.versions.pnp`
+
+When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution, It's enabled by default when [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is true which means running in Yarn PnP environments.
