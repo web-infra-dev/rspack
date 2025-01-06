@@ -7,10 +7,10 @@ use rspack_core::{
   CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
   EntryDescription, Environment, ExperimentCacheOptions, Experiments, Filename, FilenameTemplate,
   GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, LibraryName, LibraryNonUmdObject, LibraryOptions, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, OutputOptions, ParserOptions, ParserOptionsMap,
-  PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions,
-  TrustedTypes, WasmLoading, WasmLoadingType,
+  JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  LibraryType, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  OutputOptions, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture,
+  RuleSetCondition, RuleSetLogicalConditions, TrustedTypes, WasmLoading, WasmLoadingType,
 };
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -18,7 +18,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::target::{get_targets_properties, TargetProperties};
-use super::{Devtool, Target};
+use super::{Devtool, DevtoolFlags, Target};
 macro_rules! d {
   ($o:expr, $v:expr) => {{
     $o.unwrap_or($v)
@@ -70,6 +70,99 @@ impl Builder for Experiments {
   }
 }
 
+/// Options of builtin plugins
+///
+/// Plugin options applied to compiler is ordered.
+/// Plugin options are created ahead of apply and used for ordered plugin application later.
+#[allow(unused, clippy::enum_variant_names)]
+pub(crate) enum BuiltinPluginOptions {
+  DefinePlugin,
+  ProvidePlugin,
+  BannerPlugin,
+  IgnorePlugin,
+  ProgressPlugin,
+  EntryPlugin,
+  DynamicEntryPlugin,
+  ExternalsPlugin,
+  NodeTargetPlugin,
+  ElectronTargetPlugin,
+  EnableChunkLoadingPlugin(ChunkLoadingType),
+  EnableLibraryPlugin(LibraryType),
+  EnableWasmLoadingPlugin(WasmLoadingType),
+  FetchCompileAsyncWasmPlugin,
+  ChunkPrefetchPreloadPlugin,
+  CommonJsChunkFormatPlugin,
+  ArrayPushCallbackChunkFormatPlugin,
+  ModuleChunkFormatPlugin,
+  HotModuleReplacementPlugin,
+  LimitChunkCountPlugin,
+  WorkerPlugin,
+  WebWorkerTemplatePlugin,
+  MergeDuplicateChunksPlugin,
+  SplitChunksPlugin,
+  RemoveDuplicateModulesPlugin,
+  ShareRuntimePlugin,
+  ContainerPlugin,
+  ContainerReferencePlugin,
+  ProvideSharedPlugin,
+  ConsumeSharedPlugin,
+  ModuleFederationRuntimePlugin,
+  NamedModuleIdsPlugin,
+  NaturalModuleIdsPlugin,
+  DeterministicModuleIdsPlugin,
+  NaturalChunkIdsPlugin,
+  NamedChunkIdsPlugin,
+  DeterministicChunkIdsPlugin,
+  OccurrenceChunkIdsPlugin,
+  RealContentHashPlugin,
+  RemoveEmptyChunksPlugin,
+  EnsureChunkConditionsPlugin,
+  WarnCaseSensitiveModulesPlugin,
+  DataUriPlugin,
+  FileUriPlugin,
+  RuntimePlugin,
+  JsonModulesPlugin,
+  InferAsyncModulesPlugin,
+  JavascriptModulesPlugin,
+  AsyncWebAssemblyModulesPlugin,
+  AssetModulesPlugin,
+  SourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
+  EvalSourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
+  EvalDevToolModulePlugin(rspack_plugin_devtool::EvalDevToolModulePluginOptions),
+  SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin,
+  MangleExportsPlugin,
+  ModuleConcatenationPlugin,
+  CssModulesPlugin,
+  APIPlugin,
+  RuntimeChunkPlugin,
+  SizeLimitsPlugin,
+  NoEmitOnErrorsPlugin,
+  ContextReplacementPlugin,
+  DllEntryPlugin,
+  DllReferenceAgencyPlugin,
+  LibManifestPlugin,
+  FlagAllModulesAsUsedPlugin,
+
+  LazyCompilationPlugin,
+
+  // rspack specific plugins
+  // naming format follow XxxRspackPlugin
+  HttpExternalsRspackPlugin,
+  CopyRspackPlugin,
+  HtmlRspackPlugin,
+  SwcJsMinimizerRspackPlugin,
+  LightningCssMinimizerRspackPlugin,
+  BundlerInfoRspackPlugin,
+  CssExtractRspackPlugin,
+}
+
+pub struct BuilderContext {
+  plugins: Vec<BuiltinPluginOptions>,
+}
+
+/// Builter used to build [`CompilerOptions`]
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
   name: Option<String>,
@@ -159,7 +252,7 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  pub fn build(&mut self) -> CompilerOptions {
+  pub fn build(&mut self, builder_context: &mut BuilderContext) -> CompilerOptions {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
       std::env::current_dir()
@@ -177,13 +270,14 @@ impl CompilerOptionsBuilder {
     let mode = d!(self.mode.take(), Mode::Production);
 
     // TODO: support entry
-    let _devtool = f!(self.devtool.take(), || {
+    let devtool = f!(self.devtool.take(), || {
       if development {
         Devtool::Eval
       } else {
         Devtool::False
       }
     });
+
     let profile = d!(self.profile.take(), false);
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
@@ -195,7 +289,7 @@ impl CompilerOptionsBuilder {
     });
 
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
-    let mut experiments = experiments_builder.build(development, production);
+    let mut experiments = experiments_builder.build(builder_context, development, production);
     // Disable experiments cache if global cache is set to `Disabled`
     if matches!(cache, CacheOptions::Disabled) {
       experiments.cache = ExperimentCacheOptions::Disabled;
@@ -204,7 +298,18 @@ impl CompilerOptionsBuilder {
     let async_web_assembly = experiments_builder
       .async_web_assembly
       .expect("should apply default value");
+    if async_web_assembly {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::AsyncWebAssemblyModulesPlugin);
+    }
     let css = experiments_builder.css.expect("should apply default value");
+    if css {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::CssModulesPlugin);
+    }
+
     let future_defaults = experiments_builder
       .future_defaults
       .expect("should apply default value");
@@ -213,13 +318,17 @@ impl CompilerOptionsBuilder {
       .expect("should apply default value");
 
     let module = f!(self.module.take(), ModuleOptions::builder).build(
+      builder_context,
       async_web_assembly,
       css,
       &target_properties,
+      &mode,
     );
 
     let is_affected_by_browserslist = target.iter().any(|t| t.starts_with("browserslist"));
-    let output = f!(self.output.take(), OutputOptions::builder).build(
+    let mut output_builder = f!(self.output.take(), OutputOptions::builder);
+    let output = output_builder.build(
+      builder_context,
       &context,
       output_module,
       Some(&target_properties),
@@ -228,6 +337,60 @@ impl CompilerOptionsBuilder {
       &self.entry,
       future_defaults,
     );
+    let devtool_flags = DevtoolFlags::from(devtool);
+    if devtool_flags.source_map() {
+      let hidden = devtool_flags.hidden();
+      let inline = devtool_flags.inline();
+      let eval_wrapped = devtool_flags.eval();
+      let cheap = devtool_flags.cheap();
+      let module_maps = devtool_flags.module();
+      let no_sources = devtool_flags.nosources();
+
+      let options = rspack_plugin_devtool::SourceMapDevToolPluginOptions {
+        filename: (!inline).then_some(output.source_map_filename.as_str().to_string()),
+        module_filename_template: output_builder
+          .devtool_module_filename_template
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
+          .clone(),
+        append: hidden.then_some(rspack_plugin_devtool::Append::Disabled),
+        columns: !cheap,
+        fallback_module_filename_template: output_builder
+          .devtool_fallback_module_filename_template
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
+          .clone(),
+        module: if module_maps { true } else { !cheap },
+        namespace: output_builder.devtool_namespace.clone(),
+        no_sources,
+        file_context: None,
+        public_path: None,
+        source_root: None,
+        test: None,
+        include: None,
+        exclude: None,
+      };
+
+      if eval_wrapped {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::EvalSourceMapDevToolPlugin(options));
+      } else {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::SourceMapDevToolPlugin(options));
+      }
+    } else if devtool_flags.eval() {
+      let options = rspack_plugin_devtool::EvalDevToolModulePluginOptions {
+        module_filename_template: output_builder
+          .devtool_module_filename_template
+          .map(|t| rspack_plugin_devtool::ModuleFilenameTemplate::String(t.as_str().to_string()))
+          .clone(),
+        namespace: output_builder.devtool_namespace.clone(),
+        source_url_comment: None,
+      };
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::EvalDevToolModulePlugin(options));
+    }
 
     CompilerOptions {
       name,
@@ -250,6 +413,7 @@ impl CompilerOptionsBuilder {
   }
 }
 
+/// Builter used to build [`ModuleOptions`]
 #[derive(Debug, Default)]
 pub struct ModuleOptionsBuilder {
   rules: Vec<ModuleRule>,
@@ -292,9 +456,11 @@ impl ModuleOptionsBuilder {
 
   pub fn build(
     &mut self,
+    _builder_context: &mut BuilderContext,
     async_web_assembly: bool,
     css: bool,
     target_properties: &TargetProperties,
+    mode: &Mode,
   ) -> ModuleOptions {
     let parser = self.parser.get_or_insert(ParserOptionsMap::default());
 
@@ -329,6 +495,19 @@ impl ModuleOptionsBuilder {
           require_resolve: Some(true),
           import_dynamic: Some(true),
           ..Default::default()
+        }),
+      );
+    }
+
+    if !parser.contains_key("json") {
+      parser.insert(
+        "json".to_string(),
+        ParserOptions::Json(JsonParserOptions {
+          exports_depth: if matches!(mode, Mode::Development) {
+            Some(1)
+          } else {
+            Some(u32::MAX)
+          },
         }),
       );
     }
@@ -674,6 +853,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   rules
 }
 
+/// Builter used to build [`OutputOptions`]
 #[derive(Debug, Default)]
 pub struct OutputOptionsBuilder {
   path: Option<Utf8PathBuf>,
@@ -698,7 +878,9 @@ pub struct OutputOptionsBuilder {
   hot_update_chunk_filename: Option<FilenameTemplate>,
   hot_update_global: Option<String>,
   library: Option<LibraryOptions>,
-  enabled_library_types: Option<Vec<String>>,
+  enabled_library_types: Option<Vec<LibraryType>>,
+  enabled_chunk_loading_types: Option<Vec<ChunkLoadingType>>,
+  enabled_wasm_loading_types: Option<Vec<WasmLoadingType>>,
   strict_module_error_handling: Option<bool>,
   global_object: Option<String>,
   import_function_name: Option<String>,
@@ -716,6 +898,9 @@ pub struct OutputOptionsBuilder {
   worker_wasm_loading: Option<WasmLoading>,
   worker_public_path: Option<String>,
   script_type: Option<String>,
+  devtool_namespace: Option<String>,
+  devtool_module_filename_template: Option<FilenameTemplate>,
+  devtool_fallback_module_filename_template: Option<FilenameTemplate>,
   environment: Option<Environment>,
   compare_before_emit: Option<bool>,
 }
@@ -834,8 +1019,18 @@ impl OutputOptionsBuilder {
     self
   }
 
-  pub fn enabled_library_types(&mut self, types: Vec<String>) -> &mut Self {
+  pub fn enabled_library_types(&mut self, types: Vec<LibraryType>) -> &mut Self {
     self.enabled_library_types = Some(types);
+    self
+  }
+
+  pub fn enabled_chunk_loading_types(&mut self, types: Vec<ChunkLoadingType>) -> &mut Self {
+    self.enabled_chunk_loading_types = Some(types);
+    self
+  }
+
+  pub fn enabled_wasm_loading_types(&mut self, types: Vec<WasmLoadingType>) -> &mut Self {
+    self.enabled_wasm_loading_types = Some(types);
     self
   }
 
@@ -924,6 +1119,23 @@ impl OutputOptionsBuilder {
     self
   }
 
+  pub fn devtool_namespace(&mut self, namespace: String) -> &mut Self {
+    self.devtool_namespace = Some(namespace);
+    self
+  }
+
+  pub fn devtool_module_filename_template(&mut self, filename: FilenameTemplate) -> &mut Self {
+    self.devtool_module_filename_template = Some(filename);
+    self
+  }
+
+  pub fn devtool_fallback_module_filename_template(
+    &mut self,
+    filename: FilenameTemplate,
+  ) -> &mut Self {
+    self.devtool_fallback_module_filename_template = Some(filename);
+    self
+  }
   pub fn environment(&mut self, environment: Environment) -> &mut Self {
     self.environment = Some(environment);
     self
@@ -937,6 +1149,7 @@ impl OutputOptionsBuilder {
   #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn build(
     &mut self,
+    builder_context: &mut BuilderContext,
     context: &Context,
     output_module: bool,
     target_properties: Option<&TargetProperties>,
@@ -1137,6 +1350,25 @@ impl OutputOptionsBuilder {
       }
     });
 
+    match &*chunk_format {
+      "array-push" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::ArrayPushCallbackChunkFormatPlugin);
+      }
+      "commonjs" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::CommonJsChunkFormatPlugin);
+      }
+      "module" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::ModuleChunkFormatPlugin);
+      }
+      _ => {}
+    }
+
     let chunk_loading = f!(self.chunk_loading.take(), || {
       if let Some(tp) = tp {
         match &*chunk_format {
@@ -1239,6 +1471,58 @@ impl OutputOptionsBuilder {
       }
     });
 
+    let enabled_library_types = f!(self.enabled_library_types.take(), || {
+      let mut enabled_library_types = vec![];
+      if let Some(library) = &self.library {
+        enabled_library_types.push(library.library_type.clone());
+      }
+      // TODO: support entry
+      enabled_library_types
+    });
+
+    enabled_library_types.iter().for_each(|ty| {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::EnableLibraryPlugin(ty.clone()));
+    });
+
+    let enabled_chunk_loading_types = f!(self.enabled_chunk_loading_types.take(), || {
+      let mut enabled_chunk_loading_types = vec![];
+      if let ChunkLoading::Enable(ty) = chunk_loading {
+        enabled_chunk_loading_types.push(ty);
+      }
+      if let ChunkLoading::Enable(ty) = worker_chunk_loading {
+        enabled_chunk_loading_types.push(ty);
+      }
+
+      // TODO: support entry
+      enabled_chunk_loading_types
+    });
+
+    enabled_chunk_loading_types.iter().for_each(|ty| {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(*ty));
+    });
+
+    let enabled_wasm_loading_types = f!(self.enabled_wasm_loading_types.take(), || {
+      let mut enabled_wasm_loading_types = vec![];
+      if let WasmLoading::Enable(ty) = wasm_loading {
+        enabled_wasm_loading_types.push(ty);
+      }
+      if let WasmLoading::Enable(ty) = worker_wasm_loading {
+        enabled_wasm_loading_types.push(ty);
+      }
+      // TODO: support entry
+      enabled_wasm_loading_types
+    });
+
+    enabled_wasm_loading_types.iter().for_each(|ty| {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(*ty));
+    });
+
     let environment = Environment {
       r#const: tp.and_then(|t| t.r#const),
       arrow_function: tp.and_then(|t| t.arrow_function),
@@ -1273,7 +1557,7 @@ impl OutputOptionsBuilder {
       hot_update_chunk_filename,
       hot_update_global,
       library: self.library.take(),
-      enabled_library_types: self.enabled_library_types.take(),
+      enabled_library_types: Some(enabled_library_types),
       strict_module_error_handling: self.strict_module_error_handling.take().unwrap_or(false),
       global_object,
       import_function_name: self
@@ -1315,6 +1599,7 @@ impl OutputOptionsBuilder {
   }
 }
 
+/// Builter used to build [`Experiments`]
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
   layers: Option<bool>,
@@ -1328,6 +1613,7 @@ pub struct ExperimentsBuilder {
   future_defaults: Option<bool>,
   css: Option<bool>,
   async_web_assembly: Option<bool>,
+  // TODO: lazy compilation
 }
 
 impl ExperimentsBuilder {
@@ -1366,7 +1652,12 @@ impl ExperimentsBuilder {
     self
   }
 
-  pub fn build(&mut self, development: bool, production: bool) -> Experiments {
+  pub fn build(
+    &mut self,
+    _builder_context: &mut BuilderContext,
+    development: bool,
+    production: bool,
+  ) -> Experiments {
     let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
       if !production {

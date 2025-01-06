@@ -17,5 +17,7 @@ rspack_regex = { workspace = true }
 rustc-hash   = { workspace = true }
 serde_json   = { workspace = true }
 
+rspack_plugin_devtool = { workspace = true }
+
 [lints]
 workspace = true
