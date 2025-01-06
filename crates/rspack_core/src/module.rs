@@ -217,6 +217,10 @@ pub trait Module:
   + Diagnosable
   + ModuleSourceMapConfig
 {
+  fn constructor_name(&self) -> &'static str {
+    "Module"
+  }
+
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 
