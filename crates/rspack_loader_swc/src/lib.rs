@@ -4,10 +4,7 @@ mod compiler;
 mod options;
 mod transformer;
 
-use std::borrow::Cow;
-use std::cell::RefCell;
 use std::default::Default;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use compiler::{IntoJsAst, SwcCompiler};
@@ -15,7 +12,6 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
-use rspack_error::miette::diagnostic;
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use rspack_paths::Utf8PathBuf;
@@ -26,7 +22,6 @@ use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
-use swc_core::common::comments::SingleThreadedComments;
 use swc_core::ecma::codegen::to_code_with_comments;
 use swc_core::ecma::visit::VisitWith;
 use swc_typescript::fast_dts::FastDts;
@@ -174,19 +169,16 @@ impl SwcLoader {
         let issues = checker.transform(&mut program);
         let should_abort = *abort_on_error && !issues.is_empty();
 
-        dbg!(&issues);
-
         let diagnostics: Vec<Diagnostic> = issues
           .into_iter()
           .map(|issue| {
-            let file = Utf8PathBuf::from(issue.range.filename.to_owned().as_ref().to_string());
             // TODO: miss line number in issue.range
             Diagnostic::warn(SWC_LOADER_IDENTIFIER.to_string(), issue.message.to_string())
           })
           .collect();
 
         if should_abort {
-          let mut message: String = error!(
+          let message: String = error!(
             "Failed to generate dts code in {}",
             SWC_LOADER_IDENTIFIER.to_string(),
           )
