@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.1.8",
+  "version": "1.2.0-alpha.0",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -63,7 +63,7 @@
     "path-serializer": "0.3.4",
     "pretty-format": "29.7.0",
     "rimraf": "^5.0.10",
-    "webpack": "^5.94.0",
+    "webpack": "5.95.0",
     "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3"
   },

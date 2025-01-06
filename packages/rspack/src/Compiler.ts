@@ -1010,9 +1010,7 @@ class Compiler {
 
 				function (queried) {
 					return function (m: binding.JsModule) {
-						return queried.call(
-							Module.__from_binding(m, that.deref()!.#compilation)
-						);
+						return queried.call(Module.__from_binding(m));
 					};
 				}
 			),
@@ -1025,9 +1023,7 @@ class Compiler {
 
 				function (queried) {
 					return function (m: binding.JsModule) {
-						return queried.call(
-							Module.__from_binding(m, that.deref()!.#compilation)
-						);
+						return queried.call(Module.__from_binding(m));
 					};
 				}
 			),
@@ -1040,9 +1036,7 @@ class Compiler {
 
 				function (queried) {
 					return function (m: binding.JsModule) {
-						return queried.call(
-							Module.__from_binding(m, that.deref()!.#compilation)
-						);
+						return queried.call(Module.__from_binding(m));
 					};
 				}
 			),

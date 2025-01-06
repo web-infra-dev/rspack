@@ -17,7 +17,7 @@ pub struct MyPlugin {
 }
 
 // define the plugin hook
-#[plugin_hook(CompilerCompilation for MuPlugin)]
+#[plugin_hook(CompilerCompilation for MyPlugin)]
 async fn compilation(&self, compilation: &mut Compilation) -> Result<()> {
   // do something...
 }

@@ -7,7 +7,16 @@ module.exports = {
 		"d": "./d.mjs",
 		"e": "./e/index.js",
 		"f": "./f/index.js",
-		"g": "./g/index.js"
+		"g": "./g/index.js",
+		"h": "./h/file.png",
+	},
+	module: {
+		rules: [
+			{
+				test: /\.png$/,
+				type: "asset/resource",
+			}
+		]
 	},
 	externals: {
 		path: 'node-commonjs path',
@@ -42,6 +51,7 @@ module.exports = {
 					expect(assets['e.js']._value).toMatchSnapshot(".cjs should bail out when bundling");
 					expect(assets['f.js']._value).toMatchSnapshot("external module should bail out when bundling");
 					expect(assets['g.js']._value).toMatchSnapshot("harmony export should concat, even with bailout reason");
+					expect(assets['h.js']._value).toMatchSnapshot("asset as entry should not be concatenated");
 				});
 			};
 			this.hooks.compilation.tap("testcase", handler);

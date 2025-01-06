@@ -4,10 +4,15 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # 内联 matchResource
 
-在一个请求前缀 `<match-resource>!=!` 将为这个请求设置匹配资源。
+Inline matchResource 允许你在加载资源时动态改变匹配规则。你可以通过在模块标识符前添加 `<match-resource>!=!` 前缀来为该模块标识符设置 `matchResource`。
+
 当 `matchResource` 被设置时，它将被用来与 `module.rules` 而不是原始资源进行匹配。当如果有更多的 loader 应该应用到资源上，或者需要改变模块的类型，这可能很有用。
 
-例子：
+:::tip
+不建议在源代码中使用这种语法。内联请求语法应该仅用于 loader 生成的代码。如果不遵循此建议，你的代码将与 Rspack 耦合，且不符合标准规范。
+:::
+
+## 示例
 
 ```js title="file.js"
 /*STYLE: body { background: red; } */

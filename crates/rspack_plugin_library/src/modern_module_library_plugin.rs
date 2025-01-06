@@ -7,7 +7,7 @@ use rspack_core::{
   CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext, SourceType,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -113,6 +113,17 @@ impl ModernModuleLibraryPlugin {
       .collect::<HashSet<_>>();
 
     for module_id in unconcatenated_module_ids.into_iter() {
+      // skip the asset module when the entry is asset module
+      let module_graph = compilation.get_module_graph();
+      let Some(module) = module_graph.module_by_identifier(module_id) else {
+        continue;
+      };
+      let source_types = module.source_types();
+      let is_asset_module = source_types.contains(&SourceType::Asset);
+      if is_asset_module {
+        continue;
+      }
+
       let chunk_runtime = compilation
         .chunk_graph
         .get_module_runtimes(*module_id, &compilation.chunk_by_ukey)

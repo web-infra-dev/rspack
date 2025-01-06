@@ -5,10 +5,9 @@ import type {
 	JsCreateData,
 	JsFactoryMeta
 } from "@rspack/binding";
-import { JsModule } from "@rspack/binding";
+import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
-import type { Compilation } from "./Compilation";
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
@@ -204,27 +203,25 @@ export class Module {
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
 	 */
-	declare readonly buildInfo: Record<string, any>;
+	buildInfo: Record<string, any>;
 
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
 	 * These fields are generally used within a plugin, so they do not need to be passed back to the Rust side.
-	 * @see {@link Compilation#customModules}
 	 */
-	declare readonly buildMeta: Record<string, any>;
+	buildMeta: Record<string, any>;
 	declare readonly modules: Module[] | undefined;
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
 
-	static __from_binding(binding: JsModule, compilation?: Compilation) {
+	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
 		if (module) {
 			return module;
 		}
-		module = new Module(binding, compilation);
+		module = new Module(binding);
 		MODULE_MAPPINGS.set(binding, module);
 		return module;
 	}
@@ -233,8 +230,10 @@ export class Module {
 		return module.#inner;
 	}
 
-	constructor(module: JsModule, compilation?: Compilation) {
+	constructor(module: JsModule) {
 		this.#inner = module;
+		this.buildInfo = {};
+		this.buildMeta = {};
 
 		Object.defineProperties(this, {
 			type: {
@@ -291,48 +290,21 @@ export class Module {
 			modules: {
 				enumerable: true,
 				get(): Module[] | undefined {
-					if (module instanceof JsModule) {
-						return module.modules
-							? module.modules.map(m => Module.__from_binding(m))
-							: undefined;
-					}
-					return undefined;
-				}
-			},
-			buildInfo: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildInfo || {};
-				}
-			},
-			buildMeta: {
-				enumerable: true,
-				get(): Record<string, any> {
-					const customModule = compilation?.__internal__getCustomModule(
-						module.moduleIdentifier
-					);
-					return customModule?.buildMeta || {};
+					return module.modules
+						? module.modules.map(m => Module.__from_binding(m))
+						: undefined;
 				}
 			},
 			blocks: {
 				enumerable: true,
 				get(): DependenciesBlock[] {
-					if ("blocks" in module) {
-						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
-					}
-					return [];
+					return module.blocks.map(b => DependenciesBlock.__from_binding(b));
 				}
 			},
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					if ("dependencies" in module) {
-						return module.dependencies.map(d => Dependency.__from_binding(d));
-					}
-					return [];
+					return module.dependencies.map(d => Dependency.__from_binding(d));
 				}
 			},
 			useSourceMap: {

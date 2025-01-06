@@ -6,13 +6,23 @@ Rspack 通过丰富插件生态来增强编译功能，这些插件分为以下�
 
 为了对齐 webpack 的功能，Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
 
+详见 [同步自 webpack 的内置插件 - 总览](/plugins/webpack/index)。
+
 ## Rspack 独有的内置插件
 
 Rspack 结合自身实现特点，提供了一些独有的插件，替代对应的 webpack 生态插件，旨在提供更高效的性能。
 
+包括：
+
+- [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)
+- [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)
+- [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)
+- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)
+- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)
+
 ## 兼容的 webpack 生态插件
 
-Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。请查看[插件兼容列表](/guide/compatibility/plugin)获取经过我们兼容性测试的 webpack 插件清单。
+Rspack 致力于兼容 webpack 生态下的插件，以使用社区中已经积累和验证的优秀功能。请查看 [插件兼容列表](/guide/compatibility/plugin) 获取经过我们兼容性测试的 webpack 插件清单。
 
 ## 社区插件
 

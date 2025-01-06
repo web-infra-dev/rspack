@@ -1752,6 +1752,7 @@ export interface RawOptimizationOptions {
 }
 
 export interface RawOptions {
+  name?: string
   mode?: undefined | 'production' | 'development' | 'none'
   context: string
   output: RawOutputOptions

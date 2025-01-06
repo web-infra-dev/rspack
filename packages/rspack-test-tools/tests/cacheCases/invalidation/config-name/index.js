@@ -1,6 +1,6 @@
 import value from "./file";
 
-it("should store and resume asset parser and generator states", async () => {
+it("should invalidation using config.name work", async () => {
 	if (COMPILER_INDEX == 0) {
 		expect(value).toBe(1);
 		await NEXT_HMR();

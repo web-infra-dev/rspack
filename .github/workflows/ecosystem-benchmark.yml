@@ -1,4 +1,4 @@
-name: ecosystem-benchmark
+name: Ecosystem Benchmark
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
       target: x86_64-unknown-linux-gnu
       native: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS == '"ubuntu-22.04"' }}
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-      ref: ${{ github.event_name == 'workflow_dispatch' && format('pull/{0}/head', inputs.pr) || github.sha }}
+      ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
       bench: false
 
@@ -75,7 +75,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('pull/{0}/head', inputs.pr) || github.sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
 
       - name: Clean
         uses: ./.github/actions/clean
