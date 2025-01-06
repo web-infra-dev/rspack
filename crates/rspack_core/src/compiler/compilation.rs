@@ -593,7 +593,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
+      vec![MakeParam::BuildEntry(
         self
           .entries
           .values()
