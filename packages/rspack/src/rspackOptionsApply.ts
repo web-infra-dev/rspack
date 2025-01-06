@@ -188,7 +188,7 @@ export class RspackOptionsApply {
 				const cheap = options.devtool.includes("cheap");
 				const moduleMaps = options.devtool.includes("module");
 				const noSources = options.devtool.includes("nosources");
-				const debug_ids = options.devtool.includes("debugids");
+				const debugIds = options.devtool.includes("debugids");
 				const Plugin = evalWrapped
 					? EvalSourceMapDevToolPlugin
 					: SourceMapDevToolPlugin;
@@ -202,7 +202,7 @@ export class RspackOptionsApply {
 					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace,
-					debugIds: debug_ids,
+					debugIds: debugIds,
 				}).apply(compiler);
 			} else if (options.devtool.includes("eval")) {
 				new EvalDevToolModulePlugin({
