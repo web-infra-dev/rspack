@@ -5,6 +5,7 @@ mod options;
 mod transformer;
 
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::default::Default;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -25,6 +26,7 @@ use rspack_util::source_map::SourceMapKind;
 use swc_config::{config_types::MergingOption, merge::Merge};
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset, TransformConfig};
+use swc_core::common::comments::SingleThreadedComments;
 use swc_core::ecma::codegen::to_code_with_comments;
 use swc_core::ecma::visit::VisitWith;
 use swc_typescript::fast_dts::FastDts;
@@ -130,15 +132,15 @@ impl SwcLoader {
       keep_comments: Some(true),
     };
 
-    let program = c.transform(built)?;
+    let comments = built.comments.clone().unwrap_or_default();
+
     let emit_dts = built.syntax.typescript()
       && self
         .options_with_additional
         .rspack_experiments
         .emit_dts
         .is_some();
-
-    let program = &built.program;
+    let program = c.transform(built)?;
 
     if emit_dts && program.is_module() {
       let fm = Arc::new(swc_core::common::FileName::Custom(filename.clone()));
@@ -174,24 +176,37 @@ impl SwcLoader {
 
         dbg!(&issues);
 
-        issues.into_iter().for_each(|issue| {
-          let file = Utf8PathBuf::from(issue.range.filename.to_owned().as_ref().to_string());
-          let diagnostic =
+        let diagnostics: Vec<Diagnostic> = issues
+          .into_iter()
+          .map(|issue| {
+            let file = Utf8PathBuf::from(issue.range.filename.to_owned().as_ref().to_string());
+            // TODO: miss line number in issue.range
             Diagnostic::warn(SWC_LOADER_IDENTIFIER.to_string(), issue.message.to_string())
-              .with_file(Some(file));
+          })
+          .collect();
 
-          loader_context.emit_diagnostic(diagnostic);
-        });
         if should_abort {
-          return Err(error!(
+          let mut message: String = error!(
             "Failed to generate dts code in {}",
             SWC_LOADER_IDENTIFIER.to_string(),
-          ));
+          )
+          .to_string();
+
+          for diagnostic in diagnostics {
+            loader_context.emit_diagnostic(diagnostic);
+          }
+
+          return Err(error!(message));
+        } else {
+          for diagnostic in diagnostics {
+            loader_context.emit_diagnostic(diagnostic);
+          }
         }
 
         if *emit {
           let module = program.expect_module();
-          let dts_code = to_code_with_comments(Some(&built.comments), &module);
+          // let comments = module.
+          let dts_code = to_code_with_comments(Some(&comments), &module);
           loader_context
             .parse_meta
             .entry("swc-dts-emit-plugin-filename".to_string())
