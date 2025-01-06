@@ -135,13 +135,16 @@ impl JsModule {
   }
 
   #[napi(setter)]
-  pub fn set_user_request(&mut self, val: String) -> napi::Result<()> {
-    let module: &mut dyn Module = self.as_mut()?;
-
-    if let Ok(normal_module) = module.try_as_normal_module_mut() {
-      *normal_module.user_request_mut() = val;
-    }
-    Ok(())
+  pub fn set_user_request(&mut self, val: Either<String, ()>) -> napi::Result<()> {
+    Ok(match val {
+      Either::A(val) => {
+        let module: &mut dyn Module = self.as_mut()?;
+        if let Ok(normal_module) = module.try_as_normal_module_mut() {
+          *normal_module.user_request_mut() = val;
+        }
+      }
+      Either::B(_) => {}
+    })
   }
 
   #[napi(getter)]
