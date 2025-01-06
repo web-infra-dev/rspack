@@ -24,6 +24,7 @@ ignored = [
   "rspack_plugin_mini_css_extract",
   "rspack_binding",
   "rspack_plugin_merge",
+  "rspack",
 ]
 [workspace.dependencies]
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
