@@ -8,7 +8,7 @@ type ChunkGroup = {
   origins: ReadonlyArray<{
     // chunk group 被引入的来源模块信息
     module?: Module;
-    request?: String;
+    request?: string;
   }>;
   isInitial(): boolean; // 是否在页面初始加载
   getFiles(): ReadonlyArray<string>; // 关联的文件列表

@@ -1,26 +1,33 @@
 use indexmap::IndexMap;
+use rspack_core::{incremental::IncrementalPasses, ModuleType};
+use rspack_core::{
+  AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, ByDependency, CacheOptions,
+  ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions, Context, CrossOriginLoading,
+  CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
+  EntryDescription, Environment, ExperimentCacheOptions, Experiments, Filename, FilenameTemplate,
+  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, LibraryName, LibraryNonUmdObject, LibraryOptions, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, OutputOptions, ParserOptions, ParserOptionsMap,
+  PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions,
+  TrustedTypes, WasmLoading, WasmLoadingType,
+};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{
-  get_targets_properties, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  ByDependency, CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions,
-  Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, Environment, ExperimentCacheOptions, Experiments, Filename,
-  FilenameTemplate, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect, OutputOptions,
-  ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
-  RuleSetLogicalConditions, Target, TargetProperties, TrustedTypes, WasmLoading, WasmLoadingType,
-};
-use crate::{incremental::IncrementalPasses, ModuleType};
-
+use super::target::{get_targets_properties, TargetProperties};
+use super::{Devtool, Target};
 macro_rules! d {
   ($o:expr, $v:expr) => {{
     $o.unwrap_or($v)
+  }};
+}
+
+macro_rules! w {
+  ($o:expr, $v:expr) => {{
+    $o.get_or_insert($v)
   }};
 }
 
@@ -28,6 +35,39 @@ macro_rules! f {
   ($o:expr, $v:expr) => {{
     $o.unwrap_or_else($v)
   }};
+}
+
+pub trait Builder {
+  type Item;
+  fn builder() -> Self::Item;
+}
+
+impl Builder for CompilerOptions {
+  type Item = CompilerOptionsBuilder;
+  fn builder() -> Self::Item {
+    CompilerOptionsBuilder::default()
+  }
+}
+
+impl Builder for OutputOptions {
+  type Item = OutputOptionsBuilder;
+  fn builder() -> Self::Item {
+    OutputOptionsBuilder::default()
+  }
+}
+
+impl Builder for ModuleOptions {
+  type Item = ModuleOptionsBuilder;
+  fn builder() -> Self::Item {
+    ModuleOptionsBuilder::default()
+  }
+}
+
+impl Builder for Experiments {
+  type Item = ExperimentsBuilder;
+  fn builder() -> Self::Item {
+    ExperimentsBuilder::default()
+  }
 }
 
 #[derive(Debug, Default)]
@@ -38,16 +78,12 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   cache: Option<CacheOptions>,
   mode: Option<Mode>,
+  devtool: Option<Devtool>,
+  profile: Option<bool>,
   bail: Option<bool>,
   experiments: Option<ExperimentsBuilder>,
   module: Option<ModuleOptionsBuilder>,
   output: Option<OutputOptionsBuilder>,
-}
-
-impl CompilerOptions {
-  pub fn builder() -> CompilerOptionsBuilder {
-    CompilerOptionsBuilder::default()
-  }
 }
 
 impl CompilerOptionsBuilder {
@@ -79,6 +115,11 @@ impl CompilerOptionsBuilder {
     self
   }
 
+  pub fn devtool(&mut self, devtool: Devtool) -> &mut Self {
+    self.devtool = Some(devtool);
+    self
+  }
+
   pub fn mode(&mut self, mode: Mode) -> &mut Self {
     self.mode = Some(mode);
     self
@@ -86,6 +127,11 @@ impl CompilerOptionsBuilder {
 
   pub fn bail(&mut self, bail: bool) -> &mut Self {
     self.bail = Some(bail);
+    self
+  }
+
+  pub fn profile(&mut self, profile: bool) -> &mut Self {
+    self.profile = Some(profile);
     self
   }
 
@@ -115,7 +161,7 @@ impl CompilerOptionsBuilder {
 
   pub fn build(&mut self) -> CompilerOptions {
     let name = self.name.take();
-    let context = self.context.take().unwrap_or_else(|| {
+    let context = f!(self.context.take(), || {
       std::env::current_dir()
         .expect("`current_dir` should be available")
         .assert_utf8()
@@ -124,13 +170,22 @@ impl CompilerOptionsBuilder {
 
     // TODO: support browserlist default target
     let target = f!(self.target.take(), || vec!["web".to_string()]);
-
     let target_properties = get_targets_properties(&target, &context);
+
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);
     let mode = d!(self.mode.take(), Mode::Production);
 
-    let bail = self.bail.unwrap_or(false);
+    // TODO: support entry
+    let _devtool = f!(self.devtool.take(), || {
+      if development {
+        Devtool::Eval
+      } else {
+        Devtool::False
+      }
+    });
+    let profile = d!(self.profile.take(), false);
+    let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
         CacheOptions::Memory
@@ -139,31 +194,39 @@ impl CompilerOptionsBuilder {
       }
     });
 
-    let mut experiments = self.apply_experiments(development, production);
+    let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
+    let mut experiments = experiments_builder.build(development, production);
     // Disable experiments cache if global cache is set to `Disabled`
     if matches!(cache, CacheOptions::Disabled) {
       experiments.cache = ExperimentCacheOptions::Disabled;
     }
 
-    // TODO: support css
-    let css = true;
-    // TODO: support async web assembly
-    let async_web_assembly = false;
-    // TODO: support experiment output module
-    let output_module = Some(false);
+    let async_web_assembly = experiments_builder
+      .async_web_assembly
+      .expect("should apply default value");
+    let css = experiments_builder.css.expect("should apply default value");
+    let future_defaults = experiments_builder
+      .future_defaults
+      .expect("should apply default value");
+    let output_module = experiments_builder
+      .output_module
+      .expect("should apply default value");
 
-    let module = self.apply_module(async_web_assembly, css, Some(&target_properties));
+    let module = f!(self.module.take(), ModuleOptions::builder).build(
+      async_web_assembly,
+      css,
+      &target_properties,
+    );
 
-    // TODO: options
-    let entry = self.entry.clone();
-    let output = self.apply_output(
-      context.clone(),
+    let is_affected_by_browserslist = target.iter().any(|t| t.starts_with("browserslist"));
+    let output = f!(self.output.take(), OutputOptions::builder).build(
+      &context,
       output_module,
       Some(&target_properties),
-      target.iter().any(|t| t.starts_with("browserslist")),
+      is_affected_by_browserslist,
       development,
-      &entry,
-      false,
+      &self.entry,
+      future_defaults,
     );
 
     CompilerOptions {
@@ -179,61 +242,12 @@ impl CompilerOptionsBuilder {
       experiments,
       node: Default::default(),
       optimization: Default::default(),
-      profile: Default::default(),
+      profile,
       amd: None,
       bail,
       __references: Default::default(),
     }
   }
-
-  fn apply_module(
-    &mut self,
-    async_web_assembly: bool,
-    css: bool,
-    target_properties: Option<&TargetProperties>,
-  ) -> ModuleOptions {
-    self
-      .module
-      .take()
-      .unwrap_or_else(ModuleOptions::builder)
-      .build(async_web_assembly, css, target_properties)
-  }
-
-  #[allow(clippy::too_many_arguments)]
-  fn apply_output(
-    &mut self,
-    context: Context,
-    output_module: Option<bool>,
-    target_properties: Option<&TargetProperties>,
-    is_affected_by_browserslist: bool,
-    development: bool,
-    entry: &IndexMap<String, EntryDescription>,
-    future_defaults: bool,
-  ) -> OutputOptions {
-    self
-      .output
-      .take()
-      .unwrap_or_else(OutputOptions::builder)
-      .build(
-        context.clone(),
-        output_module,
-        target_properties,
-        is_affected_by_browserslist,
-        development,
-        entry,
-        future_defaults,
-      )
-  }
-
-  fn apply_experiments(&mut self, development: bool, production: bool) -> Experiments {
-    self
-      .experiments
-      .take()
-      .unwrap_or_else(Experiments::builder)
-      .build(development, production)
-  }
-
-  // fn apply_output()
 }
 
 #[derive(Debug, Default)]
@@ -242,12 +256,6 @@ pub struct ModuleOptionsBuilder {
   parser: Option<ParserOptionsMap>,
   generator: Option<GeneratorOptionsMap>,
   no_parse: Option<ModuleNoParseRules>,
-}
-
-impl ModuleOptions {
-  pub fn builder() -> ModuleOptionsBuilder {
-    ModuleOptionsBuilder::default()
-  }
 }
 
 impl ModuleOptionsBuilder {
@@ -286,7 +294,7 @@ impl ModuleOptionsBuilder {
     &mut self,
     async_web_assembly: bool,
     css: bool,
-    target_properties: Option<&TargetProperties>,
+    target_properties: &TargetProperties,
   ) -> ModuleOptions {
     let parser = self.parser.get_or_insert(ParserOptionsMap::default());
 
@@ -344,7 +352,7 @@ impl ModuleOptionsBuilder {
       parser.insert("css/module".to_string(), css_module_parser_options);
 
       // CSS generator options
-      let exports_only = target_properties.map_or(true, |t| !t.document());
+      let exports_only = !target_properties.document();
 
       generator.insert(
         "css".to_string(),
@@ -926,18 +934,17 @@ impl OutputOptionsBuilder {
     self
   }
 
-  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
   pub fn build(
     &mut self,
-    context: Context,
-    output_module: Option<bool>,
+    context: &Context,
+    output_module: bool,
     target_properties: Option<&TargetProperties>,
     is_affected_by_browserslist: bool,
     development: bool,
     _entry: &IndexMap<String, EntryDescription>,
     _future_defaults: bool,
   ) -> OutputOptions {
-    let output_module = output_module.unwrap_or(false);
     let tp = target_properties;
 
     let path = f!(self.path.take(), || { context.as_path().join("dist") });
@@ -1089,13 +1096,13 @@ impl OutputOptionsBuilder {
     });
 
     let chunk_loading_global = f!(self.chunk_loading_global.take(), || {
-      format!("webpackChunk{}", crate::utils::to_identifier(&unique_name))
+      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name))
     });
 
     let hot_update_global = f!(self.hot_update_global.take(), || {
       format!(
         "webpackHotUpdate{}",
-        crate::utils::to_identifier(&unique_name)
+        rspack_core::to_identifier(&unique_name)
       )
     });
 
@@ -1308,12 +1315,6 @@ impl OutputOptionsBuilder {
   }
 }
 
-impl OutputOptions {
-  pub fn builder() -> OutputOptionsBuilder {
-    OutputOptionsBuilder::default()
-  }
-}
-
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
   layers: Option<bool>,
@@ -1321,15 +1322,14 @@ pub struct ExperimentsBuilder {
   top_level_await: Option<bool>,
   rspack_future: Option<RspackFuture>,
   cache: Option<ExperimentCacheOptions>,
+
+  // Builder specific
+  output_module: Option<bool>,
+  future_defaults: Option<bool>,
   css: Option<bool>,
   async_web_assembly: Option<bool>,
 }
 
-impl Experiments {
-  pub fn builder() -> ExperimentsBuilder {
-    ExperimentsBuilder::default()
-  }
-}
 impl ExperimentsBuilder {
   pub fn layers(&mut self, layers: bool) -> &mut Self {
     self.layers = Some(layers);
@@ -1348,6 +1348,11 @@ impl ExperimentsBuilder {
 
   pub fn cache(&mut self, cache: ExperimentCacheOptions) -> &mut Self {
     self.cache = Some(cache);
+    self
+  }
+
+  pub fn future_defaults(&mut self, future_defaults: bool) -> &mut Self {
+    self.future_defaults = Some(future_defaults);
     self
   }
 
@@ -1371,7 +1376,6 @@ impl ExperimentsBuilder {
       }
     });
     let top_level_await = d!(self.top_level_await, true);
-    let rspack_future = d!(self.rspack_future.take(), RspackFuture {});
     let cache = f!(self.cache.take(), || {
       if development {
         ExperimentCacheOptions::Memory
@@ -1379,6 +1383,13 @@ impl ExperimentsBuilder {
         ExperimentCacheOptions::Disabled
       }
     });
+    let rspack_future = d!(self.rspack_future.take(), RspackFuture {});
+
+    // Builder specific
+    let future_defaults = w!(self.future_defaults, false);
+    w!(self.css, *future_defaults);
+    w!(self.async_web_assembly, *future_defaults);
+    w!(self.output_module, false);
 
     Experiments {
       layers,
