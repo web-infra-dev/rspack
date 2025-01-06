@@ -472,6 +472,10 @@ impl DependenciesBlock for ConcatenatedModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ConcatenatedModule {
+  fn constructor_name(&self) -> &'static str {
+    "ConcatenatedModule"
+  }
+
   fn module_type(&self) -> &ModuleType {
     // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L688
     &ModuleType::JsEsm

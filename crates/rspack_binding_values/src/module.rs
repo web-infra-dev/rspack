@@ -69,6 +69,12 @@ impl JsModule {
 #[napi]
 impl JsModule {
   #[napi(getter)]
+  pub fn constructor_name(&mut self) -> napi::Result<String> {
+    let module = self.as_ref()?;
+    Ok(module.constructor_name().to_string())
+  }
+
+  #[napi(getter)]
   pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
     let module = self.as_ref()?;
 
