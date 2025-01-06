@@ -1,4 +1,4 @@
-use super::Context;
+use rspack_core::Context;
 
 pub type Target = Vec<String>;
 

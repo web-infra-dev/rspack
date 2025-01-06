@@ -24,6 +24,7 @@ ignored = [
   "rspack_plugin_mini_css_extract",
   "rspack_binding",
   "rspack_plugin_merge",
+  "rspack",
 ]
 [workspace.dependencies]
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
@@ -106,6 +107,7 @@ rspack_dojang = { version = "0.1.9" }
 
 
 # all rspack workspace dependencies
+rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }

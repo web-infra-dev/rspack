@@ -1,23 +1,24 @@
 use indexmap::IndexMap;
+use rspack_core::{incremental::IncrementalPasses, ModuleType};
+use rspack_core::{
+  AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, ByDependency, CacheOptions,
+  ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions, Context, CrossOriginLoading,
+  CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
+  EntryDescription, Environment, ExperimentCacheOptions, Experiments, Filename, FilenameTemplate,
+  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, LibraryName, LibraryNonUmdObject, LibraryOptions, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, OutputOptions, ParserOptions, ParserOptionsMap,
+  PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions,
+  TrustedTypes, WasmLoading, WasmLoadingType,
+};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{
-  get_targets_properties, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  ByDependency, CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions,
-  Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  Devtool, DynamicImportMode, EntryDescription, Environment, ExperimentCacheOptions, Experiments,
-  Filename, FilenameTemplate, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect, OutputOptions,
-  ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
-  RuleSetLogicalConditions, Target, TargetProperties, TrustedTypes, WasmLoading, WasmLoadingType,
-};
-use crate::{incremental::IncrementalPasses, ModuleType};
-
+use super::target::{get_targets_properties, TargetProperties};
+use super::{Devtool, Target};
 macro_rules! d {
   ($o:expr, $v:expr) => {{
     $o.unwrap_or($v)
@@ -36,6 +37,39 @@ macro_rules! f {
   }};
 }
 
+pub trait Builder {
+  type Item;
+  fn builder() -> Self::Item;
+}
+
+impl Builder for CompilerOptions {
+  type Item = CompilerOptionsBuilder;
+  fn builder() -> Self::Item {
+    CompilerOptionsBuilder::default()
+  }
+}
+
+impl Builder for OutputOptions {
+  type Item = OutputOptionsBuilder;
+  fn builder() -> Self::Item {
+    OutputOptionsBuilder::default()
+  }
+}
+
+impl Builder for ModuleOptions {
+  type Item = ModuleOptionsBuilder;
+  fn builder() -> Self::Item {
+    ModuleOptionsBuilder::default()
+  }
+}
+
+impl Builder for Experiments {
+  type Item = ExperimentsBuilder;
+  fn builder() -> Self::Item {
+    ExperimentsBuilder::default()
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
   name: Option<String>,
@@ -50,12 +84,6 @@ pub struct CompilerOptionsBuilder {
   experiments: Option<ExperimentsBuilder>,
   module: Option<ModuleOptionsBuilder>,
   output: Option<OutputOptionsBuilder>,
-}
-
-impl CompilerOptions {
-  pub fn builder() -> CompilerOptionsBuilder {
-    CompilerOptionsBuilder::default()
-  }
 }
 
 impl CompilerOptionsBuilder {
@@ -228,12 +256,6 @@ pub struct ModuleOptionsBuilder {
   parser: Option<ParserOptionsMap>,
   generator: Option<GeneratorOptionsMap>,
   no_parse: Option<ModuleNoParseRules>,
-}
-
-impl ModuleOptions {
-  pub fn builder() -> ModuleOptionsBuilder {
-    ModuleOptionsBuilder::default()
-  }
 }
 
 impl ModuleOptionsBuilder {
@@ -1074,13 +1096,13 @@ impl OutputOptionsBuilder {
     });
 
     let chunk_loading_global = f!(self.chunk_loading_global.take(), || {
-      format!("webpackChunk{}", crate::utils::to_identifier(&unique_name))
+      format!("webpackChunk{}", rspack_core::to_identifier(&unique_name))
     });
 
     let hot_update_global = f!(self.hot_update_global.take(), || {
       format!(
         "webpackHotUpdate{}",
-        crate::utils::to_identifier(&unique_name)
+        rspack_core::to_identifier(&unique_name)
       )
     });
 
@@ -1293,12 +1315,6 @@ impl OutputOptionsBuilder {
   }
 }
 
-impl OutputOptions {
-  pub fn builder() -> OutputOptionsBuilder {
-    OutputOptionsBuilder::default()
-  }
-}
-
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
   layers: Option<bool>,
@@ -1314,11 +1330,6 @@ pub struct ExperimentsBuilder {
   async_web_assembly: Option<bool>,
 }
 
-impl Experiments {
-  pub fn builder() -> ExperimentsBuilder {
-    ExperimentsBuilder::default()
-  }
-}
 impl ExperimentsBuilder {
   pub fn layers(&mut self, layers: bool) -> &mut Self {
     self.layers = Some(layers);
