@@ -3686,6 +3686,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack"
+version = "0.2.0"
+dependencies = [
+ "bitflags 2.6.0",
+ "indexmap 2.7.0",
+ "regex",
+ "rspack_core",
+ "rspack_hash",
+ "rspack_paths",
+ "rspack_regex",
+ "rustc-hash 2.1.0",
+ "serde_json",
+]
+
+[[package]]
 name = "rspack_allocator"
 version = "0.2.0"
 dependencies = [

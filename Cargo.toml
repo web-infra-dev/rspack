@@ -106,6 +106,7 @@ rspack_dojang = { version = "0.1.9" }
 
 
 # all rspack workspace dependencies
+rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
