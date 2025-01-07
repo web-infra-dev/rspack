@@ -1,2 +1,2 @@
-// TODO: Should create a issue for this test
-module.exports = () => { return false }
+// https://github.com/web-infra-dev/rspack/issues/8785
+module.exports = () => { return true }

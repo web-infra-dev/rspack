@@ -2748,6 +2748,7 @@ type JsonObject_2 = {
 // @public (undocumented)
 export type JsonParserOptions = {
     exportsDepth?: number;
+    parse?: (source: string) => string;
 };
 
 // @public (undocumented)

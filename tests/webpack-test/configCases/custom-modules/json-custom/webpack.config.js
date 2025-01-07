@@ -12,7 +12,7 @@ module.exports = [
 					parser: {
 						parse(input) {
 							expect(arguments.length).toBe(1);
-							return toml.parse(input);
+							return JSON.stringify(toml.parse(input));
 						}
 					}
 				}

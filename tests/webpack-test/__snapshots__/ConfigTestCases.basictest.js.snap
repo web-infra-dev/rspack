@@ -415,3 +415,16 @@ Object {
   "placeholder": "-_6d72b53b84605386-placeholder-gray-700",
 }
 `;
+
+exports[`ConfigTestCases custom-modules json-custom exported tests should transform toml to json 1`] = `
+Object {
+  "owner": Object {
+    "bio": "GitHub Cofounder & CEO
+Likes tater tots and beer.",
+    "dob": "1979-05-27T07:32:00.000Z",
+    "name": "Tom Preston-Werner",
+    "organization": "GitHub",
+  },
+  "title": "TOML Example",
+}
+`;

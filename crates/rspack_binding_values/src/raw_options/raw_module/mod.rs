@@ -15,7 +15,7 @@ use rspack_core::{
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions,
   ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
   ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParserOptions, ParserOptionsMap,
+  ParseOption, ParserOptions, ParserOptionsMap,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -188,7 +188,7 @@ pub struct RawModuleRule {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawParserOptions {
   #[napi(
     ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
@@ -441,15 +441,24 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 }
 
 #[derive(Debug, Default)]
-#[napi(object)]
+#[napi(object, object_to_js = false)]
 pub struct RawJsonParserOptions {
   pub exports_depth: Option<u32>,
+  #[napi(ts_type = "(source: string) => string")]
+  pub parse: Option<ThreadsafeFunction<String, String>>,
 }
 
 impl From<RawJsonParserOptions> for JsonParserOptions {
   fn from(value: RawJsonParserOptions) -> Self {
+    use pollster::block_on;
+    let parse = match value.parse {
+      Some(f) => ParseOption::Func(Arc::new(move |s: String| block_on(f.call(s)))),
+      _ => ParseOption::None,
+    };
+
     Self {
       exports_depth: value.exports_depth,
+      parse,
     }
   }
 }

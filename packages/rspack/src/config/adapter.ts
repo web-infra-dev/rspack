@@ -581,7 +581,8 @@ function getRawJsonParserOptions(
 	parser: JsonParserOptions
 ): RawJsonParserOptions {
 	return {
-		exportsDepth: parser.exportsDepth
+		exportsDepth: parser.exportsDepth,
+		parse: parser.parse
 	};
 }
 

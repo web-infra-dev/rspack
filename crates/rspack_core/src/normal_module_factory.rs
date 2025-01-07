@@ -738,6 +738,7 @@ impl NormalModuleFactory {
           | ParserOptions::JavascriptDynamic(b)
           | ParserOptions::JavascriptEsm(b),
         ) => ParserOptions::Javascript(a.merge_from(b)),
+        (ParserOptions::Json(a), ParserOptions::Json(b)) => ParserOptions::Json(a.merge_from(b)),
         (global, _) => global,
       },
     );

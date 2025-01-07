@@ -306,10 +306,43 @@ pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
 }
 
+pub type JsonParseFn = Arc<dyn Fn(String) -> Result<String> + Sync + Send>;
+
+#[cacheable]
+pub enum ParseOption {
+  Func(#[cacheable(with=Unsupported)] JsonParseFn),
+  None,
+}
+
+impl Debug for ParseOption {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Func(_) => write!(f, "ParseOption::Func(...)"),
+      _ => write!(f, "ParseOption::None"),
+    }
+  }
+}
+
+impl Clone for ParseOption {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Func(f) => Self::Func(f.clone()),
+      Self::None => Self::None,
+    }
+  }
+}
+
+impl MergeFrom for ParseOption {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct JsonParserOptions {
   pub exports_depth: Option<u32>,
+  pub parse: ParseOption,
 }
 
 #[derive(Debug, Default)]
