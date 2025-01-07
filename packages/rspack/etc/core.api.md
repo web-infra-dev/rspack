@@ -1257,6 +1257,8 @@ export interface CssExtractRspackPluginOptions {
     // (undocumented)
     chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
     // (undocumented)
+    enforceRelative?: boolean;
+    // (undocumented)
     filename?: RawCssExtractPluginOption["filename"];
     // (undocumented)
     ignoreOrder?: boolean;

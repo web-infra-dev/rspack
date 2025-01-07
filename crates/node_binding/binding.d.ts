@@ -1297,6 +1297,7 @@ export interface RawCssExtractPluginOption {
   linkType?: string
   runtime: boolean
   pathinfo: boolean
+  enforceRelative: boolean
 }
 
 export interface RawCssGeneratorOptions {

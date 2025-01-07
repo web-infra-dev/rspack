@@ -79,6 +79,7 @@ pub struct CssExtractOptions {
   pub link_type: Option<String>,
   pub runtime: bool,
   pub pathinfo: bool,
+  pub enforce_relative: bool,
 }
 
 // impl PartialEq for CssExtractOptions {
@@ -429,7 +430,12 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(RawStringSource::from(format!("@layer {} {{\n", layer)));
         }
 
-        let undo_path = get_undo_path(filename, compilation.options.output.path.as_str(), false);
+        // different from webpack, add `enforce_relative` to preserve './'
+        let undo_path = get_undo_path(
+          filename,
+          compilation.options.output.path.as_str(),
+          self.options.enforce_relative,
+        );
 
         let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
         let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
