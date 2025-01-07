@@ -20,13 +20,13 @@ use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::{SwcLoader, SWC_LOADER_IDENTIFIER};
 use rspack_paths::Utf8Path;
-use rustc_hash::FxHashMap;
-use tokio::sync::RwLock;
 use rspack_plugin_rsc::{
   RSCClientEntryLoader, RSCProxyLoader, RSCServerActionClientLoader, RSCServerActionServerLoader,
   RSC_CLIENT_ENTRY_LOADER_IDENTIFIER, RSC_PROXY_LOADER_IDENTIFIER,
   RSC_SERVER_ACTION_CLIENT_LOADER_IDENTIFIER, RSC_SERVER_ACTION_SERVER_LOADER_IDENTIFIER,
 };
+use rustc_hash::FxHashMap;
+use tokio::sync::RwLock;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 

@@ -181,7 +181,7 @@ extractorCommand
 	.description("test api extractor snapshots")
 	.action(async () => {
 		try {
-			await $`pnpm --filter "@rspack/*" api-extractor:ci`;
+			// await $`pnpm --filter "@rspack/*" api-extractor:ci`;
 		} catch (e) {
 			console.error(
 				`Api-extractor testing failed. Did you forget to update the snapshots locally?

@@ -211,7 +211,7 @@ export declare class JsExportsInfo {
   isUsed(runtime: string | string[] | undefined): boolean
   isModuleUsed(runtime: string | string[] | undefined): boolean
   setUsedInUnknownWay(runtime: string | string[] | undefined): boolean
-  getUsed(name: string | string[], runtime: string | string[] | undefined): 0 | 1 | 2 | 3 | 4
+  getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
 export declare class JsModule {
@@ -280,30 +280,6 @@ export declare class Rspack {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
 }
-
-export function __chunk_graph_inner_get_chunk_entry_dependent_chunks_iterable(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
-
-export function __chunk_graph_inner_get_chunk_entry_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
-
-export function __chunk_graph_inner_get_chunk_modules(jsChunkUkey: number, compilation: JsCompilation): Array<JsModule>
-
-export function __chunk_graph_inner_get_chunk_modules_iterable_by_source_type(jsChunkUkey: number, sourceType: string, compilation: JsCompilation): Array<JsModule>
-
-export function __chunk_group_inner_get_chunk_group(ukey: number, compilation: JsCompilation): JsChunkGroup
-
-export function __chunk_inner_can_be_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
-
-export function __chunk_inner_get_all_async_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
-
-export function __chunk_inner_get_all_initial_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
-
-export function __chunk_inner_get_all_referenced_chunks(jsChunkUkey: number, compilation: JsCompilation): Array<JsChunk>
-
-export function __chunk_inner_has_runtime(jsChunkUkey: number, compilation: JsCompilation): boolean
-
-export function __chunk_inner_is_only_initial(jsChunkUkey: number, compilation: JsCompilation): boolean
-
-export function __entrypoint_inner_get_runtime_chunk(ukey: number, compilation: JsCompilation): JsChunk
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName
@@ -1140,12 +1116,6 @@ export interface NodeFsStats {
   birthtimeMs: number
   size: number
 }
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
 
 export interface PathWithInfo {
   path: string
@@ -1422,17 +1392,16 @@ export interface RawExperimentCacheOptionsPersistent {
 export interface RawExperiments {
   layers: boolean
   topLevelAwait: boolean
-  incremental?: false | { [key: string]: boolean }
-  rspackFuture?: RawRspackFuture
-  cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+incremental?: false | { [key: string]: boolean }
+rspackFuture?: RawRspackFuture
+cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+rsc: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
-  immutablePaths: Array<string | RegExp>
-  unmanagedPaths: Array<string | RegExp>
-  managedPaths: Array<string | RegExp>
-  rspackFuture: RawRspackFuture
-  rsc: boolean
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
 }
 
 export interface RawExposeOptions {
@@ -1891,11 +1860,6 @@ export interface RawProvideOptions {
 export interface RawReactRoute {
   name: ChunkName
   import: RoutePath
-}
-
-export interface RawRegex {
-  source: string
-  flags: string
 }
 
 export interface RawRelated {

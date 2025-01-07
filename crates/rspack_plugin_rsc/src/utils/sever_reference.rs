@@ -4,7 +4,7 @@ use std::time::Instant;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
-use rspack_core::{AssetInfo, Compilation, CompilationAsset, ExportInfoProvided};
+use rspack_core::{AssetInfo, ChunkGraph, Compilation, CompilationAsset, ExportInfoProvided};
 use rspack_error::Result;
 use serde_json::to_string;
 
@@ -23,7 +23,7 @@ impl RSCServerReferenceManifest {
     &self,
     id: &str,
     name: &str,
-    chunks: &Vec<&String>,
+    chunks: &Vec<String>,
     ssr_module_mapping: &mut HashMap<String, HashMap<String, ServerRef>>,
   ) {
     let module_mapping = ssr_module_mapping
@@ -34,7 +34,7 @@ impl RSCServerReferenceManifest {
       ServerRef {
         id: id.to_string(),
         name: name.to_string(),
-        chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
+        chunks: chunks.clone(),
       },
     );
   }
@@ -95,14 +95,19 @@ impl RSCServerReferenceManifest {
         .into_iter()
         .filter_map(|chunk| {
           let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-          let name_or_id = chunk.id.as_ref().or(chunk.name.as_ref());
-          name_or_id.clone()
+          let name_or_id = chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|f| f.to_string())
+            .or(chunk.name().map(|f| f.to_string()));
+          name_or_id
         })
         .collect::<Vec<_>>();
       for chunk in &chunk_group.chunks {
         let chunk_modules = compilation.chunk_graph.get_chunk_modules(chunk, &mg);
         for module in chunk_modules {
-          let module_id = compilation.chunk_graph.get_module_id(module.identifier());
+          let module_id =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+              .map(|s| s.as_str());
           let resolved_data = module
             .as_normal_module()
             .and_then(|m| Some(m.resource_resolved_data()));
@@ -160,20 +165,20 @@ impl RSCServerReferenceManifest {
             }
             if is_client_components {
               self.add_server_ref(
-                module_id,
+                &module_id,
                 "*",
                 &chunks,
                 &mut server_manifest.ssr_module_mapping,
               );
               self.add_server_ref(
-                module_id,
+                &module_id,
                 "",
                 &chunks,
                 &mut server_manifest.ssr_module_mapping,
               );
               for name in names.iter() {
                 self.add_server_ref(
-                  module_id,
+                  &module_id,
                   name.as_str(),
                   &chunks,
                   &mut server_manifest.ssr_module_mapping,
@@ -210,7 +215,7 @@ impl RSCServerReferenceManifest {
         let asset = CompilationAsset {
           source: Some(RawSource::from(content.as_str()).boxed()),
           info: AssetInfo {
-            immutable: false,
+            immutable: Some(false),
             version: generate_asset_version(&content),
             ..AssetInfo::default()
           },

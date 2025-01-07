@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  ApplyContext, AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets,
+  ApplyContext, AssetInfo, BoxDependency, Compilation, CompilationAsset, CompilationProcessAssets,
   CompilerFinishMake, CompilerOptions, EntryDependency, EntryOptions, Module, ModuleType, Plugin,
   PluginContext,
 };
@@ -46,16 +46,14 @@ impl RSCClientEntryRspackPlugin {
       "rsc-server-action-entry-loader.js?from={}&name={}",
       "server-entry", "server-entry"
     );
-    let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
-    compilation
-      .add_include(
-        entry,
-        EntryOptions {
-          name: Some(String::from("server-entry")),
-          ..Default::default()
-        },
-      )
-      .await?;
+    let args = vec![(
+      Box::new(EntryDependency::new(request, context.clone(), None, false)) as BoxDependency,
+      EntryOptions {
+        name: Some(String::from("server-entry")),
+        ..Default::default()
+      },
+    )];
+    compilation.add_include(args).await?;
     Ok(())
   }
   fn insert_client_imports(
@@ -298,7 +296,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           CompilationAsset {
             source: Some(RawSource::from(content.as_str()).boxed()),
             info: AssetInfo {
-              immutable: false,
+              immutable: Some(false),
               version: generate_asset_version(&content),
               ..AssetInfo::default()
             },
@@ -320,7 +318,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           CompilationAsset {
             source: Some(RawSource::from(content.as_str()).boxed()),
             info: AssetInfo {
-              immutable: false,
+              immutable: Some(false),
               version: generate_asset_version(&content),
               ..AssetInfo::default()
             },
@@ -346,11 +344,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[async_trait]
 impl Plugin for RSCClientEntryRspackPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx
       .context
       .compiler_hooks

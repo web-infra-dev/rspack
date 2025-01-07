@@ -1,11 +1,11 @@
 import path from "node:path";
 import { BuiltinPluginName } from "@rspack/binding";
-import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
+import { create } from "./base";
 
 import type { Compiler } from "../Compiler";
-import type { RuleSetCondition } from "../config/zod";
 import type { RspackBuiltinPlugin } from "./base";
-import { create } from "./base";
+import type { RuleSetRule } from "../config";
+import type { RawRscClientReferenceManifestRspackPluginOptions } from "@rspack/binding";
 
 const RawRSCClientReferenceManifestRspackPlugin = create(
 	BuiltinPluginName.RSCClientReferenceManifestRspackPlugin,
@@ -18,7 +18,7 @@ interface ResolvedOptions {
 }
 
 interface Options extends RawRscClientReferenceManifestRspackPluginOptions {
-	exclude?: RuleSetCondition;
+	exclude?: RuleSetRule["exclude"];
 	serverProxy?: string;
 }
 

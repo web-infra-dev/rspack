@@ -145,9 +145,11 @@ impl SwcLoader {
         {
           let mut export_visitor: ImportExportVisitor = ImportExportVisitor::new();
           program.visit_with(&mut export_visitor);
-          loader_context.additional_data.insert(RSCAdditionalData {
-            directives: rsc_visitor.directives,
-            exports: export_visitor.exports,
+          loader_context.take_additional_data().and_then(|mut f| {
+            f.insert(RSCAdditionalData {
+              directives: rsc_visitor.directives,
+              exports: export_visitor.exports,
+            })
           });
         }
       });

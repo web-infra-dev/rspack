@@ -3,11 +3,11 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
-use rspack_core::EntryOptions;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, CompilationProcessAssets, CompilerMake,
+  AssetInfo, ChunkGraph, Compilation, CompilationAsset, CompilationProcessAssets, CompilerMake,
   EntryDependency, ExportInfoProvided, Plugin, PluginContext,
 };
+use rspack_core::{BoxDependency, EntryOptions};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::path::relative;
@@ -45,30 +45,28 @@ impl RSCClientReferenceManifestRspackPlugin {
       "client-entry", "server-entry"
     );
     let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
-    compilation
-      .add_include(
-        entry,
-        EntryOptions {
-          name: Some(String::from("client-entry")),
-          ..Default::default()
-        },
-      )
-      .await?;
+    let args = vec![(
+      entry as BoxDependency,
+      EntryOptions {
+        name: Some(String::from("client-entry")),
+        ..Default::default()
+      },
+    )];
+    compilation.add_include(args).await?;
     for ReactRoute { name, .. } in self.options.routes.clone() {
       let request = format!(
         "rsc-client-entry-loader.js?from={}&name={}",
         "route-entry", name
       );
       let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
-      compilation
-        .add_include(
-          entry,
-          EntryOptions {
-            name: Some(String::from("client-entry")),
-            ..Default::default()
-          },
-        )
-        .await?;
+      let args = vec![(
+        entry as BoxDependency,
+        EntryOptions {
+          name: Some(String::from("client-entry")),
+          ..Default::default()
+        },
+      )];
+      compilation.add_include(args).await?;
     }
     Ok(())
   }
@@ -139,7 +137,7 @@ impl RSCClientReferenceManifest {
     filepath: &str,
     id: &str,
     name: &str,
-    chunks: &Vec<&String>,
+    chunks: &Vec<String>,
     client_modules: &mut HashMap<String, ClientRef>,
   ) {
     let key = self.get_client_ref_module_key(filepath, name);
@@ -148,7 +146,7 @@ impl RSCClientReferenceManifest {
       ClientRef {
         id: id.to_string(),
         name: name.to_string(),
-        chunks: chunks.iter().map(|&chunk| chunk.to_string()).collect(),
+        chunks: chunks.clone(),
       },
     );
   }
@@ -167,8 +165,11 @@ impl RSCClientReferenceManifest {
         .into_iter()
         .filter_map(|chunk| {
           let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
-          let name_or_id = chunk.id.as_ref().or(chunk.name.as_ref());
-          name_or_id.clone()
+          let name_or_id = chunk
+            .id(&compilation.chunk_ids_artifact)
+            .map(|f| f.to_string())
+            .or(chunk.name().map(|f| f.to_string()));
+          name_or_id
         })
         .collect::<Vec<_>>();
       for chunk in &chunk_group.chunks {
@@ -177,7 +178,9 @@ impl RSCClientReferenceManifest {
           let request = module
             .as_normal_module()
             .and_then(|f| Some(f.user_request()));
-          let module_id = compilation.chunk_graph.get_module_id(module.identifier());
+          let module_id =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+              .map(|s| s.to_string());
           // FIXME: module maybe not a normal module, e.g. concatedmodule, not contain user_request
           // use name_for_condition as fallback
           // should be care user_request has resource query but name_for_condition not contain resource_query
@@ -215,27 +218,27 @@ impl RSCClientReferenceManifest {
             let ssr_module_id = self.normalize_module_id(&ssr_module_path);
             self.add_client_ref(
               &resource,
-              module_id,
+              &module_id,
               "*",
               &chunks,
               &mut client_manifest.client_modules,
             );
             self.add_client_ref(
               &resource,
-              module_id,
+              &module_id,
               "",
               &chunks,
               &mut client_manifest.client_modules,
             );
             self.add_server_ref(
-              module_id,
+              &module_id,
               ssr_module_id.as_str(),
               "*",
               &shared_server_manifest.ssr_module_mapping,
               &mut server_manifest.ssr_module_mapping,
             );
             self.add_server_ref(
-              module_id,
+              &module_id,
               ssr_module_id.as_str(),
               "",
               &shared_server_manifest.ssr_module_mapping,
@@ -245,13 +248,13 @@ impl RSCClientReferenceManifest {
               if let Some(name) = name {
                 self.add_client_ref(
                   &resource,
-                  module_id,
+                  &module_id,
                   name.as_str(),
                   &chunks,
                   &mut client_manifest.client_modules,
                 );
                 self.add_server_ref(
-                  module_id,
+                  &module_id,
                   ssr_module_id.as_str(),
                   name.as_str(),
                   &shared_server_manifest.ssr_module_mapping,
@@ -273,7 +276,7 @@ impl RSCClientReferenceManifest {
           CompilationAsset {
             source: Some(RawSource::from(content.as_str()).boxed()),
             info: AssetInfo {
-              immutable: false,
+              immutable: Some(false),
               version: generate_asset_version(&content),
               ..AssetInfo::default()
             },
@@ -295,7 +298,7 @@ impl Plugin for RSCClientReferenceManifestRspackPlugin {
   fn apply(
     &self,
     ctx: PluginContext<&mut rspack_core::ApplyContext>,
-    _options: &mut rspack_core::CompilerOptions,
+    _options: &rspack_core::CompilerOptions,
   ) -> Result<()> {
     ctx.context.compiler_hooks.make.tap(make::new(self));
     ctx

@@ -4095,8 +4095,8 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
- "rspack_swc_plugin_import",
  "rspack_plugin_rsc",
+ "rspack_swc_plugin_import",
  "rspack_util",
  "serde",
  "serde_json",
@@ -4694,20 +4694,21 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsc"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "async-trait",
- "bitflags 2.5.0",
- "dashmap 5.5.3",
+ "bitflags 2.6.0",
+ "dashmap 6.1.0",
  "futures",
- "indexmap 2.2.6",
- "itertools 0.13.0",
+ "indexmap 2.7.0",
+ "itertools 0.14.0",
  "linked_hash_set",
  "num-bigint",
  "once_cell",
  "rayon",
  "regex",
  "rspack_ast",
+ "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
@@ -4716,7 +4717,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_regex",
  "rspack_util",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "sugar_path",

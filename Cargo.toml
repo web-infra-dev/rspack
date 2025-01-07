@@ -170,6 +170,7 @@ rspack_plugin_progress                 = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rspack_plugin_real_content_hash" }
 rspack_plugin_remove_duplicate_modules = { version = "0.2.0", path = "crates/rspack_plugin_remove_duplicate_modules" }
 rspack_plugin_remove_empty_chunks      = { version = "0.2.0", path = "crates/rspack_plugin_remove_empty_chunks" }
+rspack_plugin_rsc                      = { version = "0.2.0", path = "crates/rspack_plugin_rsc" }
 rspack_plugin_runtime                  = { version = "0.2.0", path = "crates/rspack_plugin_runtime" }
 rspack_plugin_runtime_chunk            = { version = "0.2.0", path = "crates/rspack_plugin_runtime_chunk" }
 rspack_plugin_schemes                  = { version = "0.2.0", path = "crates/rspack_plugin_schemes" }

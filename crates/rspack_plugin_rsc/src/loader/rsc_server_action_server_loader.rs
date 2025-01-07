@@ -5,6 +5,7 @@ use std::{
 
 use indexmap::IndexSet;
 use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::RunnerContext;
 use rspack_error::Result;
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -17,12 +18,14 @@ use crate::utils::{
   shared_data::{SHARED_DATA, SHARED_SERVER_IMPORTS},
 };
 
+#[cacheable]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RSCServerActionServerLoaderOptions {
   root: String,
 }
 
+#[cacheable]
 #[derive(Debug)]
 pub struct RSCServerActionServerLoader {
   identifier: Identifier,
@@ -109,14 +112,17 @@ impl RSCServerActionServerLoader {
 pub const RSC_SERVER_ACTION_SERVER_LOADER_IDENTIFIER: &str =
   "builtin:rsc-server-action-server-loader";
 
+#[cacheable_dyn]
 #[async_trait::async_trait]
 impl Loader<RunnerContext> for RSCServerActionServerLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    let content = std::mem::take(&mut loader_context.content).expect("content should be available");
+    let Some(content) = loader_context.take_content() else {
+      return Ok(());
+    };
+    let mut source = content.try_into_string()?;
     let resource_path = loader_context
       .resource_path()
       .and_then(|f| Some(f.as_str()));
-    let mut source = content.try_into_string()?;
     let query = loader_context.resource_query();
 
     if self.is_match(resource_path) {
@@ -145,7 +151,7 @@ impl Loader<RunnerContext> for RSCServerActionServerLoader {
       );
     }
 
-    loader_context.content = Some(source.into());
+    loader_context.finish_with(source);
     Ok(())
   }
 }

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  ApplyContext, Compilation, CompilerMake, CompilerOptions, EntryDependency, EntryOptions, Plugin,
-  PluginContext,
+  ApplyContext, BoxDependency, Compilation, CompilerMake, CompilerOptions, EntryDependency,
+  EntryOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -27,15 +27,14 @@ impl RSCProxyRspackPlugin {
       "server-entry", "server-entry"
     );
     let entry = Box::new(EntryDependency::new(request, context.clone(), None, false));
-    compilation
-      .add_include(
-        entry,
-        EntryOptions {
-          name: Some(String::from("server-entry")),
-          ..Default::default()
-        },
-      )
-      .await?;
+    let args = vec![(
+      entry as BoxDependency,
+      EntryOptions {
+        name: Some(String::from("server-entry")),
+        ..Default::default()
+      },
+    )];
+    compilation.add_include(args).await?;
     Ok(())
   }
 }
@@ -48,11 +47,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[async_trait]
 impl Plugin for RSCProxyRspackPlugin {
-  fn apply(
-    &self,
-    ctx: PluginContext<&mut ApplyContext>,
-    _options: &mut CompilerOptions,
-  ) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
     ctx.context.compiler_hooks.make.tap(make::new(self));
     Ok(())
   }

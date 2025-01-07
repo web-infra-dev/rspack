@@ -1,10 +1,10 @@
 import path from "node:path";
 import { BuiltinPluginName } from "@rspack/binding";
+import { create } from "./base";
 
 import type { Compiler } from "../Compiler";
-import type { RuleSetCondition } from "../config/zod";
-import { create } from "./base";
 import type { RspackBuiltinPlugin } from "./base";
+import type { RuleSetRule } from "../config";
 
 const RawRSCProxyRspackPlugin = create(
 	BuiltinPluginName.RSCProxyRspackPlugin,
@@ -14,7 +14,7 @@ const RawRSCProxyRspackPlugin = create(
 
 interface Options {
 	clientProxy: string;
-	exclude?: RuleSetCondition;
+	exclude?: RuleSetRule["exclude"];
 }
 
 interface ResolvedOptions {
