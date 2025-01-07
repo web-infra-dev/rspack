@@ -407,9 +407,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
 		return new Map(
-			this.#inner.entrypoints.map((binding) => {
+			this.#inner.entrypoints.map(binding => {
 				const entrypoint = Entrypoint.__from_binding(binding);
-				return [entrypoint.name!, entrypoint]
+				return [entrypoint.name!, entrypoint];
 			})
 		);
 	}
@@ -1265,6 +1265,7 @@ class AddIncludeDispatcher {
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
+		console.log("args.length", args.length);
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
 				queueMicrotask(this.#execute);

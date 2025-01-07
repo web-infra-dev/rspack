@@ -758,12 +758,10 @@ impl JsCompilation {
         .map(|(dependency, _)| *dependency.id())
         .collect::<Vec<_>>();
 
-      for arg in args {
-        compilation
-          .add_include(vec![arg])
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
-      }
+      compilation
+        .add_include(args)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
       let module_graph = compilation.get_module_graph();
       let results = dependency_ids
