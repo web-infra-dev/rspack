@@ -93,14 +93,14 @@ inventory = { version = "=0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=9.0.1" }
-swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=9.0.2", default-features = false }
-swc_ecma_minifier   = { version = "=6.0.1", default-features = false }
-swc_error_reporters = { version = "=6.0.0" }
-swc_html            = { version = "=6.0.0" }
-swc_html_minifier   = { version = "=6.0.0", default-features = false }
-swc_node_comments   = { version = "=5.0.0" }
+swc                 = { git = "https://github.com/swc-project/swc/", package = "swc" }
+swc_config          = { git = "https://github.com/swc-project/swc/", package = "swc_config" }
+swc_core            = { git = "https://github.com/swc-project/swc/", package = "swc_core", default-features = false, version = "*" }
+swc_ecma_minifier   = { git = "https://github.com/swc-project/swc/", package = "swc_ecma_minifier", default-features = false }
+swc_error_reporters = { git = "https://github.com/swc-project/swc/", package = "swc_error_reporters" }
+swc_html            = { git = "https://github.com/swc-project/swc/", package = "swc_html" }
+swc_html_minifier   = { git = "https://github.com/swc-project/swc/", package = "swc_html_minifier", default-features = false }
+swc_node_comments   = { git = "https://github.com/swc-project/swc/", package = "swc_node_comments" }
 
 
 rspack_dojang = { version = "0.1.9" }
