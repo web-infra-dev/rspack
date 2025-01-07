@@ -108,7 +108,7 @@ impl std::fmt::Display for Devtool {
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct DevToolFlags: u32 {
+    pub struct DevtoolFlags: u32 {
         const SOURCE_MAP = 1 << 0;
         const HIDDEN    = 1 << 1;
         const INLINE    = 1 << 2;
@@ -119,24 +119,44 @@ bitflags! {
     }
 }
 
-impl DevToolFlags {
-  // pub(crate) fn use_source_map_plugin(&self) -> bool {
-  //   self.contains(DevToolFlags::SOURCE_MAP)
-  // }
+impl DevtoolFlags {
+  pub(crate) fn source_map(&self) -> bool {
+    self.contains(DevtoolFlags::SOURCE_MAP)
+  }
 
-  // pub(crate) fn use_eval_plugin(&self) -> bool {
-  //   !self.contains(DevToolFlags::SOURCE_MAP) && self.contains(DevToolFlags::EVAL)
-  // }
+  pub(crate) fn hidden(&self) -> bool {
+    self.contains(DevtoolFlags::HIDDEN)
+  }
+
+  pub(crate) fn inline(&self) -> bool {
+    self.contains(DevtoolFlags::INLINE)
+  }
+
+  pub(crate) fn eval(&self) -> bool {
+    self.contains(DevtoolFlags::EVAL)
+  }
+
+  pub(crate) fn cheap(&self) -> bool {
+    self.contains(DevtoolFlags::CHEAP)
+  }
+
+  pub(crate) fn module(&self) -> bool {
+    self.contains(DevtoolFlags::MODULE)
+  }
+
+  pub(crate) fn nosources(&self) -> bool {
+    self.contains(DevtoolFlags::NOSOURCES)
+  }
 }
 
-impl From<Devtool> for DevToolFlags {
+impl From<Devtool> for DevtoolFlags {
   fn from(devtool: Devtool) -> Self {
     match devtool {
-      Devtool::False => DevToolFlags::empty(),
-      Devtool::Eval => DevToolFlags::EVAL,
+      Devtool::False => DevtoolFlags::empty(),
+      Devtool::Eval => DevtoolFlags::EVAL,
       _ => {
         // Start with SOURCE_MAP since all other variants contain it
-        let mut flags = DevToolFlags::SOURCE_MAP;
+        let mut flags = DevtoolFlags::SOURCE_MAP;
 
         match devtool {
           Devtool::HiddenSourceMap
@@ -145,7 +165,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::HiddenNosourcesSourceMap
           | Devtool::HiddenNosourcesCheapSourceMap
           | Devtool::HiddenNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::HIDDEN;
+            flags |= DevtoolFlags::HIDDEN;
           }
           _ => {}
         }
@@ -157,7 +177,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::InlineNosourcesSourceMap
           | Devtool::InlineNosourcesCheapSourceMap
           | Devtool::InlineNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::INLINE;
+            flags |= DevtoolFlags::INLINE;
           }
           _ => {}
         }
@@ -169,7 +189,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::EvalNosourcesSourceMap
           | Devtool::EvalNosourcesCheapSourceMap
           | Devtool::EvalNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::EVAL;
+            flags |= DevtoolFlags::EVAL;
           }
           _ => {}
         }
@@ -191,7 +211,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::EvalNosourcesCheapModuleSourceMap
           | Devtool::HiddenNosourcesCheapSourceMap
           | Devtool::HiddenNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::CHEAP;
+            flags |= DevtoolFlags::CHEAP;
           }
           _ => {}
         }
@@ -205,7 +225,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::InlineNosourcesCheapModuleSourceMap
           | Devtool::EvalNosourcesCheapModuleSourceMap
           | Devtool::HiddenNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::MODULE;
+            flags |= DevtoolFlags::MODULE;
           }
           _ => {}
         }
@@ -223,7 +243,7 @@ impl From<Devtool> for DevToolFlags {
           | Devtool::HiddenNosourcesSourceMap
           | Devtool::HiddenNosourcesCheapSourceMap
           | Devtool::HiddenNosourcesCheapModuleSourceMap => {
-            flags |= DevToolFlags::NOSOURCES;
+            flags |= DevtoolFlags::NOSOURCES;
           }
           _ => {}
         }
@@ -242,27 +262,23 @@ mod tests {
   fn test_devtool_flags_conversion() {
     // Test eval-cheap-module-source-map
     let devtool = Devtool::EvalCheapModuleSourceMap;
-    let flags = DevToolFlags::from(devtool);
+    let flags = DevtoolFlags::from(devtool);
 
-    assert!(flags.contains(DevToolFlags::SOURCE_MAP));
-    assert!(flags.contains(DevToolFlags::EVAL));
-    assert!(flags.contains(DevToolFlags::CHEAP));
-    assert!(flags.contains(DevToolFlags::MODULE));
-    assert!(!flags.contains(DevToolFlags::HIDDEN));
-    assert!(!flags.contains(DevToolFlags::INLINE));
-    assert!(!flags.contains(DevToolFlags::NOSOURCES));
-
-    // Test the helper methods
-    // assert!(flags.use_source_map_plugin());
+    assert!(flags.contains(DevtoolFlags::SOURCE_MAP));
+    assert!(flags.contains(DevtoolFlags::EVAL));
+    assert!(flags.contains(DevtoolFlags::CHEAP));
+    assert!(flags.contains(DevtoolFlags::MODULE));
+    assert!(!flags.contains(DevtoolFlags::HIDDEN));
+    assert!(!flags.contains(DevtoolFlags::INLINE));
+    assert!(!flags.contains(DevtoolFlags::NOSOURCES));
   }
 
   #[test]
   fn test_eval_only() {
     let devtool = Devtool::Eval;
-    let flags = DevToolFlags::from(devtool);
+    let flags = DevtoolFlags::from(devtool);
 
-    assert!(flags.contains(DevToolFlags::EVAL));
-    assert!(!flags.contains(DevToolFlags::SOURCE_MAP));
-    // assert!(flags.use_eval_plugin());
+    assert!(flags.contains(DevtoolFlags::EVAL));
+    assert!(!flags.contains(DevtoolFlags::SOURCE_MAP));
   }
 }
