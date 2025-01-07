@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::data::{
+use crate::{
   ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleSource,
 };
 

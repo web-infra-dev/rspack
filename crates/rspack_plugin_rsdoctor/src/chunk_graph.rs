@@ -2,16 +2,14 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_core::{
-  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkIdsArtifact, ChunkUkey, Compilation, CompilationAsset,
-};
+use rspack_core::{Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, CompilationAsset};
 use rspack_core::{ChunkByUkey, ChunkGroupUkey};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::data::{
-  ChunkUkey as RsdoctorChunkUkey, EntrypointUkey as RsdoctorEntrypointUkey, RsdoctorEntrypoint,
+use crate::{
+  AssetUkey as RsdoctorAssetUkey, ChunkUkey as RsdoctorChunkUkey,
+  EntrypointUkey as RsdoctorEntrypointUkey, RsdoctorAsset, RsdoctorChunk, RsdoctorEntrypoint,
 };
-use crate::data::{RsdoctorAsset, RsdoctorChunk};
 
 pub fn collect_chunks(
   chunks: &HashMap<&ChunkUkey, &Chunk>,
@@ -105,44 +103,6 @@ pub fn collect_chunk_dependencies(
     .collect::<HashMap<_, _>>()
 }
 
-pub fn collect_assets(
-  assets: &HashMap<String, CompilationAsset>,
-  rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
-  chunk_by_ukey: &ChunkByUkey,
-) -> HashMap<String, RsdoctorAsset> {
-  let mut compilation_file_to_chunks: HashMap<&String, Vec<&ChunkUkey>> = HashMap::default();
-  for (chunk_ukey, chunk) in chunk_by_ukey.iter() {
-    for file in chunk.files() {
-      let chunks = compilation_file_to_chunks.entry(file).or_default();
-      chunks.push(chunk_ukey);
-    }
-  }
-  assets
-    .keys()
-    .par_bridge()
-    .map(|path| {
-      let chunks = compilation_file_to_chunks
-        .get(path)
-        .map(|chunks| {
-          chunks
-            .iter()
-            .filter_map(|c| rsd_chunks.get(c).map(|c| c.ukey))
-            .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
-      (
-        path.to_string(),
-        RsdoctorAsset {
-          ukey: 0,
-          path: path.to_string(),
-          content: Default::default(),
-          chunks,
-        },
-      )
-    })
-    .collect::<HashMap<_, _>>()
-}
-
 pub fn collect_entrypoints(
   entrypoints: &IndexMap<String, ChunkGroupUkey>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
@@ -170,6 +130,67 @@ pub fn collect_entrypoints(
           // assets,
         },
       )
+    })
+    .collect::<HashMap<_, _>>()
+}
+
+pub fn collect_assets(
+  assets: &HashMap<String, CompilationAsset>,
+  chunk_by_ukey: &ChunkByUkey,
+) -> HashMap<String, RsdoctorAsset> {
+  let asset_ukey_counter: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+  let mut compilation_file_to_chunks: HashMap<&String, Vec<&ChunkUkey>> = HashMap::default();
+  for (chunk_ukey, chunk) in chunk_by_ukey.iter() {
+    for file in chunk.files() {
+      let chunks = compilation_file_to_chunks.entry(file).or_default();
+      chunks.push(chunk_ukey);
+    }
+  }
+  assets
+    .keys()
+    .par_bridge()
+    .map(|path| {
+      let chunks = compilation_file_to_chunks
+        .get(path)
+        .map(|chunks| {
+          chunks
+            .iter()
+            .map(|c| c.as_u32() as RsdoctorChunkUkey)
+            .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+      (
+        path.to_string(),
+        RsdoctorAsset {
+          ukey: asset_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+          path: path.to_string(),
+          chunks,
+        },
+      )
+    })
+    .collect::<HashMap<_, _>>()
+}
+
+pub fn collect_chunk_assets(
+  rsd_assets: &HashMap<String, RsdoctorAsset>,
+  chunk_by_ukey: &ChunkByUkey,
+) -> HashMap<RsdoctorChunkUkey, HashSet<RsdoctorAssetUkey>> {
+  chunk_by_ukey
+    .keys()
+    .par_bridge()
+    .map(|chunk_ukey| {
+      let rsd_chunk_ukey = chunk_ukey.as_u32() as RsdoctorChunkUkey;
+      let assets = rsd_assets
+        .iter()
+        .filter_map(|(_, asset)| {
+          if asset.chunks.contains(&rsd_chunk_ukey) {
+            Some(asset.ukey)
+          } else {
+            None
+          }
+        })
+        .collect::<HashSet<_>>();
+      (rsd_chunk_ukey, assets)
     })
     .collect::<HashMap<_, _>>()
 }

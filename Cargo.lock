@@ -4217,6 +4217,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsdoctor",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -5130,6 +5131,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
+ "futures",
  "indexmap 2.7.0",
  "rayon",
  "rspack_collections",

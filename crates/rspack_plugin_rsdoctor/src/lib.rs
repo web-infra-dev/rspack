@@ -3,4 +3,5 @@ mod data;
 mod module_graph;
 mod plugin;
 
-pub use plugin::RsdoctorPlugin;
+pub use data::*;
+pub use plugin::{RsdoctorPlugin, RsdoctorPluginOptions, SendChunkGraph, SendModuleGraph};

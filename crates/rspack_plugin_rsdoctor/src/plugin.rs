@@ -1,38 +1,44 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
-use std::{borrow::Cow, sync::atomic::AtomicUsize};
 
 use async_trait::async_trait;
-use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::Identifier;
+use futures::future::BoxFuture;
 use rspack_core::{
-  concatenated_module, ApplyContext, Chunk, Compilation, CompilationAfterCodeGeneration,
-  CompilationAfterProcessAssets, CompilationChunkIds, CompilationFinishModules,
-  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationOptimizeModules, CompilerOptions, DependencyType, Module, Plugin, PluginContext,
+  ApplyContext, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilerOptions, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::chunk_graph::{collect_chunk_dependencies, collect_chunks, collect_entrypoints};
+use crate::chunk_graph::{
+  collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunks,
+  collect_entrypoints,
+};
 use crate::module_graph::{
   collect_concatenated_modules, collect_module_dependencies, collect_module_sources,
   collect_modules,
 };
+use crate::{RsdoctorChunkGraph, RsdoctorModuleGraph};
 
-type HandlerFn = Arc<dyn Fn(f64, String, Vec<String>) -> Result<()> + Send + Sync>;
+pub type SendModuleGraph =
+  Arc<dyn Fn(RsdoctorModuleGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+pub type SendChunkGraph =
+  Arc<dyn Fn(RsdoctorChunkGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 #[derive(Default)]
 pub struct RsdoctorPluginOptions {
-  module_graph_cb: Option<HandlerFn>,
-  chunk_graph_cb: Option<HandlerFn>,
+  pub on_module_graph: Option<SendModuleGraph>,
+  pub on_chunk_graph: Option<SendChunkGraph>,
 }
 
 impl std::fmt::Debug for RsdoctorPluginOptions {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RsdoctorPluginOptions")
-      .field("module_graph_cb", &self.module_graph_cb.is_some())
-      .field("chunk_graph_cb", &self.chunk_graph_cb.is_some())
+      .field("on_module_graph", &self.on_module_graph.is_some())
+      .field("on_chunk_graph", &self.on_chunk_graph.is_some())
       .finish()
   }
 }
@@ -135,7 +141,10 @@ fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
 
 #[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin)]
 async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<()> {
-  // TODO: send compilation.assets to the js
+  let chunk_by_ukey = &compilation.chunk_by_ukey;
+  let rsd_assets = collect_assets(&compilation.assets(), chunk_by_ukey);
+  let rsd_chunk_assets = collect_chunk_assets(&rsd_assets, chunk_by_ukey);
+  // TODO: send rsd_chunk_assets and rsd_assets to the js
   Ok(())
 }
 
