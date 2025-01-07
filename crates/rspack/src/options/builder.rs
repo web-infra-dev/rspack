@@ -162,7 +162,7 @@ pub struct BuilderContext {
   plugins: Vec<BuiltinPluginOptions>,
 }
 
-/// Builter used to build [`CompilerOptions`]
+/// Builder used to build [`CompilerOptions`]
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
   name: Option<String>,
@@ -413,7 +413,7 @@ impl CompilerOptionsBuilder {
   }
 }
 
-/// Builter used to build [`ModuleOptions`]
+/// Builder used to build [`ModuleOptions`]
 #[derive(Debug, Default)]
 pub struct ModuleOptionsBuilder {
   rules: Vec<ModuleRule>,
@@ -853,7 +853,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   rules
 }
 
-/// Builter used to build [`OutputOptions`]
+/// Builder used to build [`OutputOptions`]
 #[derive(Debug, Default)]
 pub struct OutputOptionsBuilder {
   path: Option<Utf8PathBuf>,
@@ -1480,11 +1480,11 @@ impl OutputOptionsBuilder {
       enabled_library_types
     });
 
-    enabled_library_types.iter().for_each(|ty| {
+    for ty in enabled_library_types.iter() {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::EnableLibraryPlugin(ty.clone()));
-    });
+    }
 
     let enabled_chunk_loading_types = f!(self.enabled_chunk_loading_types.take(), || {
       let mut enabled_chunk_loading_types = vec![];
@@ -1499,11 +1499,11 @@ impl OutputOptionsBuilder {
       enabled_chunk_loading_types
     });
 
-    enabled_chunk_loading_types.iter().for_each(|ty| {
+    for ty in enabled_chunk_loading_types.iter() {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(*ty));
-    });
+    }
 
     let enabled_wasm_loading_types = f!(self.enabled_wasm_loading_types.take(), || {
       let mut enabled_wasm_loading_types = vec![];
@@ -1517,11 +1517,11 @@ impl OutputOptionsBuilder {
       enabled_wasm_loading_types
     });
 
-    enabled_wasm_loading_types.iter().for_each(|ty| {
+    for ty in enabled_wasm_loading_types.iter() {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(*ty));
-    });
+    }
 
     let environment = Environment {
       r#const: tp.and_then(|t| t.r#const),
@@ -1599,7 +1599,7 @@ impl OutputOptionsBuilder {
   }
 }
 
-/// Builter used to build [`Experiments`]
+/// Builder used to build [`Experiments`]
 #[derive(Debug, Default)]
 pub struct ExperimentsBuilder {
   layers: Option<bool>,
