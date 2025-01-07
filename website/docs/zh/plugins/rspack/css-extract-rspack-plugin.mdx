@@ -48,6 +48,7 @@ interface PluginOptions {
   linkType?: string | 'text/css' | false;
   runtime?: boolean;
   pathinfo?: boolean;
+  enforceRelative?: boolean;
 }
 ```
 
@@ -123,6 +124,12 @@ interface PluginOptions {
       type: '`boolean`',
       default: 'false',
       description: '是否在 CSS 产物中包含带有更详细的路径信息的注释',
+    },
+    {
+      name: '`enforceRelative`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否在生成的 CSS `url()` 是相对路径时，保留 "\.\/"',
     },
   ]}
 />
