@@ -29,8 +29,6 @@ use crate::parser_and_generator::CssExport;
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
-pub static PREFIX_UNDERSCORE_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[0-9_-]").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
@@ -116,16 +114,10 @@ impl LocalIdentNameRenderOptions<'_> {
 static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
-pub fn escape_css(s: &str, omit_optional_underscore: bool) -> Cow<str> {
+pub fn escape_css(s: &str) -> Cow<str> {
   let escaped = UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]));
-  if !omit_optional_underscore
-    && !escaped.starts_with("--")
-    && PREFIX_UNDERSCORE_REGEX.is_match(&escaped)
-  {
-    format!("_{}", escaped).into()
-  } else {
-    escaped
-  }
+
+  escaped
 }
 
 pub(crate) fn export_locals_convention(
