@@ -77,12 +77,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
+  pub fn context(&mut self) -> napi::Result<Option<String>> {
     let module = self.as_ref()?;
 
     Ok(match module.get_context() {
-      Some(ctx) => Either::A(ctx.to_string()),
-      None => Either::B(()),
+      Some(ctx) => Some(ctx.to_string()),
+      None => None,
     })
   }
 
@@ -103,12 +103,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn resource(&mut self) -> napi::Result<Either<&String, ()>> {
+  pub fn resource(&mut self) -> napi::Result<Option<&String>> {
     let module = self.as_ref()?;
 
     Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(&normal_module.resource_resolved_data().resource),
-      Err(_) => Either::B(()),
+      Ok(normal_module) => Some(&normal_module.resource_resolved_data().resource),
+      Err(_) => None,
     })
   }
 
@@ -130,12 +130,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn request(&mut self) -> napi::Result<Either<&str, ()>> {
+  pub fn request(&mut self) -> napi::Result<Option<&str>> {
     let module = self.as_ref()?;
 
     Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.request()),
-      Err(_) => Either::B(()),
+      Ok(normal_module) => Some(normal_module.request()),
+      Err(_) => None,
     })
   }
 
@@ -160,12 +160,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn raw_request(&mut self) -> napi::Result<Either<&str, ()>> {
+  pub fn raw_request(&mut self) -> napi::Result<Option<&str>> {
     let module = self.as_ref()?;
 
     Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.raw_request()),
-      Err(_) => Either::B(()),
+      Ok(normal_module) => Some(normal_module.raw_request()),
+      Err(_) => None,
     })
   }
 
@@ -192,12 +192,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn layer(&mut self) -> napi::Result<Either<&String, ()>> {
+  pub fn layer(&mut self) -> napi::Result<Option<&String>> {
     let module = self.as_ref()?;
 
     Ok(match module.get_layer() {
-      Some(layer) => Either::A(layer),
-      None => Either::B(()),
+      Some(layer) => Some(layer),
+      None => None,
     })
   }
 
@@ -310,23 +310,23 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn resource_resolve_data(&mut self) -> napi::Result<Either<JsResourceData, ()>> {
+  pub fn resource_resolve_data(&mut self) -> napi::Result<Option<JsResourceData>> {
     let module = self.as_ref()?;
     Ok(match module.as_normal_module() {
-      Some(module) => Either::A(module.resource_resolved_data().into()),
-      None => Either::B(()),
+      Some(module) => Some(module.resource_resolved_data().into()),
+      None => None,
     })
   }
 
   #[napi(getter)]
-  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
+  pub fn match_resource(&mut self) -> napi::Result<Option<&String>> {
     let module = self.as_ref()?;
     Ok(match module.as_normal_module() {
       Some(module) => match &module.match_resource() {
-        Some(match_resource) => Either::A(&match_resource.resource),
-        None => Either::B(()),
+        Some(match_resource) => Some(&match_resource.resource),
+        None => None,
       },
-      None => Either::B(()),
+      None => None,
     })
   }
 

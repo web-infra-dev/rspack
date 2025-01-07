@@ -12,6 +12,8 @@ export class ModuleGraphConnection {
 	declare readonly dependency: Dependency;
 
 	#inner: JsModuleGraphConnection;
+	#dependency: Dependency | undefined;
+	#resolvedModule: Module | undefined | null;
 
 	static __from_binding(binding: JsModuleGraphConnection) {
 		let connection = MODULE_GRAPH_CONNECTION_MAPPINGS.get(binding);
@@ -39,19 +41,27 @@ export class ModuleGraphConnection {
 			},
 			dependency: {
 				enumerable: true,
-				get(): Dependency {
-					return bindingDependencyFactory.create(
+				get: (): Dependency => {
+					if (this.#dependency !== undefined) {
+						return this.#dependency;
+					}
+					this.#dependency = bindingDependencyFactory.create(
 						Dependency,
 						binding.dependency
 					);
+					return this.#dependency;
 				}
 			},
 			resolvedModule: {
 				enumerable: true,
-				get(): Module | null {
-					return binding.resolvedModule
+				get: (): Module | null => {
+					if (this.#resolvedModule !== undefined) {
+						return this.#resolvedModule;
+					}
+					this.#resolvedModule = binding.resolvedModule
 						? Module.__from_binding(binding.resolvedModule)
 						: null;
+					return this.#resolvedModule;
 				}
 			},
 			originModule: {

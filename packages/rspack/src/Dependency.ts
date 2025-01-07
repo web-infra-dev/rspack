@@ -26,20 +26,27 @@ export const bindingDependencyFactory = {
 };
 
 export class Dependency {
+	#type: string | undefined;
+	#category: string | undefined;
+
 	get type(): string {
-		const binding = bindingDependencyFactory.getBinding(this);
-		if (binding) {
-			return binding.type;
+		if (this.#type === undefined) {
+			const binding = bindingDependencyFactory.getBinding(this);
+			if (binding) {
+				this.#type = binding.type;
+			}
 		}
-		return "unknown";
+		return this.#type || "unknown";
 	}
 
 	get category(): string {
-		const binding = bindingDependencyFactory.getBinding(this);
-		if (binding) {
-			return binding.category;
+		if (this.#category === undefined) {
+			const binding = bindingDependencyFactory.getBinding(this);
+			if (binding) {
+				this.#category = binding.category;
+			}
 		}
-		return "unknown";
+		return this.#category || "unknown";
 	}
 
 	get request(): string | undefined {

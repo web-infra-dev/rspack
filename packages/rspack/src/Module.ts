@@ -202,14 +202,23 @@ const BUILD_META_MAPPINGS = new Map<string, Record<string, any>>();
 
 export class Module {
 	#inner: JsModule;
+	#identifier: string | undefined;
+	#type: string | undefined;
+	#layer: string | undefined | null;
+	#context: string | undefined | null;
+	#resource: string | undefined | null;
+	#request: string | undefined | null;
+	#rawRequest: string | undefined | null;
+	#resourceResolveData: ResolveData | undefined | null;
+	#matchResource: string | undefined | null;
 
-	declare readonly context?: string;
-	declare readonly resource?: string;
-	declare readonly request?: string;
+	declare readonly context: string | null;
+	declare readonly resource: string | null;
+	declare readonly request: string | null;
 	declare userRequest?: string;
-	declare readonly rawRequest?: string;
+	declare readonly rawRequest: string | null;
 	declare readonly type: string;
-	declare readonly layer: null | string;
+	declare readonly layer: string | null;
 	declare readonly factoryMeta?: JsFactoryMeta;
 
 	declare readonly modules: Module[] | undefined;
@@ -263,32 +272,47 @@ export class Module {
 		Object.defineProperties(this, {
 			type: {
 				enumerable: true,
-				get(): string | null {
-					return module.type || null;
+				get: (): string => {
+					if (this.#type === undefined) {
+						this.#type = module.type;
+					}
+					return this.#type;
 				}
 			},
 			layer: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.layer;
+				get: (): string | null => {
+					if (this.#layer === undefined) {
+						this.#layer = module.layer;
+					}
+					return this.#layer;
 				}
 			},
 			context: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.context;
+				get: (): string | null => {
+					if (this.#context === undefined) {
+						this.#context = module.context;
+					}
+					return this.#context;
 				}
 			},
 			resource: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.resource;
+				get: (): string | null => {
+					if (this.#resource === undefined) {
+						this.#resource = module.resource;
+					}
+					return this.#resource;
 				}
 			},
 			request: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.request;
+				get: (): string | null => {
+					if (this.#request === undefined) {
+						this.#request = module.request;
+					}
+					return this.#request;
 				}
 			},
 			userRequest: {
@@ -302,8 +326,11 @@ export class Module {
 			},
 			rawRequest: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.rawRequest;
+				get: (): string | null => {
+					if (this.#rawRequest === undefined) {
+						this.#rawRequest = module.rawRequest;
+					}
+					return this.#rawRequest;
 				}
 			},
 			factoryMeta: {
@@ -351,14 +378,20 @@ export class Module {
 			},
 			resourceResolveData: {
 				enumerable: true,
-				get(): ResolveData | undefined {
-					return module.resourceResolveData as any;
+				get: (): ResolveData | null => {
+					if (this.#resourceResolveData === undefined) {
+						this.#resourceResolveData = module.resourceResolveData as any;
+					}
+					return this.#resourceResolveData!;
 				}
 			},
 			matchResource: {
 				enumerable: true,
-				get(): string | undefined {
-					return module.matchResource;
+				get: (): string | null => {
+					if (this.#matchResource === undefined) {
+						this.#matchResource = module.matchResource;
+					}
+					return this.#matchResource;
 				}
 			}
 		});
@@ -372,7 +405,10 @@ export class Module {
 	}
 
 	identifier(): string {
-		return this.#inner.moduleIdentifier;
+		if (this.#identifier === undefined) {
+			this.#identifier = this.#inner.moduleIdentifier;
+		}
+		return this.#identifier;
 	}
 
 	nameForCondition(): string | null {

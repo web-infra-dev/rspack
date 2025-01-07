@@ -220,26 +220,26 @@ export declare class JsExportsInfo {
 
 export declare class JsModule {
   get constructorName(): string
-  get context(): string | undefined
+  get context(): string | null
   get originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
+  get resource(): string | null
   get moduleIdentifier(): string
   get nameForCondition(): string | undefined
-  get request(): string | undefined
+  get request(): string | null
   get userRequest(): string | undefined
   set userRequest(val: string)
-  get rawRequest(): string | undefined
+  get rawRequest(): string | null
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
-  get layer(): string | undefined
+  get layer(): string | null
   get blocks(): JsDependenciesBlock[]
   get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
-  get resourceResolveData(): JsResourceData | undefined
-  get matchResource(): string | undefined
+  get resourceResolveData(): JsResourceData | null
+  get matchResource(): string | null
   get loaders(): Array<string> | undefined
 }
 
