@@ -8,7 +8,9 @@ use rspack_core::{
   ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage,
   SourceType,
 };
-use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
+use rspack_napi::{
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
@@ -345,7 +347,7 @@ impl JsModule {
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotRef<JsModule>>;
+type ModuleInstanceRefs = IdentifierMap<OneShotInstanceRef<JsModule>>;
 
 type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
 
@@ -418,9 +420,9 @@ impl ToNapiValue for JsModuleWrapper {
       };
 
       match refs.entry(module.identifier()) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          let instance = r.from_napi_mut_ref()?;
+        std::collections::hash_map::Entry::Occupied(mut entry) => {
+          let r = entry.get_mut();
+          let instance = &mut **r;
           instance.compilation = val.compilation;
           instance.module = val.module;
           ToNapiValue::to_napi_value(env, r)
@@ -432,7 +434,7 @@ impl ToNapiValue for JsModuleWrapper {
             compilation_id: val.compilation_id,
             compilation: val.compilation,
           };
-          let r = entry.insert(OneShotRef::new(env, js_module)?);
+          let r = entry.insert(OneShotInstanceRef::new(env, js_module)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }
