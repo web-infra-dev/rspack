@@ -4169,7 +4169,7 @@ type OptimizationSplitChunksChunks = "initial" | "async" | "all" | RegExp | ((ch
 type OptimizationSplitChunksName = string | false | OptimizationSplitChunksNameFunction;
 
 // @public (undocumented)
-export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+export type OptimizationSplitChunksNameFunction = (module: Module, chunks: Chunk[], cacheGroupKey: string) => string | undefined;
 
 // @public
 export type OptimizationSplitChunksOptions = {
@@ -6979,7 +6979,7 @@ export const rspackOptions: z.ZodObject<{
             defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
             minChunks: z.ZodOptional<z.ZodNumber>;
             usedExports: z.ZodOptional<z.ZodBoolean>;
-            name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
+            name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>, z.ZodArray<z.ZodType<Chunk, z.ZodTypeDef, Chunk>, "many">, z.ZodString], z.ZodUnknown>, z.ZodOptional<z.ZodString>>]>>;
             minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
@@ -6992,7 +6992,7 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
                 minChunks: z.ZodOptional<z.ZodNumber>;
                 usedExports: z.ZodOptional<z.ZodBoolean>;
-                name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodType<Module, z.ZodTypeDef, Module>>], z.ZodUnknown>, z.ZodUnknown>]>>;
+                name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>, z.ZodArray<z.ZodType<Chunk, z.ZodTypeDef, Chunk>, "many">, z.ZodString], z.ZodUnknown>, z.ZodOptional<z.ZodString>>]>>;
                 minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
@@ -7010,7 +7010,7 @@ export const rspackOptions: z.ZodObject<{
             }, "strict", z.ZodTypeAny, {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -7030,7 +7030,7 @@ export const rspackOptions: z.ZodObject<{
             }, {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -7073,13 +7073,13 @@ export const rspackOptions: z.ZodObject<{
             hidePathInfo: z.ZodOptional<z.ZodBoolean>;
         }, "strict", z.ZodTypeAny, {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -7116,13 +7116,13 @@ export const rspackOptions: z.ZodObject<{
             automaticNameDelimiter?: string | undefined;
         }, {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -7198,13 +7198,13 @@ export const rspackOptions: z.ZodObject<{
         mergeDuplicateChunks?: boolean | undefined;
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -7265,13 +7265,13 @@ export const rspackOptions: z.ZodObject<{
         mergeDuplicateChunks?: boolean | undefined;
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -8890,13 +8890,13 @@ export const rspackOptions: z.ZodObject<{
         mergeDuplicateChunks?: boolean | undefined;
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
@@ -9494,13 +9494,13 @@ export const rspackOptions: z.ZodObject<{
         mergeDuplicateChunks?: boolean | undefined;
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-            name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+            name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
                 type?: string | RegExp | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
-                name?: string | false | ((args_0: Module | undefined, ...args: unknown[]) => unknown) | undefined;
+                name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
                 filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
