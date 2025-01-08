@@ -46,9 +46,7 @@ nightly 构建完全复制了全量发布构建，以便尽早发现错误。
 {
   "pnpm": {
     "overrides": {
-      "@rspack/binding": "npm:@rspack/binding-canary@nightly",
-      "@rspack/core": "npm:@rspack/core-canary@nightly",
-      "@rspack/plugin-react-refresh": "npm:@rspack/plugin-react-refresh@nightly"
+      "@rspack/core": "npm:@rspack-canary/core@nightly"
     },
     "peerDependencyRules": {
       "allowAny": ["@rspack/*"]
