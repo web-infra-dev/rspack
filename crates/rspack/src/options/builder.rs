@@ -5,18 +5,20 @@ use rspack_core::{
   ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions, Context, CrossOriginLoading,
   CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention, CssGeneratorOptions,
   CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
-  EntryDescription, Environment, ExperimentCacheOptions, Experiments, Filename, FilenameTemplate,
-  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  OutputOptions, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture,
-  RuleSetCondition, RuleSetLogicalConditions, TrustedTypes, WasmLoading, WasmLoadingType,
+  EntryDescription, Environment, ExperimentCacheOptions, Experiments, ExternalItem, ExternalType,
+  Filename, FilenameTemplate, GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, OutputOptions, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RspackFuture, RuleSetCondition, RuleSetLogicalConditions, TrustedTypes, WasmLoading,
+  WasmLoadingType,
 };
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::externals::ExternalsPresets;
 use super::target::{get_targets_properties, TargetProperties};
 use super::{Devtool, DevtoolFlags, Target};
 macro_rules! d {
@@ -83,9 +85,9 @@ pub(crate) enum BuiltinPluginOptions {
   ProgressPlugin,
   EntryPlugin,
   DynamicEntryPlugin,
-  ExternalsPlugin,
+  ExternalsPlugin((ExternalType, Vec<ExternalItem>)),
   NodeTargetPlugin,
-  ElectronTargetPlugin,
+  ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
   EnableChunkLoadingPlugin(ChunkLoadingType),
   EnableLibraryPlugin(LibraryType),
   EnableWasmLoadingPlugin(WasmLoadingType),
@@ -149,7 +151,7 @@ pub(crate) enum BuiltinPluginOptions {
 
   // rspack specific plugins
   // naming format follow XxxRspackPlugin
-  HttpExternalsRspackPlugin,
+  HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
   CopyRspackPlugin,
   HtmlRspackPlugin,
   SwcJsMinimizerRspackPlugin,
@@ -168,6 +170,9 @@ pub struct CompilerOptionsBuilder {
   name: Option<String>,
   target: Option<Target>,
   entry: IndexMap<String, EntryDescription>,
+  externals: Option<Vec<ExternalItem>>,
+  externals_type: Option<ExternalType>,
+  externals_presets: Option<ExternalsPresets>,
   context: Option<Context>,
   cache: Option<CacheOptions>,
   mode: Option<Mode>,
@@ -192,6 +197,24 @@ impl CompilerOptionsBuilder {
 
   pub fn entry(&mut self, entry_name: String, entry_description: EntryDescription) -> &mut Self {
     self.entry.insert(entry_name, entry_description);
+    self
+  }
+
+  pub fn externals(&mut self, externals: ExternalItem) -> &mut Self {
+    match &mut self.externals {
+      Some(e) => e.push(externals),
+      None => self.externals = Some(vec![externals]),
+    }
+    self
+  }
+
+  pub fn externals_type(&mut self, externals_type: ExternalType) -> &mut Self {
+    self.externals_type = Some(externals_type);
+    self
+  }
+
+  pub fn externals_presets(&mut self, externals_presets: ExternalsPresets) -> &mut Self {
+    self.externals_presets = Some(externals_presets);
     self
   }
 
@@ -288,6 +311,7 @@ impl CompilerOptionsBuilder {
       }
     });
 
+    // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
     let mut experiments = experiments_builder.build(builder_context, development, production);
     // Disable experiments cache if global cache is set to `Disabled`
@@ -317,6 +341,7 @@ impl CompilerOptionsBuilder {
       .output_module
       .expect("should apply default value");
 
+    // apply module defaults
     let module = f!(self.module.take(), ModuleOptions::builder).build(
       builder_context,
       async_web_assembly,
@@ -325,6 +350,7 @@ impl CompilerOptionsBuilder {
       &mode,
     );
 
+    // apply output defaults
     let is_affected_by_browserslist = target.iter().any(|t| t.starts_with("browserslist"));
     let mut output_builder = f!(self.output.take(), OutputOptions::builder);
     let output = output_builder.build(
@@ -337,6 +363,8 @@ impl CompilerOptionsBuilder {
       &self.entry,
       future_defaults,
     );
+
+    // apply devtool plugin
     let devtool_flags = DevtoolFlags::from(devtool);
     if devtool_flags.source_map() {
       let hidden = devtool_flags.hidden();
@@ -390,6 +418,112 @@ impl CompilerOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::EvalDevToolModulePlugin(options));
+    }
+
+    // TODO: bundler info
+
+    // applyExternalsPresetsDefaults
+    let externals_presets = self.externals_presets.get_or_insert_default();
+    let tp = &target_properties;
+    w!(externals_presets.node, tp.node());
+    w!(externals_presets.electron, tp.electron());
+    w!(
+      externals_presets.electron_main,
+      tp.electron() && tp.electron_main()
+    );
+    w!(
+      externals_presets.electron_preload,
+      tp.electron() && tp.electron_preload()
+    );
+    w!(
+      externals_presets.electron_renderer,
+      tp.electron() && tp.electron_renderer()
+    );
+    w!(externals_presets.nwjs, tp.nwjs());
+
+    w!(self.externals_type, {
+      if let Some(library) = &output.library {
+        library.library_type.clone()
+      } else if output.module {
+        "module-import".to_string()
+      } else {
+        "var".to_string()
+      }
+    });
+
+    // apply externals plugin
+    if let Some(externals) = &mut self.externals {
+      let externals = std::mem::take(externals);
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ExternalsPlugin((
+          self
+            .externals_type
+            .clone()
+            .expect("should available after apply"),
+          externals,
+        )));
+    }
+
+    // apply externals presets plugin
+    if externals_presets.node() {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::NodeTargetPlugin);
+    }
+
+    use rspack_plugin_externals::ElectronTargetContext;
+
+    if externals_presets.electron_main() {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ElectronTargetPlugin(
+          ElectronTargetContext::Main,
+        ));
+    }
+    if externals_presets.electron_preload() {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ElectronTargetPlugin(
+          ElectronTargetContext::Preload,
+        ));
+    }
+    if externals_presets.electron_renderer() {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ElectronTargetPlugin(
+          ElectronTargetContext::Renderer,
+        ));
+    }
+    if externals_presets.electron()
+      && !externals_presets.electron_main()
+      && !externals_presets.electron_preload()
+      && !externals_presets.electron_renderer()
+    {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ElectronTargetPlugin(
+          ElectronTargetContext::None,
+        ));
+    }
+
+    if externals_presets.nwjs() {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::ExternalsPlugin((
+          "node-commonjs".to_string(),
+          vec!["nw.gui".to_string().into()],
+        )));
+    }
+
+    if externals_presets.web() || externals_presets.web_async() || (externals_presets.node() && css)
+    {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::HttpExternalsRspackPlugin((
+          css,
+          externals_presets.web_async(),
+        )));
     }
 
     CompilerOptions {

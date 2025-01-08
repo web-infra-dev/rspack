@@ -1,5 +1,6 @@
 mod builder;
 mod devtool;
+mod externals;
 mod target;
 
 pub use builder::{

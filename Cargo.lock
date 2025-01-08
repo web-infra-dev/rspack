@@ -3696,6 +3696,7 @@ dependencies = [
  "rspack_hash",
  "rspack_paths",
  "rspack_plugin_devtool",
+ "rspack_plugin_externals",
  "rspack_regex",
  "rustc-hash 2.1.0",
  "serde_json",
