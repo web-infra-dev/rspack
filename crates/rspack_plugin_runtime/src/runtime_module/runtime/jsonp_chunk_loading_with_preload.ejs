@@ -1,0 +1,15 @@
+<%- PRELOAD_CHUNK_HANDLERS %>.j = <%- basicFunction("chunkId") %> {
+  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- JS_MATCHER %>) {
+    installedChunks[chunkId] = null;
+    var link = document.createElement('link');
+    <%- SCRIPT_TYPE_LINK_PRE %>
+    link.charset = 'utf-8';
+    if (<%- SCRIPT_NONCE %>) {
+      link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+    }
+    <%- SCRIPT_TYPE_LINK_POST %>
+    link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
+    <%- CROSS_ORIGIN %>
+    document.head.appendChild(link);
+  }
+};

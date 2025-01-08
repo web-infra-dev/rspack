@@ -2247,6 +2247,16 @@ impl OutputOptionsBuilder {
       r#const: tp.and_then(|t| t.r#const),
       arrow_function: tp.and_then(|t| t.arrow_function),
       node_prefix_for_core_modules: tp.and_then(|t| t.node_prefix_for_core_modules),
+      async_function: tp.and_then(|t| t.async_function),
+      big_int_literal: tp.and_then(|t| t.big_int_literal),
+      destructuring: tp.and_then(|t| t.destructuring),
+      for_of: tp.and_then(|t| t.for_of),
+      global_this: tp.and_then(|t| t.global_this),
+      optional_chaining: tp.and_then(|t| t.optional_chaining),
+      document: tp.and_then(|t| t.document),
+      dynamic_import: tp.and_then(|t| t.dynamic_import),
+      template_literal: tp.and_then(|t| t.template_literal),
+      module: tp.and_then(|t| t.module),
     };
 
     OutputOptions {

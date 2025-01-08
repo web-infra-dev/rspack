@@ -2,13 +2,13 @@ var currentUpdatedModulesList;
 var waitingUpdateResolves = {};
 function loadUpdateChunk(chunkId, updatedModulesList) {
 	currentUpdatedModulesList = updatedModulesList;
-	return new Promise(function (resolve, reject) {
+	return new Promise(<%- basicFunction("resolve, reject") %> {
 		waitingUpdateResolves[chunkId] = resolve;
 		// start update chunk loading
-		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
+		var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
-		var loadingEnded = function (event) {
+		var loadingEnded = <%- basicFunction("event") %> {
 			if (waitingUpdateResolves[chunkId]) {
 				waitingUpdateResolves[chunkId] = undefined;
 				var errorType =
@@ -28,13 +28,13 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 				reject(error);
 			}
 		};
-		__webpack_require__.l(url, loadingEnded);
+		<%- LOAD_SCRIPT %>(url, loadingEnded);
 	});
 }
 
-$GLOBAL_OBJECT$[$HOT_UPDATE_GLOBAL$] = function (chunkId, moreModules, runtime) {
+<%- GLOBAL_OBJECT %>[<%- HOT_UPDATE_GLOBAL %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
 	for (var moduleId in moreModules) {
-		if (__webpack_require__.o(moreModules, moduleId)) {
+		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
 			if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
 		}
