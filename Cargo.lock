@@ -4621,6 +4621,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
+ "rspack_plugin_rsdoctor",
  "rspack_tracing",
  "rspack_util",
  "tracing",
@@ -5131,6 +5132,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
+ "dashmap 6.1.0",
  "futures",
  "indexmap 2.7.0",
  "rayon",
@@ -5138,7 +5140,9 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_util",
  "rustc-hash 2.1.0",
+ "tokio",
  "tracing",
 ]
 

@@ -7,8 +7,8 @@ use rspack_core::{ChunkByUkey, ChunkGroupUkey};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AssetUkey as RsdoctorAssetUkey, ChunkUkey as RsdoctorChunkUkey,
-  EntrypointUkey as RsdoctorEntrypointUkey, RsdoctorAsset, RsdoctorChunk, RsdoctorEntrypoint,
+  ChunkUkey as RsdoctorChunkUkey, EntrypointUkey as RsdoctorEntrypointUkey, RsdoctorAsset,
+  RsdoctorChunk, RsdoctorEntrypoint,
 };
 
 pub fn collect_chunks(
@@ -68,7 +68,7 @@ pub fn collect_chunk_dependencies(
             if let Some(pg) = chunk_group_by_ukey.get(p) {
               for c in &pg.chunks {
                 if chunk_by_ukey.get(c).is_some() {
-                  parents.insert(c.clone());
+                  parents.insert(*c);
                 }
               }
             }
@@ -78,7 +78,7 @@ pub fn collect_chunk_dependencies(
             if let Some(pg) = chunk_group_by_ukey.get(p) {
               for c in &pg.chunks {
                 if chunk_by_ukey.get(c).is_some() {
-                  children.insert(c.clone());
+                  children.insert(*c);
                 }
               }
             }
@@ -167,30 +167,6 @@ pub fn collect_assets(
           chunks,
         },
       )
-    })
-    .collect::<HashMap<_, _>>()
-}
-
-pub fn collect_chunk_assets(
-  rsd_assets: &HashMap<String, RsdoctorAsset>,
-  chunk_by_ukey: &ChunkByUkey,
-) -> HashMap<RsdoctorChunkUkey, HashSet<RsdoctorAssetUkey>> {
-  chunk_by_ukey
-    .keys()
-    .par_bridge()
-    .map(|chunk_ukey| {
-      let rsd_chunk_ukey = chunk_ukey.as_u32() as RsdoctorChunkUkey;
-      let assets = rsd_assets
-        .iter()
-        .filter_map(|(_, asset)| {
-          if asset.chunks.contains(&rsd_chunk_ukey) {
-            Some(asset.ukey)
-          } else {
-            None
-          }
-        })
-        .collect::<HashSet<_>>();
-      (rsd_chunk_ukey, assets)
     })
     .collect::<HashMap<_, _>>()
 }

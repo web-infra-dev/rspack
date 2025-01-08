@@ -2,8 +2,8 @@ use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorChunk, RsdoctorChunkGraph, RsdoctorDependency, RsdoctorEntrypoint,
   RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
-  RsdoctorModuleSource, RsdoctorSideEffect, RsdoctorSourcePosition, RsdoctorSourceRange,
-  RsdoctorStatement, RsdoctorVariable,
+  RsdoctorModuleSource, RsdoctorPluginOptions, RsdoctorSideEffect, RsdoctorSourcePosition,
+  RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -309,6 +309,17 @@ impl From<RsdoctorChunkGraph> for JsRsdoctorChunkGraph {
     JsRsdoctorChunkGraph {
       chunks: value.chunks.into_iter().map(|c| c.into()).collect(),
       entrypoints: value.entrypoints.into_iter().map(|e| e.into()).collect(),
+    }
+  }
+}
+
+#[napi(object, object_to_js = false)]
+pub struct RawRsdoctorPluginOptions {}
+
+impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
+  fn from(_value: RawRsdoctorPluginOptions) -> Self {
+    Self {
+      // TODO: rsdoctor plugin options
     }
   }
 }

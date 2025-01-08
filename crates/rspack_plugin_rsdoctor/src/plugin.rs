@@ -1,47 +1,47 @@
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use async_trait::async_trait;
 use futures::future::BoxFuture;
+use rspack_collections::Identifier;
 use rspack_core::{
   ApplyContext, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilerOptions, Plugin,
-  PluginContext,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
+  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::chunk_graph::{
-  collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunks,
-  collect_entrypoints,
+  collect_assets, collect_chunk_dependencies, collect_chunks, collect_entrypoints,
 };
 use crate::module_graph::{
   collect_concatenated_modules, collect_module_dependencies, collect_module_sources,
   collect_modules,
 };
-use crate::{RsdoctorChunkGraph, RsdoctorModuleGraph};
+use crate::{
+  ModuleUkey, RsdoctorAsset, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleSource,
+  RsdoctorPluginHooks,
+};
 
 pub type SendModuleGraph =
   Arc<dyn Fn(RsdoctorModuleGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 pub type SendChunkGraph =
   Arc<dyn Fn(RsdoctorChunkGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+pub type SendAssets =
+  Arc<dyn Fn(Vec<RsdoctorAsset>) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+pub type SendModuleSources =
+  Arc<dyn Fn(Vec<RsdoctorModuleSource>) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
-#[derive(Default)]
-pub struct RsdoctorPluginOptions {
-  pub on_module_graph: Option<SendModuleGraph>,
-  pub on_chunk_graph: Option<SendChunkGraph>,
-}
+static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RsdoctorPluginHooks>>> =
+  LazyLock::new(Default::default);
 
-impl std::fmt::Debug for RsdoctorPluginOptions {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RsdoctorPluginOptions")
-      .field("on_module_graph", &self.on_module_graph.is_some())
-      .field("on_chunk_graph", &self.on_chunk_graph.is_some())
-      .finish()
-  }
-}
+static MODULE_UKEY_MAP: LazyLock<FxDashMap<Identifier, ModuleUkey>> =
+  LazyLock::new(FxDashMap::default);
+
+#[derive(Default, Debug)]
+pub struct RsdoctorPluginOptions {}
 
 #[plugin]
 #[derive(Debug)]
@@ -49,8 +49,43 @@ pub struct RsdoctorPlugin {
   pub options: RsdoctorPluginOptions,
 }
 
+impl RsdoctorPlugin {
+  pub fn new(config: RsdoctorPluginOptions) -> Self {
+    Self::new_inner(config)
+  }
+
+  pub fn get_compilation_hooks(
+    id: CompilationId,
+  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<RsdoctorPluginHooks>> {
+    if !COMPILATION_HOOKS_MAP.contains_key(&id) {
+      COMPILATION_HOOKS_MAP.insert(id, Default::default());
+    }
+    COMPILATION_HOOKS_MAP
+      .get(&id)
+      .expect("should have js plugin drive")
+  }
+
+  pub fn get_compilation_hooks_mut(
+    compilation: &Compilation,
+  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<RsdoctorPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
+  }
+}
+
+#[plugin_hook(CompilerCompilation for RsdoctorPlugin)]
+async fn compilation(
+  &self,
+  _compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  MODULE_UKEY_MAP.clear();
+  Ok(())
+}
+
 #[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin)]
 fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+
   let chunk_by_ukey = &compilation.chunk_by_ukey;
   let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
   let chunk_graph = &compilation.chunk_graph;
@@ -79,13 +114,27 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     chunk_group_by_ukey,
   ));
 
-  // TODO: send rsd_chunks and rsd_entrypoints to the js
+  tokio::spawn(async move {
+    match hooks
+      .chunk_graph
+      .call(&mut RsdoctorChunkGraph {
+        chunks: rsd_chunks.into_values().collect::<Vec<_>>(),
+        entrypoints: rsd_entrypoints.into_values().collect::<Vec<_>>(),
+      })
+      .await
+    {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send chunk graph failed: {}", e),
+    };
+  });
 
   Ok(None)
 }
 
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+
   let mut rsd_modules = HashMap::default();
   let mut rsd_dependencies = HashMap::default();
 
@@ -97,7 +146,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   rsd_modules.extend(collect_modules(
     &modules,
     &module_graph,
-    &chunk_graph,
+    chunk_graph,
     &compilation.options.context,
   ));
 
@@ -109,8 +158,12 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
+  for (module_id, module) in rsd_modules.iter() {
+    MODULE_UKEY_MAP.insert(*module_id, module.ukey);
+  }
+
   // 3. collect module dependencies
-  let dependency_infos = collect_module_dependencies(&modules, &rsd_modules, &module_graph);
+  let dependency_infos = collect_module_dependencies(&modules, &MODULE_UKEY_MAP, &module_graph);
   for (origin_module_id, dependencies) in dependency_infos {
     for (dep_module_id, (dep_id, dependency)) in dependencies {
       if let Some(rsd_module) = rsd_modules.get_mut(&dep_module_id) {
@@ -123,28 +176,59 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  // TODO: send rsd_modules and rsd_dependencies to the js
+  tokio::spawn(async move {
+    match hooks
+      .module_graph
+      .call(&mut RsdoctorModuleGraph {
+        modules: rsd_modules.into_values().collect::<Vec<_>>(),
+        dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
+      })
+      .await
+    {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send module graph failed: {}", e),
+    };
+  });
 
   Ok(None)
 }
 
 #[plugin_hook(CompilationAfterCodeGeneration for RsdoctorPlugin)]
 fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let rsd_module_sources = collect_module_sources(&modules, compilation);
+  let mut rsd_module_sources = collect_module_sources(&modules, &MODULE_UKEY_MAP, compilation);
 
-  // TODO: send rsd_module_sources to the js
+  tokio::spawn(async move {
+    match hooks.module_sources.call(&mut rsd_module_sources).await {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send module sources failed: {}", e),
+    };
+  });
 
   Ok(())
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin)]
 async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<()> {
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+
   let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let rsd_assets = collect_assets(&compilation.assets(), chunk_by_ukey);
-  let rsd_chunk_assets = collect_chunk_assets(&rsd_assets, chunk_by_ukey);
-  // TODO: send rsd_chunk_assets and rsd_assets to the js
+  let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
+
+  tokio::spawn(async move {
+    match hooks
+      .assets
+      .call(&mut rsd_assets.into_values().collect::<Vec<_>>())
+      .await
+    {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send assets failed: {}", e),
+    };
+  });
+
   Ok(())
 }
 
@@ -155,6 +239,11 @@ impl Plugin for RsdoctorPlugin {
   }
 
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(compilation::new(self));
     ctx
       .context
       .compilation_hooks

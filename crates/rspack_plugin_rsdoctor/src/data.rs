@@ -2,7 +2,9 @@ use rspack_collections::Identifier;
 use rspack_core::DependencyType;
 use rustc_hash::FxHashSet as HashSet;
 
+#[derive(Debug, Default)]
 pub enum ModuleKind {
+  #[default]
   Normal,
   Concatenated,
 }
@@ -26,6 +28,7 @@ pub type ExportInfoUkey = usize;
 pub type VariableUkey = usize;
 pub type SideEffectUkey = usize;
 
+#[derive(Debug, Default)]
 pub struct RsdoctorModule {
   pub ukey: ModuleUkey,
   pub identifier: Identifier,
@@ -39,6 +42,7 @@ pub struct RsdoctorModule {
   pub chunks: HashSet<ChunkUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorDependency {
   pub ukey: DependencyUkey,
   pub kind: DependencyType,
@@ -47,6 +51,7 @@ pub struct RsdoctorDependency {
   pub dependency: ModuleUkey,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorChunk {
   pub ukey: ChunkUkey,
   pub name: String,
@@ -57,25 +62,30 @@ pub struct RsdoctorChunk {
   pub imported: HashSet<ChunkUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorEntrypoint {
   pub ukey: EntrypointUkey,
   pub name: String,
   pub chunks: HashSet<ChunkUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorAsset {
   pub ukey: AssetUkey,
   pub path: String,
   pub chunks: HashSet<ChunkUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorModuleSource {
+  pub module: ModuleUkey,
   pub source_size: usize,
   pub transform_size: usize,
   pub source: Option<String>,
   pub source_map: Option<String>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorModuleGraphModule {
   pub ukey: ModuleGraphModuleUkey,
   pub module: ModuleUkey,
@@ -85,6 +95,7 @@ pub struct RsdoctorModuleGraphModule {
   pub dynamic: bool,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorSideEffect {
   pub ukey: SideEffectUkey,
   pub name: String,
@@ -97,6 +108,7 @@ pub struct RsdoctorSideEffect {
   pub variable: Option<VariableUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorVariable {
   pub ukey: VariableUkey,
   pub name: String,
@@ -106,6 +118,7 @@ pub struct RsdoctorVariable {
   pub exported: Option<ExportInfoUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorExportInfo {
   pub ukey: ExportInfoUkey,
   pub name: String,
@@ -115,28 +128,33 @@ pub struct RsdoctorExportInfo {
   pub side_effects: Vec<SideEffectUkey>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorStatement {
   pub module: ModuleUkey,
   pub source_position: Option<RsdoctorSourceRange>,
   pub transformed_position: RsdoctorSourceRange,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorSourceRange {
   pub start: RsdoctorSourcePosition,
   pub end: Option<RsdoctorSourcePosition>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorSourcePosition {
   pub line: Option<usize>,
   pub column: Option<usize>,
   pub index: Option<usize>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,
   pub dependencies: Vec<RsdoctorDependency>,
 }
 
+#[derive(Debug, Default)]
 pub struct RsdoctorChunkGraph {
   pub chunks: Vec<RsdoctorChunk>,
   pub entrypoints: Vec<RsdoctorEntrypoint>,

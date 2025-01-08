@@ -261,7 +261,7 @@ impl ChunkGraph {
   ) -> Option<&UkeySet<ChunkUkey>> {
     self
       .chunk_graph_module_by_module_identifier
-      .get(&module_identifier)
+      .get(module_identifier)
       .map(|cgm| &cgm.chunks)
   }
 

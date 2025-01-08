@@ -6,6 +6,7 @@ use rspack_core::{
   rspack_sources::MapOptions, BoxModule, ChunkGraph, Compilation, Context, DependencyId,
   ModuleGraph,
 };
+use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -28,7 +29,7 @@ pub fn collect_modules(
       let path = if let Some(nfc) = module.name_for_condition() {
         nfc.to_string()
       } else {
-        module.readable_identifier(&context).to_string()
+        module.readable_identifier(context).to_string()
       };
       let is_concatenated = module.as_concatenated_module().is_some();
       let chunks = chunk_graph
@@ -89,7 +90,7 @@ pub fn collect_concatenated_modules(
 
 pub fn collect_module_dependencies(
   modules: &IdentifierMap<&BoxModule>,
-  rsd_modules: &HashMap<Identifier, RsdoctorModule>,
+  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
 ) -> HashMap<Identifier, HashMap<Identifier, (DependencyId, RsdoctorDependency)>> {
   let dependency_ukey_counter = Arc::new(AtomicUsize::new(0));
@@ -97,33 +98,29 @@ pub fn collect_module_dependencies(
   modules
     .par_iter()
     .filter_map(|(module_id, _)| {
-      let Some(rsd_module_ukey) = rsd_modules.get(module_id).map(|m| m.ukey) else {
-        return None;
-      };
+      let rsd_module_ukey = module_ukeys.get(module_id)?;
       let dependencies = module_graph
         .get_outgoing_connections(module_id)
         .filter_map(|conn| {
-          let Some(dep) = module_graph.dependency_by_id(&conn.dependency_id) else {
-            return None;
-          };
+          let dep = module_graph.dependency_by_id(&conn.dependency_id)?;
           if let (Some(dep), Some(dep_module)) = (
             dep.as_module_dependency(),
             module_graph
               .module_identifier_by_dependency_id(&conn.dependency_id)
-              .and_then(|mid| rsd_modules.get(mid)),
+              .and_then(|mid| module_ukeys.get(mid).map(|ukey| (*mid, *ukey))),
           ) {
             let dep_ukey =
               dependency_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             return Some((
-              dep_module.identifier,
+              dep_module.0,
               (
                 conn.dependency_id,
                 RsdoctorDependency {
                   ukey: dep_ukey,
                   kind: *dep.dependency_type(),
                   request: dep.user_request().into(),
-                  module: rsd_module_ukey,
-                  dependency: dep_module.ukey,
+                  module: *rsd_module_ukey,
+                  dependency: dep_module.1,
                 },
               ),
             ));
@@ -139,24 +136,24 @@ pub fn collect_module_dependencies(
 
 pub fn collect_module_sources(
   modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
   compilation: &Compilation,
-) -> HashMap<Identifier, RsdoctorModuleSource> {
+) -> Vec<RsdoctorModuleSource> {
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
       let source = module.original_source();
       let size = module.size(None, Some(compilation)) as usize;
-      Some((
-        module_id.to_owned(),
-        RsdoctorModuleSource {
-          source_size: size,
-          transform_size: size,
-          source: source.map(|s| s.source().to_string()),
-          source_map: source
-            .and_then(|s| s.map(&MapOptions::default()))
-            .and_then(|m| m.to_json().ok()),
-        },
-      ))
+      let ukey = module_ukeys.get(module_id)?;
+      Some(RsdoctorModuleSource {
+        module: *ukey,
+        source_size: size,
+        transform_size: size,
+        source: source.map(|s| s.source().to_string()),
+        source_map: source
+          .and_then(|s| s.map(&MapOptions::default()))
+          .and_then(|m| m.to_json().ok()),
+      })
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<Vec<_>>()
 }
