@@ -2,17 +2,17 @@
 
 Because Rspack uses a mix of Rust and Node.js code, different testing strategies are used for each.
 
-## Rust Testing
+## Rust testing
 
 :::tip
 Rust test cases are only suitable for unit testing. To test the complete build process, please add Node.js test cases.
 :::
 
-### Running Rust Tests
+### Running Rust tests
 
 You can run the Rust code's test cases using `./x test rust` or `cargo test`.
 
-### Writing Rust Tests
+### Writing Rust tests
 
 Test cases are written within the Rust code. For example:
 
@@ -29,7 +29,7 @@ fn test_add() {
 
 > For more information, please refer to: [Rust: How to Write Tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html)
 
-## Node.js Testing
+## Node.js testing
 
 Node.js testing provides three test suites:
 
@@ -37,7 +37,7 @@ Node.js testing provides three test suites:
 - **Webpack Plugin Testing**: Running test cases of native supported plugins using Rspack
 - **Rspack Testing**: Running test cases of Rspack itself
 
-### Webpack Testing
+### Webpack testing
 
 Rspack copied the whole Webpack test suite to the `tests/webpack-test` folder to check the compatibility of webpack. If you need to add new test cases, it is recommended to first check if the case has been exists in this folder. You can enable a test case by removing the `test.filter.js` file or modifying its return value to `true`.
 
@@ -49,7 +49,7 @@ If you encounter any problems, please do not modify the original code of the Web
 
 > For more details, please refer to: [Webpack Testing](./testing-webpack#testing-webpack-cases).
 
-### Rspack Testing
+### Rspack testing
 
 Rspack's test cases are stored in the `packages/rspack-test-tools/tests` folder, including unique test cases and cases that require modification for Webpack and Webpack plugins.
 
@@ -62,7 +62,7 @@ You can also go to the `packages/rspack-test-tools` folder and run `npm run test
 
 > For more details, please refer to: [Rspack Testing](./testing-rspack).
 
-### Webpack Plugin Testing
+### Webpack plugin testing
 
 Due to implementation differences and performance considerations, Rspack will internally support some Webpack plugins. Similarly, the test suites for these plugins are copied to the `tests/plugin-test` folder to test the compatibility of the plugins.
 

@@ -8,7 +8,7 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 If you need to use `builtin:swc-loader` in your project, configure it as follows:
 
-### TypeScript Transpilation
+### TypeScript transpilation
 
 To transpile `.ts` files:
 
@@ -34,7 +34,7 @@ module.exports = {
 };
 ```
 
-### JSX Transpilation
+### JSX transpilation
 
 To transpile React's `.jsx` files:
 
@@ -71,7 +71,7 @@ module.exports = {
 };
 ```
 
-### Syntax Lowering
+### Syntax lowering
 
 SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) and [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) to specify the target of JavaScript syntax lowering.
 
@@ -134,7 +134,7 @@ module.exports = {
 `jsc.target` and `env.targets` cannot be configured at the same time, choose one according to your needs.
 :::
 
-### Polyfill Injection
+### Polyfill injection
 
 When using higher versions of JavaScript syntax and APIs in your project, to ensure that the compiled code can run in lower version browsers, you will typically need to perform two parts of the downgrade: syntax downgrading and polyfill injection.
 

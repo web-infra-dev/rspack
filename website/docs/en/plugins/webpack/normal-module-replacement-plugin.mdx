@@ -22,7 +22,7 @@ Note that the `resourceRegExp` is tested against the "request" on `beforeResolve
 Also, please note that when using Windows, you have to accommodate for the different folder separator symbol. E.g. `/src\/environments\/environment\.ts/` won't work on Windows, you have to use `/src[\\/]environments[\\/]environment\.ts/` instead.
 :::
 
-## Basic Example
+## Basic example
 
 Replace a specific module when building for a production environment.
 
@@ -37,7 +37,7 @@ new rspack.NormalModuleReplacementPlugin(
 );
 ```
 
-## Advanced Example
+## Advanced example
 
 Conditional build depending on a specified environment.
 
