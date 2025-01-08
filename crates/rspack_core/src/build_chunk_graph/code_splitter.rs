@@ -813,32 +813,56 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       chunk_group.next_pre_order_index = 0;
       chunk_group.next_post_order_index = 0;
 
+      let chunk_group = compilation
+        .chunk_group_by_ukey
+        .expect_get(&chunk_group_ukey);
+
       let module_graph = compilation.get_module_graph();
-      let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) else {
-        continue;
+
+      let roots = if let Some(blocks) = self.blocks_by_cgi.get(&cgi.ukey) {
+        let mut blocks = blocks.iter().copied().collect::<Vec<_>>();
+        blocks.sort_unstable();
+
+        // if one chunk group has multiple blocks, the modules order indices are very likely incorrect
+        // in every block. For example:
+        // one chunk import 'a' first then import 'b', while in other chunk import 'b' first then import 'a'.
+        // User use webpackChunkName to merge these 2 chunks, the `a` and `b` will be in the same chunk, their
+        // orders cannot be determined.
+        // Only use the first block to calculate the order indices.
+        let Some(DependenciesBlockIdentifier::AsyncDependenciesBlock(block)) =
+          blocks.first().copied()
+        else {
+          continue;
+        };
+
+        let Some(block) = module_graph.block_by_id(&block) else {
+          continue;
+        };
+        let root_modules = block
+          .get_dependencies()
+          .iter()
+          .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+          .copied()
+          .collect::<Vec<_>>();
+
+        Some(root_modules)
+      } else if chunk_group.kind.is_entrypoint() && chunk_group.is_initial() {
+        let entry_chunk_ukey = chunk_group.get_entry_point_chunk();
+        let entry_modules = compilation
+          .chunk_graph
+          .get_chunk_entry_modules(&entry_chunk_ukey);
+        Some(entry_modules)
+      } else {
+        None
       };
 
-      let mut blocks = blocks.iter().copied().collect::<Vec<_>>();
-      blocks.sort_unstable();
-      let Some(DependenciesBlockIdentifier::AsyncDependenciesBlock(block)) =
-        blocks.first().copied()
-      else {
+      let Some(roots) = roots else {
         continue;
       };
-
-      let Some(block) = module_graph.block_by_id(&block) else {
-        continue;
-      };
-      let blocks = block
-        .get_dependencies()
-        .iter()
-        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
-        .copied()
-        .collect::<Vec<_>>();
 
       let mut visited = IdentifierIndexSet::default();
 
-      for root in blocks {
+      for root in roots {
         let mut ctx = (0, 0, Default::default());
         self.calculate_order_index(root, &runtime, &mut visited, &mut ctx, compilation);
 
