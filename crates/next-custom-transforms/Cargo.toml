@@ -11,24 +11,25 @@ plugin = ["swc_core/plugin_transform_host_native"]
 workspace = true
 
 [dependencies]
-anyhow      = { workspace = true }
-chrono      = "0.4"
-easy-error  = "1.0.0"
-either      = "1"
-fxhash      = "0.2.1"
-hex         = "0.4.3"
-indoc       = { workspace = true }
-lazy_static = { workspace = true }
-once_cell   = { workspace = true }
-pathdiff    = { workspace = true }
-regex       = "1.5"
-rustc-hash  = { workspace = true }
-serde       = { workspace = true }
-serde_json  = { workspace = true, features = ["preserve_order"] }
-sha1        = "0.10.1"
-tracing     = { version = "0.1.37" }
 
+rustc-hash = { workspace = true }
+
+
+anyhow = { workspace = true }
+chrono = "0.4"
+easy-error = "1.0.0"
+either = "1"
+fxhash = "0.2.1"
+hex = "0.4.3"
+indoc = { workspace = true }
+lazy_static = { workspace = true }
 modularize_imports = { version = "0.77.0" }
+once_cell = { workspace = true }
+pathdiff = { workspace = true }
+regex = "1.5"
+serde = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
+sha1 = "0.10.1"
 styled_components = { version = "0.105.0" }
 styled_jsx = { version = "0.81.0" }
 swc_core = { workspace = true, features = [
@@ -52,6 +53,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_emotion = { version = "0.81.0" }
 swc_relay = { version = "0.51.0" }
+tracing = { version = "0.1.37" }
 
 preset_env_base         = "2.0.1"
 react_remove_properties = "0.31.0"

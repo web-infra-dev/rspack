@@ -110,7 +110,6 @@ pnp = { version = "0.9.0" }
 
 rspack_dojang = { version = "0.1.11" }
 
-
 next-custom-transforms                 = { path = "crates/next-custom-transforms" }
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }

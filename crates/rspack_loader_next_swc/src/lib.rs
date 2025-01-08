@@ -340,8 +340,8 @@ impl NextSwcLoader {
           transform: MergingOption::from(Some(TransformConfig {
             react: swc_core::ecma::transforms::react::Options {
               runtime: Some(swc_core::ecma::transforms::react::Runtime::Automatic),
-              import_source: Some("react".to_string()),
-              pragma_frag: Some("React.Fragment".to_string()),
+              import_source: Some("react".to_string().into()),
+              pragma_frag: Some("React.Fragment".to_string().into()),
               throw_if_namespace: Some(true),
               development: Some(is_development),
               refresh: if *has_react_refresh {
