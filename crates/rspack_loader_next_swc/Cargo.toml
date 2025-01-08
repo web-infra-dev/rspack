@@ -1,0 +1,43 @@
+[package]
+description = "rspack builtin next swc loader"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_loader_next_swc"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.cargo-shear]
+ignored = ["swc"]
+[features]
+default = []
+plugin = [
+  "swc_core/plugin_transform_host_native",
+  "swc_core/plugin_transform_host_native_filesystem_cache",
+  "swc_core/plugin_transform_host_native_shared_runtime",
+]
+
+[dependencies]
+anyhow                   = { workspace = true }
+async-trait              = { workspace = true }
+base64                   = { version = "0.22.1" }
+either                   = { workspace = true }
+indoc                    = { workspace = true }
+jsonc-parser             = { version = "0.26.2", features = ["serde"] }
+rspack_ast               = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_loader_runner     = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_swc_plugin_import = { workspace = true }
+rspack_util              = { workspace = true }
+serde                    = { workspace = true, features = ["derive"] }
+serde_json               = { workspace = true }
+stacker                  = { workspace = true }
+swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
+swc_config               = { workspace = true }
+next-custom-transforms   = { workspace = true }
+swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
+url                      = "2.5.4"
+[build-dependencies]
+cargo_toml = { version = "0.21.0" }
