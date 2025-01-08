@@ -450,9 +450,8 @@ pub struct RawJsonParserOptions {
 
 impl From<RawJsonParserOptions> for JsonParserOptions {
   fn from(value: RawJsonParserOptions) -> Self {
-    use pollster::block_on;
     let parse = match value.parse {
-      Some(f) => ParseOption::Func(Arc::new(move |s: String| block_on(f.call(s)))),
+      Some(f) => ParseOption::Func(Arc::new(move |s: String| f.blocking_call_with_sync(s))),
       _ => ParseOption::None,
     };
 

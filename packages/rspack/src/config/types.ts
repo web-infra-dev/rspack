@@ -1076,7 +1076,7 @@ export type JsonParserOptions = {
 	/**
 	 * If Rule.type is set to 'json' then Rules.parser.parse option may be a function that implements custom logic to parse module's source and convert it to a string.
 	 */
-	parse?: (source: string) => string;
+	parse?: (source: string) => object | string;
 };
 
 /** Configure all parsers' options in one place with module.parser. */
