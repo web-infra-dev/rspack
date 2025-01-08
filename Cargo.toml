@@ -48,6 +48,7 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.13.0" }
 json               = { version = "0.12.4" }
+lazy_static        = "1.5.0"
 lightningcss       = { version = "1.0.0-alpha.61" }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.43" }
@@ -106,6 +107,7 @@ rspack_dojang = { version = "0.1.9" }
 
 
 # all rspack workspace dependencies
+next-custom-transforms                 = { path = "crates/next-custom-transforms" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
