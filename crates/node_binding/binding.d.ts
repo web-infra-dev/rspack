@@ -733,15 +733,13 @@ export interface JsLibraryOptions {
 
 export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
   _module: JsModule
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: null | Buffer | string
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+  sourceMap?: JsSourceMap
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>
@@ -868,6 +866,16 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsSourceMap {
+  version: number
+  file?: string
+  sources: Array<string>
+  sourcesContent?: Array<string>
+  names: Array<string>
+  mappings: string
+  sourceRoot?: string
 }
 
 export interface JsStatsAsset {

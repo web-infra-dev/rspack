@@ -42,10 +42,8 @@ import {
 import {
 	concatErrorMsgAndStack,
 	isNil,
-	serializeObject,
 	stringifyLoaderObject,
-	toBuffer,
-	toObject
+	toBuffer
 } from "../util";
 import { createHash } from "../util/createHash";
 import {
@@ -219,16 +217,6 @@ export class LoaderObject {
 
 	static __to_binding(loader: LoaderObject): JsLoaderItem {
 		return loader.#loaderItem;
-	}
-}
-
-class JsSourceMap {
-	static __from_binding(map?: Buffer) {
-		return isNil(map) ? undefined : toObject(map);
-	}
-
-	static __to_binding(map?: object) {
-		return serializeObject(map);
 	}
 }
 
@@ -679,7 +667,7 @@ export async function runLoaders(
 			name,
 			source!,
 			assetInfo!,
-			context._moduleIdentifier
+			context._module.moduleIdentifier
 		);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
@@ -823,7 +811,7 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = serializeObject(sourceMap);
+						context.sourceMap = sourceMap;
 						context.additionalData = additionalData;
 						break;
 					}
@@ -833,7 +821,7 @@ export async function runLoaders(
 			}
 			case JsLoaderState.Normal: {
 				let content = context.content;
-				let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
+				let sourceMap = context.sourceMap;
 				let additionalData = context.additionalData;
 
 				while (loaderContext.loaderIndex >= 0) {
@@ -857,7 +845,7 @@ export async function runLoaders(
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = JsSourceMap.__to_binding(sourceMap);
+				context.sourceMap = sourceMap;
 				context.additionalData = additionalData;
 
 				break;

@@ -1,9 +1,9 @@
-use napi::Either;
+use napi::bindgen_prelude::Either3;
 use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::Result;
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -78,15 +78,11 @@ pub(crate) fn merge_loader_context(
     .collect();
 
   let content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
+    Either3::A(_) => None,
+    Either3::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
+    Either3::C(s) => Some(rspack_core::Content::from(s)),
   };
-  let source_map = from
-    .source_map
-    .as_ref()
-    .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
-    .transpose()
-    .map_err(|e| error!(e.to_string()))?;
+  let source_map = from.source_map.map(|s| s.take());
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);
