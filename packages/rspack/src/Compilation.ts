@@ -1265,7 +1265,6 @@ class AddIncludeDispatcher {
 		this.#args = [];
 		const cbs = this.#cbs;
 		this.#cbs = [];
-		console.log("args.length", args.length);
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
 				queueMicrotask(this.#execute);
