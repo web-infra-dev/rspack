@@ -1,7 +1,7 @@
-__webpack_require__.hmrM = function () {
+<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
 	return Promise.resolve()
 		.then(function () {
-			return require("./" + __webpack_require__.hmrF());
+			return require("./" + <%- GET_UPDATE_MANIFEST_FILENAME %>());
 		})['catch'](function (err) {
 			if (err.code !== 'MODULE_NOT_FOUND') throw err;
 		});

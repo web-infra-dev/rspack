@@ -1,9 +1,9 @@
 function loadUpdateChunk(chunkId, updatedModulesList) {
-	var update = require("./" + __webpack_require__.hu(chunkId));
+	var update = require("./" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
 	var updatedModules = update.modules;
 	var runtime = update.runtime;
 	for (var moduleId in updatedModules) {
-		if (__webpack_require__.o(updatedModules, moduleId)) {
+		if (<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
 			currentUpdate[moduleId] = updatedModules[moduleId];
 			if (updatedModulesList) updatedModulesList.push(moduleId);
 		}
