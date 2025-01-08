@@ -749,7 +749,7 @@ impl JsCompilation {
                 );
                 let js_module =
                   JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-                (Either::B(()), Either::B(js_module))
+                Either::B((js_dependency, js_module))
               }
               None => Either::A(format!(
                 "Module created by {:#?} cannot be found",

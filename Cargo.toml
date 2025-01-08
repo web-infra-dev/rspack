@@ -51,7 +51,8 @@ indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.63" }
+lazy_static        = "1.5.0"
+lightningcss       = { version = "1.0.0-alpha.61" }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.44", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
@@ -110,7 +111,7 @@ pnp = { version = "0.9.0" }
 rspack_dojang = { version = "0.1.11" }
 
 
-# all rspack workspace dependencies
+next-custom-transforms                 = { path = "crates/next-custom-transforms" }
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
