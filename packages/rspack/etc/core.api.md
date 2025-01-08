@@ -511,6 +511,10 @@ export class ChunkGroup {
     // (undocumented)
     getFiles(): ReadonlyArray<string>;
     // (undocumented)
+    getModulePostOrderIndex(module: Module): number | null;
+    // (undocumented)
+    getModulePreOrderIndex(module: Module): number | null;
+    // (undocumented)
     getParents(): ReadonlyArray<ChunkGroup>;
     // (undocumented)
     readonly index?: number;
@@ -1256,6 +1260,8 @@ export interface CssExtractRspackPluginOptions {
     attributes?: Record<string, string>;
     // (undocumented)
     chunkFilename?: RawCssExtractPluginOption["chunkFilename"];
+    // (undocumented)
+    enforceRelative?: boolean;
     // (undocumented)
     filename?: RawCssExtractPluginOption["filename"];
     // (undocumented)

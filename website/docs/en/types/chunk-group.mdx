@@ -8,7 +8,7 @@ type ChunkGroup = {
   origins: ReadonlyArray<{
     // where this chunk group is imported
     module?: Module;
-    request?: String;
+    request?: string;
   }>;
   isInitial(): boolean; // whether this chunk group will be loaded on initial page load
   getFiles(): ReadonlyArray<string>; // the files contained this chunk group

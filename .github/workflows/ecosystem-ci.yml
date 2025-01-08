@@ -120,7 +120,7 @@ jobs:
       matrix: ${{fromJson(needs.calculate-eco-ci-suite.outputs.suites)}}
       fail-fast: false
     name: eco-ci (${{ matrix.suite }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 #    runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - name: Checkout

@@ -4,7 +4,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Inline matchResource
 
-Inline matchResource allows you to dynamically change the matching rules when loading resources. You can set the `matchResource` for a request by prefixing `<match-resource>!=!` to the request.
+Inline matchResource allows you to dynamically change the matching rules when loading resources. You can set the `matchResource` for a module specifier by prefixing `<match-resource>!=!` to the module specifier.
 
 When a `matchResource` is set, it will be used to match with the `module.rules` instead of the original resource. This can be useful if further loaders should be applied to the resource, or if the module type needs to be changed.
 

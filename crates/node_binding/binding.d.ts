@@ -87,6 +87,8 @@ export declare class JsChunkGroup {
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
   getFiles(): Array<string>
+  getModulePreOrderIndex(module: JsModule): number | null
+  getModulePostOrderIndex(module: JsModule): number | null
 }
 
 export declare class JsCompilation {
@@ -1297,6 +1299,7 @@ export interface RawCssExtractPluginOption {
   linkType?: string
   runtime: boolean
   pathinfo: boolean
+  enforceRelative: boolean
 }
 
 export interface RawCssGeneratorOptions {

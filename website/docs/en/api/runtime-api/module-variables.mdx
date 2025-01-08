@@ -173,7 +173,7 @@ function webpackContext(
 
 ```js
 // Create a context, with files from the test directory that
-// can be required with a request ending with `.test.js`.
+// can be required with a module specifier ending with `.test.js`.
 const context = import.meta.webpackContext('./test', {
   recursive: false,
   regExp: /\.test\.js$/,
@@ -210,7 +210,7 @@ The context returned by `import.meta.webpackContext()` is a function that takes 
 
 This function has three properties: `resolve`, `keys`, and `id`.
 
-- `resolve` is a function and returns the module id of the parsed request.
+- `resolve` is a function and returns the module id of the parsed module specifier.
 - `keys` is a function that returns an array of all possible requests that the context module can handle.
 - `id` is the module id of the context module. This may be useful for `module.hot.accept`.
 

@@ -4,7 +4,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # 内联 matchResource
 
-Inline matchResource 允许你在加载资源时动态改变匹配规则。你可以通过在请求前添加 `<match-resource>!=!` 前缀来为该请求设置 `matchResource`。
+Inline matchResource 允许你在加载资源时动态改变匹配规则。你可以通过在模块标识符前添加 `<match-resource>!=!` 前缀来为该模块标识符设置 `matchResource`。
 
 当 `matchResource` 被设置时，它将被用来与 `module.rules` 而不是原始资源进行匹配。当如果有更多的 loader 应该应用到资源上，或者需要改变模块的类型，这可能很有用。
 

@@ -26,6 +26,8 @@ export interface CssExtractRspackPluginOptions {
 
 	// workaround for pathinto, deprecate this when rspack supports pathinfo
 	pathinfo?: boolean;
+	// when using relativePath, add './' prefix, e.g:  url('static/img/foo.png') => url('./static/img/foo.png')
+	enforceRelative?: boolean;
 }
 
 export class CssExtractRspackPlugin {
@@ -121,7 +123,8 @@ export class CssExtractRspackPlugin {
 							return obj;
 						}, {}) as Record<string, string>)
 				: {},
-			pathinfo: options.pathinfo ?? false
+			pathinfo: options.pathinfo ?? false,
+			enforceRelative: options.enforceRelative ?? false
 		};
 
 		return normalzedOptions;
