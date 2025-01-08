@@ -46,9 +46,7 @@ Take pnpm as an example:
 {
   "pnpm": {
     "overrides": {
-      "@rspack/binding": "npm:@rspack/binding-canary@nightly",
-      "@rspack/core": "npm:@rspack/core-canary@nightly",
-      "@rspack/plugin-react-refresh": "npm:@rspack/plugin-react-refresh@nightly"
+      "@rspack/core": "npm:@rspack-canary/core@nightly"
     },
     "peerDependencyRules": {
       "allowAny": ["@rspack/*"]
