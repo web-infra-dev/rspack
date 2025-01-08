@@ -5,7 +5,7 @@ Rspack's test cases include the following:
 - Rspack core test cases are stored in the `packages/rspack-test-tools/tests` folder and will run the test cases by simulating the build process. In general, test cases should be added in this folder.
 - Test cases for other Rspack packages are stored in the `packages/{name}/tests` folder and should only be added or modified when modifying that package.
 
-## Running Tests
+## Running tests
 
 You can run these test cases in the following ways:
 
@@ -16,7 +16,7 @@ You can run these test cases in the following ways:
 - To filter specific test cases, run `npm run test -- -t path-of-spec` from the `packages/rspack-test-tools` directory.
   - Like `npm run test -- -t config/asset` to only run test cases from the `packages/rspack-test-tools/configCases/asset` folder (config will be automatically mapped to configCases, and other folders will work in a similar way).
 
-## Directory Structure
+## Directory structure
 
 The structure of the `packages/rspack-test-tools/tests` folder is as follows:
 
@@ -33,13 +33,13 @@ The structure of the `packages/rspack-test-tools/tests` folder is as follows:
 
 The `{Name}.test.js` is the entry file for tests, which will walk the `{name}Cases` folder and run cases in it. Therefore, when you need to add or modify test cases, add them to the relevant `{name}Cases` folder based on the type of testing.
 
-## Test Types
+## Test types
 
 The existing test types are:
 
 - [Normal](#normal): Used to test core build processes without configuration changes. This type is used when testing does not require adding `rspack.config.js`.
 - [Config](#config): Used to test build configuration options. If your test needs specific configuration added through `rspack.config.js` to run and does not fit other scenarios, use this test type.
-- [Hot](#hot): Used to test whether Hot Module Replacement (HMR) runs correctly. This type includes HotNode with a fixed `target=async-node`, HotWeb with a fixed `target=web`, and HotWorker with a fixed `target=webworker`.
+- [Hot](#hot): Used to test whether HMR runs correctly. This type includes HotNode with a fixed `target=async-node`, HotWeb with a fixed `target=web`, and HotWorker with a fixed `target=webworker`.
 - [HotSnapshot](#hotsnapshot): Used to test whether HMR can generate correct intermediate artifacts. This test type shares test cases with the Hot type and generates snapshots for incremental artifacts for each HMR.
 - [Watch](#watch): Used to test incremental compilation after modifying files in Watch mode.
 - [StatsOutput](#statsoutput): Used to test the console output log after the build ends.

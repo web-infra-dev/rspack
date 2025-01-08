@@ -1,4 +1,4 @@
-# Rspack Contributing Guide
+# Rspack contributing guide
 
 Thank you for your interest in contributing to Rspack! There are many ways to contribute, and we appreciate all of them.
 
@@ -14,7 +14,7 @@ The Rspack team believe that creating a development guide for Rspack is a great 
 By providing clarity and consistency, lowering barriers to entry, building trust, and encouraging collaboration,
 we can create a strong and thriving open source project that people will want to contribute to.
 
-## Documentation Contribution
+## Documentation contribution
 
 See [documentation](./website/README.md).
 

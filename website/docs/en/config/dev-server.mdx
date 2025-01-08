@@ -80,7 +80,7 @@ module.exports = {
 - **Type:** `'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'`
 - **Default:** `'info'`
 
-Allows to set log level in the browser, e.g. before reloading, before an error or when Hot Module Replacement is enabled.
+Allows to set log level in the browser, e.g. before reloading, before an error or when HMR is enabled.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -501,7 +501,7 @@ Specifying local-ipv6 as host will try to resolve the host option as your local 
 - **Type:** `boolean | 'only'`
 - **Default:** `true`
 
-Enable Rspack's Hot Module Replacement feature:
+Enable Rspack's hot module replacement feature:
 
 ```javascript title="rspack.config.js"
 module.exports = {
@@ -512,7 +512,7 @@ module.exports = {
 };
 ```
 
-To enable Hot Module Replacement without page refresh as a fallback in case of build failures, use `hot: 'only'`:
+To enable HMR without page refresh as a fallback in case of build failures, use `hot: 'only'`:
 
 ```javascript title="rspack.config.js"
 module.exports = {

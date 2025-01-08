@@ -7,17 +7,17 @@ sidebar: false
 
 > 2023 年 6 月 2 日
 
-自 Rspack 0.1 版本发布的将近三个月以来，我们得到了非常多社区的关注和反馈，感谢大家对 Rspack 的支持。在 0.2 版本中，我们新增了诸多功能，如 realContentHash、DataURI、ESM format 的支持等，同时加强了与 Webpack 的兼容性，并优化了诸多细节。
+自 Rspack 0.1 版本发布的将近三个月以来，我们得到了非常多社区的关注和反馈，感谢大家对 Rspack 的支持。在 0.2 版本中，我们新增了诸多功能，如 realContentHash、DataURI、ESM format 的支持等，同时加强了与 webpack 的兼容性，并优化了诸多细节。
 
-另外，得益于对 Webpack API 良好的兼容性，我们对于周边生态也完成了进一步的兼容，例如，测试完成了对 vue-loader 17（对应 Vue3）和 15（对应 Vue2）版本的兼容，现在大家可以尝试在 Vue2 / 3 项目中使用 Rspack 了。我们期待您在 0.2 版本中体验到这些全新的改进，并欢迎您随时给我们提供反馈。
+另外，得益于对 webpack API 良好的兼容性，我们对于周边生态也完成了进一步的兼容，例如，测试完成了对 vue-loader 17（对应 Vue3）和 15（对应 Vue2）版本的兼容，现在大家可以尝试在 Vue2 / 3 项目中使用 Rspack 了。我们期待您在 0.2 版本中体验到这些全新的改进，并欢迎您随时给我们提供反馈。
 
 ## 主要功能更新
 
 ### Loader
 
-0.2 版本完成了 loader 大部分 API 的兼容，其中包括了 inline match resource，pitching loader，inline loader 等。更多的 API 进一步提升了对 Webpack loader 的兼容性，详情可以参考下方 webpack 兼容性更新。更多信息请参考 [Loader API](/api/loader-api/index)
+0.2 版本完成了 loader 大部分 API 的兼容，其中包括了 inline match resource，pitching loader，inline loader 等。更多的 API 进一步提升了对 webpack loader 的兼容性，详情可以参考下方 webpack 兼容性更新。更多信息请参考 [Loader API](/api/loader-api/index)
 
-### Plugin Hooks
+### Plugin hooks
 
 新增一些插件的的钩子
 
@@ -104,7 +104,7 @@ module.exports = {
 };
 ```
 
-## Breaking Changes
+## Breaking changes
 
 - 文件名生成逻辑对齐
 
@@ -142,7 +142,7 @@ module.exports = {
 
   详情：https://github.com/web-infra-dev/rspack/pull/3358
 
-## Webpack 兼容性更新
+## webpack 兼容性更新
 
 随着我们支持了更多的 webpack API，我们也兼容了更多的社区的 Plugin 和 Loader。我们适配了一些社区呼声较高的 Plugin 和 Loader。
 
@@ -189,7 +189,7 @@ Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue3 项目，你可
 
 ### Storybook
 
-在 Storybook 团队的帮助下，Rspack 完成了对 Storybook React 版本的支持，你可以按照 [迁移 Storybook](/guide/migration/storybook) 的方式从 webpack 版本迁移到 Rspack 版本，在实际的项目中测试在不开启 docgen 功能的情况下，Rspack 版本比 Webpack 版本快 5-10 倍，在开启了 docgen 的情况下，因为 Rspack 仍然依赖 babel 处理 docgen,因此性能受到影响，但也有 2-3 倍左右提升。
+在 Storybook 团队的帮助下，Rspack 完成了对 Storybook React 版本的支持，你可以按照 [迁移 Storybook](/guide/migration/storybook) 的方式从 webpack 版本迁移到 Rspack 版本，在实际的项目中测试在不开启 docgen 功能的情况下，Rspack 版本比 webpack 版本快 5-10 倍，在开启了 docgen 的情况下，因为 Rspack 仍然依赖 babel 处理 docgen,因此性能受到影响，但也有 2-3 倍左右提升。
 
 ### Angular
 
@@ -197,7 +197,7 @@ Rspack 0.2 已经完成了对 vue-loader 的兼容。对于 Vue3 项目，你可
 
 ### NestJS
 
-在 Rosa、Nx 和 Valor 的帮助下，Rspack 完成了对 NestJS 的编译支持，你可以使用 Rspack 打包 NestJS 应用，在实际项目中进行测试，Rspack 相比 Webpack 版本有 5-10 倍的构建性能提升。
+在 Rosa、Nx 和 Valor 的帮助下，Rspack 完成了对 NestJS 的编译支持，你可以使用 Rspack 打包 NestJS 应用，在实际项目中进行测试，Rspack 相比 webpack 版本有 5-10 倍的构建性能提升。
 
 ## Benchmark
 
@@ -220,7 +220,7 @@ Rspack 团队非常重视开源社区做出的宝贵贡献。我们致力于保�
 针对稳定发布，我们目前：
 
 - 在 Rspack 仓库中集成各种示例（目前有 38 个示例）
-- 正在从 Webpack 仓库移植所有的 Webpack 集成测试
+- 正在从 webpack 仓库移植所有的 webpack 集成测试
 - 在 Node.js 版本 14、16 和 18 上运行所有测试
 - 搭建了独立的 ecosystem-ci 仓库用于集成社区的上层框架
 
@@ -234,11 +234,11 @@ Rspack 团队非常重视开源社区做出的宝贵贡献。我们致力于保�
 
 特别感谢
 
-- [@TheLarkInn](https://github.com/TheLarkInn) 和 [@alexander-akait](https://github.com/alexander-akait) ，回答和解决了很多 Rspack 团队关于 Webpack 的疑问。
+- [@TheLarkInn](https://github.com/TheLarkInn) 和 [@alexander-akait](https://github.com/alexander-akait) ，回答和解决了很多 Rspack 团队关于 webpack 的疑问。
 - [@zackarychapple](https://github.com/zackarychapple)、[@valorkin](https://github.com/valorkin)、[@edusperoni](https://github.com/edusperoni) 以及 [@Coly101](https://github.com/Coly010) ，帮助 Rspack 对 Angular 做了基本支持，特别是 [@zackarychapple](https://github.com/zackarychapple) 帮助我们 review 这篇发布公告的英文版本。
 - [@suxin2017](https://github.com/suxin2017)，在 Rspack 里支持了 System.js format，optional-dependency 等功能，并在 Windows 兼容方面做了很多贡献。
 - [@faga295](https://github.com/faga295)，在 Rspack 里支持了解压代码注释功能和 `rspack preview` 功能。
-- [@lippzhang](https://github.com/lippzhang)，在对齐 Webpack 行为方面做了很多贡献。
+- [@lippzhang](https://github.com/lippzhang)，在对齐 webpack 行为方面做了很多贡献。
 - [@HerringtonDarkholme](https://github.com/HerringtonDarkholme)，允许 Rspack 使用 rspack.config.ts 作为配置文件
 - [@dhruvkelawala](https://github.com/dhruvkelawala), 在 Rspack 里实现了 builtins.provide 功能
 - [@magic-akari](https://github.com/magic-akari)，在 Rspack 里支持了 `new URL("./foo", import.meta.url)` 语法

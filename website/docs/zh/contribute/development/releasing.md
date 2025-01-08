@@ -46,7 +46,7 @@ nightly 构建完全复制了全量发布构建，以便尽早发现错误。
 {
   "pnpm": {
     "overrides": {
-      "@rspack/core": "npm:@rspack-canary/core@nightly"
+      "@rspack/core": "npm:@rspack-canary/core@latest"
     },
     "peerDependencyRules": {
       "allowAny": ["@rspack/*"]
@@ -58,6 +58,6 @@ nightly 构建完全复制了全量发布构建，以便尽早发现错误。
 Rspack 社区提供了 [install-rspack](https://github.com/rspack-contrib/install-rspack) 工具来快速修改 Rspack 版本:
 
 ```shell
-npx install-rspack --version nightly # Get latest nightly npm tag version
+npx install-rspack --version latest # Get latest canary npm tag version
 npx install-rspack --version 0.7.5-canary-d614005-20240625082730 # A specific canary version
 ```

@@ -30,7 +30,7 @@ If its options do not meet your needs, you can also directly use the community [
 In order to align the default template syntax of `html-webpack-plugin`, Rspack changed the default EJS escape and unescape to be the same as `html-webpack-plugin`'s default syntax.
 :::
 
-### Supported EJS Syntax
+### Supported EJS syntax
 
 Only the following basic interpolation expressions and some control statements are supported. Here, the interpolation expressions only support the most basic string types and do not support arbitrary JavaScript expressions. Other EJS syntaxes are currently not supported.
 
@@ -85,7 +85,7 @@ Does not escape the content within the interpolation:
 <p>.</p>
 ```
 
-#### Control Statements
+#### Control statements
 
 Use the `for in` statement to implement list traversal and the `if` statement to implement conditional judgment:
 
@@ -330,7 +330,7 @@ module.exports = {
 };
 ```
 
-#### Use Template String
+#### Use template string
 
 Specify the HTML template content through `templateContent`:
 
@@ -355,7 +355,7 @@ module.exports = {
 };
 ```
 
-#### Use Template Function
+#### Use template function
 
 Use a function to generate the HTML template content:
 
@@ -409,7 +409,7 @@ module.exports = {
 };
 ```
 
-#### Template Parameters
+#### Template parameters
 
 The HTML template rendering parameters can be extended through `templateParameters`. The following variables are available by default:
 
@@ -440,7 +440,7 @@ There are some differences with HtmlWebpackPlugin:
 
 :::
 
-### Filter Chunks
+### Filter chunks
 
 The chunks that need to be injected can be specified through the following configuration:
 
@@ -470,7 +470,7 @@ module.exports = {
 };
 ```
 
-### Meta Tags
+### Meta tags
 
 If `meta` is set, HtmlRspackPlugin will inject `<meta>` tags.
 
@@ -500,7 +500,7 @@ module.exports = {
 };
 ```
 
-### Base Tags
+### Base tags
 
 If `base` is set, HtmlRspackPlugin will inject the `<base>` tag.
 

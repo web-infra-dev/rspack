@@ -28,7 +28,7 @@ If `newContentResource` is relative, it is resolved relative to the previous res
 
 ## Examples
 
-### Basic Use Case
+### Basic use case
 
 ```js
 new rspack.ContextReplacementPlugin(/moment[/\\]locale$/, /de|fr|hu/);
@@ -36,7 +36,7 @@ new rspack.ContextReplacementPlugin(/moment[/\\]locale$/, /de|fr|hu/);
 
 The `moment/locale` context is restricted to files matching `/de|fr|hu/`. Thus only those locales are included (see [this issue](https://github.com/moment/moment/issues/2373) for more information).
 
-### Other Options
+### Other options
 
 The `newContentResource` and `newContentCreateContextMap` parameters are also available:
 
