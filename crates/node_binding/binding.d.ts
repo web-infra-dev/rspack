@@ -87,6 +87,8 @@ export declare class JsChunkGroup {
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
   getFiles(): Array<string>
+  getModulePreOrderIndex(module: JsModule): number | null
+  getModulePostOrderIndex(module: JsModule): number | null
 }
 
 export declare class JsCompilation {
