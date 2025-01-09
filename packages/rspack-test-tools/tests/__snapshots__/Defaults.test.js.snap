@@ -449,7 +449,6 @@ Object {
       production,
       browser,
     ],
-    pnp: false,
     exportsFields: Array [
       exports,
     ],
@@ -466,6 +465,7 @@ Object {
     modules: Array [
       node_modules,
     ],
+    pnp: false,
     roots: Array [
       <TEST_TOOLS_ROOT>,
     ],
