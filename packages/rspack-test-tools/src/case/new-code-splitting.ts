@@ -1,8 +1,15 @@
 import { Experiments } from "@rspack/core";
-import { ConfigProcessor, IConfigProcessorOptions } from "../processor";
+import {
+	ConfigProcessor,
+	IConfigProcessorOptions,
+	IStatsAPIProcessorOptions,
+	StatsAPIProcessor
+} from "../processor";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
+import { TStatsAPICaseConfig } from "./stats-api";
+import { getSimpleProcessorRunner } from "../test/simple";
 
 export function createConfigNewCodeSplittingCase(
 	name: string,
@@ -56,5 +63,42 @@ class NewCodeSplittingProcessor<
 		ConfigProcessor.overrideOptions(index, context, options);
 		options.experiments ??= {};
 		(options.experiments as Experiments).parallelCodeSplitting ??= true;
+	}
+}
+
+export function createStatsAPINewCodeSplittingCase(
+	name: string,
+	src: string,
+	dist: string,
+	testConfig: string
+) {
+	const caseConfig: TStatsAPICaseConfig = require(testConfig);
+	const runner = getSimpleProcessorRunner(src, dist);
+
+	it(caseConfig.description, async () => {
+		await runner(
+			name,
+			new NewCodeSplittingStatsAPIProcessor({
+				name: name,
+				compilerType: ECompilerType.Rspack,
+				...caseConfig
+			})
+		);
+	});
+}
+
+class NewCodeSplittingStatsAPIProcessor extends StatsAPIProcessor<ECompilerType.Rspack> {
+	constructor(
+		protected _statsAPIOptions: IStatsAPIProcessorOptions<ECompilerType.Rspack>
+	) {
+		super({
+			..._statsAPIOptions,
+			options: context => {
+				const res = _statsAPIOptions.options?.(context) || {};
+				res.experiments ??= {};
+				res.experiments.parallelCodeSplitting ??= true;
+				return res;
+			}
+		});
 	}
 }
