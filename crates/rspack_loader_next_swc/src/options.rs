@@ -31,6 +31,48 @@ impl From<RawRspackExperiments> for RspackExperiments {
   }
 }
 
+#[cacheable]
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NextSwcLoaderJsOptions {
+  pub root_dir: String,
+
+  pub is_server: bool,
+
+  pub pages_dir: Option<String>,
+
+  pub app_dir: Option<String>,
+
+  pub has_react_refresh: bool,
+
+  pub optimize_server_react: Option<bool>,
+
+  // next_config
+  // js_config
+  #[serde(default)]
+  pub supported_browsers: Vec<String>,
+
+  pub swc_cache_dir: String,
+
+  #[serde(default)]
+  pub server_components: Option<bool>,
+
+  pub server_reference_hash_salt: String,
+
+  pub bundle_layer: Option<String>,
+
+  #[serde(default)]
+  pub esm: bool,
+  // transpilePackages?: string[]
+}
+
+impl TryFrom<&str> for NextSwcLoaderJsOptions {
+  type Error = serde_json::Error;
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    serde_json::from_str(value)
+  }
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct SwcLoaderJsOptions {

@@ -214,13 +214,14 @@ fn read_config(opts: &Options, name: &FileName) -> Result<Option<Config>, Error>
 }
 
 pub(crate) struct SwcCompiler {
-  cm: Arc<SourceMap>,
-  fm: Arc<SourceFile>,
-  comments: SingleThreadedComments,
-  options: Options,
-  globals: Globals,
-  helpers: Helpers,
-  config: Config,
+  pub cm: Arc<SourceMap>,
+  pub fm: Arc<SourceFile>,
+  pub comments: SingleThreadedComments,
+  pub options: Options,
+  pub globals: Globals,
+  pub helpers: Helpers,
+  pub config: Config,
+  pub unresolved_mark: Mark,
 }
 
 impl SwcCompiler {
@@ -270,11 +271,11 @@ impl SwcCompiler {
 
 impl SwcCompiler {
   pub fn new(resource_path: PathBuf, source: String, mut options: Options) -> Result<Self, Error> {
+    let unresolved_mark = Mark::new();
     let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
     let globals = Globals::default();
     GLOBALS.set(&globals, || {
       let top_level_mark = Mark::new();
-      let unresolved_mark = Mark::new();
       options.top_level_mark = Some(top_level_mark);
       options.unresolved_mark = Some(unresolved_mark);
     });
@@ -298,6 +299,7 @@ impl SwcCompiler {
       globals,
       helpers,
       config,
+      unresolved_mark,
     })
   }
 
