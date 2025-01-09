@@ -417,13 +417,16 @@ impl NormalModuleFactory {
         let rule_use = match &rule.r#use {
           ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
+            let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
             let context = FuncUseCtx {
               // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
-              // resource shouldn't contain query otherwise it will cause duplicate query in https://github.com/unjs/unplugin/blob/62fdc5ae361d86a6ec39eaef5d8f01e12c6a794d/src/utils.ts#L58
-              resource: resource_data.resource_path.clone().map(|x| x.to_string()),
-              real_resource: Some(user_request.clone()),
+              resource: resource_data_for_rules
+                .resource_path
+                .as_ref()
+                .map(|x| x.to_string()),
+              resource_query: resource_data_for_rules.resource_query.clone(),
+              real_resource: resource_data.resource_path.as_ref().map(|p| p.to_string()),
               issuer: data.issuer.clone(),
-              resource_query: resource_data.resource_query.clone(),
             };
             Cow::Owned(func_use(context).await?)
           }
