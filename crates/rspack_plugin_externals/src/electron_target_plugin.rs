@@ -2,6 +2,7 @@ use rspack_core::{BoxPlugin, ExternalItem, PluginExt};
 
 use crate::ExternalsPlugin;
 
+#[derive(Debug)]
 pub enum ElectronTargetContext {
   Main,
   Preload,
