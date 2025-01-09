@@ -41,6 +41,7 @@ next-custom-transforms   = { workspace = true }
 once_cell   = { workspace = true }
 sugar_path = { workspace = true }
 regex   = { workspace = true }
+preset_env_base         = "1.0.0"
 rustc-hash  = "1.1.0"
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 url                      = "2.5.4"
