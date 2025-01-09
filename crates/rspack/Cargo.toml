@@ -17,8 +17,13 @@ rspack_regex = { workspace = true }
 rustc-hash   = { workspace = true }
 serde_json   = { workspace = true }
 
-rspack_plugin_devtool   = { workspace = true }
-rspack_plugin_externals = { workspace = true }
+rspack_ids               = { workspace = true }
+rspack_plugin_devtool    = { workspace = true }
+rspack_plugin_externals  = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+# rspack_plugin_lightning_css_minimizer = { workspace = true }
+rspack_plugin_runtime_chunk    = { workspace = true }
+rspack_plugin_swc_js_minimizer = { workspace = true }
 
 [lints]
 workspace = true
