@@ -38,6 +38,6 @@ _{{stdout}}_
 _{{production:stdout}}_
 ```
 
-# Code Splitting
+# Code splitting
 
 See [this example combined with code splitting](../code-splitted-require.context)

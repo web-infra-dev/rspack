@@ -31,7 +31,7 @@ Keep in mind that multiple plugins and loaders are used together. Loaders are us
 
 ## Examples
 
-### In Plugin
+### In plugin
 
 There are two types of logging methods:
 
@@ -57,7 +57,7 @@ export class MyRspackPlugin {
 }
 ```
 
-### In Loader
+### In loader
 
 You can get the logger from loader context like below:
 
@@ -320,7 +320,7 @@ Includes these methods:
 - `profile(label: any): void`: to start capturing a profile. Delegated to `console.profile` when supported.
 - `profileEnd(label: any): void`: to end capturing a profile. Delegated to `console.profileEnd` when supported.
 
-### Child Logger
+### Child logger
 
 You can also create a child logger with `logger.getChildLogger()`. Child logger has same methods.
 
