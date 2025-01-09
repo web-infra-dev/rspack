@@ -40,6 +40,7 @@ css-module-lexer   = { version = "0.0.15" }
 dashmap            = { version = "6.1.0" }
 derive_more        = { version = "1.0.0" }
 either             = { version = "1.13.0" }
+enum-tag           = { version = "0.3.0" }
 futures            = { version = "0.3.31" }
 glob               = { version = "0.3.2" }
 hashlink           = { version = "0.10.0" }
