@@ -23,7 +23,8 @@ import {
 import {
 	HtmlRspackPlugin,
 	JavascriptModulesPlugin,
-	JsLoaderRspackPlugin
+	JsLoaderRspackPlugin,
+	RsdoctorRspackPlugin
 } from "./builtin-plugin";
 
 import { Chunk } from "./Chunk";
@@ -768,7 +769,7 @@ class Compiler {
 		this.#compilation = undefined;
 		// ensure thisCompilation must call
 		this.hooks.thisCompilation.intercept({
-			call: () => {}
+			call: () => { }
 		});
 	}
 
@@ -1444,8 +1445,8 @@ class Compiler {
 						) {
 							const data = bindingData
 								? ContextModuleFactoryBeforeResolveData.__from_binding(
-										bindingData
-									)
+									bindingData
+								)
 								: false;
 							const result = await queried.promise(data);
 							return result
@@ -1471,8 +1472,8 @@ class Compiler {
 						) {
 							const data = bindingData
 								? ContextModuleFactoryAfterResolveData.__from_binding(
-										bindingData
-									)
+									bindingData
+								)
 								: false;
 							const result = await queried.promise(data);
 							return result
@@ -1625,7 +1626,59 @@ class Compiler {
 						});
 					};
 				}
-			)
+			),
+			registerRsdoctorPluginModuleGraphTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.RsdoctorPluginModuleGraph,
+				function () {
+					return RsdoctorRspackPlugin.getCompilationHooks(
+						that.deref()!.#compilation!
+					).moduleGraph;
+				},
+				function (queried) {
+					return async function (data: binding.JsRsdoctorModuleGraph) {
+						return await queried.promise(data);
+					};
+				}
+			),
+			registerRsdoctorPluginChunkGraphTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.RsdoctorPluginChunkGraph,
+				function () {
+					return RsdoctorRspackPlugin.getCompilationHooks(
+						that.deref()!.#compilation!
+					).chunkGraph;
+				},
+				function (queried) {
+					return async function (data: binding.JsRsdoctorChunkGraph) {
+						return await queried.promise(data);
+					};
+				}
+			),
+			registerRsdoctorPluginModuleSourcesTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.RsdoctorPluginChunkGraph,
+				function () {
+					return RsdoctorRspackPlugin.getCompilationHooks(
+						that.deref()!.#compilation!
+					).moduleSources;
+				},
+				function (queried) {
+					return async function (data: binding.JsRsdoctorModuleSource[]) {
+						return await queried.promise(data);
+					};
+				}
+			),
+			registerRsdoctorPluginAssetsTaps: this.#createHookRegisterTaps(
+				binding.RegisterJsTapKind.RsdoctorPluginAssets,
+				function () {
+					return RsdoctorRspackPlugin.getCompilationHooks(
+						that.deref()!.#compilation!
+					).assets;
+				},
+				function (queried) {
+					return async function (data: binding.JsRsdoctorAsset[]) {
+						return await queried.promise(data);
+					};
+				}
+			),
 		};
 
 		this.#instance = new instanceBinding.Rspack(
