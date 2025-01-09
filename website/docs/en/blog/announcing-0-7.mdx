@@ -19,7 +19,7 @@ Notable changes in Rspack v0.7:
 
 - [Support for Lazy Compilation](#support-for-lazy-compilation): Significantly improves the dev startup performance of large applications by compiling on demand.
 - [Faster CSS Build](#faster-css-builds): Introducing a new css-module-lexer, which increases CSS bundling speed by 4 times.
-- [Breaking Changes](#breaking-changes): Removed some unstable APIs to make default behaviors more consistent with webpack.
+- [Breaking changes](#breaking-changes): Removed some unstable APIs to make default behaviors more consistent with webpack.
 
 ## Support for Lazy Compilation
 
@@ -96,7 +96,7 @@ The CSS parsing process before and after the refactor is shown in the diagram be
 - Before refactoring: ~84 ms (analyzing CSS dependencies ~71 ms)
 - After refactoring: ~25 ms (analyzing CSS dependencies ~11 ms)
 
-## Breaking Changes
+## Breaking changes
 
 Rspack will gradually remove all unstable APIs and configurations before version 1.0, and more configurations / APIs / default behaviors will be align with webpack.
 

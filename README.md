@@ -28,17 +28,17 @@ Rspack is a high performance JavaScript bundler written in Rust. It offers stron
 
 Read [Introduction](https://rspack.dev/guide/start/introduction) for details.
 
-## Getting Started
+## Getting started
 
-See [Quick Start](https://rspack.dev/guide/start/quick-start).
+See [Quick start](https://rspack.dev/guide/start/quick-start).
 
 ## Contribution
 
 Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack together.
 
-### Code of Conduct
+### Code of conduct
 
-This repo has adopted the ByteDance Open Source Code of Conduct. Please check [Code of Conduct](./CODE_OF_CONDUCT.md) for more details.
+This repo has adopted the ByteDance Open Source Code of Conduct. Please check [Code of conduct](./CODE_OF_CONDUCT.md) for more details.
 
 ## Community
 

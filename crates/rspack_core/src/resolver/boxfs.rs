@@ -1,4 +1,7 @@
-use std::{io, sync::Arc};
+use std::{
+  io::{self},
+  sync::Arc,
+};
 
 use rspack_fs::{Error, ReadableFileSystem};
 use rspack_paths::AssertUtf8;
@@ -13,6 +16,11 @@ impl BoxFS {
   }
 }
 impl ResolverFileSystem for BoxFS {
+  fn read(&self, path: &std::path::Path) -> io::Result<Vec<u8>> {
+    self.0.read(path.assert_utf8()).map_err(|err| match err {
+      Error::Io(e) => e,
+    })
+  }
   fn read_to_string(&self, path: &std::path::Path) -> std::io::Result<String> {
     match self.0.read(path.assert_utf8()) {
       Ok(x) => String::from_utf8(x).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err)),

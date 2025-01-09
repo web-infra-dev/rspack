@@ -2,7 +2,7 @@
 
 This chapter introduces some common performance bottlenecks and performance profile methods for Rspack.
 
-## Performance Bottlenecks
+## Performance bottlenecks
 
 Although Rspack itself provides good build performance, the use of some JavaScript loaders and plugins in Rspack can slow down the build performance, especially on large projects.
 
@@ -38,7 +38,7 @@ If your project uses the PostCSS plugin for Tailwind CSS v3, you may need to wai
 
 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) performs poorly when generating large numbers of HTML files. The [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) implemented in Rust by Rspack can provide better performance.
 
-## Rspack Profile
+## Rspack profile
 
 The Rspack CLI supports the use of the `RSPACK_PROFILE` environment variable for build performance profile.
 
@@ -52,11 +52,11 @@ This command will generate a `.rspack-profile-${timestamp}-${pid}` folder in the
 - `jscpuprofile.json`: The time spent at each stage on the JavaScript side is recorded at a granular level using [Node.js inspector](https://nodejs.org/dist/latest-v18.x/docs/api/inspector.html) and can be viewed using [speedscope.app](https://www.speedscope.app/)
 - `logging.json`: Includes some logging information that keeps a coarse-grained record of how long each phase of the build took
 
-## Rsdoctor's Compilation Analysis
+## Analysis with Rsdoctor
 
 Rsdoctor is a build analyser that can visually display the compilation time of each loaders and plugins.
 
-#### Loader Timeline
+#### Loader timeline
 
 If you need to analyze the time cost of loaders and plugins, or the compilation behavior of loaders, you can use Rsdoctor to view:
 
@@ -66,7 +66,7 @@ You can view the execution time of each loader and the files that were compiled,
 
 Refer to [Loader Timeline](https://rsdoctor.dev/guide/usage/loaders-timeline).
 
-#### Loader Details
+#### Loader details
 
 If you want to view the compilation process of loaders, you can use the [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis):
 
@@ -76,7 +76,7 @@ On this report page, you can see the code changes made by the loaders for each f
 
 Refer to [Loader Details](https://rsdoctor.dev/guide/usage/loaders-analysis).
 
-#### Enable Compilation Analysis
+#### Enable compilation analysis
 
 To enable `RsdoctorRspackPlugin`, you can refer to the documentation: [Use Rsdoctor](/guide/optimization/use-rsdoctor).
 

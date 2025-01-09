@@ -111,6 +111,7 @@ impl Resolver {
       options_with_dependency_type.resolve_to_context,
       options_with_dependency_type.dependency_category,
     );
+
     let resolver = resolver.clone_with_options(options);
     Self { resolver }
   }
@@ -285,6 +286,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
+    enable_pnp: options.pnp.unwrap_or(false),
   }
 }
 

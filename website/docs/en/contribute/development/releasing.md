@@ -8,7 +8,7 @@ All published releases of `@rspack/cli` can be found on the [npm versions page](
 - `nightly`
 - `canary`
 
-## Latest Full Release
+## Latest full release
 
 The [full release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
 is currently triggered manually every Tuesday with full release notes.
@@ -46,7 +46,7 @@ Take pnpm as an example:
 {
   "pnpm": {
     "overrides": {
-      "@rspack/core": "npm:@rspack-canary/core@nightly"
+      "@rspack/core": "npm:@rspack-canary/core@latest"
     },
     "peerDependencyRules": {
       "allowAny": ["@rspack/*"]
@@ -58,6 +58,6 @@ Take pnpm as an example:
 The Rspack community provides the [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to quickly modify the Rspack version:
 
 ```shell
-npx install-rspack --version nightly # Get latest nightly npm tag version
+npx install-rspack --version latest # Get latest canary npm tag version
 npx install-rspack --version 0.7.5-canary-d614005-20240625082730 # A specific canary version
 ```

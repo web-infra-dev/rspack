@@ -70,6 +70,7 @@ struct ResolveWithEntry {
   alias_fields: Entry<AliasFields>,
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
+  pnp: Entry<bool>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -102,6 +103,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     alias_fields: entry!(alias_fields),
     restrictions: entry!(restrictions),
     roots: entry!(roots),
+    pnp: entry!(pnp),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -261,6 +263,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   };
 
   let result_entry = ResolveWithEntry {
+    pnp: merge!(pnp, second.pnp.base.get_value_type(), |_| true, |_, b| b),
     extensions: merge!(
       extensions,
       second.extensions.base.get_value_type(),
@@ -436,6 +439,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     alias_fields: result_entry.alias_fields.base,
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
+    pnp: result_entry.pnp.base,
   }
 }
 

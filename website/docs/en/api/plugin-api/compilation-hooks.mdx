@@ -11,7 +11,7 @@ import Columns from '@components/Columns';
 import { NoSSR } from 'rspress/runtime';
 import { ApiMeta } from '@components/ApiMeta';
 
-# Compilation Hooks
+# Compilation hooks
 
 :::info
 The main compilation logic of Rspack runs on the Rust side. For factors such as stability, performance, and architecture, after the Rust side compilation objects are transferred to the JavaScript side when using hooks, the modifications on these objects will not be synchronized to the Rust side. Therefore, most of hooks are "read-only".
