@@ -5900,9 +5900,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "10.0.1"
+version = "10.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859def2fe912fe5db391cae719574bfe7e7f03ab88ae2ed3c850e16852257353"
+checksum = "436d1fd5f092ddf5e1ee06e070c9a1462983a26d5b7da72422c190c658e20284"
 dependencies = [
  "swc",
  "swc_allocator",
@@ -6270,9 +6270,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "6.0.1"
+version = "6.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f92ea41c3c3f0fe77991fee96b91bc4c7af43b55fdb6564fdc31b8c2d0b1e220"
+checksum = "b92d3a25349d7f612c38d940f09f9c19c7b7aa3bf4d22fbe31ea44fd5354de02"
 dependencies = [
  "either",
  "new_debug_unreachable",
@@ -6468,9 +6468,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_optimization"
-version = "7.0.0"
+version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8872f4c8893e507beb5f379d83d001b050323499367e410702ca8e79e081226"
+checksum = "5e4232534b28fc57b745e8c709723544e5548af29abaa62281eab427099f611d"
 dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.7.0",
