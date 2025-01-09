@@ -9,13 +9,11 @@ it("should have correct runtime id", () => {
 it("should include runtime condition check code", () => {
 	const fs = __non_webpack_require__("fs");
 	const path = __non_webpack_require__("path");
-	const url = __non_webpack_require__("url");
 
-	const __filename = url.fileURLToPath(import.meta.url);
 	const source = fs.readFileSync(
 		path.join(
-			__filename,
-			"../../../../js/config/runtime/runtime-condition/shared.js"
+			__dirname,
+			"./shared.js"
 		),
 		"utf-8"
 	);
