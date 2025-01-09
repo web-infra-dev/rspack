@@ -12,7 +12,10 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
@@ -2235,8 +2238,10 @@ impl Compilation {
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
+  #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: AssetInfo,
 }
@@ -2277,6 +2282,7 @@ impl CompilationAsset {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -2314,6 +2320,7 @@ pub struct AssetInfo {
   /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
   /// in the rust struct and have the Js side to reshape and align with webpack.
   /// Related: packages/rspack/src/Compilation.ts
+  #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
@@ -2412,6 +2419,7 @@ impl AssetInfo {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
