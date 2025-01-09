@@ -164,7 +164,7 @@ module.exports = {
 
 ### 废弃 `builtins.devFriendlySplitChunks` 和 `experiments.newSplitChunks`
 
-为了完全迁移到 Webpack 的 splitChunks 实现，这些字段已被废弃。Rspack 将在 v0.5.0 中移除这些字段。
+为了完全迁移到 webpack 的 splitChunks 实现，这些字段已被废弃。Rspack 将在 v0.5.0 中移除这些字段。
 
 ### 默认启用新的解析器
 
@@ -225,7 +225,7 @@ Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 Rspack [内部
 
 目前，rspack 的内部插件分为两类：
 
-- 与 Webpack 兼容的插件，如 DefinePlugin, ProvidePlugin 等，这部分实现与 webpack 完成了完整的对齐
+- 与 webpack 兼容的插件，如 DefinePlugin, ProvidePlugin 等，这部分实现与 webpack 完成了完整的对齐
 - Rspack 独有的插件，如 SwcJsMinimizerRspackPlugin, CopyRspackPlugin 等
 
 原有的 `builtins.define` 可以这样迁移：

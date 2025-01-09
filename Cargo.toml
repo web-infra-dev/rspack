@@ -24,13 +24,14 @@ ignored = [
   "rspack_plugin_mini_css_extract",
   "rspack_binding",
   "rspack_plugin_merge",
+  "rspack",
 ]
 [workspace.dependencies]
 anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-scoped       = { version = "0.9.0" }
-async-trait        = { version = "0.1.83" }
+async-trait        = { version = "0.1.84" }
 bitflags           = { version = "2.6.0" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
@@ -40,13 +41,13 @@ dashmap            = { version = "6.1.0" }
 derive_more        = { version = "1.0.0" }
 either             = { version = "1.13.0" }
 futures            = { version = "0.3.31" }
-glob               = { version = "0.3.1" }
+glob               = { version = "0.3.2" }
 hashlink           = { version = "0.10.0" }
 heck               = { version = "0.5.0" }
 hex                = { version = "0.4.3" }
 indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
-itertools          = { version = "0.13.0" }
+itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.61" }
 linked_hash_set    = { version = "0.1.5" }
@@ -66,13 +67,13 @@ ropey              = "1.6.1"
 rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.4.1" }
 rspack_sources     = { version = "0.4.1" }
 rustc-hash         = { version = "2.1.0" }
-serde              = { version = "1.0.216" }
+serde              = { version = "1.0.217" }
 serde_json         = { version = "1.0.134" }
 simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.92" }
+syn                = { version = "2.0.95" }
 tokio              = { version = "1.42.0" }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
@@ -92,13 +93,13 @@ inventory = { version = "=0.1" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=9.0.1" }
+swc                 = { version = "=10.0.0" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=9.0.2", default-features = false }
-swc_ecma_minifier   = { version = "=6.0.1", default-features = false }
+swc_core            = { version = "=10.0.1", default-features = false }
+swc_ecma_minifier   = { version = "=7.0.1", default-features = false }
 swc_error_reporters = { version = "=6.0.0" }
-swc_html            = { version = "=6.0.0" }
-swc_html_minifier   = { version = "=6.0.0", default-features = false }
+swc_html            = { version = "=7.0.0" }
+swc_html_minifier   = { version = "=7.0.0", default-features = false }
 swc_node_comments   = { version = "=5.0.0" }
 
 pnp = { version = "0.9.0" }
@@ -107,6 +108,7 @@ rspack_dojang = { version = "0.1.9" }
 
 
 # all rspack workspace dependencies
+rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }

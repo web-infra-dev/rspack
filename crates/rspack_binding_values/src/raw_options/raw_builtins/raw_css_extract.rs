@@ -15,6 +15,7 @@ pub struct RawCssExtractPluginOption {
   pub link_type: Option<String>,
   pub runtime: bool,
   pub pathinfo: bool,
+  pub enforce_relative: bool,
 }
 
 impl From<RawCssExtractPluginOption> for CssExtractOptions {
@@ -37,6 +38,7 @@ impl From<RawCssExtractPluginOption> for CssExtractOptions {
       link_type: value.link_type,
       runtime: value.runtime,
       pathinfo: value.pathinfo,
+      enforce_relative: value.enforce_relative,
     }
   }
 }

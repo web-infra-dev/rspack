@@ -1,4 +1,4 @@
-# Tree Shaking
+# Tree shaking
 
 Rspack supports tree shaking, a terminology widely used within the JavaScript ecosystem defined as the removal of unused code, commonly referred to as "dead code." Dead code arises when certain exports from a module are not used and they lack side effects, allowing such pieces to be safely deleted to reduce the final output size.
 
@@ -37,7 +37,7 @@ const foo = 1;
 console.log(foo);
 ```
 
-## Side Effects Analysis
+## Side effects analysis
 
 In `production` mode, Rspack also typically analyzes modules for the presence of side effects. If all exports from a module are unused and the module is devoid of side effects, then the entire module can be deleted. Let's modify the previous example a bit:
 
@@ -52,7 +52,7 @@ In this case, none of the exports from `util.js` are used, and it’s analyzed a
 
 You may manually indicate whether a module retains side effects through `package.json` or `module.rules`. For information on how to do so, please consult [sideEffects](/config/optimization#optimizationsideeffects).
 
-## Re-export Analysis
+## Re-export analysis
 
 Re-exports are common in development. However, a module might pull in numerous other modules while typically only a fraction of those are needed. Rspack optimizes this situation by ensuring that the referring party can access the actual exported modules directly. Consider this example involving re-exports:
 
@@ -85,7 +85,7 @@ This approach benefits by entirely ignoring the `src/re-exports.js` module.
 
 With an ability to analyze all re-exports in `src/re-exports.js`, it is determined that `foo` from `src/value.js` is not used and will be removed in the final output.
 
-## Variable Transmission
+## Variable transmission
 
 In some cases, even though exports are accessed, they might not actually be used. For example:
 

@@ -4,7 +4,7 @@ The document lists all breaking changes from Rspack v0.7 to v1.0. You can refer 
 
 > See [Breaking changes in Rspack v1.0.0](https://github.com/web-infra-dev/rspack/discussions/6626) for details.
 
-## Configuration Default Value Adjustments
+## Configuration default value adjustments
 
 In Rspack 1.x, we have aligned the default configuration values with those of Webpack.
 
@@ -68,7 +68,7 @@ The default value of [optimization.moduleIds](/config/optimization#optimizationm
 
 The default value of [optimization.chunkIds](/config/optimization#optimizationchunkids) has been changed to `'natural'` when `mode` is `none`.
 
-## Removed Configurations
+## Removed configurations
 
 ### [Important] Removed resolve.tsConfigPath
 
@@ -199,9 +199,9 @@ export default {
 };
 ```
 
-## Adjustments to Built-in Plugins
+## Adjustments to built-in plugins
 
-### [Important] CSS Minimizer Plugin Adjustment
+### [Important] CSS minimizer plugin adjustment
 
 In Rspack 0.x, we used the built-in `rspack.SwcCssMinimizerRspackPlugin` to compress CSS size.
 Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to handle the same functionality.
@@ -233,7 +233,7 @@ Rspack's built-in and default-enabled JavaScript minimizer plugin has had its co
 - `minimizerOptions.comments`: moved to `minimizerOptions.format.comments`
 - `minimizerOptions.asciiOnly`: moved to `minimizerOptions.format.ascii_only`
 
-Default Value Changes:
+Default value changes:
 
 - `comments` (`options.format.comments`): changed from `false` to `"some"`
 
@@ -244,7 +244,7 @@ We have aligned its configuration with [html-webpack-plugin](https://www.npmjs.c
 - `excludedChunks` has been renamed to `excludeChunks`
 - When `mode` is `'production'`, `minify` is now `true` by default
 
-## Other Changes
+## Other changes
 
 ### [Important] @rspack/cli
 
@@ -253,7 +253,7 @@ We have aligned its configuration with [html-webpack-plugin](https://www.npmjs.c
 - The minimum supported Node.js version for webpack-dev-server v5 is 18.12.0.
 - Several configuration options have changed. Please refer to the [webpack-dev-server v5 migration guide](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md).
 
-### [Important] ResolverFactory and Resolver Refactoring with Rust
+### [Important] ResolverFactory and Resolver refactoring with Rust
 
 `ResolverFactory` and `Resolver` have been refactored with Rust to unify the implementations on the JS and Rust sides. Due to this change, `ResolverFactory` and `Resolver` currently do not support any hooks.
 

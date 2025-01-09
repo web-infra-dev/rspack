@@ -87,7 +87,7 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependency {
       source.replace(
         replace.start,
         replace.end,
-        &escape_css(&replace.local_ident, false),
+        &escape_css(&replace.local_ident),
         None,
       );
     }

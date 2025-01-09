@@ -441,6 +441,15 @@ module.exports = {
 
 Cache versions, different versions of caches are isolated from each other.
 
+:::tip title="Persistent cache invalidation"
+
+In addition to [buildDependencies](#cachebuilddependencies) and [version](#cacheversion) configurations that affect persistent cache invalidation, Rspack also invalidates persistent cache when the following fields change.
+
+- [config.name](/config/other-options#name)
+- [config.mode](/config/mode#mode)
+
+:::
+
 #### cache.snapshot
 
 Configure snapshot strategy. Snapshot is used to determine which files have been modified during shutdown. The following configurations are supported:

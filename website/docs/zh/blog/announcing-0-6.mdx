@@ -55,7 +55,7 @@ Rspack 在 0.1.0 支持了基本的 tree shaking 功能，由于最初的架构�
 
 ### 移除 compiler.build 和 compiler.rebuild
 
-`compiler.build` 与 `compiler.rebuild` 不属于 Webpack 公开 API，目前已经被移除。
+`compiler.build` 与 `compiler.rebuild` 不属于 webpack 公开 API，目前已经被移除。
 
 ### 移除 builtins.css 并引入 CSS 相关 module.parser 和 module.generator 选项
 
@@ -123,7 +123,7 @@ module.exports = {
 
 ### 使用 rspack.CssExtractRspackPlugin
 
-如果你曾经使用 Webpack 和 `mini-css-extract-plugin`，只需要将 `mini-css-extract-plugin` 换成 `rspack.CssExtractPlugin` 即可。
+如果你曾经使用 webpack 和 `mini-css-extract-plugin`，只需要将 `mini-css-extract-plugin` 换成 `rspack.CssExtractPlugin` 即可。
 
 ```diff
 + const CssExtract = require('@rspack/core').CssExtractRspackPlugin;
