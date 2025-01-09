@@ -6,11 +6,29 @@ import { Compiler } from "../Compiler";
 import * as liteTapable from "@rspack/lite-tapable";
 import { Compilation } from "../Compilation";
 
+export type {
+  JsRsdoctorAsset as RsdoctorAsset,
+  JsRsdoctorChunkGraph as RsdoctorChunkGraph,
+  JsRsdoctorModuleGraph as RsdoctorModuleGraph,
+  JsRsdoctorModuleSource as RsdoctorModuleSource,
+  JsRsdoctorChunk as RsdoctorChunk,
+  JsRsdoctorModule as RsdoctorModule,
+  JsRsdoctorSideEffect as RsdoctorSideEffect,
+  JsRsdoctorExportInfo as RsdoctorExportInfo,
+  JsRsdoctorVariable as RsdoctorVariable,
+  JsRsdoctorDependency as RsdoctorDependency,
+  JsRsdoctorEntrypoint as RsdoctorEntrypoint,
+  JsRsdoctorStatement as RsdoctorStatement,
+  JsRsdoctorSourceRange as RsdoctorSourceRange,
+  JsRsdoctorSourcePosition as RsdoctorSourcePosition,
+  JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule,
+} from "@rspack/binding";
+
 export type RsdoctorRspackPluginOptions = {};
 const rsdoctorPluginSchema = z.strictObject({}) satisfies z.ZodType<RsdoctorRspackPluginOptions>;
 
 const RsdoctorRspackPluginImpl = create(
-  BuiltinPluginName.HtmlRspackPlugin,
+  BuiltinPluginName.RsdoctorRspackPlugin,
   function (
     this: Compiler,
     c: RsdoctorRspackPluginOptions = {}

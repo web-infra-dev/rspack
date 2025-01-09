@@ -253,6 +253,23 @@ export const sharing = {
 };
 
 ///// Rspack Postfixed Internal Plugins /////
+export type {
+	RsdoctorAsset,
+	RsdoctorChunkGraph,
+	RsdoctorModuleGraph,
+	RsdoctorModuleSource,
+	RsdoctorChunk,
+	RsdoctorModule,
+	RsdoctorSideEffect,
+	RsdoctorExportInfo,
+	RsdoctorVariable,
+	RsdoctorDependency,
+	RsdoctorEntrypoint,
+	RsdoctorStatement,
+	RsdoctorSourceRange,
+	RsdoctorSourcePosition,
+	RsdoctorModuleGraphModule,
+} from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
