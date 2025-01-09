@@ -5,6 +5,6 @@ module.exports = {
 		main: './index.js'
 	},
 	resolve: {
-		enablePnp: true
+		pnp: true
 	}
 }

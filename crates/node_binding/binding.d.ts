@@ -256,7 +256,7 @@ export declare class JsResolver {
 }
 
 export declare class JsResolverFactory {
-  constructor(enablePnp: boolean)
+  constructor(pnp: boolean)
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
@@ -1884,7 +1884,7 @@ export interface RawResolveOptions {
   aliasFields?: Array<string>
   restrictions?: Array<string>
   roots?: Array<string>
-  enablePnp?: boolean
+  pnp?: boolean
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -1911,7 +1911,7 @@ export interface RawResolveOptionsWithDependencyType {
   roots?: Array<string>
   dependencyCategory?: string
   resolveToContext?: boolean
-  enablePnp?: boolean
+  pnp?: boolean
 }
 
 export interface RawResolveTsconfigOptions {

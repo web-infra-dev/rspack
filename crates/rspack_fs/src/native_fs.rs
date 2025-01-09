@@ -13,7 +13,7 @@ use crate::{
 #[derive(Debug)]
 struct NativeFileSystemOptions {
   // enable yarn pnp feature
-  enable_pnp: bool,
+  pnp: bool,
 }
 #[derive(Debug)]
 pub struct NativeFileSystem {
@@ -21,9 +21,9 @@ pub struct NativeFileSystem {
   pnp_lru: LruZipCache<Vec<u8>>,
 }
 impl NativeFileSystem {
-  pub fn new(enable_pnp: bool) -> Self {
+  pub fn new(pnp: bool) -> Self {
     Self {
-      options: NativeFileSystemOptions { enable_pnp },
+      options: NativeFileSystemOptions { pnp },
       pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
     }
   }
@@ -88,7 +88,7 @@ impl From<FileType> for FileMetadata {
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if self.options.enable_pnp {
+    if self.options.pnp {
       let path = path.as_std_path();
       let buffer = match VPath::from(path)? {
         VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
@@ -101,7 +101,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if self.options.enable_pnp {
+    if self.options.pnp {
       let path = path.as_std_path();
       return match VPath::from(path)? {
         VPath::Zip(info) => self
@@ -130,7 +130,7 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if self.options.enable_pnp {
+    if self.options.pnp {
       let path = path.as_std_path();
       let path = match VPath::from(path)? {
         VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),

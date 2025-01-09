@@ -1639,7 +1639,7 @@ class Compiler {
 				: undefined,
 			ResolverFactory.__to_binding(
 				(this.resolverFactory = new ResolverFactory(
-					rawOptions.resolve.enablePnp ?? false
+					rawOptions.resolve.pnp ?? false
 				))
 			)
 		);

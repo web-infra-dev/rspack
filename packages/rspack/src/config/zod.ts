@@ -413,7 +413,7 @@ const baseResolveOptions = z.strictObject({
 	aliasFields: z.array(z.string()).optional(),
 	restrictions: z.array(z.string()).optional(),
 	roots: z.array(z.string()).optional(),
-	enablePnp: z.boolean().optional()
+	pnp: z.boolean().optional()
 }) satisfies z.ZodType<t.ResolveOptions>;
 
 const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({

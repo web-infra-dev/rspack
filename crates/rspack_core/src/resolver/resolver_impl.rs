@@ -286,7 +286,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
-    enable_pnp: options.enable_pnp.unwrap_or(false),
+    enable_pnp: options.pnp.unwrap_or(false),
   }
 }
 

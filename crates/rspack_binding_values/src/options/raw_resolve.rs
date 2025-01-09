@@ -51,7 +51,7 @@ pub struct RawResolveOptions {
   pub alias_fields: Option<Vec<String>>,
   pub restrictions: Option<Vec<String>>,
   pub roots: Option<Vec<String>>,
-  pub enable_pnp: Option<bool>,
+  pub pnp: Option<bool>,
 }
 
 fn normalize_alias(alias: Option<Vec<RawAliasOptionItem>>) -> rspack_error::Result<Option<Alias>> {
@@ -91,7 +91,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
-    let enable_pnp = value.enable_pnp;
+    let pnp = value.pnp;
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -152,7 +152,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       enforce_extension,
       description_files,
       imports_fields,
-      enable_pnp,
+      pnp,
     })
   }
 }
@@ -204,7 +204,7 @@ pub struct RawResolveOptionsWithDependencyType {
 
   pub dependency_category: Option<String>,
   pub resolve_to_context: Option<bool>,
-  pub enable_pnp: Option<bool>,
+  pub pnp: Option<bool>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -250,7 +250,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         main_fields: raw.main_fields,
         condition_names: raw.condition_names,
         tsconfig,
-        enable_pnp: raw.enable_pnp,
+        pnp: raw.pnp,
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,

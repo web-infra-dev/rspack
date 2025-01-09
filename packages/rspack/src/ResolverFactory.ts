@@ -16,8 +16,8 @@ export class ResolverFactory {
 		return resolver_factory.#binding;
 	}
 
-	constructor(enable_pnp: boolean) {
-		this.#binding = new binding.JsResolverFactory(enable_pnp);
+	constructor(pnp: boolean) {
+		this.#binding = new binding.JsResolverFactory(pnp);
 	}
 
 	get(
