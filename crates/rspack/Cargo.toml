@@ -8,6 +8,7 @@ version     = "0.2.0"
 
 [dependencies]
 bitflags     = { workspace = true }
+enum-tag     = { workspace = true }
 indexmap     = { workspace = true, features = ["rayon"] }
 regex        = { workspace = true }
 rspack_core  = { workspace = true }

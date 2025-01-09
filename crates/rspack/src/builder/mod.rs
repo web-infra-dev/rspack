@@ -3,7 +3,7 @@ mod externals;
 mod target;
 
 pub use devtool::Devtool;
-pub use target::Target;
+pub use target::Targets;
 
 macro_rules! d {
   ($o:expr, $v:expr) => {{
@@ -23,7 +23,14 @@ macro_rules! f {
   }};
 }
 
+macro_rules! expect {
+  ($o:expr) => {
+    $o.expect("value should not be `Option::None` after default apply")
+  };
+}
+
 use devtool::DevtoolFlags;
+use enum_tag::EnumTag;
 use externals::ExternalsPresets;
 use indexmap::IndexMap;
 use rspack_core::{incremental::IncrementalPasses, ModuleType};
@@ -89,42 +96,71 @@ impl Builder for Experiments {
 
 /// Options of builtin plugins
 ///
-/// Plugin options applied to compiler is ordered.
-/// Plugin options are created ahead of apply and used for ordered plugin application later.
+/// The order of this list is strictly ordered with respect to `rspackOptionsApply`.
 #[allow(unused, clippy::enum_variant_names)]
-#[derive(Debug)]
+#[derive(Debug, EnumTag)]
+#[repr(u8)]
 pub(crate) enum BuiltinPluginOptions {
-  DefinePlugin(rspack_plugin_javascript::define_plugin::DefineValue),
-  ProvidePlugin,
-  BannerPlugin,
-  IgnorePlugin,
-  ProgressPlugin,
-  EntryPlugin,
-  DynamicEntryPlugin,
+  // External handling plugins
   ExternalsPlugin((ExternalType, Vec<ExternalItem>)),
   NodeTargetPlugin,
   ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
-  EnableChunkLoadingPlugin(ChunkLoadingType),
-  EnableLibraryPlugin(LibraryType),
-  EnableWasmLoadingPlugin(WasmLoadingType),
-  FetchCompileAsyncWasmPlugin,
+  HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
+
+  // Chunk format and loading plugins
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
-  HotModuleReplacementPlugin,
-  LimitChunkCountPlugin,
-  WorkerPlugin,
-  WebWorkerTemplatePlugin,
+  EnableChunkLoadingPlugin(ChunkLoadingType),
+  EnableWasmLoadingPlugin(WasmLoadingType),
+
+  // Runtime and error handling
+  RuntimeChunkPlugin(rspack_plugin_runtime_chunk::RuntimeChunkOptions),
+  NoEmitOnErrorsPlugin,
+
+  // DevTool plugins
+  SourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
+  EvalSourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
+  EvalDevToolModulePlugin(rspack_plugin_devtool::EvalDevToolModulePluginOptions),
+
+  // Core module plugins
+  JavascriptModulesPlugin,
+  JsonModulesPlugin,
+  AssetModulesPlugin,
+  AsyncWebAssemblyModulesPlugin,
+  CssModulesPlugin,
+
+  // Entry and runtime plugins
+  EntryPlugin,
+  RuntimePlugin,
+  BundlerInfoRspackPlugin,
+
+  // Core functionality plugins
+  InferAsyncModulesPlugin,
+  APIPlugin,
+  DataUriPlugin,
+  FileUriPlugin,
+
+  // Optimization plugins
+  EnsureChunkConditionsPlugin,
   MergeDuplicateChunksPlugin,
+  SideEffectsFlagPlugin,
+  FlagDependencyExportsPlugin,
+  FlagDependencyUsagePlugin(bool),
+  ModuleConcatenationPlugin,
+  MangleExportsPlugin(bool),
+
+  // Experiments
+  LazyCompilationPlugin,
+
+  // Output plugins
+  EnableLibraryPlugin(LibraryType),
   SplitChunksPlugin,
-  RemoveDuplicateModulesPlugin,
-  ShareRuntimePlugin,
-  ContainerPlugin,
-  ContainerReferencePlugin,
-  ProvideSharedPlugin,
-  ConsumeSharedPlugin,
-  ModuleFederationRuntimePlugin,
+  RemoveEmptyChunksPlugin,
+  RealContentHashPlugin,
+
+  // Module and chunk ID plugins
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
@@ -132,52 +168,54 @@ pub(crate) enum BuiltinPluginOptions {
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
   OccurrenceChunkIdsPlugin(rspack_ids::OccurrenceChunkIdsPluginOptions),
-  RealContentHashPlugin,
-  RemoveEmptyChunksPlugin,
-  EnsureChunkConditionsPlugin,
-  WarnCaseSensitiveModulesPlugin,
-  DataUriPlugin,
-  FileUriPlugin,
-  RuntimePlugin,
-  JsonModulesPlugin,
-  InferAsyncModulesPlugin,
-  JavascriptModulesPlugin,
-  AsyncWebAssemblyModulesPlugin,
-  AssetModulesPlugin,
-  SourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
-  EvalSourceMapDevToolPlugin(rspack_plugin_devtool::SourceMapDevToolPluginOptions),
-  EvalDevToolModulePlugin(rspack_plugin_devtool::EvalDevToolModulePluginOptions),
-  SideEffectsFlagPlugin,
-  FlagDependencyExportsPlugin,
-  FlagDependencyUsagePlugin(bool),
-  MangleExportsPlugin(bool),
-  ModuleConcatenationPlugin,
-  CssModulesPlugin,
-  APIPlugin,
-  RuntimeChunkPlugin(rspack_plugin_runtime_chunk::RuntimeChunkOptions),
+
+  // Define and optimization plugins
+  DefinePlugin(rspack_plugin_javascript::define_plugin::DefineValue),
+  AnyMinimizerRspackPlugin(BoxPlugin),
   SizeLimitsPlugin,
-  NoEmitOnErrorsPlugin,
+
+  // Cache plugins
+  MemoryCachePlugin,
+
+  // Worker plugins
+  WorkerPlugin,
+
+  // Stats plugins
+  DefaultStatsFactoryPlugin,
+  DefaultStatsPresetPlugin,
+  DefaultStatsPrinterPlugin,
+
+  // Other core plugins
+  ProgressPlugin,
+  DynamicEntryPlugin,
+  BannerPlugin,
+  IgnorePlugin,
+  FetchCompileAsyncWasmPlugin,
+  HotModuleReplacementPlugin,
+  LimitChunkCountPlugin,
+  WebWorkerTemplatePlugin,
+  RemoveDuplicateModulesPlugin,
+  ShareRuntimePlugin,
+  ContainerPlugin,
+  ContainerReferencePlugin,
+  ProvideSharedPlugin,
+  ConsumeSharedPlugin,
+  ModuleFederationRuntimePlugin,
+  WarnCaseSensitiveModulesPlugin,
   ContextReplacementPlugin,
   DllEntryPlugin,
   DllReferenceAgencyPlugin,
   LibManifestPlugin,
   FlagAllModulesAsUsedPlugin,
+  ProvidePlugin,
 
-  LazyCompilationPlugin,
-
-  // rspack specific plugins
-  // naming format follow XxxRspackPlugin
-  HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
+  // Rspack specific plugins
   CopyRspackPlugin,
   HtmlRspackPlugin,
-  SwcJsMinimizerRspackPlugin,
-  LightningCssMinimizerRspackPlugin,
-  // minimizer plugins
-  AnyMinimizerRspackPlugin(BoxPlugin),
-  BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
 }
 
+#[derive(Default, Debug)]
 pub struct BuilderContext {
   plugins: Vec<BuiltinPluginOptions>,
 }
@@ -186,7 +224,7 @@ pub struct BuilderContext {
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
   name: Option<String>,
-  target: Option<Target>,
+  target: Option<Targets>,
   entry: IndexMap<String, EntryDescription>,
   externals: Option<Vec<ExternalItem>>,
   externals_type: Option<ExternalType>,
@@ -209,8 +247,8 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  pub fn target(&mut self, target: Target) -> &mut Self {
-    self.target = Some(target);
+  pub fn target(&mut self, targets: Targets) -> &mut Self {
+    self.target = Some(targets);
     self
   }
 
@@ -346,27 +384,20 @@ impl CompilerOptionsBuilder {
       experiments.cache = ExperimentCacheOptions::Disabled;
     }
 
-    let async_web_assembly = experiments_builder
-      .async_web_assembly
-      .expect("should apply default value");
+    let async_web_assembly = expect!(experiments_builder.async_web_assembly);
     if async_web_assembly {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::AsyncWebAssemblyModulesPlugin);
     }
-    let css = experiments_builder.css.expect("should apply default value");
+    let css = expect!(experiments_builder.css);
     if css {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::CssModulesPlugin);
     }
-
-    let future_defaults = experiments_builder
-      .future_defaults
-      .expect("should apply default value");
-    let output_module = experiments_builder
-      .output_module
-      .expect("should apply default value");
+    let future_defaults = expect!(experiments_builder.future_defaults);
+    let output_module = expect!(experiments_builder.output_module);
 
     // apply module defaults
     let module = f!(self.module.take(), ModuleOptions::builder).build(
@@ -449,7 +480,7 @@ impl CompilerOptionsBuilder {
 
     // TODO: bundler info
 
-    // applyExternalsPresetsDefaults
+    // apply externals presets defaults
     let externals_presets = self.externals_presets.get_or_insert_default();
     let tp = &target_properties;
     w!(externals_presets.node, tp.node());
@@ -484,10 +515,7 @@ impl CompilerOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
-          self
-            .externals_type
-            .clone()
-            .expect("should available after apply"),
+          expect!(self.externals_type.clone()),
           externals,
         )));
     }
@@ -556,10 +584,49 @@ impl CompilerOptionsBuilder {
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
       builder_context,
-      production,
       development,
+      production,
       css,
     );
+
+    // apply unconditional plugins
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::ChunkPrefetchPreloadPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::JavascriptModulesPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::JsonModulesPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::AssetModulesPlugin);
+
+    // TODO: entry
+
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::RuntimePlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::InferAsyncModulesPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::APIPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::DataUriPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::FileUriPlugin);
+
+    // TODO: options
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::WorkerPlugin);
+
+    // TODO: stats plugins
 
     CompilerOptions {
       name,
@@ -2199,5 +2266,46 @@ impl ExperimentsBuilder {
       rspack_future,
       cache,
     }
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn default() {
+    let _ = CompilerOptions::builder().build(&mut Default::default());
+  }
+
+  #[test]
+  fn builtin_plugin_order() {
+    let mut context: BuilderContext = Default::default();
+    let _ = CompilerOptions::builder()
+      .mode(Mode::Production)
+      .target(vec!["web".to_string()])
+      .build(&mut context);
+    context.plugins.sort_by_key(|p| p.tag());
+
+    type BuiltinPluginOptionsTag = <BuiltinPluginOptions as EnumTag>::Tag;
+
+    macro_rules! plugin_index {
+      ($ident:ident) => {
+        context
+          .plugins
+          .iter()
+          .position(|p| p.tag() == BuiltinPluginOptionsTag::$ident)
+          .expect("plugin should exist")
+      };
+    }
+
+    let merge_duplicate_chunks_index = plugin_index!(MergeDuplicateChunksPlugin);
+    let side_effects_flag_plugin_index = plugin_index!(SideEffectsFlagPlugin);
+    let remove_empty_chunks_plugin_index = plugin_index!(RemoveEmptyChunksPlugin);
+    let real_content_hash_plugin_index = plugin_index!(RealContentHashPlugin);
+
+    assert!(merge_duplicate_chunks_index < side_effects_flag_plugin_index);
+    assert!(remove_empty_chunks_plugin_index > merge_duplicate_chunks_index);
+    assert!(real_content_hash_plugin_index > remove_empty_chunks_plugin_index);
   }
 }

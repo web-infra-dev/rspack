@@ -1448,6 +1448,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-tag"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7696ca164c11153f0885c27f03654e874b052c9198f8964b015f4f675fabf390"
+dependencies = [
+ "enum-tag-macro",
+]
+
+[[package]]
+name = "enum-tag-macro"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ccd72f8e71e242f71705868f5478fe7592a6e194c06330d8732421ffdbc554c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.95",
+]
+
+[[package]]
 name = "enumset"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3816,6 +3836,7 @@ name = "rspack"
 version = "0.2.0"
 dependencies = [
  "bitflags 2.6.0",
+ "enum-tag",
  "indexmap 2.7.0",
  "regex",
  "rspack_core",
