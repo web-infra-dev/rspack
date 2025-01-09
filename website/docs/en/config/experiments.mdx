@@ -366,11 +366,15 @@ type ExperimentCacheOptions =
     };
 ```
 
-Control experimental caching behavior. This will only work if [global cache](/config/cache) is set to `true`.
+Control experimental caching behavior. This will only work if [config.cache](/config/cache) is set to `true`.
+
+:::info title="Note"
+In production mode, the default value of `config.cache` is `false`, which will cause this configuration item invalid. It is recommended to directly configure `config.cache` to `true`.
+:::
 
 ### Disable cache
 
-Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [global cache](/config/cache) to `false`.
+Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [config.cache](/config/cache) to `false`.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -499,4 +503,54 @@ module.exports = {
     },
   },
 };
+```
+
+:::tip
+Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
+
+Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+:::
+
+### Migrating from webpack config
+
+The rspack cache configuration is different from the webpack cache configuration. You can refer to the following sample code to migrate the webpack cache configuration.
+
+Example Code:
+
+```javascript
+function transform(webpack_config, rspack_config) {
+  rspack_config.experiments = rspack_config.experiments || {};
+  if (webpack_config.cache === undefined) {
+    webpack_config.cache = webpack_config.mode === 'development';
+  }
+  // 1. if using disable cache, just set `experiments.cache` = false
+  if (!webpack_config.cache) {
+    rspack_config.experiments.cache = false;
+    return;
+  }
+  // 2. if using memory cache, just set `experiments.cache` = true
+  if (webpack_config.cache === true || webpack_config.cache.type === 'memory') {
+    rspack_config.experiments.cache = true;
+    return;
+  }
+  // 3. using persistent cache, set `experiments.cache` = { type: "persistent" }
+  rspack_config.experiments.cache = { type: 'persistent' };
+  // 4. building `experiments.cache` from webpack config
+  rspack_config.experiments.cache.buildDependencies = Object.values(
+    webpack_config.cache.buildDependencies || {},
+  ).flat();
+  rspack_config.experiments.cache.version = [
+    webpack_config.cache.name,
+    webpack_config.cache.version,
+  ].join();
+  rspack_config.experiments.cache.snapshot = {
+    immutablePaths: webpack_config.snapshot?.immutablePaths,
+    managedPaths: webpack_config.snapshot?.managedPaths,
+    unmanagedPaths: webpack_config.snapshot?.unmanagedPaths,
+  };
+  rspack_config.experiments.cache.storage = {
+    type: 'filesystem',
+    directory: webpack_config.cache?.cacheDirectory,
+  };
+}
 ```

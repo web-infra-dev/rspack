@@ -365,11 +365,15 @@ type ExperimentCacheOptions =
     };
 ```
 
-控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [全局cache](/config/cache) 为 `true` 才有效。
+控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [config.cache](/config/cache) 为 `true` 才有效。
+
+:::info title="Note"
+production 模式下 `config.cache` 默认值为 `false`，这会导致此配置项失效，建议直接配置 `config.cache` 为 `true`。
+:::
 
 ### 禁用缓存
 
-可以配置 `experiment.cache` 为 `false` 来禁用缓存，此时与配置 [全局cache](/config/cache) 为 `false` 没有差别。
+可以配置 `experiment.cache` 为 `false` 来禁用缓存，此时与配置 [config.cache](/config/cache) 为 `false` 没有差别。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -498,4 +502,54 @@ module.exports = {
     },
   },
 };
+```
+
+:::tip
+Rspack 会在 `storage.directory` 目录下基于 [config.name](/config/other-options#name)，[config.mode](/config/mode#mode)，[buildDependencies](#cachebuilddependencies)中的文件内容 和 [version](#cacheversion) 生成缓存文件夹。
+
+Rspack 会在启动时自动清理掉过长时间（7天）没有访问的缓存文件夹。
+:::
+
+### 从 webpack config 迁移
+
+rspack cache 配置与 webpack cache 配置存在很大的不同，可以参考以下示例代码对 webpack cache 配置进行迁移。
+
+示例代码:
+
+```javascript
+function transform(webpack_config, rspack_config) {
+  rspack_config.experiments = rspack_config.experiments || {};
+  if (webpack_config.cache === undefined) {
+    webpack_config.cache = webpack_config.mode === 'development';
+  }
+  // 1. 如果使用禁用缓存，则直接配置 `experiments.cache` 为 `false`
+  if (webpack_config.cache === false) {
+    rspack_config.experiments.cache = false;
+    return;
+  }
+  // 2. 如果使用内存缓存，则直接配置 `experiments.cache` 为 `true`
+  if (webpack_config.cache === true || webpack_config.cache.type === 'memory') {
+    rspack_config.experiments.cache = true;
+    return;
+  }
+  // 3. 持久化缓存 配置 `experiments.cache` 为 `{ type: "persistent" }`
+  rspack_config.experiments.cache = { type: 'persistent' };
+  // 4. 从 webpack 配置中构建 `experiments.cache` 其他配置
+  rspack_config.experiments.cache.buildDependencies = Object.values(
+    webpack_config.cache.buildDependencies || {},
+  ).flat();
+  rspack_config.experiments.cache.version = [
+    webpack_config.cache.name,
+    webpack_config.cache.version,
+  ].join();
+  rspack_config.experiments.cache.snapshot = {
+    immutablePaths: webpack_config.snapshot?.immutablePaths,
+    managedPaths: webpack_config.snapshot?.managedPaths,
+    unmanagedPaths: webpack_config.snapshot?.unmanagedPaths,
+  };
+  rspack_config.experiments.cache.storage = {
+    type: 'filesystem',
+    directory: webpack_config.cache?.cacheDirectory,
+  };
+}
 ```
