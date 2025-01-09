@@ -375,4 +375,17 @@ Customize the Resolve configuration based on the module type.
 - **Type:** `boolean`
 - **Default:** `!!process.versions.pnp`
 
-When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution, It's enabled by default when [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is true which means running in Yarn PnP environments.
+When enabled, it will enable [Yarn PnP](https://yarnpkg.com/features/pnp) resolution.
+
+It's enabled by default if [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) is `true`, which means the application is running in Yarn PnP environments.
+
+Example:
+
+```js title="rspack.config.js"
+module.exports = {
+  // ...
+  resolve: {
+    pnp: true,
+  }
+};
+```
