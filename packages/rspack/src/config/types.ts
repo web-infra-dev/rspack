@@ -1075,6 +1075,10 @@ export type JsonParserOptions = {
 	 * The depth of json dependency flagged as `exportInfo`.
 	 */
 	exportsDepth?: number;
+	/**
+	 * If Rule.type is set to 'json' then Rules.parser.parse option may be a function that implements custom logic to parse module's source and convert it to a json-compatible data.
+	 */
+	parse?: (source: string) => any;
 };
 
 /** Configure all parsers' options in one place with module.parser. */

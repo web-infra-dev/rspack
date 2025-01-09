@@ -44,9 +44,9 @@ use rspack_core::{
   JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions,
   LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode,
   ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect, Optimization, OutputOptions,
-  ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture, RuleSetCondition,
-  RuleSetLogicalConditions, SideEffectOption, TrustedTypes, UsedExportsOption, WasmLoading,
-  WasmLoadingType,
+  ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, TrustedTypes, UsedExportsOption,
+  WasmLoading, WasmLoadingType,
 };
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -744,6 +744,7 @@ impl ModuleOptionsBuilder {
           } else {
             Some(u32::MAX)
           },
+          parse: ParseOption::None,
         }),
       );
     }
