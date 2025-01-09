@@ -21,8 +21,8 @@ pub struct JsResolverFactory {
 #[napi]
 impl JsResolverFactory {
   #[napi(constructor)]
-  pub fn new() -> napi::Result<Self> {
-    let input_filesystem = Arc::new(NativeFileSystem {});
+  pub fn new(pnp: bool) -> napi::Result<Self> {
+    let input_filesystem = Arc::new(NativeFileSystem::new(pnp));
     Ok(Self {
       resolver_factory: None,
       loader_resolver_factory: None,

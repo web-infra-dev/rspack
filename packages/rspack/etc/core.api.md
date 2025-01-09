@@ -4983,6 +4983,7 @@ export type ResolveOptions = {
     restrictions?: string[];
     roots?: string[];
     byDependency?: Record<string, ResolveOptions>;
+    pnp?: boolean;
 };
 
 // @public (undocumented)
@@ -5015,7 +5016,7 @@ type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
 
 // @public (undocumented)
 class ResolverFactory {
-    constructor();
+    constructor(pnp: boolean);
     // (undocumented)
     static __to_binding(resolver_factory: ResolverFactory): binding.JsResolverFactory;
     // (undocumented)

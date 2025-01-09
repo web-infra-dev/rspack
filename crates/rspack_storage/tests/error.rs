@@ -162,7 +162,7 @@ mod test_storage_error {
     let cases = [
       (
         get_native_path("test_error_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_error_memory"),

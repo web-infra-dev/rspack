@@ -95,6 +95,8 @@ pub struct Resolve {
   pub description_files: Option<DescriptionFiles>,
   /// If enforce_extension is set to EnforceExtension::Enabled, resolution will not allow extension-less files. This means require('./foo.js') will resolve, while require('./foo') will not.
   pub enforce_extension: Option<EnforceExtension>,
+  /// If set, Yarn PnP resolution will be supported.
+  pub pnp: Option<bool>,
 }
 
 /// Tsconfig Options
