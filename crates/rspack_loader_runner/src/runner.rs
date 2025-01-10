@@ -106,7 +106,7 @@ async fn create_loader_context<Context>(
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
-  plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
@@ -115,7 +115,7 @@ pub async fn run_loaders<Context: Send>(
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
 
-  let mut cx = create_loader_context(loaders, resource_data, plugins, context).await?;
+  let mut cx = create_loader_context(loaders, resource_data, plugin, context).await?;
 
   loop {
     match cx.state {
