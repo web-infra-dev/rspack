@@ -761,7 +761,7 @@ Condition represents the form of matching a given input, and it supports the fol
   - `{ not: Condition }`: All Conditions must NOT match.
 - `(value: string) => boolean`: If it's called with the input and return a truthy value, the match is succeeds.
 
-#### Nested Rule
+#### Nested rule
 
 Nested Rule can be specified under the properties [`Rule.rules`](#rulerules) and [`Rule.oneOf`](#ruleoneof), These rules are evaluated only when the parent Rule condition matches. Each nested rule can contain its own conditions.
 
