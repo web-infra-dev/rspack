@@ -15,8 +15,5 @@ module.exports = {
 				".": "./main"
 			}
 		})
-	],
-	optimization: {
-		moduleIds: 'named'
-	}
+	]
 };

@@ -2702,6 +2702,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       output_module: value.output_module.take(),
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
+      parallel_code_splitting: value.parallel_code_splitting.take(),
       async_web_assembly: value.async_web_assembly.take(),
     }
   }

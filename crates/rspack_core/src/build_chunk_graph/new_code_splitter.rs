@@ -213,10 +213,11 @@ impl CreateChunkRoot {
 
         for m in deps
           .chain(
-            data
+            compilation
+              .global_entry
               .include_dependencies
               .iter()
-              .chain(compilation.global_entry.include_dependencies.iter()),
+              .chain(data.include_dependencies.iter()),
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
@@ -362,6 +363,9 @@ impl CodeSplitter {
     let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, CreateChunkRoot>::default();
     let mut entries = vec![];
 
+    let global_deps = compilation.global_entry.dependencies.iter();
+    let global_included_deps = compilation.global_entry.include_dependencies.iter();
+
     for (entry, entry_data) in &compilation.entries {
       let chunk_loading = !matches!(
         entry_data
@@ -386,12 +390,16 @@ impl CodeSplitter {
         Some(runtime.clone()),
       ));
 
-      compilation
-        .global_entry
-        .all_dependencies()
-        .chain(entry_data.all_dependencies())
-        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
-        .for_each(|m| stack.push((*m, Cow::Borrowed(runtime), chunk_loading)));
+      global_deps
+        .clone()
+        .chain(entry_data.dependencies.iter())
+        .chain(global_included_deps.clone())
+        .chain(entry_data.include_dependencies.iter())
+        .for_each(|dep_id| {
+          if let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) {
+            stack.push((*m, Cow::Borrowed(runtime), chunk_loading));
+          }
+        });
     }
 
     while let Some((module, runtime, chunk_loading)) = stack.pop() {
@@ -695,11 +703,15 @@ impl CodeSplitter {
     let mut post_order_indices = IdentifierMap::default();
     let mut chunk_group_indices = UkeyMap::default();
 
+    let global_deps = compilation.global_entry.dependencies.iter();
+    let global_included_deps = compilation.global_entry.include_dependencies.iter();
+
     for (name, entry) in &compilation.entries {
-      compilation
-        .global_entry
-        .all_dependencies()
-        .chain(entry.all_dependencies())
+      global_deps
+        .clone()
+        .chain(entry.dependencies.iter())
+        .chain(global_included_deps.clone())
+        .chain(entry.include_dependencies.iter())
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .for_each(|m| {
           let entrypoint_ukey = compilation
@@ -731,7 +743,7 @@ impl CodeSplitter {
             let module_graph = compilation.get_module_graph();
             let block = module_graph.block_by_id(&block_id);
             if let Some(block) = block {
-              for dep_id in block.get_dependencies() {
+              for dep_id in block.get_dependencies().iter().rev() {
                 let Some(module) = module_graph.module_identifier_by_dependency_id(dep_id) else {
                   continue;
                 };
@@ -950,7 +962,7 @@ impl CodeSplitter {
 
     // remove available modules if could
     // determine chunk graph relations
-    let finalize_result = self.finalize_chunk_desc(chunks);
+    let finalize_result = self.finalize_chunk_desc(chunks, compilation);
 
     let chunks_len = finalize_result.chunks.len();
     let mut chunks_ukey = vec![0.into(); chunks_len];
@@ -1357,7 +1369,11 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
 
   // 1. determine parent child relationship
   // 2. remove modules that exist in all parents
-  fn finalize_chunk_desc(&mut self, mut chunks: Vec<ChunkDesc>) -> FinalizeChunksResult {
+  fn finalize_chunk_desc(
+    &mut self,
+    mut chunks: Vec<ChunkDesc>,
+    compilation: &Compilation,
+  ) -> FinalizeChunksResult {
     let chunks_len = chunks.len();
 
     // map that records info about chunk to its parents
@@ -1444,45 +1460,46 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
       );
     }
 
-    // traverse through chunk graph,remove modules that already available in all parents
-    let mut available_modules = vec![AvailableModules::NotSet; chunks_len];
+    if compilation.options.optimization.remove_available_modules {
+      // traverse through chunk graph,remove modules that already available in all parents
+      let mut available_modules = vec![AvailableModules::NotSet; chunks_len];
 
-    /*
-          4rd iter, remove modules that is available in parents
-          remove modules that are already exist in parent chunk
+      /*
+            4rd iter, remove modules that is available in parents
+            remove modules that are already exist in parent chunk
 
-          if we meet cycle like following:
+            if we meet cycle like following:
 
-                ┌────┐      ┌────┐
-    module x <- │ e1 │      │ e2 │ -> module x
-                └──┬─┘      └─┬──┘
-                   │          │
-                   v          v
-                ┌───┐       ┌───┐
-                │ a ├──────>│ b │
-                └───┘       └─┬─┘
-                  ^           │
-                  │  ┌─────┐  │
-                  └──┤  c  │<─┘
-                     └─────┘
-                        |
-                        v
-                    module x (this should not be included in any chunk, as it already exist in all parents)
-        */
+                  ┌────┐      ┌────┐
+      module x <- │ e1 │      │ e2 │ -> module x
+                  └──┬─┘      └─┬──┘
+                     │          │
+                     v          v
+                  ┌───┐       ┌───┐
+                  │ a ├──────>│ b │
+                  └───┘       └─┬─┘
+                    ^           │
+                    │  ┌─────┐  │
+                    └──┤  c  │<─┘
+                       └─────┘
+                          |
+                          v
+                      module x (this should not be included in any chunk, as it already exist in all parents)
+          */
 
-    let mut roots_available_modules = GetOrInit::new();
+      let mut roots_available_modules = GetOrInit::new();
 
-    for chunk in 0..chunks_len {
-      remove_available_modules(
-        chunk,
-        &mut chunks,
-        &roots,
-        &chunk_parents,
-        &mut available_modules,
-        &mut roots_available_modules,
-      );
+      for chunk in 0..chunks_len {
+        remove_available_modules(
+          chunk,
+          &mut chunks,
+          &roots,
+          &chunk_parents,
+          &mut available_modules,
+          &mut roots_available_modules,
+        );
+      }
     }
-    // dbg!(remove.elapsed().as_millis());
 
     FinalizeChunksResult {
       chunks,
