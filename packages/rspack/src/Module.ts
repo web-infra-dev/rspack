@@ -203,6 +203,7 @@ const BUILD_META_MAPPINGS = new Map<string, Record<string, any>>();
 export class Module {
 	#inner: JsModule;
 	#identifier: string | undefined;
+	#constructorName: string | undefined;
 	#type: string | undefined;
 	#layer: string | undefined | null;
 	#context: string | undefined | null;
@@ -271,6 +272,15 @@ export class Module {
 		}
 
 		Object.defineProperties(this, {
+			constructorName: {
+				enumerable: true,
+				get: (): string => {
+					if (this.#constructorName === undefined) {
+						this.#constructorName = module.constructorName;
+					}
+					return this.#constructorName;
+				}
+			},
 			type: {
 				enumerable: true,
 				get: (): string => {
