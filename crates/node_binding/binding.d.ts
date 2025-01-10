@@ -1581,6 +1581,7 @@ export interface RawJavascriptParserOptions {
 
 export interface RawJsonParserOptions {
   exportsDepth?: number
+  parse?: (source: string) => string
 }
 
 export interface RawLazyCompilationOption {

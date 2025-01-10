@@ -925,6 +925,9 @@ importers:
       tapable:
         specifier: 2.2.1
         version: 2.2.1
+      toml:
+        specifier: ^3.0.0
+        version: 3.0.0
       wast-loader:
         specifier: ^1.12.1
         version: 1.12.1

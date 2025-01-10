@@ -16,8 +16,8 @@ use rspack_core::{
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CompilerOptions, ExportsInfo,
-  GenerateContext, Module, ModuleGraph, ParserAndGenerator, Plugin, RuntimeGlobals, RuntimeSpec,
-  SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
+  GenerateContext, Module, ModuleGraph, ParseOption, ParserAndGenerator, Plugin, RuntimeGlobals,
+  RuntimeSpec, SourceType, UsageState, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{
   miette::diagnostic, DiagnosticExt, DiagnosticKind, IntoTWithDiagnosticArray, Result,
@@ -34,6 +34,7 @@ mod utils;
 #[derive(Debug)]
 struct JsonParserAndGenerator {
   pub exports_depth: u32,
+  pub parse: ParseOption,
 }
 
 #[cacheable_dyn]
@@ -55,54 +56,68 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       build_info,
       build_meta,
       loaders,
+      module_parser_options,
       ..
     } = parse_context;
     let source = box_source.source();
     let strip_bom_source = source.strip_prefix('\u{feff}');
     let need_strip_bom = strip_bom_source.is_some();
+    let strip_bom_source = strip_bom_source.unwrap_or(&source);
 
-    let parse_result = json::parse(strip_bom_source.unwrap_or(&source)).map_err(|e| {
-      match e {
-        UnexpectedCharacter { ch, line, column } => {
-          let rope = ropey::Rope::from_str(&source);
-          let line_offset = rope.try_line_to_byte(line - 1).expect("TODO:");
-          let start_offset = source[line_offset..]
-            .chars()
-            .take(column)
-            .fold(line_offset, |acc, cur| acc + cur.len_utf8());
-          let start_offset = if need_strip_bom {
-            start_offset + 1
-          } else {
-            start_offset
-          };
-          TraceableError::from_file(
-            source.into_owned(),
-            // one character offset
-            start_offset,
-            start_offset + 1,
-            "Json parsing error".to_string(),
-            format!("Unexpected character {ch}"),
-          )
-          .with_kind(DiagnosticKind::Json)
-          .boxed()
+    // If there is a custom parse, execute it to obtain the returned string.
+    let parse_result_str = module_parser_options
+      .and_then(|p| p.get_json())
+      .and_then(|p| match &p.parse {
+        ParseOption::Func(p) => {
+          let parse_result = p(strip_bom_source.to_string());
+          parse_result.ok()
         }
-        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
-        UnexpectedEndOfJson => {
-          // End offset of json file
-          let length = source.len();
-          let offset = if length > 0 { length - 1 } else { length };
-          TraceableError::from_file(
-            source.into_owned(),
-            offset,
-            offset,
-            "Json parsing error".to_string(),
-            format!("{e}"),
-          )
-          .with_kind(DiagnosticKind::Json)
-          .boxed()
+        _ => None,
+      });
+
+    let parse_result = json::parse(parse_result_str.as_deref().unwrap_or(strip_bom_source))
+      .map_err(|e| {
+        match e {
+          UnexpectedCharacter { ch, line, column } => {
+            let rope = ropey::Rope::from_str(&source);
+            let line_offset = rope.try_line_to_byte(line - 1).expect("TODO:");
+            let start_offset = source[line_offset..]
+              .chars()
+              .take(column)
+              .fold(line_offset, |acc, cur| acc + cur.len_utf8());
+            let start_offset = if need_strip_bom {
+              start_offset + 1
+            } else {
+              start_offset
+            };
+            TraceableError::from_file(
+              source.into_owned(),
+              // one character offset
+              start_offset,
+              start_offset + 1,
+              "Json parsing error".to_string(),
+              format!("Unexpected character {ch}"),
+            )
+            .with_kind(DiagnosticKind::Json)
+            .boxed()
+          }
+          ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => diagnostic!("{e}").boxed(),
+          UnexpectedEndOfJson => {
+            // End offset of json file
+            let length = source.len();
+            let offset = if length > 0 { length - 1 } else { length };
+            TraceableError::from_file(
+              source.into_owned(),
+              offset,
+              offset,
+              "Json parsing error".to_string(),
+              format!("{e}"),
+            )
+            .with_kind(DiagnosticKind::Json)
+            .boxed()
+          }
         }
-      }
-    });
+      });
 
     let (diagnostics, data) = match parse_result {
       Ok(data) => (vec![], Some(data)),
@@ -236,6 +251,7 @@ impl Plugin for JsonPlugin {
 
         Box::new(JsonParserAndGenerator {
           exports_depth: p.exports_depth.expect("should have exports_depth"),
+          parse: p.parse.clone(),
         })
       }),
     );
