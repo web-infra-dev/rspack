@@ -6,7 +6,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 The following sections provide some basic examples of the different types of loaders. Note that the `map` and `meta` parameters are optional, see [`this.callback`](#thiscallbackerr-error--null-content-string--buffer-sourcemap-sourcemap-meta-any) below.
 
-## Sync Loaders
+## Sync loaders
 
 Either `return` or `this.callback` can be used to return the transformed `content` synchronously:
 
@@ -29,7 +29,7 @@ module.exports = function (content, map, meta) {
 Rspack, internally, will convert loaders into async regardless of it's a synchronous loader for technical and performance reason.
 :::
 
-## Async Loaders
+## Async loaders
 
 For async loaders, `this.async` is used to retrieve the `callback` function:
 
@@ -53,7 +53,7 @@ module.exports = function (content, map, meta) {
 };
 ```
 
-## ESM Loader
+## ESM loader
 
 Rspack supports ESM loaders, you can write loaders using ESM syntax and export the loader function using `export default`.
 

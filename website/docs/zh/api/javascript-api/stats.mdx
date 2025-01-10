@@ -173,7 +173,7 @@ toJson(options?: StatsValue): {
 toString(options?: StatsValue): string;
 ```
 
-## Stats Factory
+## Stats factory
 
 用于从 Compilation 生成 Stats JSON 对象，并且提供了钩子以在生成过程中进行细粒度的控制。
 
@@ -193,7 +193,7 @@ stats = statsFactory.create('compilation', compilation, {});
 
 > `StatsFactory` 对象仅负责处理调用钩子，对应类型的处理代码的处理代码可在 [`DefaultStatsFactoryPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsFactoryPlugin.ts) 中找到。
 
-## Stats Printer
+## Stats printer
 
 用于从 Stats JSON 对象生成输出字符串，并且提供了钩子以在生成过程中进行细粒度的控制。
 

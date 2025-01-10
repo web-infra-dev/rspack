@@ -21,15 +21,15 @@ Rspack v0.7 版本已经正式发布！
 - [更快的 CSS 构建](#更快的-css-构建)：引入全新的 css-module-lexer，使 CSS 打包速度提升 4 倍。
 - [不兼容更新](#不兼容更新)：移除一些不稳定的 API，使默认行为与 webpack 更加一致。
 
-## 支持 Lazy Compilation
+## 支持 Lazy compilation
 
 Rspack v0.7 支持了 lazy compilation（懒编译），它对于提高多入口应用（MPA）或大型单页面应用（SPA）的 dev 启动性能非常有帮助。
 
-### 什么是 Lazy Compilation
+### 什么是 Lazy compilation
 
 Lazy compilation 是一个提升启动性能的良好手段，它可以按需编译模块，而不是在启动时就编译所有模块。这意味着开发者在启动 dev server 时，可以很快看到应用运行，并分次构建所需的模块。
 
-### 为什么需要 Lazy Compilation
+### 为什么需要 Lazy compilation
 
 尽管 Rspack 本身具备良好的性能，但是面对具有大量模块的应用，其整体构建时间仍然可能不够理想。这是因为应用中的模块需要经过不同 loader 的编译，包括 `postcss-loader`、`sass-loader`、`vue-loader` 等，它们都会产生额外的编译开销。
 

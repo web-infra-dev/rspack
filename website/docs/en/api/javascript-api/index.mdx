@@ -60,7 +60,7 @@ The `err` object will not include compilation errors. Those must be handled sepa
 You can provide the `rspack` function with an array of configurations. See the [MultiCompiler](/api/javascript-api/index#multicompiler) section below for more information.
 :::
 
-## Compiler Instance
+## Compiler instance
 
 If you don't pass the `rspack` runner function a callback, it will return a Rspack `Compiler` instance. This instance can be used to manually trigger the Rspack runner or have it build and watch for changes, much like the [CLI](/api/cli). The `Compiler` instance provides the following methods:
 
@@ -149,7 +149,7 @@ Filesystem inaccuracies may trigger multiple builds for a single change. In the 
   </CollapsePanel>
 </Collapse>
 
-## Stats Object
+## Stats object
 
 The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api/index#rspack) callback, is a good source of information about the code compilation process. It includes:
 
@@ -191,7 +191,7 @@ rspack(
 
 > See [MultiCompiler API](/api/javascript-api/compiler#multicompiler) for more details.
 
-## Error Handling
+## Error handling
 
 For good error handling, you need to account for these three types of errors:
 
@@ -232,7 +232,7 @@ rspack(
 );
 ```
 
-## Custom File Systems
+## Custom file systems
 
 :::danger Differences with webpack
 

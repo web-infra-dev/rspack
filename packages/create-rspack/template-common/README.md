@@ -1,4 +1,4 @@
-# Rspack Project
+# Rspack project
 
 ## Setup
 
@@ -8,7 +8,7 @@ Install the dependencies:
 npm install
 ```
 
-## Get Started
+## Get started
 
 Start the dev server:
 

@@ -2,7 +2,7 @@
 
 The primary objective of this project is to track the performance of the Rspack JavaScript API and prevent performance degradation.
 
-## Notes for Writing Benchmark Cases
+## Notes for writing benchmark cases
 
 CPU instrument is better suited for micro-benchmarks (taking less than a second) focused on CPU-bound tasks, not system calls.
 

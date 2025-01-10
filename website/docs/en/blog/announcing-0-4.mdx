@@ -192,7 +192,7 @@ The new resolver can be configured to read `tsconfig.json`'s `compilerOptions.pa
 
 To opt out of the new resolver, set `experiments.rspackFuture.newResolver` to `false`.
 
-## Migration Guide
+## Migration guide
 
 There is a [migrate example](https://github.com/rspack-contrib/rspack-examples/pull/2) demonstrating how to migrate from Rspack 0.3.14 to Rspack 0.4.0.
 
@@ -200,11 +200,11 @@ There is a [migrate example](https://github.com/rspack-contrib/rspack-examples/p
 
 If your application is a CSR application, we strongly encourage you to use Rsbuild instead of configuring Rspack yourself, as Rsbuild is much easier to use compared to `@rspack/cli`.
 
-### Upgrade Node.js Version
+### Upgrade Node.js version
 
 Rspack no longer supports Node.js 14 as of version 0.4.0; Node.js 16+ is now required.
 
-### Install `@rspack/core` Manually with `@rspack/cli`
+### Install `@rspack/core` manually with `@rspack/cli`
 
 ```diff title=package.json
 {
@@ -215,7 +215,7 @@ Rspack no longer supports Node.js 14 as of version 0.4.0; Node.js 16+ is now req
 }
 ```
 
-### Use `builtin:swc-loader` to Support Module Transformation
+### Use `builtin:swc-loader` to support module transformation
 
 Rspack no longer transforms files by default as of version 0.4.0, you can still enable old transform behavior by the following setting
 
@@ -231,7 +231,7 @@ Rspack no longer transforms files by default as of version 0.4.0, you can still 
 
 But we suggest you use `builtin:swc-loader` to transform files now. More details are available in [Deprecating Default Transformation](#deprecating-default-transformation).
 
-### Use `@rspack/plugin-react-refresh` for React Applications
+### Use `@rspack/plugin-react-refresh` for React applications
 
 `builtin.react.refresh` does not work when we disable the default transformation, so you need to use `@rspack/plugin-react-refresh` to enable fast refresh. More details are available in [Deprecating builtin.react.refresh](#deprecating-builtinreactrefresh).
 
