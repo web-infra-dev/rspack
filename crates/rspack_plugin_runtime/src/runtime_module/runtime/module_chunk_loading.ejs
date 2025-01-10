@@ -1,4 +1,4 @@
-var installChunk = function (data) {
+var installChunk = <%- basicFunction("data") %> {
     var ids = data.ids;
     var modules = data.modules;
     var runtime = data.runtime;
@@ -6,17 +6,17 @@ var installChunk = function (data) {
     // then flag all "ids" as loaded and fire callback
     var moduleId, chunkId, i = 0;
     for (moduleId in modules) {
-        if (__webpack_require__.o(modules, moduleId)) {
-            __webpack_require__.m[moduleId] = modules[moduleId];
+        if (<%- HAS_OWN_PROPERTY %>(modules, moduleId)) {
+            <%- MODULE_FACTORIES %>[moduleId] = modules[moduleId];
         }
     }
-    if (runtime) runtime(__webpack_require__);
+    if (runtime) runtime(<%- REQUIRE %>);
     for (; i < ids.length; i++) {
         chunkId = ids[i];
-        if (__webpack_require__.o(installedChunks, chunkId) && installedChunks[chunkId]) {
+        if (<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) && installedChunks[chunkId]) {
             installedChunks[chunkId][0]();
         }
         installedChunks[ids[i]] = 0;
     }
-    $WITH_ON_CHUNK_LOAD$
+    <%- WITH_ON_CHUNK_LOAD %>
 };

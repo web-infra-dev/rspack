@@ -81,7 +81,6 @@ impl RuntimeTemplate {
   pub fn add_templates(&mut self, templates: Vec<(String, String)>) {
     for (key, template) in templates {
       if !self.dojang.templates.contains_key(&key) {
-        // println!("Adding template: {}", key);
         self
           .dojang
           .add_with_option(key.clone(), template)
@@ -133,15 +132,19 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn returning_function(&self, return_value: &str, args: Option<&str>) -> String {
+  pub fn returning_function(&self, return_value: &str, args: &str) -> String {
     if self.environment.supports_arrow_function() {
-      format!("({}) => ({})", args.unwrap_or_default(), return_value)
+      format!("({}) => ({})", args, return_value)
     } else {
-      format!(
-        "function({}) {{ return {}; }}",
-        args.unwrap_or_default(),
-        return_value
-      )
+      format!("function({}) {{ return {}; }}", args, return_value)
+    }
+  }
+
+  pub fn basic_function(&self, args: &str, body: &str) -> String {
+    if self.environment.supports_arrow_function() {
+      format!("({}) => {{\n {} \n}}", args, body)
+    } else {
+      format!("function({}) {{\n {} \n}}", args, body)
     }
   }
 }
