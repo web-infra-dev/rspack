@@ -63,7 +63,9 @@ pub struct NextSwcLoaderJsOptions {
 
   #[serde(default)]
   pub esm: bool,
-  // transpilePackages?: string[]
+
+  #[serde(default)]
+  pub transpile_packages: Vec<String>,
 }
 
 impl TryFrom<&str> for NextSwcLoaderJsOptions {
