@@ -213,10 +213,11 @@ impl CreateChunkRoot {
 
         for m in deps
           .chain(
-            data
+            compilation
+              .global_entry
               .include_dependencies
               .iter()
-              .chain(compilation.global_entry.include_dependencies.iter()),
+              .chain(data.include_dependencies.iter()),
           )
           .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
         {
@@ -362,6 +363,9 @@ impl CodeSplitter {
     let mut roots = HashMap::<AsyncDependenciesBlockIdentifier, CreateChunkRoot>::default();
     let mut entries = vec![];
 
+    let global_deps = compilation.global_entry.dependencies.iter();
+    let global_included_deps = compilation.global_entry.include_dependencies.iter();
+
     for (entry, entry_data) in &compilation.entries {
       let chunk_loading = !matches!(
         entry_data
@@ -386,12 +390,16 @@ impl CodeSplitter {
         Some(runtime.clone()),
       ));
 
-      compilation
-        .global_entry
-        .all_dependencies()
-        .chain(entry_data.all_dependencies())
-        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
-        .for_each(|m| stack.push((*m, Cow::Borrowed(runtime), chunk_loading)));
+      global_deps
+        .clone()
+        .chain(entry_data.dependencies.iter())
+        .chain(global_included_deps.clone())
+        .chain(entry_data.include_dependencies.iter())
+        .for_each(|dep_id| {
+          if let Some(m) = module_graph.module_identifier_by_dependency_id(dep_id) {
+            stack.push((*m, Cow::Borrowed(runtime), chunk_loading));
+          }
+        });
     }
 
     while let Some((module, runtime, chunk_loading)) = stack.pop() {
@@ -695,11 +703,15 @@ impl CodeSplitter {
     let mut post_order_indices = IdentifierMap::default();
     let mut chunk_group_indices = UkeyMap::default();
 
+    let global_deps = compilation.global_entry.dependencies.iter();
+    let global_included_deps = compilation.global_entry.include_dependencies.iter();
+
     for (name, entry) in &compilation.entries {
-      compilation
-        .global_entry
-        .all_dependencies()
-        .chain(entry.all_dependencies())
+      global_deps
+        .clone()
+        .chain(entry.dependencies.iter())
+        .chain(global_included_deps.clone())
+        .chain(entry.include_dependencies.iter())
         .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .for_each(|m| {
           let entrypoint_ukey = compilation

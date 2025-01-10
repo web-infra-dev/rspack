@@ -23,6 +23,29 @@ import { TRunnerRequirer as TRunnerRequirer_2 } from '..';
 import type { WebpackOptionsNormalized } from 'webpack';
 
 // @public (undocumented)
+export class BasicCaseCreator<T extends ECompilerType> {
+    constructor(_options: IBasicCaseCreatorOptions<T>);
+    // (undocumented)
+    protected checkSkipped(src: string, testConfig: TTestConfig<T>): boolean | string;
+    // (undocumented)
+    protected clean(folders: string[]): void;
+    // (undocumented)
+    create(name: string, src: string, dist: string, temp?: string): ITester | undefined;
+    // (undocumented)
+    protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
+    // (undocumented)
+    protected createTester(name: string, src: string, dist: string, temp: string | void, testConfig: TTestConfig<T>): ITester;
+    // (undocumented)
+    protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    // (undocumented)
+    protected _options: IBasicCaseCreatorOptions<T>;
+    // (undocumented)
+    protected readTestConfig(src: string): TTestConfig<T>;
+    // (undocumented)
+    protected skip(name: string, reason: string | boolean): void;
+}
+
+// @public (undocumented)
 export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
     constructor(_options: IBasicProcessorOptions<T>);
     // (undocumented)
@@ -192,6 +215,9 @@ export function createCompilerCase(name: string, src: string, dist: string, test
 export function createConfigCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createConfigNewCodeSplittingCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createDefaultsCase(name: string, src: string): void;
 
 // @public (undocumented)
@@ -223,6 +249,9 @@ export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
+
+// @public (undocumented)
+export function createStatsAPINewCodeSplittingCase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
 export function createStatsOutputCase(name: string, src: string, dist: string): void;
@@ -536,6 +565,33 @@ export class HotSnapshotProcessor<T extends ECompilerType> extends HotProcessor<
 export class HotStepRunnerFactory<T extends ECompilerType> extends HotRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+}
+
+// @public (undocumented)
+export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
+    // (undocumented)
+    [key: string]: unknown;
+    // (undocumented)
+    clean?: boolean;
+    // (undocumented)
+    contextValue?: Record<string, unknown>;
+    // (undocumented)
+    describe?: boolean;
+    // (undocumented)
+    description?: (name: string, step: number) => string;
+    // (undocumented)
+    runner?: new (name: string, context: ITestContext) => TRunnerFactory<ECompilerType>;
+    // (undocumented)
+    steps: (creatorConfig: IBasicCaseCreatorOptions<T> & {
+        name: string;
+        src: string;
+        dist: string;
+        temp: string | void;
+    }) => ITestProcessor[];
+    // (undocumented)
+    testConfig?: (testConfig: TTestConfig<T>) => void;
+    // (undocumented)
+    timeout?: number;
 }
 
 // @public (undocumented)
@@ -870,10 +926,14 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
     name: string;
     // (undocumented)
     options?: (context: ITestContext) => TCompilerOptions<T>;
+    // (undocumented)
+    snapshotName?: string;
 }
 
 // @public (undocumented)
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
+    // (undocumented)
+    snapshotName?: string;
 }
 
 // @public (undocumented)

@@ -9,6 +9,7 @@ const creator = new BasicCaseCreator({
 			name,
 			compilerType: ECompilerType.Rspack,
 			configFiles: ["rspack.config.js", "webpack.config.js"],
+			snapshotName: 'NewCodeSplittingStatsOutput',
 			overrideOptions(index, context, options) {
 				options.experiments ??= {};
 				options.experiments.parallelCodeSplitting ??= true;

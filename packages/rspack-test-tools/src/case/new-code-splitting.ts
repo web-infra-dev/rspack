@@ -1,15 +1,19 @@
-import { Experiments } from "@rspack/core";
+import type { Experiments } from "@rspack/core";
 import {
 	ConfigProcessor,
-	IConfigProcessorOptions,
-	IStatsAPIProcessorOptions,
+	type IConfigProcessorOptions,
+	type IStatsAPIProcessorOptions,
 	StatsAPIProcessor
 } from "../processor";
 import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
-import { ECompilerType, ITestContext, TCompilerOptions } from "../type";
-import { TStatsAPICaseConfig } from "./stats-api";
 import { getSimpleProcessorRunner } from "../test/simple";
+import {
+	ECompilerType,
+	type ITestContext,
+	type TCompilerOptions
+} from "../type";
+import type { TStatsAPICaseConfig } from "./stats-api";
 
 export function createConfigNewCodeSplittingCase(
 	name: string,
@@ -80,6 +84,7 @@ export function createStatsAPINewCodeSplittingCase(
 			name,
 			new NewCodeSplittingStatsAPIProcessor({
 				name: name,
+				snapshotName: "NewCodeSplittingStatsOutput",
 				compilerType: ECompilerType.Rspack,
 				...caseConfig
 			})

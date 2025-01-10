@@ -13,7 +13,6 @@ import type {
 	TTestConfig
 } from "../type";
 import { Tester } from "./tester";
-import { FilteredStatus } from "../helper/util/filterUtil";
 
 export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
 	clean?: boolean;
@@ -150,14 +149,10 @@ export class BasicCaseCreator<T extends ECompilerType> {
 		testConfig: TTestConfig<T>
 	): boolean | string {
 		const filterPath = path.join(src, "test.filter.js");
-		let flag = true;
-		if (fs.existsSync(filterPath)) {
-			flag = require(filterPath)(testConfig);
-		}
-		let shouldRun =
-			flag === true ||
-			(Array.isArray(flag) && flag.includes(FilteredStatus.PARTIAL_PASS));
-		return !shouldRun;
+		return (
+			fs.existsSync(filterPath) &&
+			!require(filterPath)(this._options, testConfig)
+		);
 	}
 
 	protected createTester(

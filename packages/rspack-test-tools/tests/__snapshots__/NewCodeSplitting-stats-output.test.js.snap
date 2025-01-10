@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`new code splitting stats output new code splitting stats output/auxiliary-files-test should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/auxiliary-files-test should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 PublicPath: auto
 asset bundle.js 2.6 KiB {909} [emitted] (name: main)
 asset 98396dbfd5c74c34.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
@@ -62,7 +62,7 @@ runtime modules 1.61 KiB
 Rspack compiled successfully (6f7f39d3a0485d93)
 `;
 
-exports[`new code splitting stats output new code splitting stats output/builtin-swc-loader-parse-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/builtin-swc-loader-parse-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ERROR in ./index.ts
   × Module build failed:
   ├─▶   ×
@@ -78,14 +78,14 @@ ERROR in ./index.ts
 Rspack compiled with 1 error
 `;
 
-exports[`new code splitting stats output new code splitting stats output/concatenated-modules should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/concatenated-modules should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 234 bytes [emitted] (name: main)
 orphan modules 141 bytes [orphan] 4 modules
 ./index.js + 3 modules 141 bytes [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/css-concat should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/css-concat should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 3.78 KiB [emitted] (name: main)
 asset main.css 24 bytes [emitted] (name: main)
 Entrypoint main 3.8 KiB = main.js 3.78 KiB main.css 24 bytes
@@ -96,7 +96,7 @@ cacheable modules 62 bytes (javascript) 23 bytes (css)
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/filename should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/filename should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset 909.xxxx.js 9.14 KiB [emitted] (name: main)
 asset 521.xxxx.js 337 bytes [emitted]
 runtime modules 7.54 KiB 11 modules
@@ -106,27 +106,27 @@ cacheable modules 70 bytes
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/hot+production should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/hot+production should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 33.5 KiB [emitted] (name: main)
 runtime modules 31.2 KiB 12 modules
 ./index.js 25 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/ignore-plugin should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/ignore-plugin should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 runtime modules 107 bytes 1 module
 ./index.js 103 bytes [built] [code generated]
 <TEST_TOOLS_ROOT>/tests/statsOutputCases/ignore-plugin/locals|sync|/^\\.\\/.*$/ 160 bytes [built] [code generated]
 ./locals/en.js 30 bytes [built] [code generated]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/ignore-warning should print correct stats for 1`] = `Rspack compiled successfully`;
+exports[`new code splitting stats output new code splitting stats output/ignore-warning should print correct stats for: NewCodeSplittingStatsOutput 1`] = `Rspack compiled successfully`;
 
-exports[`new code splitting stats output new code splitting stats output/issue-3558 should print correct stats for 1`] = `Rspack compiled successfully`;
+exports[`new code splitting stats output new code splitting stats output/issue-3558 should print correct stats for: NewCodeSplittingStatsOutput 1`] = `Rspack compiled successfully`;
 
-exports[`new code splitting stats output new code splitting stats output/legacy-ie-css-warning should print correct stats for 1`] = `Rspack compiled successfully`;
+exports[`new code splitting stats output new code splitting stats output/legacy-ie-css-warning should print correct stats for: NewCodeSplittingStatsOutput 1`] = `Rspack compiled successfully`;
 
-exports[`new code splitting stats output new code splitting stats output/let-keyword-as-variable-name-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/let-keyword-as-variable-name-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ERROR in ./index.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Unexpected token \`let\`. Expected let is reserved in const, let, class declaration
@@ -141,7 +141,7 @@ ERROR in ./index.js
 Rspack compiled with 1 error
 `;
 
-exports[`new code splitting stats output new code splitting stats output/limit-chunk-count-plugin should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/limit-chunk-count-plugin should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 1 chunks:
   asset bundle1.js 3.66 KiB [emitted] (name: main)
   chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
@@ -191,7 +191,7 @@ exports[`new code splitting stats output new code splitting stats output/limit-c
   4 chunks (Rspack x.x.x) compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/logging-loader should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/logging-loader should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loader/index.js
 <-> group
   <i> info something
@@ -199,13 +199,13 @@ DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loade
     -------
 `;
 
-exports[`new code splitting stats output new code splitting stats output/match-resource-data-url should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/match-resource-data-url should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 runtime modules 677 bytes 3 modules
 ./index.js 150 bytes [built] [code generated]
 ./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/minify-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/minify-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ERROR in × JavaScript parsing error: Expected a semicolon
    ╭─[1:8]
  1 │ const a {}
@@ -217,12 +217,12 @@ ERROR in × JavaScript parsing error: Expected a semicolon
 Rspack compiled with 1 error
 `;
 
-exports[`new code splitting stats output new code splitting stats output/named-chunk-group should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/named-chunk-group should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint main 9.13 KiB = main.js
 Chunk Group cimanyd 337 bytes = cimanyd.js
 `;
 
-exports[`new code splitting stats output new code splitting stats output/nonexistent-import-source-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/nonexistent-import-source-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ERROR in ./index.js 1:0-19
   × Module not found: Can't resolve 'not-exist' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/nonexistent-import-source-error'
    ╭────
@@ -233,7 +233,7 @@ ERROR in ./index.js 1:0-19
 Rspack compiled with 1 error
 `;
 
-exports[`new code splitting stats output new code splitting stats output/optimization-chunk-ids-natural should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/optimization-chunk-ids-natural should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint e1 10.7 KiB = e1.js
 Entrypoint e2 10.6 KiB = e2.js
 chunk (runtime: e1) 0.js 24 bytes [rendered]
@@ -243,7 +243,7 @@ chunk (runtime: e1) e1.js (e1) 74 bytes (javascript) 8.72 KiB (runtime) [entry] 
 chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.72 KiB (runtime) [entry] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint e1 4.07 KiB = e1~runtime.js 3.68 KiB e1.js 391 bytes
 Entrypoint e2 4.07 KiB = e2~runtime.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: e1~runtime) e1.js (e1) 27 bytes [entry] [rendered]
@@ -252,7 +252,7 @@ chunk (runtime: e2~runtime) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: e2~runtime) e2~runtime.js (e2~runtime) 2.58 KiB [initial] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-multiple should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-multiple should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
 Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
@@ -261,7 +261,7 @@ chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rende
 chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-single should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-single should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint e1 4.06 KiB = runtime.js 3.68 KiB e1.js 391 bytes
 Entrypoint e2 4.06 KiB = runtime.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime) e1.js (e1) 27 bytes [entry] [rendered]
@@ -269,7 +269,7 @@ chunk (runtime: runtime) e2.js (e2) 27 bytes [entry] [rendered]
 chunk (runtime: runtime) runtime.js (runtime) 2.58 KiB [initial] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-true should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/optimization-runtime-chunk-true should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint e1 4.07 KiB = runtime~e1.js 3.68 KiB e1.js 391 bytes
 Entrypoint e2 4.07 KiB = runtime~e2.js 3.68 KiB e2.js 391 bytes
 chunk (runtime: runtime~e1) e1.js (e1) 27 bytes [entry] [rendered]
@@ -278,7 +278,7 @@ chunk (runtime: runtime~e1) runtime~e1.js (runtime~e1) 2.58 KiB [initial] [rende
 chunk (runtime: runtime~e2) runtime~e2.js (runtime~e2) 2.58 KiB [initial] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/parse-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/parse-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ERROR in ./b.js
   × Module parse failed:
   ╰─▶   × JavaScript parsing error: Expected ';', '}' or <eof>
@@ -297,7 +297,7 @@ ERROR in ./b.js
 Rspack compiled with 1 error
 `;
 
-exports[`new code splitting stats output new code splitting stats output/performance-disabled should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/performance-disabled should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 304 KiB [emitted] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
@@ -313,7 +313,7 @@ cacheable modules 293 KiB
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/performance-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/performance-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 304 KiB [emitted] [big] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
@@ -339,7 +339,7 @@ ERROR in × entrypoint size limit: The following entrypoint(s) combined asset si
 Rspack x.x.x compiled with 2 errors in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/performance-no-hints should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/performance-no-hints should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 304 KiB [emitted] [big] (name: main)
 asset 697.js 130 bytes [emitted]
 asset 753.js 130 bytes [emitted]
@@ -355,7 +355,7 @@ cacheable modules 293 KiB
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/prefetch-preload-mixed should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/prefetch-preload-mixed should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 chunk (runtime: main) a1.js (a1) 1 bytes <{74}> [rendered]
 chunk (runtime: main) c2.js (c2) 1 bytes <{76}> [rendered]
 chunk (runtime: main) c1.js (c1) 1 bytes <{76}> [rendered]
@@ -369,7 +369,7 @@ chunk (runtime: main) b1.js (b1) 1 bytes <{751}> [rendered]
 chunk (runtime: main) main.js (main) 195 bytes (javascript) 12 KiB (runtime) >{74}< >{751}< >{76}< (prefetch: {74} {751} {76}) [entry] [rendered]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/reasons should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/reasons should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ./index.js 44 bytes [built] [code generated]
   entry ./index
 ./a.js 55 bytes [built] [code generated]
@@ -377,7 +377,7 @@ exports[`new code splitting stats output new code splitting stats output/reasons
   cjs require ./a ./index.js
 `;
 
-exports[`new code splitting stats output new code splitting stats output/resolve-overflow-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/resolve-overflow-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 assets by status 348 bytes [cached] 1 asset
 ./index.js 51 bytes [built] [code generated] [1 error]
 
@@ -393,7 +393,7 @@ ERROR in ./index.js 1:0-34
 Rspack x.x.x compiled with 1 error in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/resolve-unexpected-exports-in-pkg-error should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/resolve-unexpected-exports-in-pkg-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset bundle.js 1.38 KiB [emitted] (name: main)
 runtime modules 280 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
@@ -404,14 +404,14 @@ ERROR in ./index.js 1:0-22
 Rspack x.x.x compiled with 1 error in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/runtime-modules should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/runtime-modules should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ./index.js 19 bytes [built] [code generated]
 webpack/runtime/define_property_getters 290 bytes [code generated]
 webpack/runtime/has_own_property 107 bytes [code generated]
 webpack/runtime/make_namespace_object 280 bytes [code generated]
 `;
 
-exports[`new code splitting stats output new code splitting stats output/runtime-specific-exports should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/runtime-specific-exports should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 1.8 KiB [emitted] (name: main)
 ./example.js 70 bytes [built] [code generated]
   [no exports]
@@ -425,7 +425,7 @@ asset main.js 1.8 KiB [emitted] (name: main)
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/side-effects-bailouts should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/side-effects-bailouts should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 177 bytes {909} [emitted] (name: main)
 chunk {909} (runtime: main) main.js (main) 91 bytes [entry] [rendered]
 orphan modules 91 bytes [orphan] 2 modules
@@ -437,14 +437,14 @@ orphan modules 91 bytes [orphan] 2 modules
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/simple-export should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/simple-export should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset bundle.js 1.71 KiB [emitted] (name: main)
 runtime modules 677 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
 
-exports[`new code splitting stats output new code splitting stats output/simple-module-source should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/simple-module-source should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset bundle.js 2.06 KiB [emitted] (name: main)
 runtime modules 702 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
@@ -454,13 +454,13 @@ cacheable modules 82 bytes
 Rspack compiled successfully
 `;
 
-exports[`new code splitting stats output new code splitting stats output/stats-hooks should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/stats-hooks should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset main.js 69 bytes [emitted111] (name: main) [testA: aaaaaa]
 ./index.js 26 bytes [built] [code generated]
 Rspack compiled successfully
 `;
 
-exports[`new code splitting stats output new code splitting stats output/try-require-module should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/try-require-module should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-module'
    ╭─[2:4]
@@ -474,7 +474,7 @@ WARNING in ./index.js
 Rspack compiled with 1 warning
 `;
 
-exports[`new code splitting stats output new code splitting stats output/try-require-resolve-module should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/try-require-resolve-module should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-module'
    ╭─[2:20]
@@ -488,7 +488,7 @@ WARNING in ./index.js
 Rspack compiled with 1 warning
 `;
 
-exports[`new code splitting stats output new code splitting stats output/try-require-resolve-weak-module should print correct stats for 1`] = `
+exports[`new code splitting stats output new code splitting stats output/try-require-resolve-weak-module should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 WARNING in ./index.js
   ⚠ Module not found: Can't resolve './missing-module' in '<TEST_TOOLS_ROOT>/tests/statsOutputCases/try-require-resolve-weak-module'
    ╭─[2:24]

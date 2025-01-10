@@ -16,11 +16,10 @@ class Plugin {
 			assert(typeof compilation.hooks !== "undefined");
 
 			count += 1;
-
 			const filePath = path.resolve(
 				__dirname,
-				"../../../js/config/hooks/should-emit-2",
-				"bundle0.js"
+				compiler.options.output.path,
+				"./bundle0.js"
 			);
 			fs.writeFileSync(filePath, customBundleFile);
 			return false;
@@ -35,4 +34,5 @@ class Plugin {
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	plugins: [new Plugin()],
+	node: false,
 };
