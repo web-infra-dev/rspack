@@ -52,6 +52,11 @@ pub fn serde_error_to_miette(
 type SwcLoaderCache<'a> = LazyLock<RwLock<FxHashMap<(Cow<'a, str>, Arc<str>), Arc<SwcLoader>>>>;
 static SWC_LOADER_CACHE: SwcLoaderCache = LazyLock::new(|| RwLock::new(FxHashMap::default()));
 
+type NextSwcLoaderCache<'a> =
+  LazyLock<RwLock<FxHashMap<(Cow<'a, str>, Arc<str>), Arc<NextSwcLoader>>>>;
+static NEXT_SWC_LOADER_CACHE: NextSwcLoaderCache =
+  LazyLock::new(|| RwLock::new(FxHashMap::default()));
+
 pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<BoxLoader> {
   let options: Arc<str> = options.unwrap_or("{}").into();
   if builtin.starts_with(SWC_LOADER_IDENTIFIER) {
@@ -83,6 +88,14 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
   }
 
   if builtin.starts_with(NEXT_SWC_LOADER_IDENTIFIER) {
+    if let Some(loader) = NEXT_SWC_LOADER_CACHE
+      .read()
+      .await
+      .get(&(Cow::Borrowed(builtin), options.clone()))
+    {
+      return Ok(loader.clone());
+    }
+
     let loader = Arc::new(
       rspack_loader_next_swc::NextSwcLoader::new(options.as_ref())
         .map_err(|e| {
@@ -93,6 +106,11 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
           )
         })?
         .with_identifier(builtin.into()),
+    );
+
+    NEXT_SWC_LOADER_CACHE.write().await.insert(
+      (Cow::Owned(builtin.to_owned()), options.clone()),
+      loader.clone(),
     );
     return Ok(loader);
   }

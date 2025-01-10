@@ -4,7 +4,6 @@ mod compiler;
 mod options;
 mod transformer;
 
-use std::collections::HashMap;
 use std::default::Default;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -18,7 +17,6 @@ use next_custom_transforms::transforms::{
 use once_cell::sync::Lazy;
 use options::NextSwcLoaderJsOptions;
 pub use options::SwcLoaderJsOptions;
-use preset_env_base::query::QueryOrVersion;
 use preset_env_base::version::Version;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -30,7 +28,10 @@ use rspack_plugin_javascript::ast::{self, SourceMapConfig};
 use rspack_plugin_javascript::TransformOutput;
 use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
-use swc::config::{JscConfig, JscExperimental, ModuleConfig};
+use swc::config::{
+  JscConfig, JscExperimental, ModuleConfig, OptimizerConfig, SimplifyOption, TransformConfig,
+};
+use swc_config::config_types::MergingOption;
 use swc_core::base::config::SourceMapsConfig;
 use swc_core::base::config::{InputSourceMap, OutputCharset};
 use swc_core::ecma::atoms::Atom;
@@ -39,6 +40,20 @@ use swc_core::ecma::visit::VisitWith;
 use transformer::IdentCollector;
 
 static NODE_MODULES_PATH: Lazy<Regex> = Lazy::new(|| Regex::new("[\\/]node_modules[\\/]").unwrap());
+
+static BABEL_INCLUDE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
+  vec![
+    Regex::new(r"next[\\/]dist[\\/](esm[\\/])?shared[\\/]lib").unwrap(),
+    Regex::new(r"next[\\/]dist[\\/](esm[\\/])?client").unwrap(),
+    Regex::new(r"next[\\/]dist[\\/](esm[\\/])?pages").unwrap(),
+    Regex::new(r"[\\/](strip-ansi|ansi-regex|styled-jsx)[\\/]").unwrap(),
+  ]
+});
+
+// these are exact code conditions checked
+// for to force transpiling a `node_module`
+static FORCE_TRANSPILE_CONDITIONS: Lazy<Regex> =
+  Lazy::new(|| Regex::new("(next\\/font|next\\/dynamic|use server|use client)").unwrap());
 
 fn is_type_script_file(path: &Path) -> bool {
   if let Some(extension) = path.extension() {
@@ -60,6 +75,35 @@ fn is_common_js_file(path: &Path) -> bool {
 
 fn should_output_common_js(filename: &Path) -> bool {
   is_common_js_file(filename)
+}
+
+fn is_resource_in_packages(resource: &str, package_names: &[String]) -> bool {
+  package_names.iter().any(|p| {
+    let node_modules_path =
+      PathBuf::from("node_modules").join(p.replace("/", &std::path::MAIN_SEPARATOR.to_string()));
+    resource.contains(&format!(
+      "{}{}{}",
+      std::path::MAIN_SEPARATOR,
+      node_modules_path.to_string_lossy(),
+      std::path::MAIN_SEPARATOR
+    ))
+  })
+}
+
+fn may_be_exclude(exclude_path: &str, transpile_packages: &[String]) -> bool {
+  if BABEL_INCLUDE_REGEXES
+    .iter()
+    .any(|r| r.is_match(exclude_path))
+  {
+    return false;
+  }
+
+  let should_be_bundled = is_resource_in_packages(exclude_path, transpile_packages);
+  if should_be_bundled {
+    return false;
+  }
+
+  exclude_path.contains("node_modules")
 }
 
 #[cacheable]
@@ -90,11 +134,13 @@ impl NextSwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
-    let Some(content) = loader_context.take_content() else {
-      return Ok(());
-    };
 
-    let source = content.into_string_lossy();
+    let filename = resource_path.clone();
+
+    // Ensure `.d.ts` are not processed.
+    if filename.as_str().ends_with(".d.ts") {
+      return Ok(());
+    }
 
     let NextSwcLoaderJsOptions {
       root_dir,
@@ -109,10 +155,16 @@ impl NextSwcLoader {
       optimize_server_react,
       supported_browsers,
       swc_cache_dir,
+      transpile_packages,
     } = &self.options;
 
+    let Some(content) = loader_context.take_content() else {
+      return Ok(());
+    };
+
+    let source = content.into_string_lossy();
+
     let pages_dir = pages_dir.clone().map(Utf8PathBuf::from);
-    let filename = resource_path.clone();
 
     let is_page_file = match &pages_dir {
       Some(pages_dir) => filename.starts_with(pages_dir),
@@ -203,22 +255,22 @@ impl NextSwcLoader {
     let cjs_require_optimizer = Some(cjs_optimizer::Config { packages });
 
     let env = if *is_server {
-      None
+      Some(swc_core::ecma::preset_env::Config {
+        targets: Some(swc_core::ecma::preset_env::Targets::Versions(
+          preset_env_base::BrowserData {
+            node: Some(Version::from_str("18.20.4").unwrap()),
+            ..Default::default()
+          },
+        )),
+        ..Default::default()
+      })
     } else {
       if supported_browsers.is_empty() {
+        Some(Default::default())
+      } else {
         Some(swc_core::ecma::preset_env::Config {
           targets: Some(swc_core::ecma::preset_env::Targets::Query(
             supported_browsers.clone().into(),
-          )),
-          ..Default::default()
-        })
-      } else {
-        Some(swc_core::ecma::preset_env::Config {
-          targets: Some(swc_core::ecma::preset_env::Targets::HashMap(
-            HashMap::from_iter(vec![(
-              "node".to_string(),
-              QueryOrVersion::Version(Version::from_str("18.20.4").unwrap()),
-            )]),
           )),
           ..Default::default()
         })
@@ -242,6 +294,7 @@ impl NextSwcLoader {
       Some(Syntax::Es(EsSyntax {
         jsx: true,
         decorators: true,
+        import_attributes: true,
         ..Default::default()
       }))
     };
@@ -283,6 +336,34 @@ impl NextSwcLoader {
             cache_root: Some(swc_cache_dir.to_string()),
             ..Default::default()
           },
+          external_helpers: true.into(),
+          transform: MergingOption::from(Some(TransformConfig {
+            react: swc_core::ecma::transforms::react::Options {
+              runtime: Some(swc_core::ecma::transforms::react::Runtime::Automatic),
+              import_source: Some("react".to_string()),
+              pragma_frag: Some("React.Fragment".to_string()),
+              throw_if_namespace: Some(true),
+              development: Some(is_development),
+              refresh: if *has_react_refresh {
+                Some(Default::default())
+              } else {
+                None
+              },
+              ..Default::default()
+            },
+            optimizer: Some(OptimizerConfig {
+              // globals: Some(GlobalPassOption {
+              //   envs: GlobalInliningPassEnvs::Map(HashMap::from_iter(vec![
+
+              //   ])),
+              //   typeofs: todo!(),
+              //   ..Default::default()
+              // }),
+              simplify: Some(SimplifyOption::Bool(false)),
+              ..Default::default()
+            }),
+            ..Default::default()
+          })),
           ..Default::default()
         },
         module,
@@ -409,6 +490,20 @@ impl Loader<RunnerContext> for NextSwcLoader {
     #[cfg(not(debug_assertions))]
     inner()
   }
+
+  // async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+  //   let should_maybe_exclude = may_be_exclude(filename.as_str(), transpile_packages);
+  //   if should_maybe_exclude {
+  //     let Some(content) = loader_context.content() else {
+  //       panic!("Invariant might be excluded but missing source");
+  //     };
+  //     if !FORCE_TRANSPILE_CONDITIONS.is_match(&content.clone().into_string_lossy()) {
+  //       return Ok(());
+  //     }
+  //   }
+
+  //   Ok(())
+  // }
 }
 
 impl Identifiable for NextSwcLoader {
