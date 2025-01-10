@@ -157,7 +157,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 pub trait InitFragmentRenderContext {
   fn add_runtime_requirements(&mut self, requirement: RuntimeGlobals);
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn returning_function(&self, return_value: &str, args: Option<&str>) -> String;
+  fn returning_function(&self, return_value: &str, args: &str) -> String;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -271,7 +271,7 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
     )
   }
 
-  fn returning_function(&self, return_value: &str, args: Option<&str>) -> String {
+  fn returning_function(&self, return_value: &str, args: &str) -> String {
     self.runtime_template.returning_function(return_value, args)
   }
 }
@@ -287,7 +287,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn returning_function(&self, _return_value: &str, _args: Option<&str>) -> String {
+  fn returning_function(&self, _return_value: &str, _args: &str) -> String {
     unreachable!("should not call returning function in chunk render context")
   }
 }
@@ -371,7 +371,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
           Ok(format!(
             "{}: {}",
             prop,
-            context.returning_function(&s.1, None)
+            context.returning_function(&s.1, "")
           ))
         })
         .collect::<Result<Vec<_>>>()?
