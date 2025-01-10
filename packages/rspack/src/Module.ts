@@ -211,6 +211,7 @@ export class Module {
 	#rawRequest: string | undefined | null;
 	#resourceResolveData: ResolveData | undefined | null;
 	#matchResource: string | undefined | null;
+	#modules: Module[] | undefined | null;
 
 	declare readonly context: string | null;
 	declare readonly resource: string | null;
@@ -341,13 +342,17 @@ export class Module {
 			},
 			modules: {
 				enumerable: true,
-				get(): Module[] | undefined {
+				get: (): Module[] | null => {
 					if (module instanceof JsModule) {
-						return module.modules
+						if (this.#modules !== undefined) {
+							return this.#modules;
+						}
+						this.#modules = module.modules
 							? module.modules.map(m => Module.__from_binding(m))
-							: undefined;
+							: null;
+						return this.#modules;
 					}
-					return undefined;
+					return null;
 				}
 			},
 			blocks: {

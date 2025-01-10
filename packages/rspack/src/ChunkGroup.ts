@@ -15,6 +15,7 @@ export class ChunkGroup {
 
 	#inner: JsChunkGroup;
 
+	#chunks = new VolatileValue<ReadonlyArray<Chunk>>();
 	#name = new VolatileValue<string | undefined>();
 
 	static __from_binding(binding: JsChunkGroup) {
@@ -34,9 +35,14 @@ export class ChunkGroup {
 			chunks: {
 				enumerable: true,
 				get: () => {
-					return this.#inner.chunks.map(binding =>
+					if (this.#chunks.has()) {
+						return this.#chunks.get();
+					}
+					const chunks = this.#inner.chunks.map(binding =>
 						Chunk.__from_binding(binding)
 					);
+					this.#chunks.set(chunks);
+					return chunks;
 				}
 			},
 			index: {
