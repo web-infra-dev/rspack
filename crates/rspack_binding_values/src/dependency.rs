@@ -102,7 +102,7 @@ impl JsDependency {
   }
 
   #[napi(getter)]
-  pub fn ids(&mut self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
+  pub fn ids(&mut self, env: Env) -> napi::Result<Option<Vec<JsString>>> {
     let (dependency, compilation) = self.as_ref()?;
 
     Ok(match compilation {
@@ -114,7 +114,7 @@ impl JsDependency {
             .into_iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          Some(ids)
         } else if let Some(dependency) =
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
@@ -123,19 +123,19 @@ impl JsDependency {
             .into_iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          Some(ids)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
           let ids = dependency
             .get_ids(&module_graph)
             .into_iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
+          Some(ids)
         } else {
-          Either::B(())
+          None
         }
       }
-      None => Either::B(()),
+      None => None,
     })
   }
 }

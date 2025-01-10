@@ -1,4 +1,5 @@
 import type { JsDependency } from "@rspack/binding";
+import { VolatileValue } from "./util/volatile";
 
 const TO_BINDING_MAPPINGS = new WeakMap<Dependency, JsDependency>();
 const BINDING_MAPPINGS = new WeakMap<JsDependency, Dependency>();
@@ -28,6 +29,7 @@ export const bindingDependencyFactory = {
 export class Dependency {
 	#type: string | undefined;
 	#category: string | undefined;
+	#ids = new VolatileValue<string[] | null>();
 
 	get type(): string {
 		if (this.#type === undefined) {
@@ -71,10 +73,16 @@ export class Dependency {
 		}
 	}
 
-	get ids(): string[] | undefined {
+	get ids(): string[] | null {
 		const binding = bindingDependencyFactory.getBinding(this);
-		if (binding) {
-			return binding.ids;
+		if (this.#ids.get() !== undefined) {
+			return this.#ids.get()!;
 		}
+		if (binding) {
+			const ids = binding.ids;
+			this.#ids.set(ids);
+			return ids;
+		}
+		return null;
 	}
 }

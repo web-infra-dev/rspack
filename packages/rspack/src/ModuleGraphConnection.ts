@@ -1,6 +1,7 @@
 import type { JsModuleGraphConnection } from "@rspack/binding";
 import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { Module } from "./Module";
+import { VolatileValue } from "./util/volatile";
 
 const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 	JsModuleGraphConnection,
@@ -12,6 +13,7 @@ export class ModuleGraphConnection {
 	declare readonly dependency: Dependency;
 
 	#inner: JsModuleGraphConnection;
+	#module: VolatileValue<Module | null> = new VolatileValue();
 	#dependency: Dependency | undefined;
 	#resolvedModule: Module | undefined | null;
 
@@ -35,8 +37,15 @@ export class ModuleGraphConnection {
 		Object.defineProperties(this, {
 			module: {
 				enumerable: true,
-				get(): Module | null {
-					return binding.module ? Module.__from_binding(binding.module) : null;
+				get: (): Module | null => {
+					if (this.#module.get() !== undefined) {
+						return this.#module.get()!;
+					}
+					const module = binding.module
+						? Module.__from_binding(binding.module)
+						: null;
+					this.#module.set(module);
+					return module;
 				}
 			},
 			dependency: {

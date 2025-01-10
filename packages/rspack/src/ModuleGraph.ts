@@ -3,27 +3,7 @@ import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { ExportsInfo } from "./ExportsInfo";
 import { Module } from "./Module";
 import { ModuleGraphConnection } from "./ModuleGraphConnection";
-
-class VolatileCache<K, V> {
-	#map = new Map<K, V>();
-
-	get(key: K): V | undefined {
-		return this.#map.get(key);
-	}
-
-	set(key: K, value: V) {
-		if (this.#map.size === 0) {
-			queueMicrotask(() => {
-				this.#map.clear();
-			});
-		}
-		this.#map.set(key, value);
-	}
-
-	has(key: K): boolean {
-		return this.#map.has(key);
-	}
-}
+import { VolatileMap } from "./util/volatile";
 
 export default class ModuleGraph {
 	static __from_binding(binding: JsModuleGraph) {
@@ -31,10 +11,10 @@ export default class ModuleGraph {
 	}
 
 	#inner: JsModuleGraph;
-	#resolvedModuleMappings = new VolatileCache<Dependency, Module | null>();
-	#outgoingConnectionsMappings = new VolatileCache<Module, ModuleGraphConnection[]>();
-	#parentBlockIndexMappings = new VolatileCache<Dependency, number>();
-	#isAsyncCache = new VolatileCache<Module, boolean>();
+	#resolvedModuleMap = new VolatileMap<Dependency, Module | null>();
+	#outgoingConnectionsMap = new VolatileMap<Module, ModuleGraphConnection[]>();
+	#parentBlockIndexMap = new VolatileMap<Dependency, number>();
+	#isAsyncMap = new VolatileMap<Module, boolean>();
 
 	private constructor(binding: JsModuleGraph) {
 		this.#inner = binding;
@@ -50,14 +30,14 @@ export default class ModuleGraph {
 	}
 
 	getResolvedModule(dependency: Dependency): Module | null {
-		if (this.#resolvedModuleMappings.get(dependency)) {
-			return this.#resolvedModuleMappings.get(dependency)!;
+		if (this.#resolvedModuleMap.get(dependency) !== undefined) {
+			return this.#resolvedModuleMap.get(dependency)!;
 		}
 		const depBinding = bindingDependencyFactory.getBinding(dependency);
 		if (depBinding) {
 			const binding = this.#inner.getResolvedModule(depBinding);
 			const module = binding ? Module.__from_binding(binding) : null;
-			this.#resolvedModuleMappings.set(dependency, module);
+			this.#resolvedModuleMap.set(dependency, module);
 			return module;
 		}
 		return null;
@@ -93,35 +73,35 @@ export default class ModuleGraph {
 	}
 
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
-		if (this.#outgoingConnectionsMappings.get(module)) {
-			return this.#outgoingConnectionsMappings.get(module)!;
+		if (this.#outgoingConnectionsMap.get(module)) {
+			return this.#outgoingConnectionsMap.get(module)!;
 		}
 		const connections = this.#inner
 			.getOutgoingConnections(Module.__to_binding(module))
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
-		this.#outgoingConnectionsMappings.set(module, connections);
+		this.#outgoingConnectionsMap.set(module, connections);
 		return connections;
 	}
 
 	getParentBlockIndex(dependency: Dependency): number {
-		if (this.#parentBlockIndexMappings.get(dependency)) {
-			return this.#parentBlockIndexMappings.get(dependency)!;
+		if (this.#parentBlockIndexMap.get(dependency) !== undefined) {
+			return this.#parentBlockIndexMap.get(dependency)!;
 		}
 		const depBinding = bindingDependencyFactory.getBinding(dependency);
 		if (depBinding) {
 			const index = this.#inner.getParentBlockIndex(depBinding);
-			this.#parentBlockIndexMappings.set(dependency, index);
+			this.#parentBlockIndexMap.set(dependency, index);
 			return index;
 		}
 		return -1;
 	}
 
 	isAsync(module: Module): boolean {
-		if (this.#isAsyncCache.get(module)) {
-			return this.#isAsyncCache.get(module)!;
+		if (this.#isAsyncMap.get(module) !== undefined) {
+			return this.#isAsyncMap.get(module)!;
 		}
 		const result = this.#inner.isAsync(Module.__to_binding(module));
-		this.#isAsyncCache.set(module, result);
+		this.#isAsyncMap.set(module, result);
 		return result;
 	}
 }
