@@ -4,7 +4,9 @@ class MicrotaskQueue {
 	queue(callback: () => void) {
 		if (this.#callbacks.length === 0) {
 			queueMicrotask(() => {
-				for (const cb of this.#callbacks) {
+				const callbacks = this.#callbacks;
+				this.#callbacks = [];
+				for (const cb of callbacks) {
 					cb();
 				}
 			});
@@ -37,6 +39,7 @@ export class VolatileMap<K, V> {
 }
 
 export class VolatileValue<V> {
+	#setted = false;
 	#value: V | undefined = undefined;
 
 	get(): V | undefined {
@@ -44,11 +47,17 @@ export class VolatileValue<V> {
 	}
 
 	set(value: V) {
-		if (this.#value === undefined) {
+		if (!this.#setted) {
 			GLOBAL_MICROTASK_QUEUE.queue(() => {
 				this.#value = undefined;
+				this.#setted = false;
 			});
 		}
 		this.#value = value;
+		this.#setted = true;
+	}
+
+	has() {
+		return this.#setted;
 	}
 }

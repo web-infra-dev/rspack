@@ -75,7 +75,7 @@ export class Dependency {
 
 	get ids(): string[] | null {
 		const binding = bindingDependencyFactory.getBinding(this);
-		if (this.#ids.get() !== undefined) {
+		if (this.#ids.has()) {
 			return this.#ids.get()!;
 		}
 		if (binding) {

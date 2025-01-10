@@ -2,6 +2,7 @@ import type { JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
 import { Module } from "./Module";
+import { VolatileValue } from "./util/volatile";
 
 const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
 
@@ -13,6 +14,8 @@ export class ChunkGroup {
 	declare readonly childrenIterable: Set<ChunkGroup>;
 
 	#inner: JsChunkGroup;
+
+	#name = new VolatileValue<string | undefined>();
 
 	static __from_binding(binding: JsChunkGroup) {
 		let chunkGroup = CHUNK_GROUP_MAPPINGS.get(binding);
@@ -45,7 +48,12 @@ export class ChunkGroup {
 			name: {
 				enumerable: true,
 				get: () => {
-					return this.#inner.name;
+					if (this.#name.has()) {
+						return this.#name.get();
+					}
+					const name = this.#inner.name;
+					this.#name.set(name);
+					return name;
 				}
 			},
 			origins: {

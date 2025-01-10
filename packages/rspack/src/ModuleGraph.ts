@@ -30,17 +30,18 @@ export default class ModuleGraph {
 	}
 
 	getResolvedModule(dependency: Dependency): Module | null {
-		if (this.#resolvedModuleMap.get(dependency) !== undefined) {
-			return this.#resolvedModuleMap.get(dependency)!;
+		let resolvedModule = this.#resolvedModuleMap.get(dependency);
+		if (resolvedModule === undefined) {
+			const depBinding = bindingDependencyFactory.getBinding(dependency);
+			if (depBinding) {
+				const binding = this.#inner.getResolvedModule(depBinding);
+				resolvedModule = binding ? Module.__from_binding(binding) : null;
+				this.#resolvedModuleMap.set(dependency, resolvedModule);
+			} else {
+				return null;
+			}
 		}
-		const depBinding = bindingDependencyFactory.getBinding(dependency);
-		if (depBinding) {
-			const binding = this.#inner.getResolvedModule(depBinding);
-			const module = binding ? Module.__from_binding(binding) : null;
-			this.#resolvedModuleMap.set(dependency, module);
-			return module;
-		}
-		return null;
+		return resolvedModule;
 	}
 
 	getParentModule(dependency: Dependency): Module | null {
@@ -73,27 +74,28 @@ export default class ModuleGraph {
 	}
 
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
-		if (this.#outgoingConnectionsMap.get(module)) {
-			return this.#outgoingConnectionsMap.get(module)!;
+		let connections = this.#outgoingConnectionsMap.get(module);
+		if (connections === undefined) {
+			connections = this.#inner
+				.getOutgoingConnections(Module.__to_binding(module))
+				.map(binding => ModuleGraphConnection.__from_binding(binding));
+			this.#outgoingConnectionsMap.set(module, connections);
 		}
-		const connections = this.#inner
-			.getOutgoingConnections(Module.__to_binding(module))
-			.map(binding => ModuleGraphConnection.__from_binding(binding));
-		this.#outgoingConnectionsMap.set(module, connections);
 		return connections;
 	}
 
 	getParentBlockIndex(dependency: Dependency): number {
-		if (this.#parentBlockIndexMap.get(dependency) !== undefined) {
-			return this.#parentBlockIndexMap.get(dependency)!;
+		let index = this.#parentBlockIndexMap.get(dependency);
+		if (index === undefined) {
+			const depBinding = bindingDependencyFactory.getBinding(dependency);
+			if (depBinding) {
+				index = this.#inner.getParentBlockIndex(depBinding);
+				this.#parentBlockIndexMap.set(dependency, index);
+			} else {
+				return -1;
+			}
 		}
-		const depBinding = bindingDependencyFactory.getBinding(dependency);
-		if (depBinding) {
-			const index = this.#inner.getParentBlockIndex(depBinding);
-			this.#parentBlockIndexMap.set(dependency, index);
-			return index;
-		}
-		return -1;
+		return index;
 	}
 
 	isAsync(module: Module): boolean {

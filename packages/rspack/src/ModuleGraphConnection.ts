@@ -38,7 +38,7 @@ export class ModuleGraphConnection {
 			module: {
 				enumerable: true,
 				get: (): Module | null => {
-					if (this.#module.get() !== undefined) {
+					if (this.#module.has()) {
 						return this.#module.get()!;
 					}
 					const module = binding.module

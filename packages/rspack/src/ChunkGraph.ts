@@ -4,9 +4,13 @@ import { Chunk } from "./Chunk";
 import { Module } from "./Module";
 import { DependenciesBlock } from "./DependenciesBlock";
 import { ChunkGroup } from "./ChunkGroup";
+import { VolatileMap } from "./util/volatile";
 
 export class ChunkGraph {
 	#inner: JsChunkGraph;
+
+	#chunkModulesMap = new VolatileMap<Chunk, ReadonlyArray<Module>>();
+	#moduleIdMap = new VolatileMap<Module, string | null>();
 
 	static __from_binding(binding: JsChunkGraph): ChunkGraph {
 		return new ChunkGraph(binding);
@@ -17,15 +21,25 @@ export class ChunkGraph {
 	}
 
 	getChunkModules(chunk: Chunk): ReadonlyArray<Module> {
-		return this.#inner
-			.getChunkModules(Chunk.__to_binding(chunk))
-			.map(binding => Module.__from_binding(binding));
+		let modules = this.#chunkModulesMap.get(chunk);
+		if (modules === undefined) {
+			modules = this.#inner
+				.getChunkModules(Chunk.__to_binding(chunk))
+				.map(binding => Module.__from_binding(binding));
+			this.#chunkModulesMap.set(chunk, modules);
+		}
+		return modules;
 	}
 
 	getChunkModulesIterable(chunk: Chunk): Iterable<Module> {
-		return this.#inner
-			.getChunkModules(Chunk.__to_binding(chunk))
-			.map(binding => Module.__from_binding(binding));
+		let modules = this.#chunkModulesMap.get(chunk);
+		if (modules === undefined) {
+			modules = this.#inner
+				.getChunkModules(Chunk.__to_binding(chunk))
+				.map(binding => Module.__from_binding(binding));
+			this.#chunkModulesMap.set(chunk, modules);
+		}
+		return modules;
 	}
 
 	getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module> {
@@ -65,7 +79,12 @@ export class ChunkGraph {
 	}
 
 	getModuleId(module: Module): string | null {
-		return this.#inner.getModuleId(Module.__to_binding(module));
+		let moduleId = this.#moduleIdMap.get(module);
+		if (moduleId === undefined) {
+			moduleId = this.#inner.getModuleId(Module.__to_binding(module));
+			this.#moduleIdMap.set(module, moduleId);
+		}
+		return moduleId;
 	}
 
 	getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null {
