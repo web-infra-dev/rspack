@@ -5,6 +5,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
 use std::ptr::NonNull;
+use std::sync::LazyLock;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
@@ -24,6 +25,8 @@ use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rspack_util::fx_hash::FxDashMap;
+use rustc_hash::FxHashMap;
 
 use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
@@ -43,6 +46,10 @@ use crate::RawDependency;
 use crate::ToJsCompatSource;
 use crate::{JsAsset, JsAssetInfo, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
+
+static INCLUDE_DEPENDENCIES_MAP: LazyLock<
+  FxDashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+> = LazyLock::new(|| Default::default());
 
 #[napi]
 pub struct JsCompilation {
@@ -738,15 +745,29 @@ impl JsCompilation {
           Some(options) => options.layer.clone(),
           None => None,
         };
-        let dependency = Box::new(EntryDependency::new(
-          js_dependency.request,
-          js_context.into(),
-          layer,
-          false,
-        )) as BoxDependency;
         let options = match js_options {
           Some(js_opts) => js_opts.into(),
           None => EntryOptions::default(),
+        };
+        let dependency = if let Some(map) = INCLUDE_DEPENDENCIES_MAP.get(&js_dependency.request)
+          && let Some(dependency) = map.get(&options)
+        {
+          dependency.clone()
+        } else {
+          let dependency: BoxDependency = Box::new(EntryDependency::new(
+            js_dependency.request.clone(),
+            js_context.into(),
+            layer,
+            false,
+          ));
+          if let Some(mut map) = INCLUDE_DEPENDENCIES_MAP.get_mut(&js_dependency.request) {
+            map.insert(options.clone(), dependency.clone());
+          } else {
+            let mut map = FxHashMap::default();
+            map.insert(options.clone(), dependency.clone());
+            INCLUDE_DEPENDENCIES_MAP.insert(js_dependency.request, map);
+          }
+          dependency
         };
         (dependency, options)
       })

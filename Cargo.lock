@@ -4535,11 +4535,13 @@ name = "rspack_plugin_dynamic_entry"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "dashmap 6.1.0",
  "derive_more",
  "futures",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rustc-hash 2.1.0",
  "tracing",
 ]
 
