@@ -1,9 +1,11 @@
 use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
-  RsdoctorAsset, RsdoctorChunk, RsdoctorChunkGraph, RsdoctorDependency, RsdoctorEntrypoint,
+  RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
+  RsdoctorChunkModules, RsdoctorDependency, RsdoctorEntrypoint, RsdoctorEntrypointAssets,
   RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
-  RsdoctorModuleSource, RsdoctorPluginOptions, RsdoctorSideEffect, RsdoctorSourcePosition,
-  RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
+  RsdoctorModuleId, RsdoctorModuleSource, RsdoctorPluginOptions, RsdoctorSideEffect,
+  RsdoctorSourcePatch, RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement,
+  RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -17,22 +19,24 @@ pub struct JsRsdoctorModule {
   pub dependencies: Vec<i32>,
   pub imported: Vec<i32>,
   pub modules: Vec<i32>,
+  pub belong_modules: Vec<i32>,
   pub chunks: Vec<i32>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
   fn from(value: RsdoctorModule) -> Self {
     JsRsdoctorModule {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       identifier: value.identifier.to_string(),
       path: value.path,
       is_entry: value.is_entry,
       kind: value.kind.into(),
       layer: value.layer,
-      dependencies: value.dependencies.into_iter().map(|d| d as i32).collect(),
-      imported: value.imported.into_iter().map(|d| d as i32).collect(),
-      modules: value.modules.into_iter().map(|d| d as i32).collect(),
-      chunks: value.chunks.into_iter().map(|d| d as i32).collect(),
+      dependencies: value.dependencies.into_iter().collect::<Vec<_>>(),
+      imported: value.imported.into_iter().collect::<Vec<_>>(),
+      modules: value.modules.into_iter().collect::<Vec<_>>(),
+      chunks: value.chunks.into_iter().collect::<Vec<_>>(),
+      belong_modules: value.belong_modules.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -49,11 +53,11 @@ pub struct JsRsdoctorDependency {
 impl From<RsdoctorDependency> for JsRsdoctorDependency {
   fn from(value: RsdoctorDependency) -> Self {
     JsRsdoctorDependency {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       kind: value.kind.to_string(),
       request: value.request,
-      module: value.module as i32,
-      dependency: value.dependency as i32,
+      module: value.module,
+      dependency: value.dependency,
     }
   }
 }
@@ -64,7 +68,6 @@ pub struct JsRsdoctorChunk {
   pub name: String,
   pub initial: bool,
   pub entry: bool,
-  pub assets: Vec<i32>,
   pub dependencies: Vec<i32>,
   pub imported: Vec<i32>,
 }
@@ -72,13 +75,12 @@ pub struct JsRsdoctorChunk {
 impl From<RsdoctorChunk> for JsRsdoctorChunk {
   fn from(value: RsdoctorChunk) -> Self {
     JsRsdoctorChunk {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       name: value.name,
       initial: value.initial,
       entry: value.entry,
-      assets: value.assets.into_iter().map(|d| d as i32).collect(),
-      dependencies: value.dependencies.into_iter().map(|d| d as i32).collect(),
-      imported: value.imported.into_iter().map(|d| d as i32).collect(),
+      dependencies: value.dependencies.into_iter().collect::<Vec<_>>(),
+      imported: value.imported.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -93,9 +95,9 @@ pub struct JsRsdoctorEntrypoint {
 impl From<RsdoctorEntrypoint> for JsRsdoctorEntrypoint {
   fn from(value: RsdoctorEntrypoint) -> Self {
     JsRsdoctorEntrypoint {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       name: value.name,
-      chunks: value.chunks.into_iter().map(|d| d as i32).collect(),
+      chunks: value.chunks.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -105,20 +107,23 @@ pub struct JsRsdoctorAsset {
   pub ukey: i32,
   pub path: String,
   pub chunks: Vec<i32>,
+  pub size: i32,
 }
 
 impl From<RsdoctorAsset> for JsRsdoctorAsset {
   fn from(value: RsdoctorAsset) -> Self {
     JsRsdoctorAsset {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       path: value.path,
-      chunks: value.chunks.into_iter().map(|d| d as i32).collect(),
+      chunks: value.chunks.into_iter().collect::<Vec<_>>(),
+      size: value.size,
     }
   }
 }
 
 #[napi(object)]
 pub struct JsRsdoctorModuleSource {
+  pub module: i32,
   pub source_size: i32,
   pub transform_size: i32,
   pub source: Option<String>,
@@ -128,8 +133,9 @@ pub struct JsRsdoctorModuleSource {
 impl From<RsdoctorModuleSource> for JsRsdoctorModuleSource {
   fn from(value: RsdoctorModuleSource) -> Self {
     JsRsdoctorModuleSource {
-      source_size: value.source_size as i32,
-      transform_size: value.transform_size as i32,
+      module: value.module,
+      source_size: value.source_size,
+      transform_size: value.transform_size,
       source: value.source,
       source_map: value.source_map,
     }
@@ -149,11 +155,11 @@ pub struct JsRsdoctorModuleGraphModule {
 impl From<RsdoctorModuleGraphModule> for JsRsdoctorModuleGraphModule {
   fn from(value: RsdoctorModuleGraphModule) -> Self {
     JsRsdoctorModuleGraphModule {
-      ukey: value.ukey as i32,
-      module: value.module as i32,
-      exports: value.exports.into_iter().map(|d| d as i32).collect(),
-      side_effects: value.side_effects.into_iter().map(|d| d as i32).collect(),
-      variables: value.variables.into_iter().map(|d| d as i32).collect(),
+      ukey: value.ukey,
+      module: value.module,
+      exports: value.exports.into_iter().collect::<Vec<_>>(),
+      side_effects: value.side_effects.into_iter().collect::<Vec<_>>(),
+      variables: value.variables.into_iter().collect::<Vec<_>>(),
       dynamic: value.dynamic,
     }
   }
@@ -175,15 +181,15 @@ pub struct JsRsdoctorSideEffect {
 impl From<RsdoctorSideEffect> for JsRsdoctorSideEffect {
   fn from(value: RsdoctorSideEffect) -> Self {
     JsRsdoctorSideEffect {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       name: value.name,
       origin_name: value.origin_name,
-      module: value.module as i32,
+      module: value.module,
       identifier: value.identifier.into(),
       is_name_space: value.is_name_space,
-      from_dependency: value.from_dependency.map(|d| d as i32),
-      exports: value.exports.into_iter().map(|d| d as i32).collect(),
-      variable: value.variable.map(|d| d as i32),
+      from_dependency: value.from_dependency,
+      exports: value.exports.into_iter().collect::<Vec<_>>(),
+      variable: value.variable,
     }
   }
 }
@@ -201,12 +207,12 @@ pub struct JsRsdoctorVariable {
 impl From<RsdoctorVariable> for JsRsdoctorVariable {
   fn from(value: RsdoctorVariable) -> Self {
     JsRsdoctorVariable {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       name: value.name,
-      module: value.module as i32,
+      module: value.module,
       used_info: value.used_info,
       identififer: value.identififer.into(),
-      exported: value.exported.map(|d| d as i32),
+      exported: value.exported,
     }
   }
 }
@@ -224,12 +230,12 @@ pub struct JsRsdoctorExportInfo {
 impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
   fn from(value: RsdoctorExportInfo) -> Self {
     JsRsdoctorExportInfo {
-      ukey: value.ukey as i32,
+      ukey: value.ukey,
       name: value.name,
-      from: value.from.map(|d| d as i32),
-      variable: value.variable.map(|d| d as i32),
+      from: value.from,
+      variable: value.variable,
       identifier: value.identifier.map(|i| i.into()),
-      side_effects: value.side_effects.into_iter().map(|d| d as i32).collect(),
+      side_effects: value.side_effects.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -244,7 +250,7 @@ pub struct JsRsdoctorStatement {
 impl From<RsdoctorStatement> for JsRsdoctorStatement {
   fn from(value: RsdoctorStatement) -> Self {
     JsRsdoctorStatement {
-      module: value.module as i32,
+      module: value.module,
       source_position: value.source_position.map(|p| p.into()),
       transformed_position: value.transformed_position.into(),
     }
@@ -276,9 +282,24 @@ pub struct JsRsdoctorSourcePosition {
 impl From<RsdoctorSourcePosition> for JsRsdoctorSourcePosition {
   fn from(value: RsdoctorSourcePosition) -> Self {
     JsRsdoctorSourcePosition {
-      line: value.line.map(|l| l as i32),
-      column: value.column.map(|c| c as i32),
-      index: value.index.map(|i| i as i32),
+      line: value.line,
+      column: value.column,
+      index: value.index,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorChunkModules {
+  pub chunk: i32,
+  pub modules: Vec<i32>,
+}
+
+impl From<RsdoctorChunkModules> for JsRsdoctorChunkModules {
+  fn from(value: RsdoctorChunkModules) -> Self {
+    JsRsdoctorChunkModules {
+      chunk: value.chunk,
+      modules: value.modules.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -309,6 +330,87 @@ impl From<RsdoctorChunkGraph> for JsRsdoctorChunkGraph {
     JsRsdoctorChunkGraph {
       chunks: value.chunks.into_iter().map(|c| c.into()).collect(),
       entrypoints: value.entrypoints.into_iter().map(|e| e.into()).collect(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorModuleId {
+  pub module: i32,
+  pub render_id: String,
+}
+
+impl From<RsdoctorModuleId> for JsRsdoctorModuleId {
+  fn from(value: RsdoctorModuleId) -> Self {
+    JsRsdoctorModuleId {
+      module: value.module,
+      render_id: value.render_id,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorSourcePatch {
+  pub module_sources: Vec<JsRsdoctorModuleSource>,
+  pub module_ids: Vec<JsRsdoctorModuleId>,
+}
+
+impl From<RsdoctorSourcePatch> for JsRsdoctorSourcePatch {
+  fn from(value: RsdoctorSourcePatch) -> Self {
+    JsRsdoctorSourcePatch {
+      module_sources: value.module_sources.into_iter().map(|m| m.into()).collect(),
+      module_ids: value.module_ids.into_iter().map(|m| m.into()).collect(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorChunkAssets {
+  pub chunk: i32,
+  pub assets: Vec<i32>,
+}
+
+impl From<RsdoctorChunkAssets> for JsRsdoctorChunkAssets {
+  fn from(value: RsdoctorChunkAssets) -> Self {
+    JsRsdoctorChunkAssets {
+      chunk: value.chunk,
+      assets: value.assets.into_iter().collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorEntrypointAssets {
+  pub entrypoint: i32,
+  pub assets: Vec<i32>,
+}
+
+impl From<RsdoctorEntrypointAssets> for JsRsdoctorEntrypointAssets {
+  fn from(value: RsdoctorEntrypointAssets) -> Self {
+    JsRsdoctorEntrypointAssets {
+      entrypoint: value.entrypoint,
+      assets: value.assets.into_iter().collect::<Vec<_>>(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorAssetPatch {
+  pub assets: Vec<JsRsdoctorAsset>,
+  pub chunk_assets: Vec<JsRsdoctorChunkAssets>,
+  pub entrypoint_assets: Vec<JsRsdoctorEntrypointAssets>,
+}
+
+impl From<RsdoctorAssetPatch> for JsRsdoctorAssetPatch {
+  fn from(value: RsdoctorAssetPatch) -> Self {
+    JsRsdoctorAssetPatch {
+      assets: value.assets.into_iter().map(|a| a.into()).collect(),
+      chunk_assets: value.chunk_assets.into_iter().map(|c| c.into()).collect(),
+      entrypoint_assets: value
+        .entrypoint_assets
+        .into_iter()
+        .map(|e| e.into())
+        .collect(),
     }
   }
 }

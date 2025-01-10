@@ -1661,7 +1661,7 @@ class Compiler {
 					).moduleSources;
 				},
 				function (queried) {
-					return async function (data: binding.JsRsdoctorModuleSource[]) {
+					return async function (data: binding.JsRsdoctorSourcePatch) {
 						return await queried.promise(data);
 					};
 				}
@@ -1674,7 +1674,7 @@ class Compiler {
 					).assets;
 				},
 				function (queried) {
-					return async function (data: binding.JsRsdoctorAsset[]) {
+					return async function (data: binding.JsRsdoctorAssetPatch) {
 						return await queried.promise(data);
 					};
 				}

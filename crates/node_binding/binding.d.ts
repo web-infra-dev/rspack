@@ -817,6 +817,13 @@ export interface JsRsdoctorAsset {
   ukey: number
   path: string
   chunks: Array<number>
+  size: number
+}
+
+export interface JsRsdoctorAssetPatch {
+  assets: Array<JsRsdoctorAsset>
+  chunkAssets: Array<JsRsdoctorChunkAssets>
+  entrypointAssets: Array<JsRsdoctorEntrypointAssets>
 }
 
 export interface JsRsdoctorChunk {
@@ -824,14 +831,23 @@ export interface JsRsdoctorChunk {
   name: string
   initial: boolean
   entry: boolean
-  assets: Array<number>
   dependencies: Array<number>
   imported: Array<number>
+}
+
+export interface JsRsdoctorChunkAssets {
+  chunk: number
+  assets: Array<number>
 }
 
 export interface JsRsdoctorChunkGraph {
   chunks: Array<JsRsdoctorChunk>
   entrypoints: Array<JsRsdoctorEntrypoint>
+}
+
+export interface JsRsdoctorChunkModules {
+  chunk: number
+  modules: Array<number>
 }
 
 export interface JsRsdoctorDependency {
@@ -846,6 +862,11 @@ export interface JsRsdoctorEntrypoint {
   ukey: number
   name: string
   chunks: Array<number>
+}
+
+export interface JsRsdoctorEntrypointAssets {
+  entrypoint: number
+  assets: Array<number>
 }
 
 export interface JsRsdoctorExportInfo {
@@ -867,6 +888,7 @@ export interface JsRsdoctorModule {
   dependencies: Array<number>
   imported: Array<number>
   modules: Array<number>
+  belongModules: Array<number>
   chunks: Array<number>
 }
 
@@ -884,7 +906,13 @@ export interface JsRsdoctorModuleGraphModule {
   dynamic: boolean
 }
 
+export interface JsRsdoctorModuleId {
+  module: number
+  renderId: string
+}
+
 export interface JsRsdoctorModuleSource {
+  module: number
   sourceSize: number
   transformSize: number
   source?: string
@@ -901,6 +929,11 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSourcePatch {
+  moduleSources: Array<JsRsdoctorModuleSource>
+  moduleIds: Array<JsRsdoctorModuleId>
 }
 
 export interface JsRsdoctorSourcePosition {
@@ -2266,8 +2299,8 @@ export interface RegisterJsTaps {
   registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
-  registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: Vec<JsRsdoctorModuleSource>) => Promise<boolean | undefined>); stage: number; }>
-  registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: Vec<JsRsdoctorAsset>) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorSourcePatch) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {

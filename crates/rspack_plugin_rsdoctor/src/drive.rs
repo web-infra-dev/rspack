@@ -1,11 +1,11 @@
 use rspack_hook::define_hook;
 
-use crate::{RsdoctorAsset, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleSource};
+use crate::{RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorSourcePatch};
 
 define_hook!(RsdoctorPluginModuleGraph: AsyncSeriesBail(data: &mut RsdoctorModuleGraph) -> bool);
 define_hook!(RsdoctorPluginChunkGraph: AsyncSeriesBail(data: &mut RsdoctorChunkGraph) -> bool);
-define_hook!(RsdoctorPluginModuleSources: AsyncSeriesBail(data: &mut Vec<RsdoctorModuleSource>) -> bool);
-define_hook!(RsdoctorPluginAssets: AsyncSeriesBail(data: &mut Vec<RsdoctorAsset>) -> bool);
+define_hook!(RsdoctorPluginModuleSources: AsyncSeriesBail(data: &mut RsdoctorSourcePatch) -> bool);
+define_hook!(RsdoctorPluginAssets: AsyncSeriesBail(data: &mut RsdoctorAssetPatch) -> bool);
 
 #[derive(Debug, Default)]
 pub struct RsdoctorPluginHooks {

@@ -19,8 +19,8 @@ use rspack_binding_values::{
   JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   JsCreateData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModuleWrapper,
   JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAsset, JsRsdoctorChunkGraph,
-  JsRsdoctorModuleGraph, JsRsdoctorModuleSource, JsRuntimeGlobals, JsRuntimeModule,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
+  JsRsdoctorModuleGraph, JsRsdoctorSourcePatch, JsRuntimeGlobals, JsRuntimeModule,
   JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
   ToJsCompatSourceOwned,
 };
@@ -70,10 +70,10 @@ use rspack_plugin_html::{
 };
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
 use rspack_plugin_rsdoctor::{
-  RsdoctorAsset, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleSource,
-  RsdoctorPluginAssets, RsdoctorPluginAssetsHook, RsdoctorPluginChunkGraph,
-  RsdoctorPluginChunkGraphHook, RsdoctorPluginModuleGraph, RsdoctorPluginModuleGraphHook,
-  RsdoctorPluginModuleSources, RsdoctorPluginModuleSourcesHook,
+  RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorPluginAssets,
+  RsdoctorPluginAssetsHook, RsdoctorPluginChunkGraph, RsdoctorPluginChunkGraphHook,
+  RsdoctorPluginModuleGraph, RsdoctorPluginModuleGraphHook, RsdoctorPluginModuleSources,
+  RsdoctorPluginModuleSourcesHook, RsdoctorSourcePatch,
 };
 
 #[napi(object)]
@@ -614,15 +614,15 @@ pub struct RegisterJsTaps {
   pub register_rsdoctor_plugin_chunk_graph_taps:
     RegisterFunction<JsRsdoctorChunkGraph, Promise<Option<bool>>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Vec<JsRsdoctorModuleSource>) => Promise<boolean | undefined>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorSourcePatch) => Promise<boolean | undefined>); stage: number; }>"
   )]
   pub register_rsdoctor_plugin_module_sources_taps:
-    RegisterFunction<Vec<JsRsdoctorModuleSource>, Promise<Option<bool>>>,
+    RegisterFunction<JsRsdoctorSourcePatch, Promise<Option<bool>>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Vec<JsRsdoctorAsset>) => Promise<boolean | undefined>); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>"
   )]
   pub register_rsdoctor_plugin_assets_taps:
-    RegisterFunction<Vec<JsRsdoctorAsset>, Promise<Option<bool>>>,
+    RegisterFunction<JsRsdoctorAssetPatch, Promise<Option<bool>>>,
 }
 
 /* Compiler Hooks */
@@ -991,7 +991,7 @@ define_register!(
 
 define_register!(
   RegisterRsdoctorPluginAssetsTaps,
-  tap = RsdoctorPluginAssetsTap<Vec<JsRsdoctorAsset>, Promise<Option<bool>>> @ RsdoctorPluginAssetsHook,
+  tap = RsdoctorPluginAssetsTap<JsRsdoctorAssetPatch, Promise<Option<bool>>> @ RsdoctorPluginAssetsHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::RsdoctorPluginAssets,
@@ -1000,7 +1000,7 @@ define_register!(
 
 define_register!(
   RegisterRsdoctorPluginModuleSourcesTaps,
-  tap = RsdoctorPluginModuleSourcesTap<Vec<JsRsdoctorModuleSource>, Promise<Option<bool>>> @ RsdoctorPluginModuleSourcesHook,
+  tap = RsdoctorPluginModuleSourcesTap<JsRsdoctorSourcePatch, Promise<Option<bool>>> @ RsdoctorPluginModuleSourcesHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::RsdoctorPluginModuleSources,
@@ -1874,16 +1874,11 @@ impl RsdoctorPluginChunkGraph for RsdoctorPluginChunkGraphTap {
 
 #[async_trait]
 impl RsdoctorPluginModuleSources for RsdoctorPluginModuleSourcesTap {
-  async fn run(&self, data: &mut Vec<RsdoctorModuleSource>) -> rspack_error::Result<Option<bool>> {
+  async fn run(&self, data: &mut RsdoctorSourcePatch) -> rspack_error::Result<Option<bool>> {
     let data = std::mem::take(data);
     let bail = self
       .function
-      .call_with_promise(
-        data
-          .into_iter()
-          .map(JsRsdoctorModuleSource::from)
-          .collect::<Vec<_>>(),
-      )
+      .call_with_promise(JsRsdoctorSourcePatch::from(data))
       .await?;
     Ok(bail)
   }
@@ -1895,16 +1890,11 @@ impl RsdoctorPluginModuleSources for RsdoctorPluginModuleSourcesTap {
 
 #[async_trait]
 impl RsdoctorPluginAssets for RsdoctorPluginAssetsTap {
-  async fn run(&self, data: &mut Vec<RsdoctorAsset>) -> rspack_error::Result<Option<bool>> {
+  async fn run(&self, data: &mut RsdoctorAssetPatch) -> rspack_error::Result<Option<bool>> {
     let data = std::mem::take(data);
     let bail = self
       .function
-      .call_with_promise(
-        data
-          .into_iter()
-          .map(JsRsdoctorAsset::from)
-          .collect::<Vec<_>>(),
-      )
+      .call_with_promise(JsRsdoctorAssetPatch::from(data))
       .await?;
     Ok(bail)
   }

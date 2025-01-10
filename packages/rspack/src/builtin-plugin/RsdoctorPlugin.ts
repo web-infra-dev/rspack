@@ -1,4 +1,4 @@
-import { BuiltinPluginName, JsRsdoctorAsset, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleSource, RawRsdoctorPluginOptions } from "@rspack/binding";
+import { BuiltinPluginName, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorSourcePatch, RawRsdoctorPluginOptions } from "@rspack/binding";
 import { z } from "zod";
 import { create } from "./base";
 import { validate } from "../util/validate";
@@ -22,6 +22,10 @@ export type {
   JsRsdoctorSourceRange as RsdoctorSourceRange,
   JsRsdoctorSourcePosition as RsdoctorSourcePosition,
   JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule,
+  JsRsdoctorSourcePatch as RsdoctorSourcePatch,
+  JsRsdoctorAssetPatch as RsdoctorAssetPatch,
+  JsRsdoctorChunkAssets as RsdoctorChunkAssets,
+  JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets,
 } from "@rspack/binding";
 
 export type RsdoctorRspackPluginOptions = {};
@@ -46,10 +50,10 @@ export type RsdoctorRspackPluginHooks = {
     [JsRsdoctorChunkGraph], false | void
   >;
   moduleSources: liteTapable.AsyncSeriesBailHook<
-    [JsRsdoctorModuleSource[]], false | void
+    [JsRsdoctorSourcePatch], false | void
   >;
   assets: liteTapable.AsyncSeriesBailHook<
-    [JsRsdoctorAsset[]], false | void
+    [JsRsdoctorAssetPatch], false | void
   >;
 };
 
@@ -77,8 +81,8 @@ RsdoctorRspackPlugin.getHooks = RsdoctorRspackPlugin.getCompilationHooks = (
     hooks = {
       moduleGraph: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorModuleGraph], false | void>(["moduleGraph"]),
       chunkGraph: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorChunkGraph], false | void>(["chunkGraph"]),
-      moduleSources: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorModuleSource[]], false | void>(["moduleSources"]),
-      assets: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorAsset[]], false | void>(["assets"]),
+      moduleSources: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorSourcePatch], false | void>(["sourcePath"]),
+      assets: new liteTapable.AsyncSeriesBailHook<[JsRsdoctorAssetPatch], false | void>(["assetPath"]),
     };
     compilationHooksMap.set(compilation, hooks);
   }

@@ -4,25 +4,27 @@ use async_trait::async_trait;
 use futures::future::BoxFuture;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ApplyContext, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
-  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
+  ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
+  CompilationAfterProcessAssets, CompilationId, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationParams, CompilerCompilation, CompilerOptions, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::chunk_graph::{
-  collect_assets, collect_chunk_dependencies, collect_chunks, collect_entrypoints,
+  collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
+  collect_chunks, collect_entrypoint_assets, collect_entrypoints,
 };
 use crate::module_graph::{
-  collect_concatenated_modules, collect_module_dependencies, collect_module_sources,
-  collect_modules,
+  collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
+  collect_module_sources, collect_modules,
 };
 use crate::{
-  ModuleUkey, RsdoctorAsset, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleSource,
-  RsdoctorPluginHooks,
+  EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
+  RsdoctorPluginHooks, RsdoctorSourcePatch,
 };
 
 pub type SendModuleGraph =
@@ -30,14 +32,16 @@ pub type SendModuleGraph =
 pub type SendChunkGraph =
   Arc<dyn Fn(RsdoctorChunkGraph) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 pub type SendAssets =
-  Arc<dyn Fn(Vec<RsdoctorAsset>) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+  Arc<dyn Fn(RsdoctorAssetPatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 pub type SendModuleSources =
-  Arc<dyn Fn(Vec<RsdoctorModuleSource>) -> BoxFuture<'static, Result<()>> + Send + Sync>;
+  Arc<dyn Fn(RsdoctorSourcePatch) -> BoxFuture<'static, Result<()>> + Send + Sync>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, Box<RsdoctorPluginHooks>>> =
   LazyLock::new(Default::default);
 
 static MODULE_UKEY_MAP: LazyLock<FxDashMap<Identifier, ModuleUkey>> =
+  LazyLock::new(FxDashMap::default);
+static ENTRYPOINT_UKEY_MAP: LazyLock<FxDashMap<ChunkGroupUkey, EntrypointUkey>> =
   LazyLock::new(FxDashMap::default);
 
 #[derive(Default, Debug)]
@@ -82,7 +86,7 @@ async fn compilation(
   Ok(())
 }
 
-#[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin)]
+#[plugin_hook(CompilationOptimizeChunks for RsdoctorPlugin, stage = 9999)]
 fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
@@ -114,6 +118,10 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
     chunk_group_by_ukey,
   ));
 
+  for (entrypoint_ukey, entrypoint) in rsd_entrypoints.iter() {
+    ENTRYPOINT_UKEY_MAP.insert(*entrypoint_ukey, entrypoint.ukey);
+  }
+
   tokio::spawn(async move {
     match hooks
       .chunk_graph
@@ -131,7 +139,7 @@ fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>>
   Ok(None)
 }
 
-#[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin)]
+#[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 9999)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
@@ -140,6 +148,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.chunk_graph;
+  let chunk_by_ukey = &compilation.chunk_by_ukey;
   let modules = module_graph.modules();
 
   // 1. collect modules
@@ -150,19 +159,36 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &compilation.options.context,
   ));
 
-  // 2. collect concatenate modules
-  let concatenated_infos = collect_concatenated_modules(&modules, &rsd_modules);
-  for (module_id, children) in concatenated_infos {
-    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
-      rsd_module.modules.extend(children);
-    }
-  }
-
   for (module_id, module) in rsd_modules.iter() {
     MODULE_UKEY_MAP.insert(*module_id, module.ukey);
   }
 
-  // 3. collect module dependencies
+  // 2. collect concatenate children
+  let (child_map, parent_map) = collect_concatenated_modules(&modules);
+  for (module_id, children) in child_map {
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.modules.extend(
+        children
+          .iter()
+          .filter_map(|i| MODULE_UKEY_MAP.get(i).map(|u| *u))
+          .collect::<HashSet<_>>(),
+      );
+    }
+  }
+
+  // 3. collect concatenate parents
+  for (module_id, parents) in parent_map {
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.belong_modules.extend(
+        parents
+          .iter()
+          .filter_map(|i| MODULE_UKEY_MAP.get(i).map(|u| *u))
+          .collect::<HashSet<_>>(),
+      );
+    }
+  }
+
+  // 4. collect module dependencies
   let dependency_infos = collect_module_dependencies(&modules, &MODULE_UKEY_MAP, &module_graph);
   for (origin_module_id, dependencies) in dependency_infos {
     for (dep_module_id, (dep_id, dependency)) in dependencies {
@@ -176,12 +202,16 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
+  // 5. collect chunk modules
+  let chunk_modules = collect_chunk_modules(&chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph);
+
   tokio::spawn(async move {
     match hooks
       .module_graph
       .call(&mut RsdoctorModuleGraph {
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
+        chunk_modules,
       })
       .await
     {
@@ -193,16 +223,25 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   Ok(None)
 }
 
-#[plugin_hook(CompilationAfterCodeGeneration for RsdoctorPlugin)]
+#[plugin_hook(CompilationAfterCodeGeneration for RsdoctorPlugin, stage = 9999)]
 fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
   let module_graph = compilation.get_module_graph();
   let modules = module_graph.modules();
-  let mut rsd_module_sources = collect_module_sources(&modules, &MODULE_UKEY_MAP, compilation);
+  let rsd_module_sources = collect_module_sources(&modules, &MODULE_UKEY_MAP, compilation);
+  let rsd_module_ids =
+    collect_module_ids(&modules, &MODULE_UKEY_MAP, &compilation.module_ids_artifact);
 
   tokio::spawn(async move {
-    match hooks.module_sources.call(&mut rsd_module_sources).await {
+    match hooks
+      .module_sources
+      .call(&mut RsdoctorSourcePatch {
+        module_sources: rsd_module_sources,
+        module_ids: rsd_module_ids,
+      })
+      .await
+    {
       Ok(_) => {}
       Err(e) => panic!("rsdoctor send module sources failed: {}", e),
     };
@@ -211,17 +250,30 @@ fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin)]
+#[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin, stage = 9999)]
 async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<()> {
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
   let chunk_by_ukey = &compilation.chunk_by_ukey;
+  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
   let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
+  let rsd_chunk_assets = collect_chunk_assets(&chunk_by_ukey, &rsd_assets);
+  let rsd_entrypoint_assets = collect_entrypoint_assets(
+    &compilation.entrypoints,
+    &rsd_assets,
+    &ENTRYPOINT_UKEY_MAP,
+    &chunk_group_by_ukey,
+    &chunk_by_ukey,
+  );
 
   tokio::spawn(async move {
     match hooks
       .assets
-      .call(&mut rsd_assets.into_values().collect::<Vec<_>>())
+      .call(&mut RsdoctorAssetPatch {
+        assets: rsd_assets.into_values().collect::<Vec<_>>(),
+        chunk_assets: rsd_chunk_assets,
+        entrypoint_assets: rsd_entrypoint_assets,
+      })
       .await
     {
       Ok(_) => {}

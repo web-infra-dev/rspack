@@ -1,16 +1,17 @@
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::{atomic::AtomicI32, Arc};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   rspack_sources::MapOptions, BoxModule, ChunkGraph, Compilation, Context, DependencyId,
-  ModuleGraph,
+  ModuleGraph, ModuleIdsArtifact,
 };
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleSource,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorModule, RsdoctorModuleId,
+  RsdoctorModuleSource,
 };
 
 pub fn collect_modules(
@@ -19,7 +20,7 @@ pub fn collect_modules(
   chunk_graph: &ChunkGraph,
   context: &Context,
 ) -> HashMap<Identifier, RsdoctorModule> {
-  let module_ukey_counter: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+  let module_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
 
   modules
     .par_iter()
@@ -57,6 +58,7 @@ pub fn collect_modules(
           dependencies: HashSet::default(),
           imported: HashSet::default(),
           modules: HashSet::default(),
+          belong_modules: HashSet::default(),
           chunks,
         },
       )
@@ -66,26 +68,43 @@ pub fn collect_modules(
 
 pub fn collect_concatenated_modules(
   modules: &IdentifierMap<&BoxModule>,
-  rsd_modules: &HashMap<Identifier, RsdoctorModule>,
-) -> HashMap<Identifier, HashSet<ModuleUkey>> {
-  modules
+) -> (
+  HashMap<Identifier, HashSet<Identifier>>,
+  HashMap<Identifier, HashSet<Identifier>>,
+) {
+  let children_map = modules
     .par_iter()
-    .map(|(module_id, module)| {
-      (
+    .filter_map(|(module_id, module)| {
+      let concatenated_module = module.as_concatenated_module()?;
+      Some((
         module_id.to_owned(),
-        module
-          .as_concatenated_module()
-          .map(|concatenated_module| {
-            concatenated_module
-              .get_modules()
-              .iter()
-              .filter_map(|m| rsd_modules.get(&m.id).map(|m| m.ukey))
-              .collect::<HashSet<_>>()
-          })
-          .unwrap_or_default(),
-      )
+        concatenated_module
+          .get_modules()
+          .iter()
+          .map(|m| m.id)
+          .collect::<HashSet<_>>(),
+      ))
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<HashMap<_, _>>();
+
+  let parent_map = children_map
+    .iter()
+    .map(|(parent, children)| {
+      children
+        .iter()
+        .map(|child| (*child, *parent))
+        .collect::<HashSet<_>>()
+    })
+    .flatten()
+    .fold(HashMap::default(), |mut acc, (child, parent)| {
+      acc
+        .entry(child)
+        .or_insert_with(HashSet::default)
+        .insert(parent);
+      acc
+    });
+
+  (children_map, parent_map)
 }
 
 pub fn collect_module_dependencies(
@@ -93,7 +112,7 @@ pub fn collect_module_dependencies(
   module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
 ) -> HashMap<Identifier, HashMap<Identifier, (DependencyId, RsdoctorDependency)>> {
-  let dependency_ukey_counter = Arc::new(AtomicUsize::new(0));
+  let dependency_ukey_counter = Arc::new(AtomicI32::new(0));
 
   modules
     .par_iter()
@@ -143,7 +162,7 @@ pub fn collect_module_sources(
     .par_iter()
     .filter_map(|(module_id, module)| {
       let source = module.original_source();
-      let size = module.size(None, Some(compilation)) as usize;
+      let size = module.size(None, Some(compilation)) as i32;
       let ukey = module_ukeys.get(module_id)?;
       Some(RsdoctorModuleSource {
         module: *ukey,
@@ -153,6 +172,25 @@ pub fn collect_module_sources(
         source_map: source
           .and_then(|s| s.map(&MapOptions::default()))
           .and_then(|m| m.to_json().ok()),
+      })
+    })
+    .collect::<Vec<_>>()
+}
+
+pub fn collect_module_ids(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &FxDashMap<Identifier, ModuleUkey>,
+  module_ids: &ModuleIdsArtifact,
+) -> Vec<RsdoctorModuleId> {
+  modules
+    .keys()
+    .par_bridge()
+    .filter_map(|module_id| {
+      let render_id = ChunkGraph::get_module_id(module_ids, *module_id).map(|s| s.to_string())?;
+      let module_ukey = module_ukeys.get(module_id)?;
+      Some(RsdoctorModuleId {
+        module: *module_ukey,
+        render_id,
       })
     })
     .collect::<Vec<_>>()
