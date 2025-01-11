@@ -9,21 +9,6 @@ use napi::{
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
   Env, NapiRaw,
 };
-use rspack_binding_values::{
-  JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
-  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
-  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
-  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
-  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
-  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
-  JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
-  JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
-  JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
-  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
-};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, ChunkUkey,
@@ -43,15 +28,16 @@ use rspack_core::{
   CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
   CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
   CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerMake, CompilerMakeHook,
-  CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation, CompilerThisCompilationHook,
-  ContextModuleFactoryAfterResolve, ContextModuleFactoryAfterResolveHook,
-  ContextModuleFactoryBeforeResolve, ContextModuleFactoryBeforeResolveHook, ExecuteModuleId,
-  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
-  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
-  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
+  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
+  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ModuleFactoryCreateData,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
+  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
   Scheme,
@@ -80,6 +66,20 @@ use rspack_plugin_runtime::{
   CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
   RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
   RuntimePluginLinkPreload, RuntimePluginLinkPreloadHook,
+};
+
+use crate::{
+  JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
+  JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
+  JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
+  JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
+  JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
+  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
+  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
+  JsCreateData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModuleWrapper,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -1188,12 +1188,18 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(
     &self,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compilation_id,
+        compiler_id,
+        None,
+      ))
       .await
   }
 
@@ -1206,12 +1212,18 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(
     &self,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compilation_id,
+        compiler_id,
+        None,
+      ))
       .await
   }
 
@@ -1229,7 +1241,12 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compilation_id,
+        compilation.compiler_id(),
+        None,
+      ))
       .await
   }
 

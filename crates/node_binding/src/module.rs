@@ -4,9 +4,12 @@ use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilationId, ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier,
-  RuntimeModuleStage, SourceType,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId, CompilerId,
+  ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage,
+  SourceType,
+};
+use rspack_napi::{
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -35,6 +38,7 @@ pub struct JsModule {
   pub(crate) identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
   compilation_id: CompilationId,
+  compiler_id: CompilerId,
   compilation: Option<NonNull<Compilation>>,
 }
 
@@ -270,7 +274,12 @@ impl JsModule {
               compilation
                 .module_by_identifier(&inner_module_info.id)
                 .map(|module| {
-                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+                  JsModuleWrapper::new(
+                    module.as_ref(),
+                    compilation.id(),
+                    compilation.compiler_id(),
+                    Some(compilation),
+                  )
                 })
             })
             .collect::<Vec<_>>();
@@ -359,6 +368,7 @@ pub struct JsModuleWrapper {
   identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
   compilation_id: CompilationId,
+  compiler_id: CompilerId,
   compilation: Option<NonNull<Compilation>>,
 }
 
@@ -368,6 +378,7 @@ impl JsModuleWrapper {
   pub fn new(
     module: &dyn Module,
     compilation_id: CompilationId,
+    compiler_id: CompilerId,
     compilation: Option<&Compilation>,
   ) -> Self {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -378,6 +389,7 @@ impl JsModuleWrapper {
       identifier,
       module: NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
       compilation_id,
+      compiler_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
     }
@@ -428,6 +440,7 @@ impl ToNapiValue for JsModuleWrapper {
             identifier: val.identifier,
             module: val.module,
             compilation_id: val.compilation_id,
+            compiler_id: val.compiler_id,
             compilation: val.compilation,
           };
           let r = entry.insert(OneShotRef::new(env, js_module)?);
@@ -447,6 +460,7 @@ impl FromNapiValue for JsModuleWrapper {
       #[allow(clippy::unwrap_used)]
       module: instance.module,
       compilation_id: instance.compilation_id,
+      compiler_id: instance.compiler_id,
       compilation: instance.compilation,
     })
   }

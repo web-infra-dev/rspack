@@ -625,6 +625,7 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
       module: JsModuleWrapper::new(
         value.module,
         value.compilation.id(),
+        value.compilation.compiler_id(),
         Some(value.compilation),
       ),
     }
