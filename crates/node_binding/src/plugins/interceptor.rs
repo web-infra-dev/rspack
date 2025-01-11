@@ -1055,12 +1055,18 @@ impl CompilerAssetEmitted for CompilerAssetEmittedTap {
 impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(
     &self,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compiler_id,
+        compilation_id,
+        None,
+      ))
       .await
   }
 
@@ -1073,12 +1079,18 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
 impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(
     &self,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compiler_id,
+        compilation_id,
+        None,
+      ))
       .await
   }
 
@@ -1091,12 +1103,18 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(
     &self,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
     self
       .function
-      .call_with_sync(JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+      .call_with_sync(JsModuleWrapper::new(
+        module.as_ref(),
+        compiler_id,
+        compilation_id,
+        None,
+      ))
       .await
   }
 

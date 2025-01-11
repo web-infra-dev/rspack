@@ -26,13 +26,14 @@ use crate::concatenated_module::ConcatenatedModule;
 use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilationId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
-  ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided,
+  ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule,
+  Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,

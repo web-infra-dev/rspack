@@ -30,6 +30,7 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
     JsChunkOptionNameCtx {
       module: JsModuleWrapper::new(
         value.module,
+        value.compilation.compiler_id(),
         value.compilation.id(),
         Some(value.compilation),
       ),

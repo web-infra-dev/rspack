@@ -36,6 +36,7 @@ pub struct JsFactoryMeta {
 pub struct JsModule {
   pub(crate) identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
+  compiler_id: CompilerId,
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
@@ -274,7 +275,12 @@ impl JsModule {
               compilation
                 .module_by_identifier(&inner_module_info.id)
                 .map(|module| {
-                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+                  JsModuleWrapper::new(
+                    module.as_ref(),
+                    compilation.compiler_id(),
+                    compilation.id(),
+                    Some(compilation),
+                  )
                 })
             })
             .collect::<Vec<_>>();
@@ -349,10 +355,10 @@ impl JsModule {
 
 type ModuleInstanceRefs = IdentifierMap<OneShotInstanceRef<JsModule>>;
 
-type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
+type ModuleInstanceRefsByCompilerId = RefCell<HashMap<CompilerId, ModuleInstanceRefs>>;
 
 thread_local! {
-  static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilationId = Default::default();
+  static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilerId = Default::default();
 }
 
 // The difference between JsModuleWrapper and JsModule is:
@@ -362,6 +368,7 @@ thread_local! {
 pub struct JsModuleWrapper {
   identifier: ModuleIdentifier,
   module: NonNull<dyn Module>,
+  compiler_id: CompilerId,
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
@@ -371,6 +378,7 @@ unsafe impl Send for JsModuleWrapper {}
 impl JsModuleWrapper {
   pub fn new(
     module: &dyn Module,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     compilation: Option<&Compilation>,
   ) -> Self {
@@ -381,6 +389,7 @@ impl JsModuleWrapper {
     Self {
       identifier,
       module: NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
+      compiler_id,
       compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
@@ -388,10 +397,10 @@ impl JsModuleWrapper {
   }
 
   pub fn cleanup_last_compilation(compilation_id: CompilationId) {
-    MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      refs_by_compilation_id.remove(&compilation_id)
-    });
+    // MODULE_INSTANCE_REFS.with(|refs| {
+    //   let mut refs_by_compilation_id = refs.borrow_mut();
+    //   refs_by_compilation_id.remove(&compilation_id)
+    // });
   }
 
   pub fn attach(&mut self, compilation: *const Compilation) {
@@ -409,8 +418,8 @@ impl ToNapiValue for JsModuleWrapper {
     let module = unsafe { val.module.as_ref() };
 
     MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
+      let mut refs_by_compiler_id = refs.borrow_mut();
+      let entry = refs_by_compiler_id.entry(val.compiler_id);
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         std::collections::hash_map::Entry::Vacant(entry) => {
@@ -431,6 +440,7 @@ impl ToNapiValue for JsModuleWrapper {
           let js_module = JsModule {
             identifier: val.identifier,
             module: val.module,
+            compiler_id: val.compiler_id,
             compilation_id: val.compilation_id,
             compilation: val.compilation,
           };
@@ -450,6 +460,7 @@ impl FromNapiValue for JsModuleWrapper {
       identifier: instance.identifier,
       #[allow(clippy::unwrap_used)]
       module: instance.module,
+      compiler_id: instance.compiler_id,
       compilation_id: instance.compilation_id,
       compilation: instance.compilation,
     })

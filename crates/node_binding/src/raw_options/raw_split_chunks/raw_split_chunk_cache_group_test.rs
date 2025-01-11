@@ -22,6 +22,7 @@ impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
     JsCacheGroupTestCtx {
       module: JsModuleWrapper::new(
         value.module,
+        value.compilation.compiler_id(),
         value.compilation.id(),
         Some(value.compilation),
       ),

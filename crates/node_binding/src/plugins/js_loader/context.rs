@@ -190,7 +190,12 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
-      module: JsModuleWrapper::new(module, cx.context.compilation_id, None),
+      module: JsModuleWrapper::new(
+        module,
+        cx.context.compiler_id,
+        cx.context.compilation_id,
+        None,
+      ),
       hot: cx.hot,
       content: match cx.content() {
         Some(c) => match c {

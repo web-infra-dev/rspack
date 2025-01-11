@@ -61,9 +61,9 @@ pub type BuildDependency = (
 );
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
-define_hook!(CompilationBuildModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationStillValidModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationStillValidModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
   SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));

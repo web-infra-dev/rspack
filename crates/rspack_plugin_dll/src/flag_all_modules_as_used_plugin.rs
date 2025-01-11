@@ -1,8 +1,8 @@
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   get_entry_runtime, merge_runtime, ApplyContext, BoxModule, Compilation, CompilationId,
-  CompilationOptimizeDependencies, CompilationSucceedModule, CompilerOptions, FactoryMeta, Plugin,
-  PluginContext, RuntimeSpec,
+  CompilationOptimizeDependencies, CompilationSucceedModule, CompilerId, CompilerOptions,
+  FactoryMeta, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -66,6 +66,7 @@ fn optimize_dependencies(&self, compilation: &mut Compilation) -> Result<Option<
 #[plugin_hook(CompilationSucceedModule for FlagAllModulesAsUsedPlugin)]
 async fn succeed_module(
   &self,
+  _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {

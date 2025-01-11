@@ -7,11 +7,13 @@ use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
   AsyncDependenciesBlock, BoxDependency, BuildContext, BuildInfo, BuildResult, CompilationId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  CompilerId, CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct BuildTask {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module: Box<dyn Module>,
   pub current_profile: Option<Box<ModuleProfile>>,
@@ -28,6 +30,7 @@ impl Task<MakeTaskContext> for BuildTask {
   }
   async fn background_run(self: Box<Self>) -> TaskResult<MakeTaskContext> {
     let Self {
+      compiler_id,
       compilation_id,
       compiler_options,
       resolver_factory,
@@ -43,12 +46,13 @@ impl Task<MakeTaskContext> for BuildTask {
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(compilation_id, &mut module)
+      .call(compiler_id, compilation_id, &mut module)
       .await?;
 
     let result = module
       .build(
         BuildContext {
+          compiler_id,
           compilation_id,
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),
@@ -80,6 +84,7 @@ impl Task<MakeTaskContext> for BuildTask {
         plugin_driver,
         diagnostics,
         current_profile,
+        compiler_id,
         compilation_id,
       })]
     })
@@ -93,6 +98,7 @@ struct BuildResultTask {
   pub diagnostics: Vec<Diagnostic>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
 }
 #[async_trait::async_trait]
@@ -107,6 +113,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
       diagnostics,
       current_profile,
       plugin_driver,
+      compiler_id,
       compilation_id,
     } = *self;
 
@@ -116,7 +123,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(compilation_id, &mut module)
+      .call(compiler_id, compilation_id, &mut module)
       .await?;
 
     let build_info_default = BuildInfo::default();

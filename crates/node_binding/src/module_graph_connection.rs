@@ -56,7 +56,14 @@ impl JsModuleGraphConnection {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
       let module = module_graph.module_by_identifier(connection.module_identifier());
-      Ok(module.map(|m| JsModuleWrapper::new(m.as_ref(), compilation.id(), Some(compilation))))
+      Ok(module.map(|m| {
+        JsModuleWrapper::new(
+          m.as_ref(),
+          compilation.compiler_id(),
+          compilation.id(),
+          Some(compilation),
+        )
+      }))
     } else {
       Err(napi::Error::from_reason(format!(
         "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
@@ -70,7 +77,14 @@ impl JsModuleGraphConnection {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
       let module = module_graph.module_by_identifier(&connection.resolved_module);
-      Ok(module.map(|m| JsModuleWrapper::new(m.as_ref(), compilation.id(), Some(compilation))))
+      Ok(module.map(|m| {
+        JsModuleWrapper::new(
+          m.as_ref(),
+          compilation.compiler_id(),
+          compilation.id(),
+          Some(compilation),
+        )
+      }))
     } else {
       Err(napi::Error::from_reason(format!(
         "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
@@ -86,7 +100,14 @@ impl JsModuleGraphConnection {
       Ok(match connection.original_module_identifier {
         Some(original_module_identifier) => module_graph
           .module_by_identifier(&original_module_identifier)
-          .map(|m| JsModuleWrapper::new(m.as_ref(), compilation.id(), Some(compilation))),
+          .map(|m| {
+            JsModuleWrapper::new(
+              m.as_ref(),
+              compilation.compiler_id(),
+              compilation.id(),
+              Some(compilation),
+            )
+          }),
         None => None,
       })
     } else {
