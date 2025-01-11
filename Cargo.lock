@@ -4304,6 +4304,7 @@ dependencies = [
  "rspack_hook",
  "rspack_ids",
  "rspack_loader_lightningcss",
+ "rspack_loader_next_swc",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
  "rspack_loader_runner",

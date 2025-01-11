@@ -31,7 +31,6 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
       module: JsModuleWrapper::new(
         value.module,
         value.compilation.id(),
-        value.compilation.compiler_id(),
         Some(value.compilation),
       ),
       chunks: value

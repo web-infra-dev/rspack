@@ -50,7 +50,7 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
   ) -> bool {
     let res = self
       .tsfn
-      .blocking_call_with_sync(JsModuleWrapper::new(m, compiler_id, compilation_id, None))
+      .blocking_call_with_sync(JsModuleWrapper::new(m, compilation_id, None))
       .expect("failed to invoke lazyCompilation.test");
 
     res.unwrap_or(false)

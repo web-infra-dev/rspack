@@ -5,12 +5,13 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
+use std::cell::RefCell;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
-use rspack_core::{Compilation, PluginExt};
+use rspack_core::{Compilation, CompilerId, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
@@ -80,9 +81,14 @@ use resolver_factory::*;
 pub use resource_data::*;
 use rspack_tracing::chrome::FlushGuard;
 pub use runtime::*;
+use rustc_hash::FxHashMap as HashMap;
 pub use source::*;
 pub use stats::*;
 pub use utils::*;
+
+thread_local! {
+  pub static COMPILER_REFERENCES: RefCell<HashMap<CompilerId, WeakReference<Rspack>>> = Default::default();
+}
 
 #[napi]
 pub struct Rspack {
@@ -232,6 +238,11 @@ impl Rspack {
     reference: Reference<Rspack>,
     f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(reference.compiler.id(), reference.downgrade());
+    });
+
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }

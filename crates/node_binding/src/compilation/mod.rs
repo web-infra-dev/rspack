@@ -189,12 +189,7 @@ impl JsCompilation {
         .keys()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(
-              module.as_ref(),
-              compilation.id(),
-              compilation.compiler_id(),
-              Some(compilation),
-            )
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
           })
         })
         .collect::<Vec<_>>(),
@@ -211,12 +206,7 @@ impl JsCompilation {
         .iter()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(
-              module.as_ref(),
-              compilation.id(),
-              compilation.compiler_id(),
-              Some(compilation),
-            )
+            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
           })
         })
         .collect::<Vec<_>>(),
@@ -627,9 +617,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| {
-                JsModuleWrapper::new(module.as_ref(), compilation_id, compiler_id, None)
-              })
+              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
               .collect::<Vec<_>>()
           },
         )
@@ -810,12 +798,8 @@ impl JsCompilation {
                   compilation.id(),
                   Some(&compilation),
                 );
-                let js_module = JsModuleWrapper::new(
-                  module.as_ref(),
-                  compilation.id(),
-                  compilation.compiler_id(),
-                  Some(compilation),
-                );
+                let js_module =
+                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
                 Either::B((js_dependency, js_module))
               }
               None => Either::A(format!(

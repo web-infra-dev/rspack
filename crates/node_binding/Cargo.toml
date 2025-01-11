@@ -9,6 +9,9 @@ version     = "0.2.0"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+plugin = ["rspack_loader_swc/plugin"]
+
 [dependencies]
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
@@ -24,6 +27,7 @@ rspack_paths             = { workspace = true }
 rspack_plugin_html       = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
+rspack_loader_next_swc   = { workspace = true }
 
 rspack_tracing = { workspace = true }
 
