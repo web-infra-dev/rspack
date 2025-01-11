@@ -37,6 +37,8 @@ stacker                  = { workspace = true }
 swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
-url                      = "2.5.4"
+tracing                  = { workspace = true }
+url                      = "2.5.0"
+
 [build-dependencies]
 cargo_toml = { version = "0.21.0" }

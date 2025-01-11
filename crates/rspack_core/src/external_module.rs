@@ -567,7 +567,7 @@ impl Module for ExternalModule {
     Ok(build_result)
   }
 
-  #[tracing::instrument(name = "ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

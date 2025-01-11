@@ -8,7 +8,7 @@ use crate::{CacheGroup, SplitChunksPlugin};
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.maxInitialRequests`/`splitChunks.cacheGroups.{cacheGroup}.maxInitialRequests`
   /// Affected by `splitChunks.maxAsyncRequests`/`splitChunks.cacheGroups.{cacheGroup}.maxAsyncRequests`
-  #[tracing::instrument(skip_all)]
+  // #[tracing::instrument(skip_all)]
   pub(crate) fn ensure_max_request_fit(
     &self,
     compilation: &Compilation,

@@ -25,6 +25,11 @@ impl<Context> LoaderContext<Context> {
   }
 }
 
+// #[tracing::instrument("LoaderRunner:process_resource",
+//   skip_all,
+//   fields(module.resource = loader_context.resource_data.resource),
+//   level = "trace"
+// )]
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -103,6 +108,7 @@ async fn create_loader_context<Context>(
   Ok(loader_context)
 }
 
+#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
