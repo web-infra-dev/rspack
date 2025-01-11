@@ -69,6 +69,7 @@ impl Compiler {
       self.plugin_driver.clear_cache();
 
       let mut new_compilation = Compilation::new(
+        self.id,
         self.options.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),

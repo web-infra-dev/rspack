@@ -189,7 +189,12 @@ impl JsCompilation {
         .keys()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+            JsModuleWrapper::new(
+              module.as_ref(),
+              compilation.id(),
+              compilation.compiler_id(),
+              Some(compilation),
+            )
           })
         })
         .collect::<Vec<_>>(),
@@ -206,7 +211,12 @@ impl JsCompilation {
         .iter()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+            JsModuleWrapper::new(
+              module.as_ref(),
+              compilation.id(),
+              compilation.compiler_id(),
+              Some(compilation),
+            )
           })
         })
         .collect::<Vec<_>>(),
@@ -609,6 +619,7 @@ impl JsCompilation {
 
     callbackify(env, f, async {
       let compilation_id = compilation.id();
+      let compiler_id = compilation.compiler_id();
 
       let mut modules = compilation
         .rebuild_module(
@@ -616,7 +627,9 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+              .map(|module| {
+                JsModuleWrapper::new(module.as_ref(), compilation_id, compiler_id, None)
+              })
               .collect::<Vec<_>>()
           },
         )
@@ -797,8 +810,12 @@ impl JsCompilation {
                   compilation.id(),
                   Some(&compilation),
                 );
-                let js_module =
-                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
+                let js_module = JsModuleWrapper::new(
+                  module.as_ref(),
+                  compilation.id(),
+                  compilation.compiler_id(),
+                  Some(compilation),
+                );
                 Either::B((js_dependency, js_module))
               }
               None => Either::A(format!(

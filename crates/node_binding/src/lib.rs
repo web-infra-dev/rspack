@@ -15,17 +15,74 @@ use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
+mod asset;
+mod asset_condition;
+mod chunk;
+mod chunk_graph;
+mod chunk_group;
+mod clean_options;
+mod codegen_result;
+mod compilation;
 mod compiler;
+mod context_module_factory;
+mod dependency;
+mod dependency_block;
 mod diagnostic;
+mod error;
+mod exports_info;
+mod filename;
+mod html;
+mod identifier;
+mod module;
+mod module_graph;
+mod module_graph_connection;
+mod normal_module_factory;
+mod options;
 mod panic;
+mod path_data;
 mod plugins;
+mod raw_options;
+mod resolver;
 mod resolver_factory;
+mod resource_data;
+mod runtime;
+mod source;
+mod stats;
+mod utils;
 
+pub use asset::*;
+pub use asset_condition::*;
+pub use chunk::*;
+pub use chunk_graph::*;
+pub use chunk_group::*;
+pub use clean_options::*;
+pub use codegen_result::*;
+pub use compilation::*;
+pub use context_module_factory::*;
+pub use dependency::*;
+pub use dependency_block::*;
 pub use diagnostic::*;
+pub use error::*;
+pub use exports_info::*;
+pub use filename::*;
+pub use html::*;
+pub use module::*;
+pub use module_graph::*;
+pub use module_graph_connection::*;
+pub use normal_module_factory::*;
+pub use options::*;
+pub use path_data::*;
+pub use plugins::buildtime_plugins;
 use plugins::*;
+pub use raw_options::*;
+pub use resolver::*;
 use resolver_factory::*;
-use rspack_binding_values::*;
+pub use resource_data::*;
 use rspack_tracing::chrome::FlushGuard;
+pub use runtime::*;
+pub use source::*;
+pub use stats::*;
+pub use utils::*;
 
 #[napi]
 pub struct Rspack {
@@ -82,7 +139,7 @@ impl Rspack {
       compiler_path,
       compiler_options,
       plugins,
-      rspack_binding_values::buildtime_plugins::buildtime_plugins(),
+      buildtime_plugins::buildtime_plugins(),
       Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
