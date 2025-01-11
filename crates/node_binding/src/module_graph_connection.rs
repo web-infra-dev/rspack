@@ -40,6 +40,7 @@ impl JsModuleGraphConnection {
     if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
       Ok(JsDependencyWrapper::new(
         dependency.as_ref(),
+        compilation.compiler_id(),
         compilation.id(),
         Some(compilation),
       ))

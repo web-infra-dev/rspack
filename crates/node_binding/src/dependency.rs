@@ -2,7 +2,7 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
+use rspack_core::{Compilation, CompilationId, CompilerId, Dependency, DependencyId};
 use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -142,14 +142,14 @@ impl JsDependency {
 
 type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<JsDependency>>;
 
-type DependencyInstanceRefsByCompilationId =
-  RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
+type DependencyInstanceRefsByCompilerId = RefCell<HashMap<CompilerId, DependencyInstanceRefs>>;
 
 thread_local! {
-  static DEPENDENCY_INSTANCE_REFS: DependencyInstanceRefsByCompilationId = Default::default();
+  static DEPENDENCY_INSTANCE_REFS: DependencyInstanceRefsByCompilerId = Default::default();
 }
 
 pub struct JsDependencyWrapper {
+  compiler_id: CompilerId,
   dependency_id: DependencyId,
   dependency: NonNull<dyn Dependency>,
   compilation_id: CompilationId,
@@ -159,6 +159,7 @@ pub struct JsDependencyWrapper {
 impl JsDependencyWrapper {
   pub fn new(
     dependency: &dyn Dependency,
+    compiler_id: CompilerId,
     compilation_id: CompilationId,
     compilation: Option<&Compilation>,
   ) -> Self {
@@ -168,6 +169,7 @@ impl JsDependencyWrapper {
     Self {
       dependency_id,
       dependency: NonNull::new(dependency as *const dyn Dependency as *mut dyn Dependency).unwrap(),
+      compiler_id,
       compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
@@ -175,10 +177,10 @@ impl JsDependencyWrapper {
   }
 
   pub fn cleanup_last_compilation(compilation_id: CompilationId) {
-    DEPENDENCY_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compilation_id = refs.borrow_mut();
-      refs_by_compilation_id.remove(&compilation_id)
-    });
+    // DEPENDENCY_INSTANCE_REFS.with(|refs| {
+    //   let mut refs_by_compilation_id = refs.borrow_mut();
+    //   refs_by_compilation_id.remove(&compilation_id)
+    // });
   }
 }
 
@@ -189,7 +191,7 @@ impl ToNapiValue for JsDependencyWrapper {
   ) -> napi::Result<napi::sys::napi_value> {
     DEPENDENCY_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compilation_id = refs.borrow_mut();
-      let entry = refs_by_compilation_id.entry(val.compilation_id);
+      let entry = refs_by_compilation_id.entry(val.compiler_id);
       let refs = match entry {
         std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         std::collections::hash_map::Entry::Vacant(entry) => {

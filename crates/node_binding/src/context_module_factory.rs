@@ -175,7 +175,14 @@ impl JsContextModuleFactoryAfterResolveData {
       .0
       .dependencies
       .iter()
-      .map(|dep| JsDependencyWrapper::new(dep.as_ref(), self.0.compilation_id, None))
+      .map(|dep| {
+        JsDependencyWrapper::new(
+          dep.as_ref(),
+          self.0.compiler_id,
+          self.0.compilation_id,
+          None,
+        )
+      })
       .collect::<Vec<_>>()
   }
 }

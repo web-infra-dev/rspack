@@ -807,6 +807,7 @@ impl JsCompilation {
                 let dependency = module_graph.dependency_by_id(&dependency_id).unwrap();
                 let js_dependency = JsDependencyWrapper::new(
                   dependency.as_ref(),
+                  compilation.compiler_id(),
                   compilation.id(),
                   Some(&compilation),
                 );

@@ -239,7 +239,12 @@ impl JsModule {
           .filter_map(|dependency_id| {
             module_graph.dependency_by_id(dependency_id).map(|dep| {
               let compilation = unsafe { self.compilation.map(|c| c.as_ref()) };
-              JsDependencyWrapper::new(dep.as_ref(), self.compilation_id, compilation)
+              JsDependencyWrapper::new(
+                dep.as_ref(),
+                self.compiler_id,
+                self.compilation_id,
+                compilation,
+              )
             })
           })
           .collect::<Vec<_>>()

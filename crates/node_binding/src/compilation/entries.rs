@@ -228,7 +228,12 @@ impl JsEntryData {
         .map(|dependency_id| {
           #[allow(clippy::unwrap_used)]
           let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-          JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation))
+          JsDependencyWrapper::new(
+            dep.as_ref(),
+            compilation.compiler_id(),
+            compilation.id(),
+            Some(compilation),
+          )
         })
         .collect::<Vec<_>>(),
     )
@@ -258,7 +263,12 @@ impl JsEntryData {
         .map(|dependency_id| {
           #[allow(clippy::unwrap_used)]
           let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-          JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation))
+          JsDependencyWrapper::new(
+            dep.as_ref(),
+            compilation.compiler_id(),
+            compilation.id(),
+            Some(compilation),
+          )
         })
         .collect::<Vec<_>>(),
     )
