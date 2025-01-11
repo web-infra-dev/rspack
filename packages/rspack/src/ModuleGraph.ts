@@ -13,6 +13,10 @@ export default class ModuleGraph {
 	#inner: JsModuleGraph;
 	#resolvedModuleMap = new VolatileMap<Dependency, Module | null>();
 	#outgoingConnectionsMap = new VolatileMap<Module, ModuleGraphConnection[]>();
+	#outgoingConnectionsInOrderMap = new VolatileMap<
+		Module,
+		ModuleGraphConnection[]
+	>();
 	#parentBlockIndexMap = new VolatileMap<Dependency, number>();
 	#isAsyncMap = new VolatileMap<Module, boolean>();
 
@@ -80,6 +84,17 @@ export default class ModuleGraph {
 				.getOutgoingConnections(Module.__to_binding(module))
 				.map(binding => ModuleGraphConnection.__from_binding(binding));
 			this.#outgoingConnectionsMap.set(module, connections);
+		}
+		return connections;
+	}
+
+	getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[] {
+		let connections = this.#outgoingConnectionsInOrderMap.get(module);
+		if (connections === undefined) {
+			connections = this.#inner
+				.getOutgoingConnectionsInOrder(Module.__to_binding(module))
+				.map(binding => ModuleGraphConnection.__from_binding(binding));
+			this.#outgoingConnectionsInOrderMap.set(module, connections);
 		}
 		return connections;
 	}

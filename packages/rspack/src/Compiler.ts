@@ -703,10 +703,12 @@ class Compiler {
 				return callback?.(error);
 			}
 			if (!this.#initial) {
+				console.profile(`rspack-rebuild-${this.name}`);
 				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
 					error => {
+						console.profileEnd(`rspack-rebuild-${this.name}`);
 						if (error) {
 							return callback?.(error);
 						}
@@ -1296,7 +1298,7 @@ class Compiler {
 							const normalizedResolveData: ResolveData = {
 								contextInfo: {
 									issuer: resolveData.issuer,
-									issuerLayer: resolveData.issuerLayer ?? null,
+									issuerLayer: resolveData.issuerLayer ?? null
 								},
 								request: resolveData.request,
 								context: resolveData.context,
@@ -1324,7 +1326,7 @@ class Compiler {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
 								issuer: resolveData.issuer,
-								issuerLayer: resolveData.issuerLayer ?? null,
+								issuerLayer: resolveData.issuerLayer ?? null
 							},
 							request: resolveData.request,
 							context: resolveData.context,
@@ -1352,7 +1354,7 @@ class Compiler {
 						const normalizedResolveData: ResolveData = {
 							contextInfo: {
 								issuer: resolveData.issuer,
-								issuerLayer: resolveData.issuerLayer ?? null,
+								issuerLayer: resolveData.issuerLayer ?? null
 							},
 							request: resolveData.request,
 							context: resolveData.context,
@@ -1398,7 +1400,7 @@ class Compiler {
 						const data: ResolveData = {
 							contextInfo: {
 								issuer: arg.issuer,
-								issuerLayer: arg.issuerLayer ?? null,
+								issuerLayer: arg.issuerLayer ?? null
 							},
 							request: arg.request,
 							context: arg.context,
