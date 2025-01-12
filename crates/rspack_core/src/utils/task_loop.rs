@@ -14,6 +14,7 @@ use tokio::{
   sync::mpsc::{self, error::TryRecvError},
   task,
 };
+use tracing::Instrument;
 
 /// Result returned by task
 ///
@@ -84,12 +85,15 @@ pub async fn run_task_loop_with_event<Ctx: 'static>(
           let tx = tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
-          tokio::spawn(task::unconstrained(async move {
-            let r = task.background_run().await;
-            if !is_expected_shutdown.load(Ordering::Relaxed) {
-              tx.send(r).expect("failed to send task result");
+          tokio::spawn(task::unconstrained(
+            async move {
+              let r = task.background_run().await;
+              if !is_expected_shutdown.load(Ordering::Relaxed) {
+                tx.send(r).expect("failed to send task result");
+              }
             }
-          }));
+            .in_current_span(),
+          ));
         }
         TaskType::Sync => {
           // merge sync task result directly

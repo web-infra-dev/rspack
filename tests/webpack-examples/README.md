@@ -1,6 +1,6 @@
 # Examples
 
-## Table of Contents
+## Table of contents
 
 1. [Aggressive Merging](#aggressive-merging)
 2. [Chunk](#chunk)
@@ -29,7 +29,7 @@
 25. [Building an Example](#building-an-example)
 
 
-## Aggressive Merging
+## Aggressive merging
 [aggressive-merging](aggressive-merging)
 
 ## Chunk
@@ -49,14 +49,14 @@
 
 [two-explicit-vendor-chunks](two-explicit-vendor-chunks)
 
-## Code Splitted
+## Code splitted
 [code-splitted-css-bundle](code-splitted-css-bundle)
 
 [code-splitted-require.context-amd](code-splitted-require.context-amd) example demonstrating contexts in a code-split environment with AMD.
 
 [code-splitted-require.context](code-splitted-require.context) example demonstrating contexts in a code-split environment.
 
-## Code Splitting
+## Code splitting
 [code-splitting](code-splitting) example demonstrating a very simple case of Code Splitting.
 
 [code-splitting-bundle-loader](code-splitting-bundle-loader) example demonstrating Code Splitting through the builder loader
@@ -67,7 +67,7 @@
 
 [code-splitting-specify-chunk-name](code-splitting-specify-chunk-name)
 
-## Coffee Script
+## Coffee script
 [coffee-script](coffee-script) example demonstrating code written in coffee-script.
 
 ## CommonJS
@@ -92,10 +92,10 @@
 
 [harmony-unused](harmony-unused)
 
-## HTTP2 Aggressive Splitting
+## HTTP2 Aggressive splitting
 [http2-aggressive-splitting](http2-aggressive-splitting)
 
-## Hybrid Routing
+## Hybrid routing
 [hybrid-routing](hybrid-routing)
 
 ## Loader
@@ -104,45 +104,45 @@
 ## Mixed
 [mixed](mixed) example demonstrating mixing CommonJs and AMD
 
-## Multi Compiler
+## Multi compiler
 [multi-compiler](multi-compiler)
 
-## Multi Part Library
+## Multi part library
 [multi-part-library](multi-part-library)
 
-## Multiple Entry Points
+## Multiple entry points
 [multiple-entry-points](multiple-entry-points) example demonstrating multiple entry points with Code Splitting.
 
-## Require Context
+## Require context
 [require.context](require.context) example demonstrating automatic creation of contexts when using variables in `require`.
 
-## Require Resolve
+## Require resolve
 [require.resolve](require.resolve) example demonstrating how to cache clearing of modules with `require.resolve` and `require.cache`.
 
-## Scope Hoisting
+## Scope hoisting
 [scope-hoisting](scope-hoisting)
 
-## Side Effects
+## Side effects
 [side-effects](side-effects)
 
 ## TypeScript
 [TypeScript](typescript)
 
-## Source Map
+## Source map
 [source-map](source-map)
 
 ## WebAssembly
 [wasm-simple](wasm-simple) example demonstrating simple import from a WebAssembly module
 [wasm-complex](wasm-complex) example demonstrating top-level await and import of WebAssembly text format with wast-loader
 
-## Web Worker
+## Web worker
 [web-worker](worker) example demonstrating creating WebWorkers with webpack.
 
 
 # Requests
 If you think an example is missing, please report it as issue. :)
 
-# Building an Example
+# Building an example
 1. Run `pnpm i` in the root of the project.
 2. Run `pnpm setup` in the root of the project.
 3. Run `pnpm add --dev webpack-cli` in the root of the project.

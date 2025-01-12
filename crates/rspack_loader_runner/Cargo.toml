@@ -22,3 +22,4 @@ rspack_paths       = { workspace = true }
 rspack_sources     = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }
+tracing            = { workspace = true }

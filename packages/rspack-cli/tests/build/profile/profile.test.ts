@@ -124,9 +124,9 @@ describe("profile", () => {
 			__dirname,
 			[],
 			{},
-			{ RSPACK_PROFILE: `TRACE=layer=logger&filter=rspack_node::plugins` }
+			{ RSPACK_PROFILE: `TRACE=layer=logger&filter=rspack_core::compiler` }
 		);
 		expect(exitCode).toBe(0);
-		expect(stdout.includes("rspack_node::plugins")).toBe(true);
+		expect(stdout.includes("rspack_core::compiler")).toBe(true);
 	});
 });

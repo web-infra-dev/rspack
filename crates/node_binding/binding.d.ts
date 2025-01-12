@@ -738,6 +738,7 @@ export interface JsLoaderContext {
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: JsRspackError
+  __internal__tracingCarrier?: Record<string, string>
 }
 
 export interface JsLoaderItem {
@@ -2050,7 +2051,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

@@ -16,7 +16,7 @@ impl CodeGenerateOccasion {
     Self { storage }
   }
 
-  #[tracing::instrument(skip_all, fields(module = ?job.module))]
+  // #[tracing::instrument(skip_all, fields(module = ?job.module))]
   pub fn use_cache(
     &self,
     job: CodeGenerationJob,

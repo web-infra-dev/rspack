@@ -759,7 +759,7 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
   - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
 - `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 是，则匹配成功。
 
-#### Nested Rule
+#### Nested rule
 
 嵌套 Rule 可以通过 [`Rule.rules`](#rulerules) 和 [`Rule.oneOf`](#ruleoneof) 定义，这些嵌套 Rule 只有在其上层 Rule 匹配成功时才会进行匹配，它们可以包含自己的 Rule 条件
 

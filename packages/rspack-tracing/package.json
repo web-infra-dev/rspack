@@ -1,0 +1,27 @@
+{
+  "name": "@rspack/tracing",
+  "version": "1.0.12",
+  "private": true,
+  "type": "module",
+  "description": "Internal tracing package for rspack",
+  "homepage": "https://rspack.dev",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-tracing"
+  },
+  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "scripts": {
+    "build": "tsc -b ./tsconfig.build.json"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^1.26.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.54.2",
+    "@opentelemetry/resources": "^1.26.0",
+    "@opentelemetry/sdk-node": "^0.54.2"
+  }
+}

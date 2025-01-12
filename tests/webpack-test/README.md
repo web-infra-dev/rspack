@@ -59,7 +59,7 @@ See also: [Jest CLI docs](https://jestjs.io/docs/cli)
 
 We use Jest for our tests. For more information on Jest you can visit their [homepage](https://jestjs.io/)!
 
-### Class Tests
+### Class tests
 
 All test files can be found in *.test.js. There are many tests that simply test APIs of a specific class/file (such as `Compiler`, `Errors`, Integration, `Parser`, `RuleSet`, Validation).
 If the feature you are contributing involves one of those classes, then best to start there to understand the structure.
