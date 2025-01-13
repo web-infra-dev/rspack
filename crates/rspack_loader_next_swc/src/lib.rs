@@ -41,6 +41,10 @@ use transformer::IdentCollector;
 
 static NODE_MODULES_PATH: Lazy<Regex> = Lazy::new(|| Regex::new("[\\/]node_modules[\\/]").unwrap());
 
+static EXCLUDED_PATHS: Lazy<Regex> = Lazy::new(|| {
+  Regex::new("[\\\\/](cache[\\\\/][^\\/]+\\.zip[\\\\/]node_modules|__virtual__)[\\\\/]").unwrap()
+});
+
 static BABEL_INCLUDE_REGEXES: Lazy<Vec<Regex>> = Lazy::new(|| {
   vec![
     Regex::new(r"next[\\/]dist[\\/](esm[\\/])?shared[\\/]lib").unwrap(),
@@ -156,6 +160,7 @@ impl NextSwcLoader {
       supported_browsers,
       swc_cache_dir,
       transpile_packages,
+      ..
     } = &self.options;
 
     let Some(content) = loader_context.take_content() else {
@@ -491,19 +496,35 @@ impl Loader<RunnerContext> for NextSwcLoader {
     inner()
   }
 
-  // async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-  //   let should_maybe_exclude = may_be_exclude(filename.as_str(), transpile_packages);
-  //   if should_maybe_exclude {
-  //     let Some(content) = loader_context.content() else {
-  //       panic!("Invariant might be excluded but missing source");
-  //     };
-  //     if !FORCE_TRANSPILE_CONDITIONS.is_match(&content.clone().into_string_lossy()) {
-  //       return Ok(());
-  //     }
-  //   }
+  async fn pitch(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+    if let Some(resource_path) = loader_context.resource_path() {
+      let NextSwcLoaderJsOptions {
+        transpile_packages,
+        pnp,
+        ..
+      } = &self.options;
 
-  //   Ok(())
-  // }
+      let should_maybe_exclude = may_be_exclude(resource_path.as_str(), transpile_packages);
+
+      if
+      // if it might be excluded/no-op we can't use pitch loader
+      !should_maybe_exclude &&
+        // TODO: investigate swc file reading in PnP mode?
+        !pnp &&
+        !EXCLUDED_PATHS.is_match(resource_path.as_str()) &&
+      loader_context.loader_items.len() as i32 - 1 == loader_context.loader_index &&
+      resource_path.is_absolute()
+      // !(await isWasm())
+      {
+        loader_context
+          .file_dependencies
+          .insert(resource_path.as_std_path().to_path_buf());
+        return self.loader_impl(loader_context);
+      }
+    }
+
+    Ok(())
+  }
 }
 
 impl Identifiable for NextSwcLoader {
