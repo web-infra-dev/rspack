@@ -66,6 +66,10 @@ pub struct NextSwcLoaderJsOptions {
 
   #[serde(default)]
   pub transpile_packages: Vec<String>,
+
+  // rspack specific options
+  #[serde(default)]
+  pub pnp: bool,
 }
 
 impl TryFrom<&str> for NextSwcLoaderJsOptions {
