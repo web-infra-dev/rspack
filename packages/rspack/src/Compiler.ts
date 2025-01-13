@@ -703,12 +703,10 @@ class Compiler {
 				return callback?.(error);
 			}
 			if (!this.#initial) {
-				console.profile(`rspack-rebuild-${this.name}`);
 				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
 					error => {
-						console.profileEnd(`rspack-rebuild-${this.name}`);
 						if (error) {
 							return callback?.(error);
 						}
