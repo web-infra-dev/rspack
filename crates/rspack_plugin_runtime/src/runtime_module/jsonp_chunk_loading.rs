@@ -45,6 +45,7 @@ impl JsonpChunkLoadingRuntimeModule {
   }
 }
 
+#[allow(clippy::enum_variant_names)]
 enum TemplateId {
   WithPrefetch,
   WithPreload,

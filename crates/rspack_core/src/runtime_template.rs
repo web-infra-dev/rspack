@@ -126,25 +126,24 @@ impl RuntimeTemplate {
         })
     } else {
       Err(miette::Error::msg(format!(
-        "Runtime module: Template {} is not found",
-        key
+        "Runtime module: Template {key} is not found"
       )))
     }
   }
 
   pub fn returning_function(&self, return_value: &str, args: &str) -> String {
     if self.environment.supports_arrow_function() {
-      format!("({}) => ({})", args, return_value)
+      format!("({args}) => ({return_value})")
     } else {
-      format!("function({}) {{ return {}; }}", args, return_value)
+      format!("function({args}) {{ return {return_value}; }}")
     }
   }
 
   pub fn basic_function(&self, args: &str, body: &str) -> String {
     if self.environment.supports_arrow_function() {
-      format!("({}) => {{\n {} \n}}", args, body)
+      format!("({args}) => {{\n {body} \n}}")
     } else {
-      format!("function({}) {{\n {} \n}}", args, body)
+      format!("function({args}) {{\n {body} \n}}")
     }
   }
 }
@@ -228,7 +227,7 @@ fn array_variable(items: Operand, value: Operand) -> Operand {
         if item_name.is_empty() {
           String::default()
         } else {
-          format!("var {} = {}[{}];", item_name, value_name, idx)
+          format!("var {item_name} = {value_name}[{idx}];")
         }
       })
       .join("\n"),
@@ -242,7 +241,7 @@ fn array_variable(items: Operand, value: Operand) -> Operand {
         if item_name.is_empty() {
           String::default()
         } else {
-          format!("var {} = {}[{}];", item_name, value_name, idx)
+          format!("var {item_name} = {value_name}[{idx}];")
         }
       })
       .join("\n"),
