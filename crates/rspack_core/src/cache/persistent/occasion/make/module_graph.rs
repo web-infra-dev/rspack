@@ -49,6 +49,7 @@ struct NodeRef<'a> {
   pub blocks: Vec<&'a AsyncDependenciesBlock>,
 }
 
+#[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   partial: &ModuleGraphPartial,
   revoked_modules: &IdentifierSet,
@@ -123,6 +124,7 @@ pub fn save_module_graph(
   }
 }
 
+#[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,

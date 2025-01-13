@@ -39,6 +39,7 @@ impl Snapshot {
     }
   }
 
+  #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
     let default_strategy = StrategyHelper::compile_time();
     let mut helper = StrategyHelper::new(self.fs.clone());
@@ -82,6 +83,7 @@ impl Snapshot {
     }
   }
 
+  #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
     let mut helper = StrategyHelper::new(self.fs.clone());
     let mut modified_path = HashSet::default();

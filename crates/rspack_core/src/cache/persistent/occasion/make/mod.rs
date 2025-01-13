@@ -20,7 +20,7 @@ impl MakeOccasion {
     Self { storage, context }
   }
 
-  #[tracing::instrument(name = "MakeOccasion::save", skip_all)]
+  #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
   pub fn save(&self, artifact: &MakeArtifact) {
     let MakeArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
@@ -61,7 +61,7 @@ impl MakeOccasion {
     meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage);
   }
 
-  #[tracing::instrument(name = "MakeOccasion::recovery", skip_all)]
+  #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 

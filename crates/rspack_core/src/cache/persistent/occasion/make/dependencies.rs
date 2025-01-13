@@ -38,6 +38,7 @@ struct DependencyRef<'a> {
   path: &'a ArcPath,
 }
 
+#[tracing::instrument("Cache::Occasion::Make::Dependencies::save", skip_all)]
 pub fn save_dependencies_info(
   file_dependencies: &FileCounter,
   context_dependencies: &FileCounter,
@@ -107,6 +108,7 @@ pub fn save_dependencies_info(
     });
 }
 
+#[tracing::instrument("Cache::Occasion::Make::Dependencies::recovery", skip_all)]
 pub async fn recovery_dependencies_info(
   storage: &Arc<dyn Storage>,
 ) -> Result<(FileCounter, FileCounter, FileCounter, FileCounter)> {
