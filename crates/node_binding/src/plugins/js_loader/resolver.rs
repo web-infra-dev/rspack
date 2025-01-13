@@ -115,6 +115,13 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
     return Ok(loader);
   }
 
+  if builtin.starts_with(rspack_loader_next_app::NEXT_APP_LOADER_IDENTIFIER) {
+    return Ok(Arc::new(rspack_loader_next_app::NextAppLoader::new(
+      rspack_loader_next_app::Options {},
+      builtin.into(),
+    )));
+  }
+
   if builtin.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
     let config: rspack_loader_lightningcss::config::RawConfig =
       serde_json::from_str(options.as_ref()).map_err(|e| {

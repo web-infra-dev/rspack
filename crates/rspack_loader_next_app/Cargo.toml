@@ -1,0 +1,21 @@
+[package]
+description = "rspack builtin next app loader"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_loader_next_app"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+
+[dependencies]
+async-trait              = { workspace = true }
+rspack_ast               = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_loader_runner     = { workspace = true }
+rspack_paths             = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_swc_plugin_import = { workspace = true }
+rspack_util              = { workspace = true }
+serde                    = { workspace = true, features = ["derive"] }
+serde_json               = { workspace = true }

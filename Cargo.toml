@@ -128,6 +128,7 @@ rspack_identifier                      = { version = "0.2.0", path = "crates/rsp
 rspack_ids                             = { version = "0.2.0", path = "crates/rspack_ids" }
 rspack_loader                          = { version = "0.2.0", path = "crates/rspack_loader" }
 rspack_loader_lightningcss             = { version = "0.2.0", path = "crates/rspack_loader_lightningcss" }
+rspack_loader_next_app                 = { version = "0.2.0", path = "crates/rspack_loader_next_app" }
 rspack_loader_next_swc                 = { version = "0.2.0", path = "crates/rspack_loader_next_swc" }
 rspack_loader_preact_refresh           = { version = "0.2.0", path = "crates/rspack_loader_preact_refresh" }
 rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rspack_loader_react_refresh" }

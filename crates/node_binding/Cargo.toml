@@ -22,12 +22,13 @@ rspack_fs                = { workspace = true }
 rspack_fs_node           = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
+rspack_loader_next_app   = { workspace = true }
+rspack_loader_next_swc   = { workspace = true }
 rspack_napi              = { workspace = true }
 rspack_paths             = { workspace = true }
 rspack_plugin_html       = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
-rspack_loader_next_swc   = { workspace = true }
 
 rspack_tracing = { workspace = true }
 
