@@ -29,6 +29,7 @@ pub struct MakeArtifact {
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
+  // statistical data, which can be regenerated from module_graph_partial and used as index.
   pub entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
