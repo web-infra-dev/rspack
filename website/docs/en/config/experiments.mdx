@@ -513,9 +513,106 @@ Rspack will automatically clean up cache folders that have not been accessed for
 
 ### Migrating from webpack config
 
-The rspack cache configuration is different from the webpack cache configuration. You can refer to the following sample code to migrate the webpack cache configuration.
+The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.
 
-Example Code:
+1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: true,
++ experiments: {
++   cache: {
++     type: 'persistent',
++   },
++ },
+};
+```
+
+2. Migrate `cache.buildDependencies`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, "package.json")],
+-     ts: [path.join(__dirname, "tsconfig.json")]
+-   }
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     buildDependencies: [
++       __filename,
++       path.join(__dirname, "package.json"),
++       path.join(__dirname, "tsconfig.json")
++     ]
+    },
+  },
+};
+```
+
+3. Migrate `cache.version` and `cache.name`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
+    },
+  },
+};
+```
+
+4. Migrate `snapshot`
+
+```diff title="rspack.config.js"
+module.exports = {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, "constant")],
+-   managedPaths: [path.join(__dirname, "node_modules")],
+-   unmanagedPaths: []
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     snapshot: {
++       immutablePaths: [path.join(__dirname, "constant")],
++       managedPaths: [path.join(__dirname, "node_modules")],
++       unmanagedPaths: []
++     }
+    },
+  },
+};
+```
+
+5. Migrate `cache.cacheDirectory`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     storage: {
++       type: "filesystem",
++       directory: path.join(__dirname, "node_modules/.cache/test")
++     }
+    },
+  },
+};
+```
+
+Sample migration code:
 
 ```javascript
 function transform(webpack_config, rspack_config) {
