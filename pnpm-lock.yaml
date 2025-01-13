@@ -6,10 +6,10 @@ settings:
 
 patchedDependencies:
   graceful-fs@4.2.10:
-    hash: ivtm2a2cfr5pomcfbedhmr5v2q
+    hash: 68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1
     path: patches/graceful-fs@4.2.10.patch
   rollup-plugin-dts:
-    hash: ae3wyaqpjyjp5gck7zzwzn3cfq
+    hash: bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8
     path: patches/rollup-plugin-dts.patch
 
 importers:
@@ -96,6 +96,13 @@ importers:
         version: 7.2.3
 
   crates/node_binding:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: 3.0.0-alpha.65
+        version: 3.0.0-alpha.65(@emnapi/runtime@1.3.1)(@types/node@20.17.10)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.7.2
     optionalDependencies:
       '@rspack/binding-darwin-arm64':
         specifier: workspace:*
@@ -109,13 +116,6 @@ importers:
       '@rspack/binding-win32-x64-msvc':
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
-    devDependencies:
-      '@napi-rs/cli':
-        specifier: 3.0.0-alpha.65
-        version: 3.0.0-alpha.65(@emnapi/runtime@1.3.1)(@types/node@20.17.10)
-      typescript:
-        specifier: ^5.7.2
-        version: 5.7.2
 
   crates/rspack_fs_node:
     devDependencies:
@@ -939,7 +939,7 @@ importers:
         version: 5.12.0
       graceful-fs:
         specifier: 4.2.10
-        version: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
+        version: 4.2.10(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
       neo-async:
         specifier: 2.6.2
         version: 2.6.2
@@ -12243,7 +12243,7 @@ snapshots:
 
   '@pnpm/network.ca-file@1.0.2':
     dependencies:
-      graceful-fs: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
+      graceful-fs: 4.2.10(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1)
 
   '@pnpm/npm-conf@2.2.0':
     dependencies:
@@ -15652,7 +15652,7 @@ snapshots:
     dependencies:
       get-intrinsic: 1.2.4
 
-  graceful-fs@4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q): {}
+  graceful-fs@4.2.10(patch_hash=68ebc232025360cb3dcd3081f4067f4e9fc022ab6b6f71a3230e86c7a5b337d1): {}
 
   graceful-fs@4.2.11: {}
 
@@ -18021,7 +18021,7 @@ snapshots:
     dependencies:
       '@vercel/ncc': 0.38.1
       rollup: 4.24.0
-      rollup-plugin-dts: 6.1.0(patch_hash=ae3wyaqpjyjp5gck7zzwzn3cfq)(rollup@4.24.0)(typescript@5.7.2)
+      rollup-plugin-dts: 6.1.0(patch_hash=bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8)(rollup@4.24.0)(typescript@5.7.2)
     transitivePeerDependencies:
       - typescript
 
@@ -18831,7 +18831,7 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rollup-plugin-dts@6.1.0(patch_hash=ae3wyaqpjyjp5gck7zzwzn3cfq)(rollup@4.24.0)(typescript@5.7.2):
+  rollup-plugin-dts@6.1.0(patch_hash=bc3f29f4636a594eb84c5e3f2d8cbd29c2e6b845f376603b718fb2d41bee6de8)(rollup@4.24.0)(typescript@5.7.2):
     dependencies:
       magic-string: 0.30.12
       rollup: 4.24.0
