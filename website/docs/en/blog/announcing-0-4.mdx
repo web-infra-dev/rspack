@@ -247,7 +247,7 @@ Currently, Rspack's internal plugins are divided into two categories:
 The original `builtins.define` can be migrated as follows:
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    define: { process.env.NODE_ENV: JSON.stringify(process.env.NODE_ENV) }
@@ -261,7 +261,7 @@ module.exports = {
 For `builtins.html`, it can be directly migrated to [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin):
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    html: [{ template: "./index.html" }]
@@ -275,7 +275,7 @@ module.exports = {
 When there are multiple configurations in `builtins.html`, multiple plugin instances can be created:
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
@@ -289,7 +289,7 @@ For `builtins.copy`, it can be directly migrated to [CopyRspackPlugin](/plugins/
 For the original `builtins.minifyOptions`, we provide [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin):
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   optimization: {
     minimizer: [

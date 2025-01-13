@@ -20,7 +20,7 @@ import { PackageManagerTabs } from '@theme';
 详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin)。
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {

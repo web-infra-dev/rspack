@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 const { run, runEmit, runChange } = require("./helpers/run");
 

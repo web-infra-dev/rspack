@@ -12,7 +12,7 @@ describe.skip("Compiler (caching)", () => {
 	jest.setTimeout(15000);
 
 	function compile(entry, options, callback) {
-		const rspack = require("@rspack/core");
+		const { rspack } = require("@rspack/core");
 		const webpack = rspack.rspack // compatible with webpack test, used as a constructor
 		options = rspack.getNormalizedRspackOptions(options);
 		options.mode = "none";

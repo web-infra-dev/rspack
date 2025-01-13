@@ -396,7 +396,7 @@ console.log(compiler.webpack === compiler.rspack); // true
 `MultiCompiler` 可以让 Rspack 同时执行多份配置。如果传给 Rspack 的 JavaScript API 的配置为多个配置对象构成的数组，Rspack 会创建多个 compiler 实例，并且在所有 compiler 执行完毕后调用回调方法。
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 rspack(
   [

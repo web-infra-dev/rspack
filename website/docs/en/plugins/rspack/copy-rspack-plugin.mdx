@@ -19,7 +19,7 @@ new rspack.CopyRspackPlugin(options);
 - Copy a single file. If the file does not exist, the plugin will throw an error.
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -35,7 +35,7 @@ module.exports = {
 - `patterns` can be a string, or an array of objects.
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -51,7 +51,7 @@ module.exports = {
 - Copy a directory. If there are no files in the directory, the plugin will throw an error.
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -68,7 +68,7 @@ module.exports = {
 - Use glob pattern to match and copy files.
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const path = require('node:path');
 
 module.exports = {
@@ -91,7 +91,7 @@ module.exports = {
 - Use `to` to specify the destination path.
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',

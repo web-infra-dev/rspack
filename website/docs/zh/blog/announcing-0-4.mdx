@@ -231,7 +231,7 @@ Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 Rspack [内部
 原有的 `builtins.define` 可以这样迁移：
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    define: { process.env.NODE_ENV: JSON.stringify(process.env.NODE_ENV) }
@@ -245,7 +245,7 @@ module.exports = {
 对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    html: [{ template: "./index.html" }]
@@ -259,7 +259,7 @@ module.exports = {
 当 `builtins.html` 中存在多个配置，可以创建多个插件实例：
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
@@ -273,7 +273,7 @@ module.exports = {
 原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   optimization: {
     minimizer: [
