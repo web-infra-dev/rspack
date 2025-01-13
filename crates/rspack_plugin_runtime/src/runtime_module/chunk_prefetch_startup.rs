@@ -91,7 +91,6 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
               }
             };
 
-            // TODO: add params
             let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
               "GROUP_CHUNK_IDS": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
               "BODY": body,

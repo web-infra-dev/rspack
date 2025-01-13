@@ -354,10 +354,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
     let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
       "$GLOBAL$": self.global,
-      "STATIC_URLS": static_urls
-      .iter()
-      .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-      .join("\n"),
+      "STATIC_URLS": static_urls.iter().map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids)).join("\n"),
       "DYNAMIC_URL":dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type)),
     })))?;
 

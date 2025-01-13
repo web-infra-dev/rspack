@@ -56,6 +56,26 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     };
     Ok(RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
   }
+
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.id.as_str();
+
+    format!("{}_{}", base_id, id.as_str())
+  }
+}
+
+enum TemplateId {
+  WithHmr,
+  WithHmrManifest,
+}
+
+impl TemplateId {
+  fn as_str(&self) -> &str {
+    match self {
+      Self::WithHmr => "with_hmr",
+      Self::WithHmrManifest => "with_hmr_manifest",
+    }
+  }
 }
 
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
@@ -70,11 +90,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         include_str!("runtime/import_scripts_chunk_loading.ejs").to_string(),
       ),
       (
-        format!("{}_with_hmr", self.id),
+        self.template_id(TemplateId::WithHmr),
         include_str!("runtime/import_scripts_chunk_loading_with_hmr.ejs").to_string(),
       ),
       (
-        format!("{}_with_hmr_manifest", self.id),
+        self.template_id(TemplateId::WithHmrManifest),
         include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs").to_string(),
       ),
     ]
@@ -187,13 +207,13 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         )
       };
 
-      let render_source = compilation.runtime_template.render(&format!("{}_with_hmr", &self.id), Some(serde_json::json!({
+      let source_with_hmr = compilation.runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
         "URL": &url,
         "GLOBAL_OBJECT": &compilation.options.output.global_object.as_str(),
         "HOT_UPDATE_GLOBAL": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
       })))?;
 
-      source.add(RawStringSource::from(render_source));
+      source.add(RawStringSource::from(source_with_hmr));
       source.add(RawStringSource::from(generate_javascript_hmr_runtime(
         "importScripts",
       )));
@@ -201,11 +221,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      let render_source = compilation
+      let source_with_hmr_manifest = compilation
         .runtime_template
-        .render(&format!("{}_with_hmr_manifest", &self.id), None)?;
+        .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
 
-      source.add(RawStringSource::from(render_source));
+      source.add(RawStringSource::from(source_with_hmr_manifest));
     }
 
     Ok(source.boxed())
