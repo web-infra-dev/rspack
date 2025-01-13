@@ -2,6 +2,7 @@ use std::sync::LazyLock;
 
 use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
 use rustc_hash::FxHashMap;
@@ -174,3 +175,5 @@ impl JsRuntimeRequirementInTreeResult {
     runtime_requirements
   }
 }
+
+pub type JsRuntimeSpec = Option<Either<String, Vec<String>>>;

@@ -1,11 +1,12 @@
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::Arc};
 
-use napi::Result;
+use napi::{Either, Result};
 use napi_derive::napi;
-use rspack_core::{ChunkGraph, Compilation, SourceType};
+use rspack_core::{ChunkGraph, Compilation, RuntimeSpec, SourceType};
 
 use crate::{
   JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsModule, JsModuleWrapper,
+  JsRuntimeSpec,
 };
 
 #[napi]
@@ -148,6 +149,25 @@ impl JsChunkGraph {
     Ok(
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, js_module.identifier)
         .map(|module_id| module_id.as_str()),
+    )
+  }
+
+  #[napi(ts_args_type = "module: JsModule, runtime: string | string[] | undefined")]
+  pub fn get_module_hash(
+    &self,
+    js_module: &JsModule,
+    js_runtime: JsRuntimeSpec,
+  ) -> napi::Result<Option<&str>> {
+    let compilation = self.as_ref()?;
+    let Some(runtime) = js_runtime.map(|js_runtime| match js_runtime {
+      Either::A(str) => std::iter::once(str).map(Arc::from).collect(),
+      Either::B(vec) => vec.into_iter().map(Arc::from).collect(),
+    }) else {
+      return Ok(None);
+    };
+    Ok(
+      ChunkGraph::get_module_hash(&compilation, js_module.identifier, &runtime)
+        .map(|hash| hash.encoded()),
     )
   }
 
