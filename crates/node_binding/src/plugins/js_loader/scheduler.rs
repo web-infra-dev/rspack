@@ -50,39 +50,59 @@ pub(crate) fn merge_loader_context(
         error.message,
         error.stack,
         error.hide_stack,
-        from.file_dependencies,
-        from.context_dependencies,
-        from.missing_dependencies,
-        from.build_dependencies,
+        from
+          .file_dependencies
+          .into_iter()
+          .map(|i| i.to_string())
+          .collect::<Vec<_>>(),
+        from
+          .context_dependencies
+          .into_iter()
+          .map(|i| i.to_string())
+          .collect::<Vec<_>>(),
+        from
+          .missing_dependencies
+          .into_iter()
+          .map(|i| i.to_string())
+          .collect::<Vec<_>>(),
+        from
+          .build_dependencies
+          .into_iter()
+          .map(|i| i.to_string())
+          .collect::<Vec<_>>(),
       )
       .into(),
     );
   }
 
   to.cacheable = from.cacheable;
-  to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
+  to.file_dependencies = from
+    .file_dependencies
+    .into_iter()
+    .map(|i| Into::into(i.to_string()))
+    .collect();
   to.context_dependencies = from
     .context_dependencies
     .into_iter()
-    .map(Into::into)
+    .map(|i| Into::into(i.to_string()))
     .collect();
   to.missing_dependencies = from
     .missing_dependencies
     .into_iter()
-    .map(Into::into)
+    .map(|i| Into::into(i.to_string()))
     .collect();
   to.build_dependencies = from
     .build_dependencies
     .into_iter()
-    .map(Into::into)
+    .map(|i| Into::into(i.to_string()))
     .collect();
 
   let content = match from.content {
     Either3::A(_) => None,
     Either3::B(c) => Some(rspack_core::Content::from(Into::<Vec<u8>>::into(c))),
-    Either3::C(s) => Some(rspack_core::Content::from(s)),
+    Either3::C(s) => Some(rspack_core::Content::from(s.to_string())),
   };
-  let source_map = from.source_map.map(|s| s.take());
+  let source_map = from.source_map.as_ref().map(Into::into);
   let additional_data = from.additional_data.take().map(|data| {
     let mut additional = AdditionalData::default();
     additional.insert(data);
@@ -109,7 +129,11 @@ pub(crate) fn merge_loader_context(
     })
     .collect();
   to.loader_index = from.loader_index;
-  to.parse_meta = from.parse_meta.into_iter().collect();
+  to.parse_meta = from
+    .parse_meta
+    .into_iter()
+    .map(|(key, value)| (key, value.to_string()))
+    .collect();
 
   Ok(())
 }

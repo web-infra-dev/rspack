@@ -1,65 +1,43 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, LoaderContext, RunnerContext};
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
-use rspack_napi::{
-  napi::JsString, string::JsStringExt, threadsafe_js_value_ref::ThreadsafeJsValueRef,
-};
+use rspack_napi::{threadsafe_js_value_ref::ThreadsafeJsValueRef, JsUtf16Buffer};
 
 use crate::{JsModuleWrapper, JsResourceData, JsRspackError};
 
 #[napi(object)]
 pub struct JsSourceMap {
   pub version: u8,
-  pub file: Option<JsString>,
-  pub sources: Vec<JsString>,
-  pub sources_content: Option<Vec<JsString>>,
-  pub names: Vec<JsString>,
-  pub mappings: JsString,
-  pub source_root: Option<JsString>,
+  pub file: Option<JsUtf16Buffer>,
+  pub sources: Vec<JsUtf16Buffer>,
+  pub sources_content: Option<Vec<JsUtf16Buffer>>,
+  pub names: Vec<JsUtf16Buffer>,
+  pub mappings: JsUtf16Buffer,
+  pub source_root: Option<JsUtf16Buffer>,
 }
 
-pub struct JsSourceMapWrapper(SourceMap);
+impl From<&SourceMap> for JsSourceMap {
+  fn from(value: &SourceMap) -> Self {
+    let file = value.file().map(Into::into);
 
-impl JsSourceMapWrapper {
-  pub fn new(source_map: SourceMap) -> Self {
-    Self(source_map)
-  }
+    let sources = value.sources().iter().map(Into::into).collect::<Vec<_>>();
 
-  pub fn take(self) -> SourceMap {
-    self.0
-  }
-}
+    let sources_content = value
+      .sources_content()
+      .iter()
+      .map(Into::into)
+      .collect::<Vec<_>>();
 
-impl ToNapiValue for JsSourceMapWrapper {
-  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    let env_wrapper = Env::from_raw(env);
+    let names = value.names().iter().map(Into::into).collect::<Vec<_>>();
 
-    let file = match val.0.file() {
-      Some(s) => Some(env_wrapper.create_string(s)?),
-      None => None,
-    };
-    let mut sources = Vec::with_capacity(val.0.sources().len());
-    for source in val.0.sources() {
-      sources.push(env_wrapper.create_string(source)?);
-    }
-    let mut sources_content = Vec::with_capacity(val.0.sources_content().len());
-    for source_content in val.0.sources_content() {
-      sources_content.push(env_wrapper.create_string(source_content)?);
-    }
-    let mut names = Vec::with_capacity(val.0.sources_content().len());
-    for name in val.0.names() {
-      names.push(env_wrapper.create_string(name)?);
-    }
-    let mappings = env_wrapper.create_string(val.0.mappings())?;
-    let source_root = match val.0.source_root() {
-      Some(s) => Some(env_wrapper.create_string(s)?),
-      None => None,
-    };
+    let mappings = value.mappings().into();
 
-    let js_source_map = JsSourceMap {
+    let source_root = value.source_root().map(Into::into);
+
+    Self {
       version: 3,
       file,
       sources,
@@ -71,37 +49,55 @@ impl ToNapiValue for JsSourceMapWrapper {
       names,
       mappings,
       source_root,
-    };
-    ToNapiValue::to_napi_value(env, js_source_map)
+    }
   }
 }
 
-impl FromNapiValue for JsSourceMapWrapper {
-  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let js_source_map: JsSourceMap = FromNapiValue::from_napi_value(env, napi_val)?;
+impl From<&JsSourceMap> for SourceMap {
+  fn from(value: &JsSourceMap) -> Self {
+    let file = value.file.as_ref().map(|file| file.to_string());
 
-    let sources_content = match js_source_map.sources_content {
-      Some(sources_content) => sources_content
-        .into_iter()
-        .map(|source| source.into_string())
-        .collect::<Vec<_>>(),
-      None => vec![],
-    };
-
-    Ok(JsSourceMapWrapper(SourceMap::new(
-      js_source_map.mappings.into_string(),
-      js_source_map
+    let sources = Arc::from(
+      value
         .sources
-        .into_iter()
-        .map(|source| source.into_string())
+        .iter()
+        .map(|source| source.to_string())
         .collect::<Vec<_>>(),
-      sources_content,
-      js_source_map
+    );
+
+    let sources_content = Arc::from(
+      value
+        .sources_content
+        .as_ref()
+        .map(|sources_content| {
+          sources_content
+            .iter()
+            .map(|source_content| source_content.to_string())
+            .collect::<Vec<_>>()
+        })
+        .unwrap_or_default(),
+    );
+
+    let names = Arc::from(
+      value
         .names
-        .into_iter()
-        .map(|source| source.into_string())
+        .iter()
+        .map(|name| name.to_string())
         .collect::<Vec<_>>(),
-    )))
+    );
+
+    let mappings = Arc::from(value.mappings.to_string());
+
+    let source_root = value
+      .source_root
+      .as_ref()
+      .map(|source_root| Arc::from(source_root.to_string()));
+
+    let mut source_map = Self::new(mappings, sources, sources_content, names);
+    source_map.set_file(file);
+    source_map.set_source_root(source_root);
+
+    source_map
   }
 }
 
@@ -159,18 +155,18 @@ pub struct JsLoaderContext {
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
-  pub content: Either3<Null, Buffer, String>,
+  pub content: Either3<Null, Buffer, JsUtf16Buffer>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeJsValueRef<Unknown>>,
   #[napi(js_name = "__internal__parseMeta")]
-  pub parse_meta: HashMap<String, String>,
+  pub parse_meta: HashMap<String, JsUtf16Buffer>,
   #[napi(ts_type = "JsSourceMap")]
-  pub source_map: Option<JsSourceMapWrapper>,
+  pub source_map: Option<JsSourceMap>,
   pub cacheable: bool,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
+  pub file_dependencies: Vec<JsUtf16Buffer>,
+  pub context_dependencies: Vec<JsUtf16Buffer>,
+  pub missing_dependencies: Vec<JsUtf16Buffer>,
+  pub build_dependencies: Vec<JsUtf16Buffer>,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
@@ -199,37 +195,42 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       hot: cx.hot,
       content: match cx.content() {
         Some(c) => match c {
-          rspack_core::Content::String(s) => Either3::C(s.to_string()),
+          rspack_core::Content::String(s) => Either3::C(s.into()),
           rspack_core::Content::Buffer(vec) => Either3::B(vec.clone().into()),
         },
         None => Either3::A(Null),
       },
-      parse_meta: cx.parse_meta.clone().into_iter().collect(),
+      parse_meta: cx
+        .parse_meta
+        .clone()
+        .into_iter()
+        .map(|(key, value)| (key, (&value).into()))
+        .collect(),
       additional_data: cx
         .additional_data()
         .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
         .cloned(),
-      source_map: cx.source_map().cloned().map(JsSourceMapWrapper::new),
+      source_map: cx.source_map().map(Into::into),
       cacheable: cx.cacheable,
       file_dependencies: cx
         .file_dependencies
         .iter()
-        .map(|i| i.to_string_lossy().to_string())
+        .map(|i| JsUtf16Buffer::from(i.to_string_lossy().as_ref()))
         .collect(),
       context_dependencies: cx
         .context_dependencies
         .iter()
-        .map(|i| i.to_string_lossy().to_string())
+        .map(|i| JsUtf16Buffer::from(i.to_string_lossy().as_ref()))
         .collect(),
       missing_dependencies: cx
         .missing_dependencies
         .iter()
-        .map(|i| i.to_string_lossy().to_string())
+        .map(|i| JsUtf16Buffer::from(i.to_string_lossy().as_ref()))
         .collect(),
       build_dependencies: cx
         .build_dependencies
         .iter()
-        .map(|i| i.to_string_lossy().to_string())
+        .map(|i| JsUtf16Buffer::from(i.to_string_lossy().as_ref()))
         .collect(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),

@@ -737,15 +737,15 @@ export interface JsLoaderContext {
   _module: JsModule
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer | string
+  content: null | Buffer | JsUtf16Buffer
   additionalData?: any
-  __internal__parseMeta: Record<string, string>
+  __internal__parseMeta: Record<string, JsUtf16Buffer>
   sourceMap?: JsSourceMap
   cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
+  fileDependencies: Array<JsUtf16Buffer>
+  contextDependencies: Array<JsUtf16Buffer>
+  missingDependencies: Array<JsUtf16Buffer>
+  buildDependencies: Array<JsUtf16Buffer>
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
@@ -871,12 +871,12 @@ export interface JsRuntimeRequirementInTreeResult {
 
 export interface JsSourceMap {
   version: number
-  file?: string
-  sources: Array<string>
-  sourcesContent?: Array<string>
-  names: Array<string>
-  mappings: string
-  sourceRoot?: string
+  file?: JsUtf16Buffer
+  sources: Array<JsUtf16Buffer>
+  sourcesContent?: Array<JsUtf16Buffer>
+  names: Array<JsUtf16Buffer>
+  mappings: JsUtf16Buffer
+  sourceRoot?: JsUtf16Buffer
 }
 
 export interface JsStatsAsset {

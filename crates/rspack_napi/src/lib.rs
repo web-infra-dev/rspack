@@ -2,6 +2,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 mod ext;
+mod js_utf16_buffer;
 mod js_values;
 mod utils;
 
@@ -24,6 +25,7 @@ pub mod napi {
   pub use napi::*;
 }
 
+pub use js_utf16_buffer::*;
 pub use js_values::one_shot_instance_ref::*;
 pub use js_values::one_shot_value_ref::*;
 pub use js_values::value_ref::*;
