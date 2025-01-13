@@ -614,39 +614,39 @@ module.exports = {
 示例代码:
 
 ```javascript
-function transform(webpack_config, rspack_config) {
-  rspack_config.experiments = rspack_config.experiments || {};
-  if (webpack_config.cache === undefined) {
-    webpack_config.cache = webpack_config.mode === 'development';
+function transform(webpackConfig, rspackConfig) {
+  rspackConfig.experiments = rspackConfig.experiments || {};
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
   }
   // 1. 如果使用禁用缓存，则直接配置 `experiments.cache` 为 `false`
-  if (webpack_config.cache === false) {
-    rspack_config.experiments.cache = false;
+  if (webpackConfig.cache === false) {
+    rspackConfig.experiments.cache = false;
     return;
   }
   // 2. 如果使用内存缓存，则直接配置 `experiments.cache` 为 `true`
-  if (webpack_config.cache === true || webpack_config.cache.type === 'memory') {
-    rspack_config.experiments.cache = true;
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.experiments.cache = true;
     return;
   }
   // 3. 持久化缓存 配置 `experiments.cache` 为 `{ type: "persistent" }`
-  rspack_config.experiments.cache = { type: 'persistent' };
+  rspackConfig.experiments.cache = { type: 'persistent' };
   // 4. 从 webpack 配置中构建 `experiments.cache` 其他配置
-  rspack_config.experiments.cache.buildDependencies = Object.values(
-    webpack_config.cache.buildDependencies || {},
+  rspackConfig.experiments.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
   ).flat();
-  rspack_config.experiments.cache.version = [
-    webpack_config.cache.name,
-    webpack_config.cache.version,
+  rspackConfig.experiments.cache.version = [
+    webpackConfig.cache.name,
+    webpackConfig.cache.version,
   ].join();
-  rspack_config.experiments.cache.snapshot = {
-    immutablePaths: webpack_config.snapshot?.immutablePaths,
-    managedPaths: webpack_config.snapshot?.managedPaths,
-    unmanagedPaths: webpack_config.snapshot?.unmanagedPaths,
+  rspackConfig.experiments.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
   };
-  rspack_config.experiments.cache.storage = {
+  rspackConfig.experiments.cache.storage = {
     type: 'filesystem',
-    directory: webpack_config.cache?.cacheDirectory,
+    directory: webpackConfig.cache?.cacheDirectory,
   };
 }
 ```
