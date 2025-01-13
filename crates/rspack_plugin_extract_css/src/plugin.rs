@@ -727,7 +727,6 @@ fn get_undo_path(filename: &str, output_path: &str, enforce_relative: bool) -> S
   let mut depth: isize = -1;
   let mut append = "".into();
 
-  // eslint-disable-next-line no-param-reassign
   let output_path = output_path.strip_suffix('\\').unwrap_or(output_path);
   let mut output_path = output_path
     .strip_suffix('/')

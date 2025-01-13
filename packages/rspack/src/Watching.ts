@@ -330,19 +330,33 @@ export class Watching {
 			}
 		};
 
-		const cbs = this.callbacks;
-		this.callbacks = [];
-		const startTime = this.startTime; // store last startTime for compilation
-		// reset startTime for next compilation, before throwing error
-		this.startTime = undefined;
 		if (error) {
 			return handleError(error);
 		}
 		assert(compilation);
 
+		stats = new Stats(compilation);
+
+		if (
+			this.invalid &&
+			!this.suspended &&
+			!this.blocked &&
+			!(this.isBlocked() && (this.blocked = true))
+		) {
+			this.#go();
+			return;
+		}
+
+		const startTime = this.startTime; // store last startTime for compilation
+		// reset startTime for next compilation, before throwing error
+		this.startTime = undefined;
 		compilation.startTime = startTime;
 		compilation.endTime = Date.now();
-		stats = new Stats(compilation);
+		const cbs = this.callbacks;
+		this.callbacks = [];
+		const fileDependencies = new Set([...compilation.fileDependencies]);
+		const contextDependencies = new Set([...compilation.contextDependencies]);
+		const missingDependencies = new Set([...compilation.missingDependencies]);
 
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
@@ -351,9 +365,9 @@ export class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						compilation.fileDependencies,
-						compilation.contextDependencies,
-						compilation.missingDependencies
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
 					);
 				}
 			});
