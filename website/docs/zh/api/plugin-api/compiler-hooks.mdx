@@ -421,6 +421,23 @@ compilation 创建之后执行。
 
 - **类型：** `SyncHook<[Error]>`
 
+## `invalid`
+
+当监听模式下的编译因文件变更而失效时执行。这个 hook 不会被复制到 child compiler 中。
+
+- **类型：** `SyncHook<[string | null, number]>`
+- **参数：**
+  - `fileName`: 失效的文件路径
+  - `changeTime`: 失效的文件修改时间戳
+
+在触发重新编译时，这个 hook 可以用于获取变更的文件路径和修改时间，例如：
+
+```ts
+compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
+  console.log(`Changed file: ${fileName}, change time: ${changeTime}`);
+});
+```
+
 ## `watchClose`
 
 停止监听时调用。
