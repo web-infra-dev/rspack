@@ -6,7 +6,6 @@ use rustc_hash::FxHashSet as HashSet;
 pub struct IncrementalInfo {
   added_files: HashSet<ArcPath>,
   removed_files: HashSet<ArcPath>,
-  updated_files: HashSet<ArcPath>,
 }
 
 impl IncrementalInfo {
@@ -18,16 +17,6 @@ impl IncrementalInfo {
   /// Get removed files
   pub fn removed_files(&self) -> &HashSet<ArcPath> {
     &self.removed_files
-  }
-
-  /// Get removed files
-  pub fn updated_files(&self) -> &HashSet<ArcPath> {
-    &self.updated_files
-  }
-
-  /// Update a file
-  pub fn update(&mut self, path: &ArcPath) {
-    self.updated_files.insert(path.clone());
   }
 
   /// Add a file
@@ -48,7 +37,6 @@ impl IncrementalInfo {
   pub fn reset(&mut self) {
     self.added_files.clear();
     self.removed_files.clear();
-    self.updated_files.clear();
   }
 }
 
@@ -80,8 +68,5 @@ mod test {
     info.remove(&file_a);
     assert_eq!(info.added_files().len(), 0);
     assert_eq!(info.removed_files().len(), 1);
-
-    info.update(&file_a);
-    assert_eq!(info.updated_files().len(), 1);
   }
 }
