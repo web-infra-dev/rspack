@@ -314,7 +314,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "miniz_oxide 0.8.2",
- "object",
+ "object 0.36.7",
  "rustc-demangle",
  "windows-targets 0.52.6",
 ]
@@ -1384,6 +1384,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab63b0e2bf4d5928aff72e83a7dace85d7bba5fe12dcc3c5a572d78caffd3f3c"
 dependencies = [
  "derive_builder_core 0.20.2",
+ "syn 2.0.95",
+]
+
+[[package]]
+name = "derive_more"
+version = "0.99.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+dependencies = [
+ "proc-macro2",
+ "quote",
  "syn 2.0.95",
 ]
 
@@ -2496,6 +2507,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipnet"
+version = "2.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddc24109865250148c2e0f3d25d4f0f479571723792d3802153c60922a4fb708"
+
+[[package]]
+name = "iprange"
+version = "0.6.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37209be0ad225457e63814401415e748e2453a5297f9b637338f5fb8afa4ec00"
+dependencies = [
+ "ipnet",
+]
+
+[[package]]
 name = "is-macro"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3209,6 +3235,20 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 
 [[package]]
 name = "object"
+version = "0.32.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
+dependencies = [
+ "crc32fast",
+ "flate2",
+ "hashbrown 0.14.5",
+ "indexmap 2.7.0",
+ "memchr",
+ "ruzstd",
+]
+
+[[package]]
+name = "object"
 version = "0.36.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62948e14d923ea95ea2c7c86c71013138b66525b86bdc08d2dcc262bdb497b87"
@@ -3726,7 +3766,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn 2.0.95",
@@ -4167,7 +4207,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "glob",
  "heck 0.5.0",
@@ -4301,7 +4341,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cow-utils",
  "dashmap 6.1.0",
- "derive_more",
+ "derive_more 1.0.0",
  "dyn-clone",
  "either",
  "futures",
@@ -4363,7 +4403,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "cow-utils",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "miette",
  "once_cell",
@@ -4454,7 +4494,7 @@ name = "rspack_loader_lightningcss"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "derive_more",
+ "derive_more 1.0.0",
  "lightningcss",
  "parcel_sourcemap",
  "rspack_cacheable",
@@ -4493,7 +4533,7 @@ version = "0.2.0"
 dependencies = [
  "anymap3",
  "async-trait",
- "derive_more",
+ "derive_more 1.0.0",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4685,7 +4725,7 @@ name = "rspack_plugin_copy"
 version = "0.2.0"
 dependencies = [
  "dashmap 6.1.0",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "glob",
  "lazy_static",
@@ -4737,7 +4777,7 @@ dependencies = [
  "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "itertools 0.14.0",
  "rayon",
@@ -4778,7 +4818,7 @@ name = "rspack_plugin_dynamic_entry"
 version = "0.2.0"
 dependencies = [
  "async-trait",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -4898,7 +4938,7 @@ dependencies = [
 name = "rspack_plugin_ignore"
 version = "0.2.0"
 dependencies = [
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -5089,7 +5129,7 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.2.0"
 dependencies = [
- "derive_more",
+ "derive_more 1.0.0",
  "indexmap 2.7.0",
  "once_cell",
  "rayon",
@@ -5130,7 +5170,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "cow-utils",
- "derive_more",
+ "derive_more 1.0.0",
  "indexmap 2.7.0",
  "itertools 0.14.0",
  "rspack_cacheable",
@@ -5185,7 +5225,7 @@ dependencies = [
 name = "rspack_plugin_size_limits"
 version = "0.2.0"
 dependencies = [
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "rspack_core",
  "rspack_error",
@@ -5199,7 +5239,7 @@ name = "rspack_plugin_split_chunks"
 version = "0.2.0"
 dependencies = [
  "dashmap 6.1.0",
- "derive_more",
+ "derive_more 1.0.0",
  "rayon",
  "regex",
  "rspack_collections",
@@ -5500,6 +5540,17 @@ dependencies = [
  "futures-channel",
  "futures-executor",
  "num_cpus",
+]
+
+[[package]]
+name = "ruzstd"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58c4eb8a81997cf040a091d1f7e1938aeab6749d3a0dfa73af43cdc32393483d"
+dependencies = [
+ "byteorder",
+ "derive_more 0.99.18",
+ "twox-hash",
 ]
 
 [[package]]
@@ -6210,9 +6261,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "10.0.1"
+version = "10.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859def2fe912fe5db391cae719574bfe7e7f03ab88ae2ed3c850e16852257353"
+checksum = "d5d229918c68e037b637222297358025933a8ffa95d4560064968bb1f7820ba9"
 dependencies = [
  "swc",
  "swc_allocator",
@@ -6580,9 +6631,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "6.0.1"
+version = "6.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f92ea41c3c3f0fe77991fee96b91bc4c7af43b55fdb6564fdc31b8c2d0b1e220"
+checksum = "b92d3a25349d7f612c38d940f09f9c19c7b7aa3bf4d22fbe31ea44fd5354de02"
 dependencies = [
  "either",
  "new_debug_unreachable",
@@ -6778,9 +6829,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_optimization"
-version = "7.0.0"
+version = "7.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8872f4c8893e507beb5f379d83d001b050323499367e410702ca8e79e081226"
+checksum = "5e4232534b28fc57b745e8c709723544e5548af29abaa62281eab427099f611d"
 dependencies = [
  "dashmap 5.5.3",
  "indexmap 2.7.0",
@@ -7117,9 +7168,9 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_runner"
-version = "5.0.0"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d0dd11ef1f5d9df90ef5156c74456d8f704f34a85274e3f3526ac415a98f38"
+checksum = "41832a4cde46e68a9c9e604610bf88f0d2ea1ce08af2b69c576e82483c9f0d63"
 dependencies = [
  "anyhow",
  "enumset",
@@ -7134,7 +7185,7 @@ dependencies = [
  "tokio",
  "tracing",
  "vergen",
- "virtual-fs",
+ "virtual-fs 0.19.0",
  "wasmer",
  "wasmer-cache",
  "wasmer-compiler-cranelift",
@@ -7965,11 +8016,36 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14d2456ec960b74e5b0423159c70dd9796da1445de462013fe03eefd2545b631"
 dependencies = [
- "anyhow",
  "async-trait",
  "bytes",
  "dashmap 6.1.0",
  "derivative",
+ "dunce",
+ "futures",
+ "getrandom",
+ "indexmap 1.9.3",
+ "lazy_static",
+ "pin-project-lite",
+ "replace_with",
+ "shared-buffer",
+ "slab",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "wasmer-package 0.2.0",
+]
+
+[[package]]
+name = "virtual-fs"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "875dbf2945deb48f93d09ed16896f57c4fa96b9a4344590a3a93f55147a8b8d1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bytes",
+ "dashmap 6.1.0",
+ "derive_more 1.0.0",
  "dunce",
  "filetime",
  "fs_extra",
@@ -7985,19 +8061,18 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
- "wasmer-package",
+ "wasmer-package 0.4.0",
  "webc",
 ]
 
 [[package]]
 name = "virtual-mio"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90f0b403de1e0c2195895ee51b04defec3afbe6a4d3c169efd24f97b37d144fe"
+checksum = "1a5d846d89208ef272394e6b6706fcea6fe9ce81388b685bdae44dfd590bba16"
 dependencies = [
  "async-trait",
  "bytes",
- "derivative",
  "futures",
  "mio",
  "serde",
@@ -8008,9 +8083,9 @@ dependencies = [
 
 [[package]]
 name = "virtual-net"
-version = "0.11.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "262fd9c0f59cc34501804c9f29dc20e1f0f0c354f86eb35b7305b20c25526ce6"
+checksum = "33d71eb6f3cb7c0c48f9b989cbdcc21bb4face7c96cb8cce8f9234009e742c66"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8018,8 +8093,10 @@ dependencies = [
  "bincode",
  "bytecheck 0.6.12",
  "bytes",
- "derivative",
+ "derive_more 1.0.0",
  "futures-util",
+ "ipnet",
+ "iprange",
  "pin-project-lite",
  "rkyv 0.8.8",
  "serde",
@@ -8204,15 +8281,14 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c8343224a7b75315dce065e68d01413a49a39279905a298ec984c098c3e828c"
+checksum = "14e31f8a2e0568af0f661825a70f1762098d1c5b0552c4d7205a3e57badf3ae6"
 dependencies = [
  "bindgen",
  "bytes",
  "cfg-if",
  "cmake",
- "derivative",
  "indexmap 1.9.3",
  "js-sys",
  "more-asserts",
@@ -8239,9 +8315,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-cache"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f63e07d30dda84df3d40cf29987f96b044f89f9d54b6e40ff464414dcbc33b1f"
+checksum = "9dcb6700805ede59def89eea7c1dab505fc316807ddf5feab06447b610ebe7e2"
 dependencies = [
  "blake3",
  "hex",
@@ -8251,9 +8327,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe8a13cd4d33ed840c07f0da5097e33239f57a922bede0e8adfd3791905f0200"
+checksum = "7a032262211c8323c9ddb8226e2ecfa410e1e1ba8149c905510111b981ffb5aa"
 dependencies = [
  "backtrace",
  "bytes",
@@ -8265,11 +8341,13 @@ dependencies = [
  "libc",
  "memmap2",
  "more-asserts",
+ "object 0.32.2",
  "region",
  "rkyv 0.8.8",
  "self_cell",
  "shared-buffer",
  "smallvec",
+ "target-lexicon",
  "thiserror 1.0.69",
  "wasmer-types",
  "wasmer-vm",
@@ -8280,9 +8358,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler-cranelift"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c9017a0bc5fa75a3f78e1702cf379fac91d945d54a68498fa5e92c323b1881b"
+checksum = "7c919ade1140a342a778eeeb811231ce65c1735e309c0876154f8a4735da6452"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -8321,10 +8399,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasmer-derive"
-version = "5.0.1"
+name = "wasmer-config"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9338002b7f3e913236c03d31234d5a2c8cb7f994891c4f56eebaf3628b19b1ae"
+checksum = "07fef53fbab864492d9dced0084c2f08631583cf63c68d7b30c88bf36318c074"
+dependencies = [
+ "anyhow",
+ "bytesize",
+ "ciborium",
+ "derive_builder 0.12.0",
+ "hex",
+ "indexmap 2.7.0",
+ "schemars",
+ "semver 1.0.24",
+ "serde",
+ "serde_json",
+ "serde_yml",
+ "thiserror 1.0.69",
+ "toml",
+ "url",
+]
+
+[[package]]
+name = "wasmer-derive"
+version = "5.0.5-rc1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd49fd1afd7c5dd0aa36d91f7e75f5b55331725a1038ca359c6c420d33844313"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -8334,9 +8434,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-journal"
-version = "0.13.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3700ea2174a90df200c8f066407b2653a65bcd7a1f4ced8e57675d93f1c80dfb"
+checksum = "73163004796997a188704dbaf7a5d23c83acdc73c341cf817e28fce5e2eaa048"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -8344,7 +8444,7 @@ dependencies = [
  "bincode",
  "bytecheck 0.6.12",
  "bytes",
- "derivative",
+ "derive_more 1.0.0",
  "lz4_flex",
  "num_enum",
  "rkyv 0.8.8",
@@ -8352,7 +8452,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tracing",
- "virtual-fs",
+ "virtual-fs 0.21.0",
  "virtual-net",
  "wasmer",
  "wasmer-wasix-types",
@@ -8380,15 +8480,41 @@ dependencies = [
  "thiserror 1.0.69",
  "toml",
  "url",
- "wasmer-config",
+ "wasmer-config 0.10.0",
+ "webc",
+]
+
+[[package]]
+name = "wasmer-package"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c16843df09cce487d0aa8dc8f19c77281cb7d1b929e6a9fd4c3047ddbece0da"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "cfg-if",
+ "ciborium",
+ "flate2",
+ "insta",
+ "semver 1.0.24",
+ "serde",
+ "serde_json",
+ "sha2",
+ "shared-buffer",
+ "tar",
+ "tempfile",
+ "thiserror 1.0.69",
+ "toml",
+ "url",
+ "wasmer-config 0.12.0",
  "webc",
 ]
 
 [[package]]
 name = "wasmer-types"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3988f25124ca94b82a937e665ffae3c47bb4883d55762fcada8bbf0adc602748"
+checksum = "2d1acd6dc9529b216159b66b082c574e5dbaf1c188e75b007f947d6d06c64a82"
 dependencies = [
  "bytecheck 0.6.12",
  "enum-iterator",
@@ -8407,9 +8533,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "5.0.1"
+version = "5.0.5-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "818d6e2a6431158d56a1be30323b7707dc4fd4c99e18648b8662b0684d8aac7c"
+checksum = "dabeac4f84113353e7e1711dd095d4b47020fd705905c4b084b07f4be1413eb7"
 dependencies = [
  "backtrace",
  "cc",
@@ -8417,7 +8543,6 @@ dependencies = [
  "corosensei",
  "crossbeam-queue",
  "dashmap 6.1.0",
- "derivative",
  "enum-iterator",
  "fnv",
  "indexmap 2.7.0",
@@ -8435,11 +8560,10 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix"
-version = "0.31.0"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db676d4da6ded91ebfe5ad5aa2948cd51104de9f91001eb67c01d4ce5a2aecb4"
+checksum = "1191dad138aff02e330b75918a4ec34332b2974f9012e0959463400a8a84102d"
 dependencies = [
- "ahash 0.8.11",
  "anyhow",
  "async-trait",
  "base64 0.22.1",
@@ -8450,7 +8574,7 @@ dependencies = [
  "cfg-if",
  "cooked-waker",
  "dashmap 6.1.0",
- "derivative",
+ "derive_more 1.0.0",
  "futures",
  "getrandom",
  "heapless",
@@ -8485,14 +8609,14 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
- "virtual-fs",
+ "virtual-fs 0.21.0",
  "virtual-mio",
  "virtual-net",
  "waker-fn",
  "wasmer",
- "wasmer-config",
+ "wasmer-config 0.12.0",
  "wasmer-journal",
- "wasmer-package",
+ "wasmer-package 0.4.0",
  "wasmer-types",
  "wasmer-wasix-types",
  "webc",
@@ -8503,9 +8627,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-wasix-types"
-version = "0.31.0"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "550fc6aafb24871aeedfbe8e115703942f439aad2f4bea2e8b3d5f4bc79c0e6e"
+checksum = "b109a2a04343e4d421fd764f7a02980273d1e537be3a8e16d59c39e025cfcc5f"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
