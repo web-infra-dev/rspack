@@ -23,6 +23,7 @@ base64                   = { version = "0.22.1" }
 either                   = { workspace = true }
 indoc                    = { workspace = true }
 jsonc-parser             = { version = "0.26.2", features = ["serde"] }
+modularize_imports       = { version = "0.77.0" }
 next-custom-transforms   = { workspace = true }
 once_cell                = { workspace = true }
 preset_env_base          = "2.0.1"

@@ -4680,6 +4680,7 @@ dependencies = [
  "either",
  "indoc",
  "jsonc-parser 0.26.2",
+ "modularize_imports",
  "next-custom-transforms",
  "once_cell",
  "preset_env_base",
