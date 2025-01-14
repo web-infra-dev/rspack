@@ -1,8 +1,9 @@
 
 
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const path = require('path');
 const { RawSource } = require('webpack-sources');
+
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
   context: __dirname,

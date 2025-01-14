@@ -48,7 +48,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 将打印传递给 Rspack 的选项以及每个单独的 tracing 事件.
 
-### Nodejs Profiling
+### Nodejs profiling
 
 如果我们发现性能瓶颈在 JS 端（比如 js loader），那么我们需要进一步分析 js 端，可以使用 Nodejs Profiling 来分析。例如
 
@@ -69,7 +69,7 @@ npm install -g speedscope
 speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 ```
 
-### Rsdoctor Timeline
+### Rsdoctor timeline
 
 如果我们想要分析 Loader 和 Plugin 耗时或者 Loader 的编译行为，可以利用 Rsdoctor 来查看：
 
@@ -77,7 +77,7 @@ speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 
 参考 [Rsdoctor Compilation Analysis](/guide/optimization/profile#rsdoctor-%E7%9A%84%E7%BC%96%E8%AF%91%E5%88%86%E6%9E%90)
 
-## Mac Xcode Instruments
+## Mac Xcode instruments
 
 如果您使用的是 Mac，则 Xcode Instruments 工具可用于生成 CPU profile 文件。
 

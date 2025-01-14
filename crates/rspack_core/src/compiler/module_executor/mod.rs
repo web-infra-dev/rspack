@@ -24,7 +24,6 @@ use super::make::cutout::Cutout;
 use super::make::repair::repair;
 use super::make::{repair::MakeTaskContext, MakeArtifact, MakeParam};
 use crate::cache::MemoryCache;
-use crate::incremental::Mutation;
 use crate::{
   task_loop::run_task_loop_with_event, Compilation, CompilationAsset, Context, Dependency,
   DependencyId, LoaderImportDependency, PublicPath,
@@ -166,18 +165,6 @@ impl ModuleExecutor {
 
     let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
-
-    if let Some(mutations) = compilation.incremental.mutations_write() {
-      for id in &self.make_artifact.built_modules {
-        mutations.add(Mutation::ModuleRemove { module: *id });
-      }
-    }
-
-    if let Some(mutations) = compilation.incremental.mutations_write() {
-      for id in &self.make_artifact.revoked_modules {
-        mutations.add(Mutation::ModuleRemove { module: *id });
-      }
-    }
 
     let code_generated_modules = std::mem::take(&mut self.code_generated_modules);
     for id in code_generated_modules {

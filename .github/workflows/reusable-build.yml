@@ -271,6 +271,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Calculate Node Bin Path
+        id: calculate-node-bin-path
+        shell: bash
+        run: |
+          NODE_BIN_PATH=$(dirname $(which node))
+          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+
       - name: Run e2e
         uses: ./.github/actions/docker-run
         with:
@@ -279,9 +286,9 @@ jobs:
           image: mcr.microsoft.com/playwright:v1.47.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker-run
           # .tool_cache is required by pnpm
-          options: -v ${{ runner.tool_cache }}:$HOME/.tool_cache
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
-            export PATH=$HOME/.tool_cache/pnpm/node_modules/.bin:$PATH
+            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             pnpm run build:js
             pnpm run test:e2e
 
@@ -375,11 +382,6 @@ jobs:
           echo "===================================="
           pnpm api-extractor:ci
 
-      # TODO: fixme
-      # - name: Documentation coverage check
-      #   if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
-      #   run: pnpm doc-coverage
-
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
@@ -393,6 +395,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
+
+      - name: Documentation coverage check
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
+        run: pnpm doc-coverage
 
   bench:
     name: Bench

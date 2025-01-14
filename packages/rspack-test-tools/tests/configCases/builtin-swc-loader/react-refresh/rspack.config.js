@@ -1,4 +1,4 @@
-const rspack = require("@rspack/core")
+const { rspack } = require("@rspack/core")
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

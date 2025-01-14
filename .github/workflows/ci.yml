@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.28.4
+      - uses: crate-ci/typos@v1.29.0
         with:
           files: .
 
@@ -294,7 +294,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.17
+      - uses: cargo-bins/cargo-binstall@v1.10.18
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
@@ -359,63 +359,10 @@ jobs:
         # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
         run: cargo miri test --workspace --exclude rspack_node -- --nocapture
 
-  run_benchmark:
-    name: Run benchmark
-    runs-on: ubuntu-latest
-    # TODO: enable it after security tokens are added
-    # if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
-    if: false
-    steps:
-      - name: Run Benchmark
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          owner: ${{ github.repository_owner }}
-          repo: "rspack-ecosystem-benchmark"
-          workflow_file_name: "bench_rspack_commit.yml"
-          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
-          ref: "main"
-          client_payload: '{"commit_sha":"${{ github.sha }}"}'
-
-  run_ecosystem_ci:
-    name: Run Ecosystem CI
-    runs-on: ubuntu-latest
-    # TODO: enable it after security tokens are added
-    # if: github.ref_name == 'main' && github.repository_owner == 'web-infra-dev'
-    if: false
-    steps:
-      - name: Run Ecosystem CI
-        id: eco_ci
-        continue-on-error: true
-        uses: convictional/trigger-workflow-and-wait@v1.6.5
-        with:
-          owner: "rspack-contrib"
-          repo: "rspack-ecosystem-ci"
-          workflow_file_name: "ecosystem-ci-from-commit.yml"
-          github_token: ${{ secrets.RSPACK_ACCESS_TOKEN }}
-          ref: "main"
-          client_payload: '{"commitSHA":"${{ github.sha }}","repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
-
-      - if: steps.eco_ci.outcome == 'failure'
-        uses: actions/checkout@v4
-      - if: steps.eco_ci.outcome == 'failure'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Send Failure Notification
-        if: steps.eco_ci.outcome == 'failure'
-        shell: bash
-        run: ./scripts/alert/lark.js
-        env:
-          TITLE: Ecosystem CI failed on main branch
-          DESCRIPTION: |
-            commitID: [${{github.sha}}](${{github.server_url}}/${{github.repository}}/commit/${{github.sha}})
-          URL: ${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
-          LARK_WEBHOOK_URL: ${{secrets.LARK_WEBHOOK_URL}}
-
   failure_notification:
     name: Failure Notification
     needs:
-      [test-linux, test-windows, test-mac, rust_check, rust_test, run_benchmark]
+      [test-linux, test-windows, test-mac, rust_check, rust_test]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:

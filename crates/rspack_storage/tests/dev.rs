@@ -149,7 +149,7 @@ mod test_storage_dev {
     let cases = [
       (
         get_native_path("test_dev_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_dev_memory"),

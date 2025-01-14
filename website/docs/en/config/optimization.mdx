@@ -132,7 +132,7 @@ module.exports = {
 Use Rspack's built-in minimizer with custom options:
 
 ```js title=rspack.config.js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   optimization: {
@@ -471,7 +471,7 @@ module.exports = {
 
 ## optimization.avoidEntryIife
 
-<ApiMeta addedVersion="1.1.9" />
+<ApiMeta addedVersion="1.2.0" />
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 

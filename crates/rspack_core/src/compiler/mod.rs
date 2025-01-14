@@ -6,7 +6,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::{FileSystem, IntermediateFileSystem, NativeFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_macros::cacheable;
@@ -77,7 +77,7 @@ pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
-  pub input_filesystem: Arc<dyn FileSystem>,
+  pub input_filesystem: Arc<dyn ReadableFileSystem>,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
@@ -101,7 +101,7 @@ impl Compiler {
     output_filesystem: Option<Arc<dyn WritableFileSystem>>,
     intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>>,
     // only supports passing input_filesystem in rust api, no support for js api
-    input_filesystem: Option<Arc<dyn FileSystem + Send + Sync>>,
+    input_filesystem: Option<Arc<dyn ReadableFileSystem + Send + Sync>>,
     // no need to pass resolve_factory in rust api
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
@@ -112,10 +112,14 @@ impl Compiler {
         debug_info.with_context(options.context.to_string());
       }
     }
-    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
-    let output_filesystem = output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+    let pnp = options.resolve.pnp.unwrap_or(false);
+    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
+    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
+
+    let output_filesystem =
+      output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
     let intermediate_filesystem =
-      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
 
     let resolver_factory = resolver_factory.unwrap_or_else(|| {
       Arc::new(ResolverFactory::new(
@@ -188,7 +192,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "build", skip_all)]
+  #[instrument("Compiler:build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
@@ -228,7 +232,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "compile", skip_all)]
+  #[instrument("Compiler:compile", skip_all)]
   async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
@@ -301,7 +305,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "compile_done", skip_all)]
+  #[instrument("Compile:done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
@@ -324,7 +328,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "emit_assets", skip_all)]
+  #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
     self.run_clean_options().await?;
 

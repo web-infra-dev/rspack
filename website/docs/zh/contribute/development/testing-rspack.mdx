@@ -39,8 +39,8 @@ Rspack 的测试用例包括如下：
 
 - [Normal](#normal)：用于测试配置无关的核心构建流程。当您的测试无需添加 `rspack.config.js` 时可使用此测试类型。
 - [Config](#config)：用于测试构建配置项。如果你的测试需要通过 `rspack.config.js` 添加特定配置才可以运行时，且不符合其他场景时可使用此测试类型。
-- [Hot](#hot)：用于测试 Hot Module Replacement（HMR）是否正确运行。HotNode 会固定使用 `target=async-node`，HotWeb 会固定使用 `target=web`，HotWorker 会固定使用 `target=webworker`。
-- [HotSnapshot](#hotsnapshot)：用于测试 Hot Module Replacement（HMR） 能否生成正确的中间产物。与[Hot](#Hot)类型测试共用测试用例。
+- [Hot](#hot)：用于测试 HMR 是否正确运行。HotNode 会固定使用 `target=async-node`，HotWeb 会固定使用 `target=web`，HotWorker 会固定使用 `target=webworker`。
+- [HotSnapshot](#hotsnapshot)：用于测试 HMR 能否生成正确的中间产物。与[Hot](#Hot)类型测试共用测试用例。
 - [Watch](#watch)：用于测试 Watch 模式下修改文件后的增量编译。
 - [StatsOutput](#statsoutput)：用于测试构建结束后控制台输出的日志。
 - [StatsAPI](#stats-api)：用于测试构建结束后生成的 Stats 对象。

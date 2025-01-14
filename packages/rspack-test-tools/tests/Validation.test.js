@@ -8,7 +8,7 @@ describe("Validation", () => {
 				errors.push(...args);
 			};
 			try {
-				const rspack = require("@rspack/core");
+				const { rspack } = require("@rspack/core");
 				rspack(config);
 			} catch (err) {
 				if (err.name !== "ValidationError") throw err;

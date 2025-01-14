@@ -1,4 +1,4 @@
-# Rspack Documentation
+# Rspack documentation
 
 📄 Documentation for Rspack.
 
@@ -21,7 +21,13 @@ The source code of Rspress can be found in [this folder](https://github.com/web-
 
 If you have any problems using the Rspress, please create a new issue at [Rspress Issues](https://github.com/web-infra-dev/rspress/issues).
 
-## Image Assets
+## Writing style guide
+
+- **Capitalization style**: page titles and section headings should use sentence-style capitalization (only capitalize the first word and proper nouns) rather than title-style capitalization:
+  - Correct: "A new method for creating JavaScript rollovers"
+  - Incorrect: "A New Method for Creating JavaScript Rollovers"
+
+## Image assets
 
 For images you use in the document, it's better to upload them to the [rspack-contrib/rstack-design-resources](https://github.com/rspack-contrib/rstack-design-resources) repository, so the size of the current repository doesn't get too big.
 

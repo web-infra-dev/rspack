@@ -6,7 +6,7 @@ pub mod process_dependencies;
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_fs::{FileSystem, IntermediateFileSystem, WritableFileSystem};
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::MakeArtifact;
@@ -25,7 +25,7 @@ pub struct MakeTaskContext {
   pub compilation_id: CompilationId,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
-  pub fs: Arc<dyn FileSystem>,
+  pub fs: Arc<dyn ReadableFileSystem>,
   pub intermediate_fs: Arc<dyn IntermediateFileSystem>,
   pub output_fs: Arc<dyn WritableFileSystem>,
   pub compiler_options: Arc<CompilerOptions>,

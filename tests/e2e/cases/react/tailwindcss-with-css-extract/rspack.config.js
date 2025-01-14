@@ -1,5 +1,5 @@
 const path = require("node:path");
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 const ReactRefreshPlugin = require("@rspack/plugin-react-refresh");
 
 module.exports = {

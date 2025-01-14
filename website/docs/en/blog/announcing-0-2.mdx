@@ -19,7 +19,7 @@ We look forward to you experiencing these new improvements in version 0.2, and w
 
 Version 0.2 has completed compatibility with most of the loader APIs, including: inline match resource, pitching loader, and inline loader. More APIs have further improved compatibility with webpack loaders, details of which can be found in our webpack compatibility updates [Loader API](/api/loader-api/index).
 
-### Plugin Hooks
+### Plugin hooks
 
 New hooks for plugins have been added.
 
@@ -106,7 +106,7 @@ module.exports = {
 };
 ```
 
-## Breaking Changes
+## Breaking changes
 
 - Alignment of Filename Generation Logic
 
@@ -144,7 +144,7 @@ module.exports = {
 
   Details: https://github.com/web-infra-dev/rspack/pull/3358
 
-## Webpack Compatibility Updates
+## Webpack compatibility updates
 
 As we support more webpack APIs, we are also compatible with more community plugins and loaders. We have adapted some plugins and loaders that have a high demand in the community.
 
@@ -166,7 +166,7 @@ When using Rspack to package Node applications like NestJS, a common requirement
 
 Rspack has additional adaptation of webpack's plugins. We have tracked the adapted plugins and loaders in [loader-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/loader-compat) and [plugin-compat](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/plugin). If you find that a community plugin or loader you are using is also compatible, welcome to submit it to us so we can list it in our compatibility matrix.
 
-## Framework Ecosystem Updates
+## Framework ecosystem updates
 
 ### Modern.js Framework
 
@@ -192,7 +192,7 @@ Thanks to Rspack's excellent support for the Loader API and the excellent design
 
 ### Storybook
 
-With the help of the Storybook team, Rspack has completed support for the Storybook React version. You can follow the [migrate Storybook](/guide/migration/storybook.html) method to migrate from the webpack version to the Rspack version. In actual projects, tests have shown that the Rspack version is 5-10 times faster than the Webpack version when the docgen feature is not turned on. When docgen is turned on, since Rspack still relies on babel to handle docgen, the performance is affected, but there is still a 2-3 times improvement.
+With the help of the Storybook team, Rspack has completed support for the Storybook React version. You can follow the [migrate Storybook](/guide/migration/storybook.html) method to migrate from the webpack version to the Rspack version. In actual projects, tests have shown that the Rspack version is 5-10 times faster than the webpack version when the docgen feature is not turned on. When docgen is turned on, since Rspack still relies on babel to handle docgen, the performance is affected, but there is still a 2-3 times improvement.
 
 ### Angular
 
@@ -229,7 +229,7 @@ In order to ship with confidence, we are currently:
 - Running all tests on Node 14, 16 and 18
 - Maintaining a separate ecosystem-ci repository for integration tests
 
-## Nightly Release
+## Nightly release
 
 In order to expedite iteration, Rspack is released daily with the "@nightly" tag to npm.
 

@@ -798,6 +798,8 @@ export type ResolveOptions = {
 
 	/** Customize the Resolve configuration based on the module type. */
 	byDependency?: Record<string, ResolveOptions>;
+	/** enable yarn pnp */
+	pnp?: boolean;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -1073,6 +1075,10 @@ export type JsonParserOptions = {
 	 * The depth of json dependency flagged as `exportInfo`.
 	 */
 	exportsDepth?: number;
+	/**
+	 * If Rule.type is set to 'json' then Rules.parser.parse option may be a function that implements custom logic to parse module's source and convert it to a json-compatible data.
+	 */
+	parse?: (source: string) => any;
 };
 
 /** Configure all parsers' options in one place with module.parser. */
@@ -1425,6 +1431,7 @@ export type ExternalItem =
 	| string
 	| RegExp
 	| ExternalItemObjectUnknown
+	| ((data: ExternalItemFunctionData) => ExternalItemValue)
 	| ((
 			data: ExternalItemFunctionData,
 			callback: (
@@ -2077,7 +2084,11 @@ export type OptimizationRuntimeChunk =
 			name?: string | ((value: { name: string }) => string);
 	  };
 
-export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+export type OptimizationSplitChunksNameFunction = (
+	module: Module,
+	chunks: Chunk[],
+	cacheGroupKey: string
+) => string | undefined;
 
 type OptimizationSplitChunksName =
 	| string

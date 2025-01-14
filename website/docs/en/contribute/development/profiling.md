@@ -46,7 +46,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 will print the options passed to Rspack as well as each individual tracing event.
 
-### Nodejs Profiling
+### Node.js profiling
 
 If we find that the performance bottleneck is on the JS side (e.g. js loader), then we need to further analyse the js side, and we can use Nodejs Profiling to analyse. for example
 
@@ -67,7 +67,7 @@ npm install -g speedscope
 speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 ```
 
-### Rsdoctor Timeline
+### Rsdoctor timeline
 
 If we want to analyze the time cost of loaders and plugins or the compilation behavior of loaders, we can use Rsdoctor to view:
 
@@ -75,7 +75,7 @@ If we want to analyze the time cost of loaders and plugins or the compilation be
 
 Refer to [Rsdoctor Compilation Analysis](/guide/optimization/profile#use-rsdoctor)
 
-## Mac Xcode Instruments
+## Mac Xcode instruments
 
 Xcode instruments can be used to produce a CPU profile if you are on a Mac.
 

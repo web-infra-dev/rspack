@@ -5,7 +5,7 @@ use std::{path::Path, sync::Arc};
 
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -22,12 +22,16 @@ const SCOPE: &str = "snapshot";
 #[derive(Debug)]
 pub struct Snapshot {
   options: SnapshotOptions,
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<dyn ReadableFileSystem>,
   storage: Arc<dyn Storage>,
 }
 
 impl Snapshot {
-  pub fn new(options: SnapshotOptions, fs: Arc<dyn FileSystem>, storage: Arc<dyn Storage>) -> Self {
+  pub fn new(
+    options: SnapshotOptions,
+    fs: Arc<dyn ReadableFileSystem>,
+    storage: Arc<dyn Storage>,
+  ) -> Self {
     Self {
       options,
       fs,
@@ -35,6 +39,7 @@ impl Snapshot {
     }
   }
 
+  #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
     let default_strategy = StrategyHelper::compile_time();
     let mut helper = StrategyHelper::new(self.fs.clone());
@@ -78,6 +83,7 @@ impl Snapshot {
     }
   }
 
+  #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
     let mut helper = StrategyHelper::new(self.fs.clone());
     let mut modified_path = HashSet::default();

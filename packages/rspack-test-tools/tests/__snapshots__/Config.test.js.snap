@@ -2,7 +2,7 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 body {
-  & ._-_6ec1c834ac8cc99e-used {
+  & .-_6ec1c834ac8cc99e-used {
     color: #00f;
   }
 }
@@ -499,6 +499,51 @@ exports[`config config/library/modern-module-force-concaten step  should pass: E
 const a = 'a'
 
 export { a };
+`;
+
+exports[`config config/library/modern-module-force-concaten step  should pass: asset as entry should not be concatenated 1`] = `
+var __webpack_modules__ = ({
+"273": (function (module, __unused_webpack_exports, __webpack_require__) {
+module.exports = __webpack_require__.p + "fc90103f80b6abc6.png";
+
+}),
+
+});
+/************************************************************************/
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+/************************************************************************/
+// webpack/runtime/public_path
+(() => {
+__webpack_require__.p = "";
+
+})();
+/************************************************************************/
+// startup
+// Load entry module and return exports
+// This entry module doesn't tell about it's top-level declarations so it can't be inlined
+var __webpack_exports__ = __webpack_require__("273");
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `

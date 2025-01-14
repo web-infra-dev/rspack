@@ -393,7 +393,7 @@ module.exports = {
       // The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...').
       module: false,
       // Determines if the node: prefix is generated for core module imports in environments that support it.
-      // This is only applicable to Webpack runtime code.
+      // This is only applicable to webpack runtime code.
       nodePrefixForCoreModules: false,
       // The environment supports optional chaining ('obj?.a' or 'obj?.()').
       optionalChaining: true,
@@ -495,58 +495,58 @@ module.exports = {
 
 请注意，此选项不会影响到按需加载块的输出文件。它只影响最初加载的输出文件。对于按需加载的块文件，使用的是 [`output.chunkFilename`](#outputchunkfilename) 选项。由加载器创建的文件也不会受到影响。在这种情况下，您可能需要尝试特定加载器提供的可用选项。
 
-## Template String
+## Template string
 
 可以用下方的模板字符串来替换对应文件名。不同的 context 对应了不同的可替换内容，如 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename) 支持使用 [file context](/config/output#file-context) 和 [module context](/config/output#module-context)。
 
-### Compilation Context
+### Compilation context
 
 可在 compilation 层面替换的内容
 
-| 模板       | 描述                    |
-| ---------- | ----------------------- |
-| [fullhash] | compilation 的完整 hash |
+| 模板         | 描述                    |
+| ------------ | ----------------------- |
+| `[fullhash]` | compilation 的完整 hash |
 
-### Chunk Context
+### Chunk context
 
 可在 chunk 层面替换的内容：
 
-| 模板          | 描述                                                                                                                                           |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [id]          | 当前 chunk id                                                                                                                                  |
-| [name]        | 当 chunk name 存在则使用名称，否则使用 chunk id                                                                                                |
-| [chunkhash]   | chunk 的 hash 值，通过当前 chunk 中所有类型的元素计算所得                                                                                      |
-| [contenthash] | chunk 的 hash 值，通过只包含该类型内容的元素计算所得。如：生成 JavaScript 类型的文件则只会使用当前 chunk 中所有 JavaScript 模块计算所得的 hash |
+| 模板            | 描述                                                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[id]`          | 当前 chunk id                                                                                                                                  |
+| `[name]`        | 当 chunk name 存在则使用名称，否则使用 chunk id                                                                                                |
+| `[chunkhash]`   | chunk 的 hash 值，通过当前 chunk 中所有类型的元素计算所得                                                                                      |
+| `[contenthash]` | chunk 的 hash 值，通过只包含该类型内容的元素计算所得。如：生成 JavaScript 类型的文件则只会使用当前 chunk 中所有 JavaScript 模块计算所得的 hash |
 
-### Module Context
+### Module context
 
 可在 module 层面替换的内容：
 
-| 模板          | 描述            |
-| ------------- | --------------- |
-| [id]          | 模块的 id       |
-| [hash]        | 模块的 hash     |
-| [contenthash] | 模块内容的 hash |
+| 模板            | 描述            |
+| --------------- | --------------- |
+| `[id]`          | 模块的 id       |
+| `[hash]`        | 模块的 hash     |
+| `[contenthash]` | 模块内容的 hash |
 
-### File Context
+### File context
 
 可在 file 层面替换的内容：
 
-| 模板       | 描述                                                                                          |
-| ---------- | --------------------------------------------------------------------------------------------- |
-| [file]     | 文件名和路径，不包括查询或片段                                                                |
-| [query]    | 文件 query，包含 `?`                                                                          |
-| [fragment] | 以 `#` 开头的片段名                                                                           |
-| [base]     | 只翻译文件名（包括扩展名），不包括路径名                                                      |
-| [path]     | 文件路径，不包含文件名                                                                        |
-| [name]     | 文件名，不包含扩展名和文件路径                                                                |
-| [ext]      | 扩展名，包含 `.` （仅支持在 [output.assetModuleFilename](#outputassetmodulefilename) 里使用） |
+| 模板         | 描述                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `[file]`     | 文件名和路径，不包括查询或片段                                                                |
+| `[query]`    | 文件 query，包含 `?`                                                                          |
+| `[fragment]` | 以 `#` 开头的片段名                                                                           |
+| `[base]`     | 只翻译文件名（包括扩展名），不包括路径名                                                      |
+| `[path]`     | 文件路径，不包含文件名                                                                        |
+| `[name]`     | 文件名，不包含扩展名和文件路径                                                                |
+| `[ext]`      | 扩展名，包含 `.` （仅支持在 [output.assetModuleFilename](#outputassetmodulefilename) 里使用） |
 
 在 URL 级别上可用的替换：
 
-| 模板  | 描述 |
-| ----- | ---- |
-| [url] | URL  |
+| 模板    | 描述 |
+| ------- | ---- |
+| `[url]` | URL  |
 
 :::tip
 
@@ -590,6 +590,12 @@ type ModulePathData = {
   hashWithLength: (number) => string;
 };
 ```
+
+:::warning
+在进行本地开发时，建议避免在文件名中使用 hash 值。
+
+这是因为入口文件以及被 [`optimization.splitChunks`](/plugins/webpack/split-chunks-plugin) 拆分出的 chunks 都会通过 HTML 文件中的 `<script>` 标签进行加载。此时若文件名内包含 hash 值，则会由于 HTML 无法被动态加载而使得热更新失效。
+:::
 
 ## output.globalObject
 

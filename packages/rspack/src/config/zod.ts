@@ -412,7 +412,8 @@ const baseResolveOptions = z.strictObject({
 	extensionAlias: z.record(z.string().or(z.array(z.string()))).optional(),
 	aliasFields: z.array(z.string()).optional(),
 	restrictions: z.array(z.string()).optional(),
-	roots: z.array(z.string()).optional()
+	roots: z.array(z.string()).optional(),
+	pnp: z.boolean().optional()
 }) satisfies z.ZodType<t.ResolveOptions>;
 
 const resolveOptions: z.ZodType<t.ResolveOptions> = baseResolveOptions.extend({
@@ -916,6 +917,12 @@ const externalItem = z
 			.function()
 			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
 			.returns(z.promise(externalItemValue))
+	)
+	.or(
+		z
+			.function()
+			.args(externalItemFunctionData as z.ZodType<t.ExternalItemFunctionData>)
+			.returns(externalItemValue)
 	) satisfies z.ZodType<t.ExternalItem>;
 
 const externals = externalItem
@@ -1171,11 +1178,12 @@ const optimizationRuntimeChunk = z
 		})
 	) satisfies z.ZodType<t.OptimizationRuntimeChunk>;
 
-const optimizationSplitChunksNameFunction = z.function().args(
-	z.instanceof(Module).optional()
-	// FIXME: z.array(z.instanceof(Chunk)).optional(), z.string()
-	// FIXME: Chunk[],   															cacheChunkKey
-) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
+const optimizationSplitChunksNameFunction = z
+	.function()
+	.args(z.instanceof(Module), z.array(z.instanceof(Chunk)), z.string())
+	.returns(
+		z.string().optional()
+	) satisfies z.ZodType<t.OptimizationSplitChunksNameFunction>;
 
 const optimizationSplitChunksName = z
 	.string()

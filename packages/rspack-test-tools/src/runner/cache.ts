@@ -75,25 +75,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
 				`errors${hotUpdateContext.updateIndex}`,
-				"Error",
-				function (err: any) {
-					throw err;
-				}
+				"Error"
 			);
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${hotUpdateContext.updateIndex}`,
-				"Warning",
-				function (err: any) {
-					throw err;
-				}
+				"Warning"
 			);
 
 			const updatedModules = await m.hot.check(options || true);
@@ -108,14 +102,16 @@ export class CacheRunnerFactory<
 			await compiler.close();
 			compiler.createCompiler();
 
+			const oldChangedFiles = hotUpdateContext.changedFiles;
 			await Promise.all(
-				hotUpdateContext.changedFiles.map(async file => {
+				oldChangedFiles.map(async file => {
 					await refreshModifyTime(file);
 				})
 			);
 			hotUpdateContext.changedFiles = [];
 			hotUpdateContext.updateIndex++;
 			const stats = await compiler.build();
+			hotUpdateContext.changedFiles = oldChangedFiles;
 			if (!stats) {
 				throw new Error("Should generate stats during build");
 			}
@@ -123,25 +119,19 @@ export class CacheRunnerFactory<
 				// errorDetails: true
 			});
 
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"error",
 				`errors${hotUpdateContext.updateIndex}`,
-				"Error",
-				function (err: any) {
-					throw err;
-				}
+				"Error"
 			);
-			checkArrayExpectation(
+			await checkArrayExpectation(
 				source,
 				jsonStats,
 				"warning",
 				`warnings${hotUpdateContext.updateIndex}`,
-				"Warning",
-				function (err: any) {
-					throw err;
-				}
+				"Warning"
 			);
 			env.it(
 				`NEXT_START run with compilerIndex==${compilerIndex + 1}`,

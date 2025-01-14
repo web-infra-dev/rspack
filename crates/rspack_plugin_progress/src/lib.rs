@@ -41,7 +41,8 @@ impl std::fmt::Debug for ProgressPluginOptions {
   }
 }
 
-static MULTI_PROGRESS: LazyLock<MultiProgress> = LazyLock::new(MultiProgress::new);
+static MULTI_PROGRESS: LazyLock<MultiProgress> =
+  LazyLock::new(|| MultiProgress::with_draw_target(ProgressDrawTarget::stdout_with_hz(100)));
 #[derive(Debug, Default)]
 pub struct ProgressPluginDisplayOptions {
   // the prefix name of progress bar
@@ -83,8 +84,7 @@ impl ProgressPlugin {
       ProgressPluginOptions::Handler(_fn) => None,
       ProgressPluginOptions::Default(options) => {
         // default interval is 20, means draw every 1000/20 = 50ms, use 100 to draw every 1000/100 = 10ms
-        let progress_bar =
-          ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout_with_hz(100));
+        let progress_bar = MULTI_PROGRESS.add(ProgressBar::new(100));
 
         let mut progress_bar_style = ProgressStyle::with_template(&options.template)
           .expect("TODO:")
@@ -102,7 +102,6 @@ impl ProgressPlugin {
         Some(progress_bar)
       }
     };
-    let progress_bar = progress_bar.map(|x| MULTI_PROGRESS.add(x));
     Self::new_inner(
       options,
       progress_bar,

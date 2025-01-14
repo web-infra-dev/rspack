@@ -10,7 +10,8 @@ const isEsmFile = (filePath: string, cwd = process.cwd()) => {
 	if (/\.(cjs|cts)/.test(ext)) {
 		return false;
 	}
-	const packageJson = readPackageUp(cwd);
+	// package.json should be find from configPath root
+	const packageJson = readPackageUp(path.dirname(filePath));
 	return packageJson?.type === "module";
 };
 

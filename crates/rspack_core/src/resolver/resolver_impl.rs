@@ -8,7 +8,7 @@ use rspack_error::{
   miette::{diagnostic, Diagnostic},
   DiagnosticExt, Severity, TraceableError,
 };
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
 use rustc_hash::FxHashSet as HashSet;
@@ -83,11 +83,11 @@ pub struct Resolver {
 }
 
 impl Resolver {
-  pub fn new(options: Resolve, fs: Arc<dyn FileSystem>) -> Self {
+  pub fn new(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self::new_rspack_resolver(options, fs)
   }
 
-  fn new_rspack_resolver(options: Resolve, fs: Arc<dyn FileSystem>) -> Self {
+  fn new_rspack_resolver(options: Resolve, fs: Arc<dyn ReadableFileSystem>) -> Self {
     let options = to_rspack_resolver_options(options, false, DependencyCategory::Unknown);
     let boxfs = BoxFS::new(fs);
     let resolver = rspack_resolver::ResolverGeneric::new_with_file_system(boxfs, options);
@@ -111,6 +111,7 @@ impl Resolver {
       options_with_dependency_type.resolve_to_context,
       options_with_dependency_type.dependency_category,
     );
+
     let resolver = resolver.clone_with_options(options);
     Self { resolver }
   }
@@ -285,6 +286,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
+    enable_pnp: options.pnp.unwrap_or(false),
   }
 }
 

@@ -27,7 +27,7 @@ Compilation ===============> Stats JSON =================> Stats Output
 
 Create a stats object related to a compilation through [`compilation.getStats()`](/api/javascript-api/compilation#getstats) or `new Stats(compilation)`.
 
-## Stats Methods
+## Stats methods
 
 ### hasErrors
 
@@ -102,7 +102,7 @@ rspack(
 );
 ```
 
-## Stats Properties
+## Stats properties
 
 ### compilation
 
@@ -173,7 +173,7 @@ Concatenate the stats output strings of all compilations according to the [stats
 toString(options?: StatsValue): string;
 ```
 
-## Stats Factory
+## Stats factory
 
 Used to generate the stats json object from the Compilation, and provides hooks for fine-grained control during the generation process.
 
@@ -193,7 +193,7 @@ stats = statsFactory.create('compilation', compilation, {});
 
 > The `StatsFactory` object only handles the calling of hooks, and the processing code of the corresponding type can be found in [`DefaultStatsFactoryPlugin`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/stats/DefaultStatsFactoryPlugin.ts).
 
-## Stats Printer
+## Stats printer
 
 Used to generate the output string from the stats json object, and provides hooks for fine-grained control during the generation process.
 

@@ -5,7 +5,7 @@ use std::{
 };
 
 use rspack_cacheable::cacheable;
-use rspack_fs::FileSystem;
+use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashMap as HashMap;
 
@@ -37,12 +37,12 @@ pub enum ValidateResult {
 }
 
 pub struct StrategyHelper {
-  fs: Arc<dyn FileSystem>,
+  fs: Arc<dyn ReadableFileSystem>,
   package_version_cache: HashMap<ArcPath, Option<String>>,
 }
 
 impl StrategyHelper {
-  pub fn new(fs: Arc<dyn FileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
     Self {
       fs,
       package_version_cache: Default::default(),
@@ -51,7 +51,7 @@ impl StrategyHelper {
 
   /// get path file modified time
   async fn modified_time(&self, path: &Path) -> Option<u64> {
-    if let Ok(info) = self.fs.stat(path.assert_utf8()).await {
+    if let Ok(info) = self.fs.metadata(path.assert_utf8()) {
       Some(info.mtime_ms)
     } else {
       None

@@ -164,7 +164,7 @@ module.exports = {
 
 ### 废弃 `builtins.devFriendlySplitChunks` 和 `experiments.newSplitChunks`
 
-为了完全迁移到 Webpack 的 splitChunks 实现，这些字段已被废弃。Rspack 将在 v0.5.0 中移除这些字段。
+为了完全迁移到 webpack 的 splitChunks 实现，这些字段已被废弃。Rspack 将在 v0.5.0 中移除这些字段。
 
 ### 默认启用新的解析器
 
@@ -176,7 +176,7 @@ module.exports = {
 
 要退出新解析器，请将 `experiments.rspackFuture.newResolver` 设置为 `false`。
 
-## Migration Guide
+## Migration guide
 
 迁移示例 [migrate example](https://github.com/rspack-contrib/rspack-examples/pull/2) 展示了如何从 Rspack 0.3.14 迁移到 Rspack 0.4.0
 
@@ -225,13 +225,13 @@ Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 Rspack [内部
 
 目前，rspack 的内部插件分为两类：
 
-- 与 Webpack 兼容的插件，如 DefinePlugin, ProvidePlugin 等，这部分实现与 webpack 完成了完整的对齐
+- 与 webpack 兼容的插件，如 DefinePlugin, ProvidePlugin 等，这部分实现与 webpack 完成了完整的对齐
 - Rspack 独有的插件，如 SwcJsMinimizerRspackPlugin, CopyRspackPlugin 等
 
 原有的 `builtins.define` 可以这样迁移：
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    define: { process.env.NODE_ENV: JSON.stringify(process.env.NODE_ENV) }
@@ -245,7 +245,7 @@ module.exports = {
 对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
 
 ```diff
-+ const rspack = require("@rspack/core")
++ const { rspack } = require("@rspack/core")
 module.exports = {
 -  builtins: {
 -    html: [{ template: "./index.html" }]
@@ -259,7 +259,7 @@ module.exports = {
 当 `builtins.html` 中存在多个配置，可以创建多个插件实例：
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
@@ -273,7 +273,7 @@ module.exports = {
 原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   optimization: {
     minimizer: [

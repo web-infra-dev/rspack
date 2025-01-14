@@ -201,6 +201,6 @@ chunk (runtime: main) output.js (main) 603 bytes (javascript) 88 bytes (runtime)
 webpack 5.51.1 compiled successfully
 ```
 
-# Code Splitting
+# Code splitting
 
 See [this example combined with code splitting](../code-splitted-require.context)

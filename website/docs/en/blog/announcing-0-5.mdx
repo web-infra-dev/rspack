@@ -9,13 +9,13 @@ import { PackageManagerTabs } from '@theme';
 
 > January 09, 2024
 
-## Major Feature Updates
+## Major feature updates
 
 ### Module Federation added to Rspack
 
 Checkout [this blog](/blog/module-federation-added-to-rspack) for more details.
 
-## Breaking Changes
+## Breaking changes
 
 ### optimization.chunkIds is deterministic in production mode by default
 
@@ -186,7 +186,7 @@ When `experiments.rspackFuture.disableApplyEntryLazily` is `false`, `options.ent
 
 This configuration has no effect on users developing applications in Rspack most of the time, but should be noted by developers of Rspack plugins or higher-level frameworks.
 
-## Migration Guide
+## Migration guide
 
 v0.5.0 removed lots of deprecated features, except that, v0.5.0 introduced four breaking changes, and you only need to notice two of them if you are developing applications using Rspack. So v0.5.0 is easy to migrate if you already migrate to v0.4+ with no deprecate warnings, if you haven't, checkout the [v0.4.0 migration guide](https://www.rspack.dev/blog/announcing-0.4#migration-guide).
 
@@ -245,7 +245,7 @@ If you are using `@rspack/cli`, or rsbuild, or other higher-level framework of R
 Before prepending an extra entry in Rspack is prepending it to `compiler.options.entry`, but now you need to apply `EntryPlugin` by yourself.
 
 ```diff
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const compiler = rspack(options);
 
 function prependEntry(compiler, additionalEntry) {

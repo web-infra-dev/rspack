@@ -2,7 +2,7 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::{Either, Result};
 use napi_derive::napi;
-use rspack_core::{ChunkGraph, Compilation, RuntimeSpec, SourceType};
+use rspack_core::{ChunkGraph, Compilation, SourceType};
 
 use crate::{
   JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsModule, JsModuleWrapper,

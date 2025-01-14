@@ -30,7 +30,7 @@ new rspack.IgnorePlugin(options);
 当使用以下配置时：
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [
     new rspack.IgnorePlugin({

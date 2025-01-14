@@ -76,6 +76,7 @@ export const getRawOptions = (
 	const mode = options.mode;
 	const experiments = options.experiments as Required<ExperimentsNormalized>;
 	return {
+		name: options.name,
 		mode,
 		context: options.context!,
 		output: options.output as Required<OutputNormalized>,
@@ -580,7 +581,11 @@ function getRawJsonParserOptions(
 	parser: JsonParserOptions
 ): RawJsonParserOptions {
 	return {
-		exportsDepth: parser.exportsDepth
+		exportsDepth: parser.exportsDepth,
+		parse:
+			typeof parser.parse === "function"
+				? str => JSON.stringify(parser.parse!(str))
+				: undefined
 	};
 }
 

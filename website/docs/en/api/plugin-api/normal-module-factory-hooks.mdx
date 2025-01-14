@@ -113,7 +113,7 @@ Returning module instance or `false` is not supported for now.
 
 `AsyncSeriesBailHook<[ResolveData]>`
 
-Called after the request is resolved.
+Called after the module specifier is resolved.
 
 The `afterResolve` hook is used to further process or modify the results after the module has been resolved. It is called at the end of the module resolution process, which means that at this stage, the module's path, request information, etc., have already been determined.
 
@@ -143,9 +143,9 @@ compiler.hooks.compilation.tap(
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`
 
-Called before a request with scheme (URI) is resolved.
+Called before a module specifier with scheme (URI) is resolved.
 
-The `resolveForScheme` is typically used to handle module requests that have a specific protocol, such as `file://`, `https://`, etc.
+The `resolveForScheme` is typically used to handle module specifiers that have a specific protocol, such as `file://`, `https://`, etc.
 
 ```js
 compiler.hooks.compilation.tap(

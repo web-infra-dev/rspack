@@ -75,12 +75,7 @@ impl DependencyTemplate for CssLocalIdentDependency {
     source: &mut TemplateReplaceSource,
     _code_generatable_context: &mut TemplateContext,
   ) {
-    source.replace(
-      self.start,
-      self.end,
-      &escape_css(&self.local_ident, false),
-      None,
-    );
+    source.replace(self.start, self.end, &escape_css(&self.local_ident), None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 describe("Output", () => {
 	function compile(entry, options, callback) {

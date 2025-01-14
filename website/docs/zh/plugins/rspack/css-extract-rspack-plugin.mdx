@@ -14,7 +14,7 @@ Rspack 目前不兼容 [mini-css-extract-plugin](https://github.com/webpack-cont
 使用 CssExtractRspackPlugin 时，需要在 `plugins` 中注册插件，并在 [module.rules](/config/module#modulerules) 中注册 `CssExtractRspackPlugin.loader`。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin({})],
@@ -48,6 +48,7 @@ interface PluginOptions {
   linkType?: string | 'text/css' | false;
   runtime?: boolean;
   pathinfo?: boolean;
+  enforceRelative?: boolean;
 }
 ```
 
@@ -124,6 +125,12 @@ interface PluginOptions {
       default: 'false',
       description: '是否在 CSS 产物中包含带有更详细的路径信息的注释',
     },
+    {
+      name: '`enforceRelative`',
+      type: '`boolean`',
+      default: 'false',
+      description: '是否在生成的 CSS `url()` 是相对路径时，保留 "\.\/"',
+    },
   ]}
 />
 
@@ -192,7 +199,7 @@ interface LoaderOptions {
 例如：
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin({})],

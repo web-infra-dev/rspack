@@ -1,17 +1,11 @@
-import value from './file'
+import value from "./file";
 
-it("should accept a dependencies and require a new value", (done) => {
+it("should accept a dependencies and require a new value", async () => {
 	expect(value).toBe(1);
-	NEXT(require("../../update")(done, true, () => {
-		expect(value).toBe(2);
-		NEXT(require("../../update")(done, true, () => {
-			expect(value).toBe(1);
-			NEXT(require("../../update")(done, true, () => {
-				expect(value).toBe(3);
-				done();
-			}))
-		}));
-	}));
+	await NEXT_HMR();
+	expect(value).toBe(2);
+	await NEXT_HMR();
+	expect(value).toBe(1);
+	await NEXT_HMR();
+	expect(value).toBe(3);
 });
-
-module.hot.accept("./file");

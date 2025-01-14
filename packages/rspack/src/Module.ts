@@ -5,12 +5,11 @@ import type {
 	JsCreateData,
 	JsFactoryMeta
 } from "@rspack/binding";
-import { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
-import type { Compilation } from "./Compilation";
+import { JsModule } from "@rspack/binding";
 import { DependenciesBlock } from "./DependenciesBlock";
-import { bindingDependencyFactory, Dependency } from "./Dependency";
+import { Dependency, bindingDependencyFactory } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -222,7 +221,6 @@ export class Module {
 	declare readonly type: string;
 	declare readonly layer: string | null;
 	declare readonly factoryMeta?: JsFactoryMeta;
-
 	declare readonly modules: Module[] | undefined;
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
@@ -368,10 +366,7 @@ export class Module {
 			blocks: {
 				enumerable: true,
 				get(): DependenciesBlock[] {
-					if ("blocks" in module) {
-						return module.blocks.map(b => DependenciesBlock.__from_binding(b));
-					}
-					return [];
+					return module.blocks.map(b => DependenciesBlock.__from_binding(b));
 				}
 			},
 			dependencies: {

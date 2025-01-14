@@ -174,7 +174,7 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_lock_memory"),
@@ -224,7 +224,7 @@ mod test_storage_lock {
     let cases = [
       (
         get_native_path("test_lock_fail_native"),
-        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem {}))),
+        Arc::new(BridgeFileSystem(Arc::new(NativeFileSystem::new(false)))),
       ),
       (
         get_memory_path("test_lock_fail_memory"),

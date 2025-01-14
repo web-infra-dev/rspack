@@ -99,7 +99,7 @@ import(`./locale/${language}.json`).then(module => {
 });
 ```
 
-#### Magic Comments
+#### Magic comments
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
@@ -341,7 +341,7 @@ function requireEnsure(
    * 通过指定相同的 chunkName 来合并多个 require.ensure() 调用的代码，从而只生成一个 bundle，
    * 从而减少浏览器加载的次数。
    */
-  chunkName?: String
+  chunkName?: string
 ): Context;
 ```
 

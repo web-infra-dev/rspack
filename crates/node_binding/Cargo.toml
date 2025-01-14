@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 plugin = ["rspack_loader_swc/plugin"]
 
 [dependencies]
+anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_collections       = { workspace = true }
@@ -32,9 +33,10 @@ rspack_util              = { workspace = true }
 
 rspack_tracing = { workspace = true }
 
-async-trait = { workspace = true }
-cow-utils   = { workspace = true }
-tracing     = { workspace = true }
+async-trait        = { workspace = true }
+cow-utils          = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive = { workspace = true }

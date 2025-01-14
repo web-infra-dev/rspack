@@ -5,7 +5,7 @@ pub mod persistent;
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::Result;
-use rspack_fs::{FileSystem, IntermediateFileSystem};
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 
 pub use self::{disable::DisableCache, memory::MemoryCache, persistent::PersistentCache};
 use crate::{make::MakeArtifact, Compilation, CompilerOptions, ExperimentCacheOptions};
@@ -42,7 +42,7 @@ pub trait Cache: Debug + Send + Sync {
 pub fn new_cache(
   compiler_path: &str,
   compiler_option: Arc<CompilerOptions>,
-  input_filesystem: Arc<dyn FileSystem>,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
 ) -> Arc<dyn Cache> {
   match &compiler_option.experiments.cache {

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
+use napi::{bindgen_prelude::ToNapiValue, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, CompilerId, Dependency, DependencyId};
 use rspack_napi::OneShotInstanceRef;

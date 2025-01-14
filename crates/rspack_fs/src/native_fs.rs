@@ -3,16 +3,31 @@ use std::{
   io::{BufRead, BufReader, BufWriter, Read, Write},
 };
 
+use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{
-  Error, FileMetadata, FileSystem, IntermediateFileSystem, IntermediateFileSystemExtras,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream,
+  ReadableFileSystem, Result, WritableFileSystem, WriteStream,
 };
-
 #[derive(Debug)]
-pub struct NativeFileSystem;
-impl FileSystem for NativeFileSystem {}
+struct NativeFileSystemOptions {
+  // enable yarn pnp feature
+  pnp: bool,
+}
+#[derive(Debug)]
+pub struct NativeFileSystem {
+  options: NativeFileSystemOptions,
+  pnp_lru: LruZipCache<Vec<u8>>,
+}
+impl NativeFileSystem {
+  pub fn new(pnp: bool) -> Self {
+    Self {
+      options: NativeFileSystemOptions { pnp },
+      pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
+    }
+  }
+}
 #[async_trait::async_trait]
 impl WritableFileSystem for NativeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
@@ -55,14 +70,56 @@ impl WritableFileSystem for NativeFileSystem {
     FileMetadata::try_from(metadata)
   }
 }
+impl From<FileType> for FileMetadata {
+  fn from(value: FileType) -> Self {
+    FileMetadata {
+      is_directory: value == FileType::Directory,
+      is_file: value == FileType::File,
+      is_symlink: false,
+      // yarn pnp don'ts have following info
+      atime_ms: 0,
+      mtime_ms: 0,
+      ctime_ms: 0,
+      size: 0,
+    }
+  }
+}
 
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      let buffer = match VPath::from(path)? {
+        VPath::Zip(info) => self.pnp_lru.read(info.physical_base_path(), info.zip_path),
+        VPath::Virtual(info) => std::fs::read(info.physical_base_path()),
+        VPath::Native(path) => std::fs::read(&path),
+      };
+      return buffer.map_err(Error::from);
+    }
     fs::read(path).map_err(Error::from)
   }
 
   fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      return match VPath::from(path)? {
+        VPath::Zip(info) => self
+          .pnp_lru
+          .file_type(info.physical_base_path(), info.zip_path)
+          .map(FileMetadata::from)
+          .map_err(Error::from),
+
+        VPath::Virtual(info) => {
+          let meta = fs::metadata(info.physical_base_path())?;
+          FileMetadata::try_from(meta)
+        }
+        VPath::Native(path) => {
+          let meta = fs::metadata(path)?;
+          FileMetadata::try_from(meta)
+        }
+      };
+    }
     let meta = fs::metadata(path)?;
     meta.try_into()
   }
@@ -73,6 +130,15 @@ impl ReadableFileSystem for NativeFileSystem {
   }
 
   fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    if self.options.pnp {
+      let path = path.as_std_path();
+      let path = match VPath::from(path)? {
+        VPath::Zip(info) => dunce::canonicalize(info.physical_base_path().join(info.zip_path)),
+        VPath::Virtual(info) => dunce::canonicalize(info.physical_base_path()),
+        VPath::Native(path) => dunce::canonicalize(path),
+      };
+      return path.map(|x| x.assert_utf8()).map_err(Error::from);
+    }
     let path = dunce::canonicalize(path)?;
     Ok(path.assert_utf8())
   }

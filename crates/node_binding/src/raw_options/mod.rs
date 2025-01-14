@@ -41,6 +41,7 @@ pub use crate::raw_resolve::*;
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOptions {
+  pub name: Option<String>,
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
   pub context: String,
@@ -80,6 +81,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let node = value.node.map(|n| n.into());
 
     Ok(CompilerOptions {
+      name: value.name,
       context,
       mode,
       module,

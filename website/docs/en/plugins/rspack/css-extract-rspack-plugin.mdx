@@ -14,7 +14,7 @@ Rspack is currently incompatible with [mini-css-extract-plugin](https://github.c
 When using CssExtractRspackPlugin, you need to register the plugin in the `plugins` section and register `CssExtractRspackPlugin.loader` in [module.rules](/config/module#modulerules).
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin({})],
@@ -30,7 +30,7 @@ module.exports = {
 };
 ```
 
-## Plugin Options
+## Plugin options
 
 Options for `CssExtractRspackPlugin`.
 
@@ -48,6 +48,7 @@ interface PluginOptions {
   linkType?: string | 'text/css' | false;
   runtime?: boolean;
   pathinfo?: boolean;
+  enforceRelative?: boolean;
 }
 ```
 
@@ -126,10 +127,17 @@ interface PluginOptions {
       description:
         'Whether to include comments in CSS bundles with more detailed path information',
     },
+    {
+      name: '`enforceRelative`',
+      type: '`boolean`',
+      default: 'false',
+      description:
+        'Whether to preserve "\.\/" when generated CSS `url()` is relative',
+    },
   ]}
 />
 
-## Loader Options
+## Loader options
 
 Options for `CssExtractRspackPlugin.loader`.
 
@@ -194,7 +202,7 @@ Please note when enabling the built-in CSS support (`experiments.css`), Files en
 For example:
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin({})],

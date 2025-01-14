@@ -10,7 +10,7 @@ version     = "0.2.0"
 proc-macro = true
 
 [dependencies]
+json        = { workspace = true }
 proc-macro2 = { workspace = true }
 quote       = { workspace = true }
-regex       = { workspace = true }
 syn         = { workspace = true, features = ["full"] }

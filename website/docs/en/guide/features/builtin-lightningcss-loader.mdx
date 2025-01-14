@@ -11,7 +11,7 @@ The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github
 To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   module: {
@@ -33,7 +33,7 @@ module.exports = {
 };
 ```
 
-## Type Declarations
+## Type declarations
 
 You can use the `LightningcssLoaderOptions` type exported by `@rspack/core` to enable type hints:
 

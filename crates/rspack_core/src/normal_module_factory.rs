@@ -13,13 +13,14 @@ use swc_core::common::Span;
 
 use crate::{
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource, BoxLoader, BoxModule, CompilerOptions, Context, Dependency,
-  DependencyCategory, DependencyRange, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, SharedPluginDriver,
+  stringify_loaders_and_resource, AssetInlineGeneratorOptions, AssetResourceGeneratorOptions,
+  BoxLoader, BoxModule, CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
+  DependencyRange, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
+  ResolverFactory, ResourceData, ResourceParsedData, RunnerContext, SharedPluginDriver,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: AsyncSeriesBail(data: &mut ModuleFactoryCreateData) -> bool);
@@ -513,7 +514,6 @@ impl NormalModuleFactory {
     } else {
       resource_data.resource.clone()
     };
-    tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();
 
@@ -691,18 +691,13 @@ impl NormalModuleFactory {
     parser: Option<ParserOptions>,
     mut generator: Option<GeneratorOptions>,
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let global_parser = self
-      .options
-      .module
-      .parser
-      .as_ref()
-      .and_then(|p| match module_type {
+    let global_parser = self.options.module.parser.as_ref().and_then(|p| {
+      let options = p.get(module_type.as_str());
+      match module_type {
         ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
-          let options = p.get(module_type.as_str());
-          let javascript_options = p.get("javascript").cloned();
           // Merge `module.parser.["javascript/xxx"]` with `module.parser.["javascript"]` first
           rspack_util::merge_from_optional_with(
-            javascript_options,
+            p.get("javascript").cloned(),
             options,
             |javascript_options, options| match (javascript_options, options) {
               (
@@ -715,9 +710,61 @@ impl NormalModuleFactory {
             },
           )
         }
-        _ => p.get(module_type.as_str()).cloned(),
-      });
+        ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
+          p.get("css").cloned(),
+          options,
+          |css_options, options| match (css_options, options) {
+            (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
+              ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
+            }
+            (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
+              ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
+            }
+            _ => unreachable!(),
+          },
+        ),
+        _ => options.cloned(),
+      }
+    });
+    let global_generator = self.options.module.generator.as_ref().and_then(|g| {
+      let options = g.get(module_type.as_str());
 
+      match module_type {
+        ModuleType::AssetInline | ModuleType::AssetResource => {
+          rspack_util::merge_from_optional_with(
+            g.get("asset").cloned(),
+            options,
+            |asset_options, options| match (asset_options, options) {
+              (GeneratorOptions::Asset(a), GeneratorOptions::AssetInline(b)) => {
+                GeneratorOptions::AssetInline(
+                  Into::<AssetInlineGeneratorOptions>::into(a).merge_from(b),
+                )
+              }
+              (GeneratorOptions::Asset(a), GeneratorOptions::AssetResource(b)) => {
+                GeneratorOptions::AssetResource(
+                  Into::<AssetResourceGeneratorOptions>::into(a).merge_from(b),
+                )
+              }
+              _ => unreachable!(),
+            },
+          )
+        }
+        ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
+          g.get("css").cloned(),
+          options,
+          |css_options, options| match (css_options, options) {
+            (GeneratorOptions::Css(a), GeneratorOptions::CssAuto(b)) => {
+              GeneratorOptions::CssAuto(Into::<CssAutoGeneratorOptions>::into(a).merge_from(b))
+            }
+            (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
+              GeneratorOptions::CssModule(Into::<CssModuleGeneratorOptions>::into(a).merge_from(b))
+            }
+            _ => unreachable!(),
+          },
+        ),
+        _ => options.cloned(),
+      }
+    });
     let parser = rspack_util::merge_from_optional_with(
       global_parser,
       parser.as_ref(),
@@ -736,6 +783,7 @@ impl NormalModuleFactory {
           | ParserOptions::JavascriptDynamic(b)
           | ParserOptions::JavascriptEsm(b),
         ) => ParserOptions::Javascript(a.merge_from(b)),
+        (ParserOptions::Json(a), ParserOptions::Json(b)) => ParserOptions::Json(a.merge_from(b)),
         (global, _) => global,
       },
     );
