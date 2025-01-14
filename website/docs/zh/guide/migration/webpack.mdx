@@ -77,7 +77,7 @@ Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 web
 
 ```diff title="rspack.config.js"
 - const webpack = require('webpack');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   //...
@@ -104,7 +104,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [
@@ -122,7 +122,7 @@ module.exports = {
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [

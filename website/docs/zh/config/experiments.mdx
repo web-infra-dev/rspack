@@ -182,7 +182,7 @@ type ListenOptions = {
 如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
 
 ```ts
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 const options = {
   experiments: {

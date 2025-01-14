@@ -80,7 +80,7 @@ For example, replacing the [DefinePlugin](/plugins/webpack/define-plugin):
 
 ```diff title="rspack.config.js"
 - const webpack = require('webpack');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   //...
@@ -107,7 +107,7 @@ Use [rspack.CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin) instead of [co
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [
@@ -125,7 +125,7 @@ Use [rspack.CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) i
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [

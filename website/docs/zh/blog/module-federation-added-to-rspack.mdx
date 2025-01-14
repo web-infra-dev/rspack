@@ -63,7 +63,7 @@ v1.5 引入了运行时插件。这些插件可以通过 `runtimePlugins` 配置
 在 Rspack 中：
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 new rspack.container.ModuleFederationPlugin({
   name: 'app1',

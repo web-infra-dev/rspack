@@ -245,7 +245,7 @@ If you are using `@rspack/cli`, or rsbuild, or other higher-level framework of R
 Before prepending an extra entry in Rspack is prepending it to `compiler.options.entry`, but now you need to apply `EntryPlugin` by yourself.
 
 ```diff
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const compiler = rspack(options);
 
 function prependEntry(compiler, additionalEntry) {

@@ -20,7 +20,7 @@ This is very useful in some scenarios, for example when the built-in CSS parser 
 For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {

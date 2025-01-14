@@ -396,7 +396,7 @@ Get the proxy object used for watching files or directories changes, which provi
 The `MultiCompiler` module allows Rspack to run multiple configurations in separate compilers. If the options parameter in the Rspack's JavaScript API is an array of options, Rspack applies separate compilers and calls the callback after all compilers have been executed.
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 rspack(
   [

@@ -1,4 +1,4 @@
-const rspack = require("@rspack/core")
+const { rspack } = require("@rspack/core")
 const PreactRefreshPlugin = require("@rspack/plugin-preact-refresh");
 const { ConcatSource, RawSource } = require("webpack-sources")
 /** @type {import("@rspack/core").Configuration} */

@@ -63,7 +63,7 @@ v1.5 introduces runtimePlugins. These can be added to compile time via `runtimeP
 In Rspack:
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 new rspack.container.ModuleFederationPlugin({
   name: 'app1',
