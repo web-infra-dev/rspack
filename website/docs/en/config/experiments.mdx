@@ -72,6 +72,9 @@ module.exports = {
 
 ## experiments.futureDefaults
 
+- **Type:** `boolean`
+- **Default:** `false`
+
 Use defaults of the next major Rspack and show warnings in any problematic places.
 
 ```js title="rspack.config.js"
@@ -83,6 +86,9 @@ module.exports = {
 ```
 
 ## experiments.topLevelAwait
+
+- **Type:** `boolean`
+- **Default:** `true`
 
 Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-await), `Top-level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
 
@@ -107,17 +113,24 @@ type LazyCompilationOptions =
   | {
       backend?: {
         /**
-         * A custom client.
+         * A custom client script path.
          */
         client?: string;
         /**
-         * Specify where to listen to from the server.
+         * Specifies where to listen to from the server.
          */
-        listen?: number | ListenOptions;
+        listen?: number | ListenOptions | ((server: Server) => void);
         /**
-         * Specify the protocol the client should use to connect to the server.
+         * Specifies the protocol the client should use to connect to the server.
          */
         protocol?: 'http' | 'https';
+        /**
+         * Specifies how to create the server handling the EventSource requests.
+         */
+        server?:
+          | ServerOptionsImport<typeof IncomingMessage>
+          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+          | (() => Server);
       };
       /**
        * Enable lazy compilation for entries.

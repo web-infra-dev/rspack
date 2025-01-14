@@ -23,6 +23,7 @@ import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
+import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import { JsAfterEmitData } from '@rspack/binding';
@@ -55,6 +56,7 @@ import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
+import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { RawCopyPattern } from '@rspack/binding';
@@ -66,11 +68,16 @@ import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
+import type { SecureContextOptions } from 'node:tls';
+import type { Server } from 'node:net';
+import type { ServerOptions } from 'node:http';
+import type { ServerResponse } from 'node:http';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
+import type { TlsOptions } from 'node:tls';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -3147,13 +3154,17 @@ type KnownStatsProfile = {
 // @public
 export type Layer = string | null;
 
+// @public (undocumented)
+interface LazyCompilationDefaultBackendOptions {
+    client?: string;
+    listen?: number | ListenOptions | ((server: Server) => void);
+    protocol?: "http" | "https";
+    server?: ServerOptions<typeof IncomingMessage> | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse> | (() => Server);
+}
+
 // @public
 export type LazyCompilationOptions = {
-    backend?: {
-        client?: string;
-        listen?: number | ListenOptions;
-        protocol?: "http" | "https";
-    };
+    backend?: LazyCompilationDefaultBackendOptions;
     imports?: boolean;
     entries?: boolean;
     test?: RegExp | ((module: any) => boolean);
@@ -3292,18 +3303,6 @@ const LimitChunkCountPlugin: {
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
-};
-
-// @public
-type ListenOptions = {
-    port?: number;
-    host?: string;
-    backlog?: number;
-    path?: string;
-    exclusive?: boolean;
-    readableAll?: boolean;
-    writableAll?: boolean;
-    ipv6Only?: boolean;
 };
 
 // @public (undocumented)
@@ -6071,6 +6070,7 @@ export const rspackOptions: z.ZodObject<{
         compareBeforeEmit: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         module?: boolean | undefined;
+        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -6105,7 +6105,6 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
-        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -6170,6 +6169,7 @@ export const rspackOptions: z.ZodObject<{
         strictModuleExceptionHandling?: boolean | undefined;
     }, {
         module?: boolean | undefined;
+        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -6204,7 +6204,6 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
-        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -6344,19 +6343,19 @@ export const rspackOptions: z.ZodObject<{
                     writableAll: z.ZodOptional<z.ZodBoolean>;
                     ipv6Only: z.ZodOptional<z.ZodBoolean>;
                 }, "strip", z.ZodTypeAny, {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
                 }, {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6366,10 +6365,10 @@ export const rspackOptions: z.ZodObject<{
             }, "strip", z.ZodTypeAny, {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6379,10 +6378,10 @@ export const rspackOptions: z.ZodObject<{
             }, {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6400,10 +6399,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6418,10 +6417,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6537,10 +6536,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -6603,10 +6602,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -8548,10 +8547,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -8760,6 +8759,7 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     output?: {
         module?: boolean | undefined;
+        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -8794,7 +8794,6 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
-        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -9152,10 +9151,10 @@ export const rspackOptions: z.ZodObject<{
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
-                    path?: string | undefined;
                     port?: number | undefined;
                     host?: string | undefined;
                     backlog?: number | undefined;
+                    path?: string | undefined;
                     exclusive?: boolean | undefined;
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
@@ -9364,6 +9363,7 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     output?: {
         module?: boolean | undefined;
+        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -9398,7 +9398,6 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
-        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -9892,6 +9891,9 @@ type SafeParseSuccess<Output> = {
 
 // @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
+
+// @public (undocumented)
+type ServerOptionsHttps<Request extends typeof IncomingMessage = typeof IncomingMessage, Response extends typeof ServerResponse = typeof ServerResponse> = SecureContextOptions & TlsOptions & ServerOptions<Request, Response>;
 
 // @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;

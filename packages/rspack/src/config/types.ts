@@ -3,6 +3,7 @@ import type * as webpackDevServer from "webpack-dev-server";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
+import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
 
 export type FilenameTemplate = string;
@@ -2415,64 +2416,13 @@ export type RspackFutureOptions = {
 };
 
 /**
- * Options for server listening.
- */
-type ListenOptions = {
-	/**
-	 * The port to listen on.
-	 */
-	port?: number;
-	/**
-	 * The host to listen on.
-	 */
-	host?: string;
-	/**
-	 * The backlog of connections.
-	 */
-	backlog?: number;
-	/**
-	 * The path for Unix socket.
-	 */
-	path?: string;
-	/**
-	 * Whether the server is exclusive.
-	 */
-	exclusive?: boolean;
-	/**
-	 * Whether the socket is readable by all users.
-	 */
-	readableAll?: boolean;
-	/**
-	 * Whether the socket is writable by all users.
-	 */
-	writableAll?: boolean;
-	/**
-	 * Whether to use IPv6 only.
-	 */
-	ipv6Only?: boolean;
-};
-
-/**
  * Options for lazy compilation.
  */
 export type LazyCompilationOptions = {
 	/**
 	 * Backend configuration for lazy compilation.
 	 */
-	backend?: {
-		/**
-		 * Client script path.
-		 */
-		client?: string;
-		/**
-		 * Listening options.
-		 */
-		listen?: number | ListenOptions;
-		/**
-		 * Protocol to use.
-		 */
-		protocol?: "http" | "https";
-	};
+	backend?: LazyCompilationDefaultBackendOptions;
 	/**
 	 * Enable lazy compilation for imports.
 	 */
@@ -2577,19 +2527,23 @@ export type Experiments = {
 	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
+	 * @default false
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
 	/**
 	 * Enable async WebAssembly.
 	 * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+	 * @default false
 	 */
 	asyncWebAssembly?: boolean;
 	/**
 	 * Enable output as ES module.
+	 * @default false
 	 */
 	outputModule?: boolean;
 	/**
 	 * Enable top-level await.
+	 * @default true
 	 */
 	topLevelAwait?: boolean;
 	/**
@@ -2616,6 +2570,7 @@ export type Experiments = {
 	incremental?: boolean | Incremental;
 	/**
 	 * Enable future default options.
+	 * @default false
 	 */
 	futureDefaults?: boolean;
 	/**
