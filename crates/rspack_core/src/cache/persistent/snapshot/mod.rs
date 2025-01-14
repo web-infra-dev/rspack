@@ -6,6 +6,7 @@ use std::{path::Path, sync::Arc};
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
+use rspack_futures::FuturesResults;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -42,37 +43,38 @@ impl Snapshot {
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
     let default_strategy = StrategyHelper::compile_time();
-    let mut helper = StrategyHelper::new(self.fs.clone());
-    // TODO use multi thread
+    let helper = StrategyHelper::new(self.fs.clone());
     // TODO merge package version file
-    for path in paths {
-      let utf8_path = path.assert_utf8();
-      // check path exists
-      if self.fs.metadata(utf8_path).is_err() {
-        continue;
-      }
-      // TODO directory path should check all sub file
-      let path_str = utf8_path.as_str();
-      if self.options.is_immutable_path(path_str) {
-        continue;
-      }
-      if self.options.is_managed_path(path_str) {
-        if let Some(v) = helper.package_version(path).await {
-          self.storage.set(
-            SCOPE,
-            path.as_os_str().as_encoded_bytes().to_vec(),
-            to_bytes::<_, ()>(&v, &()).expect("should to bytes success"),
-          );
-          continue;
+    let _ = paths
+      .map(|path| async {
+        let utf8_path = path.assert_utf8();
+        // check path exists
+        if self.fs.metadata(utf8_path).is_err() {
+          return;
         }
-      }
-      // compiler time
-      self.storage.set(
-        SCOPE,
-        path.as_os_str().as_encoded_bytes().to_vec(),
-        to_bytes::<_, ()>(&default_strategy, &()).expect("should to bytes success"),
-      );
-    }
+        // TODO directory path should check all sub file
+        let path_str = utf8_path.as_str();
+        if self.options.is_immutable_path(path_str) {
+          return;
+        }
+        if self.options.is_managed_path(path_str) {
+          if let Some(v) = helper.package_version(path).await {
+            self.storage.set(
+              SCOPE,
+              path.as_os_str().as_encoded_bytes().to_vec(),
+              to_bytes::<_, ()>(&v, &()).expect("should to bytes success"),
+            );
+            return;
+          }
+        }
+        // compiler time
+        self.storage.set(
+          SCOPE,
+          path.as_os_str().as_encoded_bytes().to_vec(),
+          to_bytes::<_, ()>(&default_strategy, &()).expect("should to bytes success"),
+        );
+      })
+      .collect::<FuturesResults<_>>();
   }
 
   pub fn remove(&self, paths: impl Iterator<Item = &Path>) {
@@ -85,16 +87,26 @@ impl Snapshot {
 
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
-    let mut helper = StrategyHelper::new(self.fs.clone());
+    let helper = StrategyHelper::new(self.fs.clone());
+
+    let results = self
+      .storage
+      .load(SCOPE)
+      .await?
+      .iter()
+      .map(|(key, value)| async {
+        let path: ArcPath = Path::new(&*String::from_utf8_lossy(key)).into();
+        let strategy: Strategy =
+          from_bytes::<Strategy, ()>(value, &()).expect("should from bytes success");
+        let validate = helper.validate(&path, &strategy).await;
+        (path, validate)
+      })
+      .collect::<FuturesResults<_>>();
+
     let mut modified_path = HashSet::default();
     let mut deleted_path = HashSet::default();
-
-    // TODO use multi thread
-    for (key, value) in self.storage.load(SCOPE).await? {
-      let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
-      let strategy: Strategy =
-        from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
-      match helper.validate(&path, &strategy).await {
+    for (path, validate) in results.into_inner() {
+      match validate {
         ValidateResult::Modified => {
           modified_path.insert(path);
         }

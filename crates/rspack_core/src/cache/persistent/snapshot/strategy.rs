@@ -4,10 +4,10 @@ use std::{
   time::{SystemTime, UNIX_EPOCH},
 };
 
+use dashmap::DashMap;
 use rspack_cacheable::cacheable;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
-use rustc_hash::FxHashMap as HashMap;
 
 /// Snapshot check strategy
 #[cacheable]
@@ -38,7 +38,7 @@ pub enum ValidateResult {
 
 pub struct StrategyHelper {
   fs: Arc<dyn ReadableFileSystem>,
-  package_version_cache: HashMap<ArcPath, Option<String>>,
+  package_version_cache: DashMap<ArcPath, Option<String>>,
 }
 
 impl StrategyHelper {
@@ -60,7 +60,7 @@ impl StrategyHelper {
 
   /// get path file version in package.json
   #[async_recursion::async_recursion]
-  async fn package_version_with_cache(&mut self, path: &Path) -> Option<String> {
+  async fn package_version_with_cache(&self, path: &Path) -> Option<String> {
     if let Some(version) = self.package_version_cache.get(path) {
       return version.clone();
     }
@@ -99,7 +99,7 @@ impl StrategyHelper {
     Strategy::CompileTime(now)
   }
   /// get path file package version strategy
-  pub async fn package_version(&mut self, path: &Path) -> Option<Strategy> {
+  pub async fn package_version(&self, path: &Path) -> Option<Strategy> {
     self
       .package_version_with_cache(path)
       .await
@@ -107,7 +107,7 @@ impl StrategyHelper {
   }
 
   /// validate path file by target strategy
-  pub async fn validate(&mut self, path: &Path, strategy: &Strategy) -> ValidateResult {
+  pub async fn validate(&self, path: &Path, strategy: &Strategy) -> ValidateResult {
     match strategy {
       Strategy::PackageVersion(version) => {
         if let Some(ref cur_version) = self.package_version_with_cache(path).await {
@@ -172,7 +172,7 @@ mod tests {
     };
     assert!(time1 < time2);
 
-    let mut helper = StrategyHelper::new(fs.clone());
+    let helper = StrategyHelper::new(fs.clone());
     // modified_time
     assert_eq!(
       helper.modified_time(Path::new("/file1")).await,
