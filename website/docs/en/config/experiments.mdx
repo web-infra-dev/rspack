@@ -72,6 +72,9 @@ module.exports = {
 
 ## experiments.futureDefaults
 
+- **Type:** `boolean`
+- **Default:** `false`
+
 Use defaults of the next major Rspack and show warnings in any problematic places.
 
 ```js title="rspack.config.js"
@@ -83,6 +86,9 @@ module.exports = {
 ```
 
 ## experiments.topLevelAwait
+
+- **Type:** `boolean`
+- **Default:** `true`
 
 Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-await), `Top-level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
 

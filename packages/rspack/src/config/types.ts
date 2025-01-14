@@ -2527,19 +2527,23 @@ export type Experiments = {
 	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
+	 * @default false
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
 	/**
 	 * Enable async WebAssembly.
 	 * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+	 * @default false
 	 */
 	asyncWebAssembly?: boolean;
 	/**
 	 * Enable output as ES module.
+	 * @default false
 	 */
 	outputModule?: boolean;
 	/**
 	 * Enable top-level await.
+	 * @default true
 	 */
 	topLevelAwait?: boolean;
 	/**
@@ -2566,6 +2570,7 @@ export type Experiments = {
 	incremental?: boolean | Incremental;
 	/**
 	 * Enable future default options.
+	 * @default false
 	 */
 	futureDefaults?: boolean;
 	/**
