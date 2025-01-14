@@ -372,7 +372,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		amd: config.amd ? JSON.stringify(config.amd) : undefined,
+		amd: config.amd !== false ? JSON.stringify(config.amd || {}) : undefined,
 		bail: config.bail
 	};
 };
