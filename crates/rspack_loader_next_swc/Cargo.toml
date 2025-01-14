@@ -45,5 +45,7 @@ preset_env_base         = "1.0.0"
 rustc-hash  = "1.1.0"
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 url                      = "2.5.4"
+modularize_imports = { version = "0.70.1" }
+
 [build-dependencies]
 cargo_toml = { version = "0.21.0" }
