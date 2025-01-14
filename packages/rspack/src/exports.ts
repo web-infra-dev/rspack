@@ -313,7 +313,7 @@ export const experiments: Experiments = {
 					await initOpenTelemetry();
 				} catch (error) {
 					console.error(
-						"Failed to import @rspack/tracing. Please install @rspack/tracing to enable OpenTelemetry tracing.",
+						"Failed to import `@rspack/tracing` package. Please install `@rspack/tracing` to enable OpenTelemetry tracing.",
 						error
 					);
 				}
