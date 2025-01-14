@@ -340,20 +340,29 @@ function getCurrentLoader(
 	return null;
 }
 
+async function tryTrace(context: JsLoaderContext) {
+	try {
+		const {
+			trace,
+			propagation,
+			context: tracingContext
+		} = await import("@rspack/tracing");
+		const tracer = trace.getTracer("rspack-loader-runner");
+		const activeContext = propagation.extract(
+			tracingContext.active(),
+			context.__internal__tracingCarrier
+		);
+		return { tracer, activeContext };
+	} catch (error) {
+		return { tracer: null, activeContext: null };
+	}
+}
+
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
-	const {
-		trace,
-		propagation,
-		context: tracingContext
-	} = await import("@rspack/tracing");
-	const tracer = trace.getTracer("rspack-loader-runner");
-	const activeContext = propagation.extract(
-		tracingContext.active(),
-		context.__internal__tracingCarrier
-	);
+	const { tracer, activeContext } = await tryTrace(context);
 
 	const loaderState = context.loaderState;
 
@@ -822,7 +831,7 @@ export async function runLoaders(
 					currentLoaderObject.pitchExecuted = true;
 					if (!fn) continue;
 
-					const span = tracer.startSpan(
+					const span = tracer?.startSpan(
 						"LoaderRunner:pitch",
 						{
 							attributes: {
@@ -837,7 +846,7 @@ export async function runLoaders(
 							loaderContext.previousRequest,
 							currentLoaderObject.data
 						])) || [];
-					span.end();
+					span?.end();
 
 					const hasArg = args.some(value => value !== undefined);
 
@@ -874,7 +883,7 @@ export async function runLoaders(
 					const args = [content, sourceMap, additionalData];
 					convertArgs(args, !!currentLoaderObject.raw);
 
-					const span = tracer.startSpan(
+					const span = tracer?.startSpan(
 						"LoaderRunner:normal",
 						{
 							attributes: {
@@ -885,7 +894,7 @@ export async function runLoaders(
 					);
 					[content, sourceMap, additionalData] =
 						(await runSyncOrAsync(fn, loaderContext, args)) || [];
-					span.end();
+					span?.end();
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);

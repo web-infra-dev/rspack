@@ -68,20 +68,24 @@
     "webpack-dev-server": "5.0.4",
     "webpack-sources": "3.2.3",
     "zod": "^3.23.8",
-    "zod-validation-error": "3.4.0"
+    "zod-validation-error": "3.4.0",
+    "@rspack/tracing": "workspace:*"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.8.4",
     "@rspack/binding": "workspace:*",
-    "@rspack/tracing": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
     "caniuse-lite": "^1.0.30001616"
   },
   "peerDependencies": {
-    "@swc/helpers": ">=0.5.1"
+    "@swc/helpers": ">=0.5.1",
+    "@rspack/tracing": "^1.x"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {
+      "optional": true
+    },
+    "@rspack/tracing": {
       "optional": true
     }
   }
