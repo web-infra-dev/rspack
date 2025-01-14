@@ -107,17 +107,24 @@ type LazyCompilationOptions =
   | {
       backend?: {
         /**
-         * A custom client.
+         * A custom client script path.
          */
         client?: string;
         /**
-         * Specify where to listen to from the server.
+         * Specifies where to listen to from the server.
          */
-        listen?: number | ListenOptions;
+        listen?: number | ListenOptions | ((server: Server) => void);
         /**
-         * Specify the protocol the client should use to connect to the server.
+         * Specifies the protocol the client should use to connect to the server.
          */
         protocol?: 'http' | 'https';
+        /**
+         * Specifies how to create the server handling the EventSource requests.
+         */
+        server?:
+          | ServerOptionsImport<typeof IncomingMessage>
+          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+          | (() => Server);
       };
       /**
        * Enable lazy compilation for entries.

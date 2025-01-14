@@ -15,7 +15,7 @@ import type { Compiler } from "../..";
 
 export interface LazyCompilationDefaultBackendOptions {
 	/**
-	 * A custom client.
+	 * A custom client script path.
 	 */
 	client?: string;
 
