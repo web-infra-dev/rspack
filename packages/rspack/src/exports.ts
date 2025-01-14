@@ -308,14 +308,25 @@ export const experiments: Experiments = {
 		async register(filter, layer, output) {
 			registerGlobalTrace(filter, layer, output);
 			if (layer === "otel") {
-				const { initOpenTelemetry } = await import("@rspack/tracing");
-				await initOpenTelemetry();
+				try {
+					const { initOpenTelemetry } = await import("@rspack/tracing");
+					await initOpenTelemetry();
+				} catch (error) {
+					console.error(
+						"Failed to import `@rspack/tracing` package. Please install `@rspack/tracing` to enable OpenTelemetry tracing.",
+						error
+					);
+				}
 			}
 		},
 		async cleanup() {
 			cleanupGlobalTrace();
-			const { shutdownOpenTelemetry } = await import("@rspack/tracing");
-			await shutdownOpenTelemetry();
+			try {
+				const { shutdownOpenTelemetry } = await import("@rspack/tracing");
+				await shutdownOpenTelemetry();
+			} catch (error) {
+				// ignore cleanup tracing error
+			}
 		}
 	},
 	RemoveDuplicateModulesPlugin

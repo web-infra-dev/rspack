@@ -72,6 +72,9 @@ module.exports = {
 
 ## experiments.futureDefaults
 
+- **类型：** `boolean`
+- **默认值：** `false`
+
 使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
 
 ```js title="rspack.config.js"
@@ -83,6 +86,9 @@ module.exports = {
 ```
 
 ## experiments.topLevelAwait
+
+- **类型：** `boolean`
+- **默认值：** `true`
 
 开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
@@ -107,17 +113,24 @@ type LazyCompilationOptions =
   | {
       backend?: {
         /**
-         * A custom client.
+         * 自定义客户端脚本路径。
          */
         client?: string;
         /**
-         * Specify where to listen to from the server.
+         * 指定从服务器监听的端口或选项。
          */
-        listen?: number | ListenOptions;
+        listen?: number | ListenOptions | ((server: Server) => void);
         /**
-         * Specify the protocol the client should use to connect to the server.
+         * 指定客户端使用的协议。
          */
         protocol?: 'http' | 'https';
+        /**
+         * 指定如何创建处理 EventSource 请求的服务器。
+         */
+        server?:
+          | ServerOptionsImport<typeof IncomingMessage>
+          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+          | (() => Server);
       };
       /**
        * 为 entries 启用 lazy compilation
