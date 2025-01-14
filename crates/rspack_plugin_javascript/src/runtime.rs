@@ -1,9 +1,11 @@
 use rayon::prelude::*;
 use rspack_core::chunk_graph_chunk::ChunkId;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
+};
 use rspack_core::{
-  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
-  RuntimeGlobals, SourceType,
+  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationPublicPathAutoReplace, Compilation, PublicPath, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
@@ -11,18 +13,28 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JsPlugin, RenderSource};
 
+pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
+  output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter_map(|module| {
-      render_module(compilation, chunk_ukey, module, all_strict, true)
-        .transpose()
-        .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+      render_module(
+        compilation,
+        chunk_ukey,
+        module,
+        all_strict,
+        true,
+        output_path,
+      )
+      .transpose()
+      .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
     })
     .collect::<Result<Vec<_>>>()?;
 
@@ -67,6 +79,7 @@ pub fn render_module(
   module: &BoxModule,
   all_strict: bool,
   factory: bool,
+  output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let code_gen_result = compilation
@@ -75,15 +88,47 @@ pub fn render_module(
   let Some(origin_source) = code_gen_result.get(&SourceType::JavaScript) else {
     return Ok(None);
   };
+
   let hooks = JsPlugin::get_compilation_hooks(compilation);
   let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
     Some(fragments) => fragments.clone(),
     None => ChunkInitFragments::default(),
   };
 
-  let mut render_source = RenderSource {
-    source: origin_source.clone(),
+  let mut render_source = if code_gen_result
+    .data
+    .get::<CodeGenerationPublicPathAutoReplace>()
+    .is_some()
+  {
+    let content = origin_source.source();
+    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
+    let auto_public_path_matches: Vec<_> = content
+      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
+      .map(|(index, _)| (index, index + len))
+      .collect();
+    if !auto_public_path_matches.is_empty() {
+      let mut replace = ReplaceSource::new(origin_source.clone());
+      for (start, end) in auto_public_path_matches {
+        let mut relative = PublicPath::render_auto_public_path(compilation, output_path);
+        if relative.is_empty() {
+          relative = String::from("./");
+        }
+        replace.replace(start as u32, end as u32, &relative, None);
+      }
+      RenderSource {
+        source: replace.boxed(),
+      }
+    } else {
+      RenderSource {
+        source: origin_source.clone(),
+      }
+    }
+  } else {
+    RenderSource {
+      source: origin_source.clone(),
+    }
   };
+
   hooks.render_module_content.call(
     compilation,
     module,

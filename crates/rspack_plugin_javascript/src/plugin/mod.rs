@@ -514,6 +514,7 @@ impl JsPlugin {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
+    output_path: &str,
   ) -> Result<BoxSource> {
     let hooks = Self::get_compilation_hooks(compilation);
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
@@ -583,8 +584,13 @@ impl JsPlugin {
       all_modules.clone()
     };
 
-    let chunk_modules_result =
-      render_chunk_modules(compilation, chunk_ukey, &chunk_modules, all_strict)?;
+    let chunk_modules_result = render_chunk_modules(
+      compilation,
+      chunk_ukey,
+      &chunk_modules,
+      all_strict,
+      output_path,
+    )?;
     let has_chunk_modules_result = chunk_modules_result.is_some();
     if has_chunk_modules_result
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
@@ -645,6 +651,7 @@ impl JsPlugin {
           chunk_ukey,
           all_strict,
           has_chunk_modules_result,
+          output_path,
         )?
       } else {
         None
@@ -655,7 +662,7 @@ impl JsPlugin {
           .module_by_identifier(m_identifier)
           .expect("should have module");
         let Some((mut rendered_module, fragments, additional_fragments)) =
-          render_module(compilation, chunk_ukey, m, all_strict, false)?
+          render_module(compilation, chunk_ukey, m, all_strict, false, output_path)?
         else {
           continue;
         };
@@ -793,6 +800,7 @@ impl JsPlugin {
     })
   }
 
+  #[allow(clippy::too_many_arguments)]
   pub fn get_renamed_inline_module(
     &self,
     all_modules: &[&BoxModule],
@@ -801,6 +809,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     all_strict: bool,
     has_chunk_modules_result: bool,
+    output_path: &str,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
     let inner_strict = !all_strict
       && all_modules.iter().all(|m| {
@@ -841,7 +850,7 @@ impl JsPlugin {
 
           if let Ok(acc) = acc.as_mut() {
             if let Some((rendered_module, ..)) =
-              render_module(compilation, chunk_ukey, m, all_strict, false)?
+              render_module(compilation, chunk_ukey, m, all_strict, false, output_path)?
             {
               let code = rendered_module;
               let mut use_cache = false;
@@ -1111,6 +1120,7 @@ impl JsPlugin {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
+    output_path: &str,
   ) -> Result<BoxSource> {
     let hooks = Self::get_compilation_hooks(compilation);
     let module_graph = &compilation.get_module_graph();
@@ -1139,9 +1149,14 @@ impl JsPlugin {
         all_strict = true;
       }
     }
-    let (chunk_modules_source, chunk_init_fragments) =
-      render_chunk_modules(compilation, chunk_ukey, &chunk_modules, all_strict)?
-        .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
+    let (chunk_modules_source, chunk_init_fragments) = render_chunk_modules(
+      compilation,
+      chunk_ukey,
+      &chunk_modules,
+      all_strict,
+      output_path,
+    )?
+    .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
     let mut render_source = RenderSource {
       source: chunk_modules_source,
     };
