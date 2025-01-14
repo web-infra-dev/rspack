@@ -1,7 +1,7 @@
 import type { JsExportsInfo } from "@rspack/binding";
 import type { RuntimeSpec } from "./util/runtime";
 
-import { toJsRuntimeSpec } from "./util/runtime"
+import { toJsRuntimeSpec } from "./util/runtime";
 
 /**
  * Unused: 0

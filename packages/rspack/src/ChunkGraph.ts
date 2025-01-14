@@ -2,11 +2,11 @@ import type { JsChunkGraph } from "@rspack/binding";
 import type { RuntimeSpec } from "./util/runtime";
 
 import { Chunk } from "./Chunk";
-import { Module } from "./Module";
-import { DependenciesBlock } from "./DependenciesBlock";
 import { ChunkGroup } from "./ChunkGroup";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { Module } from "./Module";
+import { toJsRuntimeSpec } from "./util/runtime";
 import { VolatileMap } from "./util/volatile";
-import { toJsRuntimeSpec } from "./util/runtime"
 
 export class ChunkGraph {
 	#inner: JsChunkGraph;
@@ -93,7 +93,10 @@ export class ChunkGraph {
 	getModuleHash(module: Module, runtime: RuntimeSpec): string | null {
 		let hash = this.#moduleHashMap.get(module);
 		if (hash === undefined) {
-			hash = this.#inner.getModuleHash(Module.__to_binding(module), toJsRuntimeSpec(runtime));
+			hash = this.#inner.getModuleHash(
+				Module.__to_binding(module),
+				toJsRuntimeSpec(runtime)
+			);
 			this.#moduleHashMap.set(module, hash);
 		}
 		return hash;
