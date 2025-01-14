@@ -1654,7 +1654,7 @@ class Compiler {
 				}
 			),
 			registerRsdoctorPluginModuleSourcesTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.RsdoctorPluginChunkGraph,
+				binding.RegisterJsTapKind.RsdoctorPluginModuleSources,
 				function () {
 					return RsdoctorRspackPlugin.getCompilationHooks(
 						that.deref()!.#compilation!

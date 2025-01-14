@@ -269,6 +269,9 @@ export type {
 	RsdoctorSourceRange,
 	RsdoctorSourcePosition,
 	RsdoctorModuleGraphModule,
+	RsdoctorAssetPatch,
+	RsdoctorSourcePatch,
+	RsdoctorChunkModules
 } from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";

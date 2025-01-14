@@ -203,7 +203,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 5. collect chunk modules
-  let chunk_modules = collect_chunk_modules(&chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph);
+  let chunk_modules =
+    collect_chunk_modules(&chunk_by_ukey, &MODULE_UKEY_MAP, chunk_graph, &module_graph);
 
   tokio::spawn(async move {
     match hooks

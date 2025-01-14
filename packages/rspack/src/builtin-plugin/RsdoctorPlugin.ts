@@ -26,6 +26,7 @@ export type {
   JsRsdoctorAssetPatch as RsdoctorAssetPatch,
   JsRsdoctorChunkAssets as RsdoctorChunkAssets,
   JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets,
+  JsRsdoctorChunkModules as RsdoctorChunkModules
 } from "@rspack/binding";
 
 export type RsdoctorRspackPluginOptions = {};

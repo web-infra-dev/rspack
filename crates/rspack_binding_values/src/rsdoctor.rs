@@ -308,6 +308,7 @@ impl From<RsdoctorChunkModules> for JsRsdoctorChunkModules {
 pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
+  pub chunk_modules: Vec<JsRsdoctorChunkModules>,
 }
 
 impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
@@ -315,6 +316,7 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
     JsRsdoctorModuleGraph {
       modules: value.modules.into_iter().map(|m| m.into()).collect(),
       dependencies: value.dependencies.into_iter().map(|d| d.into()).collect(),
+      chunk_modules: value.chunk_modules.into_iter().map(|c| c.into()).collect(),
     }
   }
 }

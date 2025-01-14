@@ -3,7 +3,7 @@ use std::sync::{atomic::AtomicI32, Arc};
 use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::Identifier;
-use rspack_core::{Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, CompilationAsset};
+use rspack_core::{Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, CompilationAsset, ModuleGraph};
 use rspack_core::{ChunkByUkey, ChunkGroupUkey};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -179,6 +179,7 @@ pub fn collect_chunk_modules(
   chunk_by_ukey: &ChunkByUkey,
   module_ukeys: &FxDashMap<Identifier, RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
+  module_graph: &ModuleGraph,
 ) -> Vec<RsdoctorChunkModules> {
   chunk_by_ukey
     .keys()
@@ -187,7 +188,25 @@ pub fn collect_chunk_modules(
       let modules = chunk_graph
         .get_chunk_modules_identifier(chunk_id)
         .iter()
-        .filter_map(|mid| module_ukeys.get(mid).map(|ukey| *ukey))
+        .map(|mid| {
+          let mut res = vec![];
+          if let Some(ukey) = module_ukeys.get(mid) {
+            res.push(*ukey);
+          }
+          if let Some(concatenated_module) = module_graph
+            .module_by_identifier(mid)
+            .and_then(|m| m.as_concatenated_module())
+          {
+            res.extend(
+              concatenated_module
+                .get_modules()
+                .iter()
+                .filter_map(|m| module_ukeys.get(&m.id).map(|u| *u)),
+            );
+          }
+          res
+        })
+        .flatten()
         .collect::<Vec<_>>();
       RsdoctorChunkModules {
         chunk: chunk_id.as_u32() as RsdoctorChunkUkey,

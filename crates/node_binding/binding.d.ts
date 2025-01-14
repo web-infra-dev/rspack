@@ -895,6 +895,7 @@ export interface JsRsdoctorModule {
 export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
+  chunkModules: Array<JsRsdoctorChunkModules>
 }
 
 export interface JsRsdoctorModuleGraphModule {
