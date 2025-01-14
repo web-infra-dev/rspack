@@ -2,23 +2,28 @@
 
 use std::{borrow::Cow, hash::Hasher, path::PathBuf};
 
+use asset_exports_dependency::AssetExportsDependency;
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   rspack_sources::{BoxSource, RawBufferSource, RawStringSource, SourceExt},
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetInfo, AssetParserDataUrl,
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey, CodeGenerationDataAssetInfo,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CompilationRenderManifest,
-  CompilerOptions, Filename, GenerateContext, GeneratorOptions, LocalFilenameFn, Module,
-  ModuleGraph, NormalModule, ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType,
-  NAMESPACE_OBJECT_EXPORT,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorImportMode, AssetInfo,
+  AssetParserDataUrl, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkUkey,
+  CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
+  CodeGenerationPublicPathAutoReplace, Compilation, CompilationRenderManifest, CompilerOptions,
+  Filename, GenerateContext, GeneratorOptions, LocalFilenameFn, Module, ModuleGraph, NormalModule,
+  ParseContext, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, NAMESPACE_OBJECT_EXPORT,
 };
 use rspack_error::{error, Diagnostic, IntoTWithDiagnosticArray, Result};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{ext::DynHash, identifier::make_paths_relative};
+
+mod asset_exports_dependency;
+
+pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -299,6 +304,23 @@ impl AssetParserAndGenerator {
     let public_path = PublicPath::ensure_ends_with_slash(public_path);
     Ok((public_path, info))
   }
+
+  fn get_import_mode(
+    &self,
+    module_generator_options: Option<&GeneratorOptions>,
+  ) -> Result<AssetGeneratorImportMode> {
+    let import_mode = module_generator_options
+      .and_then(|x| x.get_asset())
+      .and_then(|x| x.import_mode)
+      .or_else(|| {
+        module_generator_options
+          .and_then(|x| x.get_asset_resource())
+          .and_then(|x| x.import_mode)
+      })
+      .unwrap_or_default();
+
+    Ok(import_mode)
+  }
 }
 
 // Webpack's default parser.dataUrlCondition.maxSize
@@ -401,8 +423,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
-        // Assets do not have dependencies
-        dependencies: vec![],
+        // different from webpack
+        // Rspack: when set asset as entry, output a js chunk with default export
+        // webpack: Assets do not have dependencies
+        dependencies: vec![Box::new(AssetExportsDependency::new())],
         blocks: vec![],
         source,
         presentational_dependencies: vec![],
@@ -429,12 +453,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .expect("module should be a NormalModule in AssetParserAndGenerator");
     let module_generator_options = normal_module.get_generator_options();
 
+    let import_mode = self.get_import_mode(module_generator_options)?;
+
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let exported_content = if parsed_asset_config.is_inline() {
           let resource_data: &ResourceData = normal_module.resource_resolved_data();
           let data_url = module_generator_options.and_then(|x| x.asset_data_url());
-
           let encoded_source: String;
 
           if let Some(custom_data_url) =
@@ -474,7 +499,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             true,
           )?;
 
-          let asset_path = if let Some(public_path) =
+          let asset_path = if import_mode.is_preserve() {
+            generate_context
+              .data
+              .insert(CodeGenerationPublicPathAutoReplace(true));
+            serde_json::to_string(&format!(
+              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{original_filename}"
+            ))
+            .map_err(|e| error!(e.to_string()))?
+          } else if let Some(public_path) =
             module_generator_options.and_then(|x| x.asset_public_path())
           {
             let public_path = match public_path {
@@ -503,6 +536,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               original_filename
             )
           };
+
           asset_info.set_source_filename(source_file_name);
 
           generate_context
@@ -524,6 +558,39 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else {
           unreachable!()
         };
+
+        if import_mode.is_preserve() && parsed_asset_config.is_resource() {
+          let is_module = compilation.options.output.module;
+          if let Some(ref mut scope) = generate_context.concatenation_scope {
+            scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
+            if is_module {
+              return Ok(
+                RawStringSource::from(format!(
+                  r#"import {NAMESPACE_OBJECT_EXPORT} from {exported_content};"#
+                ))
+                .boxed(),
+              );
+            } else {
+              let supports_const = compilation.options.output.environment.supports_const();
+              let declaration_kind = if supports_const { "const" } else { "var" };
+              return Ok(
+                RawStringSource::from(format!(
+                  r#"{declaration_kind} {NAMESPACE_OBJECT_EXPORT} = require({exported_content});"#
+                ))
+                .boxed(),
+              );
+            }
+          } else {
+            generate_context
+              .runtime_requirements
+              .insert(RuntimeGlobals::MODULE);
+            return Ok(
+              RawStringSource::from(format!(r#"module.exports = require({exported_content});"#))
+                .boxed(),
+            );
+          }
+        };
+
         if let Some(ref mut scope) = generate_context.concatenation_scope {
           scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
           let supports_const = compilation.options.output.environment.supports_const();

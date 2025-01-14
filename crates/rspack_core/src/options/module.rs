@@ -473,12 +473,52 @@ impl From<AssetGeneratorOptions> for AssetInlineGeneratorOptions {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+struct AssetGeneratorImportModeFlags(u8);
+bitflags! {
+  impl AssetGeneratorImportModeFlags: u8 {
+    const URL = 1 << 0;
+    const PRESERVE = 1 << 1;
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub struct AssetGeneratorImportMode(AssetGeneratorImportModeFlags);
+
+impl AssetGeneratorImportMode {
+  pub fn is_url(&self) -> bool {
+    self.0.contains(AssetGeneratorImportModeFlags::URL)
+  }
+  pub fn is_preserve(&self) -> bool {
+    self.0.contains(AssetGeneratorImportModeFlags::PRESERVE)
+  }
+}
+
+impl From<String> for AssetGeneratorImportMode {
+  fn from(s: String) -> Self {
+    match s.as_str() {
+      "url" => Self(AssetGeneratorImportModeFlags::URL),
+      "preserve" => Self(AssetGeneratorImportModeFlags::PRESERVE),
+      _ => unreachable!("AssetGeneratorImportMode error"),
+    }
+  }
+}
+
+impl Default for AssetGeneratorImportMode {
+  fn default() -> Self {
+    Self(AssetGeneratorImportModeFlags::URL)
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
+  pub import_mode: Option<AssetGeneratorImportMode>,
 }
 
 impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -488,6 +528,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
       filename: value.filename,
       output_path: value.output_path,
       public_path: value.public_path,
+      import_mode: value.import_mode,
     }
   }
 }
@@ -500,6 +541,7 @@ pub struct AssetGeneratorOptions {
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub import_mode: Option<AssetGeneratorImportMode>,
 }
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {

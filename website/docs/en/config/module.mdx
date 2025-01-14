@@ -486,6 +486,44 @@ When set to 'base64', module source will be encoded using Base64 algorithm. Sett
 
 A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
 
+#### module.generator.asset.importMode
+
+- **Type:** `'url' | 'preserve'`
+- **Default:** `'url'`
+
+If `"url"`, a URL pointing to the asset will be generated based on [publicPath](#modulegeneratorassetpublicpath).
+If `"preserve"`, preserve import/require statement from generated asset.
+
+Only for modules with module type `'asset'` or `'asset/resource'`.
+
+- `'asset'`:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
 #### module.generator.asset.filename
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
@@ -590,6 +628,10 @@ Same as [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdata
 ### module.generator["asset/resource"]
 
 Generator options for `asset/resource` modules.
+
+#### module.generator["asset/resource"].importMode
+
+Same as [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode).
 
 #### module.generator["asset/resource"].filename
 

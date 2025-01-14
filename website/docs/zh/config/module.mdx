@@ -486,6 +486,44 @@ module.exports = {
 
 dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
 
+#### module.generator.asset.importMode
+
+- **类型：** `'url' | 'preserve'`
+- **默认值：** `'url'`
+
+如果为 `"url"`，将基于 [publicPath](#modulegeneratorassetpublicpath) 生成指向 asset 的 URL。
+如果为 `"preserve"`，将保留指向 asset 的 import 或 require 语句。
+
+仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+- `'asset'`:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
 #### module.generator.asset.filename
 
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
@@ -590,6 +628,10 @@ module.exports = {
 ### module.generator["asset/resource"]
 
 `asset/resource` 模块的生成器选项。
+
+#### module.generator["asset/resource"].importMode
+
+和 [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode) 一样。
 
 #### module.generator["asset/resource"].filename
 
