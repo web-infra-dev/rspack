@@ -1,6 +1,7 @@
 // use rspack_core::Bundle;
 // use rspack_core::ChunkGraph;
 
+use incremental::ChunkReCreation;
 use tracing::instrument;
 
 use crate::{incremental::IncrementalPasses, Compilation};
@@ -23,6 +24,16 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
   if !enable_incremental || splitter.chunk_group_infos.is_empty() {
     let inputs = splitter.prepare_input_entrypoints_and_modules(compilation)?;
     splitter.prepare_entries(inputs, compilation)?;
+  } else if compilation.entries.len() > compilation.entrypoints.len() {
+    let more_entries = compilation
+      .entries
+      .keys()
+      .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
+      .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
+      .collect::<Vec<_>>();
+    for entry in more_entries {
+      entry.rebuild(&mut splitter, compilation)?;
+    }
   }
 
   splitter.split(compilation)?;

@@ -96,6 +96,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         })
         .clone();
       res.push(Box::new(FactorizeTask {
+        compiler_id: context.compiler_id,
         compilation_id: context.compilation_id,
         module_factory,
         original_module_identifier: Some(module.identifier()),

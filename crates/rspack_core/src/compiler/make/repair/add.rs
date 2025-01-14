@@ -73,6 +73,7 @@ impl Task<MakeTaskContext> for AddTask {
 
     artifact.built_modules.insert(module_identifier);
     Ok(vec![Box::new(BuildTask {
+      compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
       module: self.module,
       current_profile: self.current_profile,

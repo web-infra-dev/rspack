@@ -24,7 +24,7 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency } from "./Dependency";
+import { bindingDependencyFactory, Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
@@ -58,8 +58,8 @@ import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
-import { memoizeValue } from "./util/memoize";
 import { JsSource } from "./util/source";
+import { ModuleDependency } from "./ModuleDependency";
 export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
@@ -399,27 +399,24 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	 * Get a map of all assets.
 	 */
 	get assets(): Record<string, Source> {
-		return memoizeValue(() => this.#createCachedAssets());
+		return this.#createCachedAssets();
 	}
 
 	/**
 	 * Get a map of all entrypoints.
 	 */
 	get entrypoints(): ReadonlyMap<string, Entrypoint> {
-		return memoizeValue(
-			() =>
-				new Map(
-					Object.entries(this.#inner.entrypoints).map(([n, e]) => [
-						n,
-						Entrypoint.__from_binding(e)
-					])
-				)
+		return new Map(
+			this.#inner.entrypoints.map(binding => {
+				const entrypoint = Entrypoint.__from_binding(binding);
+				return [entrypoint.name!, entrypoint];
+			})
 		);
 	}
 
 	get chunkGroups(): ReadonlyArray<ChunkGroup> {
-		return memoizeValue(() =>
-			this.#inner.chunkGroups.map(binding => ChunkGroup.__from_binding(binding))
+		return this.#inner.chunkGroups.map(binding =>
+			ChunkGroup.__from_binding(binding)
 		);
 	}
 
@@ -456,7 +453,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	get chunks(): ReadonlySet<Chunk> {
-		return memoizeValue(() => new Set(this.__internal__getChunks()));
+		return new Set(this.__internal__getChunks());
 	}
 
 	/**
@@ -473,7 +470,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const binding = this.#inner.getNamedChunk(property);
-					return Chunk.__from_binding(binding);
+					return binding ? Chunk.__from_binding(binding) : undefined;
 				}
 			}
 		});
@@ -1133,7 +1130,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err?: null | WebpackError, module?: Module) => void
+		callback: (err: WebpackError | null, module: Module | null) => void
 	) {
 		this.#addIncludeDispatcher.call(context, dependency, options, callback);
 	}
@@ -1256,9 +1253,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
-		[];
-	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
+	#args: [string, ModuleDependency, binding.JsEntryOptions | undefined][] = [];
+	#cbs: ((err: WebpackError | null, module: Module | null) => void)[] = [];
 
 	#execute = () => {
 		if (this.#running) {
@@ -1277,16 +1273,20 @@ class AddIncludeDispatcher {
 			if (wholeErr) {
 				const webpackError = new WebpackError(wholeErr.message);
 				for (const cb of cbs) {
-					cb(webpackError);
+					cb(webpackError, null);
 				}
 				return;
 			}
 			for (let i = 0; i < results.length; i++) {
-				const [errMsg, moduleBinding] = results[i];
+				const [errMsg, dependencyBinding, moduleBinding] = results[i];
 				const cb = cbs[i];
+				const [_, dependency] = args[i];
+				if (dependencyBinding) {
+					bindingDependencyFactory.setBinding(dependency, dependencyBinding);
+				}
 				cb(
 					errMsg ? new WebpackError(errMsg) : null,
-					Module.__from_binding(moduleBinding)
+					moduleBinding ? Module.__from_binding(moduleBinding) : null
 				);
 			}
 		});
@@ -1301,7 +1301,7 @@ class AddIncludeDispatcher {
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err?: null | WebpackError, module?: Module) => void
+		callback: (err: WebpackError | null, module: Module | null) => void
 	) {
 		if (this.#args.length === 0) {
 			queueMicrotask(this.#execute);
@@ -1313,8 +1313,7 @@ class AddIncludeDispatcher {
 }
 
 export class EntryData {
-	dependencies: Dependency[];
-	includeDependencies: Dependency[];
+	#binding: binding.JsEntryData;
 	options: binding.JsEntryOptions;
 
 	static __from_binding(binding: binding.JsEntryData): EntryData {
@@ -1322,11 +1321,57 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
-		this.includeDependencies = binding.includeDependencies.map(
-			Dependency.__from_binding
-		);
+		this.#binding = binding;
 		this.options = binding.options;
+	}
+
+	get dependencies(): Dependency[] {
+		const array = this.#binding.dependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
+		);
+		return new Proxy(array, {
+			deleteProperty: (target, propertyKey) => {
+				Reflect.deleteProperty(target, propertyKey);
+				this.dependencies = array;
+				return true;
+			},
+			set: (target, propertyKey, value) => {
+				Reflect.set(target, propertyKey, value);
+				this.dependencies = array;
+				return true;
+			}
+		});
+	}
+
+	set dependencies(dependencies: Dependency[]) {
+		this.#binding.dependencies = dependencies.map(
+			dependency => bindingDependencyFactory.getBinding(dependency)!
+		);
+	}
+
+	get includeDependencies(): Dependency[] {
+		const array = this.#binding.includeDependencies.map(d =>
+			bindingDependencyFactory.create(Dependency, d)
+		);
+		const proxy = new Proxy(array, {
+			deleteProperty: (target, propertyKey) => {
+				Reflect.deleteProperty(target, propertyKey);
+				this.includeDependencies = array;
+				return true;
+			},
+			set: (target, propertyKey, value) => {
+				Reflect.set(target, propertyKey, value);
+				this.includeDependencies = array;
+				return true;
+			}
+		});
+		return proxy;
+	}
+
+	set includeDependencies(dependencies: Dependency[]) {
+		this.#binding.includeDependencies = dependencies.map(
+			dependency => bindingDependencyFactory.getBinding(dependency)!
+		);
 	}
 }
 
@@ -1349,8 +1394,7 @@ export class Entries implements Map<string, EntryData> {
 		) => void,
 		thisArg?: any
 	): void {
-		for (const [key, binding] of this) {
-			const value = EntryData.__from_binding(binding);
+		for (const [key, value] of this) {
 			callback.call(thisArg, value, key, this);
 		}
 	}

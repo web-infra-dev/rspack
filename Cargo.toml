@@ -50,6 +50,7 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
+lazy_static        = "1.5.0"
 lightningcss       = { version = "1.0.0-alpha.61" }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.43" }
@@ -109,12 +110,12 @@ rspack_dojang = { version = "0.1.9" }
 
 
 # all rspack workspace dependencies
+next-custom-transforms                 = { path = "crates/next-custom-transforms" }
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
 rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
-rspack_binding_values                  = { version = "0.2.0", path = "crates/rspack_binding_values" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
 rspack_cacheable                       = { version = "0.2.0", path = "crates/rspack_cacheable" }
 rspack_collection                      = { version = "0.2.0", path = "crates/rspack_collection" }
@@ -131,6 +132,8 @@ rspack_identifier                      = { version = "0.2.0", path = "crates/rsp
 rspack_ids                             = { version = "0.2.0", path = "crates/rspack_ids" }
 rspack_loader                          = { version = "0.2.0", path = "crates/rspack_loader" }
 rspack_loader_lightningcss             = { version = "0.2.0", path = "crates/rspack_loader_lightningcss" }
+rspack_loader_next_app                 = { version = "0.2.0", path = "crates/rspack_loader_next_app" }
+rspack_loader_next_swc                 = { version = "0.2.0", path = "crates/rspack_loader_next_swc" }
 rspack_loader_preact_refresh           = { version = "0.2.0", path = "crates/rspack_loader_preact_refresh" }
 rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rspack_loader_react_refresh" }
 rspack_loader_runner                   = { version = "0.2.0", path = "crates/rspack_loader_runner" }
@@ -211,9 +214,14 @@ inherits = "release"
 lto = "fat"
 
 [profile.release-debug]
-debug    = true
+debug    = 'line-tables-only'
 inherits = "release"
 strip    = false
+
+[profile.release-debug.package.'*']
+debug = false
+strip = true
+
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]

@@ -10,7 +10,7 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  resolve, BoxDependency, CompilationId, ContextElementDependency, ContextModule,
+  resolve, BoxDependency, CompilationId, CompilerId, ContextElementDependency, ContextModule,
   ContextModuleOptions, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
   ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
@@ -49,6 +49,7 @@ pub enum AfterResolveResult {
 
 #[derive(Debug, Clone)]
 pub struct AfterResolveData {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub resource: Utf8PathBuf,
   pub context: String,
@@ -341,6 +342,7 @@ impl ContextModuleFactory {
   ) -> Result<Option<ModuleFactoryResult>> {
     let context_options = &context_module_options.context_options;
     let after_resolve_data = AfterResolveData {
+      compiler_id: data.compiler_id,
       compilation_id: data.compilation_id,
       resource: context_module_options.resource.clone(),
       context: context_options.context.clone(),

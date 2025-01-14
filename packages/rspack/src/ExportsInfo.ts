@@ -1,6 +1,7 @@
 import type { JsExportsInfo } from "@rspack/binding";
+import type { RuntimeSpec } from "./util/runtime";
 
-type RuntimeSpec = string | string[] | undefined;
+import { toJsRuntimeSpec } from "./util/runtime";
 
 /**
  * Unused: 0
@@ -23,18 +24,18 @@ export class ExportsInfo {
 	}
 
 	isUsed(runtime: RuntimeSpec): boolean {
-		return this.#inner.isUsed(runtime);
+		return this.#inner.isUsed(toJsRuntimeSpec(runtime));
 	}
 
 	isModuleUsed(runtime: RuntimeSpec): boolean {
-		return this.#inner.isModuleUsed(runtime);
+		return this.#inner.isModuleUsed(toJsRuntimeSpec(runtime));
 	}
 
 	setUsedInUnknownWay(runtime: RuntimeSpec): boolean {
-		return this.#inner.setUsedInUnknownWay(runtime);
+		return this.#inner.setUsedInUnknownWay(toJsRuntimeSpec(runtime));
 	}
 
 	getUsed(name: string | string[], runtime: RuntimeSpec): UsageStateType {
-		return this.#inner.getUsed(name, runtime);
+		return this.#inner.getUsed(name, toJsRuntimeSpec(runtime));
 	}
 }

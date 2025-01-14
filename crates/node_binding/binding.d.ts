@@ -19,13 +19,6 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
-  get options(): EntryOptionsDto
-}
-export type EntryDataDTO = EntryDataDto
-
 export declare class EntryOptionsDto {
   get name(): string | undefined
   set name(name: string | undefined)
@@ -76,6 +69,8 @@ export declare class JsChunkGraph {
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
   getModuleId(jsModule: JsModule): string | null
+  getModuleHash(module: JsModule, runtime: string | string[] | undefined): string | null
+  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -83,6 +78,7 @@ export declare class JsChunkGroup {
   get index(): number | undefined
   get name(): string | undefined
   get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): JsChunkGroup[]
   isInitial(): boolean
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
@@ -101,7 +97,7 @@ export declare class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk
+  getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): JsChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
@@ -112,7 +108,7 @@ export declare class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
-  get entrypoints(): Record<string, JsChunkGroup>
+  get entrypoints(): JsChunkGroup[]
   get chunkGroups(): JsChunkGroup[]
   get hash(): string | null
   dependencies(): JsDependencies
@@ -142,7 +138,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, RawDependency, RawEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void): void
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -196,17 +192,26 @@ export declare class JsDependency {
   get request(): string | undefined
   get critical(): boolean
   set critical(val: boolean)
+  get ids(): Array<string> | null
 }
 
 export declare class JsEntries {
   clear(): void
   get size(): number
   has(key: string): boolean
-  set(key: string, value: JsEntryData | EntryDataDto): void
+  set(key: string, value: RawEntryData): void
   delete(key: string): boolean
-  get(key: string): EntryDataDto | undefined
+  get(key: string): JsEntryData | undefined
   keys(): Array<string>
-  values(): Array<EntryDataDto>
+  values(): Array<JsEntryData>
+}
+
+export declare class JsEntryData {
+  get dependencies(): JsDependency[]
+  set dependencies(dependencies: Array<JsDependency>)
+  get includeDependencies(): JsDependency[]
+  set includeDependencies(dependencies: Array<JsDependency>)
+  get options(): EntryOptionsDto
 }
 
 export declare class JsExportsInfo {
@@ -217,23 +222,28 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsModule {
-  get context(): string | undefined
+  get constructorName(): string
+  get context(): string | null
   get originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
+  get resource(): string | null
   get moduleIdentifier(): string
   get nameForCondition(): string | undefined
-  get request(): string | undefined
+  get request(): string | null
   get userRequest(): string | undefined
   set userRequest(val: string)
-  get rawRequest(): string | undefined
+  get rawRequest(): string | null
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
-  get layer(): string | undefined
+  get layer(): string | null
   get blocks(): JsDependenciesBlock[]
   get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  get resourceResolveData(): JsResourceData | null
+  get matchResource(): string | null
+  get loaders(): Array<string> | undefined
 }
 
 export declare class JsModuleGraph {
@@ -244,17 +254,23 @@ export declare class JsModuleGraph {
   getExportsInfo(module: JsModule): JsExportsInfo
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+  getParentModule(jsDependency: JsDependency): JsModule | null
+  getParentBlockIndex(jsDependency: JsDependency): number
+  isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
   get dependency(): JsDependency
   get module(): JsModule | null
+  get resolvedModule(): JsModule | null
+  get originModule(): JsModule | null
 }
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): string | false
-  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
+  withOptions(JsResolver): JsResolverWrapper
 }
 
 export declare class JsResolverFactory {
@@ -267,11 +283,6 @@ export declare class JsStats {
   hasWarnings(): boolean
   hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-}
-
-export declare class RawExternalItemFnCtx {
-  data(): RawExternalItemFnCtxData
-  getResolver(): JsResolver
 }
 
 export declare class Rspack {
@@ -404,6 +415,7 @@ export interface JsAfterResolveData {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -506,6 +518,7 @@ export interface JsBeforeResolveArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsBuildMeta {
@@ -615,12 +628,6 @@ export interface JsDiagnosticLocation {
   length: number
 }
 
-export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
-  options: JsEntryOptions
-}
-
 export interface JsEntryOptions {
   name?: string
   runtime?: false | string
@@ -658,10 +665,19 @@ export interface JsExecuteModuleResult {
   error?: string
 }
 
+export interface JsExternalItemFnCtx {
+  request: string
+  context: string
+  dependencyType: string
+  contextInfo: ContextInfo
+  resolver: JsResolverWrapper
+}
+
 export interface JsFactorizeArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsFactoryMeta {
@@ -687,6 +703,10 @@ export interface JsHtmlPluginTag {
   voidTag: boolean
   innerHTML?: string
   asset?: string
+}
+
+export interface JsLibIdentOptions {
+  context: string
 }
 
 export interface JsLibraryAuxiliaryComment {
@@ -720,15 +740,13 @@ export interface JsLibraryOptions {
 
 export interface JsLoaderContext {
   resourceData: Readonly<JsResourceData>
-  /** Will be deprecated. Use module.module_identifier instead */
-  _moduleIdentifier: Readonly<string>
   _module: JsModule
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
+  content: null | Buffer | string
   additionalData?: any
   __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
+  sourceMap?: JsSourceMap
   cacheable: boolean
   fileDependencies: Array<string>
   contextDependencies: Array<string>
@@ -794,6 +812,7 @@ export interface JsResolveArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsResolveForSchemeArgs {
@@ -855,6 +874,16 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsSourceMap {
+  version: number
+  file?: string
+  sources: Array<string>
+  sourcesContent?: Array<string>
+  names: Array<string>
+  mappings: string
+  sourceRoot?: string
 }
 
 export interface JsStatsAsset {
@@ -1365,6 +1394,12 @@ export interface RawDynamicEntryPluginOptions {
   entry: () => Promise<RawEntryDynamicResult[]>
 }
 
+export interface RawEntryData {
+  dependencies: Array<JsDependency>
+  includeDependencies: Array<JsDependency>
+  options: JsEntryOptions
+}
+
 export interface RawEntryDynamicResult {
   import: Array<string>
   options: JsEntryOptions
@@ -1407,13 +1442,6 @@ export interface RawExposeOptions {
   key: string
   name?: string
   import: Array<string>
-}
-
-export interface RawExternalItemFnCtxData {
-  request: string
-  context: string
-  dependencyType: string
-  contextInfo: ContextInfo
 }
 
 export interface RawExternalItemFnResult {
