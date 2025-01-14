@@ -135,7 +135,7 @@ mod tests {
     };
   }
 
-  #[tokio::test]
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
   async fn should_snapshot_work() {
     let fs = Arc::new(MemoryFileSystem::default());
     let storage = Arc::new(MemoryStorage::default());
