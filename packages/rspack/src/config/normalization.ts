@@ -12,6 +12,7 @@ import path from "node:path";
 import util from "node:util";
 import type { Compilation } from "../Compilation";
 import type {
+	Amd,
 	AssetModuleFilename,
 	Bail,
 	CacheOptions,
@@ -94,13 +95,13 @@ export const getNormalizedRspackOptions = (
 		ignoreWarnings:
 			config.ignoreWarnings !== undefined
 				? config.ignoreWarnings.map(ignore => {
-						if (typeof ignore === "function") {
-							return ignore;
-						}
-						return (warning: Error) => {
-							return ignore.test(warning.message);
-						};
-					})
+					if (typeof ignore === "function") {
+						return ignore;
+					}
+					return (warning: Error) => {
+						return ignore.test(warning.message);
+					};
+				})
 				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
@@ -111,14 +112,14 @@ export const getNormalizedRspackOptions = (
 				? { main: {} }
 				: typeof config.entry === "function"
 					? (
-							fn => () =>
-								Promise.resolve().then(fn).then(getNormalizedEntryStatic)
-						)(config.entry)
+						fn => () =>
+							Promise.resolve().then(fn).then(getNormalizedEntryStatic)
+					)(config.entry)
 					: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
 			if ("cssHeadDataCompression" in output) {
 				util.deprecate(
-					() => {},
+					() => { },
 					"cssHeadDataCompression is not used now, see https://github.com/web-infra-dev/rspack/pull/8534, this option could be removed in the future"
 				)();
 			}
@@ -127,14 +128,14 @@ export const getNormalizedRspackOptions = (
 			const libraryAsName = library;
 			const libraryBase =
 				typeof library === "object" &&
-				library &&
-				!Array.isArray(library) &&
-				"type" in library
+					library &&
+					!Array.isArray(library) &&
+					"type" in library
 					? library
 					: libraryAsName || output.libraryTarget
 						? ({
-								name: libraryAsName
-							} as LibraryOptions)
+							name: libraryAsName
+						} as LibraryOptions)
 						: undefined;
 			return {
 				path: output.path,
@@ -349,22 +350,22 @@ export const getNormalizedRspackOptions = (
 			incremental: optionalNestedConfig(experiments.incremental, options =>
 				options === true
 					? ({
-							make: true,
-							inferAsyncModules: true,
-							providedExports: true,
-							dependenciesDiagnostics: true,
-							sideEffects: true,
-							buildChunkGraph: true,
-							moduleIds: true,
-							chunkIds: true,
-							modulesHashes: true,
-							modulesCodegen: true,
-							modulesRuntimeRequirements: true,
-							chunksRuntimeRequirements: true,
-							chunksHashes: true,
-							chunksRender: true,
-							emitAssets: true
-						} satisfies Incremental)
+						make: true,
+						inferAsyncModules: true,
+						providedExports: true,
+						dependenciesDiagnostics: true,
+						sideEffects: true,
+						buildChunkGraph: true,
+						moduleIds: true,
+						chunkIds: true,
+						modulesHashes: true,
+						modulesCodegen: true,
+						modulesRuntimeRequirements: true,
+						chunksRuntimeRequirements: true,
+						chunksHashes: true,
+						chunksRender: true,
+						emitAssets: true
+					} satisfies Incremental)
 					: options
 			)
 		})),
@@ -372,7 +373,7 @@ export const getNormalizedRspackOptions = (
 		watchOptions: cloneObject(config.watchOptions),
 		devServer: config.devServer,
 		profile: config.profile,
-		amd: config.amd ? JSON.stringify(config.amd) : undefined,
+		amd: config.amd,
 		bail: config.bail
 	};
 };
@@ -475,14 +476,14 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-					(obj, key) => {
-						obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
-							value[key]
-						);
-						return obj;
-					},
-					{} as Record<string, R>
-				);
+				(obj, key) => {
+					obj[key] = (customKeys && key in customKeys ? customKeys[key] : fn)(
+						value[key]
+					);
+					return obj;
+				},
+				{} as Record<string, R>
+			);
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {
@@ -577,22 +578,22 @@ export interface ModuleOptionsNormalized {
 export type ExperimentCacheNormalized =
 	| boolean
 	| {
-			type: "memory";
-	  }
+		type: "memory";
+	}
 	| {
-			type: "persistent";
-			buildDependencies: string[];
-			version: string;
-			snapshot: {
-				immutablePaths: Array<string | RegExp>;
-				unmanagedPaths: Array<string | RegExp>;
-				managedPaths: Array<string | RegExp>;
-			};
-			storage: {
-				type: "filesystem";
-				directory: string;
-			};
-	  };
+		type: "persistent";
+		buildDependencies: string[];
+		version: string;
+		snapshot: {
+			immutablePaths: Array<string | RegExp>;
+			unmanagedPaths: Array<string | RegExp>;
+			managedPaths: Array<string | RegExp>;
+		};
+		storage: {
+			type: "filesystem";
+			directory: string;
+		};
+	};
 
 export interface ExperimentsNormalized {
 	cache?: ExperimentCacheNormalized;
@@ -615,8 +616,8 @@ export type IgnoreWarningsNormalized = ((
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: string | ((entrypoint: { name: string }) => string);
-	  };
+		name: string | ((entrypoint: { name: string }) => string);
+	};
 
 export interface RspackOptionsNormalized {
 	name?: Name;
@@ -648,6 +649,6 @@ export interface RspackOptionsNormalized {
 	ignoreWarnings?: IgnoreWarningsNormalized;
 	performance?: Performance;
 	profile?: Profile;
-	amd?: string;
+	amd?: Amd;
 	bail?: Bail;
 }
