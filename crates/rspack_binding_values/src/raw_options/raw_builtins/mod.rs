@@ -11,6 +11,7 @@ mod raw_lightning_css_minimizer;
 mod raw_limit_chunk_count;
 mod raw_mf;
 mod raw_progress;
+mod raw_rsc;
 mod raw_runtime_chunk;
 mod raw_size_limits;
 mod raw_swc_js_minimizer;
@@ -68,6 +69,9 @@ use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_rsc::{
+  RSCClientEntryRspackPlugin, RSCClientReferenceManifestRspackPlugin, RSCProxyRspackPlugin,
+};
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -92,6 +96,9 @@ pub use self::{
   raw_limit_chunk_count::RawLimitChunkCountPluginOptions,
   raw_mf::RawContainerPluginOptions,
   raw_progress::RawProgressPluginOptions,
+  raw_rsc::{
+    RawRSCClientEntryRspackPluginOptions, RawRSCClientReferenceManifestRspackPluginOptions,
+  },
   raw_swc_js_minimizer::RawSwcJsMinimizerRspackPluginOptions,
 };
 use self::{
@@ -192,11 +199,11 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
-
-  // rspack js adapter plugins
-  // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
+  RSCClientEntryRspackPlugin,
+  RSCClientReferenceManifestRspackPlugin,
+  RSCProxyRspackPlugin,
 }
 
 #[napi(object)]
@@ -557,6 +564,19 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::RSCClientEntryRspackPlugin => {
+        let plugin_options: RawRSCClientEntryRspackPluginOptions =
+          downcast_into::<RawRSCClientEntryRspackPluginOptions>(self.options)?;
+        plugins.push(RSCClientEntryRspackPlugin::new(plugin_options.into()).boxed())
+      }
+      BuiltinPluginName::RSCClientReferenceManifestRspackPlugin => {
+        let plugin_options: RawRSCClientReferenceManifestRspackPluginOptions =
+          downcast_into::<RawRSCClientReferenceManifestRspackPluginOptions>(self.options)?;
+        plugins.push(RSCClientReferenceManifestRspackPlugin::new(plugin_options.into()).boxed())
+      }
+      BuiltinPluginName::RSCProxyRspackPlugin => {
+        plugins.push(RSCProxyRspackPlugin::new(Default::default()).boxed())
       }
     }
     Ok(())

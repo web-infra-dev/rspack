@@ -2577,6 +2577,7 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	rsc?: boolean;
 };
 //#endregion
 

@@ -605,6 +605,7 @@ export interface ExperimentsNormalized {
 	incremental?: false | Incremental;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
+	rsc?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
