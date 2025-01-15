@@ -479,6 +479,7 @@ pub struct AssetResourceGeneratorOptions {
   pub filename: Option<Filename>,
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
+  pub experimental_lib_preserve_import: Option<bool>,
 }
 
 impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -488,6 +489,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
       filename: value.filename,
       output_path: value.output_path,
       public_path: value.public_path,
+      experimental_lib_preserve_import: value.experimental_lib_preserve_import,
     }
   }
 }
@@ -500,6 +502,7 @@ pub struct AssetGeneratorOptions {
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub experimental_lib_preserve_import: Option<bool>,
 }
 
 pub struct AssetGeneratorDataUrlFnCtx<'a> {

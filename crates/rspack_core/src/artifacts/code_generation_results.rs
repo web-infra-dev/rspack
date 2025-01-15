@@ -31,6 +31,10 @@ impl CodeGenerationDataUrl {
   }
 }
 
+// For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
+#[derive(Clone, Debug)]
+pub struct CodeGenerationPublicPathAutoReplace(pub bool);
+
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
