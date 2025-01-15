@@ -117,7 +117,6 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
 
   if builtin.starts_with(rspack_loader_next_app::NEXT_APP_LOADER_IDENTIFIER) {
     return Ok(Arc::new(rspack_loader_next_app::NextAppLoader::new(
-      rspack_loader_next_app::Options {},
       builtin.into(),
     )));
   }
