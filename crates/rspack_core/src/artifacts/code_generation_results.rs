@@ -31,7 +31,7 @@ impl CodeGenerationDataUrl {
   }
 }
 
-// For performance, mark the js modules contains AUTO_PUBLIC_PATH_PLACEHOLDER, and replace it
+// For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
 #[derive(Clone, Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
