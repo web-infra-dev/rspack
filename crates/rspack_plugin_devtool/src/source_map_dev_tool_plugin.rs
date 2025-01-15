@@ -19,10 +19,9 @@ use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::AssetConditions;
-use rspack_util::{
-  identifier::make_paths_absolute, infallible::ResultInfallibleExt, path::relative,
-};
+use rspack_util::{identifier::make_paths_absolute, infallible::ResultInfallibleExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use sugar_path::SugarPath;
 
 use crate::{
   mapped_assets_cache::MappedAssetsCache, module_filename_helpers::ModuleFilenameHelpers,
@@ -408,7 +407,8 @@ impl SourceMapDevToolPlugin {
             let chunk = file_to_chunk.get(&source_filename);
             let filename = match &self.file_context {
               Some(file_context) => Cow::Owned(
-                relative(Path::new(file_context), Path::new(&source_filename))
+                Path::new(&source_filename)
+                  .relative(Path::new(file_context))
                   .to_string_lossy()
                   .to_string(),
               ),
@@ -453,13 +453,13 @@ impl SourceMapDevToolPlugin {
                 source_map_path.push(Component::RootDir);
                 source_map_path.extend(Path::new(&source_map_filename).components());
 
-                relative(
-                  #[allow(clippy::unwrap_used)]
-                  file_path.parent().unwrap(),
-                  &source_map_path,
-                )
-                .to_string_lossy()
-                .to_string()
+                source_map_path
+                  .relative(
+                    #[allow(clippy::unwrap_used)]
+                    file_path.parent().unwrap(),
+                  )
+                  .to_string_lossy()
+                  .to_string()
               };
               let data = data.url(&source_map_url);
               let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
