@@ -2677,6 +2677,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazy-regex"
+version = "3.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60c7310b93682b36b98fa7ea4de998d3463ccbebd94d935d6b48ba5b6ffa7126"
+dependencies = [
+ "lazy-regex-proc_macros",
+ "once_cell",
+ "regex",
+]
+
+[[package]]
+name = "lazy-regex-proc_macros"
+version = "3.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ba01db5ef81e17eb10a5e0f2109d1b3a3e29bac3070fdbd7d156bf7dbd206a1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn 2.0.95",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4656,6 +4679,9 @@ name = "rspack_loader_next_app"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "base64-simd 0.8.0",
+ "lazy-regex",
+ "regex",
  "rspack_ast",
  "rspack_cacheable",
  "rspack_core",
@@ -4666,7 +4692,10 @@ dependencies = [
  "rspack_swc_plugin_import",
  "rspack_util",
  "serde",
+ "serde-querystring",
  "serde_json",
+ "sugar_path",
+ "tokio",
 ]
 
 [[package]]
@@ -5980,6 +6009,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02fc4265df13d6fa1d00ecff087228cc0a2b5f3c0e87e258d8b94a156e984c70"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-querystring"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce88f8e75d0920545b35b78775e0927137337401f65b01326ce299734885fd21"
+dependencies = [
+ "lexical",
+ "serde",
 ]
 
 [[package]]

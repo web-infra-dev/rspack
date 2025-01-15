@@ -8,6 +8,9 @@ version     = "0.2.0"
 
 [dependencies]
 async-trait              = { workspace = true }
+base64-simd              = { version = "0.8.0", features = ["alloc"] }
+lazy-regex               = "3.4.1"
+regex                    = { workspace = true }
 rspack_ast               = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
@@ -18,4 +21,7 @@ rspack_plugin_javascript = { workspace = true }
 rspack_swc_plugin_import = { workspace = true }
 rspack_util              = { workspace = true }
 serde                    = { workspace = true, features = ["derive"] }
+serde-querystring        = "0.2.0"
 serde_json               = { workspace = true }
+sugar_path               = { workspace = true }
+tokio                    = { workspace = true }
