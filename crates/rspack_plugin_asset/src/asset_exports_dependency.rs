@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyId,
-  DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  DependencyTemplate, ExportNameOrSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
