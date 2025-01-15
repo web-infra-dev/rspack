@@ -92,10 +92,9 @@ pub struct RsdoctorEntrypointAssets {
 #[derive(Debug, Default)]
 pub struct RsdoctorModuleSource {
   pub module: ModuleUkey,
-  pub source_size: i32,
-  pub transform_size: i32,
-  pub source: Option<String>,
-  pub source_map: Option<String>,
+  pub transform_size: Option<i32>,
+  pub transform_source: Option<String>,
+  pub transform_source_map: Option<String>,
 }
 
 #[derive(Debug, Default)]

@@ -65,6 +65,24 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
+import { JsRsdoctorAsset as RsdoctorAsset } from '@rspack/binding';
+import { JsRsdoctorAssetPatch as RsdoctorAssetPatch } from '@rspack/binding';
+import { JsRsdoctorChunk as RsdoctorChunk } from '@rspack/binding';
+import { JsRsdoctorChunkGraph as RsdoctorChunkGraph } from '@rspack/binding';
+import { JsRsdoctorChunkModules as RsdoctorChunkModules } from '@rspack/binding';
+import { JsRsdoctorDependency as RsdoctorDependency } from '@rspack/binding';
+import { JsRsdoctorEntrypoint as RsdoctorEntrypoint } from '@rspack/binding';
+import { JsRsdoctorExportInfo as RsdoctorExportInfo } from '@rspack/binding';
+import { JsRsdoctorModule as RsdoctorModule } from '@rspack/binding';
+import { JsRsdoctorModuleGraph as RsdoctorModuleGraph } from '@rspack/binding';
+import { JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule } from '@rspack/binding';
+import { JsRsdoctorModuleSource as RsdoctorModuleSource } from '@rspack/binding';
+import { JsRsdoctorSideEffect as RsdoctorSideEffect } from '@rspack/binding';
+import { JsRsdoctorSourcePatch as RsdoctorSourcePatch } from '@rspack/binding';
+import { JsRsdoctorSourcePosition as RsdoctorSourcePosition } from '@rspack/binding';
+import { JsRsdoctorSourceRange as RsdoctorSourceRange } from '@rspack/binding';
+import { JsRsdoctorStatement as RsdoctorStatement } from '@rspack/binding';
+import { JsRsdoctorVariable as RsdoctorVariable } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
@@ -1970,6 +1988,8 @@ interface Experiments_2 {
     };
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+    // (undocumented)
+    RsdoctorRspackPlugin: typeof RsdoctorRspackPlugin;
 }
 
 // @public (undocumented)
@@ -5041,6 +5061,78 @@ type ResourceDataWithData = ResourceData & {
     data?: Record<string, any>;
 };
 
+export { RsdoctorAsset }
+
+export { RsdoctorAssetPatch }
+
+export { RsdoctorChunk }
+
+export { RsdoctorChunkGraph }
+
+export { RsdoctorChunkModules }
+
+export { RsdoctorDependency }
+
+export { RsdoctorEntrypoint }
+
+export { RsdoctorExportInfo }
+
+export { RsdoctorModule }
+
+export { RsdoctorModuleGraph }
+
+export { RsdoctorModuleGraphModule }
+
+export { RsdoctorModuleSource }
+
+// @public (undocumented)
+const RsdoctorRspackPlugin: typeof RsdoctorRspackPluginImpl & {
+    getHooks: (compilation: Compilation) => RsdoctorRspackPluginHooks;
+    getCompilationHooks: (compilation: Compilation) => RsdoctorRspackPluginHooks;
+};
+
+// @public (undocumented)
+type RsdoctorRspackPluginHooks = {
+    moduleGraph: liteTapable.AsyncSeriesBailHook<[
+    RsdoctorModuleGraph
+    ], false | void>;
+    chunkGraph: liteTapable.AsyncSeriesBailHook<[
+    RsdoctorChunkGraph
+    ], false | void>;
+    moduleSources: liteTapable.AsyncSeriesBailHook<[
+    RsdoctorSourcePatch
+    ], false | void>;
+    assets: liteTapable.AsyncSeriesBailHook<[
+    RsdoctorAssetPatch
+    ], false | void>;
+};
+
+// @public (undocumented)
+const RsdoctorRspackPluginImpl: {
+    new (c?: RsdoctorRspackPluginOptions | undefined): {
+        name: BuiltinPluginName;
+        _args: [c?: RsdoctorRspackPluginOptions | undefined];
+        affectedHooks: "done" | "make" | "environment" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+
+// @public (undocumented)
+type RsdoctorRspackPluginOptions = {};
+
+export { RsdoctorSideEffect }
+
+export { RsdoctorSourcePatch }
+
+export { RsdoctorSourcePosition }
+
+export { RsdoctorSourceRange }
+
+export { RsdoctorStatement }
+
+export { RsdoctorVariable }
+
 // @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
@@ -5193,6 +5285,24 @@ declare namespace rspackExports {
         SharedObject,
         SharePluginOptions,
         sharing,
+        RsdoctorAsset,
+        RsdoctorChunkGraph,
+        RsdoctorModuleGraph,
+        RsdoctorModuleSource,
+        RsdoctorChunk,
+        RsdoctorModule,
+        RsdoctorSideEffect,
+        RsdoctorExportInfo,
+        RsdoctorVariable,
+        RsdoctorDependency,
+        RsdoctorEntrypoint,
+        RsdoctorStatement,
+        RsdoctorSourceRange,
+        RsdoctorSourcePosition,
+        RsdoctorModuleGraphModule,
+        RsdoctorAssetPatch,
+        RsdoctorSourcePatch,
+        RsdoctorChunkModules,
         HtmlRspackPluginOptions,
         SwcJsMinimizerRspackPluginOptions,
         LightningCssMinimizerRspackPluginOptions,

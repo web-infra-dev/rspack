@@ -27,8 +27,18 @@ pub fn collect_modules(
     .map(|(module_id, module)| {
       let ukey = module_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
       let depth = module_graph.get_depth(module_id);
-      let path = if let Some(nfc) = module.name_for_condition() {
-        nfc.to_string()
+      let path = if let Some(module) = module.as_normal_module() {
+        module.resource_resolved_data().resource.clone()
+      } else if let Some(module) = module.as_concatenated_module() {
+        let root = module.get_root();
+        if let Some(module) = module_graph
+          .module_by_identifier(&root)
+          .and_then(|m| m.as_normal_module())
+        {
+          module.resource_resolved_data().resource.clone()
+        } else {
+          root.to_string()
+        }
       } else {
         module.readable_identifier(context).to_string()
       };
@@ -162,14 +172,13 @@ pub fn collect_module_sources(
     .par_iter()
     .filter_map(|(module_id, module)| {
       let source = module.original_source();
-      let size = module.size(None, Some(compilation)) as i32;
+      let transform_size = module.size(None, Some(compilation)) as i32;
       let ukey = module_ukeys.get(module_id)?;
       Some(RsdoctorModuleSource {
         module: *ukey,
-        source_size: size,
-        transform_size: size,
-        source: source.map(|s| s.source().to_string()),
-        source_map: source
+        transform_size: Some(transform_size),
+        transform_source: source.map(|s| s.source().to_string()),
+        transform_source_map: source
           .and_then(|s| s.map(&MapOptions::default()))
           .and_then(|m| m.to_json().ok()),
       })

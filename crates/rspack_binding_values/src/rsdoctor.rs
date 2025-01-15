@@ -124,20 +124,18 @@ impl From<RsdoctorAsset> for JsRsdoctorAsset {
 #[napi(object)]
 pub struct JsRsdoctorModuleSource {
   pub module: i32,
-  pub source_size: i32,
-  pub transform_size: i32,
-  pub source: Option<String>,
-  pub source_map: Option<String>,
+  pub transform_size: Option<i32>,
+  pub transform_source: Option<String>,
+  pub transform_source_map: Option<String>,
 }
 
 impl From<RsdoctorModuleSource> for JsRsdoctorModuleSource {
   fn from(value: RsdoctorModuleSource) -> Self {
     JsRsdoctorModuleSource {
       module: value.module,
-      source_size: value.source_size,
       transform_size: value.transform_size,
-      source: value.source,
-      source_map: value.source_map,
+      transform_source: value.transform_source,
+      transform_source_map: value.transform_source_map,
     }
   }
 }

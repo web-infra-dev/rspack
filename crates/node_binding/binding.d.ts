@@ -914,10 +914,9 @@ export interface JsRsdoctorModuleId {
 
 export interface JsRsdoctorModuleSource {
   module: number
-  sourceSize: number
-  transformSize: number
-  source?: string
-  sourceMap?: string
+  transformSize?: number
+  transformSource?: string
+  transformSourceMap?: string
 }
 
 export interface JsRsdoctorSideEffect {
