@@ -7,9 +7,13 @@ use tokio::sync::mpsc::unbounded_channel;
 
 use super::RayonConsumer;
 
+/// Tools for consume rayon iterator which return feature.
 #[async_trait::async_trait]
 pub trait RayonFutureConsumer {
   type Item;
+  /// Use to immediately consume the data produced by the future in the rayon iterator
+  /// without waiting for all the data to be processed.
+  /// The closures runs in the current thread.
   async fn fut_consume<F>(self, func: impl Fn(Self::Item) -> F + Send)
   where
     F: Future + Send;
@@ -28,6 +32,8 @@ where
     F: Future + Send,
   {
     let mut rx = {
+      // Create the channel in the closure to ensure all sender are droped when iterator completes
+      // This ensures that the receiver does not get stuck in an infinite loop.
       let (tx, rx) = unbounded_channel::<Self::Item>();
       let tx = Arc::new(tx);
       self.consume(|fut| {

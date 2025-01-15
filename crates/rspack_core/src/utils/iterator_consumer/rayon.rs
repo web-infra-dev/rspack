@@ -2,8 +2,12 @@ use std::sync::mpsc::channel;
 
 use rayon::iter::ParallelIterator;
 
+/// Tools for consume rayon iterator.
 pub trait RayonConsumer {
   type Item: Send;
+  /// Use to immediately consume the data produced by the rayon iterator
+  /// without waiting for all the data to be processed.
+  /// The closures runs in the current thread.
   fn consume(self, func: impl Fn(Self::Item));
 }
 

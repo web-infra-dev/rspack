@@ -4,9 +4,13 @@ use std::sync::Arc;
 use futures::future::BoxFuture;
 use tokio::sync::mpsc::unbounded_channel;
 
+/// Tools for consume iterator which return future.
 #[async_trait::async_trait]
 pub trait FutureConsumer {
   type Item;
+  /// Use to immediately consume the data produced by the future in the iterator
+  /// without waiting for all the data to be processed.
+  /// The closures runs in the current thread.
   async fn fut_consume<F>(self, func: impl Fn(Self::Item) -> F + Send)
   where
     F: Future + Send;
@@ -25,6 +29,8 @@ where
     F: Future + Send,
   {
     let mut rx = {
+      // Create the channel in the closure to ensure all sender are droped when iterator completes
+      // This ensures that the receiver does not get stuck in an infinite loop.
       let (tx, rx) = unbounded_channel::<Self::Item>();
       let tx = Arc::new(tx);
       self.for_each(|fut| {
