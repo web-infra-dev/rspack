@@ -8,8 +8,8 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
-- Update: file_js.LAST_HASH.hot-update.js, size: 448
-- Update: main.LAST_HASH.hot-update.js, size: 715
+- Update: file_js.LAST_HASH.hot-update.js, size: 433
+- Update: main.LAST_HASH.hot-update.js, size: 682
 
 ## Manifest
 
@@ -38,7 +38,7 @@ self["webpackHotUpdate"]('file_js', {
 "./file.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  Vue: function() { return /* reexport safe */ vue__WEBPACK_IMPORTED_MODULE_0__.Vue; }
+  Vue: () => (/* reexport safe */ vue__WEBPACK_IMPORTED_MODULE_0__.Vue)
 });
 /* ESM import */var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "./node_modules/vue.js");
 
@@ -66,7 +66,7 @@ self["webpackHotUpdate"]('main', {
 "./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  test: function() { return test; }
+  test: () => (test)
 });
 function test(count) {
   return Promise.all(/*! import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, /*! ./file */ "./file.js")).then(({ React, Vue }) => count === 0 ? React : Vue)
@@ -78,9 +78,7 @@ function test(count) {
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
+__webpack_require__.h = () => ("CURRENT_HASH")
 
 })();
 

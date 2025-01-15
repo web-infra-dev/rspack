@@ -1,0 +1,14 @@
+<%- PREFETCH_CHUNK_HANDLERS %>.j = function (chunkId) {
+  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- JS_MATCHER %>) {
+    installedChunks[chunkId] = null;
+    var link = document.createElement('link');
+    <%- CROSS_ORIGIN %>
+    if (<%- SCRIPT_NONCE %>) {
+      link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+    }
+    link.rel = "prefetch";
+    link.as = "script";
+    link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
+    document.head.appendChild(link);
+  }
+};

@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -31,16 +30,22 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_unique_id.ejs").to_string(),
+    )]
+  }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(
-        include_str!("runtime/get_unique_id.js")
-          .cow_replace("$BUNDLER_NAME$", &self.bundler_name)
-          .cow_replace("$BUNDLER_VERSION$", &self.bundler_version)
-          .into_owned(),
-      )
-      .boxed(),
-    )
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "BUNDLER_NAME": &self.bundler_name,
+        "BUNDLER_VERSION":&self.bundler_version,
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }
