@@ -180,6 +180,7 @@ import { LimitChunkCountPlugin } from "./builtin-plugin";
 import { RuntimeChunkPlugin } from "./builtin-plugin";
 import { SplitChunksPlugin } from "./builtin-plugin";
 import { RemoveDuplicateModulesPlugin } from "./builtin-plugin";
+import { RsdoctorRspackPlugin } from "./builtin-plugin";
 
 interface Optimize {
 	LimitChunkCountPlugin: typeof LimitChunkCountPlugin;
@@ -252,6 +253,26 @@ export const sharing = {
 };
 
 ///// Rspack Postfixed Internal Plugins /////
+export type {
+	RsdoctorAsset,
+	RsdoctorChunkGraph,
+	RsdoctorModuleGraph,
+	RsdoctorModuleSource,
+	RsdoctorChunk,
+	RsdoctorModule,
+	RsdoctorSideEffect,
+	RsdoctorExportInfo,
+	RsdoctorVariable,
+	RsdoctorDependency,
+	RsdoctorEntrypoint,
+	RsdoctorStatement,
+	RsdoctorSourceRange,
+	RsdoctorSourcePosition,
+	RsdoctorModuleGraphModule,
+	RsdoctorAssetPatch,
+	RsdoctorSourcePatch,
+	RsdoctorChunkModules
+} from "./builtin-plugin";
 export type { HtmlRspackPluginOptions } from "./builtin-plugin";
 export type { SwcJsMinimizerRspackPluginOptions } from "./builtin-plugin";
 export type { LightningCssMinimizerRspackPluginOptions } from "./builtin-plugin";
@@ -301,6 +322,7 @@ interface Experiments {
 		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+	RsdoctorRspackPlugin: typeof RsdoctorRspackPlugin,
 }
 
 export const experiments: Experiments = {
@@ -329,5 +351,6 @@ export const experiments: Experiments = {
 			}
 		}
 	},
-	RemoveDuplicateModulesPlugin
+	RemoveDuplicateModulesPlugin,
+	RsdoctorRspackPlugin
 };

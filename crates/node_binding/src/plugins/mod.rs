@@ -14,6 +14,7 @@ use rspack_hook::plugin_hook;
 use rspack_hook::Hook as _;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
+use rspack_plugin_rsdoctor::RsdoctorPlugin;
 
 use self::interceptor::*;
 
@@ -66,6 +67,10 @@ pub struct JsHooksAdapterPlugin {
   register_html_plugin_after_template_execution_taps: RegisterHtmlPluginAfterTemplateExecutionTaps,
   register_html_plugin_before_emit_taps: RegisterHtmlPluginBeforeEmitTaps,
   register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps,
+  register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps,
+  register_rsdoctor_plugin_chunk_graph_taps: RegisterRsdoctorPluginChunkGraphTaps,
+  register_rsdoctor_plugin_assets_taps: RegisterRsdoctorPluginAssetsTaps,
+  register_rsdoctor_plugin_module_sources_taps: RegisterRsdoctorPluginModuleSourcesTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -310,6 +315,12 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation
       .tap(html_hooks_adapter_compilation::new(self));
 
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(rsdoctor_hooks_adapter_compilation::new(self));
+
     Ok(())
   }
 
@@ -395,6 +406,14 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self.register_html_plugin_before_emit_taps.clear_cache();
     self.register_html_plugin_after_emit_taps.clear_cache();
+    self
+      .register_rsdoctor_plugin_module_graph_taps
+      .clear_cache();
+    self.register_rsdoctor_plugin_chunk_graph_taps.clear_cache();
+    self.register_rsdoctor_plugin_assets_taps.clear_cache();
+    self
+      .register_rsdoctor_plugin_module_sources_taps
+      .clear_cache();
   }
 }
 
@@ -443,6 +462,29 @@ async fn html_hooks_adapter_compilation(
   hooks
     .after_emit
     .intercept(self.register_html_plugin_after_emit_taps.clone());
+
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
+async fn rsdoctor_hooks_adapter_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> rspack_error::Result<()> {
+  let mut hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation);
+  hooks
+    .module_graph
+    .intercept(self.register_rsdoctor_plugin_module_graph_taps.clone());
+  hooks
+    .chunk_graph
+    .intercept(self.register_rsdoctor_plugin_chunk_graph_taps.clone());
+  hooks
+    .assets
+    .intercept(self.register_rsdoctor_plugin_assets_taps.clone());
+  hooks
+    .module_sources
+    .intercept(self.register_rsdoctor_plugin_module_sources_taps.clone());
 
   Ok(())
 }
@@ -629,6 +671,22 @@ impl JsHooksAdapterPlugin {
         ),
         register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps::new(
           register_js_taps.register_html_plugin_after_emit_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps::new(
+          register_js_taps.register_rsdoctor_plugin_module_graph_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_rsdoctor_plugin_chunk_graph_taps: RegisterRsdoctorPluginChunkGraphTaps::new(
+          register_js_taps.register_rsdoctor_plugin_chunk_graph_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_rsdoctor_plugin_assets_taps: RegisterRsdoctorPluginAssetsTaps::new(
+          register_js_taps.register_rsdoctor_plugin_assets_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_rsdoctor_plugin_module_sources_taps: RegisterRsdoctorPluginModuleSourcesTaps::new(
+          register_js_taps.register_rsdoctor_plugin_module_sources_taps,
           non_skippable_registers.clone(),
         ),
         non_skippable_registers,
