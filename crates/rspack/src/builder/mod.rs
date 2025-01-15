@@ -36,17 +36,18 @@ use indexmap::IndexMap;
 use rspack_core::{incremental::IncrementalPasses, ModuleType};
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
-  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, CompilerOptions, Context,
+  CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions, Context,
   CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions, CssExportsConvention,
   CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions,
-  DynamicImportMode, EntryDescription, Environment, ExperimentCacheOptions, Experiments,
-  ExternalItem, ExternalType, Filename, FilenameTemplate, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions,
-  LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode,
-  ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect, Optimization, OutputOptions,
-  ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve, RspackFuture,
-  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, TrustedTypes, UsedExportsOption,
-  WasmLoading, WasmLoadingType,
+  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, FilenameTemplate,
+  GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap,
+  PathInfo, PluginExt, PublicPath, Resolve, RspackFuture, RuleSetCondition,
+  RuleSetLogicalConditions, SideEffectOption, TrustedTypes, UsedExportsOption, WasmLoading,
+  WasmLoadingType,
 };
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -59,8 +60,53 @@ pub trait Builder {
   fn builder() -> Self::Item;
 }
 
+impl Builder for Compiler {
+  type Item = CompilerBuilder;
+
+  fn builder() -> Self::Item {
+    CompilerBuilder::default()
+  }
+}
+
+#[derive(Default)]
+pub struct CompilerBuilder {
+  compiler_options_builder: Option<CompilerOptionsBuilder>,
+}
+
+impl CompilerBuilder {
+  pub fn compiler_options<V>(&mut self, builder: V) -> &mut Self
+  where
+    V: Into<CompilerOptionsBuilder>,
+  {
+    self.compiler_options_builder = Some(builder.into());
+    self
+  }
+
+  pub fn build(&mut self) -> Compiler {
+    let mut builder_context = BuilderContext::default();
+    let compiler_options = self
+      .compiler_options_builder
+      .take()
+      .unwrap_or_default()
+      .build(&mut builder_context);
+    let plugins = builder_context.take_plugins(&compiler_options);
+    Compiler::new(
+      String::new(),
+      compiler_options,
+      plugins,
+      vec![],
+      None,
+      None,
+      None,
+      None,
+      None,
+    )
+  }
+}
+
 impl Builder for CompilerOptions {
   type Item = CompilerOptionsBuilder;
+
   fn builder() -> Self::Item {
     CompilerOptionsBuilder::default()
   }
@@ -68,6 +114,7 @@ impl Builder for CompilerOptions {
 
 impl Builder for OutputOptions {
   type Item = OutputOptionsBuilder;
+
   fn builder() -> Self::Item {
     OutputOptionsBuilder::default()
   }
@@ -75,6 +122,7 @@ impl Builder for OutputOptions {
 
 impl Builder for Optimization {
   type Item = OptimizationOptionsBuilder;
+
   fn builder() -> Self::Item {
     OptimizationOptionsBuilder::default()
   }
@@ -82,6 +130,7 @@ impl Builder for Optimization {
 
 impl Builder for ModuleOptions {
   type Item = ModuleOptionsBuilder;
+
   fn builder() -> Self::Item {
     ModuleOptionsBuilder::default()
   }
@@ -89,6 +138,7 @@ impl Builder for ModuleOptions {
 
 impl Builder for Experiments {
   type Item = ExperimentsBuilder;
+
   fn builder() -> Self::Item {
     ExperimentsBuilder::default()
   }
@@ -132,7 +182,7 @@ pub(crate) enum BuiltinPluginOptions {
   CssModulesPlugin,
 
   // Entry and runtime plugins
-  EntryPlugin,
+  EntryPlugin((String /* entry request */, EntryOptions)),
   RuntimePlugin,
   BundlerInfoRspackPlugin,
 
@@ -175,49 +225,298 @@ pub(crate) enum BuiltinPluginOptions {
   SizeLimitsPlugin,
 
   // Cache plugins
-  MemoryCachePlugin,
+  // MemoryCachePlugin,
 
   // Worker plugins
   WorkerPlugin,
+  // // Stats plugins
+  // DefaultStatsFactoryPlugin,
+  // DefaultStatsPresetPlugin,
+  // DefaultStatsPrinterPlugin,
 
-  // Stats plugins
-  DefaultStatsFactoryPlugin,
-  DefaultStatsPresetPlugin,
-  DefaultStatsPrinterPlugin,
-
-  // Other core plugins
-  ProgressPlugin,
-  DynamicEntryPlugin,
-  BannerPlugin,
-  IgnorePlugin,
-  FetchCompileAsyncWasmPlugin,
-  HotModuleReplacementPlugin,
-  LimitChunkCountPlugin,
-  WebWorkerTemplatePlugin,
-  RemoveDuplicateModulesPlugin,
-  ShareRuntimePlugin,
-  ContainerPlugin,
-  ContainerReferencePlugin,
-  ProvideSharedPlugin,
-  ConsumeSharedPlugin,
-  ModuleFederationRuntimePlugin,
-  WarnCaseSensitiveModulesPlugin,
-  ContextReplacementPlugin,
-  DllEntryPlugin,
-  DllReferenceAgencyPlugin,
-  LibManifestPlugin,
-  FlagAllModulesAsUsedPlugin,
-  ProvidePlugin,
-
-  // Rspack specific plugins
-  CopyRspackPlugin,
-  HtmlRspackPlugin,
-  CssExtractRspackPlugin,
+  // // Other core plugins
+  // ProgressPlugin,
+  // DynamicEntryPlugin,
+  // BannerPlugin,
+  // IgnorePlugin,
+  // FetchCompileAsyncWasmPlugin,
+  // HotModuleReplacementPlugin,
+  // LimitChunkCountPlugin,
+  // WebWorkerTemplatePlugin,
+  // RemoveDuplicateModulesPlugin,
+  // ShareRuntimePlugin,
+  // ContainerPlugin,
+  // ContainerReferencePlugin,
+  // ProvideSharedPlugin,
+  // ConsumeSharedPlugin,
+  // ModuleFederationRuntimePlugin,
+  // WarnCaseSensitiveModulesPlugin,
+  // ContextReplacementPlugin,
+  // DllEntryPlugin,
+  // DllReferenceAgencyPlugin,
+  // LibManifestPlugin,
+  // FlagAllModulesAsUsedPlugin,
+  // ProvidePlugin,
 }
 
 #[derive(Default, Debug)]
 pub struct BuilderContext {
   plugins: Vec<BuiltinPluginOptions>,
+}
+
+impl BuilderContext {
+  pub fn take_plugins(&mut self, compiler_options: &CompilerOptions) -> Vec<BoxPlugin> {
+    self.plugins.sort_by_key(|p| p.tag());
+    let mut plugins = Vec::new();
+    self.plugins.drain(..).for_each(|plugin| match plugin {
+      // External handling plugins
+      BuiltinPluginOptions::ExternalsPlugin((external_type, externals)) => {
+        plugins
+          .push(rspack_plugin_externals::ExternalsPlugin::new(external_type, externals).boxed());
+      }
+      BuiltinPluginOptions::NodeTargetPlugin => {
+        plugins.push(rspack_plugin_externals::node_target_plugin())
+      }
+      BuiltinPluginOptions::ElectronTargetPlugin(context) => {
+        rspack_plugin_externals::electron_target_plugin(context, &mut plugins)
+      }
+      BuiltinPluginOptions::HttpExternalsRspackPlugin((css, web_async)) => {
+        plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
+          css, web_async,
+        ));
+      }
+
+      // Chunk format and loading plugins
+      BuiltinPluginOptions::ChunkPrefetchPreloadPlugin => {
+        plugins.push(rspack_plugin_runtime::ChunkPrefetchPreloadPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::CommonJsChunkFormatPlugin => {
+        plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::ArrayPushCallbackChunkFormatPlugin => {
+        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::ModuleChunkFormatPlugin => {
+        plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::EnableChunkLoadingPlugin(chunk_loading_type) => {
+        rspack_plugin_runtime::enable_chunk_loading_plugin(chunk_loading_type, &mut plugins);
+      }
+      BuiltinPluginOptions::EnableWasmLoadingPlugin(wasm_loading_type) => {
+        plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
+          wasm_loading_type,
+        ));
+      }
+
+      // Runtime and error handling plugins
+      BuiltinPluginOptions::RuntimeChunkPlugin(options) => {
+        plugins.push(rspack_plugin_runtime_chunk::RuntimeChunkPlugin::new(options).boxed());
+      }
+      BuiltinPluginOptions::NoEmitOnErrorsPlugin => {
+        plugins.push(rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin::default().boxed());
+      }
+
+      // DevTool plugins
+      BuiltinPluginOptions::SourceMapDevToolPlugin(options) => {
+        plugins.push(rspack_plugin_devtool::SourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginOptions::EvalSourceMapDevToolPlugin(options) => {
+        plugins.push(rspack_plugin_devtool::EvalSourceMapDevToolPlugin::new(options).boxed());
+      }
+      BuiltinPluginOptions::EvalDevToolModulePlugin(options) => {
+        plugins.push(rspack_plugin_devtool::EvalDevToolModulePlugin::new(options).boxed());
+      }
+
+      // Core module plugins
+      BuiltinPluginOptions::JavascriptModulesPlugin => {
+        plugins.push(rspack_plugin_javascript::JsPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::JsonModulesPlugin => {
+        plugins.push(rspack_plugin_json::JsonPlugin.boxed());
+      }
+      BuiltinPluginOptions::AssetModulesPlugin => {
+        plugins.push(rspack_plugin_asset::AssetPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::AsyncWebAssemblyModulesPlugin => {
+        plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::CssModulesPlugin => {
+        plugins.push(rspack_plugin_css::CssPlugin::default().boxed());
+      }
+
+      // Entry and runtime plugins
+      BuiltinPluginOptions::EntryPlugin((entry_request, options)) => {
+        plugins.push(
+          rspack_plugin_entry::EntryPlugin::new(
+            compiler_options.context.clone(),
+            entry_request,
+            options,
+          )
+          .boxed(),
+        );
+      }
+      BuiltinPluginOptions::RuntimePlugin => {
+        plugins.push(rspack_plugin_runtime::RuntimePlugin::default().boxed())
+      }
+      BuiltinPluginOptions::BundlerInfoRspackPlugin => {
+        // TODO: add bundler info plugin
+        // rspack_plugin_runtime::BundlerInfoPlugin::default().boxed()
+      }
+
+      // Core functionality plugins
+      BuiltinPluginOptions::InferAsyncModulesPlugin => {
+        plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::APIPlugin => {
+        plugins.push(rspack_plugin_javascript::api_plugin::APIPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::DataUriPlugin => {
+        plugins.push(rspack_plugin_schemes::DataUriPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::FileUriPlugin => {
+        plugins.push(rspack_plugin_schemes::FileUriPlugin::default().boxed());
+      }
+
+      // Optimization plugins
+      BuiltinPluginOptions::EnsureChunkConditionsPlugin => {
+        plugins.push(
+          rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin::default().boxed(),
+        );
+      }
+      BuiltinPluginOptions::MergeDuplicateChunksPlugin => {
+        plugins.push(
+          rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin::default().boxed(),
+        );
+      }
+      BuiltinPluginOptions::SideEffectsFlagPlugin => {
+        plugins.push(rspack_plugin_javascript::SideEffectsFlagPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::FlagDependencyExportsPlugin => {
+        plugins.push(rspack_plugin_javascript::FlagDependencyExportsPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::FlagDependencyUsagePlugin(value) => {
+        plugins.push(rspack_plugin_javascript::FlagDependencyUsagePlugin::new(value).boxed())
+      }
+      BuiltinPluginOptions::ModuleConcatenationPlugin => {
+        plugins.push(rspack_plugin_javascript::ModuleConcatenationPlugin::default().boxed());
+      }
+      BuiltinPluginOptions::MangleExportsPlugin(value) => {
+        plugins.push(rspack_plugin_javascript::MangleExportsPlugin::new(value).boxed())
+      }
+
+      // Experiments
+      BuiltinPluginOptions::LazyCompilationPlugin => {
+        // plugins
+        // .push(rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::default().boxed());
+      }
+
+      // Output plugins
+      BuiltinPluginOptions::EnableLibraryPlugin(library_type) => {
+        rspack_plugin_library::enable_library_plugin(library_type, &mut plugins)
+      }
+      BuiltinPluginOptions::SplitChunksPlugin => {
+        // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::RemoveEmptyChunksPlugin => {
+        plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::RealContentHashPlugin => {
+        plugins.push(rspack_plugin_real_content_hash::RealContentHashPlugin::default().boxed())
+      }
+
+      // Module and chunk ID plugins
+      BuiltinPluginOptions::NamedModuleIdsPlugin => {
+        plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::NaturalModuleIdsPlugin => {
+        plugins.push(rspack_ids::NaturalModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::DeterministicModuleIdsPlugin => {
+        plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::NaturalChunkIdsPlugin => {
+        plugins.push(rspack_ids::NaturalChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::NamedChunkIdsPlugin => {
+        plugins.push(rspack_ids::NamedChunkIdsPlugin::new(None, None).boxed())
+      }
+      BuiltinPluginOptions::DeterministicChunkIdsPlugin => {
+        plugins.push(rspack_ids::DeterministicChunkIdsPlugin::default().boxed())
+      }
+      BuiltinPluginOptions::OccurrenceChunkIdsPlugin(options) => {
+        plugins.push(rspack_ids::OccurrenceChunkIdsPlugin::new(options).boxed())
+      }
+
+      // Define and optimization plugins
+      BuiltinPluginOptions::DefinePlugin(values) => {
+        plugins.push(rspack_plugin_javascript::define_plugin::DefinePlugin::new(values).boxed())
+      }
+      BuiltinPluginOptions::AnyMinimizerRspackPlugin(plugin) => plugins.push(plugin),
+      BuiltinPluginOptions::SizeLimitsPlugin => {
+        // plugins.push(rspack_plugin_size_limits::SizeLimitsPlugin::default().boxed())
+      }
+
+      // Cache plugins
+      // BuiltinPluginOptions::MemoryCachePlugin => MemoryCachePlugin::default().boxed(),
+
+      // Worker plugins
+      BuiltinPluginOptions::WorkerPlugin => {
+        plugins.push(rspack_plugin_worker::WorkerPlugin::default().boxed())
+      } // // Stats plugins
+        // BuiltinPluginOptions::DefaultStatsFactoryPlugin => {
+        //   DefaultStatsFactoryPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::DefaultStatsPresetPlugin => {
+        //   DefaultStatsPresetPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::DefaultStatsPrinterPlugin => {
+        //   DefaultStatsPrinterPlugin::default().boxed()
+        // }
+
+        // // Other core plugins
+        // BuiltinPluginOptions::ProgressPlugin => ProgressPlugin::default().boxed(),
+        // BuiltinPluginOptions::DynamicEntryPlugin => DynamicEntryPlugin::default().boxed(),
+        // BuiltinPluginOptions::BannerPlugin => BannerPlugin::default().boxed(),
+        // BuiltinPluginOptions::IgnorePlugin => IgnorePlugin::default().boxed(),
+        // BuiltinPluginOptions::FetchCompileAsyncWasmPlugin => {
+        //   FetchCompileAsyncWasmPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::HotModuleReplacementPlugin => {
+        //   HotModuleReplacementPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::LimitChunkCountPlugin => LimitChunkCountPlugin::default().boxed(),
+        // BuiltinPluginOptions::WebWorkerTemplatePlugin => WebWorkerTemplatePlugin::default().boxed(),
+        // BuiltinPluginOptions::RemoveDuplicateModulesPlugin => {
+        //   RemoveDuplicateModulesPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::ShareRuntimePlugin => ShareRuntimePlugin::default().boxed(),
+        // BuiltinPluginOptions::ContainerPlugin => ContainerPlugin::default().boxed(),
+        // BuiltinPluginOptions::ContainerReferencePlugin => {
+        //   ContainerReferencePlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::ProvideSharedPlugin => ProvideSharedPlugin::default().boxed(),
+        // BuiltinPluginOptions::ConsumeSharedPlugin => ConsumeSharedPlugin::default().boxed(),
+        // BuiltinPluginOptions::ModuleFederationRuntimePlugin => {
+        //   ModuleFederationRuntimePlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::WarnCaseSensitiveModulesPlugin => {
+        //   WarnCaseSensitiveModulesPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::ContextReplacementPlugin => {
+        //   ContextReplacementPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::DllEntryPlugin => DllEntryPlugin::default().boxed(),
+        // BuiltinPluginOptions::DllReferenceAgencyPlugin => {
+        //   DllReferenceAgencyPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::LibManifestPlugin => LibManifestPlugin::default().boxed(),
+        // BuiltinPluginOptions::FlagAllModulesAsUsedPlugin => {
+        //   FlagAllModulesAsUsedPlugin::default().boxed()
+        // }
+        // BuiltinPluginOptions::ProvidePlugin => ProvidePlugin::default().boxed(),
+    });
+    plugins
+  }
 }
 
 /// Builder used to build [`CompilerOptions`]
@@ -239,6 +538,29 @@ pub struct CompilerOptionsBuilder {
   module: Option<ModuleOptionsBuilder>,
   output: Option<OutputOptionsBuilder>,
   optimization: Option<OptimizationOptionsBuilder>,
+}
+
+impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
+  fn from(value: &mut CompilerOptionsBuilder) -> Self {
+    CompilerOptionsBuilder {
+      name: value.name.take(),
+      target: value.target.take(),
+      entry: value.entry.clone(),
+      externals: value.externals.take(),
+      externals_type: value.externals_type.take(),
+      externals_presets: value.externals_presets.take(),
+      context: value.context.take(),
+      cache: value.cache.take(),
+      mode: value.mode.take(),
+      devtool: value.devtool.take(),
+      profile: value.profile.take(),
+      bail: value.bail.take(),
+      experiments: value.experiments.take(),
+      module: value.module.take(),
+      output: value.output.take(),
+      optimization: value.optimization.take(),
+    }
+  }
 }
 
 impl CompilerOptionsBuilder {
@@ -357,7 +679,6 @@ impl CompilerOptionsBuilder {
     let production = matches!(self.mode, Some(Mode::Production) | None);
     let mode = d!(self.mode.take(), Mode::Production);
 
-    // TODO: support entry
     let devtool = f!(self.devtool.take(), || {
       if development {
         Devtool::Eval
@@ -603,7 +924,29 @@ impl CompilerOptionsBuilder {
       .plugins
       .push(BuiltinPluginOptions::AssetModulesPlugin);
 
-    // TODO: entry
+    // add entry plugins
+    self.entry.drain(..).for_each(|(name, desc)| {
+      let entry_options = EntryOptions {
+        name: Some(name),
+        runtime: desc.runtime.map(EntryRuntime::String),
+        chunk_loading: desc.chunk_loading,
+        async_chunks: desc.async_chunks,
+        public_path: desc.public_path,
+        base_uri: desc.base_uri,
+        filename: desc.filename,
+        library: None,
+        depend_on: desc.depend_on,
+        layer: None,
+      };
+      desc.import.into_iter().for_each(|import| {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::EntryPlugin((
+            import,
+            entry_options.clone(),
+          )));
+      });
+    });
 
     builder_context
       .plugins
@@ -656,6 +999,17 @@ pub struct ModuleOptionsBuilder {
   parser: Option<ParserOptionsMap>,
   generator: Option<GeneratorOptionsMap>,
   no_parse: Option<ModuleNoParseRules>,
+}
+
+impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
+  fn from(value: &mut ModuleOptionsBuilder) -> Self {
+    ModuleOptionsBuilder {
+      rules: value.rules.drain(..).collect(),
+      parser: value.parser.take(),
+      generator: value.generator.take(),
+      no_parse: value.no_parse.take(),
+    }
+  }
 }
 
 impl ModuleOptionsBuilder {
@@ -1140,6 +1494,62 @@ pub struct OutputOptionsBuilder {
   devtool_fallback_module_filename_template: Option<FilenameTemplate>,
   environment: Option<Environment>,
   compare_before_emit: Option<bool>,
+}
+
+impl From<&mut OutputOptionsBuilder> for OutputOptionsBuilder {
+  fn from(value: &mut OutputOptionsBuilder) -> Self {
+    OutputOptionsBuilder {
+      path: value.path.take(),
+      pathinfo: value.pathinfo.take(),
+      clean: value.clean.take(),
+      public_path: value.public_path.take(),
+      asset_module_filename: value.asset_module_filename.take(),
+      wasm_loading: value.wasm_loading.take(),
+      webassembly_module_filename: value.webassembly_module_filename.take(),
+      unique_name: value.unique_name.take(),
+      chunk_loading: value.chunk_loading.take(),
+      chunk_loading_global: value.chunk_loading_global.take(),
+      chunk_load_timeout: value.chunk_load_timeout.take(),
+      chunk_format: value.chunk_format.take(),
+      charset: value.charset.take(),
+      filename: value.filename.take(),
+      chunk_filename: value.chunk_filename.take(),
+      cross_origin_loading: value.cross_origin_loading.take(),
+      css_filename: value.css_filename.take(),
+      css_chunk_filename: value.css_chunk_filename.take(),
+      hot_update_main_filename: value.hot_update_main_filename.take(),
+      hot_update_chunk_filename: value.hot_update_chunk_filename.take(),
+      hot_update_global: value.hot_update_global.take(),
+      library: value.library.take(),
+      enabled_library_types: value.enabled_library_types.take(),
+      enabled_chunk_loading_types: value.enabled_chunk_loading_types.take(),
+      enabled_wasm_loading_types: value.enabled_wasm_loading_types.take(),
+      strict_module_error_handling: value.strict_module_error_handling.take(),
+      global_object: value.global_object.take(),
+      import_function_name: value.import_function_name.take(),
+      import_meta_name: value.import_meta_name.take(),
+      iife: value.iife.take(),
+      module: value.module.take(),
+      trusted_types: value.trusted_types.take(),
+      source_map_filename: value.source_map_filename.take(),
+      hash_function: value.hash_function.take(),
+      hash_digest: value.hash_digest.take(),
+      hash_digest_length: value.hash_digest_length.take(),
+      hash_salt: value.hash_salt.take(),
+      async_chunks: value.async_chunks.take(),
+      worker_chunk_loading: value.worker_chunk_loading.take(),
+      worker_wasm_loading: value.worker_wasm_loading.take(),
+      worker_public_path: value.worker_public_path.take(),
+      script_type: value.script_type.take(),
+      devtool_namespace: value.devtool_namespace.take(),
+      devtool_module_filename_template: value.devtool_module_filename_template.take(),
+      devtool_fallback_module_filename_template: value
+        .devtool_fallback_module_filename_template
+        .take(),
+      environment: value.environment.take(),
+      compare_before_emit: value.compare_before_emit.take(),
+    }
+  }
 }
 
 impl OutputOptionsBuilder {
@@ -1859,6 +2269,31 @@ pub struct OptimizationOptionsBuilder {
   runtime_chunk: Option<rspack_plugin_runtime_chunk::RuntimeChunkOptions>,
 }
 
+impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
+  fn from(value: &mut OptimizationOptionsBuilder) -> Self {
+    OptimizationOptionsBuilder {
+      remove_available_modules: value.remove_available_modules.take(),
+      remove_empty_chunks: value.remove_empty_chunks.take(),
+      merge_duplicate_chunks: value.merge_duplicate_chunks.take(),
+      module_ids: value.module_ids.take(),
+      chunk_ids: value.chunk_ids.take(),
+      minimize: value.minimize.take(),
+      minimizer: value.minimizer.take(),
+      side_effects: value.side_effects.take(),
+      provided_exports: value.provided_exports.take(),
+      used_exports: value.used_exports.take(),
+      inner_graph: value.inner_graph.take(),
+      mangle_exports: value.mangle_exports.take(),
+      concatenate_modules: value.concatenate_modules.take(),
+      real_content_hash: value.real_content_hash.take(),
+      avoid_entry_iife: value.avoid_entry_iife.take(),
+      node_env: value.node_env.take(),
+      emit_on_errors: value.emit_on_errors.take(),
+      runtime_chunk: value.runtime_chunk.take(),
+    }
+  }
+}
+
 impl OptimizationOptionsBuilder {
   pub fn remove_available_modules(&mut self, value: bool) -> &mut Self {
     self.remove_available_modules = Some(value);
@@ -2194,6 +2629,22 @@ pub struct ExperimentsBuilder {
   // TODO: lazy compilation
 }
 
+impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
+  fn from(value: &mut ExperimentsBuilder) -> Self {
+    ExperimentsBuilder {
+      layers: value.layers.take(),
+      incremental: value.incremental.take(),
+      top_level_await: value.top_level_await.take(),
+      rspack_future: value.rspack_future.take(),
+      cache: value.cache.take(),
+      output_module: value.output_module.take(),
+      future_defaults: value.future_defaults.take(),
+      css: value.css.take(),
+      async_web_assembly: value.async_web_assembly.take(),
+    }
+  }
+}
+
 impl ExperimentsBuilder {
   pub fn layers(&mut self, layers: bool) -> &mut Self {
     self.layers = Some(layers);
@@ -2282,7 +2733,7 @@ mod test {
   #[test]
   fn builtin_plugin_order() {
     let mut context: BuilderContext = Default::default();
-    let _ = CompilerOptions::builder()
+    let compiler_options = CompilerOptions::builder()
       .mode(Mode::Production)
       .target(vec!["web".to_string()])
       .build(&mut context);
@@ -2308,5 +2759,18 @@ mod test {
     assert!(merge_duplicate_chunks_index < side_effects_flag_plugin_index);
     assert!(remove_empty_chunks_plugin_index > merge_duplicate_chunks_index);
     assert!(real_content_hash_plugin_index > remove_empty_chunks_plugin_index);
+
+    let plugins = context.take_plugins(&compiler_options);
+    assert!(!plugins.is_empty());
+  }
+
+  #[test]
+  fn mutable_builder_into_owned_builder() {
+    CompilerOptions::builder()
+      .optimization(OptimizationOptionsBuilder::default().node_env("'development'".to_string()))
+      .output(OutputOptionsBuilder::default().charset(true))
+      .experiments(ExperimentsBuilder::default().future_defaults(true))
+      .module(ModuleOptionsBuilder::default().no_parse(ModuleNoParseRules::Rules(vec![])))
+      .build(&mut Default::default());
   }
 }

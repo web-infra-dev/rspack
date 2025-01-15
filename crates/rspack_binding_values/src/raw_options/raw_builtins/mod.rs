@@ -280,7 +280,7 @@ impl BuiltinPlugin {
         ));
       }
       BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
-        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed())
+        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed());
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
         plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());

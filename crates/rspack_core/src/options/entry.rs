@@ -6,7 +6,7 @@ pub type Entry = IndexMap<String, EntryData>;
 
 pub type EntryItem = Vec<String>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EntryDescription {
   pub import: EntryItem,
   pub runtime: Option<String>,
