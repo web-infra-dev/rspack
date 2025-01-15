@@ -19,9 +19,9 @@ where
   type Item = I;
   fn consume(self, func: impl Fn(Self::Item)) {
     let (tx, rx) = channel::<Self::Item>();
-    rayon::in_place_scope(|s| {
+    std::thread::scope(|s| {
       // move rx to s.spawn, otherwise rx.into_iter will never stop
-      s.spawn(move |_| {
+      s.spawn(move || {
         self.for_each(|item| tx.send(item).expect("should send success"));
       });
       while let Ok(data) = rx.recv() {
