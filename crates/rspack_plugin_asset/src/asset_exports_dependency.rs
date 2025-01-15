@@ -4,7 +4,6 @@ use rspack_core::{
   DependencyTemplate, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_plugin_javascript::dependency::ESMExportExpressionDependency;
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
