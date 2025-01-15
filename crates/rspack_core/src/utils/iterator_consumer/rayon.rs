@@ -24,7 +24,7 @@ where
       s.spawn(move |_| {
         self.for_each(|item| tx.send(item).expect("should send success"));
       });
-      for data in rx.into_iter() {
+      while let Ok(data) = rx.recv() {
         func(data);
       }
     });

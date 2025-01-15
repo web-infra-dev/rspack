@@ -29,7 +29,7 @@ where
     F: Future + Send,
   {
     let mut rx = {
-      // Create the channel in the closure to ensure all sender are droped when iterator completes
+      // Create the channel in the closure to ensure all sender are dropped when iterator completes
       // This ensures that the receiver does not get stuck in an infinite loop.
       let (tx, rx) = unbounded_channel::<Self::Item>();
       let tx = Arc::new(tx);
@@ -66,7 +66,6 @@ mod test {
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
   async fn available() {
     (0..10)
-      .into_iter()
       .map(|item| async move { item * 2 })
       .fut_consume(|item| async move { assert_eq!(item % 2, 0) })
       .await;
