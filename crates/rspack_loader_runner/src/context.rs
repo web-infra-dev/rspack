@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use derive_more::Debug;
+use json::object::Object;
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
@@ -58,6 +59,8 @@ pub struct LoaderContext<Context> {
   pub loader_items: Vec<LoaderItem<Context>>,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+
+  pub extra: Object,
 }
 
 impl<Context> LoaderContext<Context> {

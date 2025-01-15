@@ -9,6 +9,7 @@ version     = "0.2.0"
 [dependencies]
 async-trait              = { workspace = true }
 base64-simd              = { version = "0.8.0", features = ["alloc"] }
+json                     = { workspace = true }
 lazy-regex               = "3.4.1"
 regex                    = { workspace = true }
 rspack_ast               = { workspace = true }

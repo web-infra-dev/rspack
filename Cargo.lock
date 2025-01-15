@@ -4680,6 +4680,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "base64-simd 0.8.0",
+ "json",
  "lazy-regex",
  "regex",
  "rspack_ast",
@@ -4765,6 +4766,7 @@ dependencies = [
  "anymap3",
  "async-trait",
  "derive_more 1.0.0",
+ "json",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4854,6 +4856,7 @@ dependencies = [
 name = "rspack_napi"
 version = "0.2.0"
 dependencies = [
+ "json",
  "napi",
  "oneshot",
  "rspack_error",

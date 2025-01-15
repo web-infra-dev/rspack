@@ -1,7 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
-use json::JsonValue;
-use napi::{JsObject, JsString};
+use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -9,7 +8,7 @@ use rspack_core::{
   CompilerId, LibIdentOptions, Module, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, JsonExt, OneShotInstanceRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
@@ -344,20 +343,10 @@ impl JsModule {
     Ok(())
   }
 
-  #[napi]
-  pub fn build_info(&mut self, env: Env) -> napi::Result<JsObject> {
+  #[napi(getter, ts_return_type = "Record<string, any>")]
+  pub fn build_info(&mut self, env: Env) -> napi::Result<Unknown> {
     let (_, module) = self.as_ref()?;
-
-    let mut object = env.create_object()?;
-    for (key, value) in module.build_info().extra.iter() {
-      match value {
-        JsonValue::String(s) => {
-          object.set_named_property(key, s)?;
-        }
-        _ => (),
-      }
-    }
-    Ok(object)
+    module.build_info().extra.to_js(env)
   }
 }
 

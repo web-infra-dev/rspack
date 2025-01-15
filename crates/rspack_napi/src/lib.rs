@@ -3,6 +3,7 @@
 
 mod ext;
 mod js_values;
+mod json;
 mod utils;
 
 mod errors;
@@ -27,3 +28,4 @@ pub mod napi {
 pub use js_values::one_shot_instance_ref::*;
 pub use js_values::one_shot_value_ref::*;
 pub use js_values::value_ref::*;
+pub use json::*;
