@@ -253,6 +253,7 @@ export declare class JsModule {
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
   emitFile(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  buildInfo(): object
 }
 
 export declare class JsModuleGraph {

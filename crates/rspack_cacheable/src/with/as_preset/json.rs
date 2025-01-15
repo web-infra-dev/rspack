@@ -1,4 +1,4 @@
-use json::JsonValue;
+use json::{object::Object, JsonValue};
 use rkyv::{
   rancor::Fallible,
   ser::Writer,
@@ -48,5 +48,45 @@ where
   #[inline]
   fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<JsonValue, DeserializeError> {
     json::parse(field).map_err(|_| DeserializeError::MessageError("deserialize json value failed"))
+  }
+}
+
+impl ArchiveWith<Object> for AsPreset {
+  type Archived = ArchivedString;
+  type Resolver = JsonResolver;
+
+  #[inline]
+  fn resolve_with(_field: &Object, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    let JsonResolver { inner, value } = resolver;
+    ArchivedString::resolve_from_str(&value, inner, out);
+  }
+}
+
+impl<S> SerializeWith<Object, S> for AsPreset
+where
+  S: Fallible<Error = SerializeError> + Writer,
+{
+  #[inline]
+  fn serialize_with(field: &Object, serializer: &mut S) -> Result<Self::Resolver, SerializeError> {
+    let value = json::stringify(field.clone());
+    let inner = ArchivedString::serialize_from_str(&value, serializer)?;
+    Ok(JsonResolver { value, inner })
+  }
+}
+
+impl<D> DeserializeWith<ArchivedString, Object, D> for AsPreset
+where
+  D: Fallible<Error = DeserializeError>,
+{
+  #[inline]
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Object, DeserializeError> {
+    match json::parse(field)
+      .map_err(|_| DeserializeError::MessageError("deserialize json value failed"))?
+    {
+      JsonValue::Object(object) => Ok(object),
+      _ => Err(DeserializeError::MessageError(
+        "deserialize json value should be object",
+      )),
+    }
   }
 }

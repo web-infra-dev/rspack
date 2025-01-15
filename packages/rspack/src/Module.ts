@@ -238,7 +238,8 @@ export class Module {
 
 	constructor(module: JsModule) {
 		this.#inner = module;
-		this.buildInfo = {};
+
+		this.buildInfo = module.buildInfo;
 		this.buildMeta = {};
 
 		Object.defineProperties(this, {
