@@ -165,7 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.29.0
+      - uses: crate-ci/typos@v1.29.4
         with:
           files: .
 
@@ -294,7 +294,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.18
+      - uses: cargo-bins/cargo-binstall@v1.10.21
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
