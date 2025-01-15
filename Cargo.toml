@@ -31,8 +31,8 @@ anyhow             = { version = "1.0.95", features = ["backtrace"] }
 anymap             = { package = "anymap3", version = "1.0.1" }
 async-recursion    = { version = "1.1.1" }
 async-scoped       = { version = "0.9.0" }
-async-trait        = { version = "0.1.84" }
-bitflags           = { version = "2.6.0" }
+async-trait        = { version = "0.1.85" }
+bitflags           = { version = "2.8.0" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
@@ -50,7 +50,7 @@ indexmap           = { version = "2.7.0" }
 indoc              = { version = "2.0.5" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.61" }
+lightningcss       = { version = "1.0.0-alpha.63" }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.1.43" }
 mime_guess         = { version = "2.0.5" }
@@ -60,7 +60,7 @@ paste              = { version = "1.0.15" }
 path-clean         = { version = "1.0.1" }
 pathdiff           = { version = "0.2.3" }
 pollster           = { version = "0.4.0" }
-proc-macro2        = { version = "1.0.92" }
+proc-macro2        = { version = "1.0.93" }
 quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
@@ -69,13 +69,13 @@ rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.4.
 rspack_sources     = { version = "0.4.1" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
-serde_json         = { version = "1.0.134" }
+serde_json         = { version = "1.0.135" }
 simd-json          = { version = "0.14.3" }
 smol_str           = { version = "0.3.0" }
 stacker            = { version = "0.1.17" }
 sugar_path         = { version = "1.2.0", features = ["cached_current_dir"] }
-syn                = { version = "2.0.95" }
-tokio              = { version = "1.42.0" }
+syn                = { version = "2.0.96" }
+tokio              = { version = "1.43.0" }
 tracing            = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
 unicase            = { version = "2.8.1" }
@@ -105,7 +105,7 @@ swc_node_comments   = { version = "=5.0.0" }
 
 pnp = { version = "0.9.0" }
 
-rspack_dojang = { version = "0.1.9" }
+rspack_dojang = { version = "0.1.10" }
 
 
 # all rspack workspace dependencies
