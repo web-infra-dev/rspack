@@ -19,7 +19,7 @@ new rspack.CopyRspackPlugin(options);
 - 拷贝一个文件。如果文件不存在，则插件会抛出错误。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -35,7 +35,7 @@ module.exports = {
 - `patterns` 配置可以是一个字符串，或是一个包含多个对象的数组。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -51,7 +51,7 @@ module.exports = {
 - 拷贝一个目录。如果目录中没有文件，则插件会抛出错误。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',
@@ -68,7 +68,7 @@ module.exports = {
 - 使用 glob pattern 来匹配并拷贝文件。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const path = require('node:path');
 
 module.exports = {
@@ -91,7 +91,7 @@ module.exports = {
 - 使用 `to` 指定目标路径。
 
 ```ts title="rspack.config.js"
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 module.exports = {
   entry: './src/index.js',

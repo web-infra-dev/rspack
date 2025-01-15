@@ -1,6 +1,6 @@
 const path = require("path");
 
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 module.exports = (config = {}) => {
 	const fullConfig = {

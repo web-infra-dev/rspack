@@ -20,7 +20,7 @@ The latest Rspack 0.5.0 introduces the highly anticipated Module Federation alon
   />
 </div>
 
-## Webpack Federation gets some love!
+## Webpack federation gets some love!
 
 Federation API has been opened up for users to enrich, expand, or manage the lifecycle. While v1.5 comes with several new capabilities, it doesn't introduce breaking changes to the API regarding the original Module Federation.
 
@@ -28,13 +28,13 @@ v1.5 is also accessible to webpack via [@module-federation/enhanced](https://www
 
 In Rspack, Module Federation v1.5 can be used through `rspack.container.ModuleFederationPlugin`, and the original Module Federation can be used through `rspack.container.ModuleFederationPluginV1`.
 
-## Migration Opportunities
+## Migration opportunities
 
-The support of Module Federation in Rspack opens up a several of creative migration options to speed up bundler tools by sharing code at runtime. Both Webpack and Rspack can share code, relying on the same centralized runtime that the Module Federation Group introduced in v1.5. This ensures maintaining feature parity is manageable, and no additional forks of Module Federation are necessary to customize it.
+The support of Module Federation in Rspack opens up a several of creative migration options to speed up bundler tools by sharing code at runtime. Both webpack and Rspack can share code, relying on the same centralized runtime that the Module Federation Group introduced in v1.5. This ensures maintaining feature parity is manageable, and no additional forks of Module Federation are necessary to customize it.
 
-**Progressive migration** to Rspack can be achieved via federation. If you have webpack locked plugins or cannot perform a full cut over to rspack, via module federation you can allow Rspack and webpack to share dependencies and code, meaning more code could be built via Rspack while the webpack host does less work but still gets the same result. [example: Webpack Rspack interop](https://github.com/module-federation/module-federation-examples/pull/3490)
+**Progressive migration** to Rspack can be achieved via federation. If you have webpack locked plugins or cannot perform a full cut over to rspack, via module federation you can allow Rspack and webpack to share dependencies and code, meaning more code could be built via Rspack while the webpack host does less work but still gets the same result. [example: webpack Rspack interop](https://github.com/module-federation/module-federation-examples/pull/3490)
 
-**Speed up builds by sharing the node_modules via federation**. One could tell webpack to `import: false` them, and Rspack could compile all the shared modules, reducing the parse overhead and amount of code the webpack part has to do, by delegating it to Rspack where similar workloads take only a few milliseconds to perform. [example: Rspack Vendor Offload to Webpack apps](https://github.com/module-federation/module-federation-examples/pull/3491)
+**Speed up builds by sharing the node_modules via federation**. One could tell webpack to `import: false` them, and Rspack could compile all the shared modules, reducing the parse overhead and amount of code the webpack part has to do, by delegating it to Rspack where similar workloads take only a few milliseconds to perform. [example: Rspack Vendor Offload to webpack apps](https://github.com/module-federation/module-federation-examples/pull/3491)
 
 **Migrate one at a time**. Since the interfaces between webpack ([@module-federation/enhanced](https://www.npmjs.com/package/@module-federation/enhanced)) and Rspack are shared, users can switch over any existing federation build or remote to Rspack. We recommend any remaining webpack builds using `@module-federation/enhanced` which leverages our new design and exports ModuleFederationPlugin. You can, however, still use the stock plugin that ships in webpack core. Rspack should slot in seamlessly with existing federated applications.
 
@@ -63,7 +63,7 @@ v1.5 introduces runtimePlugins. These can be added to compile time via `runtimeP
 In Rspack:
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 new rspack.container.ModuleFederationPlugin({
   name: 'app1',

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "1.2.0-alpha.0",
+  "version": "1.2.0-beta.0",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -58,7 +58,7 @@
     "glob": "^11.0.0",
     "jest-diff": "^29.7.0",
     "jest-snapshot": "29.7.0",
-    "jsdom": "^25.0.0",
+    "jsdom": "^26.0.0",
     "memfs": "4.14.0",
     "path-serializer": "0.3.4",
     "pretty-format": "29.7.0",

@@ -29,6 +29,7 @@ pub struct MetaRef<'a> {
   pub next_dependencies_id: u32,
 }
 
+#[tracing::instrument("Cache::Occasion::Make::Meta::save", skip_all)]
 pub fn save_meta(
   make_failed_dependencies: &HashSet<BuildDependency>,
   make_failed_module: &IdentifierSet,
@@ -46,6 +47,7 @@ pub fn save_meta(
   );
 }
 
+#[tracing::instrument("Cache::Occasion::Make::Meta::recovery", skip_all)]
 pub async fn recovery_meta(
   storage: &Arc<dyn Storage>,
 ) -> Result<(HashSet<BuildDependency>, IdentifierSet)> {

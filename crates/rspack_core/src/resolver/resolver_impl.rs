@@ -111,6 +111,7 @@ impl Resolver {
       options_with_dependency_type.resolve_to_context,
       options_with_dependency_type.dependency_category,
     );
+
     let resolver = resolver.clone_with_options(options);
     Self { resolver }
   }
@@ -195,7 +196,9 @@ fn to_rspack_resolver_options(
   let imports_fields = options
     .imports_fields
     .unwrap_or_else(|| vec![vec!["imports".to_string()]]);
-  let extensions = options.extensions.expect("should have extensions");
+  let extensions = options
+    .extensions
+    .unwrap_or_else(|| vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()]);
   let alias = options
     .alias
     .unwrap_or_default()
@@ -285,6 +288,7 @@ fn to_rspack_resolver_options(
     roots,
     builtin_modules: false,
     imports_fields,
+    enable_pnp: options.pnp.unwrap_or(false),
   }
 }
 

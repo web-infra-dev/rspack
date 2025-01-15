@@ -72,6 +72,9 @@ module.exports = {
 
 ## experiments.futureDefaults
 
+- **Type:** `boolean`
+- **Default:** `false`
+
 Use defaults of the next major Rspack and show warnings in any problematic places.
 
 ```js title="rspack.config.js"
@@ -83,6 +86,9 @@ module.exports = {
 ```
 
 ## experiments.topLevelAwait
+
+- **Type:** `boolean`
+- **Default:** `true`
 
 Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-await), `Top-level await` can only be used in modules with [ModuleType](/config/module#ruletype) is `javascript/esm`.
 
@@ -107,17 +113,24 @@ type LazyCompilationOptions =
   | {
       backend?: {
         /**
-         * A custom client.
+         * A custom client script path.
          */
         client?: string;
         /**
-         * Specify where to listen to from the server.
+         * Specifies where to listen to from the server.
          */
-        listen?: number | ListenOptions;
+        listen?: number | ListenOptions | ((server: Server) => void);
         /**
-         * Specify the protocol the client should use to connect to the server.
+         * Specifies the protocol the client should use to connect to the server.
          */
         protocol?: 'http' | 'https';
+        /**
+         * Specifies how to create the server handling the EventSource requests.
+         */
+        server?:
+          | ServerOptionsImport<typeof IncomingMessage>
+          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+          | (() => Server);
       };
       /**
        * Enable lazy compilation for entries.
@@ -184,7 +197,7 @@ If not excluded and lazy compilation of entry is enabled, this client will not b
 For example:
 
 ```ts
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 const options = {
   experiments: {
@@ -366,11 +379,15 @@ type ExperimentCacheOptions =
     };
 ```
 
-Control experimental caching behavior. This will only work if [global cache](/config/cache) is set to `true`.
+Control experimental caching behavior. This will only work if [config.cache](/config/cache) is set to `true`.
+
+:::info title="Note"
+In production mode, the default value of `config.cache` is `false`, which will cause this configuration item invalid. It is recommended to directly configure `config.cache` to `true`.
+:::
 
 ### Disable cache
 
-Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [global cache](/config/cache) to `false`.
+Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [config.cache](/config/cache) to `false`.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -441,6 +458,15 @@ module.exports = {
 
 Cache versions, different versions of caches are isolated from each other.
 
+:::tip title="Persistent cache invalidation"
+
+In addition to [buildDependencies](#cachebuilddependencies) and [version](#cacheversion) configurations that affect persistent cache invalidation, Rspack also invalidates persistent cache when the following fields change.
+
+- [config.name](/config/other-options#name)
+- [config.mode](/config/mode#mode)
+
+:::
+
 #### cache.snapshot
 
 Configure snapshot strategy. Snapshot is used to determine which files have been modified during shutdown. The following configurations are supported:
@@ -490,4 +516,151 @@ module.exports = {
     },
   },
 };
+```
+
+:::tip
+Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
+
+Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+:::
+
+### Migrating from webpack config
+
+The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.
+
+1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: true,
++ experiments: {
++   cache: {
++     type: 'persistent',
++   },
++ },
+};
+```
+
+2. Migrate `cache.buildDependencies`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, "package.json")],
+-     ts: [path.join(__dirname, "tsconfig.json")]
+-   }
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     buildDependencies: [
++       __filename,
++       path.join(__dirname, "package.json"),
++       path.join(__dirname, "tsconfig.json")
++     ]
+    },
+  },
+};
+```
+
+3. Migrate `cache.version` and `cache.name`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
+    },
+  },
+};
+```
+
+4. Migrate `snapshot`
+
+```diff title="rspack.config.js"
+module.exports = {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, "constant")],
+-   managedPaths: [path.join(__dirname, "node_modules")],
+-   unmanagedPaths: []
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     snapshot: {
++       immutablePaths: [path.join(__dirname, "constant")],
++       managedPaths: [path.join(__dirname, "node_modules")],
++       unmanagedPaths: []
++     }
+    },
+  },
+};
+```
+
+5. Migrate `cache.cacheDirectory`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     storage: {
++       type: "filesystem",
++       directory: path.join(__dirname, "node_modules/.cache/test")
++     }
+    },
+  },
+};
+```
+
+Sample migration code:
+
+```javascript
+function transform(webpackConfig, rspackConfig) {
+  rspackConfig.experiments = rspackConfig.experiments || {};
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
+  }
+  // 1. if using disable cache, just set `experiments.cache` = false
+  if (!webpackConfig.cache) {
+    rspackConfig.experiments.cache = false;
+    return;
+  }
+  // 2. if using memory cache, just set `experiments.cache` = true
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.experiments.cache = true;
+    return;
+  }
+  // 3. using persistent cache, set `experiments.cache` = { type: "persistent" }
+  rspackConfig.experiments.cache = { type: 'persistent' };
+  // 4. building `experiments.cache` from webpack config
+  rspackConfig.experiments.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
+  ).flat();
+  rspackConfig.experiments.cache.version = [
+    webpackConfig.cache.name,
+    webpackConfig.cache.version,
+  ].join();
+  rspackConfig.experiments.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+  rspackConfig.experiments.cache.storage = {
+    type: 'filesystem',
+    directory: webpackConfig.cache?.cacheDirectory,
+  };
+}
 ```

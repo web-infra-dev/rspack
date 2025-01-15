@@ -7,7 +7,7 @@ sidebar: false
 
 > August 24, 2023
 
-## Breaking Changes
+## Breaking changes
 
 In version 0.3, Rspack aligns the default CSS handling behavior with webpack when set `experiments.css = true`. This involves removing many built-in CSS transformation logic, which introduces some breaking changes. If your application previously relied on these transformation logic, please pay attention to the migration steps below.
 
@@ -60,7 +60,7 @@ module.exports = {
 };
 ```
 
-### Removal of Built-in CSS Autoprefixer Functionality
+### Removal of built-in CSS autoprefixer functionality
 
 To align better with webpack's CSS handling, Rspack removes the built-in autoprefixer functionality in 0.3. You can use `postcss-loader` to achieve `autoprefixer`.
 
@@ -89,7 +89,7 @@ module.exports = {
 
 You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/postcss-loader/rspack.config.js) for a complete example.
 
-### Access to Internal Modules Restricted
+### Access to internal modules restricted
 
 Due to the current instability of the internal module API in Rspack, directly accessing the internal modules can easily lead to breaking changes. Therefore, Rspack restricts the ability to directly access internal modules and only supports accessing Rspack's API from the root module.
 
@@ -105,9 +105,9 @@ import { Stats } from '@rspack/core/dist/stats'; // not supported since 0.3
 import { Stats } from '@rspack/core';
 ```
 
-## Major Feature Updates
+## Major feature updates
 
-### Web Workers Support
+### Web Workers support
 
 Rspack natively supports Web Workers, which means you can use Web Workers out of the box without using worker-loader. Here is how to use it:
 
@@ -120,7 +120,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 For more information about web workers support, see [web workers](/guide/features/web-workers).
 
-### `builtin:swc-loader` Support
+### `builtin:swc-loader` support
 
 Although Rspack provides many SWC compilation configuration options, these configurations are global and cannot fulfill the requirement of using different SWC transformation logic for different modules. Therefore, Rspack supports `builtin:swc-loader` to provide more fine-grained SWC transformation configuration. Compared to the JavaScript version of `swc-loader`, `builtin:swc-loader` has better performance. You can use `builtin:swc-loader` as follows:
 
@@ -161,7 +161,7 @@ module.exports = config;
 
 You can refer to [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader) for more examples. Currently, `builtin:swc-loader` still has limitations, such as not supporting Wasm plugins, etc. Rspack will continue to iterate and support more features of `builtin:swc-loader` in future versions.
 
-### Improved Profile Support
+### Improved profile support
 
 Performance optimization is a common requirement in business support. To reduce the cost of performance optimization for businesses, we have improved the experience of Rspack Profile. You can generate profile-related files for performance optimization by using the RSPACK_PROFILE environment variable.
 
@@ -180,14 +180,14 @@ Alignment with More APIs
 - `rule.use` supports functions.
 - Supports `configuration.profile`.
 
-### More Hook and Plugin Support
+### More hook and plugin support
 
 Compared to version 0.2, we have implemented more plugin APIs and made compatibility improvements for more plugins in version 0.3. At the same time, we have refined the plugin API support progress of webpack, making the support progress of plugin APIs transparent. You can track the implementation progress of plugin APIs here: [plugin-api-progress](https://github.com/orgs/web-infra-dev/projects/9).
 
-### Alignment with Webpack Architecture
+### Alignment with webpack architecture
 
 In version 0.3, we have further optimized the alignment with the webpack architecture, migrating from the original AST-based codegen architecture to the string transformation-based architecture. This alignment work further ensures that Rspack can align with more Hook APIs of webpack during the codegen stage to be compatible with more community plugins.
 
-### Rspack Ecosystem
+### Rspack ecosystem
 
 Starting from version 0.2, Rspack provides support for vue-loader. However, creating a complete Vue.js CLI solution based on vue-loader can be a complex task. To simplify the development of Vue.js applications using Rspack, we offer the [Rsbuild](https://rsbuild.dev/), which is an out-of-the-box solution. This solution helps developers easily develop Vue.js applications using Rspack.

@@ -49,6 +49,7 @@ struct NodeRef<'a> {
   pub blocks: Vec<&'a AsyncDependenciesBlock>,
 }
 
+#[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
 pub fn save_module_graph(
   partial: &ModuleGraphPartial,
   revoked_modules: &IdentifierSet,
@@ -123,6 +124,7 @@ pub fn save_module_graph(
   }
 }
 
+#[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   context: &CacheableContext,
@@ -130,9 +132,16 @@ pub async fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
-  for (_, v) in storage.load(SCOPE).await? {
-    let mut node: Node =
-      from_bytes(&v, context).expect("unexpected module graph deserialize failed");
+  let nodes: Vec<_> = storage
+    .load(SCOPE)
+    .await?
+    .into_par_iter()
+    .map(|(_, v)| {
+      from_bytes::<Node, CacheableContext>(&v, context)
+        .expect("unexpected module graph deserialize failed")
+    })
+    .collect();
+  for mut node in nodes {
     for (dep, parent_block) in node.dependencies {
       mg.set_parents(
         *dep.id(),

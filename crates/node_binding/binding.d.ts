@@ -87,6 +87,8 @@ export declare class JsChunkGroup {
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
   getFiles(): Array<string>
+  getModulePreOrderIndex(module: JsModule): number | null
+  getModulePostOrderIndex(module: JsModule): number | null
 }
 
 export declare class JsCompilation {
@@ -256,7 +258,7 @@ export declare class JsResolver {
 }
 
 export declare class JsResolverFactory {
-  constructor()
+  constructor(pnp: boolean)
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
 }
 
@@ -736,6 +738,7 @@ export interface JsLoaderContext {
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
   __internal__error?: JsRspackError
+  __internal__tracingCarrier?: Record<string, string>
 }
 
 export interface JsLoaderItem {
@@ -1297,6 +1300,7 @@ export interface RawCssExtractPluginOption {
   linkType?: string
   runtime: boolean
   pathinfo: boolean
+  enforceRelative: boolean
 }
 
 export interface RawCssGeneratorOptions {
@@ -1578,6 +1582,7 @@ export interface RawJavascriptParserOptions {
 
 export interface RawJsonParserOptions {
   exportsDepth?: number
+  parse?: (source: string) => string
 }
 
 export interface RawLazyCompilationOption {
@@ -1884,6 +1889,7 @@ export interface RawResolveOptions {
   aliasFields?: Array<string>
   restrictions?: Array<string>
   roots?: Array<string>
+  pnp?: boolean
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -1910,6 +1916,7 @@ export interface RawResolveOptionsWithDependencyType {
   roots?: Array<string>
   dependencyCategory?: string
   resolveToContext?: boolean
+  pnp?: boolean
 }
 
 export interface RawResolveTsconfigOptions {
@@ -2045,7 +2052,7 @@ export interface RawTrustedTypes {
  * Author Donny/강동윤
  * Copyright (c)
  */
-export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger", output: string): void
+export declare function registerGlobalTrace(filter: string, layer: "chrome" | "logger" | "otel", output: string): void
 
 export declare enum RegisterJsTapKind {
   CompilerThisCompilation = 0,

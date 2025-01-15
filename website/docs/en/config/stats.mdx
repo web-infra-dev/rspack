@@ -23,7 +23,7 @@ Generate packaging information that can be used to analyze module dependencies a
   ]}
 />
 
-## Stats Presets
+## Stats presets
 
 | Preset              | Description                                                    |
 | ------------------- | -------------------------------------------------------------- |
@@ -38,7 +38,7 @@ Generate packaging information that can be used to analyze module dependencies a
 
 You can specify exactly which packing information to output, all the following fields are optional.
 
-## Preset Options
+## Preset options
 
 ### stats.all
 
@@ -62,7 +62,7 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 
 Sets the [preset](/config/stats#stats-presets) for the type of information that gets displayed. It is useful for [extending stats behaviours](/config/stats#extending-stats-behaviours).
 
-## Asset Options
+## Asset options
 
 ### stats.assets
 
@@ -103,7 +103,7 @@ Exclude the matching assets information. This can be done with a string, a RegEx
 
 Whether to display information about the cached assets. Setting `stats.cachedAssets` to `false` will tell stats to only show the emitted files (not the ones that were built).
 
-## Asset Grouping Options
+## Asset grouping options
 
 ### stats.groupAssetsByChunk
 
@@ -135,7 +135,7 @@ Whether to group assets by their asset info (immutable, development, hotModuleRe
 
 Whether to group assets by their asset path.
 
-## Chunk Options
+## Chunk options
 
 ### stats.chunks
 
@@ -185,7 +185,7 @@ Sort the chunks by a given field. All of the [sorting fields](/config/stats#sort
 
 Whether to display IDs of modules and chunks.
 
-## ChunkGroup Options
+## ChunkGroup options
 
 ### stats.chunkGroups
 
@@ -222,7 +222,7 @@ Whether to display the entry points with the corresponding bundles, , see [entry
 
 When `stats.entrypoints` is set to `'auto'`, Rspack will decide automatically whether to display the entry points in the stats output.
 
-## Module Options
+## Module options
 
 ### stats.modules
 
@@ -321,7 +321,7 @@ Whether to display information about modules nested in other modules (like with 
 
 How many items of nested modules should be displayed (groups will be collapsed to fit this space).
 
-## Module Grouping Options
+## Module grouping options
 
 ### stats.groupModulesByAttributes
 
@@ -365,7 +365,7 @@ Whether to group modules by their layer.
 
 Group reasons by their origin module to avoid large set of reasons.
 
-## Optimization Options
+## Optimization options
 
 ### stats.providedExports
 
@@ -385,7 +385,7 @@ Whether to display which exports of a module are used.
 
 Whether to display the reasons why optimization bailed out for modules.
 
-## Error/Warning Options
+## Error/Warning options
 
 ### stats.errors
 
@@ -435,7 +435,7 @@ Whether to display the warnings count.
 
 How many lines should a warning be displayed.
 
-## Logging Options
+## Logging options
 
 ### stats.logging
 
@@ -482,7 +482,7 @@ Whether to output in the different colors.
 
 Defaults to `true` when executing `rspack build` in an environment that supports color output.
 
-## Compilation Options
+## Compilation options
 
 ### stats.hash
 

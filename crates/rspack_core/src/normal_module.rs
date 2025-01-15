@@ -312,6 +312,7 @@ impl NormalModule {
     &mut self.presentational_dependencies
   }
 
+  #[tracing::instrument("NormalModule:build_hash")]
   fn init_build_hash(
     &self,
     output_options: &OutputOptions,
@@ -399,6 +400,11 @@ impl Module for NormalModule {
     }
   }
 
+  #[tracing::instrument("NormalModule:build", skip_all, fields(
+    module.resource = self.resource_resolved_data().resource.as_str(),
+    module.identifier = self.identifier().as_str(),
+    module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
+  )]
   async fn build(
     &mut self,
     build_context: BuildContext,
@@ -626,7 +632,7 @@ impl Module for NormalModule {
     })
   }
 
-  #[tracing::instrument(name = "NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

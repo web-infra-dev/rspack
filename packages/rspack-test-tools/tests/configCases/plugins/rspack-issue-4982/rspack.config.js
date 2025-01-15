@@ -1,4 +1,4 @@
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 const path = require("path");
 const assert = require("assert");
 

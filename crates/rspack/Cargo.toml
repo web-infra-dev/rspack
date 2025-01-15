@@ -8,14 +8,39 @@ version     = "0.2.0"
 
 [dependencies]
 bitflags     = { workspace = true }
+enum-tag     = { workspace = true }
 indexmap     = { workspace = true, features = ["rayon"] }
 regex        = { workspace = true }
 rspack_core  = { workspace = true }
 rspack_hash  = { workspace = true }
+rspack_ids   = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rustc-hash   = { workspace = true }
 serde_json   = { workspace = true }
+
+rspack_plugin_asset                   = { workspace = true }
+rspack_plugin_css                     = { workspace = true }
+rspack_plugin_devtool                 = { workspace = true }
+rspack_plugin_ensure_chunk_conditions = { workspace = true }
+rspack_plugin_entry                   = { workspace = true }
+rspack_plugin_externals               = { workspace = true }
+rspack_plugin_javascript              = { workspace = true }
+rspack_plugin_json                    = { workspace = true }
+rspack_plugin_library                 = { workspace = true }
+rspack_plugin_merge_duplicate_chunks  = { workspace = true }
+rspack_plugin_no_emit_on_errors       = { workspace = true }
+rspack_plugin_real_content_hash       = { workspace = true }
+rspack_plugin_remove_empty_chunks     = { workspace = true }
+rspack_plugin_runtime                 = { workspace = true }
+rspack_plugin_runtime_chunk           = { workspace = true }
+rspack_plugin_schemes                 = { workspace = true }
+rspack_plugin_swc_js_minimizer        = { workspace = true }
+rspack_plugin_wasm                    = { workspace = true }
+rspack_plugin_worker                  = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
 
 [lints]
 workspace = true

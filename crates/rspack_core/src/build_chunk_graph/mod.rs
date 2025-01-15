@@ -8,7 +8,7 @@ use crate::{incremental::IncrementalPasses, Compilation};
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 
-#[instrument(skip_all)]
+#[instrument("Compilation:build_chunk_graph", skip_all)]
 pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
   let enable_incremental = compilation
     .incremental

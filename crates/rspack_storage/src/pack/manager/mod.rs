@@ -204,6 +204,7 @@ impl ScopeManager {
   }
 }
 
+#[tracing::instrument("Cache::Storage::update_scopes", skip_all)]
 async fn update_scopes(
   scopes: &mut ScopeMap,
   mut updates: ScopeUpdates,
@@ -243,6 +244,7 @@ async fn update_scopes(
   Ok(())
 }
 
+#[tracing::instrument("Cache::Storage::save_scopes", skip_all)]
 async fn save_scopes(
   mut scopes: ScopeMap,
   root_meta: &RootMeta,

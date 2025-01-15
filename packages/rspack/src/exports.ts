@@ -293,16 +293,41 @@ export type {
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 interface Experiments {
 	globalTrace: {
-		register: typeof registerGlobalTrace;
-		cleanup: typeof cleanupGlobalTrace;
+		register: (
+			filter: string,
+			layer: "chrome" | "logger" | "otel",
+			output: string
+		) => Promise<void>;
+		cleanup: () => Promise<void>;
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 }
 
 export const experiments: Experiments = {
 	globalTrace: {
-		register: registerGlobalTrace,
-		cleanup: cleanupGlobalTrace
+		async register(filter, layer, output) {
+			registerGlobalTrace(filter, layer, output);
+			if (layer === "otel") {
+				try {
+					const { initOpenTelemetry } = await import("@rspack/tracing");
+					await initOpenTelemetry();
+				} catch (error) {
+					console.error(
+						"Failed to import `@rspack/tracing` package. Please install `@rspack/tracing` to enable OpenTelemetry tracing.",
+						error
+					);
+				}
+			}
+		},
+		async cleanup() {
+			cleanupGlobalTrace();
+			try {
+				const { shutdownOpenTelemetry } = await import("@rspack/tracing");
+				await shutdownOpenTelemetry();
+			} catch (error) {
+				// ignore cleanup tracing error
+			}
+		}
 	},
 	RemoveDuplicateModulesPlugin
 };

@@ -9,7 +9,7 @@ import { PackageManagerTabs } from '@theme';
 
 > April 10, 2024
 
-## Major Feature Updates
+## Major feature updates
 
 ### Built-in support for mini-css-extract-plugin
 
@@ -20,7 +20,7 @@ This is very useful in some scenarios, for example when the built-in CSS parser 
 For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
 ```js
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 module.exports = {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
@@ -48,7 +48,7 @@ The basic tree shaking functionality was insufficient to meet user needs, for ex
 To address these issues, we decided to adopt a webpack-like approach, re-implementing the entire optimization process from the bottom up. In version 0.4.2, we introduced the `experiments.rspackFuture.newTreeshaking` configuration to experimentally enable the new optimization algorithm.
 After four months of bug fixing and optimization, the new tree shaking algorithm has become relatively stable. Therefore, we've decided to default-enable the new tree shaking algorithm in version 0.6.0.
 
-## Breaking Changes
+## Breaking changes
 
 ### Remove experiments.rspackFuture.disableApplyEntryLazily
 
@@ -56,7 +56,7 @@ The `experiments.rspackFuture.disableApplyEntryLazily` option has been enabled b
 
 ### Remove compiler.build and compiler.rebuild
 
-`compiler.build` and `compiler.rebuild` are not part of the Webpack public API and have now been removed.
+`compiler.build` and `compiler.rebuild` are not part of the webpack public API and have now been removed.
 
 ### Remove builtins.css and introduce CSS related module.parser and module.generator options
 
@@ -120,7 +120,7 @@ module.exports = {
 };
 ```
 
-## Migration Guide
+## Migration guide
 
 ### Apply rspack.CssExtractRspackPlugin
 

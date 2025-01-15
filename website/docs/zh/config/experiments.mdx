@@ -72,6 +72,9 @@ module.exports = {
 
 ## experiments.futureDefaults
 
+- **类型：** `boolean`
+- **默认值：** `false`
+
 使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
 
 ```js title="rspack.config.js"
@@ -83,6 +86,9 @@ module.exports = {
 ```
 
 ## experiments.topLevelAwait
+
+- **类型：** `boolean`
+- **默认值：** `true`
 
 开启打包 [Top-level await](https://github.com/tc39/proposal-top-level-await) 的支持，`Top-level await` 仅能在 [ModuleType](/config/module#ruletype) 为 `javascript/esm` 的模块中使用。
 
@@ -107,17 +113,24 @@ type LazyCompilationOptions =
   | {
       backend?: {
         /**
-         * A custom client.
+         * 自定义客户端脚本路径。
          */
         client?: string;
         /**
-         * Specify where to listen to from the server.
+         * 指定从服务器监听的端口或选项。
          */
-        listen?: number | ListenOptions;
+        listen?: number | ListenOptions | ((server: Server) => void);
         /**
-         * Specify the protocol the client should use to connect to the server.
+         * 指定客户端使用的协议。
          */
         protocol?: 'http' | 'https';
+        /**
+         * 指定如何创建处理 EventSource 请求的服务器。
+         */
+        server?:
+          | ServerOptionsImport<typeof IncomingMessage>
+          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+          | (() => Server);
       };
       /**
        * 为 entries 启用 lazy compilation
@@ -182,7 +195,7 @@ type ListenOptions = {
 如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
 
 ```ts
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 
 const options = {
   experiments: {
@@ -365,11 +378,15 @@ type ExperimentCacheOptions =
     };
 ```
 
-控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [全局cache](/config/cache) 为 `true` 才有效。
+控制实验性的缓存行为，此配置依赖全局开启缓存，需配置 [config.cache](/config/cache) 为 `true` 才有效。
+
+:::info title="Note"
+production 模式下 `config.cache` 默认值为 `false`，这会导致此配置项失效，建议直接配置 `config.cache` 为 `true`。
+:::
 
 ### 禁用缓存
 
-可以配置 `experiment.cache` 为 `false` 来禁用缓存，此时与配置 [全局cache](/config/cache) 为 `false` 没有差别。
+可以配置 `experiment.cache` 为 `false` 来禁用缓存，这与配置 [config.cache](/config/cache) 为 `false` 没有差别。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -440,6 +457,15 @@ module.exports = {
 
 缓存数据的版本，不同版本缓存相互隔离。
 
+:::tip title="持久化缓存失效"
+
+除了 [buildDependencies](#cachebuilddependencies) 和 [version](#cacheversion) 配置会影响持久化缓存失效，Rspack 还会在以下字段变化时使持久化缓存失效。
+
+- [config.name](/config/other-options#name)
+- [config.mode](/config/mode#mode)
+
+:::
+
 #### cache.snapshot
 
 配置快照策略，Snapshot 用于在热启动时判断哪些文件在停机时被修改。支持以下配置:
@@ -489,4 +515,151 @@ module.exports = {
     },
   },
 };
+```
+
+:::tip
+Rspack 会在 `storage.directory` 目录下基于 [config.name](/config/other-options#name)，[config.mode](/config/mode#mode)，[buildDependencies](#cachebuilddependencies)中的文件内容 和 [version](#cacheversion) 生成缓存文件夹。
+
+Rspack 会在启动时自动清理掉过长时间（7 天）没有访问的缓存文件夹。
+:::
+
+### 从 webpack config 迁移
+
+Rspack cache 配置与 webpack cache 配置的用法存在差异， 你可以参考以下步骤对 webpack cache 配置进行迁移。
+
+1. 根据 webpack 缓存类型，设置 Rspack 缓存类型，持久化缓存继续后续步骤，其他类型缓存到这一步即可。
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: true,
++ experiments: {
++   cache: {
++     type: 'persistent',
++   },
++ },
+};
+```
+
+2. 迁移 `cache.buildDependencies`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, "package.json")],
+-     ts: [path.join(__dirname, "tsconfig.json")]
+-   }
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     buildDependencies: [
++       __filename,
++       path.join(__dirname, "package.json"),
++       path.join(__dirname, "tsconfig.json")
++     ]
+    },
+  },
+};
+```
+
+3. 迁移 `cache.version` & `cache.name`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
+    },
+  },
+};
+```
+
+4. 迁移 `snapshot`
+
+```diff title="rspack.config.js"
+module.exports = {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, "constant")],
+-   managedPaths: [path.join(__dirname, "node_modules")],
+-   unmanagedPaths: []
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     snapshot: {
++       immutablePaths: [path.join(__dirname, "constant")],
++       managedPaths: [path.join(__dirname, "node_modules")],
++       unmanagedPaths: []
++     }
+    },
+  },
+};
+```
+
+5. 迁移 `cache.cacheDirectory`
+
+```diff title="rspack.config.js"
+module.exports = {
+- cache: {
+-   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
+- },
+  experiments: {
+    cache: {
+      type: "persistent",
++     storage: {
++       type: "filesystem",
++       directory: path.join(__dirname, "node_modules/.cache/test")
++     }
+    },
+  },
+};
+```
+
+示例代码:
+
+```javascript
+function transform(webpackConfig, rspackConfig) {
+  rspackConfig.experiments = rspackConfig.experiments || {};
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
+  }
+  // 1. 如果使用禁用缓存，则直接配置 `experiments.cache` 为 `false`
+  if (webpackConfig.cache === false) {
+    rspackConfig.experiments.cache = false;
+    return;
+  }
+  // 2. 如果使用内存缓存，则直接配置 `experiments.cache` 为 `true`
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.experiments.cache = true;
+    return;
+  }
+  // 3. 持久化缓存 配置 `experiments.cache` 为 `{ type: "persistent" }`
+  rspackConfig.experiments.cache = { type: 'persistent' };
+  // 4. 从 webpack 配置中构建 `experiments.cache` 其他配置
+  rspackConfig.experiments.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
+  ).flat();
+  rspackConfig.experiments.cache.version = [
+    webpackConfig.cache.name,
+    webpackConfig.cache.version,
+  ].join();
+  rspackConfig.experiments.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+  rspackConfig.experiments.cache.storage = {
+    type: 'filesystem',
+    directory: webpackConfig.cache?.cacheDirectory,
+  };
+}
 ```

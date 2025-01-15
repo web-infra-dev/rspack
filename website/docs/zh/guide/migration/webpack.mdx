@@ -69,7 +69,7 @@ Rspack 正在积极推动 webpack 的下一个版本的功能，因此在部分�
 
 查阅[配置 Rspack](/config/index) 来了解 Rspack 支持的所有配置。
 
-## Webpack 内置插件
+## webpack 内置插件
 
 Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 webpack 保持一致，你可以非常轻松地替换它们。
 
@@ -77,7 +77,7 @@ Rspack 实现了大部分 webpack 内置插件，其命名和参数配置与 web
 
 ```diff title="rspack.config.js"
 - const webpack = require('webpack');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   //...
@@ -104,7 +104,7 @@ Rspack 支持大部分 webpack 社区插件，并为暂不支持的插件提供�
 
 ```diff title="rspack.config.js"
 - const CopyWebpackPlugin = require('copy-webpack-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [
@@ -122,7 +122,7 @@ module.exports = {
 
 ```diff title="rspack.config.js"
 - const CssExtractWebpackPlugin = require('mini-css-extract-plugin');
-+ const rspack = require('@rspack/core');
++ const { rspack } = require('@rspack/core');
 
 module.exports = {
   plugins: [
@@ -180,7 +180,7 @@ module.exports = {
 
 ## Loader
 
-Rspack 已实现了与 Webpack 功能完全对齐的 loader 执行器，支持绝大多数 webpack loader，因此你可以直接使用现有的 loader 而无需修改。不过，为了获得最佳性能，我们仍建议进行以下迁移：
+Rspack 已实现了与 webpack 功能完全对齐的 loader 执行器，支持绝大多数 webpack loader，因此你可以直接使用现有的 loader 而无需修改。不过，为了获得最佳性能，我们仍建议进行以下迁移：
 
 ### [babel-loader](https://github.com/babel/babel-loader) / [swc-loader](https://swc.rs/docs/usage/swc-loader) → builtin:swc-loader
 

@@ -117,7 +117,7 @@ impl From<&ChunkLoading> for &str {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
   Jsonp,
   ImportScripts,
@@ -173,7 +173,7 @@ impl From<&str> for WasmLoading {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,

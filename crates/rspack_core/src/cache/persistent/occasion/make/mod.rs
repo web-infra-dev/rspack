@@ -1,4 +1,3 @@
-mod dependencies;
 mod meta;
 mod module_graph;
 
@@ -7,7 +6,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 
 use super::super::{cacheable_context::CacheableContext, Storage};
-use crate::make::MakeArtifact;
+use crate::{make::MakeArtifact, FileCounter};
 
 #[derive(Debug)]
 pub struct MakeOccasion {
@@ -20,15 +19,10 @@ impl MakeOccasion {
     Self { storage, context }
   }
 
-  #[tracing::instrument(name = "MakeOccasion::save", skip_all)]
+  #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
   pub fn save(&self, artifact: &MakeArtifact) {
     let MakeArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
-      // for dependencies
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      build_dependencies,
       // for module graph
       module_graph_partial,
       revoked_modules,
@@ -38,17 +32,14 @@ impl MakeOccasion {
       make_failed_module,
       // skip
       entry_dependencies: _,
+      file_dependencies: _,
+      context_dependencies: _,
+      missing_dependencies: _,
+      build_dependencies: _,
       initialized: _,
       has_module_graph_change: _,
       diagnostics: _,
     } = artifact;
-    dependencies::save_dependencies_info(
-      file_dependencies,
-      context_dependencies,
-      missing_dependencies,
-      build_dependencies,
-      &self.storage,
-    );
 
     module_graph::save_module_graph(
       module_graph_partial,
@@ -61,19 +52,12 @@ impl MakeOccasion {
     meta::save_meta(make_failed_dependencies, make_failed_module, &self.storage);
   }
 
-  #[tracing::instrument(name = "MakeOccasion::recovery", skip_all)]
+  #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
   pub async fn recovery(&self) -> Result<MakeArtifact> {
     let mut artifact = MakeArtifact::default();
 
     // TODO can call recovery with multi thread
     // TODO return DeserializeError not panic
-    let (file_dependencies, context_dependencies, missing_dependencies, build_dependencies) =
-      dependencies::recovery_dependencies_info(&self.storage).await?;
-    artifact.file_dependencies = file_dependencies;
-    artifact.context_dependencies = context_dependencies;
-    artifact.missing_dependencies = missing_dependencies;
-    artifact.build_dependencies = build_dependencies;
-
     let (make_failed_dependencies, make_failed_module) = meta::recovery_meta(&self.storage).await?;
     artifact.make_failed_dependencies = make_failed_dependencies;
     artifact.make_failed_module = make_failed_module;
@@ -87,6 +71,25 @@ impl MakeOccasion {
 
     // TODO remove it after code splitting support incremental rebuild
     artifact.has_module_graph_change = true;
+
+    // regenerate statistical data
+    let mut file_dep = FileCounter::default();
+    let mut context_dep = FileCounter::default();
+    let mut missing_dep = FileCounter::default();
+    let mut build_dep = FileCounter::default();
+    for (_, module) in artifact.get_module_graph().modules() {
+      if let Some(build_info) = module.build_info() {
+        file_dep.add_batch_file(&build_info.file_dependencies);
+        context_dep.add_batch_file(&build_info.context_dependencies);
+        missing_dep.add_batch_file(&build_info.missing_dependencies);
+        build_dep.add_batch_file(&build_info.build_dependencies);
+      }
+    }
+    artifact.file_dependencies = file_dep;
+    artifact.context_dependencies = context_dep;
+    artifact.missing_dependencies = missing_dep;
+    artifact.build_dependencies = build_dep;
+    artifact.reset_dependencies_incremental_info();
 
     Ok(artifact)
   }

@@ -397,7 +397,7 @@ module.exports = {
       // The environment supports ECMAScript Module syntax to import ECMAScript modules (import ... from '...').
       module: false,
       // Determines if the node: prefix is generated for core module imports in environments that support it.
-      // This is only applicable to Webpack runtime code.
+      // This is only applicable to webpack runtime code.
       nodePrefixForCoreModules: false,
       // The environment supports optional chaining ('obj?.a' or 'obj?.()').
       optionalChaining: true,
@@ -498,11 +498,11 @@ Note this option is called filename but you are still allowed to use something l
 
 Note this option does not affect output files for on-demand-loaded chunks. It only affects output files that are initially loaded. For on-demand-loaded chunk files, the [`output.chunkFilename`](#outputchunkfilename) option is used. Files created by loaders also aren't affected. In this case, you would have to try the specific loader's available options.
 
-## Template String
+## Template string
 
 The template string below can be used to replace the corresponding file name. Different contexts correspond to different replaceable content, e.g. [output.assetModuleFilename](/config/output#outputassetmodulefilename) supports the use of [File Context](/config/output#file-context) and [Module Context](/config/output#module-context).
 
-### Compilation Context
+### Compilation context
 
 Content that can be replaced at the compilation level.
 
@@ -510,7 +510,7 @@ Content that can be replaced at the compilation level.
 | ------------ | ------------------------ |
 | `[fullhash]` | full hash of compilation |
 
-### Chunk Context
+### Chunk context
 
 Content that can be replaced at the chunk level.
 
@@ -521,7 +521,7 @@ Content that can be replaced at the chunk level.
 | `[chunkhash]`   | The hash value of the chunk, computed from all elements of type in the current chunk                                                                                                                                                      |
 | `[contenthash]` | The hash value of the chunk, computed from the elements that contain only the content of that type. For example, if a module of type JavaScript is generated, only the hash of all JavaScript-typed modules in the current chunk is used. |
 
-### Module Context
+### Module context
 
 Content that can be replaced at the module level.
 
@@ -531,7 +531,7 @@ Content that can be replaced at the module level.
 | `[hash]`        | The hash of the module |
 | `[contenthash]` | hash of module content |
 
-### File Context
+### File context
 
 Content that can be replaced at the file level.
 
@@ -890,7 +890,7 @@ Configure how the library will be exposed.
 
 For the following examples, we'll use `_entry_return_` to indicate the values returned by the entry point.
 
-#### Expose a Variable
+#### Expose a variable
 
 These options assign the return value of the entry point (e.g. whatever the entry point exported) to the name provided by [`output.library.name`](#outputlibraryname) at whatever scope the bundle was included at.
 
@@ -971,7 +971,7 @@ export function hello(name) {
 MyLibrary.hello('World');
 ```
 
-#### Expose Via Object Assignment
+#### Expose via object assignment
 
 These options assign the return value of the entry point (e.g. whatever the entry point exported) to a specific object under the name defined by [`output.library.name`](#outputlibraryname).
 
@@ -1069,7 +1069,7 @@ require('MyLibrary').doSomething();
 Note that not setting a `output.library.name` will cause all properties returned by the entry point to be assigned to the given object; there are no checks against existing property names.
 :::
 
-#### Module Definition Systems
+#### Module definition systems
 
 These options will result in a bundle that comes with a complete header to ensure compatibility with various module systems. The `output.library.name` option will take on a different meaning under the following `output.library.type` options.
 
@@ -1358,7 +1358,7 @@ System.register(
 );
 ```
 
-#### Other Types
+#### Other types
 
 **type: 'jsonp'**
 

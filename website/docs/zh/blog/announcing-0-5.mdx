@@ -245,7 +245,7 @@ class CustomDevServer {
 之前，在 Rspack 中添加额外的入口，需要将其添加到 `compiler.options.entry` 中，但现在需要调用 `EntryPlugin`。
 
 ```diff
-const rspack = require('@rspack/core');
+const { rspack } = require('@rspack/core');
 const compiler = rspack(options);
 
 function prependEntry(compiler, additionalEntry) {

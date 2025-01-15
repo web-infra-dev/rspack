@@ -1,6 +1,6 @@
 use rspack_core::Context;
 
-pub type Target = Vec<String>;
+pub type Targets = Vec<String>;
 
 #[derive(Debug, Default)]
 pub struct TargetProperties {
@@ -158,7 +158,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
       }
 
       if has_true || has_false {
-        result.$field = (has_false && has_true).then_some(has_true);
+        result.$field = (!(has_false && has_true)).then_some(has_true);
       }
     }};
   }

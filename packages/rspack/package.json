@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.2.0-alpha.0",
+  "version": "1.2.0-beta.0",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -68,7 +68,8 @@
     "webpack-dev-server": "5.0.4",
     "webpack-sources": "3.2.3",
     "zod": "^3.23.8",
-    "zod-validation-error": "3.4.0"
+    "zod-validation-error": "3.4.0",
+    "@rspack/tracing": "workspace:*"
   },
   "dependencies": {
     "@module-federation/runtime-tools": "0.8.4",
@@ -77,10 +78,14 @@
     "caniuse-lite": "^1.0.30001616"
   },
   "peerDependencies": {
-    "@swc/helpers": ">=0.5.1"
+    "@swc/helpers": ">=0.5.1",
+    "@rspack/tracing": "^1.x"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {
+      "optional": true
+    },
+    "@rspack/tracing": {
       "optional": true
     }
   }

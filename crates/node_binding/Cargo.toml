@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 plugin = ["rspack_binding_values/plugin"]
 
 [dependencies]
+anyhow                   = { workspace = true }
 ropey                    = { workspace = true }
 rspack_allocator         = { workspace = true }
 rspack_binding_values    = { workspace = true }
@@ -31,9 +32,10 @@ rspack_util              = { workspace = true }
 
 rspack_tracing = { workspace = true }
 
-async-trait = { workspace = true }
-cow-utils   = { workspace = true }
-tracing     = { workspace = true }
+async-trait        = { workspace = true }
+cow-utils          = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 napi        = { workspace = true }
 napi-derive = { workspace = true }

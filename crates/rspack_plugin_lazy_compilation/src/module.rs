@@ -1,7 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use cow_utils::CowUtils;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
@@ -45,6 +45,8 @@ pub(crate) struct LazyCompilationProxyModule {
 
   pub active: bool,
   pub data: String,
+  /// The client field will be refreshed when rspack restart, so this field does not support caching
+  #[cacheable(with=Unsupported)]
   pub client: String,
 }
 
@@ -181,7 +183,7 @@ impl Module for LazyCompilationProxyModule {
     })
   }
 
-  #[tracing::instrument(name = "LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
+  // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   fn code_generation(
     &self,
     compilation: &Compilation,

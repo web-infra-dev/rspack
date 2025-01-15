@@ -484,7 +484,7 @@ fn get_exports_type_impl(
           }
         }
       }
-      // algin to undefined
+      // align to undefined
       BuildMetaExportsType::Unset => {
         if strict {
           ExportsType::DefaultWithNamed

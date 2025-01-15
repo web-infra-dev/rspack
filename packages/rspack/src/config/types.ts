@@ -3,6 +3,7 @@ import type * as webpackDevServer from "webpack-dev-server";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
+import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
 
 export type FilenameTemplate = string;
@@ -798,6 +799,8 @@ export type ResolveOptions = {
 
 	/** Customize the Resolve configuration based on the module type. */
 	byDependency?: Record<string, ResolveOptions>;
+	/** enable yarn pnp */
+	pnp?: boolean;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -1073,6 +1076,10 @@ export type JsonParserOptions = {
 	 * The depth of json dependency flagged as `exportInfo`.
 	 */
 	exportsDepth?: number;
+	/**
+	 * If Rule.type is set to 'json' then Rules.parser.parse option may be a function that implements custom logic to parse module's source and convert it to a json-compatible data.
+	 */
+	parse?: (source: string) => any;
 };
 
 /** Configure all parsers' options in one place with module.parser. */
@@ -2078,7 +2085,11 @@ export type OptimizationRuntimeChunk =
 			name?: string | ((value: { name: string }) => string);
 	  };
 
-export type OptimizationSplitChunksNameFunction = (module?: Module) => unknown;
+export type OptimizationSplitChunksNameFunction = (
+	module: Module,
+	chunks: Chunk[],
+	cacheGroupKey: string
+) => string | undefined;
 
 type OptimizationSplitChunksName =
 	| string
@@ -2405,64 +2416,13 @@ export type RspackFutureOptions = {
 };
 
 /**
- * Options for server listening.
- */
-type ListenOptions = {
-	/**
-	 * The port to listen on.
-	 */
-	port?: number;
-	/**
-	 * The host to listen on.
-	 */
-	host?: string;
-	/**
-	 * The backlog of connections.
-	 */
-	backlog?: number;
-	/**
-	 * The path for Unix socket.
-	 */
-	path?: string;
-	/**
-	 * Whether the server is exclusive.
-	 */
-	exclusive?: boolean;
-	/**
-	 * Whether the socket is readable by all users.
-	 */
-	readableAll?: boolean;
-	/**
-	 * Whether the socket is writable by all users.
-	 */
-	writableAll?: boolean;
-	/**
-	 * Whether to use IPv6 only.
-	 */
-	ipv6Only?: boolean;
-};
-
-/**
  * Options for lazy compilation.
  */
 export type LazyCompilationOptions = {
 	/**
 	 * Backend configuration for lazy compilation.
 	 */
-	backend?: {
-		/**
-		 * Client script path.
-		 */
-		client?: string;
-		/**
-		 * Listening options.
-		 */
-		listen?: number | ListenOptions;
-		/**
-		 * Protocol to use.
-		 */
-		protocol?: "http" | "https";
-	};
+	backend?: LazyCompilationDefaultBackendOptions;
 	/**
 	 * Enable lazy compilation for imports.
 	 */
@@ -2567,19 +2527,23 @@ export type Experiments = {
 	cache?: ExperimentCacheOptions;
 	/**
 	 * Enable lazy compilation.
+	 * @default false
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
 	/**
 	 * Enable async WebAssembly.
 	 * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
+	 * @default false
 	 */
 	asyncWebAssembly?: boolean;
 	/**
 	 * Enable output as ES module.
+	 * @default false
 	 */
 	outputModule?: boolean;
 	/**
 	 * Enable top-level await.
+	 * @default true
 	 */
 	topLevelAwait?: boolean;
 	/**
@@ -2606,6 +2570,7 @@ export type Experiments = {
 	incremental?: boolean | Incremental;
 	/**
 	 * Enable future default options.
+	 * @default false
 	 */
 	futureDefaults?: boolean;
 	/**

@@ -300,16 +300,65 @@ pub struct CssAutoParserOptions {
   pub named_exports: Option<bool>,
 }
 
+impl From<CssParserOptions> for CssAutoParserOptions {
+  fn from(value: CssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
 }
 
+impl From<CssParserOptions> for CssModuleParserOptions {
+  fn from(value: CssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+    }
+  }
+}
+
+pub type JsonParseFn = Arc<dyn Fn(String) -> Result<String> + Sync + Send>;
+
+#[cacheable]
+pub enum ParseOption {
+  Func(#[cacheable(with=Unsupported)] JsonParseFn),
+  None,
+}
+
+impl Debug for ParseOption {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Func(_) => write!(f, "ParseOption::Func(...)"),
+      _ => write!(f, "ParseOption::None"),
+    }
+  }
+}
+
+impl Clone for ParseOption {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Func(f) => Self::Func(f.clone()),
+      Self::None => Self::None,
+    }
+  }
+}
+
+impl MergeFrom for ParseOption {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct JsonParserOptions {
   pub exports_depth: Option<u32>,
+  pub parse: ParseOption,
 }
 
 #[derive(Debug, Default)]
@@ -415,6 +464,14 @@ pub struct AssetInlineGeneratorOptions {
   pub data_url: Option<AssetGeneratorDataUrl>,
 }
 
+impl From<AssetGeneratorOptions> for AssetInlineGeneratorOptions {
+  fn from(value: AssetGeneratorOptions) -> Self {
+    Self {
+      data_url: value.data_url,
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
@@ -422,6 +479,17 @@ pub struct AssetResourceGeneratorOptions {
   pub filename: Option<Filename>,
   pub output_path: Option<Filename>,
   pub public_path: Option<PublicPath>,
+}
+
+impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
+  fn from(value: AssetGeneratorOptions) -> Self {
+    Self {
+      emit: value.emit,
+      filename: value.filename,
+      output_path: value.output_path,
+      public_path: value.public_path,
+    }
+  }
 }
 
 #[cacheable]
@@ -514,7 +582,7 @@ pub struct CssGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssAutoGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
@@ -522,13 +590,33 @@ pub struct CssAutoGeneratorOptions {
   pub es_module: Option<bool>,
 }
 
+impl From<CssGeneratorOptions> for CssAutoGeneratorOptions {
+  fn from(value: CssGeneratorOptions) -> Self {
+    Self {
+      exports_only: value.exports_only,
+      es_module: value.es_module,
+      ..Default::default()
+    }
+  }
+}
+
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
+}
+
+impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: CssGeneratorOptions) -> Self {
+    Self {
+      exports_only: value.exports_only,
+      es_module: value.es_module,
+      ..Default::default()
+    }
+  }
 }
 
 #[cacheable]

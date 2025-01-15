@@ -2,7 +2,7 @@
 
 exports[`config config/builtin-lightningcss-loader/basic-include exported tests should transform css correct 1`] = `
 body {
-  & ._-_6ec1c834ac8cc99e-used {
+  & .-_6ec1c834ac8cc99e-used {
     color: #00f;
   }
 }

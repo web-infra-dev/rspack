@@ -1,5 +1,5 @@
 const path = require("path");
-const rspack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 const CHILD_ID = "child";
 const CHILD_FILENAME = "./child";

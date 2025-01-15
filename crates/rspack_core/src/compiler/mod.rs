@@ -91,10 +91,14 @@ impl Compiler {
         debug_info.with_context(options.context.to_string());
       }
     }
-    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
-    let output_filesystem = output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+    let pnp = options.resolve.pnp.unwrap_or(false);
+    // pnp is only meaningful for input_filesystem, so disable it for intermediate_filesystem and output_filesystem
+    let input_filesystem = input_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
+
+    let output_filesystem =
+      output_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
     let intermediate_filesystem =
-      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem {}));
+      intermediate_filesystem.unwrap_or_else(|| Arc::new(NativeFileSystem::new(false)));
 
     let resolver_factory = resolver_factory.unwrap_or_else(|| {
       Arc::new(ResolverFactory::new(
@@ -159,7 +163,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "build", skip_all)]
+  #[instrument("Compiler:build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
@@ -198,7 +202,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "compile", skip_all)]
+  #[instrument("Compiler:compile", skip_all)]
   async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
     // FOR BINDING SAFETY:
@@ -271,7 +275,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "compile_done", skip_all)]
+  #[instrument("Compile:done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
@@ -294,7 +298,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "emit_assets", skip_all)]
+  #[instrument("emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
     self.run_clean_options().await?;
 

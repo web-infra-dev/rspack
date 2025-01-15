@@ -13,7 +13,7 @@ import PropertyType from '@components/PropertyType';
 
 The `entry` configuration is used to set the entry module for Rspack builds.
 
-## Single Entry
+## Single entry
 
 If you are building a single page application or a library, you will usually only need to set up a single entry point.
 
@@ -35,7 +35,7 @@ module.exports = {
 };
 ```
 
-### Path Type
+### Path type
 
 The path of the entry module can be a relative path or an absolute path.
 
@@ -51,7 +51,7 @@ module.exports = {
 };
 ```
 
-### Entry Array
+### Entry array
 
 When setting the value of an entry, in addition to setting it to `string`, you can also pass in a `string[]`, meaning that the entry contains multiple entry modules.
 
@@ -67,7 +67,7 @@ module.exports = {
 
 Multiple modules will be executed sequentially according to the order defined by the array, so the code in `pre.js` will be executed before the code in `post.js`.
 
-## Multiple Entries
+## Multiple entries
 
 If you need to build multiple entries at once, you should set `entry` to an object, and each key of the object corresponds to an entry name.
 
@@ -82,7 +82,7 @@ module.exports = {
 };
 ```
 
-### Entry Description Object
+### Entry description object
 
 When you set `entry` to an object, you can set the value of the entry to a description object. A description object can contain the following properties:
 

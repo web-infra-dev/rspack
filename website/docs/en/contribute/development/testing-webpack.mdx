@@ -1,6 +1,6 @@
-# Testing Webpack
+# Testing webpack
 
-## Testing Webpack Cases
+## Testing webpack cases
 
 > **Note**: The `tests/webpack-test` is heavily based on [webpack/test](https://github.com/webpack/webpack/tree/main/test)
 
@@ -29,18 +29,18 @@ module.exports = () => {
 
 or delete the `test.filter.js`
 
-## Testing Webpack Plugins Cases
+## Testing webpack plugins cases
 
-Based on implementation differences and performance considerations, Rspack will integrate some Webpack plugins internally. The test suite for the plugins will also be copied to the `tests/plugin-test` folder for testing plugin compatibility.
+Based on implementation differences and performance considerations, Rspack will integrate some webpack plugins internally. The test suite for the plugins will also be copied to the `tests/plugin-test` folder for testing plugin compatibility.
 
 Therefore, in order to maintain consistency with the original repository, it is not recommended to modify these test cases, except in the following scenarios:
 
-- When a new Webpack plugin is integrated into Rspack, the test cases for that plugin need to be copied.
-- When there are differences between the artifacts of Rspack and Webpack (e.g., different hashes), some test cases may need modification.
+- When a new webpack plugin is integrated into Rspack, the test cases for that plugin need to be copied.
+- When there are differences between the artifacts of Rspack and webpack (e.g., different hashes), some test cases may need modification.
 
 In scenarios other than those mentioned above, please follow the [Rspack Testing](./testing-rspack) guidelines for adding test cases.
 
-### Running Tests
+### Running tests
 
 You can run these test cases in the following ways:
 
@@ -49,7 +49,7 @@ You can run these test cases in the following ways:
 - To update snapshots, run `npm run test -- -u` in the `tests/plugin-test` directory.
 - To pass specific jest cli parameters, run `npm run test -- {args}` in the `tests/plugin-test` directory.
 
-### Adding Test Cases
+### Adding test cases
 
 1. Create a `tests/plugin-test/{plugin-name}` folder and copy the test cases for that plugin into the folder.
 2. Adapt the test configuration in `tests/plugin-test/jest.config.js`. If there are special configurations, follow the process below:

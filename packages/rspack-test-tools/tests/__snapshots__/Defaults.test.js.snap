@@ -465,6 +465,7 @@ Object {
     modules: Array [
       node_modules,
     ],
+    pnp: false,
     roots: Array [
       <TEST_TOOLS_ROOT>,
     ],

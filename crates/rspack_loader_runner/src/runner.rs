@@ -25,6 +25,11 @@ impl<Context> LoaderContext<Context> {
   }
 }
 
+// #[tracing::instrument("LoaderRunner:process_resource",
+//   skip_all,
+//   fields(module.resource = loader_context.resource_data.resource),
+//   level = "trace"
+// )]
 async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
@@ -103,10 +108,11 @@ async fn create_loader_context<Context>(
   Ok(loader_context)
 }
 
+#[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
-  plugins: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
+  plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<TWithDiagnosticArray<LoaderResult>> {
@@ -115,7 +121,7 @@ pub async fn run_loaders<Context: Send>(
     .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
 
-  let mut cx = create_loader_context(loaders, resource_data, plugins, context).await?;
+  let mut cx = create_loader_context(loaders, resource_data, plugin, context).await?;
 
   loop {
     match cx.state {
@@ -439,7 +445,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()
@@ -457,7 +463,7 @@ mod test {
       rs.clone(),
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()
@@ -541,7 +547,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {}),
+      Arc::new(NativeFileSystem::new(false)),
     )
     .await
     .unwrap();
@@ -608,7 +614,7 @@ mod test {
       rs,
       Some(Arc::new(TestContentPlugin)),
       (),
-      Arc::new(NativeFileSystem {})
+      Arc::new(NativeFileSystem::new(false))
     )
     .await
     .err()

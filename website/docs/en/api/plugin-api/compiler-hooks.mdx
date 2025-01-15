@@ -6,7 +6,7 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 import Columns from '@components/Columns';
 import { NoSSR } from 'rspress/runtime';
 
-# Compiler Hooks
+# Compiler hooks
 
 ## Overview
 
@@ -423,6 +423,24 @@ Called after `done` hook.
 Called if the compilation fails.
 
 - **Type:** `SyncHook<[Error]>`
+
+## `invalid`
+
+Executed when a watching compilation has been invalidated. This hook is not copied to child compilers.
+
+- **Type:** `SyncHook<[string | null, number]>`
+- **Arguments:**
+
+  - `fileName`: the file path of the invalid file
+  - `changeTime`: the change time of the invalid file
+
+When triggering a re-compilation, this hook can be used to get the changed file path and change time, for example:
+
+```ts
+compiler.hooks.invalid.tap('MyPlugin', (fileName, changeTime) => {
+  console.log(`Changed file: ${fileName}, change time: ${changeTime}`);
+});
+```
 
 ## `watchClose`
 

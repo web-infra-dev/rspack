@@ -3,7 +3,7 @@ import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/module-methods/" />
 
-# Module Methods
+# Module methods
 
 This section covers all methods available in code compiled with Rspack. When using Rspack to bundle your application, you can pick from a variety of module syntax styles including [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html).
 
@@ -17,7 +17,7 @@ Actually Rspack would enforce the recommendation for `.mjs` files, `.cjs` files 
 - `.cjs` or `.js` with "type": "commonjs" in package.json
   - Neither import nor export is available
 
-## ES modules (Recommended)
+## ES modules (recommended)
 
 Rspack support ES modules syntax natively, you can use static `import`, `export` and `import()` syntax.
 
@@ -99,7 +99,7 @@ import(`./locale/${language}.json`).then(module => {
 });
 ```
 
-#### Magic Comments
+#### Magic comments
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
@@ -360,7 +360,7 @@ if (module.hot) {
 }
 ```
 
-## Data URI Module
+## Data URI module
 
 Rspack supports importing Data URI modules using the `import` and `require` syntax.
 
