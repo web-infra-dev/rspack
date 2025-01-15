@@ -1,7 +1,6 @@
 use std::future::Future;
 use std::sync::Arc;
 
-use futures::future::BoxFuture;
 use rayon::iter::ParallelIterator;
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -23,7 +22,7 @@ pub trait RayonFutureConsumer {
 impl<I, Fut> RayonFutureConsumer for I
 where
   I: ParallelIterator<Item = Fut> + Send,
-  Fut: Future + Send,
+  Fut: Future + Send + 'static,
   Fut::Output: Send + 'static,
 {
   type Item = Fut::Output;
@@ -37,11 +36,6 @@ where
       let (tx, rx) = unbounded_channel::<Self::Item>();
       let tx = Arc::new(tx);
       self.consume(|fut| {
-        let boxed_fut: BoxFuture<Fut::Output> = Box::pin(fut);
-        // SAFETY: We will send results to channel and process all data using func param,
-        // therefore all `tokio::spawn` will complete before fut_consume finish, and we can pass any lifecycle fut to `tokio::spawn`.
-        // This unsafe transmute is used to workaround the `tokio::spawn` lifecycle check.
-        let fut: BoxFuture<'static, Fut::Output> = unsafe { std::mem::transmute(boxed_fut) };
         let tx = tx.clone();
         tokio::spawn(async move {
           let data = fut.await;

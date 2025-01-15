@@ -1,7 +1,6 @@
 use std::future::Future;
 use std::sync::Arc;
 
-use futures::future::BoxFuture;
 use tokio::sync::mpsc::unbounded_channel;
 
 /// Tools for consume iterator which return future.
@@ -20,7 +19,7 @@ pub trait FutureConsumer {
 impl<I, Fut> FutureConsumer for I
 where
   I: Iterator<Item = Fut> + Send,
-  Fut: Future + Send,
+  Fut: Future + Send + 'static,
   Fut::Output: Send + 'static,
 {
   type Item = Fut::Output;
@@ -34,11 +33,6 @@ where
       let (tx, rx) = unbounded_channel::<Self::Item>();
       let tx = Arc::new(tx);
       self.for_each(|fut| {
-        let boxed_fut: BoxFuture<Fut::Output> = Box::pin(fut);
-        // SAFETY: We will send results to channel and process all data using func param,
-        // therefore all `tokio::spawn` will complete before fut_consume finish, and we can pass any lifecycle fut to `tokio::spawn`.
-        // This unsafe transmute is used to workaround the `tokio::spawn` lifecycle check.
-        let fut: BoxFuture<'static, Fut::Output> = unsafe { std::mem::transmute(boxed_fut) };
         let tx = tx.clone();
         tokio::spawn(async move {
           let data = fut.await;
