@@ -9,7 +9,7 @@ pub struct Options {
   pub page_path: String,
   pub app_dir: String,
   pub app_paths: Option<Vec<String>>,
-  // preferredRegion: string | string[] | undefined
+  pub preferred_region: Option<String>,
   pub page_extensions: Vec<String>,
   pub base_path: String,
   pub next_config_output_path: Option<String>,

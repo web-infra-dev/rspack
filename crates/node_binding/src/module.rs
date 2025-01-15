@@ -10,7 +10,7 @@ use rspack_core::{
   SourceType,
 };
 use rspack_napi::{
-  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, JsonExt, OneShotInstanceRef,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
@@ -358,22 +358,14 @@ impl JsModule {
     })
   }
 
-  #[napi(getter)]
-  pub fn build_info(&mut self, env: Env) -> napi::Result<JsObject> {
+  #[napi(getter, ts_return_type = "Record<string, any>")]
+  pub fn build_info(&mut self, env: Env) -> napi::Result<Unknown> {
     let module = self.as_ref()?;
-
-    let mut object = env.create_object()?;
     if let Some(build_info) = module.build_info() {
-      for (key, value) in build_info.extra.iter() {
-        match value {
-          JsonValue::String(s) => {
-            object.set_named_property(key, s)?;
-          }
-          _ => (),
-        }
-      }
+      build_info.extra.to_js(env)
+    } else {
+      Ok(env.create_object()?.into_unknown())
     }
-    Ok(object)
   }
 }
 
