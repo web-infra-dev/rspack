@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod create_tree_code_from_path;
 mod load_entrypoint;
 mod options;
@@ -12,6 +14,7 @@ use rspack_error::{error, Result};
 use rspack_loader_runner::{Identifiable, Identifier};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxIndexMap;
+use util::{normalize_app_path, normalize_underscore};
 
 pub use crate::options::Options;
 
@@ -57,6 +60,7 @@ impl NextAppLoader {
     } = serde_querystring::from_str::<Options>(options, serde_querystring::ParseMode::Duplicate)
       .map_err(|e| error!(e.to_string()))?;
     let page = name.strip_prefix("app").unwrap_or(&name);
+    let app_paths = app_paths.unwrap_or_default();
     let middleware_config = json::parse(
       &String::from_utf8(
         base64_simd::STANDARD
@@ -84,12 +88,14 @@ impl NextAppLoader {
       .insert("route", json::JsonValue::Object(route));
 
     let project_root = Utf8PathBuf::from(project_root);
+    let pathname = normalize_app_path(page);
+    let pathname = normalize_underscore(&pathname);
     let code = load_next_js_template(
       "app-page.js",
       &project_root,
       FxIndexMap::from_iter([
         ("VAR_DEFINITION_PAGE", page.to_string()),
-        // ("VAR_DEFINITION_PATHNAME", pathname),
+        ("VAR_DEFINITION_PATHNAME", pathname),
         // ("VAR_MODULE_GLOBAL_ERROR", treeCodeResult.globalError),
       ]),
       FxIndexMap::from_iter([
