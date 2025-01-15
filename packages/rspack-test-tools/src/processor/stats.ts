@@ -13,7 +13,9 @@ import type {
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
 export interface IStatsProcessorOptions<T extends ECompilerType>
-	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {}
+	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
+	snapshotName?: string;
+}
 
 const REG_ERROR_CASE = /error$/;
 
@@ -25,6 +27,7 @@ export class StatsProcessor<
 	T extends ECompilerType
 > extends MultiTaskProcessor<T> {
 	private stderr: any;
+	private snapshotName?: string;
 	constructor(_statsOptions: IStatsProcessorOptions<T>) {
 		super({
 			defaultOptions: StatsProcessor.defaultOptions<T>,
@@ -32,6 +35,7 @@ export class StatsProcessor<
 			runable: false,
 			..._statsOptions
 		});
+		this.snapshotName = _statsOptions.snapshotName;
 	}
 
 	async before(context: ITestContext) {
@@ -158,7 +162,12 @@ export class StatsProcessor<
 				// CHANGE: The time unit display in Rspack is second
 				.replace(/[.0-9]+(\s?s)/g, "X$1");
 		}
-		env.expect(new RspackStats(actual)).toMatchSnapshot();
+
+		if (this.snapshotName) {
+			env.expect(new RspackStats(actual)).toMatchSnapshot(this.snapshotName);
+		} else {
+			env.expect(new RspackStats(actual)).toMatchSnapshot();
+		}
 		const testConfig = context.getTestConfig();
 		if (typeof testConfig?.validate === "function") {
 			testConfig.validate(stats, this.stderr.toString());

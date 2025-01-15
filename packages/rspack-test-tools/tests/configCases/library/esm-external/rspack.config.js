@@ -7,6 +7,7 @@ module.exports = {
 		chunkFormat: "module",
 		filename: "bundle0.mjs"
 	},
+	node: false,
 	experiments: {
 		outputModule: true,
 	},

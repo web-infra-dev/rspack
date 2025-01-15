@@ -366,7 +366,8 @@ export const getNormalizedRspackOptions = (
 							emitAssets: true
 						} satisfies Incremental)
 					: options
-			)
+			),
+			parallelCodeSplitting: experiments.parallelCodeSplitting
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -603,6 +604,7 @@ export interface ExperimentsNormalized {
 	css?: boolean;
 	layers?: boolean;
 	incremental?: false | Incremental;
+	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
 }

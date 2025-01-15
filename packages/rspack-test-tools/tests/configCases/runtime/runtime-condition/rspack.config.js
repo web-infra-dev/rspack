@@ -16,6 +16,7 @@ module.exports = {
 	output: {
 		filename: "[id].js",
 	},
+	node: false,
 	optimization: {
 		chunkIds: "named",
 		moduleIds: "named",
