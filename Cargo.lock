@@ -4805,6 +4805,7 @@ dependencies = [
  "futures",
  "glob",
  "heck 0.5.0",
+ "json",
  "napi",
  "napi-build",
  "napi-derive",

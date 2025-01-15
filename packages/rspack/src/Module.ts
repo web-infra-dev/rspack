@@ -196,11 +196,9 @@ export type ContextModuleFactoryAfterResolveResult =
 
 const MODULE_MAPPINGS = new WeakMap<JsModule, Module>();
 
-const BUILD_INFO_MAPPINGS = new Map<string, Record<string, any>>();
-const BUILD_META_MAPPINGS = new Map<string, Record<string, any>>();
-
 export class Module {
 	#inner: JsModule;
+
 	#identifier: string | undefined;
 	#constructorName: string | undefined;
 	#type: string | undefined;
@@ -255,19 +253,9 @@ export class Module {
 
 	constructor(module: JsModule) {
 		this.#inner = module;
-		if (BUILD_INFO_MAPPINGS.has(this.#inner.moduleIdentifier)) {
-			this.buildInfo = BUILD_INFO_MAPPINGS.get(this.#inner.moduleIdentifier)!;
-		} else {
-			this.buildInfo = {};
-			BUILD_INFO_MAPPINGS.set(this.#inner.moduleIdentifier, this.buildInfo)!;
-		}
 
-		if (BUILD_META_MAPPINGS.has(this.#inner.moduleIdentifier)) {
-			this.buildMeta = BUILD_META_MAPPINGS.get(this.#inner.moduleIdentifier)!;
-		} else {
-			this.buildMeta = {};
-			BUILD_META_MAPPINGS.set(this.#inner.moduleIdentifier, this.buildMeta)!;
-		}
+		this.buildInfo = module.buildInfo;
+		this.buildMeta = {};
 
 		Object.defineProperties(this, {
 			constructorName: {

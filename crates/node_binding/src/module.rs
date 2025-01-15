@@ -1,6 +1,7 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
-use napi::JsString;
+use json::JsonValue;
+use napi::{JsObject, JsString};
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -355,6 +356,24 @@ impl JsModule {
       }
       None => Either::B(()),
     })
+  }
+
+  #[napi(getter)]
+  pub fn build_info(&mut self, env: Env) -> napi::Result<JsObject> {
+    let module = self.as_ref()?;
+
+    let mut object = env.create_object()?;
+    if let Some(build_info) = module.build_info() {
+      for (key, value) in build_info.extra.iter() {
+        match value {
+          JsonValue::String(s) => {
+            object.set_named_property(key, s)?;
+          }
+          _ => (),
+        }
+      }
+    }
+    Ok(object)
   }
 }
 

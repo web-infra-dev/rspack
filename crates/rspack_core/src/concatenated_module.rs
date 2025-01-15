@@ -8,6 +8,7 @@ use std::{
 
 use dashmap::DashMap;
 use indexmap::IndexMap;
+use json::object::Object;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
@@ -563,6 +564,7 @@ impl Module for ConcatenatedModule {
       json_data: Default::default(),
       top_level_declarations: Some(Default::default()),
       module_concatenation_bailout: Default::default(),
+      extra: Object::new(),
     };
     self.clear_diagnostics();
 

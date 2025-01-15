@@ -244,6 +244,7 @@ export declare class JsModule {
   get resourceResolveData(): JsResourceData | null
   get matchResource(): string | null
   get loaders(): Array<string> | undefined
+  get buildInfo(): object
 }
 
 export declare class JsModuleGraph {

@@ -4,11 +4,10 @@ use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use json::JsonValue;
-use rspack_cacheable::with::AsPreset;
+use json::{object::Object, JsonValue};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsVec},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
@@ -68,6 +67,9 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+  // Used solely for communication with the build info on the JavaScript side
+  #[cacheable(with=AsPreset)]
+  pub extra: Object,
 }
 
 impl Default for BuildInfo {
@@ -86,6 +88,7 @@ impl Default for BuildInfo {
       json_data: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      extra: Object::new(),
     }
   }
 }

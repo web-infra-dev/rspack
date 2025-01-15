@@ -101,6 +101,7 @@ rspack_plugin_warn_sensitive_module    = { workspace = true }
 rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
+json                                   = { workspace = true }
 
 
 [build-dependencies]
