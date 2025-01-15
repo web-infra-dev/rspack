@@ -271,8 +271,10 @@ export class Module {
 				get(): string | undefined {
 					return module.userRequest;
 				},
-				set(val: string) {
-					module.userRequest = val;
+				set(val: string | undefined) {
+					if (val) {
+						module.userRequest = val;
+					}
 				}
 			},
 			rawRequest: {
