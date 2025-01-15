@@ -418,16 +418,13 @@ impl NormalModuleFactory {
         let rule_use = match &rule.r#use {
           ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
-            let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
             let context = FuncUseCtx {
               // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
-              resource: resource_data_for_rules
-                .resource_path
-                .as_ref()
-                .map(|x| x.to_string()),
-              resource_query: resource_data_for_rules.resource_query.clone(),
-              real_resource: resource_data.resource_path.as_ref().map(|p| p.to_string()),
+              // resource shouldn't contain query otherwise it will cause duplicate query in https://github.com/unjs/unplugin/blob/62fdc5ae361d86a6ec39eaef5d8f01e12c6a794d/src/utils.ts#L58
+              resource: resource_data.resource_path.clone().map(|x| x.to_string()),
+              real_resource: Some(user_request.clone()),
               issuer: data.issuer.clone(),
+              resource_query: resource_data.resource_query.clone(),
             };
             Cow::Owned(func_use(context).await?)
           }
@@ -689,7 +686,7 @@ impl NormalModuleFactory {
     &self,
     module_type: &ModuleType,
     parser: Option<ParserOptions>,
-    mut generator: Option<GeneratorOptions>,
+    generator: Option<GeneratorOptions>,
   ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
     let global_parser = self.options.module.parser.as_ref().and_then(|p| {
       let options = p.get(module_type.as_str());
@@ -787,38 +784,21 @@ impl NormalModuleFactory {
         (global, _) => global,
       },
     );
-
-    {
-      let module_type = module_type.as_str();
-      for (index, c) in module_type.as_bytes().iter().enumerate() {
-        if *c == b'/' || index == module_type.len() - 1 {
-          let current = &module_type[..index];
-          let global_generator = self
-            .options
-            .module
-            .generator
-            .as_ref()
-            .and_then(|g| g.get(current).cloned());
-
-          generator = rspack_util::merge_from_optional_with(
-            global_generator,
-            generator.as_ref(),
-            |global, local| match (&global, local) {
-              (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
-              | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
-              | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
-              | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
-              | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-              | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
-                global.merge_from(local)
-              }
-              _ => global,
-            },
-          );
+    let generator = rspack_util::merge_from_optional_with(
+      global_generator,
+      generator.as_ref(),
+      |global, local| match (&global, local) {
+        (GeneratorOptions::Asset(_), GeneratorOptions::Asset(_))
+        | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
+        | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
+        | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
+        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
+          global.merge_from(local)
         }
-      }
-    }
-
+        _ => global,
+      },
+    );
     (parser, generator)
   }
 
