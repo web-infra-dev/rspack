@@ -4639,6 +4639,7 @@ dependencies = [
  "async-trait",
  "base64-simd 0.8.0",
  "cow-utils",
+ "futures",
  "json",
  "lazy-regex",
  "regex",
