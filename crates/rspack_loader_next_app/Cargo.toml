@@ -29,3 +29,6 @@ serde-querystring        = "0.2.0"
 serde_json               = { workspace = true }
 sugar_path               = { workspace = true }
 tokio                    = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["rspack_plugin_javascript", "rspack_swc_plugin_import", "rspack_ast"]
