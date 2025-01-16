@@ -1,6 +1,6 @@
 use napi::{
   bindgen_prelude::{FromNapiValue, Function, ToNapiValue, TypeName, ValidateNapiValue},
-  Env, JsObject, NapiRaw, NapiValue,
+  Env, JsObject, JsString, NapiRaw, NapiValue,
 };
 
 use crate::RspackRegex;
@@ -26,19 +26,8 @@ impl FromNapiValue for RspackRegex {
 
     let env = Env::from(env);
     let global = env.get_global()?;
-    let object_prototype_to_string = global
-      .get_named_property_unchecked::<JsObject>("Object")?
-      .get_named_property::<JsObject>("prototype")?
-      .get_named_property::<Function>("toString")?;
-
-    let js_string = object_prototype_to_string
-      .apply(&js_object, env.get_undefined()?.into_unknown())?
-      // .call_without_args(Some(&js_object))?
-      .coerce_to_string()?
-      .into_utf8()?;
-    let js_object_type = js_string.as_str()?;
-
-    if js_object_type == "[object RegExp]" {
+    let reg_exp = global.get_named_property::<Function<'_, (JsString, JsString)>>("RegExp")?;
+    if js_object.instanceof(reg_exp)? {
       let source = js_object.get_named_property::<String>("source")?;
       let flags = js_object.get_named_property::<String>("flags")?;
 
@@ -47,10 +36,7 @@ impl FromNapiValue for RspackRegex {
     } else {
       Err(napi::Error::new(
         napi::Status::ObjectExpected,
-        format!(
-          "Expect value to be '[object RegExp]', but received {}",
-          js_object_type
-        ),
+        format!("Expected value to be a RegExp object"),
       ))
     }
   }
