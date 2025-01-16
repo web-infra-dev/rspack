@@ -6,7 +6,15 @@ use rspack_util::{
 };
 use sugar_path::SugarPath;
 
-fn next_js_template_path(package_root: &Utf8Path) -> Utf8PathBuf {
+fn templates_folder(package_root: &Utf8Path) -> Utf8PathBuf {
+  package_root
+    .join("next")
+    .join("dist")
+    .join("build")
+    .join("templates")
+}
+
+fn templates_esm_folder(package_root: &Utf8Path) -> Utf8PathBuf {
   package_root
     .join("next")
     .join("dist")
@@ -22,13 +30,12 @@ pub async fn load_next_js_template(
   injections: FxIndexMap<&'static str, String>,
   imports: FxIndexMap<&'static str, Option<String>>,
 ) -> Result<String> {
-  let path = next_js_template_path(package_root).join(path);
+  let template_folder = templates_folder(package_root);
+  let path = templates_esm_folder(package_root).join(path);
 
   let content = tokio::fs::read_to_string(&path)
     .await
     .map_err(|e| error!(e))?;
-
-  let parent_path = path.parent().expect("should have parent path");
 
   fn replace_all<E>(
     re: &regex::Regex,
@@ -59,7 +66,7 @@ pub async fn load_next_js_template(
     count += 1;
     let is_from_request = !from_request.is_empty();
 
-    let imported = parent_path.join(if is_from_request {
+    let imported = template_folder.join(if is_from_request {
       from_request
     } else {
       import_request
