@@ -10,13 +10,14 @@ mod util;
 
 use std::path::MAIN_SEPARATOR;
 
+use create_tree_code_from_path::{create_tree_code_from_path, TreeCodeResult};
 use load_entrypoint::load_next_js_template;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Loader, LoaderContext, RunnerContext};
 use rspack_error::{error, Result};
 use rspack_loader_runner::{Identifiable, Identifier};
 use rspack_paths::Utf8PathBuf;
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, json_stringify};
 use util::{normalize_app_path, normalize_underscore};
 
 pub use crate::options::Options;
@@ -90,6 +91,29 @@ impl NextAppLoader {
       .extra
       .insert("route", json::JsonValue::Object(route));
 
+    let mut collected_declarations = vec![];
+
+    let TreeCodeResult {
+      code: tree_code,
+      pages,
+      root_layout,
+      global_error,
+    } = create_tree_code_from_path(
+      &page_path,
+      page,
+      loader_context,
+      &page_extensions,
+      &base_path,
+      &app_dir,
+      &app_paths,
+      &mut collected_declarations,
+    )
+    .await?;
+
+    if root_layout.is_none() {
+      panic!("root_layout is None");
+    }
+
     let project_root = Utf8PathBuf::from(project_root);
     let pathname = normalize_app_path(page);
     let pathname = normalize_underscore(&pathname);
@@ -99,11 +123,11 @@ impl NextAppLoader {
       FxIndexMap::from_iter([
         ("VAR_DEFINITION_PAGE", page.to_string()),
         ("VAR_DEFINITION_PATHNAME", pathname),
-        // ("VAR_MODULE_GLOBAL_ERROR", treeCodeResult.globalError),
+        ("VAR_MODULE_GLOBAL_ERROR", global_error),
       ]),
       FxIndexMap::from_iter([
-        ("tree", "".to_string()),
-        ("pages", "".to_string()),
+        ("tree", tree_code),
+        ("pages", pages),
         ("__next_app_require__", "__webpack_require__".to_string()),
         (
           "__next_app_load_chunk__",
@@ -114,7 +138,19 @@ impl NextAppLoader {
     )
     .await?;
 
-    loader_context.finish_with("true".to_string());
+    let mut all_code = collected_declarations
+      .into_iter()
+      .map(|(var_name, path)| {
+        format!(
+          "const {var_name} = () => import(/* webpackMode: \"eager\" */ {});\n",
+          json_stringify(&path)
+        )
+      })
+      .collect::<Vec<_>>()
+      .join("");
+    all_code += code.as_str();
+
+    loader_context.finish_with(all_code);
 
     Ok(())
   }

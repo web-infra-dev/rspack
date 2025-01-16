@@ -43,7 +43,7 @@ fn ensure_leading_slash(path: &str) -> String {
   }
 }
 
-fn is_group_segment(segment: &str) -> bool {
+pub fn is_group_segment(segment: &str) -> bool {
   segment.starts_with('(') && segment.ends_with(')')
 }
 

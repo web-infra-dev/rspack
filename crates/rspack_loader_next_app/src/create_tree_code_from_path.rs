@@ -1,22 +1,40 @@
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::{
+  collections::HashSet,
+  path::{Path, PathBuf, MAIN_SEPARATOR},
+};
 
-use regex::Regex;
 use rspack_core::{LoaderContext, RunnerContext};
 use rspack_error::{error, error_bail as bail, Result};
+use rspack_util::{
+  fx_hash::{BuildFxHasher, FxIndexMap},
+  json_stringify,
+};
+
+use crate::util::is_group_segment;
 
 const DEFAULT_GLOBAL_ERROR_PATH: &str = "next/dist/client/components/error-boundary";
 const DEFAULT_LAYOUT_PATH: &str = "next/dist/client/components/default-layout";
+const DEFAULT_NOT_FOUND_PATH: &str = "next/dist/client/components/not-found-error";
+const DEFAULT_FORBIDDEN_PATH: &str = "next/dist/client/components/forbidden-error";
+const DEFAULT_UNAUTHORIZED_PATH: &str = "next/dist/client/components/unauthorized-error";
+const DEFAULT_PARALLEL_ROUTE_PATH: &str = "next/dist/client/components/parallel-route-default";
 
 const APP_DIR_ALIAS: &str = "private-next-app-dir";
 const PAGE_SEGMENT: &str = "page$";
 const PARALLEL_CHILDREN_SEGMENT: &str = "children$";
+const UNDERSCORE_NOT_FOUND_ROUTE: &str = "/_not-found";
 const UNDERSCORE_NOT_FOUND_ROUTE_ENTRY: &str = "/_not-found/page";
+const PAGE_SEGMENT_KEY: &str = "__PAGE__";
+const DEFAULT_SEGMENT_KEY: &str = "__DEFAULT__";
+
+const HTTP_ACCESS_FALLBACKS: [&str; 3] = ["not-found", "forbidden", "unauthorized"];
+const NORMAL_FILE_TYPES: [&str; 5] = ["layout", "template", "error", "loading", "global-error"];
 
 pub struct TreeCodeResult {
-  code: String,
-  pages: String,
-  root_layout: Option<String>,
-  global_error: String,
+  pub code: String,
+  pub pages: String,
+  pub root_layout: Option<String>,
+  pub global_error: String,
 }
 
 pub async fn create_tree_code_from_path(
@@ -25,6 +43,8 @@ pub async fn create_tree_code_from_path(
   loader_context: &mut LoaderContext<RunnerContext>,
   page_extensions: &[String],
   base_path: &str,
+  app_dir: &str,
+  app_paths: &[String],
   collected_declarations: &mut Vec<(String, String)>,
 ) -> Result<TreeCodeResult> {
   let is_not_found_route = page == UNDERSCORE_NOT_FOUND_ROUTE_ENTRY;
@@ -34,30 +54,40 @@ pub async fn create_tree_code_from_path(
   } else {
     page_path.split_once('/').map(|i| i.0).unwrap_or(page_path)
   };
+  let mut pages = vec![];
 
   let mut root_layout = None;
   let mut global_error = None;
-  let tree_code = create_subtree_props_from_segment_path(
+  let mut tree_code = create_subtree_props_from_segment_path(
     vec![],
     collected_declarations,
     app_dir_prefix,
     base_path,
     is_default_not_found,
+    is_not_found_route,
     page_extensions,
+    app_paths,
+    app_dir,
+    loader_context,
+    &mut pages,
     &mut root_layout,
     &mut global_error,
   )
   .await?;
+  tree_code += ".children;";
+
+  let mut pages = json_stringify(&pages);
+  pages += ";";
 
   Ok(TreeCodeResult {
     code: tree_code,
-    pages: String::new(),
+    pages,
     root_layout,
     global_error: global_error.unwrap_or(DEFAULT_GLOBAL_ERROR_PATH.to_string()),
   })
 }
 
-pub fn is_app_builtin_not_found_page(page: &str) -> bool {
+fn is_app_builtin_not_found_page(page: &str) -> bool {
   let re = lazy_regex::regex!(r"next[\\/]dist[\\/]client[\\/]components[\\/]not-found-error");
   re.is_match(page)
 }
@@ -73,14 +103,14 @@ fn create_absolute_path(app_dir: &str, path_to_turn_absolute: &str) -> String {
 
 async fn metadata_resolver(
   dirname: &str,
-  loader_context: &mut LoaderContext<RunnerContext>,
   filename: &str,
-  exts: Vec<&str>,
+  exts: &[String],
   app_dir: &str,
-) -> Option<String> {
+) -> (Option<String>, HashSet<PathBuf, BuildFxHasher>) {
   let absolute_dir = create_absolute_path(app_dir, dirname);
 
   let mut result: Option<String> = None;
+  let mut missing_dependencies = HashSet::default();
 
   for ext in exts {
     // Compared to `resolver` above the exts do not have the `.` included already, so it's added here.
@@ -96,20 +126,17 @@ async fn metadata_resolver(
     }
     // Call `add_missing_dependency` for all files even if they didn't match,
     // because they might be added or removed during development.
-    loader_context
-      .missing_dependencies
-      .insert(PathBuf::from(absolute_path_with_extension));
+    missing_dependencies.insert(PathBuf::from(absolute_path_with_extension));
   }
 
-  result
+  (result, missing_dependencies)
 }
 
 async fn resolver(
   pathname: &str,
-  loader_context: &mut LoaderContext<RunnerContext>,
   app_dir: &str,
-  extensions: Vec<&str>,
-) -> Option<String> {
+  extensions: &[String],
+) -> (Option<String>, HashSet<PathBuf, BuildFxHasher>) {
   let absolute_path = create_absolute_path(app_dir, pathname);
 
   let filename_index = absolute_path.rfind(std::path::MAIN_SEPARATOR).unwrap_or(0);
@@ -117,6 +144,7 @@ async fn resolver(
   let filename = &absolute_path[filename_index + 1..];
 
   let mut result: Option<String> = None;
+  let mut missing_dependencies = HashSet::default();
 
   for ext in extensions {
     let absolute_path_with_extension = format!("{}.{}", absolute_path, ext);
@@ -126,12 +154,10 @@ async fn resolver(
     }
     // Call `add_missing_dependency` for all files even if they didn't match,
     // because they might be added or removed during development.
-    loader_context
-      .missing_dependencies
-      .insert(PathBuf::from(absolute_path_with_extension));
+    missing_dependencies.insert(PathBuf::from(absolute_path_with_extension));
   }
 
-  result
+  (result, missing_dependencies)
 }
 
 async fn file_exists_in_directory(dirname: &str, filename: &str) -> bool {
@@ -142,6 +168,7 @@ async fn file_exists_in_directory(dirname: &str, filename: &str) -> bool {
     .unwrap_or(false)
 }
 
+#[derive(Debug)]
 enum Segments<'a> {
   Children(&'a str),
   ParallelRoute(&'a str, Vec<&'a str>),
@@ -149,7 +176,7 @@ enum Segments<'a> {
 
 fn resolve_parallel_segments<'a>(
   pathname: &str,
-  app_paths: Vec<&'a str>,
+  app_paths: &'a [String],
 ) -> Result<Vec<Segments<'a>>> {
   let mut matched: Vec<Segments> = Vec::new();
   let mut matched_children_index: Option<usize> = None;
@@ -245,266 +272,323 @@ async fn is_directory(path: &str) -> bool {
     .unwrap_or(false)
 }
 
+fn normalize_parallel_key(key: &str) -> &str {
+  key.strip_prefix('@').unwrap_or(key)
+}
+
+#[async_recursion::async_recursion]
 async fn create_subtree_props_from_segment_path(
   segments: Vec<&str>,
   nested_collected_declarations: &mut Vec<(String, String)>,
   app_dir_prefix: &str,
   base_path: &str,
   is_default_not_found: bool,
+  is_not_found_route: bool,
   page_extensions: &[String],
+  app_paths: &[String],
+  app_dir: &str,
+  loader_context: &mut LoaderContext<RunnerContext>,
+  pages: &mut Vec<String>,
   root_layout: &mut Option<String>,
   global_error: &mut Option<String>,
 ) -> Result<String> {
   let segment_path = segments.join("/");
-  todo!()
 
-  // let mut props: HashMap<String, String> = HashMap::new();
-  // let is_root_layer = segments.is_empty();
-  // let is_root_layout_or_root_page = segments.len() <= 1;
+  let mut props: FxIndexMap<&str, String> = Default::default();
+  let is_root_layer = segments.is_empty();
+  let is_root_layout_or_root_page = segments.len() <= 1;
 
-  // let mut parallel_segments: Vec<(String, String)> = vec![];
-  // if is_root_layer {
-  //   parallel_segments.push(("children".to_string(), "".to_string()));
-  // } else {
-  //   parallel_segments.extend(resolve_parallel_segments(&segment_path));
-  // }
+  let mut parallel_segments: Vec<Segments> = vec![];
+  if is_root_layer {
+    parallel_segments.push(Segments::Children(""));
+  } else {
+    parallel_segments.extend(resolve_parallel_segments(&segment_path, app_paths)?);
+  }
 
   // let mut metadata: Option<Metadata> = None;
-  // let router_dir_path = format!("{}{}", app_dir_prefix, segment_path);
-  // let resolved_route_dir = if is_default_not_found {
-  //   "".to_string()
-  // } else {
-  //   resolve_dir(&router_dir_path).await.unwrap_or_default()
-  // };
+  let router_dir_path = format!("{}{}", app_dir_prefix, segment_path);
+  let resolved_route_dir = if is_default_not_found {
+    "".to_string()
+  } else {
+    create_absolute_path(app_dir, &router_dir_path)
+  };
 
-  // if !resolved_route_dir.is_empty() {
-  //   metadata = Some(
-  //     create_static_metadata_from_route(
-  //       &resolved_route_dir,
-  //       base_path,
-  //       &segment_path,
-  //       metadata_resolver,
-  //       is_root_layout_or_root_page,
-  //       &page_extensions,
-  //     )
-  //     .await?,
-  //   );
-  // }
+  if !resolved_route_dir.is_empty() {
+    // metadata = Some(
+    //   create_static_metadata_from_route(
+    //     &resolved_route_dir,
+    //     base_path,
+    //     &segment_path,
+    //     metadata_resolver,
+    //     is_root_layout_or_root_page,
+    //     &page_extensions,
+    //   )
+    //   .await?,
+    // );
+  }
 
-  // for (parallel_key, parallel_segment) in parallel_segments {
-  //   if parallel_segment == PAGE_SEGMENT {
-  //     let matched_page_path = format!(
-  //       "{}{}{}",
-  //       app_dir_prefix,
-  //       segment_path,
-  //       if parallel_key == "children" {
-  //         ""
-  //       } else {
-  //         &format!("/{}", parallel_key)
-  //       }
-  //     );
+  for segment in parallel_segments {
+    if matches!(segment, Segments::Children(PAGE_SEGMENT)) {
+      let matched_page_path = format!("{}{}/page", app_dir_prefix, segment_path);
 
-  //     if let Some(resolved_page_path) = resolver(&matched_page_path).await {
-  //       pages.push(resolved_page_path.clone());
+      let (resolved_page_path, missing_dependencies) =
+        resolver(&matched_page_path, app_dir, page_extensions).await;
+      loader_context
+        .missing_dependencies
+        .extend(missing_dependencies);
+      if let Some(resolved_page_path) = resolved_page_path {
+        pages.push(resolved_page_path.clone());
 
-  //       let var_name = format!("page{}", nested_collected_declarations.len());
-  //       nested_collected_declarations.push((var_name.clone(), resolved_page_path.clone()));
+        let var_name = format!("page{}", nested_collected_declarations.len());
+        nested_collected_declarations.push((var_name.clone(), resolved_page_path.clone()));
 
-  //       props.insert(
-  //         normalize_parallel_key(&parallel_key),
-  //         format!(
-  //           "['{}', {}, {{ page: [{}, {}], {} }}]",
-  //           PAGE_SEGMENT_KEY,
-  //           "{}",
-  //           var_name,
-  //           serde_json::to_string(&resolved_page_path)?,
-  //           create_metadata_exports_code(metadata.as_ref())
-  //         ),
-  //       );
-  //       continue;
-  //     }
-  //   }
+        props.insert(
+          "children",
+          format!(
+            "['{}', {{}}, {{\npage: [{}, {}], {}\n}}]",
+            PAGE_SEGMENT_KEY,
+            var_name,
+            json_stringify(&resolved_page_path),
+            // create_metadata_exports_code(metadata.as_ref())
+            "",
+          ),
+        );
+        continue;
+      }
+    }
 
-  //   let mut sub_segment_path = segments.clone();
-  //   if parallel_key != "children" {
-  //     sub_segment_path.push(&parallel_key);
-  //   }
+    let mut sub_segment_path = segments.clone();
+    if let Segments::ParallelRoute(parallel_key, _) = segment {
+      sub_segment_path.push(parallel_key);
+    }
 
-  //   let normalized_parallel_segment =
-  //     if parallel_segment == PAGE_SEGMENT || parallel_segment == PARALLEL_CHILDREN_SEGMENT {
-  //       parallel_segment
-  //     } else {
-  //       sub_segment_path.push(&parallel_segment);
-  //       parallel_segment
-  //     };
+    let normalized_parallel_segment: &str = match &segment {
+      Segments::Children(s) => s,
+      Segments::ParallelRoute(parallel_key, s) => &s[0],
+    };
 
-  //   let parallel_segment_path = sub_segment_path.join("/");
+    if normalized_parallel_segment != PAGE_SEGMENT
+      && normalized_parallel_segment != PARALLEL_CHILDREN_SEGMENT
+    {
+      sub_segment_path.push(normalized_parallel_segment);
+    }
 
-  //   let file_paths: Vec<_> = futures::future::join_all(FILE_TYPES.iter().map(|file| async {
-  //     let resolved_path = resolver(&format!(
-  //       "{}{}{}",
-  //       app_dir_prefix,
-  //       if parallel_segment_path.ends_with('/') {
-  //         &parallel_segment_path
-  //       } else {
-  //         &format!("{}/", parallel_segment_path)
-  //       },
-  //       file
-  //     ))
-  //     .await;
-  //     (file, resolved_path)
-  //   }))
-  //   .await;
+    let mut parallel_segment_path = sub_segment_path.join("/");
+    let parallel_segment_path = if parallel_segment_path.ends_with('/') {
+      parallel_segment_path
+    } else {
+      parallel_segment_path.push('/');
+      parallel_segment_path
+    };
 
-  //   let defined_file_paths: Vec<_> = file_paths
-  //     .into_iter()
-  //     .filter_map(|(file, path)| path.map(|p| (file, p)))
-  //     .collect();
+    let file_paths: Vec<_> = futures::future::join_all(
+      NORMAL_FILE_TYPES
+        .iter()
+        .chain(HTTP_ACCESS_FALLBACKS.iter())
+        .map(|file| {
+          let parallel_segment_path = &parallel_segment_path;
+          async move {
+            (
+              file,
+              resolver(
+                &format!("{}{}{}", app_dir_prefix, parallel_segment_path, file),
+                app_dir,
+                page_extensions,
+              )
+              .await,
+            )
+          }
+        }),
+    )
+    .await;
 
-  //   let existed_convention_names: HashSet<_> =
-  //     defined_file_paths.iter().map(|(type_, _)| *type_).collect();
+    let mut defined_file_paths: FxIndexMap<&str, String> =
+      FxIndexMap::from_iter(file_paths.into_iter().filter_map(
+        |(&file, (path, missing_dependencies))| {
+          loader_context
+            .missing_dependencies
+            .extend(missing_dependencies);
+          path.map(|p| (file, p))
+        },
+      ));
 
-  //   let is_first_layer_group_route =
-  //     segments.len() == 1 && sub_segment_path.iter().any(|seg| is_group_segment(seg));
+    let is_first_layer_group_route = segments.len() == 1
+      && sub_segment_path
+        .iter()
+        .filter(|seg| is_group_segment(seg))
+        .count()
+        == 1;
 
-  //   if is_root_layer || is_first_layer_group_route {
-  //     for type_ in default_http_access_fallback_paths.keys() {
-  //       let has_root_fallback_file = resolver(&format!("{}/{}", app_dir_prefix, FILE_TYPES[type_]))
-  //         .await
-  //         .is_some();
-  //       let has_layer_fallback_file = existed_convention_names.contains(type_);
+    if is_root_layer || is_first_layer_group_route {
+      for &ty in HTTP_ACCESS_FALLBACKS.iter() {
+        let (root_fallback_file, missing_dependencies) = resolver(
+          &format!("{}/{}", app_dir_prefix, ty),
+          app_dir,
+          page_extensions,
+        )
+        .await;
+        loader_context
+          .missing_dependencies
+          .extend(missing_dependencies);
+        let has_root_fallback_file = root_fallback_file.is_some();
 
-  //       if !(has_root_fallback_file && is_first_layer_group_route) && !has_layer_fallback_file {
-  //         let default_fallback_path = default_http_access_fallback_paths[type_];
-  //         defined_file_paths.push((type_, default_fallback_path));
-  //       }
-  //     }
-  //   }
+        let has_layer_fallback_file = defined_file_paths.contains_key(ty);
 
-  //   if root_layout.is_none() {
-  //     if let Some(layout_path) = defined_file_paths
-  //       .iter()
-  //       .find(|(type_, _)| *type_ == "layout")
-  //       .map(|(_, path)| path)
-  //     {
-  //       root_layout = Some(layout_path.clone());
+        if !(has_root_fallback_file && is_first_layer_group_route) && !has_layer_fallback_file {
+          let default_fallback_path = match ty {
+            "not-found" => DEFAULT_NOT_FOUND_PATH,
+            "forbidden" => DEFAULT_FORBIDDEN_PATH,
+            "unauthorized" => DEFAULT_UNAUTHORIZED_PATH,
+            _ => unreachable!(),
+          };
+          defined_file_paths.insert(ty, default_fallback_path.to_string());
+        }
+      }
+    }
 
-  //       if is_default_not_found && root_layout.is_none() {
-  //         root_layout = Some(default_layout_path.clone());
-  //         defined_file_paths.push(("layout", default_layout_path.clone()));
-  //       }
-  //     }
-  //   }
+    if root_layout.is_none() {
+      let layout_path = defined_file_paths.get("layout");
+      *root_layout = layout_path.cloned();
+      if is_default_not_found && layout_path.is_none() && root_layout.is_none() {
+        *root_layout = Some(DEFAULT_LAYOUT_PATH.to_string());
+        defined_file_paths.insert("layout", DEFAULT_LAYOUT_PATH.to_string());
+      }
+    }
 
-  //   if global_error.is_none() {
-  //     if let Some(resolved_global_error_path) =
-  //       resolver(&format!("{}/{}", app_dir_prefix, GLOBAL_ERROR_FILE_TYPE)).await
-  //     {
-  //       global_error = Some(resolved_global_error_path);
-  //     }
-  //   }
+    if global_error.is_none() {
+      let (resolved_global_error_path, missing_dependencies) = resolver(
+        &format!("{}/{}", app_dir_prefix, "global-error"),
+        app_dir,
+        page_extensions,
+      )
+      .await;
+      loader_context
+        .missing_dependencies
+        .extend(missing_dependencies);
+      if let Some(resolved_global_error_path) = resolved_global_error_path {
+        *global_error = Some(resolved_global_error_path);
+      }
+    }
 
-  //   let mut parallel_segment_key = if parallel_segment == PARALLEL_CHILDREN_SEGMENT {
-  //     "children".to_string()
-  //   } else if parallel_segment == PAGE_SEGMENT {
-  //     PAGE_SEGMENT_KEY.to_string()
-  //   } else {
-  //     parallel_segment
-  //   };
+    let (parallel_key, parallel_segment_key) = match &segment {
+      Segments::Children(s) => ("children", *s),
+      Segments::ParallelRoute(parallel_key, vec) => (*parallel_key, vec[0]),
+    };
+    let parallel_segment_key = match parallel_segment_key {
+      PARALLEL_CHILDREN_SEGMENT => "children",
+      PAGE_SEGMENT => PAGE_SEGMENT_KEY,
+      _ => parallel_segment_key,
+    };
 
-  //   let normalized_parallel_key = normalize_parallel_key(&parallel_key);
-  //   let subtree_code = if is_not_found_route && normalized_parallel_key == "children" {
-  //     let not_found_path = defined_file_paths
-  //       .iter()
-  //       .find(|(type_, _)| *type_ == "not-found")
-  //       .map(|(_, path)| path)
-  //       .unwrap_or(&default_http_access_fallback_paths["not-found"]);
+    let normalized_parallel_key = normalize_parallel_key(parallel_key);
+    let subtree_code = if is_not_found_route && normalized_parallel_key == "children" {
+      let not_found_path = defined_file_paths
+        .get("not-found")
+        .map(|s| s.as_str())
+        .unwrap_or(DEFAULT_NOT_FOUND_PATH);
 
-  //     let var_name = format!("notFound{}", nested_collected_declarations.len());
-  //     nested_collected_declarations.push((var_name.clone(), not_found_path.clone()));
+      let var_name = format!("notFound{}", nested_collected_declarations.len());
 
-  //     format!(
-  //       "{{ children: [{}, {{ children: ['{}', {}, {{ page: [{}, {}] }}] }}] }}",
-  //       serde_json::to_string(&UNDERSCORE_NOT_FOUND_ROUTE)?,
-  //       PAGE_SEGMENT_KEY,
-  //       "{}",
-  //       var_name,
-  //       serde_json::to_string(not_found_path)?
-  //     )
-  //   } else {
-  //     let page_subtree_code = create_subtree_props_from_segment_path(
-  //       sub_segment_path,
-  //       nested_collected_declarations,
-  //       app_dir_prefix,
-  //       base_path,
-  //       is_default_not_found,
-  //       page_extensions.clone(),
-  //     )
-  //     .await?;
+      let code = format!(
+        "{{\nchildren: [{}, {{\nchildren: ['{}', {}, {{\npage: [{}, {}]\n}}]\n}}, {{}}]\n}}",
+        json_stringify(UNDERSCORE_NOT_FOUND_ROUTE),
+        PAGE_SEGMENT_KEY,
+        "{}",
+        &var_name,
+        json_stringify(not_found_path)
+      );
 
-  //     page_subtree_code["treeCode"].clone()
-  //   };
+      nested_collected_declarations.push((var_name, not_found_path.to_string()));
 
-  //   let modules_code = format!(
-  //     "{{ {} {} }}",
-  //     defined_file_paths
-  //       .iter()
-  //       .map(|(file, file_path)| {
-  //         let var_name = format!("module{}", nested_collected_declarations.len());
-  //         nested_collected_declarations.push((var_name.clone(), file_path.clone()));
-  //         format!(
-  //           "'{}': [{}, {}],",
-  //           file,
-  //           var_name,
-  //           serde_json::to_string(file_path)?
-  //         )
-  //       })
-  //       .collect::<Vec<_>>()
-  //       .join("\n"),
-  //     create_metadata_exports_code(metadata.as_ref())
-  //   );
+      code
+    } else {
+      create_subtree_props_from_segment_path(
+        sub_segment_path,
+        nested_collected_declarations,
+        app_dir_prefix,
+        base_path,
+        is_default_not_found,
+        is_not_found_route,
+        page_extensions,
+        app_paths,
+        app_dir,
+        loader_context,
+        pages,
+        root_layout,
+        global_error,
+      )
+      .await?
+    };
 
-  //   props.insert(
-  //     normalized_parallel_key,
-  //     format!(
-  //       "[ '{}', {}, {} ]",
-  //       parallel_segment_key, subtree_code, modules_code
-  //     ),
-  //   );
-  // }
+    let modules_code = format!(
+      "{{\n{} {}\n}}",
+      defined_file_paths
+        .iter()
+        .map(|(file, file_path)| {
+          let var_name = format!("module{}", nested_collected_declarations.len());
+          nested_collected_declarations.push((var_name.clone(), file_path.clone()));
+          format!("'{}': [{}, {}],", file, var_name, json_stringify(file_path))
+        })
+        .collect::<Vec<_>>()
+        .join("\n"),
+      // create_metadata_exports_code(metadata.as_ref())
+      "",
+    );
 
-  // let adjacent_parallel_segments = resolve_adjacent_parallel_segments(&segment_path).await;
+    props.insert(
+      normalized_parallel_key,
+      format!(
+        "[\n'{}',\n{},\n{}\n]",
+        parallel_segment_key, subtree_code, modules_code
+      ),
+    );
+  }
 
-  // for adjacent_parallel_segment in adjacent_parallel_segments {
-  //   if !props.contains_key(&normalize_parallel_key(&adjacent_parallel_segment)) {
-  //     let actual_segment = if adjacent_parallel_segment == "children" {
-  //       "".to_string()
-  //     } else {
-  //       format!("/{}", adjacent_parallel_segment)
-  //     };
+  let adjacent_parallel_segments =
+    resolve_adjacent_parallel_segments(&segment_path, app_dir_prefix, app_dir).await?;
 
-  //     let default_path = resolver(&format!(
-  //       "{}{}{}",
-  //       app_dir_prefix, segment_path, actual_segment
-  //     ))
-  //     .await
-  //     .unwrap_or(PARALLEL_ROUTE_DEFAULT_PATH.to_string());
+  for adjacent_parallel_segment in &adjacent_parallel_segments {
+    if !props.contains_key(&normalize_parallel_key(&adjacent_parallel_segment)) {
+      let actual_segment = if adjacent_parallel_segment == "children" {
+        "".to_string()
+      } else {
+        format!("/{}", &adjacent_parallel_segment)
+      };
 
-  //     let var_name = format!("default{}", nested_collected_declarations.len());
-  //     nested_collected_declarations.push((var_name.clone(), default_path.clone()));
+      let (default_path, missing_dependencies) = resolver(
+        &format!(
+          "{}{}{}/default",
+          app_dir_prefix, segment_path, actual_segment
+        ),
+        app_dir,
+        page_extensions,
+      )
+      .await;
+      loader_context
+        .missing_dependencies
+        .extend(missing_dependencies);
+      let default_path = default_path.unwrap_or_else(|| DEFAULT_PARALLEL_ROUTE_PATH.to_string());
+      let json_stringified_default_path = json_stringify(&default_path);
 
-  //     props.insert(
-  //       normalize_parallel_key(&adjacent_parallel_segment),
-  //       format!(
-  //         "[ '{}', {}, {{ defaultPage: [{}, {}] }} ]",
-  //         DEFAULT_SEGMENT_KEY,
-  //         "{}",
-  //         var_name,
-  //         serde_json::to_string(&default_path)?
-  //       ),
-  //     );
-  //   }
-  // }
+      let var_name = format!("default{}", nested_collected_declarations.len());
+      nested_collected_declarations.push((var_name.clone(), default_path));
 
-  // Ok(props)
+      props.insert(
+        normalize_parallel_key(&adjacent_parallel_segment),
+        format!(
+          "[\n'{}', {}, {{\ndefaultPage: [{}, {}]\n}}\n]",
+          DEFAULT_SEGMENT_KEY, "{}", var_name, json_stringified_default_path,
+        ),
+      );
+    }
+  }
+
+  Ok(format!(
+    "{{\n{}\n}}",
+    props
+      .into_iter()
+      .map(|(k, v)| format!("{k}: {v}"))
+      .collect::<Vec<_>>()
+      .join(",\n")
+  ))
 }
