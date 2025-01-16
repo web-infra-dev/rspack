@@ -52,7 +52,7 @@ itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.63" }
 linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.1.43" }
+mimalloc           = { git = "https://github.com/h-a-n-a/mimalloc_rust.git", rev = "fc360a444dd6a4d8de6eb73fea7e964c0c16405f" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
