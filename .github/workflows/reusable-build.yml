@@ -388,9 +388,10 @@ jobs:
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
-      - name: Update main branch test compatibility metric
-        if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' && !inputs.skipable }}
-        run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
+      ### [Note] This step requires push permission and should be refactored.
+      # - name: Update main branch test compatibility metric
+      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' && !inputs.skipable }}
+      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
 
       # ### update metric diff against main branch when pull request change
       - name: Update
