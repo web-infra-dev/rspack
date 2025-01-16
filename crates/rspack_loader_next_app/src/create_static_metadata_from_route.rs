@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use serde_json::json;
 
 use crate::is_metadata_route::{PossibleImageFileNameConvention, STATIC_METADATA_IMAGES};
 
@@ -159,24 +160,14 @@ impl<'a> StaticMetadataCreator<'a> {
     resolved_metadata_files.sort_by(|a, b| a.cmp(b));
 
     for filepath in resolved_metadata_files {
-      let query = format!(
-        "{{{}:{},{}:{},{}:{},{}:{}}}",
-        json::stringify("type"),
-        json::stringify(ty.as_str()),
-        json::stringify("segment"),
-        json::stringify(self.segment),
-        json::stringify("basePath"),
-        json::stringify(self.base_path.as_str()),
-        json::stringify("pageExtensions"),
-        json::stringify(
-          self
-            .page_extensions
-            .iter()
-            .map(|ext| json::stringify(ext.as_str()))
-            .collect::<Vec<_>>()
-            .join(",")
-        ),
-      );
+      let query = json!({
+        "type": ty.as_str(),
+        "segment": self.segment,
+        "basePath": self.base_path.as_str(),
+        "pageExtensions": self
+        .page_extensions
+      })
+      .to_string();
       let image_module_import_source = format!(
         "next-metadata-image-loader?{}!{}?{}",
         query, filepath, WEBPACK_RESOURCE_QUERIES.metadata
