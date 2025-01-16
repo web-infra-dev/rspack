@@ -6,7 +6,7 @@ pub type Entry = IndexMap<String, EntryData>;
 
 pub type EntryItem = Vec<String>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EntryDescription {
   pub import: EntryItem,
   pub runtime: Option<String>,
@@ -16,6 +16,18 @@ pub struct EntryDescription {
   pub base_uri: Option<String>,
   pub filename: Option<Filename>,
   pub depend_on: Option<Vec<String>>,
+}
+
+impl<V> From<V> for EntryDescription
+where
+  V: Into<String>,
+{
+  fn from(value: V) -> Self {
+    Self {
+      import: vec![value.into()],
+      ..Default::default()
+    }
+  }
 }
 
 #[derive(Debug, Default, Clone)]

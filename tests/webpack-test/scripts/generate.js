@@ -2,11 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const { run } = require("./utils");
 
-const GITHUB_ACTOR = process.env.GITHUB_ACTOR;
-const [, , token, commit_sha] = process.argv;
-const repoUrl = token
-	? `https://${GITHUB_ACTOR}:${token}@github.com/web-infra-dev/rspack.git`
-	: "https://github.com/web-infra-dev/rspack";
+const [, , commit_sha] = process.argv;
+const repoUrl = 'https://github.com/web-infra-dev/rspack.git';
 
 (async () => {
 	const rootDir = path.resolve(__dirname, "../../../");

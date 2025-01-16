@@ -196,7 +196,9 @@ fn to_rspack_resolver_options(
   let imports_fields = options
     .imports_fields
     .unwrap_or_else(|| vec![vec!["imports".to_string()]]);
-  let extensions = options.extensions.expect("should have extensions");
+  let extensions = options
+    .extensions
+    .unwrap_or_else(|| vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()]);
   let alias = options
     .alias
     .unwrap_or_default()

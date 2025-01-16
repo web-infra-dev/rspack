@@ -30,6 +30,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
+permissions:
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -165,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.29.0
+      - uses: crate-ci/typos@v1.29.4
         with:
           files: .
 
@@ -294,7 +298,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@v1.10.18
+      - uses: cargo-bins/cargo-binstall@v1.10.21
       - run: cargo binstall --no-confirm cargo-shear
       - run: cargo shear
 
@@ -361,8 +365,7 @@ jobs:
 
   failure_notification:
     name: Failure Notification
-    needs:
-      [test-linux, test-windows, test-mac, rust_check, rust_test]
+    needs: [test-linux, test-windows, test-mac, rust_check, rust_test]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:
