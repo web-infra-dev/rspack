@@ -202,7 +202,7 @@ export class RspackOptionsApply {
 					columns: !cheap,
 					noSources: noSources,
 					namespace: options.output.devtoolNamespace,
-					debugIds: debugIds,
+					debugIds: debugIds
 				}).apply(compiler);
 			} else if (options.devtool.includes("eval")) {
 				new EvalDevToolModulePlugin({
