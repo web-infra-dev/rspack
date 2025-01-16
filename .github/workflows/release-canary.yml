@@ -19,6 +19,8 @@ on:
 permissions:
   # To publish packages with provenance
   id-token: write
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
 
 jobs:
   get-runner-labels:
