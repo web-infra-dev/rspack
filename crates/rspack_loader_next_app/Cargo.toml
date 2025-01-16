@@ -27,3 +27,4 @@ serde-querystring        = "0.2.0"
 serde_json               = { workspace = true }
 sugar_path               = { workspace = true }
 tokio                    = { workspace = true }
+futures                  = { workspace = true }
