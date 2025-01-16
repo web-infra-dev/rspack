@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use futures::future::BoxFuture;
-use lazy_regex::Lazy;
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+
+use crate::is_metadata_route::{PossibleImageFileNameConvention, STATIC_METADATA_IMAGES};
 
 type MetadataResolve =
   dyn Fn(&Utf8Path, &str, &[&str]) -> BoxFuture<'static, Result<Option<Utf8PathBuf>>> + Sync + Send;
@@ -34,29 +35,6 @@ pub async fn enum_metadata_files(
   Ok(collected_files)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum PossibleImageFileNameConvention {
-  Icon,
-  Apple,
-  Favicon,
-  Twitter,
-  OpenGraph,
-  Manifest,
-}
-
-impl PossibleImageFileNameConvention {
-  fn as_str(&self) -> &'static str {
-    match self {
-      PossibleImageFileNameConvention::Icon => "icon",
-      PossibleImageFileNameConvention::Apple => "apple",
-      PossibleImageFileNameConvention::Favicon => "favicon",
-      PossibleImageFileNameConvention::Twitter => "twitter",
-      PossibleImageFileNameConvention::OpenGraph => "opengraph",
-      PossibleImageFileNameConvention::Manifest => "manifest",
-    }
-  }
-}
-
 pub type CollectingMetadata = HashMap<PossibleImageFileNameConvention, Vec<String>>;
 
 struct MetadataImage {
@@ -64,55 +42,7 @@ struct MetadataImage {
   extensions: &'static [&'static str],
 }
 
-// struct StaticMetadataImages {
-//   pub icon: MetadataImage,
-//   pub apple: MetadataImage,
-//   pub favicon: MetadataImage,
-//   pub open_graph: MetadataImage,
-//   pub twitter: MetadataImage,
-// }
-
 type StaticMetadataImages = HashMap<PossibleImageFileNameConvention, MetadataImage>;
-
-static STATIC_METADATA_IMAGES: Lazy<StaticMetadataImages> = Lazy::new(|| {
-  let mut map = HashMap::new();
-  map.insert(
-    PossibleImageFileNameConvention::Icon,
-    MetadataImage {
-      filename: "icon",
-      extensions: &["ico", "jpg", "jpeg", "png", "svg"],
-    },
-  );
-  map.insert(
-    PossibleImageFileNameConvention::Apple,
-    MetadataImage {
-      filename: "apple-icon",
-      extensions: &["jpg", "jpeg", "png"],
-    },
-  );
-  map.insert(
-    PossibleImageFileNameConvention::Favicon,
-    MetadataImage {
-      filename: "favicon",
-      extensions: &["ico"],
-    },
-  );
-  map.insert(
-    PossibleImageFileNameConvention::OpenGraph,
-    MetadataImage {
-      filename: "opengraph-image",
-      extensions: &["jpg", "jpeg", "png", "gif"],
-    },
-  );
-  map.insert(
-    PossibleImageFileNameConvention::Twitter,
-    MetadataImage {
-      filename: "twitter-image",
-      extensions: &["jpg", "jpeg", "png", "gif"],
-    },
-  );
-  map
-});
 
 struct WebpackResourceQueries {
   pub edge_ssr_entry: &'static str,
@@ -186,7 +116,7 @@ impl<'a> StaticMetadataCreator<'a> {
       if manifest_file.len() > 0 {
         self.has_static_metadata_files = true;
         let path_buf = &manifest_file[0];
-        let Some(name) = path_buf.file_name() else {
+        let Some(name) = path_buf.file_stem() else {
           return Ok(());
         };
         let Some(ext) = path_buf.extension() else {
