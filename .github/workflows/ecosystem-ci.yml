@@ -39,6 +39,8 @@ permissions:
   contents: write
   # Allow commenting on issues
   issues: write
+  # Allow commenting on pull requests
+  pull-requests: write
 
 jobs:
   get-runner-labels:
