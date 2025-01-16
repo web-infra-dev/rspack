@@ -9575,7 +9575,7 @@ export { RspackOptionsApply as WebpackOptionsApply }
 // @public (undocumented)
 export interface RspackOptionsNormalized {
     // (undocumented)
-    amd?: string;
+    amd?: Amd;
     // (undocumented)
     bail?: Bail;
     // (undocumented)
