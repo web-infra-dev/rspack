@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-// mod create_app_route_code;
+mod create_app_route_code;
 mod create_static_metadata_from_route;
 mod create_tree_code_from_path;
 mod is_metadata_route;
