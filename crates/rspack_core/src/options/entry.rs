@@ -18,6 +18,18 @@ pub struct EntryDescription {
   pub depend_on: Option<Vec<String>>,
 }
 
+impl<V> From<V> for EntryDescription
+where
+  V: Into<String>,
+{
+  fn from(value: V) -> Self {
+    Self {
+      import: vec![value.into()],
+      ..Default::default()
+    }
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct EntryData {
   pub dependencies: Vec<DependencyId>,
