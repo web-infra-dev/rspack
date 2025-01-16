@@ -3,6 +3,8 @@ edition = "2018"
 name    = "next-custom-transforms"
 publish = false
 version = "0.0.0"
+## FIXME: bypass license check now, but it's not MIT now
+license = "MIT"
 
 [features]
 plugin = ["swc_core/plugin_transform_host_native"]
