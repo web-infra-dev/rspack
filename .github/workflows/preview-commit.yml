@@ -4,6 +4,10 @@ name: Preview Commit
 on:
   workflow_call:
 
+permissions:
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
