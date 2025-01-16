@@ -30,6 +30,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
+permissions:
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
+
 jobs:
   get-runner-labels:
     name: Get Runner Labels
@@ -361,8 +365,7 @@ jobs:
 
   failure_notification:
     name: Failure Notification
-    needs:
-      [test-linux, test-windows, test-mac, rust_check, rust_test]
+    needs: [test-linux, test-windows, test-mac, rust_check, rust_test]
     if: ${{ failure() && !cancelled() && github.ref_name == 'main' && github.repository_owner == 'web-infra-dev' }}
     runs-on: ubuntu-latest
     steps:

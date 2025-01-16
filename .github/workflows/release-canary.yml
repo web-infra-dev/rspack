@@ -19,6 +19,8 @@ on:
 permissions:
   # To publish packages with provenance
   id-token: write
+  # Allow commenting on issues for `reusable-build.yml`
+  issues: write
 
 jobs:
   get-runner-labels:
@@ -96,5 +98,4 @@ jobs:
           ./x version snapshot
           ./x publish snapshot --tag canary
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.RSPACK_CANARY_RELEASE_TOKEN }}
