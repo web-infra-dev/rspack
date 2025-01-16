@@ -23,7 +23,12 @@ type TFileCompareResult = {
 	runtimeModules: TModuleCompareResult[];
 };
 
-export function createDiffCase(name: string, src: string, dist: string) {
+export function createDiffCase(
+	name: string,
+	src: string,
+	dist: string,
+	enableAllEnvironment?: boolean
+) {
 	const caseConfigFile = path.join(src, "test.config.js");
 	if (!fs.existsSync(caseConfigFile)) {
 		return;
@@ -31,6 +36,9 @@ export function createDiffCase(name: string, src: string, dist: string) {
 	const caseConfig: IDiffProcessorOptions = Object.assign(
 		{},
 		DEFAULT_CASE_CONFIG,
+		{
+			enableAllEnvironment
+		},
 		require(caseConfigFile)
 	);
 

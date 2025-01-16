@@ -27,6 +27,7 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
 	bootstrap?: boolean;
 	detail?: boolean;
 	errors?: boolean;
+	enableAllEnvironment?: boolean;
 	replacements?: IFormatCodeReplacement[];
 	renameModule?: (file: string) => string;
 	onCompareFile?: (file: string, result: TFileCompareResult) => void;
@@ -45,6 +46,7 @@ export class DiffProcessor implements ITestProcessor {
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Webpack,
+					options.enableAllEnvironment ?? false,
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Webpack)
 				),
@@ -58,6 +60,7 @@ export class DiffProcessor implements ITestProcessor {
 			defaultOptions: context =>
 				this.getDefaultOptions(
 					ECompilerType.Rspack,
+					options.enableAllEnvironment ?? false,
 					context.getSource(),
 					path.join(context.getDist(), ECompilerType.Rspack)
 				),
@@ -132,6 +135,7 @@ export class DiffProcessor implements ITestProcessor {
 
 	private getDefaultOptions<T extends ECompilerType>(
 		type: T,
+		enableAllEnvironment: boolean,
 		src: string,
 		dist: string
 	) {
@@ -141,7 +145,25 @@ export class DiffProcessor implements ITestProcessor {
 			output: {
 				path: dist,
 				filename: "bundle.js",
-				chunkFilename: "[name].chunk.js"
+				chunkFilename: "[name].chunk.js",
+				environment: enableAllEnvironment
+					? {
+							arrowFunction: true,
+							asyncFunction: true,
+							bigIntLiteral: true,
+							const: true,
+							destructuring: true,
+							document: true,
+							dynamicImport: true,
+							dynamicImportInWorker: true,
+							forOf: true,
+							globalThis: true,
+							module: true,
+							nodePrefixForCoreModules: true,
+							optionalChaining: true,
+							templateLiteral: true
+						}
+					: undefined
 			},
 			plugins: [
 				type === ECompilerType.Webpack && new WebpackDiffConfigPlugin(),
