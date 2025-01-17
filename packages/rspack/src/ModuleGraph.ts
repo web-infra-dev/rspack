@@ -1,5 +1,5 @@
 import type { JsModuleGraph } from "@rspack/binding";
-import { bindingDependencyFactory, Dependency } from "./Dependency";
+import { type Dependency, bindingDependencyFactory } from "./Dependency";
 import { ExportsInfo } from "./ExportsInfo";
 import { Module } from "./Module";
 import { ModuleGraphConnection } from "./ModuleGraphConnection";

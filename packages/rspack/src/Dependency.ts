@@ -50,7 +50,7 @@ export class Dependency {
 		}
 		return this.#category || "unknown";
 	}
-
+	// biome-ignore lint/suspicious/useGetterReturn: shouldn't change binding signature
 	get request(): string | undefined {
 		const binding = bindingDependencyFactory.getBinding(this);
 		if (binding) {

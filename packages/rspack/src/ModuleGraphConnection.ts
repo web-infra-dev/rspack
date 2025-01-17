@@ -1,5 +1,5 @@
 import type { JsModuleGraphConnection } from "@rspack/binding";
-import { bindingDependencyFactory, Dependency } from "./Dependency";
+import { Dependency, bindingDependencyFactory } from "./Dependency";
 import { Module } from "./Module";
 import { VolatileValue } from "./util/volatile";
 

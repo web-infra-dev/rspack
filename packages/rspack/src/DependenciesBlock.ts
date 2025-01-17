@@ -1,5 +1,5 @@
 import type { JsDependenciesBlock } from "@rspack/binding";
-import { bindingDependencyFactory, Dependency } from "./Dependency";
+import { Dependency, bindingDependencyFactory } from "./Dependency";
 
 export class DependenciesBlock {
 	#binding: JsDependenciesBlock;

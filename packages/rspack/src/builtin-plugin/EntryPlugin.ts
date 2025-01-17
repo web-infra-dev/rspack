@@ -4,9 +4,9 @@ import {
 	type JsEntryPluginOptions
 } from "@rspack/binding";
 
+import { EntryDependency } from "../EntryDependency";
 import type { EntryDescriptionNormalized } from "../config";
 import { create } from "./base";
-import { EntryDependency } from "../EntryDependency";
 
 /**
  * Options for the `EntryPlugin`.
