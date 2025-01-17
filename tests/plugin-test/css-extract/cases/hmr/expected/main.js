@@ -307,32 +307,25 @@ __webpack_require__.i = [];
 // webpack/runtime/get mini-css chunk filename
 (() => {
 // This function allow to reference chunks
-        __webpack_require__.miniCssF = function (chunkId) {
-          // return url for filenames not based on template
-          
-          // return url for filenames based on template
-          return "" + chunkId + ".css";
-        };
-      
+__webpack_require__.miniCssF = (chunkId) => {
+  // return url for filenames not based on template
+  
+  // return url for filenames based on template
+  return "" + chunkId + ".css"
+}
 })();
 // webpack/runtime/get_chunk_update_filename
 (() => {
-__webpack_require__.hu = function (chunkId) {
-            return '' + chunkId + '.' + __webpack_require__.h() + '.hot-update.js';
-         };
-        
+__webpack_require__.hu = (chunkId) => ('' + chunkId + '.' + __webpack_require__.h() + '.hot-update.js')
 })();
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () { return "xxxxxxxxxxxxxxxxxxxxxx" }
+__webpack_require__.h = () => ("xxxxxxxxxxxxxxxxxxxx")
 
 })();
 // webpack/runtime/get_main_filename/update manifest
 (() => {
-__webpack_require__.hmrF = function () {
-            return "main." + __webpack_require__.h() + ".hot-update.json";
-         };
-        
+__webpack_require__.hmrF = () => ("main." + __webpack_require__.h() + ".hot-update.json")
 })();
 // webpack/runtime/global
 (() => {
@@ -348,10 +341,7 @@ __webpack_require__.g = (function () {
 })();
 // webpack/runtime/has_own_property
 (() => {
-__webpack_require__.o = function (obj, prop) {
-	return Object.prototype.hasOwnProperty.call(obj, prop);
-};
-
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 // webpack/runtime/hot_module_replacement
 (() => {
@@ -785,7 +775,7 @@ __webpack_require__.l = function (url, done, key, chunkId) {
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = function(exports) {
+__webpack_require__.r = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
@@ -795,30 +785,29 @@ __webpack_require__.r = function(exports) {
 })();
 // webpack/runtime/auto_public_path
 (() => {
+var scriptUrl;
 
-    var scriptUrl;
-    if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
-    var document = __webpack_require__.g.document;
-    if (!scriptUrl && document) {
-      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
-      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
-      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
-      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
-      if (!scriptUrl) {
-        var scripts = document.getElementsByTagName("script");
-            if (scripts.length) {
-              var i = scripts.length - 1;
-              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-            }
-      }
-      }
-    
-    // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
-    // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
-    if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-    scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-    __webpack_require__.p = scriptUrl
-    
+if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
+var document = __webpack_require__.g.document;
+if (!scriptUrl && document) {{
+  // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+  // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+  // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+  if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+  if (!scriptUrl) {{
+    var scripts = document.getElementsByTagName("script");
+    if (scripts.length) {{
+      var i = scripts.length - 1;
+      while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+    }}
+  }}
+}}
+
+// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
+// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
+if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+__webpack_require__.p = scriptUrl
 })();
 // webpack/runtime/css loading
 (() => {
@@ -941,13 +930,13 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 var waitingUpdateResolves = {};
 function loadUpdateChunk(chunkId, updatedModulesList) {
 	currentUpdatedModulesList = updatedModulesList;
-	return new Promise(function (resolve, reject) {
+	return new Promise((resolve, reject) => {
 		waitingUpdateResolves[chunkId] = resolve;
 		// start update chunk loading
 		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
-		var loadingEnded = function (event) {
+		var loadingEnded = (event) => {
 			if (waitingUpdateResolves[chunkId]) {
 				waitingUpdateResolves[chunkId] = undefined;
 				var errorType =
@@ -971,7 +960,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-self["webpackHotUpdate"] = function (chunkId, moreModules, runtime) {
+self["webpackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
@@ -1415,11 +1404,11 @@ __webpack_require__.hmrC.jsonp = function (
 		};
 	}
 };
-__webpack_require__.hmrM = function () {
+__webpack_require__.hmrM = () => {
 	if (typeof fetch === "undefined")
 		throw new Error("No browser support: need fetch API");
 	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(
-		function (response) {
+		(response) => {
 			if (response.status === 404) return; // no update available
 			if (!response.ok)
 				throw new Error(
