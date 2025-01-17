@@ -6,14 +6,13 @@ mod raw_split_chunk_size;
 use std::sync::Arc;
 
 use derive_more::Debug;
-use napi::{Either, JsString};
+use napi::Either;
 use napi_derive::napi;
 use raw_split_chunk_name::normalize_raw_chunk_name;
 use raw_split_chunk_name::RawChunkOptionName;
 use rspack_core::Filename;
 use rspack_core::SourceType;
 use rspack_core::DEFAULT_DELIMITER;
-use rspack_napi::string::JsStringExt;
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
@@ -73,10 +72,10 @@ pub struct RawCacheGroupOptions {
   pub chunks: Option<Chunks>,
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
-  pub r#type: Option<Either<RspackRegex, JsString>>,
+  pub r#type: Option<Either<RspackRegex, String>>,
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
-  pub layer: Option<Either<RspackRegex, JsString>>,
+  pub layer: Option<Either<RspackRegex, String>>,
   pub automatic_name_delimiter: Option<String>,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -281,19 +280,16 @@ pub struct RawFallbackCacheGroupOptions {
 }
 
 fn create_module_type_filter(
-  raw: Either<RspackRegex, JsString>,
+  raw: Either<RspackRegex, String>,
 ) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
     Either::A(regex) => Arc::new(move |m| regex.test(m.module_type().as_str())),
-    Either::B(js_str) => {
-      let type_str = js_str.into_string();
-      Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
-    }
+    Either::B(s) => Arc::new(move |m| m.module_type().as_str() == s.as_str()),
   }
 }
 
 fn create_module_layer_filter(
-  raw: Either<RspackRegex, JsString>,
+  raw: Either<RspackRegex, String>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
     Either::A(regex) => Arc::new(move |m| {
@@ -301,16 +297,13 @@ fn create_module_layer_filter(
         .map(|layer| regex.test(layer))
         .unwrap_or_default()
     }),
-    Either::B(js_str) => {
-      let test = js_str.into_string();
-      Arc::new(move |m| {
-        let layer = m.get_layer();
-        if let Some(layer) = layer {
-          layer.starts_with(&test)
-        } else {
-          test.is_empty()
-        }
-      })
-    }
+    Either::B(s) => Arc::new(move |m| {
+      let layer = m.get_layer();
+      if let Some(layer) = layer {
+        layer.starts_with(&s)
+      } else {
+        s.is_empty()
+      }
+    }),
   }
 }

@@ -1,7 +1,5 @@
 #![feature(try_blocks)]
 #![forbid(unsafe_op_in_unsafe_fn)]
-
-mod ext;
 mod js_values;
 mod utils;
 
@@ -13,10 +11,6 @@ pub use callback::JsCallback;
 
 pub mod threadsafe_function;
 pub mod threadsafe_js_value_ref;
-
-pub mod string {
-  pub use crate::ext::js_string_ext::JsStringExt;
-}
 
 pub use crate::utils::downcast_into;
 
