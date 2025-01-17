@@ -2,23 +2,38 @@
 
 Enables hot module replacement (HMR).
 
-:::warning
-HMR should **never** be used in production.
-:::
+```js
+new rspack.HotModuleReplacementPlugin();
+```
+
+## Example
 
 Enabling HMR is straightforward and in most cases no options are necessary.
 
-```js
-new rspack.HotModuleReplacementPlugin({
-  // Options...
-});
+Note that HMR can not be used in production build. You can use `process.env.NODE_ENV` to determine if it is a development environment.
+
+```js title="rspack.config.js"
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new rspack.HotModuleReplacementPlugin()],
+};
 ```
 
-## Options
+## Runtime API
 
-### strictModuleErrorHandling
+When you register the `HotModuleReplacementPlugin` plugin, Rspack will inject HMR related runtime APIs, such as `module.hot` and `import.meta.webpackHot`.
 
-Handle error in module loading as per ECMAScript Modules spec at a performance cost.
+See [HMR API](/api/runtime-api/hmr) for more details.
 
-- **Type:** `boolean`
-- **Default:** `false`
+## React Fast Refresh
+
+To enable Fast Refresh in React projects, you also need to use the [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) plugin.
+
+See [React - Fast Refresh](/guide/tech/react#fast-refresh) for more details.
+
+## Preact Fast Refresh
+
+To enable Fast Refresh in Preact projects, you also need to use the [@rspack/plugin-preact-refresh](https://www.npmjs.com/package/@rspack/plugin-preact-refresh) plugin.
+
+See [Preact - Fast Refresh](/guide/tech/preact#preact-refresh) for more details.

@@ -101,7 +101,10 @@ module.exports = {
       },
     ],
   },
-  plugins: [isDev && new ReactRefreshPlugin()].filter(Boolean),
+  plugins: [
+    isDev && new ReactRefreshPlugin(),
+    isDev && new rspack.HotModuleReplacementPlugin(),
+  ].filter(Boolean),
 };
 ```
 

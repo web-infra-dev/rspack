@@ -10,9 +10,7 @@ pub trait FutureConsumer {
   /// Use to immediately consume the data produced by the future in the iterator
   /// without waiting for all the data to be processed.
   /// The closures runs in the current thread.
-  async fn fut_consume<F>(self, func: impl Fn(Self::Item) -> F + Send)
-  where
-    F: Future + Send;
+  async fn fut_consume(self, func: impl FnMut(Self::Item) + Send);
 }
 
 #[async_trait::async_trait]
@@ -23,10 +21,7 @@ where
   Fut::Output: Send + 'static,
 {
   type Item = Fut::Output;
-  async fn fut_consume<F>(self, func: impl Fn(Self::Item) -> F + Send)
-  where
-    F: Future + Send,
-  {
+  async fn fut_consume(self, mut func: impl FnMut(Self::Item) + Send) {
     let mut rx = {
       // Create the channel in the closure to ensure all sender are dropped when iterator completes
       // This ensures that the receiver does not get stuck in an infinite loop.
@@ -43,7 +38,7 @@ where
     };
 
     while let Some(data) = rx.recv().await {
-      func(data).await;
+      func(data);
     }
   }
 }
@@ -61,7 +56,7 @@ mod test {
   async fn available() {
     (0..10)
       .map(|item| async move { item * 2 })
-      .fut_consume(|item| async move { assert_eq!(item % 2, 0) })
+      .fut_consume(|item| assert_eq!(item % 2, 0))
       .await;
   }
 
@@ -74,8 +69,8 @@ mod test {
         sleep(Duration::from_millis(item)).await;
         item
       })
-      .fut_consume(|_| async move {
-        sleep(Duration::from_millis(20)).await;
+      .fut_consume(|_| {
+        std::thread::sleep(std::time::Duration::from_millis(20));
       })
       .await;
     let time1 = SystemTime::now().duration_since(start).unwrap();

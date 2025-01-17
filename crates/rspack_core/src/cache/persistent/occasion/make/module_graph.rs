@@ -15,7 +15,7 @@ use crate::{
   cache::persistent::cacheable_context::CacheableContext, AsyncDependenciesBlock,
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildDependency, DependencyParents,
   ExportInfoData, ExportsInfoData, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleGraphPartial,
+  ModuleGraphPartial, RayonConsumer,
 };
 
 const SCOPE: &str = "occasion_make_module_graph";
@@ -132,7 +132,7 @@ pub async fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
-  let nodes: Vec<_> = storage
+  storage
     .load(SCOPE)
     .await?
     .into_par_iter()
@@ -140,38 +140,38 @@ pub async fn recovery_module_graph(
       from_bytes::<Node, CacheableContext>(&v, context)
         .expect("unexpected module graph deserialize failed")
     })
-    .collect();
-  for mut node in nodes {
-    for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
-      mg.set_parents(
-        *dep.id(),
-        DependencyParents {
-          block: parent_block,
-          module: node.module.identifier(),
-          index_in_block,
-        },
-      );
-      mg.add_dependency(dep);
-    }
-    for con in node.connections {
-      need_check_dep.push((con.dependency_id, *con.module_identifier()));
-      mg.cache_recovery_connection(con);
-    }
-    for block in node.blocks {
-      mg.add_block(Box::new(block));
-    }
-    // recovery exports/export info
-    let other_exports_info = ExportInfoData::new(None, None);
-    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
-    let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
-    node.mgm.exports = exports_info.id();
-    mg.set_exports_info(exports_info.id(), exports_info);
-    mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
-    mg.set_export_info(other_exports_info.id(), other_exports_info);
+    .with_max_len(1)
+    .consume(|mut node| {
+      for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
+        mg.set_parents(
+          *dep.id(),
+          DependencyParents {
+            block: parent_block,
+            module: node.module.identifier(),
+            index_in_block,
+          },
+        );
+        mg.add_dependency(dep);
+      }
+      for con in node.connections {
+        need_check_dep.push((con.dependency_id, *con.module_identifier()));
+        mg.cache_recovery_connection(con);
+      }
+      for block in node.blocks {
+        mg.add_block(Box::new(block));
+      }
+      // recovery exports/export info
+      let other_exports_info = ExportInfoData::new(None, None);
+      let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
+      let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+      node.mgm.exports = exports_info.id();
+      mg.set_exports_info(exports_info.id(), exports_info);
+      mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
+      mg.set_export_info(other_exports_info.id(), other_exports_info);
 
-    mg.add_module_graph_module(node.mgm);
-    mg.add_module(node.module);
-  }
+      mg.add_module_graph_module(node.mgm);
+      mg.add_module(node.module);
+    });
   // recovery incoming connections
   for (con_id, module_identifier) in &need_check_dep {
     if let Some(mgm) = mg.module_graph_module_by_identifier_mut(module_identifier) {
