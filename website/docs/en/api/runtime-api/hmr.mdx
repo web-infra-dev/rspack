@@ -4,7 +4,15 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Hot module replacement
 
-Typically, users will check to see if the interface is accessible, then begin working with it. As an example, here's how you might `accept` an updated module:
+Rspack provides the same interface as webpack for implementing HMR.
+
+If you have enabled Hot Module Replacement via the [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin), its interface will be exposed under the `module.hot` and `import.meta.webpackHot` objects.
+
+Note that in ESM, please use `import.meta.webpackHot` instead of `module.hot`.
+
+## Example
+
+Typically, you will need to check to see if the interface is accessible, then begin working with it. As an example, here's how you might `accept` an updated module:
 
 ```js
 if (module.hot) {
@@ -21,7 +29,7 @@ if (import.meta.webpackHot) {
 }
 ```
 
-The following methods are supported...
+The following methods are supported by `module.hot` and `import.meta.webpackHot`.
 
 ## Module API
 

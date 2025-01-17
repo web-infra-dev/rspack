@@ -2,23 +2,38 @@
 
 此插件用于实现 HMR（hot module replacement）。
 
-:::warning 警告
-HMR **绝对不能**被用在生产环境。
-:::
-
-启用 HMR 很容易，且在大多数情况下不需要任何配置。
-
 ```js
-new rspack.HotModuleReplacementPlugin({
-  // 选项...
-});
+new rspack.HotModuleReplacementPlugin();
 ```
 
-## 选项
+## 示例
 
-### strictModuleErrorHandling
+启用 HMR 非常简单，在大多数场景下无需额外配置。
 
-按照 ES modules 规范处理 module 加载时的错误，会有性能损失。
+注意 HMR 不能被用于生产构建，因此你需要通过 `process.env.NODE_ENV` 来判断当前是否是开发环境。
 
-- **类型：** `boolean`
-- **默认值：** `false`
+```js title="rspack.config.js"
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new rspack.HotModuleReplacementPlugin()],
+};
+```
+
+## 运行时 API
+
+当你注册 `HotModuleReplacementPlugin` 插件后，Rspack 会注入 HMR 相关的运行时 API，例如 `module.hot` 和 `import.meta.webpackHot`。
+
+详见 [模块热替换 API](/api/runtime-api/hmr)。
+
+## React Fast Refresh
+
+为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。
+
+请参考 [React - Fast Refresh](/guide/tech/react#fast-refresh) 了解更多信息。
+
+## Preact Fast Refresh
+
+为了在 Preact 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-preact-refresh](https://www.npmjs.com/package/@rspack/plugin-preact-refresh) 插件。
+
+请参考 [Preact - Fast Refresh](/guide/tech/preact#preact-refresh) 了解更多信息。

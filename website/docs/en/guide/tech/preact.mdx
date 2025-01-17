@@ -128,7 +128,10 @@ module.exports = {
       },
     ],
   },
-  plugins: [isDev && new PreactRefreshPlugin()].filter(Boolean),
+  plugins: [
+    isDev && new PreactRefreshPlugin(),
+    isDev && new rspack.HotModuleReplacementPlugin(),
+  ].filter(Boolean),
 };
 ```
 

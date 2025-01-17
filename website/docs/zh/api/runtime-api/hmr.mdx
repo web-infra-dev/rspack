@@ -2,9 +2,17 @@ import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/api/hot-module-replacement/" />
 
-# Hot module replacement
+# 模块热替换
 
-通常，用户先要检查这个接口是否可访问，再使用它。你可以这样使用 `accept` 操作一个更新的模块：
+Rspack 提供了与 webpack 相同的接口来实现模块热替换。
+
+如果你通过 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) 启用了模块热替换，它的接口将暴露在 `module.hot` 和 `import.meta.webpackHot` 对象下。
+
+注意，在 ESM 中请使用 `import.meta.webpackHot` 来代替 `module.hot`。
+
+## 示例
+
+通常，你需要检查这个接口是否可访问，然后再使用它。例如，你可以这样使用 `accept` 操作一个更新的模块：
 
 ```js
 if (module.hot) {
@@ -21,7 +29,7 @@ if (import.meta.webpackHot) {
 }
 ```
 
-支持以下方法：
+`module.hot` 和 `import.meta.webpackHot` 支持以下方法。
 
 ## 模块 API
 
@@ -48,7 +56,7 @@ import.meta.webpackHot.accept(
 
 在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
 
-#### 为 accept 设置错误处理程序
+#### 为 accept 设置错误处理器
 
 `(err, {moduleId, dependencyId}) => {}`
 
@@ -75,7 +83,7 @@ import.meta.webpackHot.accept(
 
 当执行此模块（或依赖模块）抛出异常时，会触发 `errorHandler`。
 
-#### 为 accept 自身设置错误处理程序
+#### 为 accept 自身设置错误处理器
 
 `(err, {moduleId, module}) => {}`
 
@@ -100,7 +108,7 @@ import.meta.webpackHot.decline(
 );
 ```
 
-将依赖模块标记为不可更新(not-update-able)。在处理「依赖的导出正在更新」或「尚未实现处理」时，这是有意义的。取决于你的 HMR 管理代码，此依赖模块（或其未接受的依赖模块）更新，通常会导致页面被完全重新加载。
+将依赖模块标记为不可更新（not-update-able）。在处理「依赖的导出正在更新」或「尚未实现处理」时，这是有意义的。取决于你的 HMR 管理代码，此依赖模块（或其未接受的依赖模块）更新，通常会导致页面被完全重新加载。
 
 ### decline（self）
 
@@ -298,7 +306,7 @@ import.meta.webpackHot
 
 - `ignoreUnaccepted`（boolean）：忽略对不可接受的模块所做的更改。
 - `ignoreDeclined`（boolean）：忽略对已拒绝的模块所做的更改。
-- `ignoreErrored`（boolean）：忽略在接受处理程序、错误处理程序以及重新评估模块时抛出的错误。
+- `ignoreErrored`（boolean）：忽略在接受处理程序、错误处理器以及重新评估模块时抛出的错误。
 - `onDeclined`（function(info)）：拒绝模块的通知者。
 - `onUnaccepted`（function(info)）：不可接受的模块的通知程序。
 - `onAccepted`（function(info)）：可接受模块的通知者。
@@ -322,8 +330,8 @@ import.meta.webpackHot
     5: [4]
   },
   error: new Error(...), // 对于错误：抛出错误
-  originalError: new Error(...) // 对于自我接受错误处理程序错误：
-                                // 在错误处理程序尝试处理该模块之前，该模块引发的错误。
+  originalError: new Error(...) // 对于自我接受错误处理器错误：
+                                // 在错误处理器尝试处理该模块之前，该模块引发的错误。
 }
 ```
 
