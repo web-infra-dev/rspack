@@ -1,16 +1,20 @@
-use std::{
-  collections::HashSet,
-  path::{Path, PathBuf, MAIN_SEPARATOR},
-};
+use std::{collections::HashSet, path::PathBuf};
 
-use rspack_core::{LoaderContext, RunnerContext};
-use rspack_error::{error, error_bail as bail, Result};
+use rspack_core::{CompilationId, LoaderContext, RunnerContext};
+use rspack_error::{error_bail as bail, Result};
 use rspack_util::{
   fx_hash::{BuildFxHasher, FxIndexMap},
   json_stringify,
 };
 
-use crate::util::is_group_segment;
+use crate::{
+  create_metadata_exports_code::create_metadata_exports_code,
+  create_static_metadata_from_route::{create_static_metadata_from_route, CollectingMetadata},
+  util::{
+    create_absolute_path, is_app_builtin_not_found_page, is_directory, is_group_segment,
+    normalize_parallel_key, read_dir_with_compilation_cache, resolver,
+  },
+};
 
 const DEFAULT_GLOBAL_ERROR_PATH: &str = "next/dist/client/components/error-boundary";
 const DEFAULT_LAYOUT_PATH: &str = "next/dist/client/components/default-layout";
@@ -87,87 +91,6 @@ pub async fn create_tree_code_from_path(
   })
 }
 
-fn is_app_builtin_not_found_page(page: &str) -> bool {
-  let re = lazy_regex::regex!(r"next[\\/]dist[\\/]client[\\/]components[\\/]not-found-error");
-  re.is_match(page)
-}
-
-fn create_absolute_path(app_dir: &str, path_to_turn_absolute: &str) -> String {
-  let p = path_to_turn_absolute.replace("/", &MAIN_SEPARATOR.to_string());
-  if let Some(p) = p.strip_prefix("private-next-app-dir") {
-    format!("{}{}", app_dir, p)
-  } else {
-    p
-  }
-}
-
-async fn metadata_resolver(
-  dirname: &str,
-  filename: &str,
-  exts: &[String],
-  app_dir: &str,
-) -> (Option<String>, HashSet<PathBuf, BuildFxHasher>) {
-  let absolute_dir = create_absolute_path(app_dir, dirname);
-
-  let mut result: Option<String> = None;
-  let mut missing_dependencies = HashSet::default();
-
-  for ext in exts {
-    // Compared to `resolver` above the exts do not have the `.` included already, so it's added here.
-    let filename_with_ext = format!("{}.{}", filename, ext);
-    let absolute_path_with_extension = format!(
-      "{}{}{}",
-      absolute_dir,
-      std::path::MAIN_SEPARATOR,
-      filename_with_ext
-    );
-    if result.is_none() && file_exists_in_directory(dirname, &filename_with_ext).await {
-      result = Some(absolute_path_with_extension.clone());
-    }
-    // Call `add_missing_dependency` for all files even if they didn't match,
-    // because they might be added or removed during development.
-    missing_dependencies.insert(PathBuf::from(absolute_path_with_extension));
-  }
-
-  (result, missing_dependencies)
-}
-
-async fn resolver(
-  pathname: &str,
-  app_dir: &str,
-  extensions: &[String],
-) -> (Option<String>, HashSet<PathBuf, BuildFxHasher>) {
-  let absolute_path = create_absolute_path(app_dir, pathname);
-
-  let filename_index = absolute_path.rfind(std::path::MAIN_SEPARATOR).unwrap_or(0);
-  let dirname = &absolute_path[..filename_index];
-  let filename = &absolute_path[filename_index + 1..];
-
-  let mut result: Option<String> = None;
-  let mut missing_dependencies = HashSet::default();
-
-  for ext in extensions {
-    let absolute_path_with_extension = format!("{}.{}", absolute_path, ext);
-    if result.is_none() && file_exists_in_directory(dirname, &format!("{}.{}", filename, ext)).await
-    {
-      result = Some(absolute_path_with_extension.clone());
-    }
-    // Call `add_missing_dependency` for all files even if they didn't match,
-    // because they might be added or removed during development.
-    missing_dependencies.insert(PathBuf::from(absolute_path_with_extension));
-  }
-
-  (result, missing_dependencies)
-}
-
-async fn file_exists_in_directory(dirname: &str, filename: &str) -> bool {
-  let path = Path::new(dirname).join(filename);
-  tokio::fs::metadata(path)
-    .await
-    .map(|m| m.is_file())
-    .unwrap_or(false)
-}
-
 #[derive(Debug)]
 enum Segments<'a> {
   Children(&'a str),
@@ -234,6 +157,7 @@ async fn resolve_adjacent_parallel_segments(
   segment_path: &str,
   app_dir_prefix: &str,
   app_dir: &str,
+  compilation_id: CompilationId,
 ) -> Result<Vec<String>> {
   let absolute_segment_path =
     create_absolute_path(app_dir, &format!("{}{}", app_dir_prefix, segment_path));
@@ -249,31 +173,17 @@ async fn resolve_adjacent_parallel_segments(
   }
 
   // We need to resolve all parallel routes in this level.
-  let mut files = tokio::fs::read_dir(&absolute_segment_path).await.unwrap();
   let mut parallel_segments: Vec<String> = vec!["children".to_string()];
-
-  while let Some(entry) = files.next_entry().await.map_err(|e| error!(e))? {
-    // Make sure name starts with "@" and is a directory.
-    if entry.metadata().await.map_err(|e| error!(e))?.is_dir()
-      && let Some(name) = entry.file_name().to_str()
-      && name.starts_with('@')
-    {
-      parallel_segments.push(name.to_string());
+  read_dir_with_compilation_cache(&absolute_segment_path, compilation_id, |results| {
+    for (name, metadata) in results.iter() {
+      if metadata.is_dir() && name.starts_with('@') {
+        parallel_segments.push(name.to_string());
+      }
     }
-  }
+  })
+  .await?;
 
   Ok(parallel_segments)
-}
-
-async fn is_directory(path: &str) -> bool {
-  tokio::fs::metadata(path)
-    .await
-    .map(|m| m.is_dir())
-    .unwrap_or(false)
-}
-
-fn normalize_parallel_key(key: &str) -> &str {
-  key.strip_prefix('@').unwrap_or(key)
 }
 
 #[async_recursion::async_recursion]
@@ -305,7 +215,7 @@ async fn create_subtree_props_from_segment_path(
     parallel_segments.extend(resolve_parallel_segments(&segment_path, app_paths)?);
   }
 
-  // let mut metadata: Option<Metadata> = None;
+  let mut metadata: Option<CollectingMetadata> = None;
   let router_dir_path = format!("{}{}", app_dir_prefix, segment_path);
   let resolved_route_dir = if is_default_not_found {
     "".to_string()
@@ -314,25 +224,29 @@ async fn create_subtree_props_from_segment_path(
   };
 
   if !resolved_route_dir.is_empty() {
-    // metadata = Some(
-    //   create_static_metadata_from_route(
-    //     &resolved_route_dir,
-    //     base_path,
-    //     &segment_path,
-    //     metadata_resolver,
-    //     is_root_layout_or_root_page,
-    //     &page_extensions,
-    //   )
-    //   .await?,
-    // );
+    metadata = create_static_metadata_from_route(
+      &resolved_route_dir,
+      &segment_path,
+      is_root_layout_or_root_page,
+      &page_extensions,
+      base_path,
+      &app_dir,
+      loader_context,
+    )
+    .await?;
   }
 
   for segment in parallel_segments {
     if matches!(segment, Segments::Children(PAGE_SEGMENT)) {
       let matched_page_path = format!("{}{}/page", app_dir_prefix, segment_path);
 
-      let (resolved_page_path, missing_dependencies) =
-        resolver(&matched_page_path, app_dir, page_extensions).await;
+      let (resolved_page_path, missing_dependencies) = resolver(
+        &matched_page_path,
+        app_dir,
+        page_extensions,
+        loader_context.context.compilation_id,
+      )
+      .await?;
       loader_context
         .missing_dependencies
         .extend(missing_dependencies);
@@ -349,8 +263,7 @@ async fn create_subtree_props_from_segment_path(
             PAGE_SEGMENT_KEY,
             var_name,
             json_stringify(&resolved_page_path),
-            // create_metadata_exports_code(metadata.as_ref())
-            "",
+            create_metadata_exports_code(&metadata)
           ),
         );
         continue;
@@ -364,7 +277,7 @@ async fn create_subtree_props_from_segment_path(
 
     let normalized_parallel_segment: &str = match &segment {
       Segments::Children(s) => s,
-      Segments::ParallelRoute(parallel_key, s) => &s[0],
+      Segments::ParallelRoute(_, s) => &s[0],
     };
 
     if normalized_parallel_segment != PAGE_SEGMENT
@@ -387,24 +300,28 @@ async fn create_subtree_props_from_segment_path(
         .chain(HTTP_ACCESS_FALLBACKS.iter())
         .map(|file| {
           let parallel_segment_path = &parallel_segment_path;
+          let compilation_id = loader_context.context.compilation_id;
           async move {
-            (
-              file,
-              resolver(
-                &format!("{}{}{}", app_dir_prefix, parallel_segment_path, file),
-                app_dir,
-                page_extensions,
-              )
-              .await,
+            let result = resolver(
+              &format!("{}{}{}", app_dir_prefix, parallel_segment_path, file),
+              app_dir,
+              page_extensions,
+              compilation_id,
             )
+            .await?;
+            Ok::<(&str, (Option<String>, HashSet<PathBuf, BuildFxHasher>)), rspack_error::Error>((
+              file, result,
+            ))
           }
         }),
     )
-    .await;
+    .await
+    .into_iter()
+    .try_collect()?;
 
     let mut defined_file_paths: FxIndexMap<&str, String> =
       FxIndexMap::from_iter(file_paths.into_iter().filter_map(
-        |(&file, (path, missing_dependencies))| {
+        |(file, (path, missing_dependencies))| {
           loader_context
             .missing_dependencies
             .extend(missing_dependencies);
@@ -425,8 +342,9 @@ async fn create_subtree_props_from_segment_path(
           &format!("{}/{}", app_dir_prefix, ty),
           app_dir,
           page_extensions,
+          loader_context.context.compilation_id,
         )
-        .await;
+        .await?;
         loader_context
           .missing_dependencies
           .extend(missing_dependencies);
@@ -460,8 +378,9 @@ async fn create_subtree_props_from_segment_path(
         &format!("{}/{}", app_dir_prefix, "global-error"),
         app_dir,
         page_extensions,
+        loader_context.context.compilation_id,
       )
-      .await;
+      .await?;
       loader_context
         .missing_dependencies
         .extend(missing_dependencies);
@@ -531,8 +450,7 @@ async fn create_subtree_props_from_segment_path(
         })
         .collect::<Vec<_>>()
         .join("\n"),
-      // create_metadata_exports_code(metadata.as_ref())
-      "",
+      create_metadata_exports_code(&metadata)
     );
 
     props.insert(
@@ -544,8 +462,13 @@ async fn create_subtree_props_from_segment_path(
     );
   }
 
-  let adjacent_parallel_segments =
-    resolve_adjacent_parallel_segments(&segment_path, app_dir_prefix, app_dir).await?;
+  let adjacent_parallel_segments = resolve_adjacent_parallel_segments(
+    &segment_path,
+    app_dir_prefix,
+    app_dir,
+    loader_context.context.compilation_id,
+  )
+  .await?;
 
   for adjacent_parallel_segment in &adjacent_parallel_segments {
     if !props.contains_key(&normalize_parallel_key(&adjacent_parallel_segment)) {
@@ -562,8 +485,9 @@ async fn create_subtree_props_from_segment_path(
         ),
         app_dir,
         page_extensions,
+        loader_context.context.compilation_id,
       )
-      .await;
+      .await?;
       loader_context
         .missing_dependencies
         .extend(missing_dependencies);

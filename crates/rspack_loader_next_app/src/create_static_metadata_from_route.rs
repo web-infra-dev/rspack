@@ -1,21 +1,23 @@
 use std::collections::HashMap;
 
-use futures::future::BoxFuture;
+use rspack_core::{CompilationId, LoaderContext, RunnerContext};
 use rspack_error::Result;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::Utf8PathBuf;
+use rspack_util::fx_hash::BuildFxHasher;
 use serde_json::json;
 
-use crate::is_metadata_route::{PossibleImageFileNameConvention, STATIC_METADATA_IMAGES};
-
-type MetadataResolve =
-  dyn Fn(&Utf8Path, &str, &[&str]) -> BoxFuture<'static, Result<Option<Utf8PathBuf>>> + Sync + Send;
+use crate::{
+  is_metadata_route::{PossibleImageFileNameConvention, STATIC_METADATA_IMAGES},
+  util::metadata_resolver,
+};
 
 pub async fn enum_metadata_files(
-  dir: &Utf8Path,
+  dir: &str,
   filename: &str,
   extensions: &[&str],
-  metadata_resolve: &MetadataResolve,
   numeric_suffix: bool,
+  app_dir: &str,
+  loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<Vec<Utf8PathBuf>> {
   let mut collected_files = Vec::new();
 
@@ -28,22 +30,33 @@ pub async fn enum_metadata_files(
   }
 
   for name in possible_file_names {
-    if let Some(resolved) = metadata_resolve(dir, &name, extensions).await? {
-      collected_files.push(resolved);
+    let (resolved, missing_dependencies) = metadata_resolver(
+      dir,
+      &name,
+      extensions,
+      app_dir,
+      loader_context.context.compilation_id,
+    )
+    .await?;
+    loader_context
+      .missing_dependencies
+      .extend(missing_dependencies);
+    if let Some(resolved) = resolved {
+      collected_files.push(Utf8PathBuf::from(resolved));
     }
   }
 
   Ok(collected_files)
 }
 
-pub type CollectingMetadata = HashMap<PossibleImageFileNameConvention, Vec<String>>;
+pub type CollectingMetadata = HashMap<PossibleImageFileNameConvention, Vec<String>, BuildFxHasher>;
 
 struct MetadataImage {
   filename: &'static str,
   extensions: &'static [&'static str],
 }
 
-type StaticMetadataImages = HashMap<PossibleImageFileNameConvention, MetadataImage>;
+type StaticMetadataImages = HashMap<PossibleImageFileNameConvention, MetadataImage, BuildFxHasher>;
 
 struct WebpackResourceQueries {
   pub edge_ssr_entry: &'static str,
@@ -60,12 +73,13 @@ const WEBPACK_RESOURCE_QUERIES: WebpackResourceQueries = WebpackResourceQueries 
 };
 
 pub struct StaticMetadataCreator<'a> {
-  resolved_dir: &'a Utf8Path,
+  resolved_dir: &'a str,
   segment: &'a str,
   is_root_layout_or_root_page: bool,
   page_extensions: &'a [String],
-  metadata_resolve: &'a MetadataResolve,
-  base_path: &'a Utf8Path,
+  base_path: &'a str,
+  app_dir: &'a str,
+  loader_context: &'a mut LoaderContext<RunnerContext>,
 
   // state
   has_static_metadata_files: bool,
@@ -74,12 +88,13 @@ pub struct StaticMetadataCreator<'a> {
 
 impl<'a> StaticMetadataCreator<'a> {
   pub fn new(
-    resolved_dir: &'a Utf8Path,
+    resolved_dir: &'a str,
     segment: &'a str,
-    metadata_resolve: &'a MetadataResolve,
     is_root_layout_or_root_page: bool,
     page_extensions: &'a [String],
-    base_path: &'a Utf8Path,
+    base_path: &'a str,
+    app_dir: &'a str,
+    loader_context: &'a mut LoaderContext<RunnerContext>,
   ) -> Self {
     Self {
       resolved_dir,
@@ -87,7 +102,8 @@ impl<'a> StaticMetadataCreator<'a> {
       is_root_layout_or_root_page,
       page_extensions,
       base_path,
-      metadata_resolve,
+      app_dir,
+      loader_context,
 
       has_static_metadata_files: false,
       static_images_metadata: Default::default(),
@@ -110,8 +126,9 @@ impl<'a> StaticMetadataCreator<'a> {
         &self.resolved_dir,
         "manifest",
         &static_manifest_extension,
-        self.metadata_resolve,
         false,
+        &self.app_dir,
+        self.loader_context,
       )
       .await?;
       if manifest_file.len() > 0 {
@@ -152,8 +169,9 @@ impl<'a> StaticMetadataCreator<'a> {
       &self.resolved_dir,
       &metadata.filename,
       &extensions,
-      self.metadata_resolve,
       !is_favicon,
+      &self.app_dir,
+      self.loader_context,
     )
     .await?;
 
@@ -163,7 +181,7 @@ impl<'a> StaticMetadataCreator<'a> {
       let query = json!({
         "type": ty.as_str(),
         "segment": self.segment,
-        "basePath": self.base_path.as_str(),
+        "basePath": self.base_path,
         "pageExtensions": self
         .page_extensions
       })
@@ -190,7 +208,6 @@ impl<'a> StaticMetadataCreator<'a> {
         metadata.push(image_module);
       }
     }
-
     Ok(())
   }
 
@@ -224,21 +241,23 @@ impl<'a> StaticMetadataCreator<'a> {
   }
 }
 
-pub async fn create_static_metadata_from_route<'a>(
-  resolved_dir: &'a Utf8Path,
-  segment: &'a str,
-  metadata_resolve: &'a MetadataResolve,
+pub async fn create_static_metadata_from_route(
+  resolved_dir: &str,
+  segment: &str,
   is_root_layout_or_root_page: bool,
   page_extensions: &[String],
-  base_path: &'a Utf8Path,
+  base_path: &str,
+  app_dir: &str,
+  loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<Option<CollectingMetadata>> {
   let creator = StaticMetadataCreator::new(
     resolved_dir,
     segment,
-    metadata_resolve,
     is_root_layout_or_root_page,
     page_extensions,
     base_path,
+    app_dir,
+    loader_context,
   );
   creator.create_static_metadata_from_route().await
 }

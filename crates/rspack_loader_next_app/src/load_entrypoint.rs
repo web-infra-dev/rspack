@@ -1,10 +1,15 @@
+use std::sync::LazyLock;
+
 use rspack_error::{error, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
+  fx_hash::{FxDashMap, FxIndexMap, FxIndexSet},
   json_stringify,
 };
 use sugar_path::SugarPath;
+
+static NEXT_TEMPLATES_CACHE: LazyLock<FxDashMap<Utf8PathBuf, String>> =
+  LazyLock::new(|| FxDashMap::default());
 
 fn templates_folder(package_root: &Utf8Path) -> Utf8PathBuf {
   package_root
@@ -23,6 +28,18 @@ fn templates_esm_folder(package_root: &Utf8Path) -> Utf8PathBuf {
     .join("templates")
 }
 
+async fn templates_content(path: Utf8PathBuf) -> Result<String> {
+  if let Some(content) = NEXT_TEMPLATES_CACHE.get(&path) {
+    Ok(content.clone())
+  } else {
+    let content = tokio::fs::read_to_string(&path)
+      .await
+      .map_err(|e| error!(e))?;
+    NEXT_TEMPLATES_CACHE.insert(path, content.clone());
+    Ok(content)
+  }
+}
+
 pub async fn load_next_js_template(
   path: &str,
   package_root: &Utf8Path,
@@ -32,10 +49,7 @@ pub async fn load_next_js_template(
 ) -> Result<String> {
   let template_folder = templates_folder(package_root);
   let path = templates_esm_folder(package_root).join(path);
-
-  let content = tokio::fs::read_to_string(&path)
-    .await
-    .map_err(|e| error!(e))?;
+  let content = templates_content(path).await?;
 
   fn replace_all<E>(
     re: &regex::Regex,

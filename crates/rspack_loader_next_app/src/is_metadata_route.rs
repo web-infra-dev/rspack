@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use lazy_regex::Lazy;
 use regex::Regex;
+use rspack_util::fx_hash::BuildFxHasher;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PossibleImageFileNameConvention {
@@ -32,10 +33,11 @@ pub struct MetadataImage {
   pub extensions: &'static [&'static str],
 }
 
-pub type StaticMetadataImages = HashMap<PossibleImageFileNameConvention, MetadataImage>;
+pub type StaticMetadataImages =
+  HashMap<PossibleImageFileNameConvention, MetadataImage, BuildFxHasher>;
 
 pub static STATIC_METADATA_IMAGES: Lazy<StaticMetadataImages> = Lazy::new(|| {
-  let mut map = HashMap::new();
+  let mut map: StaticMetadataImages = Default::default();
   map.insert(
     PossibleImageFileNameConvention::Icon,
     MetadataImage {
