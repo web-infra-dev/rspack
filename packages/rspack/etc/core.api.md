@@ -504,6 +504,8 @@ class ChunkGraph {
     getModuleChunksIterable(module: Module): Iterable<Chunk>;
     // (undocumented)
     getModuleId(module: Module): string | null;
+    // (undocumented)
+    getNumberOfEntryModules(chunk: Chunk): number;
 }
 
 // @public (undocumented)

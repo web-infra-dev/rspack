@@ -32,6 +32,10 @@ export class ChunkGraph {
 			.map(binding => Module.__from_binding(binding));
 	}
 
+	getNumberOfEntryModules(chunk: Chunk): number {
+		return this.#inner.getNumberOfChunkEntryModules(Chunk.__to_binding(chunk));
+	}
+
 	getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk> {
 		return this.#inner
 			.getChunkEntryDependentChunksIterable(Chunk.__to_binding(chunk))
