@@ -4,11 +4,11 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{rspack_sources::SourceMap, LoaderContext, RunnerContext};
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
-use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt};
-use tracing::Span;
 use rspack_napi::{
   napi::JsString, string::JsStringExt, threadsafe_js_value_ref::ThreadsafeJsValueRef,
 };
+use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt};
+use tracing::Span;
 
 use crate::{JsModuleWrapper, JsResourceData, JsRspackError};
 
@@ -91,12 +91,19 @@ impl FromNapiValue for JsSourceMapWrapper {
     };
 
     Ok(JsSourceMapWrapper(SourceMap::new(
-      js_source_map.mappings.into_string(),
+      js_source_map
+        .mappings
+        .try_into_string()
+        .map_err(|err| napi::Error::from_reason(err.to_string()))?,
       js_source_map
         .sources
         .into_iter()
-        .map(|source| source.into_string())
-        .collect::<Vec<_>>(),
+        .map(|source| {
+          source
+            .try_into_string()
+            .map_err(|err| napi::Error::from_reason(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?,
       sources_content,
       js_source_map
         .names
