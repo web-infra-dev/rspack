@@ -9,6 +9,7 @@ mod is_metadata_route;
 mod load_entrypoint;
 mod options;
 mod util;
+mod create_metadata_exports_code;
 
 use std::path::MAIN_SEPARATOR;
 

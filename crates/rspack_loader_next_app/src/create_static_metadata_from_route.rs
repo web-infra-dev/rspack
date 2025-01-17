@@ -190,7 +190,8 @@ impl<'a> StaticMetadataCreator<'a> {
         metadata.push(image_module);
       }
     }
-    todo!()
+
+    Ok(())
   }
 
   pub async fn create_static_metadata_from_route(mut self) -> Result<Option<CollectingMetadata>> {
