@@ -85,4 +85,9 @@ describe("TypeScript React project", () => {
 			}
 		}
 	});
+
+	bench("Emit asset with RawSource content", () => {
+		const source = new rspack.sources.RawSource("Hello World");
+		theCompilation.emitAsset("test.txt", source);
+	});
 });
