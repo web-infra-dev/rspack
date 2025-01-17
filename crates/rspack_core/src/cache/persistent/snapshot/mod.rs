@@ -13,6 +13,7 @@ use rustc_hash::FxHashSet as HashSet;
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
 use super::storage::Storage;
+use crate::FutureConsumer;
 
 const SCOPE: &str = "snapshot";
 
@@ -87,26 +88,26 @@ impl Snapshot {
 
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(&self) -> Result<(HashSet<ArcPath>, HashSet<ArcPath>)> {
-    let helper = StrategyHelper::new(self.fs.clone());
+    let mut modified_path = HashSet::default();
+    let mut deleted_path = HashSet::default();
+    let helper = Arc::new(StrategyHelper::new(self.fs.clone()));
 
-    let results = self
+    self
       .storage
       .load(SCOPE)
       .await?
-      .iter()
-      .map(|(key, value)| async {
-        let path: ArcPath = Path::new(&*String::from_utf8_lossy(key)).into();
-        let strategy: Strategy =
-          from_bytes::<Strategy, ()>(value, &()).expect("should from bytes success");
-        let validate = helper.validate(&path, &strategy).await;
-        (path, validate)
+      .into_iter()
+      .map(|(key, value)| {
+        let helper = helper.clone();
+        async move {
+          let path: ArcPath = Path::new(&*String::from_utf8_lossy(&key)).into();
+          let strategy: Strategy =
+            from_bytes::<Strategy, ()>(&value, &()).expect("should from bytes success");
+          let validate = helper.validate(&path, &strategy).await;
+          (path, validate)
+        }
       })
-      .collect::<FuturesResults<_>>();
-
-    let mut modified_path = HashSet::default();
-    let mut deleted_path = HashSet::default();
-    for (path, validate) in results.into_inner() {
-      match validate {
+      .fut_consume(|(path, validate)| match validate {
         ValidateResult::Modified => {
           modified_path.insert(path);
         }
@@ -114,8 +115,9 @@ impl Snapshot {
           deleted_path.insert(path);
         }
         ValidateResult::NoChanged => {}
-      }
-    }
+      })
+      .await;
+
     Ok((modified_path, deleted_path))
   }
 }
