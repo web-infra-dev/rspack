@@ -104,7 +104,7 @@ jobs:
           result-encoding: string
           script: |
             const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`;
-            let result = [
+            let suites = [
               "modernjs",
               // "nx",
               "rspress",
@@ -116,10 +116,10 @@ jobs:
               "nuxt",
             ]
             if (suiteName !== "-") {
-              result = allSuite.filter(item => item === suiteName)
+              suites = suites.filter(suite => suite === suiteName)
             }
             return JSON.stringify({
-              include: result.map(suite => ({ suite }))
+              include: suites.map(suite => ({ suite }))
             })
 
   eco-ci:
@@ -174,21 +174,34 @@ jobs:
 
           SUITE='${{ matrix.suite }}'
           SUITE_REF='${{ inputs.suiteRef || '-' }}'
+          CONCLUSION='success'
           if [[ "$SUITE_REF" != "-" ]]; then
             # run test suite with suiteRef
-            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE"
+            pnpm tsx ecosystem-ci.ts run-suites --suite-commit "$SUITE_REF" "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE with $SUITE_REF"
           else
             # run test suite
-            pnpm tsx ecosystem-ci.ts run-suites "$SUITE"
+            pnpm tsx ecosystem-ci.ts run-suites "$SUITE" || CONCLUSION='failure'
             echo "finish run $SUITE"
           fi
+          echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
+      - name: Upload Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: eco-ci-result-${{ matrix.suite }}
+          path: ${{ matrix.suite }}.json
 
   comment-compare-results:
     runs-on: ubuntu-latest
     needs: [create-comment, eco-ci]
     if: ${{ !cancelled() }}
     steps:
+      - name: Download Result
+        uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: eco-ci-result-*
+          merge-multiple: true
       - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -206,7 +219,11 @@ jobs:
               .filter(job => job.conclusion !== 'skipped')
               .map(job => {
                 const suite = job.name.replace(/^eco-ci \(([^)]+)\)$/, "$1")
-                return { suite, conclusion: job.conclusion, link: job.html_url }
+                let conclusion = job.conclusion
+                if (conclusion === "success") {
+                  conclusion = require(`./results/${suite}.json`).conclusion;
+                }
+                return { suite, conclusion, link: job.html_url }
               })
 
             const conclusionEmoji = {
