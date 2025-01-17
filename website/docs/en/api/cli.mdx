@@ -13,19 +13,19 @@
 
 `rspack build` is used to run Rspack build, which will generate the output files in the [output.path](/config/output#outputpath) directory.
 
-```sh
+```bash
 npx rspack build  # Read the `rspack.config.*` configuration file by default
 ```
 
 `rspack build` can be abbreviated as `rspack b`:
 
-```sh
+```bash
 npx rspack b
 ```
 
 Use the `-c` or `--config` flag to specify the configuration file path:
 
-```sh
+```bash
 npx rspack build -c ./your.config.js
 ```
 
@@ -53,19 +53,19 @@ Options:
 
 `rspack dev` is used to run Rspack dev server, which will start a local dev server that will listen for file changes and automatically refresh the browser.
 
-```sh
+```bash
 npx rspack dev
 ```
 
 Use the `-c` or `--config` flag to specify the configuration file path:
 
-```sh
+```bash
 npx rspack dev -c ./your.config.js
 ```
 
 `rspack dev` can be abbreviated as `rspack serve` or `rspack s`:
 
-```sh
+```bash
 npx rspack s
 npx rspack serve
 ```
@@ -93,7 +93,7 @@ Options:
 
 `rspack preview` is used to preview the production build output locally, note that you need to build the output first by running the `rspack build` command.
 
-```sh
+```bash
 npx rspack preview
 ```
 

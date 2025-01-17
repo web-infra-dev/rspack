@@ -13,19 +13,19 @@
 
 `rspack build` 用于运行 Rspack 构建，将会在 [output.path](/config/output#outputpath) 目录下生成构建后的文件。
 
-```sh
+```bash
 npx rspack build  # 默认读取 `rspack.config.*` 配置文件
 ```
 
 `rspack build` 可以缩写为 `rspack b`：
 
-```sh
+```bash
 npx rspack b
 ```
 
 使用 `-c` 或 `--config` 选项来指定配置文件路径：
 
-```sh
+```bash
 npx rspack build -c ./your.config.js
 ```
 
@@ -53,19 +53,19 @@ Options:
 
 `rspack dev` 用于运行 Rspack 开发服务器，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
 
-```sh
+```bash
 npx rspack dev
 ```
 
 使用 `-c` 或 `--config` 选项来指定配置文件路径：
 
-```sh
+```bash
 npx rspack dev -c ./your.config.js
 ```
 
 `rspack dev` 的别名为 `rspack serve` 或 `rspack s`：
 
-```sh
+```bash
 npx rspack s
 npx rspack serve
 ```
@@ -93,7 +93,7 @@ Options:
 
 `rspack preview` 用于在本地预览生产模式构建的产物, 注意你需要提前执行 `rspack build` 命令构建出产物。
 
-```sh
+```bash
 npx rspack preview
 ```
 
