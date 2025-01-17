@@ -92,6 +92,13 @@ module.exports = {
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
+		-         "aliasFields": Array [
+		-           "browser",
+		-         ],
+		+         "aliasFields": Array [],
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		+       "node",
 		@@ ... @@
 		+       "nwjs",
