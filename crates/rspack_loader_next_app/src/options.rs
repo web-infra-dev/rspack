@@ -12,7 +12,7 @@ pub struct Options {
   pub preferred_region: Option<String>,
   pub page_extensions: Vec<String>,
   pub base_path: String,
-  pub next_config_output_path: Option<String>,
+  pub next_config_output: Option<String>,
   // nextConfigExperimentalUseEarlyImport?: true
   pub middleware_config: String,
   pub project_root: String,

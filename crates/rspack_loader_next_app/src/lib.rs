@@ -1,18 +1,20 @@
 #![feature(let_chains)]
+#![feature(iterator_try_collect)]
 #[allow(unused_variables)]
 #[allow(dead_code)]
 #[allow(unused_imports)]
 mod create_app_route_code;
+mod create_metadata_exports_code;
 mod create_static_metadata_from_route;
 mod create_tree_code_from_path;
 mod is_metadata_route;
 mod load_entrypoint;
 mod options;
 mod util;
-mod create_metadata_exports_code;
 
 use std::path::MAIN_SEPARATOR;
 
+use create_app_route_code::create_app_route_code;
 use create_tree_code_from_path::{create_tree_code_from_path, TreeCodeResult};
 use load_entrypoint::load_next_js_template;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -60,12 +62,13 @@ impl NextAppLoader {
       app_paths,
       page_extensions,
       base_path,
-      next_config_output_path,
+      next_config_output,
       middleware_config,
       project_root,
       preferred_region,
     } = serde_querystring::from_str::<Options>(options, serde_querystring::ParseMode::Duplicate)
       .map_err(|e| error!(e.to_string()))?;
+    let project_root = Utf8PathBuf::from(project_root);
     let page = name.strip_prefix("app").unwrap_or(&name);
     let app_paths = app_paths.unwrap_or_default();
     let middleware_config = json::parse(
@@ -94,6 +97,21 @@ impl NextAppLoader {
       .extra
       .insert("route", json::JsonValue::Object(route));
 
+    if name.ends_with("/route") {
+      let code = create_app_route_code(
+        &name,
+        page,
+        &page_path,
+        &project_root,
+        &page_extensions,
+        &next_config_output,
+        &app_dir,
+      )
+      .await?;
+      loader_context.finish_with(code);
+      return Ok(());
+    }
+
     let mut collected_declarations = vec![];
 
     let TreeCodeResult {
@@ -117,7 +135,6 @@ impl NextAppLoader {
       panic!("root_layout is None");
     }
 
-    let project_root = Utf8PathBuf::from(project_root);
     let pathname = normalize_app_path(page);
     let pathname = normalize_underscore(&pathname);
     let code = load_next_js_template(
