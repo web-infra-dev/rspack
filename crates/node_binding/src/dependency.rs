@@ -152,6 +152,7 @@ pub struct JsDependencyWrapper {
   compiler_id: CompilerId,
   dependency_id: DependencyId,
   dependency: NonNull<dyn Dependency>,
+  #[allow(dead_code)]
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
@@ -176,7 +177,7 @@ impl JsDependencyWrapper {
     }
   }
 
-  pub fn cleanup_last_compilation(compilation_id: CompilationId) {
+  pub fn cleanup_last_compilation(_compilation_id: CompilationId) {
     // DEPENDENCY_INSTANCE_REFS.with(|refs| {
     //   let mut refs_by_compilation_id = refs.borrow_mut();
     //   refs_by_compilation_id.remove(&compilation_id)

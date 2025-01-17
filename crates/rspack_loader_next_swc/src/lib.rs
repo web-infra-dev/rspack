@@ -1,5 +1,6 @@
 #![feature(let_chains)]
-
+#[allow(unused_variables)]
+#[allow(dead_code)]
 mod compiler;
 mod options;
 mod transformer;
@@ -13,8 +14,7 @@ use compiler::{IntoJsAst, SwcCompiler};
 use next_custom_transforms::chain_transforms::{custom_before_pass, TransformOptions};
 use next_custom_transforms::transforms::cjs_optimizer::PackageConfig;
 use next_custom_transforms::transforms::{
-  cjs_optimizer, fonts, named_import_transform, optimize_server_react, react_server_components,
-  server_actions,
+  cjs_optimizer, fonts, optimize_server_react, react_server_components, server_actions,
 };
 use once_cell::sync::Lazy;
 use options::NextSwcLoaderJsOptions;
@@ -134,7 +134,7 @@ fn get_transform_options(
     optimize_server_react,
     supported_browsers,
     swc_cache_dir,
-    transpile_packages,
+
     modularize_imports,
     decorators,
     emit_decorator_metadata,
@@ -314,7 +314,6 @@ fn get_transform_options(
             } else {
               None
             },
-            use_builtins: Some(true),
             ..Default::default()
           },
           optimizer: Some(OptimizerConfig {

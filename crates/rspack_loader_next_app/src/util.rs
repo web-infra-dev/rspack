@@ -1,7 +1,3 @@
-use std::borrow::Cow;
-
-use cow_utils::CowUtils;
-
 pub fn normalize_app_path(route: &str) -> String {
   let segments = route.split('/');
   let segments_len = segments.clone().count();

@@ -149,7 +149,7 @@ impl JsModuleGraphConnectionWrapper {
     }
   }
 
-  pub fn cleanup_last_compilation(compilation_id: CompilationId) {
+  pub fn cleanup_last_compilation(_compilation_id: CompilationId) {
     // MODULE_GRAPH_CONNECTION_INSTANCE_REFS.with(|refs| {
     //   let mut refs_by_compilation_id = refs.borrow_mut();
     //   refs_by_compilation_id.remove(&compilation_id)

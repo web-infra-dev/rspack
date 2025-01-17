@@ -1,5 +1,7 @@
 #![feature(let_chains)]
-
+#[allow(unused_variables)]
+#[allow(dead_code)]
+#[allow(unused_imports)]
 mod create_app_route_code;
 mod create_static_metadata_from_route;
 mod create_tree_code_from_path;

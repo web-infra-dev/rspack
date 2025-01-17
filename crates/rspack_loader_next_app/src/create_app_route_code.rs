@@ -53,7 +53,7 @@ pub async fn create_app_route_code(
 
   // This, when used with the resolver will give us the pathname to the built
   // route handler file.
-  let mut resolved_page_path = resolve_app_route(route_path).await.ok_or_else(|| {
+  let resolved_page_path = resolve_app_route(route_path).await.ok_or_else(|| {
     format!(
       "Invariant: could not resolve page path for {} at {}",
       name, route_path

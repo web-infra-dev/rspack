@@ -1,7 +1,6 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
-use json::JsonValue;
-use napi::{JsObject, JsString};
+use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -412,7 +411,7 @@ impl JsModuleWrapper {
     }
   }
 
-  pub fn cleanup_last_compilation(compilation_id: CompilationId) {
+  pub fn cleanup_last_compilation(_compilation_id: CompilationId) {
     // MODULE_INSTANCE_REFS.with(|refs| {
     //   let mut refs_by_compilation_id = refs.borrow_mut();
     //   refs_by_compilation_id.remove(&compilation_id)

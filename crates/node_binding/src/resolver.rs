@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::{cell::RefCell, path::Path};
 
-use napi::bindgen_prelude::JavaScriptClassExt;
 use napi::{bindgen_prelude::ToNapiValue, Either};
 use napi_derive::napi;
 use rspack_core::{ResolveOptionsWithDependencyType, Resolver, ResolverFactory};
