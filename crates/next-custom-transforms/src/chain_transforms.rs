@@ -173,7 +173,15 @@ where
       styled_jsx::visitor::NativeConfig { process_css: None },
     ))
   } else {
-    Either::Right(noop_pass())
+    Either::Right(styled_jsx::visitor::styled_jsx(
+      cm.clone(),
+      (*file.name).clone(),
+      styled_jsx::visitor::Config {
+        use_lightningcss: false,
+        browsers: target_browsers,
+      },
+      styled_jsx::visitor::NativeConfig { process_css: None },
+    ))
   };
 
   (
