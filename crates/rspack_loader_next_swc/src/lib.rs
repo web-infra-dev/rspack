@@ -149,7 +149,7 @@ fn get_transform_options(
     None => false,
   };
 
-  let disable_next_ssg = if *is_server { true } else { is_page_file };
+  let disable_next_ssg = if *is_server { true } else { !is_page_file };
 
   let is_node_modules = NODE_MODULES_PATH.is_match(filename.as_str());
   let is_app_browser_layer = bundle_layer.as_deref() == Some("app-pages-browser");
@@ -388,10 +388,6 @@ fn get_transform_options(
           .collect::<HashMap<_, _>>(),
       });
 
-  let auto_modularize_imports = Some(named_import_transform::Config {
-    packages: transpile_packages.clone(),
-  });
-
   let optimize_server_react = if *optimize_server_react {
     Some(optimize_server_react::Config {
       optimize_use_state: false,
@@ -419,7 +415,7 @@ fn get_transform_options(
     shake_exports: None,
     emotion,
     modularize_imports,
-    auto_modularize_imports,
+    auto_modularize_imports: None,
     optimize_barrel_exports: None,
     font_loaders: Some(fonts::Config {
       font_loaders: vec!["next/font/local".into(), "next/font/google".into()],
@@ -477,10 +473,6 @@ impl NextSwcLoader {
     let should_maybe_exclude =
       may_be_exclude(resource_path.as_str(), &self.options.transpile_packages);
     if should_maybe_exclude {
-      if source.is_empty() {
-        panic!("Invariant might be excluded but missing source");
-      }
-
       if !FORCE_TRANSPILE_CONDITIONS.is_match(&source) {
         let map = loader_context.take_source_map();
         loader_context.finish_with((source, map));
