@@ -59,7 +59,7 @@
     "enhanced-resolve": "5.17.1",
     "graceful-fs": "4.2.11",
     "json-parse-even-better-errors": "^3.0.0",
-    "prebundle": "^1.1.0",
+    "prebundle": "^1.2.7",
     "tsc-alias": "^1.8.8",
     "tsup": "^8.3.0",
     "tsx": "^4.19.2",
