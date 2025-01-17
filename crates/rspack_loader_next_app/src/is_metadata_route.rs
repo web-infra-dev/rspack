@@ -1,3 +1,4 @@
+#[allow(unused_variables)]
 use std::collections::HashMap;
 
 use lazy_regex::Lazy;

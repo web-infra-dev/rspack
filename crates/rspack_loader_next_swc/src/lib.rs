@@ -1,5 +1,6 @@
 #![feature(let_chains)]
-
+#[allow(unused_variables)]
+#[allow(dead_code)]
 mod compiler;
 mod options;
 mod transformer;
@@ -314,7 +315,6 @@ fn get_transform_options(
             } else {
               None
             },
-            use_builtins: Some(true),
             ..Default::default()
           },
           optimizer: Some(OptimizerConfig {
