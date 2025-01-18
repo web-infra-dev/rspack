@@ -124,7 +124,7 @@ pub fn is_metadata_route_file(
       ))
       .unwrap()
     },
-    Regex::new(r"^[\\/]{favicon}\.ico$").unwrap(),
+    Regex::new(r"^[\\/]favicon\.ico$").unwrap(),
     Regex::new(&format!(
       r"[\\/]sitemap{}",
       if with_extension {
@@ -200,14 +200,6 @@ pub fn is_metadata_route_file(
   metadata_route_files_regex
     .iter()
     .any(|r| r.is_match(&normalized_app_dir_relative_path))
-}
-
-pub fn is_static_metadata_route_file(app_dir_relative_path: &str) -> bool {
-  is_metadata_route_file(app_dir_relative_path, &vec![], true)
-}
-
-pub fn is_static_metadata_route(page: &str) -> bool {
-  page == "/robots" || page == "/manifest" || is_static_metadata_route_file(page)
 }
 
 pub fn is_metadata_route(route: &str) -> bool {
