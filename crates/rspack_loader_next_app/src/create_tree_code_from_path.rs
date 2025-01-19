@@ -145,6 +145,15 @@ fn resolve_parallel_segments<'a>(
       }
 
       existing_children_path = Some(app_path);
+
+      if !matched.is_empty()
+        && let Some(i) = matched_children_index
+        && let Segments::Children(c) = matched[i]
+        && c == rest[0]
+      {
+        continue;
+      }
+
       matched_children_index = Some(matched.len());
       matched.push(Segments::Children(rest[0]));
     }

@@ -85,8 +85,12 @@ impl FromNapiValue for JsSourceMapWrapper {
     let sources_content = match js_source_map.sources_content {
       Some(sources_content) => sources_content
         .into_iter()
-        .map(|source| source.into_string())
-        .collect::<Vec<_>>(),
+        .map(|source| {
+          source
+            .try_into_string()
+            .map_err(|err| napi::Error::from_reason(err.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?,
       None => vec![],
     };
 
