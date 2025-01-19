@@ -327,8 +327,12 @@ function getCurrentLoader(
 	}
 	return null;
 }
-
+// FIXME: a temporary fix, we may need to change @rspack/tracing to commonjs really fix it
+let tracingCache!: { tracer: any; activeContext: any };
 async function tryTrace(context: JsLoaderContext) {
+	if (tracingCache) {
+		return tracingCache;
+	}
 	try {
 		const {
 			trace,
@@ -340,9 +344,11 @@ async function tryTrace(context: JsLoaderContext) {
 			tracingContext.active(),
 			context.__internal__tracingCarrier
 		);
-		return { tracer, activeContext };
+		tracingCache = { tracer, activeContext };
+		return tracingCache;
 	} catch (error) {
-		return { tracer: null, activeContext: null };
+		tracingCache = { tracer: null, activeContext: null };
+		return tracingCache;
 	}
 }
 
