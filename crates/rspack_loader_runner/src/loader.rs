@@ -63,6 +63,16 @@ impl<C> LoaderItem<C> {
   }
 
   #[inline]
+  pub fn query(&self) -> Option<&str> {
+    self.query.as_deref()
+  }
+
+  #[inline]
+  pub fn fragment(&self) -> Option<&str> {
+    self.fragment.as_deref()
+  }
+
+  #[inline]
   pub fn r#type(&self) -> &str {
     &self.r#type
   }

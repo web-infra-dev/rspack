@@ -4,11 +4,10 @@ use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use json::JsonValue;
-use rspack_cacheable::with::AsPreset;
+use json::{object::Object, JsonValue};
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsVec},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
@@ -26,13 +25,14 @@ use crate::concatenated_module::ConcatenatedModule;
 use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilationId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
-  ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  CompilationId, CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided,
+  ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule,
+  Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -67,6 +67,9 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+  // Used solely for communication with the build info on the JavaScript side
+  #[cacheable(with=AsPreset)]
+  pub extra: Object,
 }
 
 impl Default for BuildInfo {
@@ -85,6 +88,7 @@ impl Default for BuildInfo {
       json_data: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      extra: Object::new(),
     }
   }
 }
@@ -210,6 +214,10 @@ pub trait Module:
   + Diagnosable
   + ModuleSourceMapConfig
 {
+  fn constructor_name(&self) -> &'static str {
+    "Module"
+  }
+
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 

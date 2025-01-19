@@ -3,10 +3,11 @@ use std::{ptr::NonNull, sync::Arc};
 pub use rspack_loader_runner::{run_loaders, Content, Loader, LoaderContext};
 use rspack_util::source_map::SourceMapKind;
 
-use crate::{CompilationId, CompilerOptions, Module, ResolverFactory};
+use crate::{CompilationId, CompilerId, CompilerOptions, Module, ResolverFactory};
 
 #[derive(Debug, Clone)]
 pub struct RunnerContext {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,

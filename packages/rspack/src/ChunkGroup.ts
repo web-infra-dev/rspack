@@ -2,6 +2,7 @@ import type { JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
 import { Module } from "./Module";
+import { VolatileValue } from "./util/volatile";
 
 const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
 
@@ -10,8 +11,12 @@ export class ChunkGroup {
 	declare readonly index?: number;
 	declare readonly name?: string;
 	declare readonly origins: ReadonlyArray<ChunkGroupOrigin>;
+	declare readonly childrenIterable: Set<ChunkGroup>;
 
 	#inner: JsChunkGroup;
+
+	#chunks = new VolatileValue<ReadonlyArray<Chunk>>();
+	#name = new VolatileValue<string | undefined>();
 
 	static __from_binding(binding: JsChunkGroup) {
 		let chunkGroup = CHUNK_GROUP_MAPPINGS.get(binding);
@@ -30,9 +35,14 @@ export class ChunkGroup {
 			chunks: {
 				enumerable: true,
 				get: () => {
-					return this.#inner.chunks.map(binding =>
+					if (this.#chunks.has()) {
+						return this.#chunks.get();
+					}
+					const chunks = this.#inner.chunks.map(binding =>
 						Chunk.__from_binding(binding)
 					);
+					this.#chunks.set(chunks);
+					return chunks;
 				}
 			},
 			index: {
@@ -44,7 +54,12 @@ export class ChunkGroup {
 			name: {
 				enumerable: true,
 				get: () => {
-					return this.#inner.name;
+					if (this.#name.has()) {
+						return this.#name.get();
+					}
+					const name = this.#inner.name;
+					this.#name.set(name);
+					return name;
 				}
 			},
 			origins: {
@@ -56,6 +71,14 @@ export class ChunkGroup {
 							: undefined,
 						request: origin.request
 					}));
+				}
+			},
+			childrenIterable: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.childrenIterable.map(child =>
+						ChunkGroup.__from_binding(child)
+					);
 				}
 			}
 		});

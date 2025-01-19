@@ -43,12 +43,11 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import type { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
-import type { JsModule } from '@rspack/binding';
+import { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
 import type { JsModuleGraphConnection } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
@@ -489,6 +488,8 @@ class ChunkGraph {
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
     // (undocumented)
+    getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null;
+    // (undocumented)
     getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
     // (undocumented)
     getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module>;
@@ -503,6 +504,8 @@ class ChunkGraph {
     // (undocumented)
     getModuleChunksIterable(module: Module): Iterable<Chunk>;
     // (undocumented)
+    getModuleHash(module: Module, runtime: RuntimeSpec): string | null;
+    // (undocumented)
     getModuleId(module: Module): string | null;
 }
 
@@ -511,6 +514,8 @@ export class ChunkGroup {
     protected constructor(inner: JsChunkGroup);
     // (undocumented)
     static __from_binding(binding: JsChunkGroup): ChunkGroup;
+    // (undocumented)
+    readonly childrenIterable: Set<ChunkGroup>;
     // (undocumented)
     readonly chunks: ReadonlyArray<Chunk>;
     // (undocumented)
@@ -601,7 +606,7 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
-    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
+    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err: WebpackError_2 | null, module: Module | null) => void): void;
     // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
@@ -1117,7 +1122,7 @@ export type Context = string;
 // @public (undocumented)
 type ContextInfo = {
     issuer: string;
-    issuerLayer?: string;
+    issuerLayer?: string | null;
 };
 
 // @public (undocumented)
@@ -1353,17 +1358,16 @@ class DependenciesBlock {
 // @public (undocumented)
 class Dependency {
     // (undocumented)
-    static __from_binding(binding: JsDependency): Dependency;
+    get category(): string;
     // (undocumented)
-    static __to_binding(data: Dependency): JsDependency;
+    get critical(): boolean;
+    set critical(val: boolean);
     // (undocumented)
-    readonly category: string;
+    get ids(): string[] | null;
     // (undocumented)
-    critical: boolean;
+    get request(): string | undefined;
     // (undocumented)
-    readonly request: string | undefined;
-    // (undocumented)
-    readonly type: string;
+    get type(): string;
 }
 
 // @public (undocumented)
@@ -1640,17 +1644,18 @@ class EntryData {
     // (undocumented)
     static __from_binding(binding: binding.JsEntryData): EntryData;
     // (undocumented)
-    dependencies: Dependency[];
+    get dependencies(): Dependency[];
+    set dependencies(dependencies: Dependency[]);
     // (undocumented)
-    includeDependencies: Dependency[];
+    get includeDependencies(): Dependency[];
+    set includeDependencies(dependencies: Dependency[]);
     // (undocumented)
     options: binding.JsEntryOptions;
 }
 
 // @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
+class EntryDependency extends ModuleDependency {
+    constructor(request: string);
 }
 
 // @public
@@ -3170,6 +3175,11 @@ export type LazyCompilationOptions = {
     test?: RegExp | ((module: any) => boolean);
 };
 
+// @public (undocumented)
+interface LibIdentOptions {
+    context: string;
+}
+
 // @public
 export type Library = LibraryName | LibraryOptions | undefined;
 
@@ -3662,7 +3672,7 @@ export class Module {
     buildInfo: Record<string, any>;
     buildMeta: Record<string, any>;
     // (undocumented)
-    readonly context?: string;
+    readonly context: string | null;
     // (undocumented)
     readonly dependencies: Dependency[];
     // (undocumented)
@@ -3670,7 +3680,9 @@ export class Module {
     // (undocumented)
     identifier(): string;
     // (undocumented)
-    readonly layer: null | string;
+    readonly layer: string | null;
+    // (undocumented)
+    libIdent(options: LibIdentOptions): string | null;
     // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
@@ -3678,11 +3690,11 @@ export class Module {
     // (undocumented)
     originalSource(): Source | null;
     // (undocumented)
-    readonly rawRequest?: string;
+    readonly rawRequest: string | null;
     // (undocumented)
-    readonly request?: string;
+    readonly request: string | null;
     // (undocumented)
-    readonly resource?: string;
+    readonly resource: string | null;
     // (undocumented)
     size(type?: string): number;
     // (undocumented)
@@ -3695,6 +3707,13 @@ export class Module {
 
 // @public (undocumented)
 type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
+
+// @public (undocumented)
+class ModuleDependency extends Dependency {
+    constructor(request: string);
+    // (undocumented)
+    get request(): string;
+}
 
 // @public (undocumented)
 class ModuleFederationPlugin {
@@ -3775,7 +3794,15 @@ class ModuleGraph {
     // (undocumented)
     getOutgoingConnections(module: Module): ModuleGraphConnection[];
     // (undocumented)
+    getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[];
+    // (undocumented)
+    getParentBlockIndex(dependency: Dependency): number;
+    // (undocumented)
+    getParentModule(dependency: Dependency): Module | null;
+    // (undocumented)
     getResolvedModule(dependency: Dependency): Module | null;
+    // (undocumented)
+    isAsync(module: Module): boolean;
 }
 
 // @public (undocumented)
@@ -9870,7 +9897,7 @@ enum RuntimeModuleStage {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
-type RuntimeSpec = string | string[] | undefined;
+type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
 type SafeParseError<Input> = {

@@ -455,19 +455,24 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
 }
 
 fn extend_alias(a: &Alias, b: Alias) -> Alias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+  // FIXME: I think this to_vec can be removed
+  let mut a = a.to_vec();
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
+  a
 }
 
 fn extend_extension_alias(a: &ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+  // FIXME: I think this to_vec can be removed
+  let mut a = a.to_vec();
+  a.extend(b);
+  a.dedup();
+  a
 }
 
 #[cfg(test)]
@@ -2272,6 +2277,33 @@ mod test {
       merge_resolve(first, second),
       Resolve {
         extensions: string_list(&[]),
+        ..Default::default()
+      }
+    )
+  }
+
+  #[test]
+  fn test_merge_resolver_options_20() {
+    let first = Resolve {
+      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignore])]),
+      ..Default::default()
+    };
+
+    let second = Resolve {
+      alias: Some(vec![(
+        "c".to_string(),
+        vec![AliasMap::Path("ccc".to_string())],
+      )]),
+      ..Default::default()
+    };
+
+    pretty_assertions::assert_eq!(
+      merge_resolve(first, second),
+      Resolve {
+        alias: Some(vec![(
+          "c".to_string(),
+          vec![AliasMap::Path("ccc".to_string())],
+        )]),
         ..Default::default()
       }
     )

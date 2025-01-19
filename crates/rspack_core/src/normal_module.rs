@@ -440,6 +440,7 @@ impl Module for NormalModule {
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
+        compiler_id: build_context.compiler_id,
         compilation_id: build_context.compilation_id,
         options: build_context.compiler_options.clone(),
         resolver_factory: build_context.resolver_factory.clone(),
@@ -548,6 +549,7 @@ impl Module for NormalModule {
       .into_iter()
       .map(Into::into)
       .collect();
+    build_info.extra = loader_result.extra;
 
     if no_parse {
       self.parsed = false;

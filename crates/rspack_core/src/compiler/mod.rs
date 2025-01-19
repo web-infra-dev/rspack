@@ -2,12 +2,14 @@ mod compilation;
 mod hmr;
 pub mod make;
 mod module_executor;
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
+use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
@@ -50,8 +52,27 @@ pub struct CompilerHooks {
   pub asset_emitted: CompilerAssetEmittedHook,
 }
 
+static COMPILER_ID: AtomicU32 = AtomicU32::new(0);
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct CompilerId(u32);
+
+impl CompilerId {
+  pub fn new() -> Self {
+    Self(COMPILER_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+  }
+}
+
+impl Default for CompilerId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[derive(Debug)]
 pub struct Compiler {
+  id: CompilerId,
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
@@ -126,10 +147,14 @@ impl Compiler {
     let old_cache = Arc::new(OldCache::new(options.clone()));
     let module_executor = ModuleExecutor::default();
 
+    let id = CompilerId::new();
+
     Self {
+      id,
       compiler_path,
       options: options.clone(),
       compilation: Compilation::new(
+        id,
         options,
         plugin_driver.clone(),
         buildtime_plugin_driver.clone(),
@@ -158,6 +183,10 @@ impl Compiler {
     }
   }
 
+  pub fn id(&self) -> CompilerId {
+    self.id
+  }
+
   pub async fn run(&mut self) -> Result<()> {
     self.build().await?;
     Ok(())
@@ -173,6 +202,7 @@ impl Compiler {
     fast_set(
       &mut self.compilation,
       Compilation::new(
+        self.id,
         self.options.clone(),
         self.plugin_driver.clone(),
         self.buildtime_plugin_driver.clone(),
@@ -358,7 +388,15 @@ impl Compiler {
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(target_file);
+      let file_path = {
+        let target_path = Utf8Path::new(target_file);
+        if target_path.is_absolute() {
+          output_path.join(target_path.strip_prefix("/").unwrap())
+        } else {
+          output_path.join(target_path)
+        }
+      };
+
       self
         .output_filesystem
         .create_dir_all(
