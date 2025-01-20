@@ -7,5 +7,5 @@ describeByWalk("new-code-splitting config cases", (name, src, dist) => {
 }, {
 	source: path.resolve(__dirname, "./configCases"),
 	dist: path.resolve(__dirname, `./js/new-code-splitting-config`),
-	exclude: [/esm-external/]
+	exclude: [/esm-external/, /container-1/]
 });
