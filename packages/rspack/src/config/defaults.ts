@@ -1081,7 +1081,7 @@ const getResolveDefaults = ({
 				preferRelative: true
 			},
 			commonjs: cjsDeps(),
-			// amd: cjsDeps(),
+			amd: cjsDeps(),
 			// for backward-compat: loadModule
 			// loader: cjsDeps(),
 			// for backward-compat: Custom Dependency and getResolve without dependencyType
