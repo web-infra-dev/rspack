@@ -36,7 +36,7 @@ use super::{
   module_executor::ModuleExecutor,
 };
 use crate::{
-  build_chunk_graph::build_chunk_graph,
+  build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
   cache::Cache,
   get_runtime_key,
   incremental::{Incremental, IncrementalPasses, Mutation},
@@ -1318,7 +1318,11 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
-      build_chunk_graph(compilation)?;
+      if compilation.options.experiments.parallel_code_splitting {
+        build_chunk_graph_new(compilation)?;
+      } else {
+        build_chunk_graph(compilation)?;
+      }
       Ok(compilation)
     })
     .await?;
@@ -2441,12 +2445,12 @@ impl AssetInfoRelated {
 pub fn assign_depths(
   assign_map: &mut IdentifierMap<usize>,
   mg: &ModuleGraph,
-  modules: Vec<&ModuleIdentifier>,
+  modules: impl Iterator<Item = &ModuleIdentifier>,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
   let mut q = VecDeque::new();
-  for item in modules.iter() {
-    q.push_back((**item, 0));
+  for item in modules {
+    q.push_back((*item, 0));
   }
   while let Some((id, depth)) = q.pop_front() {
     match assign_map.entry(id) {

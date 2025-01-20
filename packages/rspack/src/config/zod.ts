@@ -1377,6 +1377,7 @@ const experiments = z.strictObject({
 	css: z.boolean().optional(),
 	layers: z.boolean().optional(),
 	incremental: z.boolean().or(incremental).optional(),
+	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
 	rspackFuture: rspackFutureOptions.optional()
 }) satisfies z.ZodType<t.Experiments>;

@@ -129,7 +129,7 @@ impl CodeSplitter {
         continue;
       };
 
-      parent_cg.children.remove(&chunk_group_ukey);
+      parent_cg.children.swap_remove_full(&chunk_group_ukey);
 
       if let Some(parent_cgi) = self.chunk_group_info_map.get(parent) {
         if let Some(parent_cgi) = self.chunk_group_infos.get_mut(parent_cgi) {

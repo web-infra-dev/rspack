@@ -40,10 +40,12 @@ where
   }
 
   let has_change = compilation.has_module_import_export_change();
+
   if !has_change
-    || compilation
-      .incremental
-      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH)
+    || (!compilation.options.experiments.parallel_code_splitting
+      && compilation
+        .incremental
+        .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH))
   {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
