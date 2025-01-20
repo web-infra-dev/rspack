@@ -76,6 +76,9 @@ module.exports = {
 		        providedExports: Array [],
 		        reasons: Array [
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 101,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/b.js,
 		            moduleName: ./fixtures/b.js,
@@ -86,6 +89,9 @@ module.exports = {
 		            userRequest: self,
 		          },
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 725,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/chunk-b.js,
 		            moduleName: ./fixtures/chunk-b.js,
@@ -187,12 +193,18 @@ module.exports = {
 		        providedExports: Array [],
 		        reasons: Array [
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: null,
 		            resolvedModuleId: null,
 		            type: entry,
 		            userRequest: ./fixtures/chunk-b,
 		          },
 		          Object {
+		            active: true,
+		            explanation: undefined,
+		            loc: undefined,
 		            moduleId: 725,
 		            moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/chunk-b.js,
 		            moduleName: ./fixtures/chunk-b.js,

@@ -78,6 +78,7 @@ pub struct StatsWarning<'s> {
 pub struct StatsModuleTrace {
   pub origin: StatsErrorModuleTraceModule,
   pub module: StatsErrorModuleTraceModule,
+  pub dependencies: Vec<StatsErrorModuleTraceDependency>,
 }
 
 #[derive(Debug)]
@@ -85,6 +86,11 @@ pub struct StatsErrorModuleTraceModule {
   pub identifier: ModuleIdentifier,
   pub name: String,
   pub id: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct StatsErrorModuleTraceDependency {
+  pub loc: String,
 }
 
 #[derive(Debug)]
@@ -267,6 +273,9 @@ pub struct StatsModuleReason<'s> {
 
   pub r#type: Option<&'static str>,
   pub user_request: Option<&'s str>,
+  pub explanation: Option<&'static str>,
+  pub active: bool,
+  pub loc: Option<String>,
 }
 
 #[derive(Debug)]

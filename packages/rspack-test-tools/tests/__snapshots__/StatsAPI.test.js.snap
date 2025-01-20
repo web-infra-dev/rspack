@@ -92,12 +92,18 @@ Object {
           providedExports: Array [],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: null,
               resolvedModuleId: null,
               type: entry,
               userRequest: ./fixtures/a,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 585,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js,
               moduleName: ./fixtures/a.js,
@@ -213,12 +219,18 @@ Object {
       providedExports: Array [],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: null,
           resolvedModuleId: null,
           type: entry,
           userRequest: ./fixtures/a,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 585,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js,
           moduleName: ./fixtures/a.js,
@@ -434,6 +446,9 @@ Object {
               ],
               reasons: Array [
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 1:0-24,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -444,6 +459,9 @@ Object {
                   userRequest: ./a,
                 },
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 5:0-1,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -506,6 +524,9 @@ Object {
               ],
               reasons: Array [
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 2:0-20,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -516,6 +537,9 @@ Object {
                   userRequest: ./b,
                 },
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 5:3-4,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -578,6 +602,9 @@ Object {
               ],
               reasons: Array [
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 3:0-25,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -588,6 +615,9 @@ Object {
                   userRequest: ./c,
                 },
                 Object {
+                  active: true,
+                  explanation: undefined,
+                  loc: 5:6-7,
                   moduleId: undefined,
                   moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
                   moduleName: ./fixtures/esm/abc.js,
@@ -617,6 +647,9 @@ Object {
           providedExports: Array [],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: null,
               resolvedModuleId: null,
               type: entry,
@@ -840,6 +873,9 @@ Object {
           ],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 1:0-24,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -850,6 +886,9 @@ Object {
               userRequest: ./a,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 5:0-1,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -912,6 +951,9 @@ Object {
           ],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 2:0-20,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -922,6 +964,9 @@ Object {
               userRequest: ./b,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 5:3-4,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -984,6 +1029,9 @@ Object {
           ],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 3:0-25,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -994,6 +1042,9 @@ Object {
               userRequest: ./c,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 5:6-7,
               moduleId: undefined,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
               moduleName: ./fixtures/esm/abc.js,
@@ -1023,6 +1074,9 @@ Object {
       providedExports: Array [],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: null,
           resolvedModuleId: null,
           type: entry,
@@ -1079,6 +1133,9 @@ Object {
       ],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 1:0-24,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1089,6 +1146,9 @@ Object {
           userRequest: ./a,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 5:0-1,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1151,6 +1211,9 @@ Object {
       ],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 2:0-20,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1161,6 +1224,9 @@ Object {
           userRequest: ./b,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 5:3-4,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1223,6 +1289,9 @@ Object {
       ],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 3:0-25,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1233,6 +1302,9 @@ Object {
           userRequest: ./c,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 5:6-7,
           moduleId: undefined,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/esm/abc.js,
           moduleName: ./fixtures/esm/abc.js,
@@ -1643,6 +1715,9 @@ Object {
           providedExports: Array [],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 585,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js,
               moduleName: ./fixtures/a.js,
@@ -1653,6 +1728,9 @@ Object {
               userRequest: self,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: 2:12-18,
               moduleId: 432,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/c.js?c=3,
               moduleName: ./fixtures/c.js?c=3,
@@ -1718,6 +1796,9 @@ Object {
           providedExports: Array [],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 958,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js?a=1,
               moduleName: ./fixtures/a.js?a=1,
@@ -1728,6 +1809,9 @@ Object {
               userRequest: self,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 919,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/abc-query.js,
               moduleName: ./fixtures/abc-query.js,
@@ -1790,6 +1874,9 @@ Object {
           ],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: null,
               resolvedModuleId: null,
               type: entry,
@@ -1851,6 +1938,9 @@ exports.c = require("./c?c=3");,
           providedExports: Array [],
           reasons: Array [
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 919,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/abc-query.js,
               moduleName: ./fixtures/abc-query.js,
@@ -1861,6 +1951,9 @@ exports.c = require("./c?c=3");,
               userRequest: ./c?c=3,
             },
             Object {
+              active: true,
+              explanation: undefined,
+              loc: undefined,
               moduleId: 432,
               moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/c.js?c=3,
               moduleName: ./fixtures/c.js?c=3,
@@ -1980,6 +2073,9 @@ exports.c = require("./c?c=3");,
       ],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: null,
           resolvedModuleId: null,
           type: entry,
@@ -2041,6 +2137,9 @@ exports.c = require("./c?c=3");,
       providedExports: Array [],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 958,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js?a=1,
           moduleName: ./fixtures/a.js?a=1,
@@ -2051,6 +2150,9 @@ exports.c = require("./c?c=3");,
           userRequest: self,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 919,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/abc-query.js,
           moduleName: ./fixtures/abc-query.js,
@@ -2116,6 +2218,9 @@ exports.c = require("./c?c=3");,
       providedExports: Array [],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 919,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/abc-query.js,
           moduleName: ./fixtures/abc-query.js,
@@ -2126,6 +2231,9 @@ exports.c = require("./c?c=3");,
           userRequest: ./c?c=3,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 432,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/c.js?c=3,
           moduleName: ./fixtures/c.js?c=3,
@@ -2197,6 +2305,9 @@ exports.c = require("./c?c=3");,
       providedExports: Array [],
       reasons: Array [
         Object {
+          active: true,
+          explanation: undefined,
+          loc: undefined,
           moduleId: 585,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/a.js,
           moduleName: ./fixtures/a.js,
@@ -2207,6 +2318,9 @@ exports.c = require("./c?c=3");,
           userRequest: self,
         },
         Object {
+          active: true,
+          explanation: undefined,
+          loc: 2:12-18,
           moduleId: 432,
           moduleIdentifier: <TEST_TOOLS_ROOT>/tests/fixtures/c.js?c=3,
           moduleName: ./fixtures/c.js?c=3,
