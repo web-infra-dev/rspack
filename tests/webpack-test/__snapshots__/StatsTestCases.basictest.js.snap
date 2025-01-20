@@ -576,101 +576,61 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
 "1 chunks:
-  asset bundle1.js 4.06 KiB [emitted] (name: main)
-  chunk (runtime: main) bundle1.js (main) 357 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
+  asset bundle1.js 3.87 KiB [emitted] (name: main)
+  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) 1.84 KiB (runtime) <{909}> >{909}< [entry] [rendered]
     ./a.js 22 bytes [dependent] [built] [code generated]
+    ./b.js 22 bytes [dependent] [built] [code generated]
     ./c.js 30 bytes [dependent] [built] [code generated]
     ./d.js 22 bytes [dependent] [built] [code generated]
     ./e.js 22 bytes [dependent] [built] [code generated]
-    ./index.js 101 bytes [built] [code generated] [1 warning]
-    Xdir/limit-chunk-count-plugin|sync 160 bytes [dependent] [built] [code generated]
-
-  WARNING in ./index.js
-    ⚠ Critical dependency: the request of a dependency is an expression
-     ╭─[2:8]
-   1 │ require.ensure([\\"./a\\"], function() {});
-   2 │ require([\\"./b\\"]);
-     ·         ────────
-   3 │ import(/* webpackChunkName: \\"c\\" */ \\"./c\\");
-     ╰────
-
-  1 chunks (Rspack x.x.x) compiled with 1 warning in X.23
+    ./index.js 101 bytes [built] [code generated]
+  1 chunks (Rspack x.x.x) compiled successfully in X.23
 
 2 chunks:
-  asset bundle2.js 10.6 KiB [emitted] (name: main)
-  asset 76.bundle2.js 553 bytes [emitted] (name: c)
-  chunk (runtime: main) 76.bundle2.js (c) 96 bytes <{76}> <{909}> >{76}< [rendered]
+  asset bundle2.js 10.3 KiB [emitted] (name: main)
+  asset 76.bundle2.js 609 bytes [emitted] (name: c)
+  chunk (runtime: main) 76.bundle2.js (c) 118 bytes <{76}> <{909}> >{76}< [rendered]
     dependent modules 44 bytes [dependent]
       ./d.js 22 bytes [dependent] [built] [code generated]
       ./e.js 22 bytes [dependent] [built] [code generated]
     ./a.js 22 bytes [built] [code generated]
+    ./b.js 22 bytes [built] [code generated]
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle2.js (main) 261 bytes (javascript) 8.45 KiB (runtime) >{76}< [entry] [rendered]
-    ./index.js 101 bytes [built] [code generated] [1 warning]
-    Xdir/limit-chunk-count-plugin|sync 160 bytes [dependent] [built] [code generated]
-
-  WARNING in ./index.js
-    ⚠ Critical dependency: the request of a dependency is an expression
-     ╭─[2:8]
-   1 │ require.ensure([\\"./a\\"], function() {});
-   2 │ require([\\"./b\\"]);
-     ·         ────────
-   3 │ import(/* webpackChunkName: \\"c\\" */ \\"./c\\");
-     ╰────
-
-  2 chunks (Rspack x.x.x) compiled with 1 warning in X.23
+  chunk (runtime: main) bundle2.js (main) 101 bytes (javascript) 8.45 KiB (runtime) >{76}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated]
+  2 chunks (Rspack x.x.x) compiled successfully in X.23
 
 3 chunks:
-  asset bundle3.js 10.6 KiB [emitted] (name: main)
+  asset bundle3.js 10.3 KiB [emitted] (name: main)
   asset 76.bundle3.js 387 bytes [emitted] (name: c)
-  asset 588.bundle3.js 242 bytes [emitted]
-  chunk (runtime: main) 588.bundle3.js 66 bytes <{76}> <{909}> [rendered]
+  asset 656.bundle3.js 298 bytes [emitted]
+  chunk (runtime: main) 656.bundle3.js 88 bytes <{76}> <{909}> [rendered]
     ./a.js 22 bytes [built] [code generated]
+    ./b.js 22 bytes [built] [code generated]
     ./d.js 22 bytes [built] [code generated]
     ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{588}< [rendered]
+  chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{656}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle3.js (main) 261 bytes (javascript) 8.45 KiB (runtime) >{588}< >{76}< [entry] [rendered]
-    ./index.js 101 bytes [built] [code generated] [1 warning]
-    Xdir/limit-chunk-count-plugin|sync 160 bytes [dependent] [built] [code generated]
-
-  WARNING in ./index.js
-    ⚠ Critical dependency: the request of a dependency is an expression
-     ╭─[2:8]
-   1 │ require.ensure([\\"./a\\"], function() {});
-   2 │ require([\\"./b\\"]);
-     ·         ────────
-   3 │ import(/* webpackChunkName: \\"c\\" */ \\"./c\\");
-     ╰────
-
-  3 chunks (Rspack x.x.x) compiled with 1 warning in X.23
+  chunk (runtime: main) bundle3.js (main) 101 bytes (javascript) 8.45 KiB (runtime) >{656}< >{76}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated]
+  3 chunks (Rspack x.x.x) compiled successfully in X.23
 
 4 chunks:
-  asset bundle4.js 10.6 KiB [emitted] (name: main)
+  asset bundle4.js 10.3 KiB [emitted] (name: main)
   asset 76.bundle4.js 387 bytes [emitted] (name: c)
-  asset 345.bundle4.js 186 bytes [emitted]
-  asset 272.bundle4.js 130 bytes [emitted]
-  chunk (runtime: main) 272.bundle4.js 22 bytes <{909}> [rendered]
+  asset 537.bundle4.js 242 bytes [emitted]
+  asset 697.bundle4.js 130 bytes [emitted]
+  chunk (runtime: main) 537.bundle4.js 66 bytes <{76}> <{909}> [rendered]
     ./a.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 345.bundle4.js 44 bytes <{76}> [rendered]
+    ./b.js 22 bytes [built] [code generated]
     ./d.js 22 bytes [built] [code generated]
+  chunk (runtime: main) 697.bundle4.js 22 bytes <{76}> [rendered]
     ./e.js 22 bytes [built] [code generated]
-  chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{345}< [rendered]
+  chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{537}< >{697}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle4.js (main) 261 bytes (javascript) 8.45 KiB (runtime) >{272}< >{76}< [entry] [rendered]
-    ./index.js 101 bytes [built] [code generated] [1 warning]
-    Xdir/limit-chunk-count-plugin|sync 160 bytes [dependent] [built] [code generated]
-
-  WARNING in ./index.js
-    ⚠ Critical dependency: the request of a dependency is an expression
-     ╭─[2:8]
-   1 │ require.ensure([\\"./a\\"], function() {});
-   2 │ require([\\"./b\\"]);
-     ·         ────────
-   3 │ import(/* webpackChunkName: \\"c\\" */ \\"./c\\");
-     ╰────
-
-  4 chunks (Rspack x.x.x) compiled with 1 warning in X.23"
+  chunk (runtime: main) bundle4.js (main) 101 bytes (javascript) 8.45 KiB (runtime) >{537}< >{76}< [entry] [rendered]
+    ./index.js 101 bytes [built] [code generated]
+  4 chunks (Rspack x.x.x) compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for logging-debug 1`] = `

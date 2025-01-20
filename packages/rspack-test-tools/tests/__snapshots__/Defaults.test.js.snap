@@ -340,6 +340,26 @@ Object {
   resolve: Object {
     aliasFields: Array [],
     byDependency: Object {
+      amd: Object {
+        aliasFields: Array [
+          browser,
+        ],
+        conditionNames: Array [
+          require,
+          module,
+          ...,
+        ],
+        extensions: Array [
+          .js,
+          .json,
+          .wasm,
+        ],
+        mainFields: Array [
+          browser,
+          module,
+          ...,
+        ],
+      },
       commonjs: Object {
         aliasFields: Array [
           browser,

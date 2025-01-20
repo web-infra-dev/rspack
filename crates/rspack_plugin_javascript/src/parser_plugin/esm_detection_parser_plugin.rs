@@ -43,6 +43,11 @@ impl ESMDetectionParserPlugin {
   }
 }
 
+// nonHarmonyIdentifiers
+fn is_non_esm_identifier(name: &str) -> bool {
+  name == "exports" || name == "define"
+}
+
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
 impl JavascriptParserPlugin for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
@@ -97,8 +102,17 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression> {
-    (parser.is_esm && for_name == "exports")
+    (parser.is_esm && is_non_esm_identifier(for_name))
       .then(|| BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span_hi().0))
+  }
+
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
   }
 
   fn identifier(
@@ -107,7 +121,16 @@ impl JavascriptParserPlugin for ESMDetectionParserPlugin {
     _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
-    (parser.is_esm && for_name == "exports").then_some(true)
+    (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
+  }
+
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (parser.is_esm && is_non_esm_identifier(for_name)).then_some(true)
   }
 }
 
