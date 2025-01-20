@@ -251,21 +251,6 @@ async fn render_manifest(
   {
     return Ok(());
   }
-  let (source, _) = compilation
-    .old_cache
-    .chunk_render_occasion
-    .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
-      let source = if is_hot_update {
-        self.render_chunk(compilation, chunk_ukey).await?
-      } else if is_main_chunk {
-        self.render_main(compilation, chunk_ukey).await?
-      } else {
-        self.render_chunk(compilation, chunk_ukey).await?
-      };
-      Ok((CachedSource::new(source).boxed(), Vec::new()))
-    })
-    .await?;
-
   let filename_template = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
@@ -295,6 +280,28 @@ async fn render_manifest(
     &mut asset_info,
   )?;
   asset_info.set_javascript_module(compilation.options.output.module);
+
+  let (source, _) = compilation
+    .old_cache
+    .chunk_render_occasion
+    .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
+      let source = if is_hot_update {
+        self
+          .render_chunk(compilation, chunk_ukey, &output_path)
+          .await?
+      } else if is_main_chunk {
+        self
+          .render_main(compilation, chunk_ukey, &output_path)
+          .await?
+      } else {
+        self
+          .render_chunk(compilation, chunk_ukey, &output_path)
+          .await?
+      };
+      Ok((CachedSource::new(source).boxed(), Vec::new()))
+    })
+    .await?;
+
   manifest.push(RenderManifestEntry {
     source,
     filename: output_path,

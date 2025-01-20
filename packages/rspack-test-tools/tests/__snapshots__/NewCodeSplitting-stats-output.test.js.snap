@@ -16,11 +16,11 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     |   [no exports used]
     |   ModuleConcatenation bailout: Module is an entry point
     | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-    |   [no exports]
+    |   [exports: default]
     |   [no exports used]
     |   esm import ./raw.png ./index.js 2:0-33
   ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-    [no exports]
+    [exports: default]
     [no exports used]
     esm import ./raw.png ./index.js 2:0-33
 modules by path ./ 235 bytes (javascript) 7 bytes (asset)
@@ -44,11 +44,11 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       |   [no exports used]
       |   ModuleConcatenation bailout: Module is an entry point
       | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-      |   [no exports]
+      |   [exports: default]
       |   [no exports used]
       |   esm import ./raw.png ./index.js 2:0-33
     ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-      [no exports]
+      [exports: default]
       [no exports used]
       esm import ./raw.png ./index.js 2:0-33
 runtime modules 1.61 KiB
