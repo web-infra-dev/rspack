@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 const a = {
 	a: ""
@@ -13,7 +13,7 @@ const a = {
 }),
 "./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  b: function() { return b; }
+  b: () => (b)
 });
 const b = {
 	b: ""
@@ -31,7 +31,7 @@ console.log(_lib__WEBPACK_IMPORTED_MODULE_0__.getDocPermissionTextSendMe);
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  getDocPermissionTextSendMe: function() { return getDocPermissionTextSendMe; }
+  getDocPermissionTextSendMe: () => (getDocPermissionTextSendMe)
 });
 /* ESM import */var _enum_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 /* ESM import */var _enum_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./b.js");

@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./antd/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  locales: function() { return locales; }
+  locales: () => (locales)
 });
 /* ESM import */var _locale_zh__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./locale_zh.js");
 
@@ -26,7 +26,7 @@ function test() {}
 }),
 "./locale_zh.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 /* ESM import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./zh_locale.js");
 

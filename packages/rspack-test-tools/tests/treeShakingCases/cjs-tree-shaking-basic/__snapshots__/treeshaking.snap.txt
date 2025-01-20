@@ -4,7 +4,7 @@
 "./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  answer: function() { return answer; }
+  answer: () => (answer)
 });
 
 const answer = 42;
@@ -21,7 +21,7 @@ __webpack_require__("./answer.js");
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  myanswer: function() { return myanswer; }
+  myanswer: () => (myanswer)
 });
 const myanswer = "anyser";
 

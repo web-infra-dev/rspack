@@ -2,9 +2,9 @@ var __webpack_modules__ = ({
 "./style.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "a-class": function() { return _1; },
-  b__class: function() { return _2; },
-  cClass: function() { return _3; }
+  "a-class": () => (_1),
+  b__class: () => (_2),
+  cClass: () => (_3)
 });
 // extracted by css-extract-rspack-plugin
 var _1 = "Xh041yLR4iCP4RGjge50";

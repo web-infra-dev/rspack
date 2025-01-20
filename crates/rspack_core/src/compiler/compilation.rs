@@ -51,7 +51,8 @@ use crate::{
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
   ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, RuntimeGlobals, RuntimeModule,
-  RuntimeSpecMap, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType,
+  Stats,
 };
 
 pub type BuildDependency = (
@@ -180,6 +181,7 @@ pub struct Compilation {
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
   pub async_modules_artifact: AsyncModulesArtifact,
@@ -276,6 +278,7 @@ impl Compilation {
     Self {
       id: CompilationId::new(),
       hot_index: 0,
+      runtime_template: RuntimeTemplate::new(options.output.environment),
       records,
       options,
       other_module_graph: None,

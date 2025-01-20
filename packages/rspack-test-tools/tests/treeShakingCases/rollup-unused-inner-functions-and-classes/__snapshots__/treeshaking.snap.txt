@@ -24,8 +24,8 @@ console.log(getClass().name);
 }),
 "./stuff.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  bar: function() { return bar; },
-  baz: function() { return Baz; }
+  bar: () => (bar),
+  baz: () => (Baz)
 });
 function foo() {
 	console.log("outer foo");
