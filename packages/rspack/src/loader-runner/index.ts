@@ -26,6 +26,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import type { Context, Tracer } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
@@ -56,7 +57,6 @@ import {
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import loadLoader from "./loadLoader";
-import { Context, Tracer } from "@rspack/tracing";
 
 function createLoaderObject(
 	loader: JsLoaderItem,

@@ -16,7 +16,7 @@
   },
   "license": "MIT",
   "main": "./index.js",
-  "types": "./index.d.ts",
+  "types": "./types/index.d.ts",
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json"
   },
