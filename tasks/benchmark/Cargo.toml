@@ -12,7 +12,11 @@ default = []
 codspeed = ["criterion2/codspeed"]
 
 [dependencies]
-criterion2 = { default-features = false, version = "2.0.0"}
+criterion2 = { default-features = false, version = "2.0.0", features = ["async_tokio"]}
+rspack = { workspace = true }
+rspack_fs = { workspace = true }
+rspack_core = { workspace = true }
+tokio = { workspace = true }
 
 [[bench]]
 name    = "basic"

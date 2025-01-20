@@ -1035,6 +1035,7 @@ dependencies = [
  "oorandom",
  "serde",
  "serde_json",
+ "tokio",
  "walkdir",
 ]
 
@@ -4215,6 +4216,10 @@ name = "rspack_benchmark"
 version = "0.2.0"
 dependencies = [
  "criterion2",
+ "rspack",
+ "rspack_core",
+ "rspack_fs",
+ "tokio",
 ]
 
 [[package]]
