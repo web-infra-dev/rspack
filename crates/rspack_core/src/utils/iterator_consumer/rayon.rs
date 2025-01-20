@@ -8,7 +8,7 @@ pub trait RayonConsumer {
   /// Use to immediately consume the data produced by the rayon iterator
   /// without waiting for all the data to be processed.
   /// The closures runs in the current thread.
-  fn consume(self, func: impl Fn(Self::Item));
+  fn consume(self, func: impl FnMut(Self::Item));
 }
 
 impl<P, I> RayonConsumer for P
@@ -17,7 +17,7 @@ where
   I: Send,
 {
   type Item = I;
-  fn consume(self, func: impl Fn(Self::Item)) {
+  fn consume(self, mut func: impl FnMut(Self::Item)) {
     let (tx, rx) = channel::<Self::Item>();
     std::thread::scope(|s| {
       // move rx to s.spawn, otherwise rx.into_iter will never stop

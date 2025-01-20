@@ -237,6 +237,9 @@ const applyExperimentsDefaults = (
 	// IGNORE(experiments.rspackFuture): Rspack specific configuration
 	D(experiments, "rspackFuture", {});
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
+
+	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
+	D(experiments, "parallelCodeSplitting", false);
 };
 
 const applybundlerInfoDefaults = (

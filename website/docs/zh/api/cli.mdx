@@ -1,42 +1,125 @@
-# 命令行接口 (CLI)
+# 命令行工具
 
-[@rspack/cli](https://npmjs.com/package/@rspack/cli) 提供了 `serve` 和 `build` 两个常用的子命令来简化日常工作。如果你没有安装过 `@rspack/cli`，请先阅读[快速开始](/guide/start/quick-start)章节。
+[@rspack/cli](https://npmjs.com/package/@rspack/cli) 是 Rspack 的命令行工具，它提供了多种命令来简化 Rspack 的使用。
+
+- 如果你没有安装过 `@rspack/cli`，请先阅读 [快速开始](/guide/start/quick-start) 章节。
+- 如果你使用的是 Rsbuild，请参考 [Rsbuild CLI](https://rsbuild.dev/zh/guide/basic/cli) 章节。
 
 :::warning 和 webpack-cli 的兼容性
-`@rspack/cli` 不计划和 `webpack-cli` 进行兼容，因此 `@rspack/cli` 和 `webpack-cli` 会有很多使用方式的差异。
+`@rspack/cli` 与 `webpack-cli` 并不是完全兼容的，它们会有一些使用方式的差异。
 :::
 
-## Build
+## rspack build
 
-运行 Rspack 构建命令，将会在 dist 目录下生成构建后的文件。
+`rspack build` 用于运行 Rspack 构建，将会在 [output.path](/config/output#outputpath) 目录下生成构建后的文件。
 
-```sh
-$ rspack build  # 默认读取 rspack.config.js 配置文件
-$ rspack build -c ./your.config.js
+```bash
+npx rspack build  # 默认读取 `rspack.config.*` 配置文件
 ```
 
-## Serve
+`rspack build` 可以缩写为 `rspack b`：
 
-运行 Rspack 开发服务器命令，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
-
-```sh
-$ rspack serve
-$ rspack serve -c ./your.config.js
+```bash
+npx rspack b
 ```
 
-## 参数
+使用 `-c` 或 `--config` 选项来指定配置文件路径：
 
-默认情况下 Rspack 提供了一些常用的命令行参数，你可以通过 --help 查看所有的命令行参数。
+```bash
+npx rspack build -c ./your.config.js
+```
 
-| 参数                  |                            |
-| --------------------- | -------------------------- |
-| -c, --config [value]  | 指定配置文件路径           |
-| --entry [value]       | 指定入口文件路径           |
-| -m, --mode [value]    | 指定构建模式               |
-| --devtool [value]     | 控制是否生成 sourcemap     |
-| --analyze             | 是否开启构建分析           |
-| --json [value]        | 输出打包信息为 JSON 文件   |
-| -w, --watch           | 监听文件变化               |
-| -h, --help            | 显示帮助信息               |
-| -v, --version         | 显示版本号                 |
-| --output-path [value] | 指定输出文件目录的绝对路径 |
+完整的选项如下：
+
+```
+rspack build
+
+Options:
+      --entry        entry file                                          [array]
+  -o, --output-path  output path dir                                    [string]
+  -m, --mode         mode                                               [string]
+  -w, --watch        watch                            [boolean] [default: false]
+      --env          env passed to config function                       [array]
+      --node-env     sets process.env.NODE_ENV to be specified value    [string]
+  -d, --devtool      devtool                          [boolean] [default: false]
+      --configName   Name of the configuration to use.                   [array]
+      --analyze      analyze                          [boolean] [default: false]
+      --json         emit stats json
+      --profile      capture timing information for each module
+                                                      [boolean] [default: false]
+```
+
+## rspack dev
+
+`rspack dev` 用于运行 Rspack 开发服务器，将会在本地启动一个开发服务器，监听文件变化并自动刷新浏览器。
+
+```bash
+npx rspack dev
+```
+
+使用 `-c` 或 `--config` 选项来指定配置文件路径：
+
+```bash
+npx rspack dev -c ./your.config.js
+```
+
+`rspack dev` 的别名为 `rspack serve` 或 `rspack s`：
+
+```bash
+npx rspack s
+npx rspack serve
+```
+
+完整的选项如下：
+
+```
+rspack dev
+
+Options:
+      --entry        entry file                                          [array]
+  -o, --output-path  output path dir                                    [string]
+  -m, --mode         mode                                               [string]
+  -w, --watch        watch                            [boolean] [default: false]
+      --env          env passed to config function                       [array]
+      --node-env     sets process.env.NODE_ENV to be specified value    [string]
+  -d, --devtool      devtool                          [boolean] [default: false]
+      --configName   Name of the configuration to use.                   [array]
+      --hot          enables hot module replacement
+      --port         allows to specify a port to use                    [number]
+      --host         allows to specify a hostname to use                [string]
+```
+
+## rspack preview
+
+`rspack preview` 用于在本地预览生产模式构建的产物, 注意你需要提前执行 `rspack build` 命令构建出产物。
+
+```bash
+npx rspack preview
+```
+
+完整的选项如下：
+
+```
+rspack preview [dir]
+
+Positionals:
+  dir  directory want to preview                                        [string]
+
+Options:
+      --publicPath  static resource server path                         [string]
+      --port        preview server port                                 [number]
+      --host        preview server host                                 [string]
+      --open        open browser                                       [boolean]
+      --server      Configuration items for the server.                 [string]
+      --configName  Name of the configuration to use.                    [array]
+```
+
+## 公共选项
+
+下面是一些公共的选项，所有 Rspack 命令都支持这些选项：
+
+| 选项                 | 作用             |
+| -------------------- | ---------------- |
+| -c, --config [value] | 指定配置文件路径 |
+| -h, --help           | 显示帮助信息     |
+| -v, --version        | 显示版本号       |

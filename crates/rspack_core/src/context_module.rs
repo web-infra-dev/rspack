@@ -441,6 +441,10 @@ impl ContextModule {
               has_multiple_or_no_chunks = true;
             }
             chunks
+          })
+          .or_else(|| {
+            has_multiple_or_no_chunks = true;
+            None
           });
         let user_request = compilation
           .get_module_graph()

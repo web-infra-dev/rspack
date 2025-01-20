@@ -27,21 +27,21 @@ Keep in mind that you will still probably need SWC or Babel for other ES6+ featu
 
 ### import
 
-Statically `import` the `export`s of another module.
+Statically `import` the `export` of another module.
 
 ```js
 import MyModule from './my-module.js';
 import { NamedExport } from './other-module.js';
 ```
 
-You can also `import` Data URI:
+You can also `import` Data URI, this allow you to embed Base64 encoded JavaScript code directly in the import statement:
 
 ```js
-import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2lubGluZSAxJyk7';
-import {
-  number,
-  fn,
-} from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgY29uc3QgZm4gPSAoKSA9PiAiSGVsbG8gd29ybGQiOw==';
+// Equivalent to import a module that contains `console.log('hello')`
+import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2hlbGxvJyk=';
+
+// Equivalent to import a module that contains `export const number = 42;`
+import { number } from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOw==';
 ```
 
 ### export

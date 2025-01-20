@@ -34,14 +34,14 @@ import MyModule from './my-module.js';
 import { NamedExport } from './other-module.js';
 ```
 
-你还可以 `import` Data URI：
+你还可以 `import` Data URI，这允许你直接在导入语句中嵌入 Base64 编码的 JavaScript 代码：
 
 ```js
-import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2lubGluZSAxJyk7';
-import {
-  number,
-  fn,
-} from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOwpleHBvcnQgY29uc3QgZm4gPSAoKSA9PiAiSGVsbG8gd29ybGQiOw==';
+// 等同于 import 一个包含 `console.log('hello')` 的模块
+import 'data:text/javascript;charset=utf-8;base64,Y29uc29sZS5sb2coJ2hlbGxvJyk=';
+
+// 等同于 import 一个包含 `export const number = 42;` 的模块
+import { number } from 'data:text/javascript;charset=utf-8;base64,ZXhwb3J0IGNvbnN0IG51bWJlciA9IDQyOw==';
 ```
 
 ### export
