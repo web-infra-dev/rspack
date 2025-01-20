@@ -339,8 +339,12 @@ function getCurrentLoader(
 	}
 	return null;
 }
-
+let tracingCache!: { tracer: any; activeContext: any };
 async function tryTrace(context: JsLoaderContext) {
+	// disable tracing in non-profile mode
+	if (!process.env.RSPACK_PROFILE) {
+		return { tracer: null, activeContext: null };
+	}
 	try {
 		const {
 			trace,
@@ -352,9 +356,11 @@ async function tryTrace(context: JsLoaderContext) {
 			tracingContext.active(),
 			context.__internal__tracingCarrier
 		);
-		return { tracer, activeContext };
+		tracingCache = { tracer, activeContext };
+		return tracingCache;
 	} catch (error) {
-		return { tracer: null, activeContext: null };
+		tracingCache = { tracer: null, activeContext: null };
+		return tracingCache;
 	}
 }
 
