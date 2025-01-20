@@ -312,7 +312,15 @@ module.exports = {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-开启后会启用新的多线程 Code Splitting 算法，如果你的项目中包含较多的动态引用，开启后可以显著降低 Code Splitting 阶段耗时，在未来 Rspack 会默认开启。
+开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，开启后可以显著降低 code splitting 阶段耗时，在未来 Rspack 会默认开启这个配置项。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
 
 ## experiments.rspackFuture
 
