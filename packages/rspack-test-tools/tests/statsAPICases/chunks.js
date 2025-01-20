@@ -73,7 +73,7 @@ module.exports = {
 		        orphan: false,
 		        postOrderIndex: 1,
 		        preOrderIndex: 1,
-		        providedExports: Array [],
+		        providedExports: null,
 		        reasons: Array [
 		          Object {
 		            moduleId: 101,
@@ -184,7 +184,7 @@ module.exports = {
 		        orphan: false,
 		        postOrderIndex: 0,
 		        preOrderIndex: 0,
-		        providedExports: Array [],
+		        providedExports: null,
 		        reasons: Array [
 		          Object {
 		            moduleId: null,

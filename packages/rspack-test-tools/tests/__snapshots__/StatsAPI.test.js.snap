@@ -89,7 +89,7 @@ Object {
           orphan: false,
           postOrderIndex: 0,
           preOrderIndex: 0,
-          providedExports: Array [],
+          providedExports: null,
           reasons: Array [
             Object {
               moduleId: null,
@@ -210,7 +210,7 @@ Object {
       orphan: false,
       postOrderIndex: 0,
       preOrderIndex: 0,
-      providedExports: Array [],
+      providedExports: null,
       reasons: Array [
         Object {
           moduleId: null,
@@ -1640,7 +1640,7 @@ Object {
           orphan: false,
           postOrderIndex: 1,
           preOrderIndex: 3,
-          providedExports: Array [],
+          providedExports: null,
           reasons: Array [
             Object {
               moduleId: 585,
@@ -1715,7 +1715,7 @@ Object {
           orphan: false,
           postOrderIndex: 0,
           preOrderIndex: 1,
-          providedExports: Array [],
+          providedExports: null,
           reasons: Array [
             Object {
               moduleId: 958,
@@ -1848,7 +1848,7 @@ exports.c = require("./c?c=3");,
           orphan: false,
           postOrderIndex: 2,
           preOrderIndex: 2,
-          providedExports: Array [],
+          providedExports: null,
           reasons: Array [
             Object {
               moduleId: 919,
@@ -2038,7 +2038,7 @@ exports.c = require("./c?c=3");,
       orphan: false,
       postOrderIndex: 0,
       preOrderIndex: 1,
-      providedExports: Array [],
+      providedExports: null,
       reasons: Array [
         Object {
           moduleId: 958,
@@ -2113,7 +2113,7 @@ exports.c = require("./c?c=3");,
       orphan: false,
       postOrderIndex: 2,
       preOrderIndex: 2,
-      providedExports: Array [],
+      providedExports: null,
       reasons: Array [
         Object {
           moduleId: 919,
@@ -2194,7 +2194,7 @@ exports.c = require("./c?c=3");,
       orphan: false,
       postOrderIndex: 1,
       preOrderIndex: 3,
-      providedExports: Array [],
+      providedExports: null,
       reasons: Array [
         Object {
           moduleId: 585,
