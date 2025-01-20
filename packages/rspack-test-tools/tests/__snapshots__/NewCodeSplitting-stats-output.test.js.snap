@@ -16,13 +16,13 @@ chunk {909} (runtime: main) bundle.js (main) 7 bytes (asset) 159 bytes (javascri
     |   [no exports used]
     |   ModuleConcatenation bailout: Module is an entry point
     | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-    |   [no exports]
+    |   [exports: default]
     |   [no exports used]
-    |   esm import ./raw.png ./index.js
+    |   esm import ./raw.png ./index.js 2:0-33
   ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-    [no exports]
+    [exports: default]
     [no exports used]
-    esm import ./raw.png ./index.js
+    esm import ./raw.png ./index.js 2:0-33
 modules by path ./ 235 bytes (javascript) 7 bytes (asset)
   orphan modules 76 bytes [orphan]
     ./index.js 75 bytes [depth 0] [orphan] [built]
@@ -32,7 +32,7 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
     ./stringModule.js 1 bytes [depth 1] [orphan] [built]
       [module unused]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-      esm import ./stringModule [686] ./index.js
+      esm import ./stringModule [686] ./index.js 1:0-41
   code generated modules 159 bytes (javascript) 7 bytes (asset) [code generated]
     ./index.js + 1 modules [686] 117 bytes {909} [depth 0] [code generated]
       [no exports]
@@ -43,13 +43,13 @@ modules by path ./ 235 bytes (javascript) 7 bytes (asset)
       |   [no exports used]
       |   ModuleConcatenation bailout: Module is an entry point
       | ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-      |   [no exports]
+      |   [exports: default]
       |   [no exports used]
-      |   esm import ./raw.png ./index.js
+      |   esm import ./raw.png ./index.js 2:0-33
     ./raw.png [193] 42 bytes (javascript) 7 bytes (asset) {909} [depth 1] [built] [code generated]
-      [no exports]
+      [exports: default]
       [no exports used]
-      esm import ./raw.png ./index.js
+      esm import ./raw.png ./index.js 2:0-33
 runtime modules 1.61 KiB
   webpack/runtime/auto_public_path 1.39 KiB {909} [code generated]
     [no exports]
@@ -97,7 +97,7 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`new code splitting stats output new code splitting stats output/filename should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset 909.xxxx.js 9.14 KiB [emitted] (name: main)
-asset 521.xxxx.js 337 bytes [emitted]
+asset 521.xxxx.js 322 bytes [emitted]
 runtime modules 7.54 KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]
@@ -218,7 +218,7 @@ Rspack compiled with 1 error
 
 exports[`new code splitting stats output new code splitting stats output/named-chunk-group should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint main 9.13 KiB = main.js
-Chunk Group cimanyd 337 bytes = cimanyd.js
+Chunk Group cimanyd 322 bytes = cimanyd.js
 `;
 
 exports[`new code splitting stats output new code splitting stats output/nonexistent-import-source-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
@@ -373,7 +373,7 @@ exports[`new code splitting stats output new code splitting stats output/reasons
   entry ./index
 ./a.js 55 bytes [built] [code generated]
   cjs self exports reference self ./a.js
-  cjs require ./a ./index.js
+  cjs require ./a ./index.js 1:18-24
 `;
 
 exports[`new code splitting stats output new code splitting stats output/resolve-overflow-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
@@ -436,7 +436,7 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`new code splitting stats output new code splitting stats output/simple-export should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
-asset bundle.js 1.71 KiB [emitted] (name: main)
+asset bundle.js 1.69 KiB [emitted] (name: main)
 runtime modules 677 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

@@ -1,3 +1,11 @@
+it("require([...]) should work well", async function () {
+	const p = require(['./dep']);
+	expect(p).toBeInstanceOf(Promise);
+
+	await p;
+
+	expect(require('./fn')).toHaveBeenCalledWith(123);
+});
 
 it("require([...], function () {}) should work well", function (done) {
 	require(['./add'], function (add) {

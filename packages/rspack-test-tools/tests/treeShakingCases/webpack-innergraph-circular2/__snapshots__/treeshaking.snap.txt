@@ -22,11 +22,11 @@ it("should be able to handle circular referenced", () => {
 }),
 "./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  f3: function() { return f3; },
-  x: function() { return x; },
-  y: function() { return y; },
-  z: function() { return z; }
+  a: () => (a),
+  f3: () => (f3),
+  x: () => (x),
+  y: () => (y),
+  z: () => (z)
 });
 function x() {
 	return [y, z];

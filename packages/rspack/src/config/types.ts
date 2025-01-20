@@ -1148,6 +1148,14 @@ export type AssetInlineGeneratorOptions = {
 /** Emit the asset in the specified folder relative to 'output.path'. */
 export type AssetModuleOutputPath = Filename;
 
+/**
+ * If "url", a URL pointing to the asset will be generated based on publicPath.
+ * If "preserve", preserve import/require statement from generated asset.
+ * Only for modules with module type 'asset' or 'asset/resource'.
+ * @default "url"
+ */
+export type AssetModuleImportMode = "url" | "preserve";
+
 /** Options for asset modules. */
 export type AssetResourceGeneratorOptions = {
 	/**
@@ -1164,6 +1172,14 @@ export type AssetResourceGeneratorOptions = {
 
 	/** This option determines the URL prefix of the referenced 'asset' or 'asset/resource'*/
 	publicPath?: PublicPath;
+
+	/**
+	 * If "url", a URL pointing to the asset will be generated based on publicPath.
+	 * If "preserve", preserve import/require statement from generated asset.
+	 * Only for modules with module type 'asset' or 'asset/resource'.
+	 * @default "url"
+	 */
+	importMode?: AssetModuleImportMode;
 };
 
 /** Generator options for asset modules. */

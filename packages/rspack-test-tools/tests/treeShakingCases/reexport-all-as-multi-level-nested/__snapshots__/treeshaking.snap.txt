@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./package/autogen/a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 
 function a() {}
@@ -16,7 +16,7 @@ function dddd() {}
 }),
 "./package/autogen/aa.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  aa: function() { return aa; }
+  aa: () => (aa)
 });
 const aa = 3;
 const cc = 3;

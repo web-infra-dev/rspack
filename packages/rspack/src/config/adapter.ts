@@ -12,6 +12,7 @@ import {
 	type RawCssModuleGeneratorOptions,
 	type RawCssModuleParserOptions,
 	type RawCssParserOptions,
+	type RawEnvironment,
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
@@ -19,6 +20,7 @@ import {
 	type RawModuleRule,
 	type RawModuleRuleUse,
 	type RawOptions,
+	type RawOutputOptions,
 	type RawParserOptions,
 	type RawRuleSetCondition,
 	RawRuleSetConditionType,
@@ -58,6 +60,7 @@ import type {
 	JsonParserOptions,
 	Node,
 	Optimization,
+	Output,
 	ParserOptionsByModuleType,
 	Resolve,
 	RuleSetCondition,
@@ -79,7 +82,7 @@ export const getRawOptions = (
 		name: options.name,
 		mode,
 		context: options.context!,
-		output: options.output as Required<OutputNormalized>,
+		output: getRawOutput(options.output),
 		resolve: getRawResolve(options.resolve),
 		resolveLoader: getRawResolve(options.resolveLoader),
 		module: getRawModule(options.module, {
@@ -96,11 +99,38 @@ export const getRawOptions = (
 		experiments,
 		node: getRawNode(options.node),
 		profile: options.profile!,
-		amd: options.amd,
+		amd: options.amd !== false ? JSON.stringify(options.amd || {}) : undefined,
 		bail: options.bail!,
 		__references: {}
 	};
 };
+
+function getRawOutput(output: Output): RawOutputOptions {
+	return {
+		...(output as Required<OutputNormalized>),
+		environment: getRawOutputEnvironment(output.environment)
+	};
+}
+
+function getRawOutputEnvironment(
+	environment: Output["environment"] = {}
+): RawEnvironment {
+	return {
+		const: Boolean(environment.const),
+		arrowFunction: Boolean(environment.arrowFunction),
+		nodePrefixForCoreModules: Boolean(environment.nodePrefixForCoreModules),
+		asyncFunction: Boolean(environment.asyncFunction),
+		bigIntLiteral: Boolean(environment.bigIntLiteral),
+		destructuring: Boolean(environment.destructuring),
+		document: Boolean(environment.document),
+		dynamicImport: Boolean(environment.dynamicImport),
+		forOf: Boolean(environment.forOf),
+		globalThis: Boolean(environment.globalThis),
+		module: Boolean(environment.module),
+		optionalChaining: Boolean(environment.optionalChaining),
+		templateLiteral: Boolean(environment.templateLiteral)
+	};
+}
 
 function getRawExtensionAlias(
 	alias: Resolve["extensionAlias"] = {}
@@ -674,7 +704,8 @@ function getRawAssetResourceGeneratorOptions(
 		emit: options.emit,
 		filename: options.filename,
 		outputPath: options.outputPath,
-		publicPath: options.publicPath
+		publicPath: options.publicPath,
+		importMode: options.importMode
 	};
 }
 

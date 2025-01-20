@@ -3,8 +3,8 @@
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  b: function() { return b; }
+  a: () => (a),
+  b: () => (b)
 });
 const a = 3;
 const b = 3;
@@ -31,8 +31,8 @@ _answer__WEBPACK_IMPORTED_MODULE_0__.test;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.a; },
-  b: function() { return /* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.b; }
+  a: () => (/* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.a),
+  b: () => (/* reexport safe */ _a_js__WEBPACK_IMPORTED_MODULE_0__.b)
 });
 /* ESM import */var _a_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./a.js");
 

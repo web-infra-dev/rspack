@@ -157,6 +157,7 @@ impl From<rspack_core::StatsWarning<'_>> for JsStatsWarning {
 pub struct JsStatsModuleTrace {
   pub origin: JsStatsModuleTraceModule,
   pub module: JsStatsModuleTraceModule,
+  pub dependencies: Vec<JsStatsModuleTraceDependency>,
 }
 
 impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
@@ -164,6 +165,7 @@ impl From<rspack_core::StatsModuleTrace> for JsStatsModuleTrace {
     Self {
       origin: stats.origin.into(),
       module: stats.module.into(),
+      dependencies: stats.dependencies.into_iter().map(Into::into).collect(),
     }
   }
 }
@@ -184,6 +186,17 @@ impl From<rspack_core::StatsErrorModuleTraceModule> for JsStatsModuleTraceModule
       }
       .into(),
     }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsStatsModuleTraceDependency {
+  pub loc: String,
+}
+
+impl From<rspack_core::StatsErrorModuleTraceDependency> for JsStatsModuleTraceDependency {
+  fn from(stats: rspack_core::StatsErrorModuleTraceDependency) -> Self {
+    Self { loc: stats.loc }
   }
 }
 
@@ -673,6 +686,9 @@ pub struct JsStatsModuleReason {
   pub module_chunks: Option<u32>,
   pub r#type: Option<&'static str>,
   pub user_request: Option<String>,
+  pub explanation: Option<&'static str>,
+  pub active: bool,
+  pub loc: Option<String>,
 }
 
 impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
@@ -697,6 +713,9 @@ impl From<rspack_core::StatsModuleReason<'_>> for JsStatsModuleReason {
       module_chunks: stats.module_chunks,
       r#type: stats.r#type,
       user_request: stats.user_request.map(|i| i.to_owned()),
+      explanation: stats.explanation,
+      active: stats.active,
+      loc: stats.loc,
     }
   }
 }

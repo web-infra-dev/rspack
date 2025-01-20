@@ -184,6 +184,14 @@ export type StatsModuleTraceItem = {
 	moduleName?: string;
 	originId?: string;
 	moduleId?: string;
+	dependencies?: StatsModuleTraceDependency[];
+};
+
+export type StatsModuleTraceDependency = KnownStatsModuleTraceDependency &
+	Record<string, any>;
+
+export type KnownStatsModuleTraceDependency = {
+	loc: string;
 };
 
 export type KnownStatsModuleReason = {
@@ -193,10 +201,10 @@ export type KnownStatsModuleReason = {
 	resolvedModuleIdentifier?: string;
 	resolvedModule?: string;
 	type?: string;
-	// active: boolean;
-	// explanation?: string;
+	active: boolean;
+	explanation?: string;
 	userRequest?: string;
-	// loc?: string;
+	loc?: string;
 	moduleId?: string | null;
 	resolvedModuleId?: string | number | null;
 };
@@ -314,6 +322,10 @@ export type SimpleExtractors = {
 	moduleTraceItem: ExtractorsByOption<
 		binding.JsStatsModuleTrace,
 		StatsModuleTraceItem
+	>;
+	moduleTraceDependency: ExtractorsByOption<
+		binding.JsStatsModuleTraceDependency,
+		StatsModuleTraceDependency
 	>;
 };
 

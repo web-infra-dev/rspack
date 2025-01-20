@@ -3,9 +3,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  b: function() { return b; },
-  bar: function() { return /* reexport module object */ _foo__WEBPACK_IMPORTED_MODULE_0__; },
-  c: function() { return /* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_1__.c; }
+  b: () => (b),
+  bar: () => (/* reexport module object */ _foo__WEBPACK_IMPORTED_MODULE_0__),
+  c: () => (/* reexport safe */ _result__WEBPACK_IMPORTED_MODULE_1__.c)
 });
 /* ESM import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* ESM import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
@@ -19,11 +19,11 @@ function b() {}
 "./foo.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; },
-  b: function() { return /* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.b; },
-  bar: function() { return /* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar; },
-  c: function() { return /* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.c; },
-  foo: function() { return foo; }
+  a: () => (a),
+  b: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.b),
+  bar: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.bar),
+  c: () => (/* reexport safe */ _bar__WEBPACK_IMPORTED_MODULE_0__.c),
+  foo: () => (foo)
 });
 /* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./bar.js");
 /* ESM import */var _result__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./result.js");
@@ -44,7 +44,7 @@ _foo__WEBPACK_IMPORTED_MODULE_0__.bar.a;
 }),
 "./result.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  c: function() { return c; }
+  c: () => (c)
 });
 /* ESM import */var _foo__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./foo.js");
 /* ESM import */var _bar__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./bar.js");

@@ -1,4 +1,7 @@
-use rspack_core::{get_context, CachedConstDependency, ConstDependency, RuntimeGlobals, SpanExt};
+use rspack_core::{
+  get_context, CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, RuntimeGlobals, SpanExt,
+};
 use sugar_path::SugarPath;
 
 use super::JavascriptParserPlugin;
@@ -25,10 +28,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       return None;
     }
     if str == DIR_NAME {
-      let dirname = match node_option.dirname.as_str() {
-        "mock" => Some("/".to_string()),
-        "warn-mock" => Some("/".to_string()),
-        "node-module" => {
+      let dirname = match node_option.dirname {
+        NodeDirnameOption::Mock => Some("/".to_string()),
+        NodeDirnameOption::WarnMock => Some("/".to_string()),
+        NodeDirnameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
           let external_url_dep = ExternalModuleDependency::new(
@@ -64,7 +67,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           parser.presentational_dependencies.push(Box::new(const_dep));
           return Some(true);
         }
-        "true" => Some(
+        NodeDirnameOption::True => Some(
           parser
             .resource_data
             .resource_path
@@ -91,10 +94,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         return Some(true);
       }
     } else if str == FILE_NAME {
-      let filename = match node_option.filename.as_str() {
-        "mock" => Some("/index.js".to_string()),
-        "warn-mock" => Some("/index.js".to_string()),
-        "node-module" => {
+      let filename = match node_option.filename {
+        NodeFilenameOption::Mock => Some("/index.js".to_string()),
+        NodeFilenameOption::WarnMock => Some("/index.js".to_string()),
+        NodeFilenameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
           let external_dep = ExternalModuleDependency::new(
@@ -121,7 +124,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           parser.presentational_dependencies.push(Box::new(const_dep));
           return Some(true);
         }
-        "true" => Some(
+        NodeFilenameOption::True => Some(
           parser
             .resource_data
             .resource_path
@@ -146,7 +149,12 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           )));
         return Some(true);
       }
-    } else if str == GLOBAL && matches!(node_option.global.as_str(), "true" | "warn") {
+    } else if str == GLOBAL
+      && matches!(
+        node_option.global,
+        NodeGlobalOption::True | NodeGlobalOption::Warn
+      )
+    {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(

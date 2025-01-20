@@ -822,7 +822,13 @@ fn do_optimize_connection(
     need_move_target,
   } = do_optimize;
   module_graph.do_update_module(&dependency, &target_module);
-  module_graph.set_dependency_extra_meta(dependency, DependencyExtraMeta { ids });
+  module_graph.set_dependency_extra_meta(
+    dependency,
+    DependencyExtraMeta {
+      ids,
+      explanation: Some("(skipped side-effect-free modules)"),
+    },
+  );
   if let Some(SideEffectsDoOptimizeMoveTarget {
     export_info,
     target_export,

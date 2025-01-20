@@ -1043,11 +1043,19 @@ export interface JsStatsModuleReason {
   moduleChunks?: number
   type?: string
   userRequest?: string
+  explanation?: string
+  active: boolean
+  loc?: string
 }
 
 export interface JsStatsModuleTrace {
   origin: JsStatsModuleTraceModule
   module: JsStatsModuleTraceModule
+  dependencies: Array<JsStatsModuleTraceDependency>
+}
+
+export interface JsStatsModuleTraceDependency {
+  loc: string
 }
 
 export interface JsStatsModuleTraceModule {
@@ -1143,6 +1151,7 @@ export interface RawAssetGeneratorOptions {
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
   dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
+  importMode?: "url" | "preserve"
 }
 
 export interface RawAssetInlineGeneratorOptions {
@@ -1167,6 +1176,7 @@ export interface RawAssetResourceGeneratorOptions {
   filename?: JsFilename
   outputPath?: JsFilename
   publicPath?: "auto" | JsFilename
+  importMode?: "url" | "preserve"
 }
 
 export interface RawBannerPluginOptions {
@@ -1374,6 +1384,16 @@ export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
   nodePrefixForCoreModules?: boolean
+  asyncFunction?: boolean
+  bigIntLiteral?: boolean
+  destructuring?: boolean
+  document?: boolean
+  dynamicImport?: boolean
+  forOf?: boolean
+  globalThis?: boolean
+  module?: boolean
+  optionalChaining?: boolean
+  templateLiteral?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {
@@ -1983,6 +2003,7 @@ export interface RawSourceMapDevToolPluginOptions {
   test?: string | RegExp | (string | RegExp)[]
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
+  debugIds?: boolean
 }
 
 export interface RawSplitChunkSizes {

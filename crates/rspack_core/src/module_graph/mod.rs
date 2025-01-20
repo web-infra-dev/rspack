@@ -28,6 +28,7 @@ pub type ImportVarMap =
 #[derive(Debug)]
 pub struct DependencyExtraMeta {
   pub ids: Vec<Atom>,
+  pub explanation: Option<&'static str>,
 }
 
 #[derive(Debug, Default, Clone)]

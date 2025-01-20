@@ -45,13 +45,14 @@ use crate::{
   subtract_runtime_condition, to_identifier, AsyncDependenciesBlockIdentifier, BoxDependency,
   BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult,
   ChunkGraph, ChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
-  CodeGenerationExportsFinalNames, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConnectionState, Context, DependenciesBlock, DependencyId,
-  DependencyTemplate, DependencyType, ErrorSpan, ExportInfoProvided, ExportsArgument, ExportsType,
-  FactoryMeta, IdentCollector, LibIdentOptions, MaybeDynamicTargetExportInfoHashKey, Module,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template,
-  UsageState, UsedName, DEFAULT_EXPORT, NAMESPACE_OBJECT_EXPORT,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState, Context,
+  DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
+  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
+  NAMESPACE_OBJECT_EXPORT,
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -193,6 +194,8 @@ pub struct ConcatenatedModuleInfo {
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+
+  pub public_path_auto_replace: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -672,6 +675,7 @@ impl Module for ConcatenatedModule {
 
     let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
+    let mut public_path_auto_replace: bool = false;
 
     for module_info_id in modules_with_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
@@ -799,6 +803,11 @@ impl Module for ConcatenatedModule {
             all_used_names.insert(namespace_object_name.clone());
             info.namespace_object_name = Some(namespace_object_name.clone());
             top_level_declarations.insert(namespace_object_name);
+          }
+
+          // Handle publicPathAutoReplace for perf
+          if let Some(info_auto) = info.public_path_auto_replace {
+            public_path_auto_replace = public_path_auto_replace || info_auto;
           }
         }
 
@@ -1288,6 +1297,13 @@ impl Module for ConcatenatedModule {
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
     code_generation_result.runtime_requirements = runtime_requirements;
+
+    if public_path_auto_replace {
+      code_generation_result
+        .data
+        .insert(CodeGenerationPublicPathAutoReplace(true));
+    }
+
     code_generation_result
       .data
       .insert(CodeGenerationDataTopLevelDeclarations::new(
@@ -1701,6 +1717,7 @@ impl ConcatenatedModule {
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
       let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
+
       let CodeGenerationResult {
         mut inner,
         mut chunk_init_fragments,
@@ -1779,6 +1796,12 @@ impl ConcatenatedModule {
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
+      if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
+        .data
+        .get::<CodeGenerationPublicPathAutoReplace>(
+      ) {
+        module_info.public_path_auto_replace = Some(true);
+      }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))
     } else {
       Ok(info)

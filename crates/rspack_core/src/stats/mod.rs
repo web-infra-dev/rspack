@@ -946,6 +946,10 @@ impl Stats<'_> {
             } else {
               (None, None)
             };
+          let loc = dependency.and_then(|d| d.loc()).map(|l| l.to_string());
+          let explanation = module_graph
+            .get_dep_meta_if_existing(&connection.dependency_id)
+            .and_then(|extra| extra.explanation);
           Some(StatsModuleReason {
             module_identifier: connection.original_module_identifier,
             module_name,
@@ -967,6 +971,9 @@ impl Stats<'_> {
             resolved_module_id: resolved_module_id.and_then(|i| i),
             r#type,
             user_request,
+            explanation,
+            active: connection.active,
+            loc,
           })
         })
         .collect();
