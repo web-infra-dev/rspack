@@ -926,6 +926,7 @@ impl CompilerOptionsBuilder {
         test: None,
         include: None,
         exclude: None,
+        debug_ids: false,
       };
 
       if eval_wrapped {
