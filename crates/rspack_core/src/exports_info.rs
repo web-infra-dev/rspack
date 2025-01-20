@@ -526,20 +526,20 @@ impl ExportsInfo {
 
   pub fn get_provided_exports(&self, mg: &ModuleGraph) -> ProvidedExports {
     let info = self.as_exports_info(mg);
-    if let Some(_redirect_to) = info.redirect_to {
-      match info.other_exports_info.provided(mg) {
-        Some(ExportInfoProvided::Null) => {
-          return ProvidedExports::True;
-        }
-        Some(ExportInfoProvided::True) => {
-          return ProvidedExports::True;
-        }
-        None => {
-          return ProvidedExports::Null;
-        }
-        _ => {}
+
+    match info.other_exports_info.provided(mg) {
+      Some(ExportInfoProvided::Null) => {
+        return ProvidedExports::True;
       }
+      Some(ExportInfoProvided::True) => {
+        return ProvidedExports::True;
+      }
+      None => {
+        return ProvidedExports::Null;
+      }
+      _ => {}
     }
+
     let mut ret = vec![];
     for export_info_id in info.exports.values() {
       let export_info = export_info_id.as_export_info(mg);
