@@ -207,6 +207,16 @@ impl CompilerBuilder {
     self
   }
 
+  pub fn stats(&mut self, stats: StatsOptions) -> &mut Self {
+    self.options_builder.stats(stats);
+    self
+  }
+
+  pub fn amd(&mut self, amd: String) -> &mut Self {
+    self.options_builder.amd(amd);
+    self
+  }
+
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
   where
     V: Into<ExperimentsBuilder>,
