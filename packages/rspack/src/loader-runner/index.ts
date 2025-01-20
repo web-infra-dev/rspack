@@ -56,6 +56,7 @@ import {
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import loadLoader from "./loadLoader";
+import { Context, Tracer } from "@rspack/tracing";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -339,7 +340,7 @@ function getCurrentLoader(
 	}
 	return null;
 }
-let tracingCache!: { tracer: any; activeContext: any };
+let tracingCache!: { tracer: Tracer; activeContext: Context };
 async function tryTrace(context: JsLoaderContext) {
 	// disable tracing in non-profile mode
 	if (!process.env.RSPACK_PROFILE) {
