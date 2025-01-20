@@ -33,6 +33,7 @@ pub struct RawSplitChunksOptions {
   #[napi(ts_type = "string | false | Function")]
   #[debug(skip)]
   pub name: Option<RawChunkOptionName>,
+  pub filename: Option<JsFilename>,
   pub cache_groups: Option<Vec<RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all' | Function")]
@@ -106,6 +107,8 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
     use rspack_plugin_split_chunks::SplitChunkSizes;
 
     let mut cache_groups = vec![];
+
+    let overall_filename = raw_opts.filename.map(Filename::from);
 
     let overall_chunk_filter = raw_opts.chunks.map(create_chunks_filter);
 
@@ -214,7 +217,10 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             automatic_name_delimiter: v
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),
-            filename: v.filename.map(Filename::from),
+            filename: v
+              .filename
+              .map(Filename::from)
+              .or_else(|| overall_filename.clone()),
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
             max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
             max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),

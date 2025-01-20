@@ -2133,6 +2133,9 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	 * */
 	name?: false | OptimizationSplitChunksName;
 
+	/** Allows to override the filename when and only when it's an initial chunk. */
+	filename?: Filename;
+
 	/**
 	 * Minimum size, in bytes, for a chunk to be generated.
 	 *
@@ -2185,9 +2188,6 @@ export type OptimizationSplitChunksCacheGroup = {
 	 * Tells Rspack to ignore `splitChunks.minSize`, `splitChunks.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options and always create chunks for this cache group.
 	 */
 	enforce?: boolean;
-
-	/** Allows to override the filename when and only when it's an initial chunk. */
-	filename?: Filename;
 
 	/**
 	 * Whether to reuse existing chunks when possible.
