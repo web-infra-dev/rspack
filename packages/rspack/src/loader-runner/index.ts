@@ -26,6 +26,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import type { Context, Tracer } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
@@ -339,8 +340,12 @@ function getCurrentLoader(
 	}
 	return null;
 }
-
+let tracingCache!: { tracer?: Tracer; activeContext?: Context };
 async function tryTrace(context: JsLoaderContext) {
+	// disable tracing in non-profile mode
+	if (!process.env.RSPACK_PROFILE) {
+		return {};
+	}
 	try {
 		const {
 			trace,
@@ -352,9 +357,11 @@ async function tryTrace(context: JsLoaderContext) {
 			tracingContext.active(),
 			context.__internal__tracingCarrier
 		);
-		return { tracer, activeContext };
+		tracingCache = { tracer, activeContext };
+		return tracingCache;
 	} catch (error) {
-		return { tracer: null, activeContext: null };
+		tracingCache = {};
+		return tracingCache;
 	}
 }
 
