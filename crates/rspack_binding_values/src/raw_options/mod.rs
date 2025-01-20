@@ -5,8 +5,10 @@ use napi::{
 use napi_derive::napi;
 use rspack_core::{
   incremental::IncrementalPasses, CacheOptions, CompilerOptions, Context, Experiments,
-  ModuleOptions, OutputOptions, References,
+  ModuleOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
+  OutputOptions, References,
 };
+use rspack_error::error;
 
 mod raw_builtins;
 mod raw_cache;
@@ -78,7 +80,40 @@ impl TryFrom<RawOptions> for CompilerOptions {
     }
     let optimization = value.optimization.try_into()?;
     let stats = value.stats.into();
-    let node = value.node.map(|n| n.into());
+    let node = value
+      .node
+      .map(|n| {
+        let dirname = match n.dirname.as_str() {
+          "mock" => NodeDirnameOption::Mock,
+          "warn-mock" => NodeDirnameOption::WarnMock,
+          "eval-only" => NodeDirnameOption::EvalOnly,
+          "node-module" => NodeDirnameOption::NodeModule,
+          "true" => NodeDirnameOption::True,
+          "false" => NodeDirnameOption::False,
+          _ => return Err(error!("invalid node.dirname: {}", n.dirname.as_str())),
+        };
+        let filename = match n.filename.as_str() {
+          "mock" => NodeFilenameOption::Mock,
+          "warn-mock" => NodeFilenameOption::WarnMock,
+          "eval-only" => NodeFilenameOption::EvalOnly,
+          "node-module" => NodeFilenameOption::NodeModule,
+          "true" => NodeFilenameOption::True,
+          "false" => NodeFilenameOption::False,
+          _ => return Err(error!("invalid node.filename: {}", n.filename.as_str())),
+        };
+        let global = match n.global.as_str() {
+          "true" => NodeGlobalOption::True,
+          "warn" => NodeGlobalOption::Warn,
+          "false" => NodeGlobalOption::False,
+          _ => return Err(error!("invalid node.global: {}", n.global.as_str())),
+        };
+        Ok(NodeOption {
+          dirname,
+          filename,
+          global,
+        })
+      })
+      .transpose()?;
 
     Ok(CompilerOptions {
       name: value.name,

@@ -2,6 +2,9 @@ mod devtool;
 mod externals;
 mod target;
 
+use std::borrow::Cow;
+use std::sync::Arc;
+
 pub use devtool::Devtool;
 use serde_json::json;
 pub use target::Targets;
@@ -45,11 +48,12 @@ use rspack_core::{
   GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
   LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap,
-  PathInfo, PluginExt, PublicPath, Resolve, RspackFuture, RuleSetCondition,
-  RuleSetLogicalConditions, SideEffectOption, TrustedTypes, UsedExportsOption, WasmLoading,
-  WasmLoadingType,
+  ModuleRuleEffect, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
+  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PluginExt,
+  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
+  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
 };
+use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -73,6 +77,9 @@ impl Builder for Compiler {
 pub struct CompilerBuilder {
   options_builder: CompilerOptionsBuilder,
   plugins: Vec<BoxPlugin>,
+  input_filesystem: Option<Arc<dyn ReadableFileSystem>>,
+  intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>>,
+  output_filesystem: Option<Arc<dyn WritableFileSystem>>,
 }
 
 impl CompilerBuilder {
@@ -83,6 +90,9 @@ impl CompilerBuilder {
     Self {
       options_builder: options.into(),
       plugins: vec![],
+      input_filesystem: None,
+      intermediate_filesystem: None,
+      output_filesystem: None,
     }
   }
 }
@@ -145,6 +155,16 @@ impl CompilerBuilder {
     self
   }
 
+  pub fn resolve(&mut self, resolve: Resolve) -> &mut Self {
+    self.options_builder.resolve(resolve);
+    self
+  }
+
+  pub fn resolve_loader(&mut self, resolve_loader: Resolve) -> &mut Self {
+    self.options_builder.resolve_loader(resolve_loader);
+    self
+  }
+
   pub fn bail(&mut self, bail: bool) -> &mut Self {
     self.options_builder.bail(bail);
     self
@@ -179,6 +199,14 @@ impl CompilerBuilder {
     self
   }
 
+  pub fn node<V>(&mut self, node: V) -> &mut Self
+  where
+    V: Into<NodeOptionBuilder>,
+  {
+    self.options_builder.node(node);
+    self
+  }
+
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
   where
     V: Into<ExperimentsBuilder>,
@@ -197,19 +225,42 @@ impl CompilerBuilder {
     self
   }
 
+  pub fn input_filesystem(&mut self, input_filesystem: Arc<dyn ReadableFileSystem>) -> &mut Self {
+    self.input_filesystem = Some(input_filesystem);
+    self
+  }
+
+  pub fn intermediate_filesystem(
+    &mut self,
+    intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  ) -> &mut Self {
+    self.intermediate_filesystem = Some(intermediate_filesystem);
+    self
+  }
+
+  pub fn output_filesystem(&mut self, output_filesystem: Arc<dyn WritableFileSystem>) -> &mut Self {
+    self.output_filesystem = Some(output_filesystem);
+    self
+  }
+
   pub fn build(&mut self) -> Compiler {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context);
     let mut plugins = builder_context.take_plugins(&compiler_options);
     plugins.append(&mut self.plugins);
+
+    let input_filesystem = self.input_filesystem.take();
+    let intermediate_filesystem = self.intermediate_filesystem.take();
+    let output_filesystem = self.output_filesystem.take();
+
     Compiler::new(
       String::new(),
       compiler_options,
       plugins,
       vec![],
-      None,
-      None,
-      None,
+      output_filesystem,
+      intermediate_filesystem,
+      input_filesystem,
       None,
       None,
     )
@@ -240,6 +291,14 @@ impl Builder for Optimization {
   }
 }
 
+impl Builder for Option<NodeOption> {
+  type Item = NodeOptionBuilder;
+
+  fn builder() -> Self::Item {
+    NodeOptionBuilder::default()
+  }
+}
+
 impl Builder for ModuleOptions {
   type Item = ModuleOptionsBuilder;
 
@@ -259,7 +318,7 @@ impl Builder for Experiments {
 /// Options of builtin plugins
 ///
 /// The order of this list is strictly ordered with respect to `rspackOptionsApply`.
-#[allow(unused, clippy::enum_variant_names)]
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, EnumTag)]
 #[repr(u8)]
 pub(crate) enum BuiltinPluginOptions {
@@ -296,7 +355,8 @@ pub(crate) enum BuiltinPluginOptions {
   // Entry and runtime plugins
   EntryPlugin((String /* entry request */, EntryOptions)),
   RuntimePlugin,
-  BundlerInfoRspackPlugin,
+  // TODO: add bundler info plugin
+  // BundlerInfoRspackPlugin,
 
   // Core functionality plugins
   InferAsyncModulesPlugin,
@@ -314,11 +374,13 @@ pub(crate) enum BuiltinPluginOptions {
   MangleExportsPlugin(bool),
 
   // Experiments
-  LazyCompilationPlugin,
+  // TODO: support lazy compilation
+  // LazyCompilationPlugin,
 
   // Output plugins
   EnableLibraryPlugin(LibraryType),
-  SplitChunksPlugin,
+  // TODO: support split chunks
+  // SplitChunksPlugin,
   RemoveEmptyChunksPlugin,
   RealContentHashPlugin,
 
@@ -334,7 +396,9 @@ pub(crate) enum BuiltinPluginOptions {
   // Define and optimization plugins
   DefinePlugin(rspack_plugin_javascript::define_plugin::DefineValue),
   AnyMinimizerRspackPlugin(BoxPlugin),
-  SizeLimitsPlugin,
+
+  // TODO: support performance
+  // SizeLimitsPlugin,
 
   // Cache plugins
   // MemoryCachePlugin,
@@ -442,10 +506,8 @@ impl BuilderContext {
       BuiltinPluginOptions::RuntimePlugin => {
         plugins.push(rspack_plugin_runtime::RuntimePlugin::default().boxed())
       }
-      BuiltinPluginOptions::BundlerInfoRspackPlugin => {
-        // TODO: add bundler info plugin
-        // rspack_plugin_runtime::BundlerInfoPlugin::default().boxed()
-      }
+      // TODO: add bundler info plugin
+      // BuiltinPluginOptions::BundlerInfoRspackPlugin => {}
 
       // Core functionality plugins
       BuiltinPluginOptions::InferAsyncModulesPlugin => {
@@ -489,18 +551,19 @@ impl BuilderContext {
       }
 
       // Experiments
-      BuiltinPluginOptions::LazyCompilationPlugin => {
-        // plugins
-        // .push(rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::default().boxed());
-      }
+      // TODO: support lazy compilation
+      // BuiltinPluginOptions::LazyCompilationPlugin => {
+      // plugins
+      // .push(rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::default().boxed());
+      // }
 
       // Output plugins
       BuiltinPluginOptions::EnableLibraryPlugin(library_type) => {
         rspack_plugin_library::enable_library_plugin(library_type, &mut plugins)
       }
-      BuiltinPluginOptions::SplitChunksPlugin => {
-        // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())
-      }
+      // BuiltinPluginOptions::SplitChunksPlugin => {
+      // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())
+      // }
       BuiltinPluginOptions::RemoveEmptyChunksPlugin => {
         plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin::default().boxed())
       }
@@ -536,9 +599,11 @@ impl BuilderContext {
         plugins.push(rspack_plugin_javascript::define_plugin::DefinePlugin::new(values).boxed())
       }
       BuiltinPluginOptions::AnyMinimizerRspackPlugin(plugin) => plugins.push(plugin),
-      BuiltinPluginOptions::SizeLimitsPlugin => {
-        // plugins.push(rspack_plugin_size_limits::SizeLimitsPlugin::default().boxed())
-      }
+
+      // TODO: support performance
+      // BuiltinPluginOptions::SizeLimitsPlugin => {
+      // plugins.push(rspack_plugin_size_limits::SizeLimitsPlugin::default().boxed())
+      // }
 
       // Cache plugins
       // BuiltinPluginOptions::MemoryCachePlugin => MemoryCachePlugin::default().boxed(),
@@ -564,13 +629,18 @@ pub struct CompilerOptionsBuilder {
   context: Option<Context>,
   cache: Option<CacheOptions>,
   mode: Option<Mode>,
+  resolve: Option<Resolve>,
+  resolve_loader: Option<Resolve>,
   devtool: Option<Devtool>,
   profile: Option<bool>,
   bail: Option<bool>,
   experiments: Option<ExperimentsBuilder>,
   module: Option<ModuleOptionsBuilder>,
+  stats: Option<StatsOptions>,
   output: Option<OutputOptionsBuilder>,
   optimization: Option<OptimizationOptionsBuilder>,
+  node: Option<NodeOptionBuilder>,
+  amd: Option<String>,
 }
 
 impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
@@ -585,13 +655,18 @@ impl From<&mut CompilerOptionsBuilder> for CompilerOptionsBuilder {
       context: value.context.take(),
       cache: value.cache.take(),
       mode: value.mode.take(),
+      resolve: value.resolve.take(),
+      resolve_loader: value.resolve_loader.take(),
       devtool: value.devtool.take(),
       profile: value.profile.take(),
       bail: value.bail.take(),
       experiments: value.experiments.take(),
       module: value.module.take(),
       output: value.output.take(),
+      stats: value.stats.take(),
       optimization: value.optimization.take(),
+      node: value.node.take(),
+      amd: value.amd.take(),
     }
   }
 }
@@ -659,6 +734,16 @@ impl CompilerOptionsBuilder {
     self
   }
 
+  pub fn resolve(&mut self, resolve: Resolve) -> &mut Self {
+    self.resolve = Some(resolve);
+    self
+  }
+
+  pub fn resolve_loader(&mut self, resolve_loader: Resolve) -> &mut Self {
+    self.resolve_loader = Some(resolve_loader);
+    self
+  }
+
   pub fn bail(&mut self, bail: bool) -> &mut Self {
     self.bail = Some(bail);
     self
@@ -677,6 +762,11 @@ impl CompilerOptionsBuilder {
     self
   }
 
+  pub fn stats(&mut self, stats: StatsOptions) -> &mut Self {
+    self.stats = Some(stats);
+    self
+  }
+
   pub fn output<V>(&mut self, output: V) -> &mut Self
   where
     V: Into<OutputOptionsBuilder>,
@@ -690,6 +780,19 @@ impl CompilerOptionsBuilder {
     V: Into<OptimizationOptionsBuilder>,
   {
     self.optimization = Some(optimization.into());
+    self
+  }
+
+  pub fn node<V>(&mut self, node: V) -> &mut Self
+  where
+    V: Into<NodeOptionBuilder>,
+  {
+    self.node = Some(node.into());
+    self
+  }
+
+  pub fn amd(&mut self, amd: String) -> &mut Self {
+    self.amd = Some(amd);
     self
   }
 
@@ -941,6 +1044,10 @@ impl CompilerOptionsBuilder {
         )));
     }
 
+    // apply node defaults
+    let node =
+      f!(self.node.take(), <Option<NodeOption>>::builder).build(&target_properties, output_module);
+
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
       builder_context,
@@ -949,21 +1056,27 @@ impl CompilerOptionsBuilder {
       css,
     );
 
-    // apply unconditional plugins
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::ChunkPrefetchPreloadPlugin);
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::JavascriptModulesPlugin);
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::JsonModulesPlugin);
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::AssetModulesPlugin);
+    // apply resolve defaults
+    let resolve = {
+      let resolve_defaults = get_resolve_defaults(&context, mode, &target_properties, css);
+      if let Some(resolve) = self.resolve.take() {
+        resolve_defaults.merge(resolve)
+      } else {
+        resolve_defaults
+      }
+    };
 
-    // add entry plugins
+    // apply resolve loader defaults
+    let resolve_loader = {
+      let resolve_loader_defaults = get_resolve_loader_defaults();
+      if let Some(resolve_loader) = self.resolve_loader.take() {
+        resolve_loader_defaults.merge(resolve_loader)
+      } else {
+        resolve_loader_defaults
+      }
+    };
+
+    // apply entry plugin
     self.entry.drain(..).for_each(|(name, desc)| {
       let entry_options = EntryOptions {
         name: Some(name),
@@ -989,6 +1102,18 @@ impl CompilerOptionsBuilder {
 
     builder_context
       .plugins
+      .push(BuiltinPluginOptions::ChunkPrefetchPreloadPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::JavascriptModulesPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::JsonModulesPlugin);
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::AssetModulesPlugin);
+    builder_context
+      .plugins
       .push(BuiltinPluginOptions::RuntimePlugin);
     builder_context
       .plugins
@@ -1002,31 +1127,326 @@ impl CompilerOptionsBuilder {
     builder_context
       .plugins
       .push(BuiltinPluginOptions::FileUriPlugin);
-
-    // TODO: options
+    builder_context
+      .plugins
+      .push(BuiltinPluginOptions::EnsureChunkConditionsPlugin);
     builder_context
       .plugins
       .push(BuiltinPluginOptions::WorkerPlugin);
 
     // TODO: stats plugins
+    let stats = d!(self.stats.take(), StatsOptions { colors: true });
+
+    let amd = self.amd.take();
 
     CompilerOptions {
       name,
       context,
       output,
       mode,
-      resolve: Default::default(),
-      resolve_loader: Default::default(),
+      resolve,
+      resolve_loader,
       module,
-      stats: Default::default(),
+      stats,
       cache,
       experiments,
-      node: Default::default(),
+      node,
       optimization,
       profile,
-      amd: None,
+      amd,
       bail,
       __references: Default::default(),
+    }
+  }
+}
+
+fn get_resolve_defaults(
+  context: &Context,
+  mode: Mode,
+  target_properties: &TargetProperties,
+  css: bool,
+) -> Resolve {
+  let mut conditions = vec!["webpack".to_string()];
+
+  // Add mode condition
+  conditions.push(match mode {
+    Mode::Development => "development".to_string(),
+    _ => "production".to_string(),
+  });
+
+  // Add target conditions
+  if target_properties.webworker() {
+    conditions.push("worker".to_string());
+  }
+  if target_properties.node() {
+    conditions.push("node".to_string());
+  }
+  if target_properties.web() {
+    conditions.push("browser".to_string());
+  }
+  if target_properties.electron() {
+    conditions.push("electron".to_string());
+  }
+  if target_properties.nwjs() {
+    conditions.push("nwjs".to_string());
+  }
+
+  let js_extensions = vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()];
+
+  let browser_field = target_properties.web()
+    && (!target_properties.node()
+      || (target_properties.electron() && target_properties.electron_renderer()));
+
+  let alias_fields: Vec<Vec<String>> = (if browser_field {
+    vec!["browser".to_string()]
+  } else {
+    vec![]
+  })
+  .into_iter()
+  .map(|field| vec![field])
+  .collect();
+
+  let main_fields = if browser_field {
+    vec![
+      "browser".to_string(),
+      "module".to_string(),
+      "...".to_string(),
+    ]
+  } else {
+    vec!["module".to_string(), "...".to_string()]
+  };
+
+  let cjs_deps = || Resolve {
+    alias_fields: Some(alias_fields.clone()),
+    main_fields: Some(main_fields.clone()),
+    condition_names: Some(vec![
+      "require".to_string(),
+      "module".to_string(),
+      "...".to_string(),
+    ]),
+    extensions: Some(js_extensions.clone()),
+    ..Default::default()
+  };
+
+  let esm_deps = || Resolve {
+    alias_fields: Some(alias_fields.clone()),
+    main_fields: Some(main_fields.clone()),
+    condition_names: Some(vec![
+      "import".to_string(),
+      "module".to_string(),
+      "...".to_string(),
+    ]),
+    extensions: Some(js_extensions.clone()),
+    ..Default::default()
+  };
+
+  let mut by_dependency: Vec<(Cow<'static, str>, Resolve)> = vec![
+    ("wasm".into(), esm_deps()),
+    ("esm".into(), esm_deps()),
+    (
+      "url".into(),
+      Resolve {
+        prefer_relative: Some(true),
+        ..Default::default()
+      },
+    ),
+    (
+      "worker".into(),
+      Resolve {
+        prefer_relative: Some(true),
+        ..esm_deps()
+      },
+    ),
+    ("commonjs".into(), cjs_deps()),
+    ("unknown".into(), cjs_deps()),
+  ];
+
+  // Add CSS dependencies if enabled
+  if css {
+    let mut style_conditions = vec!["webpack".to_string()];
+    style_conditions.push(match mode {
+      Mode::Development => "development".to_string(),
+      _ => "production".to_string(),
+    });
+    style_conditions.push("style".to_string());
+
+    by_dependency.push((
+      "css-import".into(),
+      Resolve {
+        main_files: Some(vec![]),
+        main_fields: Some(vec!["style".to_string(), "...".to_string()]),
+        condition_names: Some(style_conditions),
+        extensions: Some(vec![".css".to_string()]),
+        prefer_relative: Some(true),
+        ..Default::default()
+      },
+    ));
+  }
+
+  Resolve {
+    modules: Some(vec!["node_modules".to_string()]),
+    condition_names: Some(conditions),
+    main_files: Some(vec!["index".to_string()]),
+    extensions: Some(vec![]),
+    alias_fields: Some(vec![]),
+    exports_fields: Some(vec![vec!["exports".to_string()]]),
+    roots: Some(vec![context.to_string()]),
+    main_fields: Some(vec!["main".to_string()]),
+    imports_fields: Some(vec![vec!["imports".to_string()]]),
+    by_dependency: Some(ByDependency::from_iter(by_dependency)),
+    ..Default::default()
+  }
+}
+
+fn get_resolve_loader_defaults() -> Resolve {
+  Resolve {
+    condition_names: Some(vec![
+      "loader".to_string(),
+      "require".to_string(),
+      "node".to_string(),
+    ]),
+    extensions: Some(vec![".js".to_string()]),
+    main_fields: Some(vec!["loader".to_string(), "main".to_string()]),
+    main_files: Some(vec!["index".to_string()]),
+    exports_fields: Some(vec![vec!["exports".to_string()]]),
+    ..Default::default()
+  }
+}
+
+#[derive(Debug)]
+pub enum NodeOptionBuilder {
+  True {
+    dirname: Option<NodeDirnameOption>,
+    global: Option<NodeGlobalOption>,
+    filename: Option<NodeFilenameOption>,
+  },
+  False,
+}
+
+impl From<&mut NodeOptionBuilder> for NodeOptionBuilder {
+  fn from(value: &mut NodeOptionBuilder) -> Self {
+    match value {
+      NodeOptionBuilder::True {
+        dirname,
+        global,
+        filename,
+      } => NodeOptionBuilder::True {
+        dirname: dirname.take(),
+        global: global.take(),
+        filename: filename.take(),
+      },
+      NodeOptionBuilder::False => NodeOptionBuilder::False,
+    }
+  }
+}
+
+impl Default for NodeOptionBuilder {
+  fn default() -> Self {
+    NodeOptionBuilder::True {
+      dirname: None,
+      global: None,
+      filename: None,
+    }
+  }
+}
+
+impl NodeOptionBuilder {
+  pub fn disabled(&mut self) -> &mut Self {
+    *self = NodeOptionBuilder::False;
+    self
+  }
+
+  pub fn dirname(&mut self, dirname: NodeDirnameOption) -> &mut Self {
+    match self {
+      NodeOptionBuilder::True { dirname: d, .. } => {
+        *d = Some(dirname);
+      }
+      NodeOptionBuilder::False => {
+        *self = NodeOptionBuilder::True {
+          dirname: Some(dirname),
+          global: None,
+          filename: None,
+        }
+      }
+    }
+    self
+  }
+
+  pub fn global(&mut self, global: NodeGlobalOption) -> &mut Self {
+    match self {
+      NodeOptionBuilder::True { global: g, .. } => {
+        *g = Some(global);
+      }
+      NodeOptionBuilder::False => {
+        *self = NodeOptionBuilder::True {
+          dirname: None,
+          global: Some(global),
+          filename: None,
+        }
+      }
+    }
+    self
+  }
+
+  pub fn filename(&mut self, filename: NodeFilenameOption) -> &mut Self {
+    match self {
+      NodeOptionBuilder::True { filename: f, .. } => {
+        *f = Some(filename);
+      }
+      NodeOptionBuilder::False => {
+        *self = NodeOptionBuilder::True {
+          dirname: None,
+          global: None,
+          filename: Some(filename),
+        }
+      }
+    }
+    self
+  }
+
+  pub fn build(
+    &mut self,
+    target_properties: &TargetProperties,
+    output_module: bool,
+  ) -> Option<NodeOption> {
+    match self {
+      NodeOptionBuilder::True {
+        dirname,
+        global,
+        filename,
+      } => {
+        if global.is_none() {
+          if target_properties.global() {
+            *global = Some(NodeGlobalOption::False);
+          } else {
+            *global = Some(NodeGlobalOption::Warn);
+          }
+        }
+        if dirname.is_none() {
+          if target_properties.node() && output_module {
+            *dirname = Some(NodeDirnameOption::NodeModule);
+          } else if target_properties.node() {
+            *dirname = Some(NodeDirnameOption::EvalOnly);
+          } else {
+            *dirname = Some(NodeDirnameOption::WarnMock);
+          }
+        }
+        if filename.is_none() {
+          if target_properties.node() && output_module {
+            *filename = Some(NodeFilenameOption::NodeModule);
+          } else if target_properties.node() {
+            *filename = Some(NodeFilenameOption::EvalOnly);
+          } else {
+            *filename = Some(NodeFilenameOption::WarnMock);
+          }
+        }
+        Some(NodeOption {
+          dirname: expect!(dirname.take()),
+          global: expect!(global.take()),
+          filename: expect!(filename.take()),
+        })
+      }
+      NodeOptionBuilder::False => None,
     }
   }
 }
@@ -1841,7 +2261,7 @@ impl OutputOptionsBuilder {
     target_properties: Option<&TargetProperties>,
     is_affected_by_browserslist: bool,
     development: bool,
-    _entry: &IndexMap<String, EntryDescription>,
+    entry: &IndexMap<String, EntryDescription>,
     _future_defaults: bool,
   ) -> OutputOptions {
     let tp = target_properties;
@@ -2188,10 +2608,13 @@ impl OutputOptionsBuilder {
       if let Some(library) = &self.library {
         enabled_library_types.push(library.library_type.clone());
       }
-      // TODO: support entry
+      for (_, desc) in entry.iter() {
+        if let Some(library) = &desc.library {
+          enabled_library_types.push(library.library_type.clone());
+        }
+      }
       enabled_library_types
     });
-
     for ty in enabled_library_types.iter() {
       builder_context
         .plugins
@@ -2206,11 +2629,13 @@ impl OutputOptionsBuilder {
       if let ChunkLoading::Enable(ty) = worker_chunk_loading {
         enabled_chunk_loading_types.push(ty);
       }
-
-      // TODO: support entry
+      for (_, desc) in entry.iter() {
+        if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
+          enabled_chunk_loading_types.push(*ty);
+        }
+      }
       enabled_chunk_loading_types
     });
-
     for ty in enabled_chunk_loading_types.iter() {
       builder_context
         .plugins
@@ -2225,7 +2650,11 @@ impl OutputOptionsBuilder {
       if let WasmLoading::Enable(ty) = worker_wasm_loading {
         enabled_wasm_loading_types.push(ty);
       }
-      // TODO: support entry
+      // for (_, desc) in entry.iter() {
+      //   if let Some(wasm_loading) = &desc.wasm_loading {
+      //     enabled_wasm_loading_types.push(wasm_loading.clone());
+      //   }
+      // }
       enabled_wasm_loading_types
     });
 
@@ -2316,6 +2745,7 @@ pub struct OptimizationOptionsBuilder {
   node_env: Option<String>,
   emit_on_errors: Option<bool>,
   runtime_chunk: Option<rspack_plugin_runtime_chunk::RuntimeChunkOptions>,
+  // TODO: split chunks
 }
 
 impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
@@ -2842,6 +3272,7 @@ mod test {
       .output(OutputOptionsBuilder::default().charset(true))
       .experiments(ExperimentsBuilder::default().future_defaults(true))
       .module(ModuleOptionsBuilder::default().no_parse(ModuleNoParseRules::Rules(vec![])))
+      .node(NodeOptionBuilder::default().dirname(NodeDirnameOption::EvalOnly))
       .build(&mut Default::default());
   }
 }

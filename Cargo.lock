@@ -4156,6 +4156,7 @@ dependencies = [
  "indexmap 2.7.0",
  "regex",
  "rspack_core",
+ "rspack_fs",
  "rspack_hash",
  "rspack_ids",
  "rspack_paths",
