@@ -1,4 +1,6 @@
+#![allow(clippy::unwrap_used)]
 #![feature(trait_upcasting)]
+
 use std::sync::Arc;
 
 use rspack::builder::Builder as _;
