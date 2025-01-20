@@ -224,7 +224,7 @@ export function createDefaultsCase(name: string, src: string): void;
 export function createDiagnosticCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
-export function createDiffCase(name: string, src: string, dist: string): void;
+export function createDiffCase(name: string, src: string, dist: string, enableAllEnvironment?: boolean): void;
 
 // @public (undocumented)
 export function createErrorCase(name: string, src: string, dist: string, testConfig: string): void;
@@ -740,6 +740,8 @@ export interface IDiffProcessorOptions extends IFormatCodeOptions {
     bootstrap?: boolean;
     // (undocumented)
     detail?: boolean;
+    // (undocumented)
+    enableAllEnvironment?: boolean;
     // (undocumented)
     errors?: boolean;
     // (undocumented)

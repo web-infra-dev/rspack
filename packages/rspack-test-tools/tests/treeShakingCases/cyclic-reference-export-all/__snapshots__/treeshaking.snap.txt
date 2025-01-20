@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./src/App.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return __WEBPACK_DEFAULT_EXPORT__; }
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
 /* ESM import */var _containers__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/containers.js");
 
@@ -21,8 +21,8 @@ const Index = () => {
 "./src/containers/containers.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider; },
-  usePlatform: function() { return /* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform; }
+  PlatformProvider: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.PlatformProvider),
+  usePlatform: () => (/* reexport safe */ _platform_container__WEBPACK_IMPORTED_MODULE_0__.usePlatform)
 });
 /* ESM import */var _platform_container__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/containers/platform-container/index.js");
 
@@ -33,8 +33,8 @@ __webpack_require__.d(__webpack_exports__, {
 }),
 "./src/containers/platform-container/index.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: function() { return PlatformProvider; },
-  usePlatform: function() { return usePlatform; }
+  PlatformProvider: () => (PlatformProvider),
+  usePlatform: () => (usePlatform)
 });
 const usePlatform = 3;
 const PlatformProvider = 1000;

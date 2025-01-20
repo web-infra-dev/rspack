@@ -45,15 +45,12 @@ __webpack_require__.m = __webpack_modules__;
 /************************************************************************/
 // webpack/runtime/has_own_property
 (() => {
-__webpack_require__.o = function (obj, prop) {
-	return Object.prototype.hasOwnProperty.call(obj, prop);
-};
-
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = function(exports) {
+__webpack_require__.r = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
@@ -64,7 +61,7 @@ __webpack_require__.r = function(exports) {
 // webpack/runtime/on_chunk_loaded
 (() => {
 var deferred = [];
-__webpack_require__.O = function (result, chunkIds, fn, priority) {
+__webpack_require__.O = (result, chunkIds, fn, priority) => {
 	if (chunkIds) {
 		priority = priority || 0;
 		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
@@ -74,16 +71,12 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	}
 	var notFulfilled = Infinity;
 	for (var i = 0; i < deferred.length; i++) {
-		var chunkIds = deferred[i][0],
-			fn = deferred[i][1],
-			priority = deferred[i][2];
+		var [chunkIds, fn, priority] = deferred[i];
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
 				(priority & (1 === 0) || notFulfilled >= priority) &&
-				Object.keys(__webpack_require__.O).every(function (key) {
-					return __webpack_require__.O[key](chunkIds[j]);
-				})
+				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
 			} else {
@@ -108,20 +101,13 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
       var installedChunks = {"common": 0,};
-      __webpack_require__.O.j = function (chunkId) {
-	return installedChunks[chunkId] === 0;
-};
-// install a JSONP callback for chunk loading
-var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
-	var chunkIds = data[0];
-	var moreModules = data[1];
-	var runtime = data[2];
+      __webpack_require__.O.j = (chunkId) => (installedChunks[chunkId] === 0);// install a JSONP callback for chunk loading
+var webpackJsonpCallback = (parentChunkLoadingFunction, data) => {
+	var [chunkIds, moreModules, runtime] = data;
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
-	var moduleId,
-		chunkId,
-		i = 0;
-	if (chunkIds.some(function (id) { return installedChunks[id] !== 0 })) {
+	var moduleId, chunkId, i = 0;
+	if (chunkIds.some((id) => (installedChunks[id] !== 0))) {
 		for (moduleId in moreModules) {
 			if (__webpack_require__.o(moreModules, moduleId)) {
 				__webpack_require__.m[moduleId] = moreModules[moduleId];

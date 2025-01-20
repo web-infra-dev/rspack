@@ -1,0 +1,14 @@
+<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
+	if (typeof fetch === "undefined")
+		throw new Error("No browser support: need fetch API");
+	return fetch(<%- PUBLIC_PATH %> + <%- GET_UPDATE_MANIFEST_FILENAME %>()).then(
+		<%- basicFunction("response") %> {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		}
+	);
+};

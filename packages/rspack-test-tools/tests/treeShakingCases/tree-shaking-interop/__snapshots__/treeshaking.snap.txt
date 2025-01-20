@@ -4,7 +4,7 @@
 "./bar.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  "default": function() { return test; }
+  "default": () => (test)
 });
 function test() {}
 
@@ -20,7 +20,7 @@ function test() {}
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  a: function() { return a; }
+  a: () => (a)
 });
 __webpack_require__.e(/* import() */ "bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(mod => {
 	console.log(mod);

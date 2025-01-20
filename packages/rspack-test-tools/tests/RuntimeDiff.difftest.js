@@ -6,3 +6,9 @@ describeByWalk(__filename, (name, src, dist) => {
 }, {
 	dist: path.resolve(__dirname, `./js/runtime-diff`)
 });
+
+describeByWalk(__filename, (name, src, dist) => {
+	createDiffCase(name, src, dist, true);
+}, {
+	dist: path.resolve(__dirname, `./js/runtime-diff-enviroment`),
+})
