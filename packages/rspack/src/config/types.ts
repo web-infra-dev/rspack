@@ -1174,8 +1174,9 @@ export type AssetResourceGeneratorOptions = {
 	publicPath?: PublicPath;
 
 	/**
-	 * If "url", generate url for asset based on `publicPath`
-	 * If "preserve", preserve import statement from generated asset
+	 * If "url", a URL pointing to the asset will be generated based on publicPath.
+	 * If "preserve", preserve import/require statement from generated asset.
+	 * Only for modules with module type 'asset' or 'asset/resource'.
 	 * @default "url"
 	 */
 	importMode?: AssetModuleImportMode;
