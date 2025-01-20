@@ -3117,9 +3117,17 @@ type KnownStatsModuleReason = {
     resolvedModuleIdentifier?: string;
     resolvedModule?: string;
     type?: string;
+    active: boolean;
+    explanation?: string;
     userRequest?: string;
+    loc?: string;
     moduleId?: string | null;
     resolvedModuleId?: string | number | null;
+};
+
+// @public (undocumented)
+type KnownStatsModuleTraceDependency = {
+    loc: string;
 };
 
 // @public (undocumented)
@@ -10162,6 +10170,9 @@ type StatsModuleIssuer = KnownStatsModuleIssuer & Record<string, any>;
 type StatsModuleReason = KnownStatsModuleReason & Record<string, any>;
 
 // @public (undocumented)
+type StatsModuleTraceDependency = KnownStatsModuleTraceDependency & Record<string, any>;
+
+// @public (undocumented)
 type StatsModuleTraceItem = {
     originIdentifier?: string;
     originName?: string;
@@ -10169,6 +10180,7 @@ type StatsModuleTraceItem = {
     moduleName?: string;
     originId?: string;
     moduleId?: string;
+    dependencies?: StatsModuleTraceDependency[];
 };
 
 // @public

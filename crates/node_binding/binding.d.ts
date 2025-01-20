@@ -1043,11 +1043,19 @@ export interface JsStatsModuleReason {
   moduleChunks?: number
   type?: string
   userRequest?: string
+  explanation?: string
+  active: boolean
+  loc?: string
 }
 
 export interface JsStatsModuleTrace {
   origin: JsStatsModuleTraceModule
   module: JsStatsModuleTraceModule
+  dependencies: Array<JsStatsModuleTraceDependency>
+}
+
+export interface JsStatsModuleTraceDependency {
+  loc: string
 }
 
 export interface JsStatsModuleTraceModule {

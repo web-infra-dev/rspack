@@ -60,6 +60,7 @@ module.exports = {
 		    providedExports: null,
 		    reasons: Array [
 		      Object {
+		        active: true,
 		        moduleId: null,
 		        resolvedModuleId: null,
 		        type: loader import,
@@ -103,6 +104,8 @@ module.exports = {
 		    providedExports: null,
 		    reasons: Array [
 		      Object {
+		        active: true,
+		        loc: 3:0-241,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
@@ -111,6 +114,8 @@ module.exports = {
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		      },
 		      Object {
+		        active: true,
+		        loc: 4:30-57,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
@@ -119,6 +124,7 @@ module.exports = {
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		      },
 		      Object {
+		        active: true,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		        moduleName: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
 		        resolvedModule: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
@@ -164,6 +170,8 @@ module.exports = {
 		    providedExports: null,
 		    reasons: Array [
 		      Object {
+		        active: true,
+		        loc: 2:0-263,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
@@ -172,6 +180,8 @@ module.exports = {
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		      },
 		      Object {
+		        active: true,
+		        loc: 4:58-98,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
@@ -180,6 +190,7 @@ module.exports = {
 		        userRequest: ../../../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		      },
 		      Object {
+		        active: true,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		        moduleName: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
 		        resolvedModule: ../../../node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
