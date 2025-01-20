@@ -315,7 +315,15 @@ This feature is experimental. You can check its relevant progress at [rspack#810
 
 - **Default:** false
 
-Enabling this configuration will activate a new multi-threaded Code Splitting algorithm. If your project includes many dynamic imports, this can greatly decrease the time spent on the Code Splitting process. In the future, Rspack will have this enabled by default.
+Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports, this can greatly reduce the time spent on the code splitting process. In the future, Rspack will have this enabled by default.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
 
 ## experiments.rspackFuture
 
