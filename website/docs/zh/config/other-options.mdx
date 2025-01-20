@@ -7,6 +7,20 @@ import PropertyType from '@components/PropertyType';
 
 这里展示了 Rspack 支持的其余配置项。
 
+## amd
+
+<PropertyType type="false | object" />
+
+设置 `require.amd` 或 `define.amd` 的值。设置 `amd` 为 `false` 会禁用 Rspack 的 AMD 支持。
+
+```js title="rspack.config.js"
+module.exports = {
+  amd: {
+    jQuery: true,
+  },
+};
+```
+
 ## bail
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
