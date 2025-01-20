@@ -305,6 +305,16 @@ module.exports = {
 该特性属于实验性特性，可前往 [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106) 查看其相关进度，也可在此 issue 中反馈 bugs 以及任何与之相关的反馈信息。
 :::
 
+## experiments.parallelCodeSplitting
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **类型：** `boolean`
+
+- **默认值：** false
+
+开启后会启用新的多线程 Code Splitting 算法，如果你的项目中包含较多的动态引用，开启后可以显著降低 Code Splitting 阶段耗时，在未来 Rspack 会默认开启。
+
 ## experiments.rspackFuture
 
 - **类型：** `object`

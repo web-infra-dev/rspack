@@ -307,6 +307,16 @@ Currently, incremental for the `make` and `emitAssets` stages is enabled by defa
 This feature is experimental. You can check its relevant progress at [rspack#8106](https://github.com/web-infra-dev/rspack/issues/8106). You can also report bugs and any related feedback here.
 :::
 
+## experiments.parallelCodeSplitting
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `boolean`
+
+- **Default:** false
+
+Enabling this configuration will activate a new multi-threaded Code Splitting algorithm. If your project includes many dynamic imports, this can greatly decrease the time spent on the Code Splitting process. In the future, Rspack will have this enabled by default.
+
 ## experiments.rspackFuture
 
 - **Type:** `object`
