@@ -962,6 +962,9 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
     devDependencies:
+      '@babel/preset-react':
+        specifier: ^7.22.15
+        version: 7.25.9(@babel/core@7.24.4)
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack

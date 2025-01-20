@@ -383,8 +383,8 @@ exports[`StatsTestCases should print correct stats for graph-correctness-modules
   ./e1.js 70 bytes [built] [code generated]
     entry ./e1
   ./module-x.js 49 bytes [dependent] [built] [code generated]
-    esm import ./module-x ./e1.js
-    esm import ./module-x ./e2.js
+    esm import ./module-x ./e1.js 1:0-20
+    esm import ./module-x ./e2.js 1:0-20
     import() ./module-x ./module-b.js
 chunk (runtime: e1, e2) a.js (a) 49 bytes <{605}> <{76}> >{751}< [rendered]
   ./module-a.js 49 bytes [built] [code generated]
@@ -401,8 +401,8 @@ chunk (runtime: e2) e2.js (e2) 119 bytes (javascript) 8.79 KiB (runtime) >{76}< 
   ./e2.js 70 bytes [built] [code generated]
     entry ./e2
   ./module-x.js 49 bytes [dependent] [built] [code generated]
-    esm import ./module-x ./e1.js
-    esm import ./module-x ./e2.js
+    esm import ./module-x ./e1.js 1:0-20
+    esm import ./module-x ./e2.js 1:0-20
     import() ./module-x ./module-b.js
 chunk (runtime: e1, e2) y.js (y) 1 bytes <{605}> <{844}> [rendered]
   ./module-y.js 1 bytes [built] [code generated]
@@ -849,8 +849,8 @@ cacheable modules 110 bytes
   ./index.js + 2 modules 102 bytes [code generated]
     entry ./index
   ./c.js 8 bytes [built] [code generated]
-    cjs require ./c ./a.js
-    cjs require ./c ./b.js
+    cjs require ./c ./a.js 1:8-14
+    cjs require ./c ./b.js 1:8-14
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -1734,21 +1734,21 @@ cacheable modules 967 bytes
       modules by path ./components/src/CompC/*.js 67 bytes 2 modules
       ./components/src/index.js 84 bytes [orphan] [built]
         [module unused]
-        esm import ./components ./foo.js
-        esm import ./components ./main.js
+        esm import ./components ./foo.js 1:0-37
+        esm import ./components ./main.js 1:0-44
     code generated modules 186 bytes [code generated]
       ./components/src/CompAB/CompA.js 89 bytes [built] [code generated]
         [only some exports used: default]
-        esm export ./CompA ./components/src/CompAB/index.js
-        esm export import specifier ./CompA ./components/src/CompAB/index.js
-        esm export import specifier ./CompAB ./components/src/index.js
-        esm import specifier ./components ./foo.js
-        esm import specifier ./components ./main.js
+        esm export ./CompA ./components/src/CompAB/index.js 1:0-43
+        esm export import specifier ./CompA ./components/src/CompAB/index.js 1:0-43
+        esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
+        esm import specifier ./components ./foo.js 3:20-25 (skipped side-effect-free modules)
+        esm import specifier ./components ./main.js 3:15-20 (skipped side-effect-free modules)
       ./components/src/CompAB/utils.js 97 bytes [built] [code generated]
-        esm import ./utils ./components/src/CompAB/CompA.js
-        esm import specifier ./utils ./components/src/CompAB/CompA.js
-        esm import ./utils ./components/src/CompAB/CompB.js
-        esm import specifier ./utils ./components/src/CompAB/CompB.js
+        esm import ./utils ./components/src/CompAB/CompA.js 1:0-35
+        esm import specifier ./utils ./components/src/CompAB/CompA.js 5:5-12
+        esm import ./utils ./components/src/CompAB/CompB.js 1:0-30
+        esm import specifier ./utils ./components/src/CompAB/CompB.js 5:2-5
   modules by path ./*.js 466 bytes
     ./main.js 144 bytes [orphan] [built]
       [no exports used]
@@ -1759,10 +1759,10 @@ cacheable modules 967 bytes
       |   [no exports used]
       | ./components/src/CompAB/CompB.js 77 bytes [orphan] [built]
       |   [only some exports used: default]
-      |   esm export ./CompB ./components/src/CompAB/index.js
-      |   esm export import specifier ./CompB ./components/src/CompAB/index.js
-      |   esm export import specifier ./CompAB ./components/src/index.js
-      |   esm import specifier ./components ./main.js
+      |   esm export ./CompB ./components/src/CompAB/index.js 2:0-43
+      |   esm export import specifier ./CompB ./components/src/CompAB/index.js 2:0-43
+      |   esm export import specifier ./CompAB ./components/src/index.js 1:0-40 (skipped side-effect-free modules)
+      |   esm import specifier ./components ./main.js 4:15-20 (skipped side-effect-free modules)
     ./foo.js 101 bytes [built] [code generated]
       import() ./foo ./main.js
 Rspack x.x.x compiled successfully in X.23"
@@ -1773,23 +1773,23 @@ exports[`StatsTestCases should print correct stats for side-effects-simple-unuse
 modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     [only some exports used: default]
-    esm import pmodule ./index.js
-    esm import specifier pmodule ./index.js
+    esm import pmodule ./index.js 1:0-33
+    esm import specifier pmodule ./index.js 3:12-15
   ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     [only some exports used: z]
-    esm import specifier pmodule ./index.js
-    esm export ./c ./node_modules/pmodule/b.js
-    esm export import specifier ./c ./node_modules/pmodule/b.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
+    esm import specifier pmodule ./index.js 3:17-18 (skipped side-effect-free modules)
+    esm export ./c ./node_modules/pmodule/b.js 5:0-24
+    esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
+    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
   ./node_modules/pmodule/a.js 60 bytes [orphan] [built]
     [module unused]
-    esm export ./a ./node_modules/pmodule/index.js
-    esm export import specifier ./a ./node_modules/pmodule/index.js
+    esm export ./a ./node_modules/pmodule/index.js 1:0-20
+    esm export import specifier ./a ./node_modules/pmodule/index.js 1:0-20
   ./node_modules/pmodule/b.js 69 bytes [orphan] [built]
     [module unused]
-    esm export ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
-    esm export import specifier ./b ./node_modules/pmodule/index.js
+    esm export ./b ./node_modules/pmodule/index.js 2:0-30
+    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
+    esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30
 modules by path ./*.js 213 bytes
   ./index.js 55 bytes [orphan] [built]
     [no exports used]
@@ -1800,14 +1800,14 @@ modules by path ./*.js 213 bytes
     |   [no exports used]
     | ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     |   [only some exports used: default]
-    |   esm import pmodule ./index.js
-    |   esm import specifier pmodule ./index.js
+    |   esm import pmodule ./index.js 1:0-33
+    |   esm import specifier pmodule ./index.js 3:12-15
     | ./node_modules/pmodule/c.js 28 bytes [orphan] [built]
     |   [only some exports used: z]
-    |   esm import specifier pmodule ./index.js
-    |   esm export ./c ./node_modules/pmodule/b.js
-    |   esm export import specifier ./c ./node_modules/pmodule/b.js
-    |   esm export import specifier ./b ./node_modules/pmodule/index.js
+    |   esm import specifier pmodule ./index.js 3:17-18 (skipped side-effect-free modules)
+    |   esm export ./c ./node_modules/pmodule/b.js 5:0-24
+    |   esm export import specifier ./c ./node_modules/pmodule/b.js 5:0-24
+    |   esm export import specifier ./b ./node_modules/pmodule/index.js 2:0-30 (skipped side-effect-free modules)
 Rspack x.x.x compiled successfully in X.23"
 `;
 
