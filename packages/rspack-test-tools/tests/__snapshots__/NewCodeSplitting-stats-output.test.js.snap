@@ -98,7 +98,7 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`new code splitting stats output new code splitting stats output/filename should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset 909.xxxx.js 9.14 KiB [emitted] (name: main)
-asset 521.xxxx.js 337 bytes [emitted]
+asset 521.xxxx.js 322 bytes [emitted]
 runtime modules 7.54 KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]
@@ -219,7 +219,7 @@ Rspack compiled with 1 error
 
 exports[`new code splitting stats output new code splitting stats output/named-chunk-group should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 Entrypoint main 9.13 KiB = main.js
-Chunk Group cimanyd 337 bytes = cimanyd.js
+Chunk Group cimanyd 322 bytes = cimanyd.js
 `;
 
 exports[`new code splitting stats output new code splitting stats output/nonexistent-import-source-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
@@ -438,7 +438,7 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`new code splitting stats output new code splitting stats output/simple-export should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
-asset bundle.js 1.71 KiB [emitted] (name: main)
+asset bundle.js 1.69 KiB [emitted] (name: main)
 runtime modules 677 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

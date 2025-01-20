@@ -3,7 +3,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./answer.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  K: function() { return answer; }
+  K: () => (answer)
 });
 const answer = 103330;
 
@@ -18,7 +18,7 @@ _lib__WEBPACK_IMPORTED_MODULE_0__/* .answer */.K;
 }),
 "./lib.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  K: function() { return /* reexport safe */ _answer__WEBPACK_IMPORTED_MODULE_0__.K; }
+  K: () => (/* reexport safe */ _answer__WEBPACK_IMPORTED_MODULE_0__.K)
 });
 /* ESM import */var _answer__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./answer.js");
 

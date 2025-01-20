@@ -229,7 +229,7 @@ function cssReload(moduleId, options) {
 "./index.css": (function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  x: function() { return _1; }
+  x: () => (_1)
 });
 // extracted by css-extract-rspack-plugin
 var _1 = "VoofDB21D_QzDbRdwMiY";

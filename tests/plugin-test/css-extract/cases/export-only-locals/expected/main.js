@@ -4,9 +4,9 @@ var __webpack_modules__ = ({
 "./style.css": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  aClass: function() { return _1; },
-  bClass: function() { return _2; },
-  cClass: function() { return _3; }
+  aClass: () => (_1),
+  bClass: () => (_2),
+  cClass: () => (_3)
 });
 // extracted by css-extract-rspack-plugin
 var _1 = "foo__style__a-class";

@@ -1382,6 +1382,16 @@ export interface RawEnvironment {
   const?: boolean
   arrowFunction?: boolean
   nodePrefixForCoreModules?: boolean
+  asyncFunction?: boolean
+  bigIntLiteral?: boolean
+  destructuring?: boolean
+  document?: boolean
+  dynamicImport?: boolean
+  forOf?: boolean
+  globalThis?: boolean
+  module?: boolean
+  optionalChaining?: boolean
+  templateLiteral?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {
