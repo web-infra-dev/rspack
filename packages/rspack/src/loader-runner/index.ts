@@ -847,7 +847,7 @@ export async function runLoaders(
 					if (hasArg) {
 						const [content, sourceMap, additionalData] = args;
 						context.content = isNil(content) ? null : toBuffer(content);
-						context.sourceMap = sourceMap;
+						context.sourceMap = isNil(sourceMap) ? undefined : sourceMap;
 						context.additionalData = additionalData;
 						break;
 					}
@@ -892,7 +892,7 @@ export async function runLoaders(
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
-				context.sourceMap = sourceMap;
+				context.sourceMap = isNil(sourceMap) ? undefined : sourceMap;
 				context.additionalData = additionalData;
 
 				break;
