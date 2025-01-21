@@ -799,7 +799,7 @@ export type ResolveOptions = {
 
 	/** Customize the Resolve configuration based on the module type. */
 	byDependency?: Record<string, ResolveOptions>;
-	/** enable yarn pnp */
+	/** enable Yarn PnP */
 	pnp?: boolean;
 };
 
