@@ -122,7 +122,7 @@ For more details, see [SWC documentation](https://swc.rs/docs/plugin/selecting-s
 
 ### Disable WarnCaseSensitiveModulesPlugin by default
 
-The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) will check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. We used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now we disable it by default.
+The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) is used to check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. Rspack used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now it is disabled by default.
 
 If you prefer to keep the previous behavior, you can set:
 
