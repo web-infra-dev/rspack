@@ -453,6 +453,8 @@ jobs:
           tool: cargo-codspeed
 
       - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
