@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import * as binding from "@rspack/binding";
+import type * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 
 import ExecuteModulePlugin from "./ExecuteModulePlugin";
@@ -16,29 +16,18 @@ import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 
 import {
-	RuntimeGlobals,
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
-import {
-	HtmlRspackPlugin,
-	JavascriptModulesPlugin,
-	JsLoaderRspackPlugin
-} from "./builtin-plugin";
+import { JsLoaderRspackPlugin } from "./builtin-plugin";
 
-import { Chunk } from "./Chunk";
+import type { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import {
 	ThreadsafeIntermediateNodeFS,
 	ThreadsafeOutputNodeFS
 } from "./FileSystem";
-import {
-	CodeGenerationResult,
-	ContextModuleFactoryAfterResolveData,
-	ContextModuleFactoryBeforeResolveData,
-	Module
-} from "./Module";
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
@@ -50,19 +39,15 @@ import { unsupported } from "./util";
 
 import { canInherentFromParent } from "./builtin-plugin/base";
 import { applyRspackOptionsDefaults } from "./config/defaults";
-import { tryRunOrWebpackError } from "./lib/HookWebpackError";
 import { Logger } from "./logging/Logger";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
-import { createHash } from "./util/createHash";
 import { makePathsRelative } from "./util/identifier";
 
 import type Watchpack from "watchpack";
 import type { Source } from "webpack-sources";
 import type { CompilationParams } from "./Compilation";
 import type { FileSystemInfoEntry } from "./FileSystemInfo";
-import type { ResolveData } from "./Module";
-import type { NormalModuleCreateData } from "./NormalModuleFactory";
 import type {
 	EntryNormalized,
 	OutputNormalized,
@@ -70,6 +55,14 @@ import type {
 	RspackPluginInstance,
 	WatchOptions
 } from "./config";
+import {
+	createCompilationHooksRegisters,
+	createCompilerHooksRegisters,
+	createContextModuleFactoryHooksRegisters,
+	createHtmlPluginHooksRegisters,
+	createJavaScriptModulesHooksRegisters,
+	createNormalModuleFactoryHooksRegisters
+} from "./taps";
 import type {
 	InputFileSystem,
 	IntermediateFileSystem,
@@ -750,7 +743,11 @@ class Compiler {
 		});
 	}
 
-	#createCompilation(native: binding.JsCompilation): Compilation {
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__create_compilation(native: binding.JsCompilation): Compilation {
 		let compilation = COMPILATION_WEAK_MAP.get(native);
 
 		if (!compilation) {
@@ -807,826 +804,8 @@ class Compiler {
 		);
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
-		const that = new WeakRef(this);
 
-		this.#registers = {
-			registerCompilerThisCompilationTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerThisCompilation,
-
-				function () {
-					return that.deref()!.hooks.thisCompilation;
-				},
-
-				function (queried) {
-					return function (native: binding.JsCompilation) {
-						that.deref()!.#createCompilation(native);
-						return queried.call(
-							that.deref()!.#compilation!,
-							that.deref()!.#compilationParams!
-						);
-					};
-				}
-			),
-			registerCompilerCompilationTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerCompilation,
-
-				function () {
-					return that.deref()!.hooks.compilation;
-				},
-
-				function (queried) {
-					return function () {
-						return queried.call(
-							that.deref()!.#compilation!,
-							that.deref()!.#compilationParams!
-						);
-					};
-				}
-			),
-			registerCompilerMakeTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerMake,
-
-				function () {
-					return that.deref()!.hooks.make;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!);
-					};
-				}
-			),
-			registerCompilerFinishMakeTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerFinishMake,
-
-				function () {
-					return that.deref()!.hooks.finishMake;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!);
-					};
-				}
-			),
-			registerCompilerShouldEmitTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerShouldEmit,
-
-				function () {
-					return that.deref()!.hooks.shouldEmit;
-				},
-
-				function (queried) {
-					return function () {
-						return queried.call(that.deref()!.#compilation!);
-					};
-				}
-			),
-			registerCompilerEmitTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerEmit,
-
-				function () {
-					return that.deref()!.hooks.emit;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!);
-					};
-				}
-			),
-			registerCompilerAfterEmitTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerAfterEmit,
-
-				function () {
-					return that.deref()!.hooks.afterEmit;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!);
-					};
-				}
-			),
-			registerCompilerAssetEmittedTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilerAssetEmitted,
-
-				function () {
-					return that.deref()!.hooks.assetEmitted;
-				},
-
-				function (queried) {
-					return async function ({
-						filename,
-						targetPath,
-						outputPath
-					}: binding.JsAssetEmittedArgs) {
-						return queried.promise(filename, {
-							compilation: that.deref()!.#compilation!,
-							targetPath,
-							outputPath,
-							get source() {
-								return that.deref()!.#compilation!.getAsset(filename)?.source!;
-							},
-							get content() {
-								return this.source?.buffer();
-							}
-						});
-					};
-				}
-			),
-			registerCompilationAdditionalTreeRuntimeRequirements:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind
-						.CompilationAdditionalTreeRuntimeRequirements,
-
-					function () {
-						return that.deref()!.#compilation!.hooks
-							.additionalTreeRuntimeRequirements;
-					},
-
-					function (queried) {
-						return function ({
-							chunk,
-							runtimeRequirements
-						}: binding.JsAdditionalTreeRuntimeRequirementsArg) {
-							const set = __from_binding_runtime_globals(runtimeRequirements);
-							queried.call(Chunk.__from_binding(chunk), set);
-							return {
-								runtimeRequirements: __to_binding_runtime_globals(set)
-							};
-						};
-					}
-				),
-			registerCompilationRuntimeRequirementInTree:
-				this.#createHookMapRegisterTaps(
-					binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
-
-					function () {
-						return that.deref()!.#compilation!.hooks.runtimeRequirementInTree;
-					},
-
-					function (queried) {
-						return function ({
-							chunk: chunkBinding,
-							runtimeRequirements
-						}: binding.JsRuntimeRequirementInTreeArg) {
-							const set = __from_binding_runtime_globals(runtimeRequirements);
-							const chunk = Chunk.__from_binding(chunkBinding);
-							for (const r of set) {
-								queried.for(r).call(chunk, set);
-							}
-							return {
-								runtimeRequirements: __to_binding_runtime_globals(set)
-							};
-						};
-					}
-				),
-			registerCompilationRuntimeModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationRuntimeModule,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.runtimeModule;
-				},
-
-				function (queried) {
-					return function ({ module, chunk }: binding.JsRuntimeModuleArg) {
-						const originSource = module.source?.source;
-						queried.call(module, Chunk.__from_binding(chunk));
-						const newSource = module.source?.source;
-						if (newSource && newSource !== originSource) {
-							return module;
-						}
-						return;
-					};
-				}
-			),
-			registerCompilationBuildModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationBuildModule,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.buildModule;
-				},
-
-				function (queried) {
-					return function (m: binding.JsModule) {
-						return queried.call(Module.__from_binding(m));
-					};
-				}
-			),
-			registerCompilationStillValidModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationStillValidModule,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.stillValidModule;
-				},
-
-				function (queried) {
-					return function (m: binding.JsModule) {
-						return queried.call(Module.__from_binding(m));
-					};
-				}
-			),
-			registerCompilationSucceedModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationSucceedModule,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.succeedModule;
-				},
-
-				function (queried) {
-					return function (m: binding.JsModule) {
-						return queried.call(Module.__from_binding(m));
-					};
-				}
-			),
-			registerCompilationExecuteModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationExecuteModule,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.executeModule;
-				},
-
-				function (queried) {
-					return function ({
-						entry,
-						id,
-						codegenResults,
-						runtimeModules
-					}: binding.JsExecuteModuleArg) {
-						try {
-							const __webpack_require__: any = (id: string) => {
-								const cached = moduleCache[id];
-								if (cached !== undefined) {
-									if (cached.error) throw cached.error;
-									return cached.exports;
-								}
-
-								const execOptions = {
-									id,
-									module: {
-										id,
-										exports: {},
-										loaded: false,
-										error: undefined
-									},
-									require: __webpack_require__
-								};
-
-								for (const handler of interceptModuleExecution) {
-									handler(execOptions);
-								}
-
-								const result = codegenResults.map[id]["build time"];
-								const moduleObject = execOptions.module;
-
-								if (id) moduleCache[id] = moduleObject;
-
-								tryRunOrWebpackError(
-									() =>
-										queried.call(
-											{
-												codeGenerationResult: new CodeGenerationResult(result),
-												moduleObject
-											},
-											{ __webpack_require__ }
-										),
-									"Compilation.hooks.executeModule"
-								);
-								moduleObject.loaded = true;
-								return moduleObject.exports;
-							};
-
-							const moduleCache: Record<string, any> = (__webpack_require__[
-								RuntimeGlobals.moduleCache.replace(
-									`${RuntimeGlobals.require}.`,
-									""
-								)
-							] = {});
-							const interceptModuleExecution: ((execOptions: any) => void)[] =
-								(__webpack_require__[
-									RuntimeGlobals.interceptModuleExecution.replace(
-										`${RuntimeGlobals.require}.`,
-										""
-									)
-								] = []);
-
-							for (const runtimeModule of runtimeModules) {
-								__webpack_require__(runtimeModule);
-							}
-
-							const executeResult = __webpack_require__(entry);
-							that.deref()!.#moduleExecutionResultsMap.set(id, executeResult);
-						} catch (e) {
-							that.deref()!.#moduleExecutionResultsMap.set(id, e);
-							throw e;
-						}
-					};
-				}
-			),
-			registerCompilationFinishModulesTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationFinishModules,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.finishModules;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!.modules);
-					};
-				}
-			),
-			registerCompilationOptimizeModulesTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationOptimizeModules,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.optimizeModules;
-				},
-
-				function (queried) {
-					return function () {
-						return queried.call(that.deref()!.#compilation!.modules.values());
-					};
-				}
-			),
-			registerCompilationAfterOptimizeModulesTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.afterOptimizeModules;
-				},
-
-				function (queried) {
-					return function () {
-						queried.call(that.deref()!.#compilation!.modules.values());
-					};
-				}
-			),
-			registerCompilationOptimizeTreeTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationOptimizeTree,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.optimizeTree;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(
-							that.deref()!.#compilation!.chunks,
-							that.deref()!.#compilation!.modules
-						);
-					};
-				}
-			),
-			registerCompilationOptimizeChunkModulesTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.optimizeChunkModules;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(
-							that.deref()!.#compilation!.chunks,
-							that.deref()!.#compilation!.modules
-						);
-					};
-				}
-			),
-			registerCompilationChunkHashTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationChunkHash,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.chunkHash;
-				},
-
-				function (queried) {
-					return function (chunk: binding.JsChunk) {
-						if (!that.deref()!.options.output.hashFunction) {
-							throw new Error("'output.hashFunction' cannot be undefined");
-						}
-						const hash = createHash(that.deref()!.options.output.hashFunction!);
-						queried.call(Chunk.__from_binding(chunk), hash);
-						const digestResult = hash.digest(
-							that.deref()!.options.output.hashDigest
-						);
-						return Buffer.from(digestResult);
-					};
-				}
-			),
-			registerCompilationChunkAssetTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationChunkAsset,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.chunkAsset;
-				},
-
-				function (queried) {
-					return function ({ chunk, filename }: binding.JsChunkAssetArgs) {
-						return queried.call(Chunk.__from_binding(chunk), filename);
-					};
-				}
-			),
-			registerCompilationProcessAssetsTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationProcessAssets,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.processAssets;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise(that.deref()!.#compilation!.assets);
-					};
-				}
-			),
-			registerCompilationAfterProcessAssetsTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationAfterProcessAssets,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.afterProcessAssets;
-				},
-
-				function (queried) {
-					return function () {
-						return queried.call(that.deref()!.#compilation!.assets);
-					};
-				}
-			),
-			registerCompilationSealTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationSeal,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.seal;
-				},
-
-				function (queried) {
-					return function () {
-						return queried.call();
-					};
-				}
-			),
-			registerCompilationAfterSealTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.CompilationAfterSeal,
-
-				function () {
-					return that.deref()!.#compilation!.hooks.afterSeal;
-				},
-
-				function (queried) {
-					return async function () {
-						return await queried.promise();
-					};
-				}
-			),
-			registerNormalModuleFactoryBeforeResolveTaps:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-
-					function () {
-						return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-							.beforeResolve;
-					},
-
-					function (queried) {
-						return async function (resolveData: binding.JsBeforeResolveArgs) {
-							const normalizedResolveData: ResolveData = {
-								contextInfo: {
-									issuer: resolveData.issuer
-								},
-								request: resolveData.request,
-								context: resolveData.context,
-								fileDependencies: [],
-								missingDependencies: [],
-								contextDependencies: []
-							};
-							const ret = await queried.promise(normalizedResolveData);
-							resolveData.request = normalizedResolveData.request;
-							resolveData.context = normalizedResolveData.context;
-							return [ret, resolveData];
-						};
-					}
-				),
-			registerNormalModuleFactoryFactorizeTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
-
-				function () {
-					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-						.factorize;
-				},
-
-				function (queried) {
-					return async function (resolveData: binding.JsFactorizeArgs) {
-						const normalizedResolveData: ResolveData = {
-							contextInfo: {
-								issuer: resolveData.issuer
-							},
-							request: resolveData.request,
-							context: resolveData.context,
-							fileDependencies: [],
-							missingDependencies: [],
-							contextDependencies: []
-						};
-						await queried.promise(normalizedResolveData);
-						resolveData.request = normalizedResolveData.request;
-						resolveData.context = normalizedResolveData.context;
-						return resolveData;
-					};
-				}
-			),
-			registerNormalModuleFactoryResolveTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.NormalModuleFactoryResolve,
-
-				function () {
-					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-						.resolve;
-				},
-
-				function (queried) {
-					return async function (resolveData: binding.JsFactorizeArgs) {
-						const normalizedResolveData: ResolveData = {
-							contextInfo: {
-								issuer: resolveData.issuer
-							},
-							request: resolveData.request,
-							context: resolveData.context,
-							fileDependencies: [],
-							missingDependencies: [],
-							contextDependencies: []
-						};
-						await queried.promise(normalizedResolveData);
-						resolveData.request = normalizedResolveData.request;
-						resolveData.context = normalizedResolveData.context;
-						return resolveData;
-					};
-				}
-			),
-			registerNormalModuleFactoryResolveForSchemeTaps:
-				this.#createHookMapRegisterTaps(
-					binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
-
-					function () {
-						return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-							.resolveForScheme;
-					},
-
-					function (queried) {
-						return async function (args: binding.JsResolveForSchemeArgs) {
-							const ret = await queried
-								.for(args.scheme)
-								.promise(args.resourceData);
-							return [ret, args.resourceData];
-						};
-					}
-				),
-			registerNormalModuleFactoryAfterResolveTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
-
-				function () {
-					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-						.afterResolve;
-				},
-
-				function (queried) {
-					return async function (arg: binding.JsAfterResolveData) {
-						const data: ResolveData = {
-							contextInfo: {
-								issuer: arg.issuer
-							},
-							request: arg.request,
-							context: arg.context,
-							fileDependencies: arg.fileDependencies,
-							missingDependencies: arg.missingDependencies,
-							contextDependencies: arg.contextDependencies,
-							createData: arg.createData
-						};
-						const ret = await queried.promise(data);
-						return [ret, data.createData];
-					};
-				}
-			),
-			registerNormalModuleFactoryCreateModuleTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
-
-				function () {
-					return that.deref()!.#compilationParams!.normalModuleFactory.hooks
-						.createModule;
-				},
-
-				function (queried) {
-					return async function (
-						args: binding.JsNormalModuleFactoryCreateModuleArgs
-					) {
-						const data: NormalModuleCreateData = {
-							...args,
-							settings: {}
-						};
-						await queried.promise(data, {});
-					};
-				}
-			),
-			registerContextModuleFactoryBeforeResolveTaps:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
-
-					function () {
-						return that.deref()!.#compilationParams!.contextModuleFactory.hooks
-							.beforeResolve;
-					},
-
-					function (queried) {
-						return async function (
-							bindingData:
-								| false
-								| binding.JsContextModuleFactoryBeforeResolveData
-						) {
-							const data = bindingData
-								? ContextModuleFactoryBeforeResolveData.__from_binding(
-										bindingData
-									)
-								: false;
-							const result = await queried.promise(data);
-							return result
-								? ContextModuleFactoryBeforeResolveData.__to_binding(result)
-								: false;
-						};
-					}
-				),
-			registerContextModuleFactoryAfterResolveTaps:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
-
-					function () {
-						return that.deref()!.#compilationParams!.contextModuleFactory.hooks
-							.afterResolve;
-					},
-
-					function (queried) {
-						return async function (
-							bindingData:
-								| false
-								| binding.JsContextModuleFactoryAfterResolveData
-						) {
-							const data = bindingData
-								? ContextModuleFactoryAfterResolveData.__from_binding(
-										bindingData
-									)
-								: false;
-							const result = await queried.promise(data);
-							return result
-								? ContextModuleFactoryAfterResolveData.__to_binding(result)
-								: false;
-						};
-					}
-				),
-			registerJavascriptModulesChunkHashTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.JavascriptModulesChunkHash,
-
-				function () {
-					return JavascriptModulesPlugin.getCompilationHooks(
-						that.deref()!.#compilation!
-					).chunkHash;
-				},
-
-				function (queried) {
-					return function (chunk: binding.JsChunk) {
-						if (!that.deref()!.options.output.hashFunction) {
-							throw new Error("'output.hashFunction' cannot be undefined");
-						}
-						const hash = createHash(that.deref()!.options.output.hashFunction!);
-						queried.call(Chunk.__from_binding(chunk), hash);
-						const digestResult = hash.digest(
-							that.deref()!.options.output.hashDigest
-						);
-						return Buffer.from(digestResult);
-					};
-				}
-			),
-			registerHtmlPluginBeforeAssetTagGenerationTaps:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
-					function () {
-						return HtmlRspackPlugin.getCompilationHooks(
-							that.deref()!.#compilation!
-						).beforeAssetTagGeneration;
-					},
-					function (queried) {
-						return async function (
-							data: binding.JsBeforeAssetTagGenerationData
-						) {
-							return await queried.promise({
-								...data,
-								plugin: {
-									options:
-										HtmlRspackPlugin.getCompilationOptions(
-											that.deref()!.#compilation!
-										) || {}
-								}
-							});
-						};
-					}
-				),
-			registerHtmlPluginAlterAssetTagsTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
-				function () {
-					return HtmlRspackPlugin.getCompilationHooks(
-						that.deref()!.#compilation!
-					).alterAssetTags;
-				},
-				function (queried) {
-					return async function (data: binding.JsAlterAssetTagsData) {
-						return await queried.promise(data);
-					};
-				}
-			),
-			registerHtmlPluginAlterAssetTagGroupsTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
-				function () {
-					return HtmlRspackPlugin.getCompilationHooks(
-						that.deref()!.#compilation!
-					).alterAssetTagGroups;
-				},
-				function (queried) {
-					return async function (data: binding.JsAlterAssetTagGroupsData) {
-						return await queried.promise({
-							...data,
-							plugin: {
-								options:
-									HtmlRspackPlugin.getCompilationOptions(
-										that.deref()!.#compilation!
-									) || {}
-							}
-						});
-					};
-				}
-			),
-			registerHtmlPluginAfterTemplateExecutionTaps:
-				this.#createHookRegisterTaps(
-					binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
-					function () {
-						return HtmlRspackPlugin.getCompilationHooks(
-							that.deref()!.#compilation!
-						).afterTemplateExecution;
-					},
-					function (queried) {
-						return async function (data: binding.JsAfterTemplateExecutionData) {
-							return await queried.promise({
-								...data,
-								plugin: {
-									options:
-										HtmlRspackPlugin.getCompilationOptions(
-											that.deref()!.#compilation!
-										) || {}
-								}
-							});
-						};
-					}
-				),
-			registerHtmlPluginBeforeEmitTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
-				function () {
-					return HtmlRspackPlugin.getCompilationHooks(
-						that.deref()!.#compilation!
-					).beforeEmit;
-				},
-				function (queried) {
-					return async function (data: binding.JsBeforeEmitData) {
-						return await queried.promise({
-							...data,
-							plugin: {
-								options:
-									HtmlRspackPlugin.getCompilationOptions(
-										that.deref()!.#compilation!
-									) || {}
-							}
-						});
-					};
-				}
-			),
-			registerHtmlPluginAfterEmitTaps: this.#createHookRegisterTaps(
-				binding.RegisterJsTapKind.HtmlPluginAfterEmit,
-				function () {
-					return HtmlRspackPlugin.getCompilationHooks(
-						that.deref()!.#compilation!
-					).afterEmit;
-				},
-				function (queried) {
-					return async function (data: binding.JsAfterEmitData) {
-						return await queried.promise({
-							...data,
-							plugin: {
-								options:
-									HtmlRspackPlugin.getCompilationOptions(
-										that.deref()!.#compilation!
-									) || {}
-							}
-						});
-					};
-				}
-			)
-		};
+		this.#registers = this.#createHooksRegisters();
 
 		this.#instance = new instanceBinding.Rspack(
 			this.compilerPath,
@@ -1645,6 +824,33 @@ class Compiler {
 		);
 
 		callback(null, this.#instance);
+	}
+
+	#createHooksRegisters(): binding.RegisterJsTaps {
+		const ref = new WeakRef(this);
+		const getCompiler = () => ref.deref()!;
+		const createTap = this.#createHookRegisterTaps.bind(this);
+		const createMapTap = this.#createHookMapRegisterTaps.bind(this);
+		return {
+			...createCompilerHooksRegisters(getCompiler, createTap, createMapTap),
+			...createCompilationHooksRegisters(getCompiler, createTap, createMapTap),
+			...createNormalModuleFactoryHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createContextModuleFactoryHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createJavaScriptModulesHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap)
+		};
 	}
 
 	#updateNonSkippableRegisters() {
@@ -1684,6 +890,10 @@ class Compiler {
 		}
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
 	#createHookRegisterTaps<T, R, A>(
 		registerKind: binding.RegisterJsTapKind,
 		getHook: () => liteTapable.Hook<T, R, A>,
@@ -1719,6 +929,10 @@ class Compiler {
 		return getTaps;
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
 	#createHookMapRegisterTaps<H extends liteTapable.Hook<any, any, any>>(
 		registerKind: binding.RegisterJsTapKind,
 		getHookMap: () => liteTapable.HookMap<H>,
@@ -1754,12 +968,44 @@ class Compiler {
 		return getTaps;
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
 	__internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin) {
 		this.#builtinPlugins.push(plugin);
 	}
 
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
 	__internal__getModuleExecutionResult(id: number) {
 		return this.#moduleExecutionResultsMap.get(id);
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__get_compilation() {
+		return this.#compilation;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__get_compilation_params() {
+		return this.#compilationParams;
+	}
+
+	/**
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 * @internal
+	 */
+	__internal__get_module_execution_results_map() {
+		return this.#moduleExecutionResultsMap;
 	}
 }
 
