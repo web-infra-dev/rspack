@@ -39,14 +39,15 @@ where
     return Ok(());
   }
 
-  let has_change = compilation.has_module_import_export_change();
+  let parallel_code_splitting = compilation.options.experiments.parallel_code_splitting;
+  // TODO: parallel_code_splitting is not supported with incremental code splitting for now
+  let incremental_code_splitting = !parallel_code_splitting
+    && compilation
+      .incremental
+      .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let no_change = !compilation.has_module_import_export_change();
 
-  if !has_change
-    || (!compilation.options.experiments.parallel_code_splitting
-      && compilation
-        .incremental
-        .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH))
-  {
+  if incremental_code_splitting || no_change {
     let cache = &mut compilation.code_splitting_cache;
     rayon::scope(|s| {
       s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
@@ -69,7 +70,7 @@ where
       mgm.post_order_index = Some(post);
     }
 
-    if !has_change {
+    if !incremental_code_splitting && no_change {
       return Ok(());
     }
   }
