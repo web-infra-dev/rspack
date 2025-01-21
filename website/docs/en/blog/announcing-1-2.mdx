@@ -112,6 +112,37 @@ module.exports = {
 
 > See [watchOptions.ignored](/config/watch#watchoptionsignored) for more details.
 
+### Reduced memory usage
+
+We have optimized the data structure used to store strings during the [rspack-sources](https://github.com/web-infra-dev/rspack-sources) computation process. Throughout the computation, all string data points to the string heap memory of the root node, effectively avoiding the generation of new string allocations during the computation.
+
+> See [perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666) for more details.
+
+### Reduced bundle size
+
+Rspack v1.2 set default SWC minimizer `passes` to `2` to reduce bundle size by 1%-7%.
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      // Defaults to 1 in previous versions
+      passes: 2,
+    },
+  },
+});
+```
+
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
+
+> See [feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853) for more details.
+
+### Faster side effects optimization
+
+The implementation of side effects optimization has been refactored to be simpler and more parallelism-friendly. It can take full advantage of parallelism to improve performance. In tested projects, there is typically a 2x-3x performance improvement at this stage.
+
+> See [perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781) for more details.
+
 ## Upgrade guide
 
 ### Upgrade SWC plugins

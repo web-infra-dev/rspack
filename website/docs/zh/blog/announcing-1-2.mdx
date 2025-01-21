@@ -82,7 +82,7 @@ module.exports = {
 };
 ```
 
-特别感谢 [@arcanis](https://x.com/arcanis)，Yarn 的负责人，为 Rspack 的 resolver 实现了 PnP 解析。
+在此特别感谢 [@arcanis](https://x.com/arcanis)（Yarn 的维护者），为 Rspack 的 resolver 实现了 PnP 解析。
 
 > 详情请参考 [resolve.pnp](/config/resolve#resolvepnp)。
 
@@ -111,6 +111,37 @@ module.exports = {
 ```
 
 > 详情请参考 [watchOptions.ignored](/config/watch#watchoptionsignored)。
+
+### 减少内存使用
+
+我们优化了在 [rspack-sources](https://github.com/web-infra-dev/rspack-sources) 计算过程中用于存储字符串的数据结构。在整个计算过程中，所有字符串数据都指向根节点的字符串堆内存，有效避免了计算过程中产生新的字符串分配。
+
+> 详见：[perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666)。
+
+### 减小打包体积
+
+Rspack v1.2 将 SWC 压缩器的默认 `passes` 设置为 `2`，以减少 1%-7% 的打包体积。
+
+```js
+new rspack.SwcJsMinimizerRspackPlugin({
+  minimizerOptions: {
+    compress: {
+      // 在之前的版本中默认为 1
+      passes: 2,
+    },
+  },
+});
+```
+
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) 是运行压缩的最大次数。在某些情况下，多次压缩可以产生更小的代码。考虑到 Rspack 本身的性能优势，我们将默认值设为 `2` 以在构建性能和打包体积之间取得最佳平衡。
+
+> 详见：[feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853)。
+
+### 更快的副作用优化
+
+我们对副作用优化的实现进行了重构，采用了更简洁且更易并行化的方案。通过充分利用多线程并行处理能力，在测试项目中，这个阶段的性能获得了 2-3 倍的提升。
+
+> 详见：[perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781)。
 
 ## 升级指南
 
