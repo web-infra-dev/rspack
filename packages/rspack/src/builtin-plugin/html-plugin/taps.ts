@@ -1,12 +1,10 @@
 import * as binding from "@rspack/binding";
-import type { CreatePartTaps } from "../../taps/types";
+import type { CreateParitalRegisters } from "../../taps/types";
 import { HtmlRspackPlugin } from "./plugin";
 
-export const createHtmlPluginHooksRegisters: CreatePartTaps<`HtmlPlugin`> = (
-	getCompiler,
-	createTap,
-	createMapTap
-) => {
+export const createHtmlPluginHooksRegisters: CreateParitalRegisters<
+	`HtmlPlugin`
+> = (getCompiler, createTap, createMapTap) => {
 	return {
 		registerHtmlPluginBeforeAssetTagGenerationTaps: createTap(
 			binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,

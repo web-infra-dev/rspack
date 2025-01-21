@@ -8,13 +8,11 @@ import {
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
-import type { CreatePartTaps } from "./types";
+import type { CreateParitalRegisters } from "./types";
 
-export const createCompilationHooksRegisters: CreatePartTaps<`Compilation`> = (
-	getCompiler,
-	createTap,
-	createMapTap
-) => {
+export const createCompilationHooksRegisters: CreateParitalRegisters<
+	`Compilation`
+> = (getCompiler, createTap, createMapTap) => {
 	return {
 		registerCompilationAdditionalTreeRuntimeRequirementsTaps: createTap(
 			binding.RegisterJsTapKind.CompilationAdditionalTreeRuntimeRequirements,

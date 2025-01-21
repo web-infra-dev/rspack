@@ -1,9 +1,9 @@
 import * as binding from "@rspack/binding";
 import type { ResolveData } from "../Module";
 import type { NormalModuleCreateData } from "../NormalModuleFactory";
-import type { CreatePartTaps } from "./types";
+import type { CreateParitalRegisters } from "./types";
 
-export const createNormalModuleFactoryHooksRegisters: CreatePartTaps<
+export const createNormalModuleFactoryHooksRegisters: CreateParitalRegisters<
 	`NormalModuleFactory`
 > = (getCompiler, createTap, createMapTap) => {
 	return {

@@ -19,15 +19,15 @@ type RegisterTapKeys<
 	T,
 	L extends string
 > = T extends keyof binding.RegisterJsTaps ? (T extends L ? T : never) : never;
-type PartTaps<L extends string> = {
+type PartialRegisters<L extends string> = {
 	[K in RegisterTapKeys<
 		keyof binding.RegisterJsTaps,
 		`register${L}${string}Taps`
 	>]: binding.RegisterJsTaps[K];
 };
 
-export type CreatePartTaps<L extends string> = (
+export type CreateParitalRegisters<L extends string> = (
 	getCompiler: () => Compiler,
 	createTap: CreateHookRegisterTaps,
 	createMapTap: CreateHookMapRegisterTaps
-) => PartTaps<L>;
+) => PartialRegisters<L>;

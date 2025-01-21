@@ -1,11 +1,9 @@
 import * as binding from "@rspack/binding";
-import type { CreatePartTaps } from "./types";
+import type { CreateParitalRegisters } from "./types";
 
-export const createCompilerHooksRegisters: CreatePartTaps<`Compiler`> = (
-	getCompiler,
-	createTap,
-	createMapTap
-) => {
+export const createCompilerHooksRegisters: CreateParitalRegisters<
+	`Compiler`
+> = (getCompiler, createTap, createMapTap) => {
 	return {
 		registerCompilerThisCompilationTaps: createTap(
 			binding.RegisterJsTapKind.CompilerThisCompilation,
