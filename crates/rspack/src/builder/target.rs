@@ -1,5 +1,6 @@
 use rspack_core::Context;
 
+/// Targets type.
 pub type Targets = Vec<String>;
 
 #[derive(Debug, Default)]

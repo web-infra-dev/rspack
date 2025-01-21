@@ -1050,6 +1050,9 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
   pub rules: Vec<ModuleRule>,
