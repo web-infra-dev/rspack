@@ -25,14 +25,12 @@ module.exports = {
 		chunk {909} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
 		  > ./fixtures/a main
 		  ./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
-		    [no exports]
 		    [used exports unknown]
 		    Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 		    ModuleConcatenation bailout: Module is not an ECMAScript module
 		    entry ./fixtures/a
 		    cjs self exports reference self [585] ./fixtures/a.js
 		./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
-		  [no exports]
 		  [used exports unknown]
 		  Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 		  ModuleConcatenation bailout: Module is not an ECMAScript module
