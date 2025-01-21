@@ -43,14 +43,16 @@ module.exports = {
 
 When a build hits the cache, it can bring up to 60% performance improvement in real projects.
 
-| 32C64G Linux (2.4GHz) | Number of modules | Normal dev | Cold dev     | Hot dev       |
-| --------------------- | ----------------- | ---------- | ------------ | ------------- |
-| Hello world           | 26                | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
-| 10000 Module          | 10040             | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
-| Arco-pro              | 1898              | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
-| Internal Project      | 45968             | 93.3 s     | 91.9 s (-1%) | 26 s (-72%)   |
+| Project type               | Number of modules | Normal dev | Cold dev     | Hot dev       |
+| -------------------------- | ----------------- | ---------- | ------------ | ------------- |
+| Initial project            | 26                | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
+| Project with 10000 modules | 10040             | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
+| Project with Less files    | 1898              | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
+| Large real project         | 45968             | 93.3 s     | 91.9 s (-1%) | 26 s (-72%)   |
 
-Note that persistent cache is still in an early experimental stage and currently only supports the Make stage. There is still a lot of room for performance improvement.
+Note that persistent cache is still in an experimental stage and currently only supports the make stage of the build process (including module resolution, transformation, etc.). We will continue to optimize it in the future to further improve cache performance and coverage.
+
+If you encounter any issues while using persistent cache, please feel free to report them via GitHub Issues.
 
 > See [experiments.cache](/config/experiments#experimentscache) for more details.
 
