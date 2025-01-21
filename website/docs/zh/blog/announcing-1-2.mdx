@@ -146,13 +146,33 @@ new rspack.SwcJsMinimizerRspackPlugin({
 
 > 详见：[perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781)。
 
+## 生态系统
+
+### Angular 支持
+
+Nx 团队的核心成员 [Colum Ferry](https://github.com/Coly010) 为 Rspack 生态带来了完整的 Angular 支持。
+
+通过新发布的 `@ng-rsbuild/plugin-angular` 和 `@ng-rspack/build` 包，开发者现在可以使用 Rspack 或 Rsbuild 来构建 Angular 应用，获得更快的构建性能和模块联邦等特性。
+
+欢迎访问 [ng-rspack-build](https://github.com/Coly010/ng-rspack-build) 仓库了解详细信息。
+
+### Rsbuild v1.2
+
+Rsbuild v1.2 已经与 Rspack v1.2 同步发布，并带来了多项新特性：
+
+- 通过 [output.manifest.generate](https://rsbuild.dev/config/output/manifest#generate) 来自定义 manifest 文件的生成。
+- 通过 [cleanDistPath.keep](https://rsbuild.dev/config/output/clean-dist-path#keep) 来指定在产物目录下保留的文件。
+- [@rsbuild/plugin-assets-retry](https://rsbuild.dev/plugins/list/plugin-assets-retry) 现在会生成更小的运行时代码。
+
+> 详情请参考 [Rsbuild v1.2.0](https://github.com/web-infra-dev/rsbuild/releases/tag/v1.2.0)。
+
 ## 升级指南
 
 ### 升级 SWC 插件
 
-在 Rspack v1.2 中，Rust 包中 `swc_core` 已升级到 `10.1.0`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
+在 Rspack v1.2 中，Rust 依赖包 `swc_core` 的版本已升级到 `10.1.0`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
 
-> 详情请参考 [SWC 文档](https://swc.rs/docs/plugin/selecting-swc-core)。
+> 详情请参考 [常见问题 - SWC 插件版本不匹配](/errors/swc-plugin-version)。
 
 ### WarnCaseSensitiveModules 默认关闭
 

@@ -146,13 +146,33 @@ The implementation of side effects optimization has been refactored to be simple
 
 > See [perf: parallelize side effects optimization](https://github.com/web-infra-dev/rspack/pull/8781) for more details.
 
+## Ecosystem
+
+### Angular support
+
+Nx team core member [Colum Ferry](https://github.com/Coly010) has brought complete Angular support to the Rspack ecosystem.
+
+With the newly released `@ng-rsbuild/plugin-angular` and `@ng-rspack/build` packages, developers can now use Rspack or Rsbuild to build Angular applications, with faster build performance and module federation support.
+
+Please visit [ng-rspack-build](https://github.com/Coly010/ng-rspack-build) for more information.
+
+### Rsbuild v1.2
+
+Rsbuild v1.2 has been released alongside Rspack v1.2, bringing several new features:
+
+- Customize manifest file generation through [output.manifest.generate](https://rsbuild.dev/config/output/manifest#generate).
+- Specify files to retain in the dist directory using [cleanDistPath.keep](https://rsbuild.dev/config/output/clean-dist-path#keep).
+- [@rsbuild/plugin-assets-retry](https://rsbuild.dev/plugins/list/plugin-assets-retry) now generates smaller runtime code.
+
+> For more details, see [Rsbuild v1.2.0](https://github.com/web-infra-dev/rsbuild/releases/tag/v1.2.0).
+
 ## Upgrade guide
 
 ### Upgrade SWC plugins
 
 In Rspack v1.2, the Rust crate `swc_core` has been upgraded to `10.1.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, see [SWC documentation](https://swc.rs/docs/plugin/selecting-swc-core).
+For more details, see [FAQ - SWC plugin version unmatched](https://swc.rs/docs/plugin/selecting-swc-core).
 
 ### Disable WarnCaseSensitiveModulesPlugin by default
 
