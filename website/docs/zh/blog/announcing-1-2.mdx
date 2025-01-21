@@ -19,9 +19,9 @@ Rspack v1.2 已经正式发布！
 
 - 新功能
   - [支持持久化缓存](#支持持久化缓存)：实验性功能，让热启动性能提升高达 **250%**
-  - [更快的 code splitting 算法](#更快的-code-splitting-算法)：实验性功能，显著提升 code splitting 性能
   - [支持 Yarn PnP](#支持-yarn-pnp)
 - 性能优化
+  - [更快的 code splitting](#更快的-code-splitting)：实验性开关，显著提升 code splitting 性能
   - [Watch 范围变化](#watch-范围变化)
   - [减少内存使用](#减少内存使用)
   - [更小的压缩体积](#更小的压缩体积)
@@ -59,20 +59,6 @@ module.exports = {
 
 > 详情请参考 [experiments.cache](/config/experiments#experimentscache)。
 
-### 更快的 code splitting 算法
-
-在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack v1.2 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果你的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
-
-```js title="rspack.config.js"
-module.exports = {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-};
-```
-
-> 详情请参考 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting)。
-
 ### 支持 Yarn PnP
 
 Rspack 迎来了对 [Yarn PnP](https://yarnpkg.com/features/pnp) 的支持，其默认根据 `process.versions.pnp`（即应用在 Yarn PnP 环境中运行时）来进行开启，也可以将 `resolve.pnp` 配置为 `true` 来强制开启。
@@ -90,6 +76,20 @@ module.exports = {
 > 详情请参考 [resolve.pnp](/config/resolve#resolvepnp)。
 
 ## 性能优化
+
+### 更快的 code splitting
+
+在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack v1.2 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果你的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
+
+> 详情请参考 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting)。
 
 ### Watch 范围变化
 

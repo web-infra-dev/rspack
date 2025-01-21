@@ -19,9 +19,9 @@ Notable changes:
 
 - New features
   - [Persistent cache](#persistent-cache): An experimental feature that improves hot start performance by up to **250%**.
-  - [Faster code splitting algorithm](#faster-code-splitting-algorithm): An experimental feature that significantly improve the code splitting performance.
   - [Yarn pnp](#yarn-pnp)
 - Performance improvements
+  - [Faster code splitting](#faster-code-splitting): An experimental flag that significantly improve the code splitting performance.
   - [Watch scope change](#watch-scope-change)
   - [Reduced memory usage](#reduced-memory-usage)
   - [Smaller minification size](#smaller-minification-size)
@@ -59,20 +59,6 @@ If you encounter any issues while using persistent cache, please feel free to re
 
 > See [experiments.cache](/config/experiments#experimentscache) for more details.
 
-### Faster code splitting algorithm
-
-In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack v1.2, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
-
-```js title="rspack.config.js"
-module.exports = {
-  experiments: {
-    parallelCodeSplitting: true,
-  },
-};
-```
-
-> See [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) for more details.
-
 ### Yarn PnP
 
 Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn pnp environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
@@ -90,6 +76,20 @@ Special thanks to [@arcanis](https://x.com/arcanis), the lead maintainer for Yar
 > See [resolve.pnp](/config/resolve#resolvepnp) for more details.
 
 ## Performance improvements
+
+### Faster code splitting
+
+In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack v1.2, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    parallelCodeSplitting: true,
+  },
+};
+```
+
+> See [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) for more details.
 
 ### Watch scope change
 
