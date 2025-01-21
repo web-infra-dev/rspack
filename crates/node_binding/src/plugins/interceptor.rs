@@ -456,14 +456,14 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>"
   )]
-  pub register_compilation_additional_tree_runtime_requirements: RegisterFunction<
+  pub register_compilation_additional_tree_runtime_requirements_taps: RegisterFunction<
     JsAdditionalTreeRuntimeRequirementsArg,
     Option<JsAdditionalTreeRuntimeRequirementsResult>,
   >,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>"
   )]
-  pub register_compilation_runtime_requirement_in_tree:
+  pub register_compilation_runtime_requirement_in_tree_taps:
     RegisterFunction<JsRuntimeRequirementInTreeArg, Option<JsRuntimeRequirementInTreeResult>>,
 
   #[napi(

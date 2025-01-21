@@ -829,11 +829,23 @@ export class Compiler {
     constructor(context: string, options: RspackOptionsNormalized);
     // @internal
     get __internal__builtinPlugins(): binding.BuiltinPlugin[];
-    // (undocumented)
+    // @internal
+    __internal__create_compilation(native: binding.JsCompilation): Compilation;
+    // @internal
+    __internal__create_hook_map_register_taps<H extends liteTapable.Hook<any, any, any>>(registerKind: binding.RegisterJsTapKind, getHookMap: () => liteTapable.HookMap<H>, createTap: (queried: liteTapable.QueriedHookMap<H>) => any): (stages: number[]) => binding.JsTap[];
+    // @internal
+    __internal__create_hook_register_taps<T, R, A>(registerKind: binding.RegisterJsTapKind, getHook: () => liteTapable.Hook<T, R, A>, createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any): (stages: number[]) => binding.JsTap[];
+    // @internal
+    __internal__get_compilation(): Compilation | undefined;
+    // @internal
+    __internal__get_compilation_params(): CompilationParams | undefined;
+    // @internal
+    __internal__get_module_execution_results_map(): Map<number, any>;
+    // @internal
     __internal__getModuleExecutionResult(id: number): any;
     // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
-    // (undocumented)
+    // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;
@@ -10100,6 +10112,8 @@ type StatOptions = {
 // @public (undocumented)
 export class Stats {
     constructor(compilation: Compilation);
+    // (undocumented)
+    __internal__compilation: Compilation;
     // (undocumented)
     get compilation(): Compilation;
     // (undocumented)
