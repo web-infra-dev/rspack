@@ -1,6 +1,9 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Env, JsString};
+use napi::{
+  bindgen_prelude::{Array, ToNapiValue},
+  Env,
+};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, CompilerId, Dependency, DependencyId};
 use rspack_napi::OneShotInstanceRef;
@@ -101,38 +104,36 @@ impl JsDependency {
     Ok(())
   }
 
-  #[napi(getter)]
-  pub fn ids(&mut self, env: Env) -> napi::Result<Option<Vec<JsString>>> {
+  #[napi(getter, ts_return_type = "string[] | null")]
+  pub fn ids(&mut self, env: Env) -> napi::Result<Option<Array>> {
     let (dependency, compilation) = self.as_ref()?;
 
     Ok(match compilation {
       Some(compilation) => {
         let module_graph = compilation.get_module_graph();
-        if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .into_iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Some(ids)
+        let ids = if let Some(dependency) =
+          dependency.downcast_ref::<CommonJsExportRequireDependency>()
+        {
+          Some(dependency.get_ids(&module_graph))
         } else if let Some(dependency) =
           dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
         {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .into_iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Some(ids)
+          Some(dependency.get_ids(&module_graph))
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .into_iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Some(ids)
+          Some(dependency.get_ids(&module_graph))
         } else {
           None
+        };
+        match ids {
+          Some(ids) => {
+            let mut js_ids = env.create_array(ids.len() as u32)?;
+            for (index, id) in ids.iter().enumerate() {
+              let js_id = env.create_string(id.as_str())?;
+              js_ids.set(index as u32, js_id)?;
+            }
+            Some(js_ids)
+          }
+          None => None,
         }
       }
       None => None,

@@ -218,25 +218,24 @@ impl JsEntryData {
 #[napi]
 impl JsEntryData {
   #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn dependencies(&self) -> Result<Vec<JsDependencyWrapper>> {
+  pub fn dependencies(&self, env: Env) -> Result<Array> {
     let (entry_data, compilation) = self.as_ref()?;
     let module_graph = compilation.get_module_graph();
-    Ok(
-      entry_data
-        .dependencies
-        .iter()
-        .map(|dependency_id| {
-          #[allow(clippy::unwrap_used)]
-          let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-          JsDependencyWrapper::new(
-            dep.as_ref(),
-            compilation.compiler_id(),
-            compilation.id(),
-            Some(compilation),
-          )
-        })
-        .collect::<Vec<_>>(),
-    )
+    let mut js_dependencies = env.create_array(entry_data.dependencies.len() as u32)?;
+    for (index, dependency_id) in entry_data.dependencies.iter().enumerate() {
+      #[allow(clippy::unwrap_used)]
+      let dep = module_graph.dependency_by_id(dependency_id).unwrap();
+      js_dependencies.set(
+        index as u32,
+        JsDependencyWrapper::new(
+          dep.as_ref(),
+          compilation.compiler_id(),
+          compilation.id(),
+          Some(compilation),
+        ),
+      )?;
+    }
+    Ok(js_dependencies)
   }
 
   #[napi(setter)]
@@ -253,25 +252,24 @@ impl JsEntryData {
   }
 
   #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn include_dependencies(&'static self) -> Result<Vec<JsDependencyWrapper>> {
+  pub fn include_dependencies(&self, env: Env) -> Result<Array> {
     let (entry_data, compilation) = self.as_ref()?;
     let module_graph = compilation.get_module_graph();
-    Ok(
-      entry_data
-        .include_dependencies
-        .iter()
-        .map(|dependency_id| {
-          #[allow(clippy::unwrap_used)]
-          let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-          JsDependencyWrapper::new(
-            dep.as_ref(),
-            compilation.compiler_id(),
-            compilation.id(),
-            Some(compilation),
-          )
-        })
-        .collect::<Vec<_>>(),
-    )
+    let mut js_dependencies = env.create_array(entry_data.include_dependencies.len() as u32)?;
+    for (index, dependency_id) in entry_data.include_dependencies.iter().enumerate() {
+      #[allow(clippy::unwrap_used)]
+      let dep = module_graph.dependency_by_id(dependency_id).unwrap();
+      js_dependencies.set(
+        index as u32,
+        JsDependencyWrapper::new(
+          dep.as_ref(),
+          compilation.compiler_id(),
+          compilation.id(),
+          Some(compilation),
+        ),
+      )?;
+    }
+    Ok(js_dependencies)
   }
 
   #[napi(setter)]

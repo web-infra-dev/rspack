@@ -1,6 +1,6 @@
 use std::{ptr::NonNull, sync::Arc};
 
-use napi::{Either, Env, JsString};
+use napi::{bindgen_prelude::Array, Either, Env};
 use napi_derive::napi;
 use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
@@ -70,13 +70,13 @@ impl JsModuleGraph {
     )
   }
 
-  #[napi]
+  #[napi(ts_return_type = "boolean | Array<string> | null")]
   pub fn get_used_exports(
     &self,
     env: Env,
     js_module: &JsModule,
     js_runtime: Either<String, Vec<String>>,
-  ) -> napi::Result<Option<Either<bool, Vec<JsString>>>> {
+  ) -> napi::Result<Option<Either<bool, Array>>> {
     let (_, module_graph) = self.as_ref()?;
 
     let mut runtime: FxHashSet<Arc<str>> = FxHashSet::default();
@@ -93,12 +93,13 @@ impl JsModuleGraph {
     Ok(match used_exports {
       rspack_core::UsedExports::Null => None,
       rspack_core::UsedExports::Bool(b) => Some(Either::A(b)),
-      rspack_core::UsedExports::Vec(vec) => Some(Either::B(
-        vec
-          .into_iter()
-          .map(|atom| env.create_string(atom.as_str()))
-          .collect::<napi::Result<Vec<_>>>()?,
-      )),
+      rspack_core::UsedExports::Vec(vec) => {
+        let mut js_exports = env.create_array(vec.len() as u32)?;
+        for (index, export) in vec.iter().enumerate() {
+          js_exports.set(index as u32, env.create_string(export.as_str())?)?;
+        }
+        Some(Either::B(js_exports))
+      }
     })
   }
 
@@ -139,52 +140,49 @@ impl JsModuleGraph {
   }
 
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
-  pub fn get_outgoing_connections(
-    &self,
-    module: &JsModule,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+  pub fn get_outgoing_connections(&self, module: &JsModule, env: Env) -> napi::Result<Array> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_outgoing_connections(&module.identifier)
-        .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation.compiler_id())
-        })
-        .collect::<Vec<_>>(),
-    )
+    let connections = module_graph.get_outgoing_connections(&module.identifier);
+    let mut js_connections = env.create_array(0)?;
+    for connection in connections {
+      js_connections.insert(JsModuleGraphConnectionWrapper::new(
+        connection.dependency_id,
+        compilation.compiler_id(),
+      ))?;
+    }
+    Ok(js_connections)
   }
 
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_outgoing_connections_in_order(
     &self,
     module: &JsModule,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+    env: Env,
+  ) -> napi::Result<Array> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_outgoing_connections_in_order(&module.identifier)
-        .into_iter()
-        .map(|dependency_id| {
-          JsModuleGraphConnectionWrapper::new(*dependency_id, compilation.compiler_id())
-        })
-        .collect::<Vec<_>>(),
-    )
+    let connections = module_graph.get_outgoing_connections_in_order(&module.identifier);
+    let mut js_connections = env.create_array(0)?;
+    for dependency_id in connections {
+      js_connections.insert(JsModuleGraphConnectionWrapper::new(
+        *dependency_id,
+        compilation.compiler_id(),
+      ))?;
+    }
+    Ok(js_connections)
   }
 
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
-  pub fn get_incoming_connections(
-    &self,
-    module: &JsModule,
-  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+  pub fn get_incoming_connections(&self, module: &JsModule, env: Env) -> napi::Result<Array> {
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      module_graph
-        .get_incoming_connections(&module.identifier)
-        .map(|connection| {
-          JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation.compiler_id())
-        })
-        .collect::<Vec<_>>(),
-    )
+    let connections = module_graph.get_incoming_connections(&module.identifier);
+    let mut js_connections = env.create_array(0)?;
+    for connection in connections {
+      js_connections.insert(JsModuleGraphConnectionWrapper::new(
+        connection.dependency_id,
+        compilation.compiler_id(),
+      ))?;
+    }
+    Ok(js_connections)
   }
 
   #[napi(ts_return_type = "JsModule | null")]
