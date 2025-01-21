@@ -32,19 +32,19 @@ Rspack v1.2 已经正式发布！
 
 ```js title=rspack.config.js
 module.exports = {
-    cache: true,
-    experiments: {
-        cache: {
-            type: "persistent",
-        },
+  cache: true,
+  experiments: {
+    cache: {
+      type: 'persistent',
     },
+  },
 };
 ```
 
 当构建命中缓存时，它可以在实际项目中带来高达 60% 的性能提升。
 
 | 32C64G Linux (2.4GHz) | 模块数目 | Normal dev | Cold dev     | Hot dev       |
-|-----------------------|----------|------------|--------------|---------------|
+| --------------------- | -------- | ---------- | ------------ | ------------- |
 | Hello world           | 26       | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
 | 10000 Module          | 10040    | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
 | Arco-pro              | 1898     | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
@@ -60,9 +60,9 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-    experiments: {
-        parallelCodeSplitting: true,
-    },
+  experiments: {
+    parallelCodeSplitting: true,
+  },
 };
 ```
 
@@ -74,9 +74,9 @@ Rspack 迎来了对 Yarn pnp 的支持，其默认根据 `process.versions.pnp`�
 
 ```js title="rspack.config.js"
 module.exports = {
-    resolve: {
-        pnp: true,
-    },
+  resolve: {
+    pnp: true,
+  },
 };
 ```
 
@@ -114,7 +114,7 @@ Rspack 1.2.0 将不再监听 `node_modules` 和 `.git` 目录下的文件变动�
 
 ```js title="rspack.config.js"
 module.exports = {
-    plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+  plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
 ```
 
@@ -126,8 +126,8 @@ module.exports = {
 
 ```js title="rspack.config.js"
 module.exports = {
-    watchOptions: {
-        ignored: [],
-    },
+  watchOptions: {
+    ignored: [],
+  },
 };
 ```

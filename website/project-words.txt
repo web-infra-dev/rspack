@@ -136,6 +136,7 @@ proxying
 px2rem
 pxtorem
 recognise
+resolvepnp
 Rollup
 rome
 rsbuild

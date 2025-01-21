@@ -32,19 +32,19 @@ Rspack v1.2 introduced an experimental cache configuration that supports persist
 
 ```js title=rspack.config.js
 module.exports = {
-    cache: true,
-    experiments: {
-        cache: {
-            type: "persistent",
-        },
+  cache: true,
+  experiments: {
+    cache: {
+      type: 'persistent',
     },
+  },
 };
 ```
 
 When a build hits the cache, it can bring up to 60% performance improvement in real projects.
 
 | 32C64G Linux (2.4GHz) | Number of modules | Normal dev | Cold dev     | Hot dev       |
-|-----------------------|-------------------|------------|--------------|---------------|
+| --------------------- | ----------------- | ---------- | ------------ | ------------- |
 | Hello world           | 26                | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
 | 10000 Module          | 10040             | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
 | Arco-pro              | 1898              | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
@@ -60,9 +60,9 @@ In previous versions of Rspack, the code splitting would take up a lot of time u
 
 ```js title="rspack.config.js"
 module.exports = {
-    experiments: {
-        parallelCodeSplitting: true,
-    },
+  experiments: {
+    parallelCodeSplitting: true,
+  },
 };
 ```
 
@@ -74,9 +74,9 @@ Rspack has added support for Yarn pnp, which is enabled by default based on `pro
 
 ```js title="rspack.config.js"
 module.exports = {
-    resolve: {
-        pnp: true,
-    },
+  resolve: {
+    pnp: true,
+  },
 };
 ```
 
@@ -114,7 +114,7 @@ If you prefer to keep the previous behavior, you can set:
 
 ```js title="rspack.config.js"
 module.exports = {
-    plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+  plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
 ```
 
@@ -126,8 +126,8 @@ If you prefer to keep the previous behavior, you can set:
 
 ```js title="rspack.config.js"
 module.exports = {
-    watchOptions: {
-        ignored: [],
-    },
+  watchOptions: {
+    ignored: [],
+  },
 };
 ```
