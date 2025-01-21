@@ -72,7 +72,7 @@ module.exports = {
 
 ### 支持 Yarn PnP
 
-Rspack 迎来了对 Yarn PnP 的支持，其默认根据 `process.versions.pnp`（即应用在 Yarn PnP 环境中运行时）来进行开启，也可以将 `resolve.pnp` 配置为 `true` 来强制开启。
+Rspack 迎来了对 [Yarn PnP](https://yarnpkg.com/features/pnp) 的支持，其默认根据 `process.versions.pnp`（即应用在 Yarn PnP 环境中运行时）来进行开启，也可以将 `resolve.pnp` 配置为 `true` 来强制开启。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -81,6 +81,8 @@ module.exports = {
   },
 };
 ```
+
+特别感谢 [@arcanis](https://x.com/arcanis)，Yarn 的负责人，为 Rspack 的 resolver 实现了 PnP 解析。
 
 > 详情请参考 [resolve.pnp](/config/resolve#resolvepnp)。
 

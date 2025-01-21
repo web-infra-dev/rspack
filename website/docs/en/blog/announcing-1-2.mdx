@@ -72,7 +72,7 @@ module.exports = {
 
 ### Yarn PnP
 
-Rspack has added support for Yarn PnP, which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn pnp environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
+Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn pnp environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -81,6 +81,8 @@ module.exports = {
   },
 };
 ```
+
+Special thanks to [@arcanis](https://x.com/arcanis), the lead maintainer for Yarn, for implementing PnP resolution in the Rspack resolver.
 
 > See [resolve.pnp](/config/resolve#resolvepnp) for more details.
 
