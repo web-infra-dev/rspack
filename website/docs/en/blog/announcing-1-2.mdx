@@ -18,8 +18,8 @@ Rspack v1.2 has been released!
 Notable changes:
 
 - New features
-  - [Persistent cache](#persistent-cache): Experimental feature improves hot start performance of large projects by more than **60%**.
-  - [Faster code splitting algorithm](#faster-code-splitting-algorithm): Experimental feature that significantly improve the code splitting performance after it is enabled.
+  - [Persistent cache](#persistent-cache): An experimental feature that improves hot start performance by up to **250%**.
+  - [Faster code splitting algorithm](#faster-code-splitting-algorithm): An experimental feature that significantly improve the code splitting performance.
   - [Yarn pnp](#yarn-pnp)
 - Performance improvements
   - [Watch scope change](#watch-scope-change): Less memory usage.
@@ -41,7 +41,7 @@ module.exports = {
 };
 ```
 
-When a build hits the cache, it can bring up to 60% performance improvement in real projects.
+When a build hits the cache, it can bring up to 250% performance improvement in real projects.
 
 | Project type               | Number of modules | Normal dev | Cold dev     | Hot dev       |
 | -------------------------- | ----------------- | ---------- | ------------ | ------------- |
