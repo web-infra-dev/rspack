@@ -18,6 +18,9 @@ pub enum PathInfo {
   String(String),
 }
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<OutputOptions> for OutputOptionsBuilder` should be updated.
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: Utf8PathBuf,
