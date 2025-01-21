@@ -62,13 +62,13 @@ impl JsChunkGraph {
   }
 
   #[napi(ts_return_type = "number")]
-  pub fn get_number_of_chunk_entry_modules(&self, chunk: &JsChunk) -> Result<u32> {
+  pub fn get_number_of_entry_modules(&self, chunk: &JsChunk) -> Result<u32> {
     let compilation = self.as_ref()?;
 
     Ok(
       compilation
         .chunk_graph
-        .get_number_of_chunk_entry_modules(&chunk.chunk_ukey) as u32,
+        .get_number_of_entry_modules(&chunk.chunk_ukey) as u32,
     )
   }
 

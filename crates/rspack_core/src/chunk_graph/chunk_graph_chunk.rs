@@ -215,13 +215,6 @@ impl ChunkGraph {
     chunk_graph_chunk.entry_modules.keys().copied().collect()
   }
 
-  pub fn get_number_of_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> usize {
-    self
-      .expect_chunk_graph_chunk(chunk_ukey)
-      .entry_modules
-      .len()
-  }
-
   pub fn get_chunk_entry_modules_with_chunk_group_iterable(
     &self,
     chunk_ukey: &ChunkUkey,

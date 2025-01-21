@@ -33,7 +33,7 @@ export class ChunkGraph {
 	}
 
 	getNumberOfEntryModules(chunk: Chunk): number {
-		return this.#inner.getNumberOfChunkEntryModules(Chunk.__to_binding(chunk));
+		return this.#inner.getNumberOfEntryModules(Chunk.__to_binding(chunk));
 	}
 
 	getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk> {
