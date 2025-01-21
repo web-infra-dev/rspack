@@ -26,13 +26,13 @@ import { HookMap } from '@rspack/lite-tapable';
 import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
-import { JsAfterEmitData } from '@rspack/binding';
-import { JsAfterTemplateExecutionData } from '@rspack/binding';
-import { JsAlterAssetTagGroupsData } from '@rspack/binding';
-import { JsAlterAssetTagsData } from '@rspack/binding';
+import type { JsAfterEmitData } from '@rspack/binding';
+import type { JsAfterTemplateExecutionData } from '@rspack/binding';
+import type { JsAlterAssetTagGroupsData } from '@rspack/binding';
+import type { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
-import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
-import { JsBeforeEmitData } from '@rspack/binding';
+import type { JsBeforeAssetTagGenerationData } from '@rspack/binding';
+import type { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
@@ -831,10 +831,6 @@ export class Compiler {
     get __internal__builtinPlugins(): binding.BuiltinPlugin[];
     // @internal
     __internal__create_compilation(native: binding.JsCompilation): Compilation;
-    // @internal
-    __internal__create_hook_map_register_taps<H extends liteTapable.Hook<any, any, any>>(registerKind: binding.RegisterJsTapKind, getHookMap: () => liteTapable.HookMap<H>, createTap: (queried: liteTapable.QueriedHookMap<H>) => any): (stages: number[]) => binding.JsTap[];
-    // @internal
-    __internal__create_hook_register_taps<T, R, A>(registerKind: binding.RegisterJsTapKind, getHook: () => liteTapable.Hook<T, R, A>, createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any): (stages: number[]) => binding.JsTap[];
     // @internal
     __internal__get_compilation(): Compilation | undefined;
     // @internal
@@ -10112,8 +10108,6 @@ type StatOptions = {
 // @public (undocumented)
 export class Stats {
     constructor(compilation: Compilation);
-    // (undocumented)
-    __internal__compilation: Compilation;
     // (undocumented)
     get compilation(): Compilation;
     // (undocumented)

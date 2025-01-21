@@ -1,29 +1,13 @@
 import * as binding from "@rspack/binding";
-import type { Compiler } from "../Compiler";
 import {
 	ContextModuleFactoryAfterResolveData,
 	ContextModuleFactoryBeforeResolveData
 } from "../Module";
+import type { CreatePartTaps } from "./types";
 
-type ContextModuleFactoryRegisterJsTapKeys =
-	`registerContextModuleFactory${string}Taps`;
-type ContextModuleFactoryRegisterTapKeys<T> =
-	T extends keyof binding.RegisterJsTaps
-		? T extends ContextModuleFactoryRegisterJsTapKeys
-			? T
-			: never
-		: never;
-type ContextModuleFactoryTaps = {
-	[K in ContextModuleFactoryRegisterTapKeys<
-		keyof binding.RegisterJsTaps
-	>]: binding.RegisterJsTaps[K];
-};
-
-export function createContextModuleFactoryHooksRegisters(
-	getCompiler: () => Compiler,
-	createTap: Compiler["__internal__create_hook_register_taps"],
-	_createMapTap: Compiler["__internal__create_hook_map_register_taps"]
-): ContextModuleFactoryTaps {
+export const createContextModuleFactoryHooksRegisters: CreatePartTaps<
+	`ContextModuleFactory`
+> = (getCompiler, createTap, createMapTap) => {
 	return {
 		registerContextModuleFactoryBeforeResolveTaps: createTap(
 			binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
@@ -70,4 +54,4 @@ export function createContextModuleFactoryHooksRegisters(
 			}
 		)
 	};
-}
+};

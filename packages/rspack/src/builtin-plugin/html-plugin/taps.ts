@@ -1,24 +1,12 @@
 import * as binding from "@rspack/binding";
-import type { Compiler } from "../../Compiler";
+import type { CreatePartTaps } from "../../taps/types";
 import { HtmlRspackPlugin } from "./plugin";
 
-type HtmlPluginRegisterJsTapKeys = `registerHtmlPlugin${string}Taps`;
-type HtmlPluginRegisterTapKeys<T> = T extends keyof binding.RegisterJsTaps
-	? T extends HtmlPluginRegisterJsTapKeys
-		? T
-		: never
-	: never;
-type HtmlPluginTaps = {
-	[K in HtmlPluginRegisterTapKeys<
-		keyof binding.RegisterJsTaps
-	>]: binding.RegisterJsTaps[K];
-};
-
-export function createHtmlPluginHooksRegisters(
-	getCompiler: () => Compiler,
-	createTap: Compiler["__internal__create_hook_register_taps"],
-	createMapTap: Compiler["__internal__create_hook_map_register_taps"]
-): HtmlPluginTaps {
+export const createHtmlPluginHooksRegisters: CreatePartTaps<`HtmlPlugin`> = (
+	getCompiler,
+	createTap,
+	createMapTap
+) => {
 	return {
 		registerHtmlPluginBeforeAssetTagGenerationTaps: createTap(
 			binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
@@ -139,4 +127,4 @@ export function createHtmlPluginHooksRegisters(
 			}
 		)
 	};
-}
+};

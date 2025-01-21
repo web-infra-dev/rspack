@@ -1,6 +1,5 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
-import type { Compiler } from "../Compiler";
 import { CodeGenerationResult, Module } from "../Module";
 import {
 	RuntimeGlobals,
@@ -9,24 +8,13 @@ import {
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
+import type { CreatePartTaps } from "./types";
 
-type CompilationRegisterJsTapKeys = `registerCompilation${string}Taps`;
-type CompilationRegisterTapKeys<T> = T extends keyof binding.RegisterJsTaps
-	? T extends CompilationRegisterJsTapKeys
-		? T
-		: never
-	: never;
-type CompilationTaps = {
-	[K in CompilationRegisterTapKeys<
-		keyof binding.RegisterJsTaps
-	>]: binding.RegisterJsTaps[K];
-};
-
-export function createCompilationHooksRegisters(
-	getCompiler: () => Compiler,
-	createTap: Compiler["__internal__create_hook_register_taps"],
-	createMapTap: Compiler["__internal__create_hook_map_register_taps"]
-): CompilationTaps {
+export const createCompilationHooksRegisters: CreatePartTaps<`Compilation`> = (
+	getCompiler,
+	createTap,
+	createMapTap
+) => {
 	return {
 		registerCompilationAdditionalTreeRuntimeRequirementsTaps: createTap(
 			binding.RegisterJsTapKind.CompilationAdditionalTreeRuntimeRequirements,
@@ -392,4 +380,4 @@ export function createCompilationHooksRegisters(
 			}
 		)
 	};
-}
+};

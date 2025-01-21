@@ -1,23 +1,11 @@
 import * as binding from "@rspack/binding";
-import type { Compiler } from "../Compiler";
+import type { CreatePartTaps } from "./types";
 
-type CompilerRegisterJsTapKeys = `registerCompiler${string}Taps`;
-type CompilerRegisterTapKeys<T> = T extends keyof binding.RegisterJsTaps
-	? T extends CompilerRegisterJsTapKeys
-		? T
-		: never
-	: never;
-type CompilerTaps = {
-	[K in CompilerRegisterTapKeys<
-		keyof binding.RegisterJsTaps
-	>]: binding.RegisterJsTaps[K];
-};
-
-export function createCompilerHooksRegisters(
-	getCompiler: () => Compiler,
-	createTap: Compiler["__internal__create_hook_register_taps"],
-	_createMapTap: Compiler["__internal__create_hook_map_register_taps"]
-): CompilerTaps {
+export const createCompilerHooksRegisters: CreatePartTaps<`Compiler`> = (
+	getCompiler,
+	createTap,
+	createMapTap
+) => {
 	return {
 		registerCompilerThisCompilationTaps: createTap(
 			binding.RegisterJsTapKind.CompilerThisCompilation,
@@ -155,4 +143,4 @@ export function createCompilerHooksRegisters(
 			}
 		)
 	};
-}
+};

@@ -55,7 +55,14 @@ import type {
 	RspackPluginInstance,
 	WatchOptions
 } from "./config";
-import { createHooksRegisters } from "./taps";
+import {
+	createCompilationHooksRegisters,
+	createCompilerHooksRegisters,
+	createContextModuleFactoryHooksRegisters,
+	createHtmlPluginHooksRegisters,
+	createJavaScriptModulesHooksRegisters,
+	createNormalModuleFactoryHooksRegisters
+} from "./taps";
 import type {
 	InputFileSystem,
 	IntermediateFileSystem,
@@ -798,7 +805,7 @@ class Compiler {
 
 		const instanceBinding: typeof binding = require("@rspack/binding");
 
-		this.#registers = createHooksRegisters(this);
+		this.#registers = this.#createHooksRegisters();
 
 		this.#instance = new instanceBinding.Rspack(
 			this.compilerPath,
@@ -817,6 +824,33 @@ class Compiler {
 		);
 
 		callback(null, this.#instance);
+	}
+
+	#createHooksRegisters(): binding.RegisterJsTaps {
+		const ref = new WeakRef(this);
+		const getCompiler = () => ref.deref()!;
+		const createTap = this.#createHookRegisterTaps.bind(this);
+		const createMapTap = this.#createHookMapRegisterTaps.bind(this);
+		return {
+			...createCompilerHooksRegisters(getCompiler, createTap, createMapTap),
+			...createCompilationHooksRegisters(getCompiler, createTap, createMapTap),
+			...createNormalModuleFactoryHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createContextModuleFactoryHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createJavaScriptModulesHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap)
+		};
 	}
 
 	#updateNonSkippableRegisters() {
@@ -860,7 +894,7 @@ class Compiler {
 	 * Note: This is not a webpack public API, maybe removed in future.
 	 * @internal
 	 */
-	__internal__create_hook_register_taps<T, R, A>(
+	#createHookRegisterTaps<T, R, A>(
 		registerKind: binding.RegisterJsTapKind,
 		getHook: () => liteTapable.Hook<T, R, A>,
 		createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any
@@ -899,9 +933,7 @@ class Compiler {
 	 * Note: This is not a webpack public API, maybe removed in future.
 	 * @internal
 	 */
-	__internal__create_hook_map_register_taps<
-		H extends liteTapable.Hook<any, any, any>
-	>(
+	#createHookMapRegisterTaps<H extends liteTapable.Hook<any, any, any>>(
 		registerKind: binding.RegisterJsTapKind,
 		getHookMap: () => liteTapable.HookMap<H>,
 		createTap: (queried: liteTapable.QueriedHookMap<H>) => any

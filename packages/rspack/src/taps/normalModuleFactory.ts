@@ -1,27 +1,11 @@
 import * as binding from "@rspack/binding";
-import type { Compiler } from "../Compiler";
 import type { ResolveData } from "../Module";
 import type { NormalModuleCreateData } from "../NormalModuleFactory";
+import type { CreatePartTaps } from "./types";
 
-type NormalModuleFactoryRegisterJsTapKeys =
-	`registerNormalModuleFactory${string}Taps`;
-type NormalModuleFactoryRegisterTapKeys<T> =
-	T extends keyof binding.RegisterJsTaps
-		? T extends NormalModuleFactoryRegisterJsTapKeys
-			? T
-			: never
-		: never;
-type NormalModuleFactoryTaps = {
-	[K in NormalModuleFactoryRegisterTapKeys<
-		keyof binding.RegisterJsTaps
-	>]: binding.RegisterJsTaps[K];
-};
-
-export function createNormalModuleFactoryHooksRegisters(
-	getCompiler: () => Compiler,
-	createTap: Compiler["__internal__create_hook_register_taps"],
-	createMapTap: Compiler["__internal__create_hook_map_register_taps"]
-): NormalModuleFactoryTaps {
+export const createNormalModuleFactoryHooksRegisters: CreatePartTaps<
+	`NormalModuleFactory`
+> = (getCompiler, createTap, createMapTap) => {
 	return {
 		registerNormalModuleFactoryBeforeResolveTaps: createTap(
 			binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
@@ -166,4 +150,4 @@ export function createNormalModuleFactoryHooksRegisters(
 			}
 		)
 	};
-}
+};
