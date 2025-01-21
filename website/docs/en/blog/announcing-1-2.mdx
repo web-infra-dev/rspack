@@ -1,0 +1,133 @@
+---
+date: 2025-1-21 16:00:00
+sidebar: false
+---
+
+# Announcing Rspack 1.2
+
+> January 21, 2025
+
+![Rspack 1.2](https://assets.rspack.dev/rspack/rspack-banner-v1-2.png)
+
+> Posted by [@jerrykingxyz](https://github.com/jerrykingxyz), [@chenjiahan](https://github.com/chenjiahan), [@JSerFeng](https://github.com/JSerFeng), [@ahabhgk](https://github.com/ahabhgk)
+
+---
+
+Rspack v1.2 has been released!
+
+Notable changes:
+
+- New features
+  - [Persistent cache](#persistent-cache): Experimental feature improves hot start performance of large projects by more than **60%**.
+  - [New code splitting algorithm](#new-code-splitting-algorithm): Experimental feature that significantly improve the code splitting performance after it is enabled.
+  - [Yarn pnp](#yarn-pnp)
+- Performance improvements
+  - [Watch scope change](#watch-scope-change): Ignore `.git` and `node_modules` monitoring by default.
+
+## New features
+
+### Persistent cache
+
+Rspack v1.2 introduced an experimental cache configuration that supports persistent caching, which can significantly improve hot startup speed.
+
+```js title=rspack.config.js
+module.exports = {
+    cache: true,
+    experiments: {
+        cache: {
+            type: "persistent",
+        },
+    },
+};
+```
+
+When a build hits the cache, it can bring up to 60% performance improvement in real projects.
+
+| 32C64G Linux (2.4GHz) | Number of modules | Normal dev | Cold dev     | Hot dev       |
+|-----------------------|-------------------|------------|--------------|---------------|
+| Hello world           | 26                | 146 ms     | 149 ms (+2%) | 134 ms (-8%)  |
+| 10000 Module          | 10040             | 2.43 s     | 2.43 s (+0%) | 1.16 s (-52%) |
+| Arco-pro              | 1898              | 3.47 s     | 3.55 s (+2%) | 0.92 s (-73%) |
+| Internal Project      | 45968             | 93.3 s     | 91.9 s (-1%) | 26 s (-72%)   |
+
+Note that persistent cache is still in an early experimental stage and currently only supports the Make stage. There is still a lot of room for performance improvement.
+
+> See [experiments.cache](/config/experiments#experimentscache) for more details.
+
+### New code splitting algorithm
+
+In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack 1.2.0, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
+
+```js title="rspack.config.js"
+module.exports = {
+    experiments: {
+        parallelCodeSplitting: true,
+    },
+};
+```
+
+> See [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) for more details.
+
+### Yarn pnp
+
+Rspack has added support for Yarn pnp, which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn pnp environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
+
+```js title="rspack.config.js"
+module.exports = {
+    resolve: {
+        pnp: true,
+    },
+};
+```
+
+> See [resolve.pnp](/config/resolve#resolvepnp) for more details.
+
+## Performance improvements
+
+### Watch scope change
+
+Rspack v1.2 no longer watching the `node_modules` directory by default. This can greatly reduce the number of files to watch and improve performance.
+
+According to our [benchmark repo](https://github.com/rspack-contrib/build-tools-performance), this change will:
+
+- Reduce memory usage by 120MB.
+- Increase dev startup speed by 40%.
+- Increase HMR speed by 20~30%.
+
+This change will not affect symlinked resources in monorepo, as symlinked resources are resolved to their real path by default.
+
+> See [watchOptions.ignored](/config/watch#watchoptionsignored) for more details.
+
+## Upgrade guide
+
+### Upgrade SWC plugins
+
+In Rspack v1.2, the Rust crate `swc_core` has been upgraded to `10.1.0`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
+
+For more details, see [SWC documentation](https://swc.rs/docs/plugin/selecting-swc-core).
+
+### Disable WarnCaseSensitiveModulesPlugin by default
+
+The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) will check the paths of modules and issue warnings for modules that conflict when their paths are all in lowercase. We used to enable it by default, but since it is only a "linter" plugin and it has additional performance overhead especially in development mode. So now we disable it by default.
+
+If you prefer to keep the previous behavior, you can set:
+
+```js title="rspack.config.js"
+module.exports = {
+    plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
+};
+```
+
+### Watch scope change
+
+The default value of `watchOptions.ignored` is changed to `/[\\/](?:.git|node_modules)[\\/]/`, which will significantly reduce the number of watched files and bring performance improvements.
+
+If you prefer to keep the previous behavior, you can set:
+
+```js title="rspack.config.js"
+module.exports = {
+    watchOptions: {
+        ignored: [],
+    },
+};
+```
