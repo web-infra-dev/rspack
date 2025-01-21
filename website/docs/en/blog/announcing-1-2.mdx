@@ -22,7 +22,10 @@ Notable changes:
   - [Faster code splitting algorithm](#faster-code-splitting-algorithm): An experimental feature that significantly improve the code splitting performance.
   - [Yarn pnp](#yarn-pnp)
 - Performance improvements
-  - [Watch scope change](#watch-scope-change): Less memory usage.
+  - [Watch scope change](#watch-scope-change)
+  - [Reduced memory usage](#reduced-memory-usage)
+  - [Smaller minification size](#smaller-minification-size)
+  - [Faster side effects optimization](#faster-side-effects-optimization)
 
 ## New features
 
@@ -118,7 +121,7 @@ We have optimized the data structure used to store strings during the [rspack-so
 
 > See [perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666) for more details.
 
-### Reduced bundle size
+### Smaller minification size
 
 Rspack v1.2 set default SWC minimizer `passes` to `2` to reduce bundle size by 1%-7%.
 

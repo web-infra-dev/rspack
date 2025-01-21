@@ -22,7 +22,10 @@ Rspack v1.2 已经正式发布！
   - [更快的 code splitting 算法](#更快的-code-splitting-算法)：实验性功能，显著提升 code splitting 性能
   - [支持 Yarn PnP](#支持-yarn-pnp)
 - 性能优化
-  - [Watch 范围变化](#watch-范围变化)：更少的内存开销
+  - [Watch 范围变化](#watch-范围变化)
+  - [减少内存使用](#减少内存使用)
+  - [更小的压缩体积](#更小的压缩体积)
+  - [更快的副作用优化](#更快的副作用优化)
 
 ## 新功能
 
@@ -118,7 +121,7 @@ module.exports = {
 
 > 详见：[perf: reduce memory consumption of CachedSource](https://github.com/web-infra-dev/rspack/pull/8666)。
 
-### 减小打包体积
+### 更小的压缩体积
 
 Rspack v1.2 将 SWC 压缩器的默认 `passes` 设置为 `2`，以减少 1%-7% 的打包体积。
 
