@@ -18,17 +18,17 @@ Rspack v1.2 已经正式发布！
 值得关注的变更如下：
 
 - 新功能
-  - [支持持久化缓存](#支持持久化缓存)：实验性功能，大型项目热启动性能提升**60%+**
-  - [全新的 code splitting 算法](#全新的-code-splitting-算法)：实验性功能，开启后将显著提升 code splitting 性能
+  - [支持持久化缓存](#支持持久化缓存)：实验性功能，大型项目热启动性能提升 **60%+**
+  - [更快的 code splitting 算法](#更快的-code-splitting-算法)：实验性功能，开启后将显著提升 code splitting 性能
   - [支持 Yarn PnP](#支持-yarn-pnp)
 - 性能优化
-  - [Watch 范围变化](#watch-范围变化)：默认移除掉 `.git` 及 `node_modules` 的监听
+  - [Watch 范围变化](#watch-范围变化)：更少的内存开销
 
 ## 新功能
 
 ### 支持持久化缓存
 
-在 Rspack v1.2.0 中，我们实验性的支持了持久化缓存，其会将构建中的缓存信息写入到存储介质中，加速下次 Rspack 的启动速度。
+在 Rspack v1.2 中，我们实验性的支持了持久化缓存，其会将构建中的缓存信息写入到存储介质中，加速下次 Rspack 的启动速度。
 
 ```js title=rspack.config.js
 module.exports = {
@@ -52,11 +52,11 @@ module.exports = {
 
 注意持久性缓存仍处于早期实验阶段，目前仅支持 Make 阶段，其后期性能改进空间很大。
 
-> 更多详细信息请参考 [experiments.cache](/config/experiments#experimentscache)
+> 详情请参考 [experiments.cache](/config/experiments#experimentscache)。
 
-### 全新的 code splitting 算法
+### 更快的 code splitting 算法
 
-在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack 1.2.0 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果您的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
+在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack v1.2 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果你的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -66,7 +66,7 @@ module.exports = {
 };
 ```
 
-> 更多详细信息请参考 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting)
+> 详情请参考 [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting)。
 
 ### 支持 Yarn PnP
 
@@ -80,23 +80,33 @@ module.exports = {
 };
 ```
 
-> 更多详细信息请参考 [resolve.pnp](/config/resolve#resolvepnp)
+> 详情请参考 [resolve.pnp](/config/resolve#resolvepnp)。
 
 ## 性能优化
 
 ### Watch 范围变化
 
-Rspack 1.2.0 将不再监听 `node_modules` 和 `.git` 目录下的文件变动，这将显著减少监听的文件数目并带来性能提升。
+Rspack v1.2 将不再监听 `node_modules` 和 `.git` 目录下的文件变动，这将显著减少监听的文件数目并带来性能提升。
 
-通过 [benchmark 仓库](https://github.com/rspack-contrib/build-tools-performance)中的数据，这项调整将
+通过 [benchmark 仓库](https://github.com/rspack-contrib/build-tools-performance) 中的数据，这项调整将：
 
-- 内存占用减少 120MB.
-- Dev 启动速度提升 40%.
-- HMR 速度提升 20~30%.
+- 减少内存占用 120MB
+- 提升 Dev 启动速度 40%
+- 提升 HMR 速度 20~30%
 
-此更改不会影响 monorepo 中的符号链接资源，因为符号链接资源默认解析为其真实路径。
+这个变更不会影响 monorepo 中的符号链接资源，因为 Rspack 默认将符号链接资源解析为它的真实路径。
 
-> 更多详细信息请参考 [watchOptions.ignored](/config/watch#watchoptionsignored)
+如果你倾向于保持之前行为，可以设置 ：
+
+```js title="rspack.config.js"
+module.exports = {
+  watchOptions: {
+    ignored: [],
+  },
+};
+```
+
+> 详情请参考 [watchOptions.ignored](/config/watch#watchoptionsignored)。
 
 ## 升级指南
 
@@ -104,9 +114,9 @@ Rspack 1.2.0 将不再监听 `node_modules` 和 `.git` 目录下的文件变动�
 
 在 Rspack v1.2 中，Rust 包中 `swc_core` 已升级到 `10.1.0`。SWC Wasm 插件的用户需要确保与正在使用的 `swc_core` 版本一致，否则可能会导致意外问题。
 
-更多详细信息请参阅 [SWC 文档](https://swc.rs/docs/plugin/selecting-swc-core)。
+> 详情请参考 [SWC 文档](https://swc.rs/docs/plugin/selecting-swc-core)。
 
-### WarnCaseSensitiveModules check 默认关闭
+### WarnCaseSensitiveModules 检查默认关闭
 
 [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-modules-plugin) 将检查模块的路径，并对路径全部为小写的冲突模块发出警告。我们过去默认启用它，但由于它只是一个 linter 插件，并且它在开发模式下会产生额外的性能开销。所以现在我们默认禁用它。
 
@@ -115,19 +125,5 @@ Rspack 1.2.0 将不再监听 `node_modules` 和 `.git` 目录下的文件变动�
 ```js title="rspack.config.js"
 module.exports = {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
-};
-```
-
-### Watch 范围变化
-
-`watchOptions.ignored` 默认值调整为 `/[\\/](?:.git|node_modules)[\\/]/`，这将显著减少监听的文件数目并带来性能提升。
-
-如果你倾向于保持之前行为，可以设置：
-
-```js title="rspack.config.js"
-module.exports = {
-  watchOptions: {
-    ignored: [],
-  },
 };
 ```

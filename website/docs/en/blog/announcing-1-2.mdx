@@ -19,10 +19,10 @@ Notable changes:
 
 - New features
   - [Persistent cache](#persistent-cache): Experimental feature improves hot start performance of large projects by more than **60%**.
-  - [New code splitting algorithm](#new-code-splitting-algorithm): Experimental feature that significantly improve the code splitting performance after it is enabled.
+  - [Faster code splitting algorithm](#faster-code-splitting-algorithm): Experimental feature that significantly improve the code splitting performance after it is enabled.
   - [Yarn pnp](#yarn-pnp)
 - Performance improvements
-  - [Watch scope change](#watch-scope-change): Ignore `.git` and `node_modules` monitoring by default.
+  - [Watch scope change](#watch-scope-change): Less memory usage.
 
 ## New features
 
@@ -54,9 +54,9 @@ Note that persistent cache is still in an early experimental stage and currently
 
 > See [experiments.cache](/config/experiments#experimentscache) for more details.
 
-### New code splitting algorithm
+### Faster code splitting algorithm
 
-In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack 1.2.0, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
+In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack v1.2, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -90,11 +90,21 @@ Rspack v1.2 no longer watching the `node_modules` directory by default. This can
 
 According to our [benchmark repo](https://github.com/rspack-contrib/build-tools-performance), this change will:
 
-- Reduce memory usage by 120MB.
-- Increase dev startup speed by 40%.
-- Increase HMR speed by 20~30%.
+- Reduce memory usage by 120MB
+- Increase dev startup speed by 40%
+- Increase HMR speed by 20~30%
 
 This change will not affect symlinked resources in monorepo, as symlinked resources are resolved to their real path by default.
+
+If you prefer to keep the previous behavior, you can set:
+
+```js title="rspack.config.js"
+module.exports = {
+  watchOptions: {
+    ignored: [],
+  },
+};
+```
 
 > See [watchOptions.ignored](/config/watch#watchoptionsignored) for more details.
 
@@ -115,19 +125,5 @@ If you prefer to keep the previous behavior, you can set:
 ```js title="rspack.config.js"
 module.exports = {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
-};
-```
-
-### Watch scope change
-
-The default value of `watchOptions.ignored` is changed to `/[\\/](?:.git|node_modules)[\\/]/`, which will significantly reduce the number of watched files and bring performance improvements.
-
-If you prefer to keep the previous behavior, you can set:
-
-```js title="rspack.config.js"
-module.exports = {
-  watchOptions: {
-    ignored: [],
-  },
 };
 ```
