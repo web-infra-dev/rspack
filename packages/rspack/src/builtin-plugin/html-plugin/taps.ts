@@ -1,8 +1,8 @@
 import * as binding from "@rspack/binding";
-import type { CreateParitalRegisters } from "../../taps/types";
+import type { CreatePartialRegisters } from "../../taps/types";
 import { HtmlRspackPlugin } from "./plugin";
 
-export const createHtmlPluginHooksRegisters: CreateParitalRegisters<
+export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 	`HtmlPlugin`
 > = (getCompiler, createTap, createMapTap) => {
 	return {

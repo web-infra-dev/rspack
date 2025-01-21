@@ -1,7 +1,7 @@
 import * as binding from "@rspack/binding";
-import type { CreateParitalRegisters } from "./types";
+import type { CreatePartialRegisters } from "./types";
 
-export const createCompilerHooksRegisters: CreateParitalRegisters<
+export const createCompilerHooksRegisters: CreatePartialRegisters<
 	`Compiler`
 > = (getCompiler, createTap, createMapTap) => {
 	return {

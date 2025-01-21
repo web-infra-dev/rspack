@@ -3,9 +3,9 @@ import {
 	ContextModuleFactoryAfterResolveData,
 	ContextModuleFactoryBeforeResolveData
 } from "../Module";
-import type { CreateParitalRegisters } from "./types";
+import type { CreatePartialRegisters } from "./types";
 
-export const createContextModuleFactoryHooksRegisters: CreateParitalRegisters<
+export const createContextModuleFactoryHooksRegisters: CreatePartialRegisters<
 	`ContextModuleFactory`
 > = (getCompiler, createTap, createMapTap) => {
 	return {

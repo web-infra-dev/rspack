@@ -26,7 +26,7 @@ type PartialRegisters<L extends string> = {
 	>]: binding.RegisterJsTaps[K];
 };
 
-export type CreateParitalRegisters<L extends string> = (
+export type CreatePartialRegisters<L extends string> = (
 	getCompiler: () => Compiler,
 	createTap: CreateHookRegisterTaps,
 	createMapTap: CreateHookMapRegisterTaps

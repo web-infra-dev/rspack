@@ -8,9 +8,9 @@ import {
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
 import { createHash } from "../util/createHash";
-import type { CreateParitalRegisters } from "./types";
+import type { CreatePartialRegisters } from "./types";
 
-export const createCompilationHooksRegisters: CreateParitalRegisters<
+export const createCompilationHooksRegisters: CreatePartialRegisters<
 	`Compilation`
 > = (getCompiler, createTap, createMapTap) => {
 	return {

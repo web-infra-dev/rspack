@@ -2,9 +2,9 @@ import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
 import { JavascriptModulesPlugin } from "../builtin-plugin";
 import { createHash } from "../util/createHash";
-import type { CreateParitalRegisters } from "./types";
+import type { CreatePartialRegisters } from "./types";
 
-export const createJavaScriptModulesHooksRegisters: CreateParitalRegisters<
+export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 	`JavascriptModules`
 > = (getCompiler, createTap, createMapTap) => {
 	return {
