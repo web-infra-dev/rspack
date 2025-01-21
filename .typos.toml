@@ -22,6 +22,7 @@ extend-exclude = [
 JSerFeng = "JSerFeng"
 
 [default.extend-words]
+Column   = "Column"
 Nd       = "Nd"
 fo       = "fo"
 splitted = "splitted"
