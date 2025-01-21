@@ -4,7 +4,7 @@ import {
 } from "@rspack/binding";
 
 import { join } from "node:path";
-import type { Compiler } from "../..";
+import type { Compiler } from "../../Compiler";
 import { MODULE_TYPE } from "./loader";
 import { PLUGIN_NAME } from "./utils";
 

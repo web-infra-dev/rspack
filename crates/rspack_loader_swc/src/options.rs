@@ -2,6 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
+use rspack_plugin_emit_dts::{RawSwcDtsEmitOptions, SwcDtsEmitOptions};
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::Deserialize;
 use swc_config::config_types::BoolConfig;
@@ -14,11 +15,13 @@ use swc_core::base::config::{
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
+  pub emit_dts: Option<RawSwcDtsEmitOptions>,
 }
 
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
+  pub emit_dts: Option<SwcDtsEmitOptions>,
 }
 
 impl From<RawRspackExperiments> for RspackExperiments {
@@ -27,6 +30,7 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
+      emit_dts: value.emit_dts.map(|i| i.into()),
     }
   }
 }

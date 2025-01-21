@@ -528,6 +528,7 @@ impl Module for NormalModule {
     let original_source = self.create_source(content, loader_result.source_map)?;
 
     build_info.cacheable = loader_result.cacheable;
+    build_info.parse_meta = loader_result.parse_meta.clone();
     build_info.file_dependencies = loader_result
       .file_dependencies
       .into_iter()

@@ -67,6 +67,7 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
+import { RawSwcDtsEmitRspackPluginOptions } from '@rspack/binding';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import type { SecureContextOptions } from 'node:tls';
 import type { Server } from 'node:net';
@@ -5223,6 +5224,7 @@ declare namespace rspackExports {
         EvalSourceMapDevToolPlugin,
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
+        SwcDtsEmitRspackPlugin,
         ContextReplacementPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
@@ -10358,6 +10360,22 @@ type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" 
 
 // @public (undocumented)
 type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
+
+// @public (undocumented)
+export class SwcDtsEmitRspackPlugin {
+    constructor(options?: SwcDtsEmitRspackPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    normalizeOptions(options: SwcDtsEmitRspackPluginOptions): RawSwcDtsEmitRspackPluginOptions;
+    // (undocumented)
+    options: SwcDtsEmitRspackPluginOptions;
+}
+
+// @public (undocumented)
+interface SwcDtsEmitRspackPluginOptions {
+    extension?: string;
+}
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {

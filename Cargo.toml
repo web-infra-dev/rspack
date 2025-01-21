@@ -102,6 +102,7 @@ swc_error_reporters = { version = "=6.0.0" }
 swc_html            = { version = "=7.0.0" }
 swc_html_minifier   = { version = "=7.0.0", default-features = false }
 swc_node_comments   = { version = "=5.0.0" }
+swc_typescript      = { version = "=6.0.0" }
 
 pnp = { version = "0.9.0" }
 
@@ -150,6 +151,7 @@ rspack_plugin_dll                      = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_dynamic                  = { version = "0.2.0", path = "crates/rspack_plugin_dynamic" }
 rspack_plugin_dynamic_entry            = { version = "0.2.0", path = "crates/rspack_plugin_dynamic_entry" }
 rspack_plugin_emit                     = { version = "0.2.0", path = "crates/rspack_plugin_emit" }
+rspack_plugin_emit_dts                 = { version = "0.2.0", path = "crates/rspack_plugin_emit_dts" }
 rspack_plugin_ensure_chunk_conditions  = { version = "0.2.0", path = "crates/rspack_plugin_ensure_chunk_conditions" }
 rspack_plugin_entry                    = { version = "0.2.0", path = "crates/rspack_plugin_entry" }
 rspack_plugin_externals                = { version = "0.2.0", path = "crates/rspack_plugin_externals" }
