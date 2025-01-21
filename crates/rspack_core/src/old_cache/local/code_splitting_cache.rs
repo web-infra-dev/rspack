@@ -39,7 +39,9 @@ where
     return Ok(());
   }
 
-  let has_change = compilation.has_module_import_export_change();
+  // let has_change = compilation.has_module_import_export_change();
+  // has_change can't detect the change of entries
+  let has_change = true;
   if !has_change
     || compilation
       .incremental
