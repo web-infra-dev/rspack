@@ -5167,6 +5167,7 @@ declare namespace rspackExports {
         HotModuleReplacementPlugin,
         NoEmitOnErrorsPlugin,
         WarnCaseSensitiveModulesPlugin,
+        RuntimePlugin,
         DllPlugin,
         DllPluginOptions,
         DllReferencePlugin,
@@ -9896,6 +9897,30 @@ enum RuntimeModuleStage {
     // (undocumented)
     TRIGGER = 20
 }
+
+// @public (undocumented)
+export const RuntimePlugin: typeof RuntimePluginImpl & {
+    getHooks: (compilation: Compilation) => RuntimePluginHooks;
+    getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
+};
+
+// @public (undocumented)
+type RuntimePluginHooks = {
+    createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+};
+
+// @public (undocumented)
+const RuntimePluginImpl: {
+    new (): {
+        name: binding.BuiltinPluginName;
+        _args: [];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): binding.BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 type RuntimePlugins = string[];

@@ -14,6 +14,7 @@ use rspack_hook::plugin_hook;
 use rspack_hook::Hook as _;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
+use rspack_plugin_runtime::RuntimePlugin;
 
 use self::interceptor::*;
 
@@ -67,6 +68,9 @@ pub struct JsHooksAdapterPlugin {
   register_html_plugin_after_template_execution_taps: RegisterHtmlPluginAfterTemplateExecutionTaps,
   register_html_plugin_before_emit_taps: RegisterHtmlPluginBeforeEmitTaps,
   register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps,
+  register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps,
+  register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps,
+  register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -311,6 +315,12 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation
       .tap(html_hooks_adapter_compilation::new(self));
 
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(runtime_hooks_adapter_compilation::new(self));
+
     Ok(())
   }
 
@@ -396,6 +406,13 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self.register_html_plugin_before_emit_taps.clear_cache();
     self.register_html_plugin_after_emit_taps.clear_cache();
+    self
+      .register_runtime_plugin_create_script_taps
+      .clear_cache();
+    self.register_runtime_plugin_link_preload_taps.clear_cache();
+    self
+      .register_runtime_plugin_link_prefetch_taps
+      .clear_cache();
   }
 }
 
@@ -445,6 +462,25 @@ async fn html_hooks_adapter_compilation(
     .after_emit
     .intercept(self.register_html_plugin_after_emit_taps.clone());
 
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
+async fn runtime_hooks_adapter_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> rspack_error::Result<()> {
+  let mut hooks = RuntimePlugin::get_compilation_hooks_mut(compilation);
+  hooks
+    .create_script
+    .intercept(self.register_runtime_plugin_create_script_taps.clone());
+  hooks
+    .link_preload
+    .intercept(self.register_runtime_plugin_link_preload_taps.clone());
+  hooks
+    .link_prefetch
+    .intercept(self.register_runtime_plugin_link_prefetch_taps.clone());
   Ok(())
 }
 
@@ -630,6 +666,18 @@ impl JsHooksAdapterPlugin {
         ),
         register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps::new(
           register_js_taps.register_html_plugin_after_emit_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps::new(
+          register_js_taps.register_runtime_plugin_create_script_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps::new(
+          register_js_taps.register_runtime_plugin_link_preload_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps::new(
+          register_js_taps.register_runtime_plugin_link_prefetch_taps,
           non_skippable_registers.clone(),
         ),
         non_skippable_registers,

@@ -31,6 +31,8 @@ mod bundler_info;
 pub use bundler_info::{BundlerInfoForceMode, BundlerInfoPlugin};
 mod runtime_module_from_js;
 pub use runtime_module_from_js::RuntimeModuleFromJs;
+mod drive;
+pub use drive::*;
 
 pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut Vec<BoxPlugin>) {
   match loading_type {

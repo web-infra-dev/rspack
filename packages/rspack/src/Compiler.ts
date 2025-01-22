@@ -19,7 +19,10 @@ import {
 	__from_binding_runtime_globals,
 	__to_binding_runtime_globals
 } from "./RuntimeGlobals";
-import { JsLoaderRspackPlugin } from "./builtin-plugin";
+import {
+	JsLoaderRspackPlugin,
+	createRuntimePluginHooksRegisters
+} from "./builtin-plugin";
 
 import type { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
@@ -849,7 +852,8 @@ class Compiler {
 				createTap,
 				createMapTap
 			),
-			...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap)
+			...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
+			...createRuntimePluginHooksRegisters(getCompiler, createTap, createMapTap)
 		};
 	}
 
