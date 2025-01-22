@@ -112,7 +112,8 @@ export default defineConfig({
   },
   builderConfig: {
     dev: {
-      lazyCompilation: true,
+      // TODO: @JSerFeng needs to fix this
+      // lazyCompilation: true,
     },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
