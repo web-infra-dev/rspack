@@ -380,7 +380,7 @@ async function getCachedTracing() {
 }
 
 async function tryTrace(context: JsLoaderContext) {
-	let cachedTracing = await getCachedTracing();
+	const cachedTracing = await getCachedTracing();
 	if (cachedTracing) {
 		const { trace, propagation, context: tracingContext } = cachedTracing;
 		const tracer = trace.getTracer("rspack-loader-runner");
