@@ -225,7 +225,7 @@ export declare class JsModule {
   get nameForCondition(): string | undefined
   get request(): string | undefined
   get userRequest(): string | undefined
-  set userRequest(val: string)
+  set userRequest(val: string | undefined)
   get rawRequest(): string | undefined
   get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
