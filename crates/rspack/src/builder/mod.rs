@@ -1542,9 +1542,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .json
     ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new(r"\.json$").expect("should initialize `Regex`"),
-      )),
+      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+        Ok(
+          ctx
+            .as_str()
+            .map(|data| data.ends_with(".json"))
+            .unwrap_or_default(),
+        )
+      }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -1562,9 +1567,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .mjs
     ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new(r"\.mjs$").expect("should initialize `Regex`"),
-      )),
+      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+        Ok(
+          ctx
+            .as_str()
+            .map(|data| data.ends_with(".mjs"))
+            .unwrap_or_default(),
+        )
+      }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -1583,9 +1593,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:module
     ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new(r"\.js$").expect("should initialize `Regex`"),
-      )),
+      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+        Ok(
+          ctx
+            .as_str()
+            .map(|data| data.ends_with(".js"))
+            .unwrap_or_default(),
+        )
+      }))),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("module".into()).into(),
@@ -1608,9 +1623,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .cjs
     ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new(r"\.cjs$").expect("should initialize `Regex`"),
-      )),
+      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+        Ok(
+          ctx
+            .as_str()
+            .map(|data| data.ends_with(".cjs"))
+            .unwrap_or_default(),
+        )
+      }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
         ..Default::default()
@@ -1619,9 +1639,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:commonjs
     ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new(r"\.js$").expect("should initialize `Regex`"),
-      )),
+      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+        Ok(
+          ctx
+            .as_str()
+            .map(|data| data.ends_with(".js"))
+            .unwrap_or_default(),
+        )
+      }))),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("commonjs".into()).into(),
@@ -1666,9 +1691,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   if async_web_assembly {
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new(r"\.wasm$").expect("should initialize `Regex`"),
-        )),
+        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+          Ok(
+            ctx
+              .as_str()
+              .map(|data| data.ends_with(".wasm"))
+              .unwrap_or_default(),
+          )
+        }))),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
           ..Default::default()
@@ -1724,9 +1754,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
 
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new(r"\.css$").expect("should initialize `Regex`"),
-        )),
+        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
+          Ok(
+            ctx
+              .as_str()
+              .map(|data| data.ends_with(".css"))
+              .unwrap_or_default(),
+          )
+        }))),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssAuto),
           resolve: Some(resolve.clone()),
@@ -1761,12 +1796,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       dependency: Some(RuleSetCondition::String("url".into())),
       one_of: Some(vec![
         ModuleRule {
-          scheme: Some(
-            RuleSetCondition::Regexp(
-              RspackRegex::new("^data$").expect("should initialize `Regex`"),
-            )
-            .into(),
-          ),
+          scheme: Some(RuleSetCondition::String("data".into())),
           effect: ModuleRuleEffect {
             r#type: Some(ModuleType::AssetInline),
             ..Default::default()
