@@ -12,7 +12,7 @@ use rspack_core::{
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_util::source_map::ModuleSourceMapConfig;
+use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
 use crate::{DllManifestContentItem, DllManifestContentItemExports};
@@ -143,7 +143,7 @@ impl Module for DelegatedModule {
     let str = match source_module {
       Some(_) => {
         let mut s = format!(
-          "module.exports = {}",
+          "module.exports = ({})",
           module_raw(
             compilation,
             &mut code_generation_result.runtime_requirements,
@@ -153,10 +153,12 @@ impl Module for DelegatedModule {
           )
         );
 
-        let request = self
-          .request
-          .as_ref()
-          .expect("manifest content should have `id`.");
+        let request = json_stringify(
+          self
+            .request
+            .as_ref()
+            .expect("manifest content should have `id`."),
+        );
 
         match self.delegation_type.as_ref() {
           "require" => {
