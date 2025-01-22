@@ -31,13 +31,13 @@ Rspack 的测试用例包括如下：
 └── fixtures #通用测试文件
 ```
 
-`{Name}.test.js` 作为测试的入口文件，会遍历 `{name}Cases` 并运行其中的用例。因此当您需要添加/修改测试用例时，请根据需要测试的功能类型在相应的 `{name}Cases` 文件夹下添加用例。
+`{Name}.test.js` 作为测试的入口文件，会遍历 `{name}Cases` 并运行其中的用例。因此当你需要添加/修改测试用例时，请根据需要测试的功能类型在相应的 `{name}Cases` 文件夹下添加用例。
 
 ## 测试类型
 
 目前已有的测试类型有：
 
-- [Normal](#normal)：用于测试配置无关的核心构建流程。当您的测试无需添加 `rspack.config.js` 时可使用此测试类型。
+- [Normal](#normal)：用于测试配置无关的核心构建流程。当你的测试无需添加 `rspack.config.js` 时可使用此测试类型。
 - [Config](#config)：用于测试构建配置项。如果你的测试需要通过 `rspack.config.js` 添加特定配置才可以运行时，且不符合其他场景时可使用此测试类型。
 - [Hot](#hot)：用于测试 HMR 是否正确运行。HotNode 会固定使用 `target=async-node`，HotWeb 会固定使用 `target=web`，HotWorker 会固定使用 `target=webworker`。
 - [HotSnapshot](#hotsnapshot)：用于测试 HMR 能否生成正确的中间产物。与[Hot](#Hot)类型测试共用测试用例。

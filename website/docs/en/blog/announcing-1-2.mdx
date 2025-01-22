@@ -19,13 +19,16 @@ Notable changes:
 
 - New features
   - [Persistent cache](#persistent-cache): An experimental feature that improves hot start performance by up to **250%**.
-  - [Yarn pnp](#yarn-pnp)
+  - [Yarn PnP](#yarn-pnp)
 - Performance improvements
   - [Faster code splitting](#faster-code-splitting): An experimental flag that significantly improve the code splitting performance.
   - [Watch scope change](#watch-scope-change)
   - [Reduced memory usage](#reduced-memory-usage)
   - [Smaller minification size](#smaller-minification-size)
   - [Faster side effects optimization](#faster-side-effects-optimization)
+- Ecosystem
+  - [Angular support](#angular-support)
+  - [Rsbuild v1.2](#rsbuild-v1-2)
 
 ## New features
 
@@ -61,7 +64,7 @@ If you encounter any issues while using persistent cache, please feel free to re
 
 ### Yarn PnP
 
-Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn pnp environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
+Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn PnP environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
 
 ```js title="rspack.config.js"
 module.exports = {
