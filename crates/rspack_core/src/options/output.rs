@@ -127,7 +127,7 @@ pub enum ChunkLoadingType {
   Require,
   AsyncNode,
   Import,
-  // TODO: Custom
+  Custom,
 }
 
 impl From<&str> for ChunkLoadingType {
@@ -138,7 +138,7 @@ impl From<&str> for ChunkLoadingType {
       "require" => Self::Require,
       "async-node" => Self::AsyncNode,
       "import" => Self::Import,
-      _ => unimplemented!("custom chunkLoading in not supported yet"),
+      _ => Self::Custom,
     }
   }
 }
@@ -157,6 +157,7 @@ impl From<&ChunkLoadingType> for &str {
       ChunkLoadingType::Require => "require",
       ChunkLoadingType::AsyncNode => "async-node",
       ChunkLoadingType::Import => "import",
+      ChunkLoadingType::Custom => "custom",
     }
   }
 }

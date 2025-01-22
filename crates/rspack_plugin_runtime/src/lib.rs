@@ -65,5 +65,6 @@ pub fn enable_chunk_loading_plugin(loading_type: ChunkLoadingType, plugins: &mut
       plugins.push(ImportScriptsChunkLoadingPlugin::default().boxed());
     }
     ChunkLoadingType::Import => plugins.push(ModuleChunkLoadingPlugin::default().boxed()),
+    ChunkLoadingType::Custom => (),
   }
 }
