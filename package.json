@@ -52,7 +52,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.15.3"
+    "pnpm": "9.15.4"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -65,7 +65,7 @@
     "@types/jest": "29.5.14",
     "@types/node": "^20.17.10",
     "check-dependency-version-consistency": "^5.0.0",
-    "commander": "12.1.0",
+    "commander": "13.1.0",
     "cross-env": "^7.0.3",
     "husky": "^9.0.0",
     "is-ci": "4.1.0",
@@ -82,7 +82,7 @@
     "webpack-cli": "5.1.4",
     "zx": "8.3.0"
   },
-  "packageManager": "pnpm@9.15.3",
+  "packageManager": "pnpm@9.15.4",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",
