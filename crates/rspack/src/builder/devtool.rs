@@ -1,32 +1,59 @@
 use bitflags::bitflags;
 
+/// Devtool options used to control the behavior of Source Map generation.
 #[derive(Debug, PartialEq)]
 pub enum Devtool {
+  /// Disable source map.
   False,
+  /// Use eval to generate source map.
   Eval,
+  /// Use cheap-source-map to generate source map.
   CheapSourceMap,
+  /// Use cheap-module-source-map to generate source map.
   CheapModuleSourceMap,
+  /// Use source-map to generate source map.
   SourceMap,
+  /// Use inline-cheap-source-map to generate source map.
   InlineCheapSourceMap,
+  /// Use inline-cheap-module-source-map to generate source map.
   InlineCheapModuleSourceMap,
+  /// Use inline-source-map to generate source map.
   InlineSourceMap,
+  /// Use inline-nosources-cheap-source-map to generate source map.
   InlineNosourcesCheapSourceMap,
+  /// Use inline-nosources-cheap-module-source-map to generate source map.
   InlineNosourcesCheapModuleSourceMap,
+  /// Use inline-nosources-source-map to generate source map.
   InlineNosourcesSourceMap,
+  /// Use nosources-cheap-source-map to generate source map.
   NosourcesCheapSourceMap,
+  /// Use nosources-cheap-module-source-map to generate source map.
   NosourcesCheapModuleSourceMap,
+  /// Use nosources-source-map to generate source map.
   NosourcesSourceMap,
+  /// Use hidden-nosources-cheap-source-map to generate source map.
   HiddenNosourcesCheapSourceMap,
+  /// Use hidden-nosources-cheap-module-source-map to generate source map.
   HiddenNosourcesCheapModuleSourceMap,
+  /// Use hidden-nosources-source-map to generate source map.
   HiddenNosourcesSourceMap,
+  /// Use hidden-cheap-source-map to generate source map.
   HiddenCheapSourceMap,
+  /// Use hidden-cheap-module-source-map to generate source map.
   HiddenCheapModuleSourceMap,
+  /// Use hidden-source-map to generate source map.
   HiddenSourceMap,
+  /// Use eval-cheap-source-map to generate source map.
   EvalCheapSourceMap,
+  /// Use eval-cheap-module-source-map to generate source map.
   EvalCheapModuleSourceMap,
+  /// Use eval-source-map to generate source map.
   EvalSourceMap,
+  /// Use eval-nosources-cheap-source-map to generate source map.
   EvalNosourcesCheapSourceMap,
+  /// Use eval-nosources-cheap-module-source-map to generate source map.
   EvalNosourcesCheapModuleSourceMap,
+  /// Use eval-nosources-source-map to generate source map.
   EvalNosourcesSourceMap,
 }
 

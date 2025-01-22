@@ -4,6 +4,9 @@ pub use cache::CacheOptions as ExperimentCacheOptions;
 
 use crate::incremental::IncrementalPasses;
 
+// BE CAREFUL:
+// Add more fields to this struct should result in adding new fields to options builder.
+// `impl From<Experiments> for ExperimentsBuilder` should be updated.
 #[derive(Debug)]
 pub struct Experiments {
   pub layers: bool,

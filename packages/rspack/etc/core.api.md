@@ -26,13 +26,13 @@ import { HookMap } from '@rspack/lite-tapable';
 import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
-import { JsAfterEmitData } from '@rspack/binding';
-import { JsAfterTemplateExecutionData } from '@rspack/binding';
-import { JsAlterAssetTagGroupsData } from '@rspack/binding';
-import { JsAlterAssetTagsData } from '@rspack/binding';
+import type { JsAfterEmitData } from '@rspack/binding';
+import type { JsAfterTemplateExecutionData } from '@rspack/binding';
+import type { JsAlterAssetTagGroupsData } from '@rspack/binding';
+import type { JsAlterAssetTagsData } from '@rspack/binding';
 import type { JsAssetInfo } from '@rspack/binding';
-import { JsBeforeAssetTagGenerationData } from '@rspack/binding';
-import { JsBeforeEmitData } from '@rspack/binding';
+import type { JsBeforeAssetTagGenerationData } from '@rspack/binding';
+import type { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
 import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
@@ -831,11 +831,19 @@ export class Compiler {
     constructor(context: string, options: RspackOptionsNormalized);
     // @internal
     get __internal__builtinPlugins(): binding.BuiltinPlugin[];
-    // (undocumented)
+    // @internal
+    __internal__create_compilation(native: binding.JsCompilation): Compilation;
+    // @internal
+    __internal__get_compilation(): Compilation | undefined;
+    // @internal
+    __internal__get_compilation_params(): CompilationParams | undefined;
+    // @internal
+    __internal__get_module_execution_results_map(): Map<number, any>;
+    // @internal
     __internal__getModuleExecutionResult(id: number): any;
     // @internal
     __internal__rebuild(modifiedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>, callback?: (error: Error | null) => void): void;
-    // (undocumented)
+    // @internal
     __internal__registerBuiltinPlugin(plugin: binding.BuiltinPlugin): void;
     // @internal
     get __internal__ruleSet(): RuleSetCompiler;

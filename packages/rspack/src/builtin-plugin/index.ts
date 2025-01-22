@@ -29,7 +29,7 @@ export * from "./FileUriPlugin";
 export * from "./FlagDependencyExportsPlugin";
 export * from "./FlagDependencyUsagePlugin";
 export * from "./HotModuleReplacementPlugin";
-export * from "./HtmlRspackPlugin";
+export * from "./html-plugin/index";
 export * from "./HttpExternalsRspackPlugin";
 export * from "./IgnorePlugin";
 export * from "./InferAsyncModulesPlugin";

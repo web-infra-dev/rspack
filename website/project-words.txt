@@ -26,6 +26,7 @@ chenjiahan
 codeva
 commmonjs
 cpuprofile
+Colum
 CRACO
 cssextractrspackplugin
 dail
@@ -136,6 +137,7 @@ proxying
 px2rem
 pxtorem
 recognise
+resolvepnp
 Rollup
 rome
 rsbuild
