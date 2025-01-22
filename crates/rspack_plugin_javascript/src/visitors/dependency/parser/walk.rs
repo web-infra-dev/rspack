@@ -819,6 +819,7 @@ impl JavascriptParser<'_> {
       None
     }
 
+    let rename_this = current_this.and_then(|this| get_var_name(self, this));
     let variable_info_for_args = args
       .map(|param| get_var_name(self, param))
       .collect::<Vec<_>>();
@@ -868,7 +869,6 @@ impl JavascriptParser<'_> {
         TopLevelScope::False
       };
 
-    let rename_this = current_this.and_then(|this| get_var_name(self, this));
     self.in_function_scope(true, scope_params.into_iter(), |parser| {
       if let Some(this) = rename_this
         && !expr.is_arrow()
