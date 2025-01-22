@@ -2149,6 +2149,7 @@ impl Compilation {
     module.attach(*chunk_ukey);
 
     self.chunk_graph.add_module(runtime_module_identifier);
+    self.runtime_template.add_templates(module.template());
     self
       .chunk_graph
       .connect_chunk_and_module(*chunk_ukey, runtime_module_identifier);
