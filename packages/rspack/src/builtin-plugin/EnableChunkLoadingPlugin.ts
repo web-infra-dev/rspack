@@ -63,8 +63,7 @@ export class EnableChunkLoadingPlugin extends EnableChunkLoadingPluginInner {
 			case "import-scripts":
 			case "require":
 			case "async-node":
-			case "import":
-			case "universal": {
+			case "import": {
 				super.apply(compiler);
 				return;
 			}
