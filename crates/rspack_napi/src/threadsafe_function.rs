@@ -140,12 +140,12 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue + ValidateNap
   /// ## Warning
   /// This method is **NOT** recommended to be used in most cases. It makes return value ambiguous.
   pub async fn call(&self, value: T) -> Result<R> {
-    match self.call_async::<Either<R, Promise<R>>>(value).await {
-      Ok(Either::A(r)) => Ok(r),
-      Ok(Either::B(r)) => match r.await {
+    match self.call_async::<Either<Promise<R>, R>>(value).await {
+      Ok(Either::A(r)) => match r.await {
         Ok(r) => Ok(r),
         Err(err) => Err(self.resolve_error(err).await),
       },
+      Ok(Either::B(r)) => Ok(r),
       Err(err) => Err(err),
     }
   }
