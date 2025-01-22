@@ -315,7 +315,7 @@ impl<'parser> JavascriptParser<'parser> {
         parser_plugin::AMDRequireDependenciesBlockParserPlugin,
       ));
       plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::RequireJsStuffPlugin));
+      plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {

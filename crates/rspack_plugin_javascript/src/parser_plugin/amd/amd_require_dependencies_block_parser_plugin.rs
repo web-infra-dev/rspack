@@ -13,17 +13,16 @@ use swc_core::{
   ecma::ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, Pat},
 };
 
-use super::{
-  require_ensure_dependencies_block_parse_plugin::GetFunctionExpression, JavascriptParserPlugin,
-};
 use crate::{
   dependency::{
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency, unsupported_dependency::UnsupportedDependency,
   },
+  parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
   visitors::{create_traceable_error, JavascriptParser, Statement},
+  JavascriptParserPlugin,
 };
 
 fn is_reserved_param(pat: &Pat) -> bool {

@@ -198,10 +198,7 @@ pub(crate) mod expr_matcher {
     is_object_define_property: "Object.defineProperty",
     is_require_ensure: "require.ensure",
     is_require_version: "require.version",
-    is_require_amd: "require.amd",
     is_require_onerror: "require.onError",
-    is_requirejs_onerror: "requirejs.onError",
-    is_define_amd: "define.amd",
     // unsupported
     is_require_extensions: "require.extensions",
     is_require_config: "require.config",

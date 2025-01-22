@@ -24,7 +24,7 @@ use super::{
   TopLevelScope,
 };
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
-use crate::visitors::scope_info::{FreeName, VariableInfo};
+use crate::visitors::scope_info::FreeName;
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -791,31 +791,70 @@ impl JavascriptParser<'_> {
   fn _walk_iife<'a>(
     &mut self,
     expr: &'a Expr,
-    params: impl Iterator<Item = &'a Expr>,
+    args: impl Iterator<Item = &'a Expr>,
     current_this: Option<&'a Expr>,
   ) {
-    let mut fn_params = vec![];
-    let mut scope_params = vec![];
-    if let Some(expr) = expr.as_fn_expr() {
-      for param in &expr.function.params {
-        let ident = param.pat.as_ident().expect("should be a `BindingIdent`");
-        fn_params.push(ident);
-        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
-          scope_params.push(Cow::Borrowed(&param.pat));
-        }
+    fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
+      if let Some(rename_identifier) = parser.get_rename_identifier(expr)
+        && let drive = parser.plugin_drive.clone()
+        && rename_identifier
+          .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+          .unwrap_or_default()
+        && !rename_identifier
+          .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
+          .unwrap_or_default()
+      {
+        let variable = parser
+          .get_variable_info(&rename_identifier)
+          .map(|info| info.free_name.as_ref())
+          .and_then(|free_name| free_name)
+          .and_then(|free_name| match free_name {
+            FreeName::String(s) => Some(s.to_string()),
+            FreeName::True => None,
+          })
+          .unwrap_or(rename_identifier);
+        return Some(variable);
       }
-    } else if let Some(expr) = expr.as_arrow() {
-      for param in &expr.params {
-        let ident = param.as_ident().expect("should be a `BindingIdent`");
-        fn_params.push(ident);
-        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
-          scope_params.push(Cow::Borrowed(param));
-        }
-      }
-    };
-    let variable_info_for_args = params
-      .map(|param| get_variable_name(self, param))
+      parser.walk_expression(expr);
+      None
+    }
+
+    let rename_this = current_this.and_then(|this| get_var_name(self, this));
+    let variable_info_for_args = args
+      .map(|param| get_var_name(self, param))
       .collect::<Vec<_>>();
+
+    let mut params = vec![];
+    let mut scope_params = vec![];
+    if let Some(fn_expr) = expr.as_fn_expr() {
+      for (i, pat) in fn_expr.function.params.iter().map(|p| &p.pat).enumerate() {
+        // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
+        let ident = pat.as_ident().expect("should be a `BindingIdent`");
+        params.push(ident);
+        if variable_info_for_args
+          .get(i)
+          .and_then(|i| i.as_deref())
+          .is_none()
+        {
+          scope_params.push(Cow::Borrowed(pat));
+        }
+      }
+    } else if let Some(arrow_expr) = expr.as_arrow() {
+      for (i, pat) in arrow_expr.params.iter().enumerate() {
+        // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
+        let ident = pat.as_ident().expect("should be a `BindingIdent`");
+        params.push(ident);
+        if variable_info_for_args
+          .get(i)
+          .and_then(|i| i.as_deref())
+          .is_none()
+        {
+          scope_params.push(Cow::Borrowed(pat));
+        }
+      }
+    }
+
+    // Add function name in scope for recursive calls
     if let Some(expr) = expr.as_fn_expr() {
       if let Some(ident) = &expr.ident {
         scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
@@ -824,24 +863,24 @@ impl JavascriptParser<'_> {
 
     let was_top_level_scope = self.top_level_scope;
     self.top_level_scope =
-      if !matches!(was_top_level_scope, TopLevelScope::False) && expr.as_arrow().is_some() {
+      if !matches!(was_top_level_scope, TopLevelScope::False) && expr.is_arrow() {
         TopLevelScope::ArrowFunction
       } else {
         TopLevelScope::False
       };
 
-    let rename_this = current_this.and_then(|this| get_variable_name(self, this));
     self.in_function_scope(true, scope_params.into_iter(), |parser| {
       if let Some(this) = rename_this
-        && matches!(expr, Expr::Fn(_))
+        && !expr.is_arrow()
       {
         parser.set_variable("this".to_string(), this)
       }
-      for (variable_info, param) in variable_info_for_args.into_iter().zip(fn_params) {
-        let Some(variable_info) = variable_info else {
-          continue;
-        };
-        parser.set_variable(param.sym.to_string(), variable_info);
+      for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
+        if let Some(var_info) = var_info
+          && let Some(param) = params.get(i)
+        {
+          parser.set_variable(param.sym.to_string(), var_info);
+        }
       }
 
       if let Some(expr) = expr.as_fn_expr() {
@@ -989,6 +1028,7 @@ impl JavascriptParser<'_> {
           } else {
             self.walk_expression(callee);
           }
+          self.walk_expr_or_spread(&expr.args);
         }
       }
       Callee::Import(_) => {
@@ -1002,11 +1042,15 @@ impl JavascriptParser<'_> {
           self.enter_call -= 1;
           return;
         }
+
+        self.walk_expr_or_spread(&expr.args);
       }
-      Callee::Super(_) => {} // Do nothing about super, same as webpack
+      Callee::Super(_) => {
+        // Do nothing about super, same as webpack
+        self.walk_expr_or_spread(&expr.args);
+      }
     }
 
-    self.walk_expr_or_spread(&expr.args);
     self.enter_call -= 1;
   }
 
@@ -1480,46 +1524,4 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
     MemberProp::PrivateName(name) => Some(name.name.len() + 1),
     MemberProp::Computed(_) => None,
   }
-}
-
-fn get_variable_info<'p>(
-  parser: &'p mut JavascriptParser,
-  expr: &Expr,
-) -> Option<&'p VariableInfo> {
-  if let Some(rename_identifier) = parser.get_rename_identifier(expr)
-    && let drive = parser.plugin_drive.clone()
-    && rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
-      .unwrap_or_default()
-    && !rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
-      .unwrap_or_default()
-  {
-    return parser.get_variable_info(&rename_identifier);
-  }
-  None
-}
-
-fn get_variable_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<String> {
-  if let Some(rename_identifier) = parser.get_rename_identifier(expr)
-    && let drive = parser.plugin_drive.clone()
-    && rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
-      .unwrap_or_default()
-    && !rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
-      .unwrap_or_default()
-  {
-    let variable = parser
-      .get_variable_info(&rename_identifier)
-      .map(|info| info.free_name.as_ref())
-      .and_then(|free_name| free_name)
-      .and_then(|free_name| match free_name {
-        FreeName::String(s) => Some(s.to_string()),
-        FreeName::True => None,
-      })
-      .unwrap_or(rename_identifier);
-    return Some(variable);
-  }
-  None
 }

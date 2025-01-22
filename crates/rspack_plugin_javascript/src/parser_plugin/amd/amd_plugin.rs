@@ -2,18 +2,18 @@ use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt};
 use swc_core::ecma::ast::{CallExpr, Expr, MemberExpr};
 use swc_core::{common::Spanned, ecma::ast::UnaryExpr};
 
-use super::JavascriptParserPlugin;
 use crate::utils::eval::{evaluate_to_identifier, evaluate_to_string, BasicEvaluatedExpression};
-use crate::visitors::{expr_matcher, JavascriptParser};
+use crate::visitors::JavascriptParser;
+use crate::JavascriptParserPlugin;
 
-pub struct RequireJsStuffPlugin;
+pub struct AMDParserPlugin;
 
 const DEFINE: &str = "define";
 const REQUIRE: &str = "require";
 const DEFINE_AMD: &str = "define.amd";
 const REQUIRE_AMD: &str = "require.amd";
 
-impl JavascriptParserPlugin for RequireJsStuffPlugin {
+impl JavascriptParserPlugin for AMDParserPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser,
@@ -29,19 +29,18 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
           "undefined".into(),
           None,
         )));
-      Some(true)
-    } else {
-      None
+      return Some(true);
     }
+    None
   }
 
   fn member(
     &self,
     parser: &mut JavascriptParser,
     expr: &MemberExpr,
-    _for_name: &str,
+    for_name: &str,
   ) -> Option<bool> {
-    if expr_matcher::is_require_version(expr) {
+    if for_name == "require.version" {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -52,8 +51,7 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
         )));
       return Some(true);
     }
-
-    if expr_matcher::is_require_onerror(expr) || expr_matcher::is_requirejs_onerror(expr) {
+    if for_name == "requirejs.onError" {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -65,8 +63,8 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
       return Some(true);
     }
 
-    // AMDPlugin
-    if expr_matcher::is_define_amd(expr) || expr_matcher::is_require_amd(expr) {
+    // AMD
+    if for_name == "define.amd" || for_name == "require.amd" {
       parser
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -77,7 +75,6 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
         )));
       return Some(true);
     }
-
     None
   }
 
@@ -191,7 +188,7 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
           RuntimeGlobals::AMD_DEFINE.name().into(),
           Some(RuntimeGlobals::AMD_DEFINE),
         )));
-      return Some(true);
+      return Some(false);
     }
     None
   }
