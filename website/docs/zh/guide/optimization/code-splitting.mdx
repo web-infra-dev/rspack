@@ -179,7 +179,7 @@ import(/* webpackPreload: true */ 'ChartingLibrary');
 错误地使用 webpackPreload 也会导致性能劣化，请谨慎使用。
 :::
 
-有时您需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
+有时你需要对预载拥有自己的控制权。例如，可以通过异步脚本完成任何动态导入的预载。这在流式服务器端渲染的情况下会很有用。
 
 ```js
 const lazyComp = () =>
@@ -191,7 +191,7 @@ const lazyComp = () =>
 
 如果在 Rspack 开始加载该脚本之前脚本加载失败（如果该脚本不在页面上，Rspack 创建一个 script 标签来加载代码），则该异常将无法被捕获，直到 chunkLoadTimeout 超时。这可能出乎预料但可解释为 —— Rspack 无法抛出任何异常，因为 Rspack 并不知道该脚本失败了。Rspack 将在错误发生后立即为 script 标签添加 onerror 监听。
 
-为了避免发生这类问题，您可以添加自己的 onerror 监听，在发生异常时删除该 script：
+为了避免发生这类问题，你可以添加自己的 onerror 监听，在发生异常时删除该 script：
 
 ```html
 <script

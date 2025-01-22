@@ -15,7 +15,7 @@ Rspack 不再支持 Node.js 14，现在需要 Node.js 16+。
 
 ### 调整 @rspack/core 为 @rspack/cli 的 peer dependency
 
-`@rspack/core` 现在是 `@rspack/cli` 的 peerDependency，而不是直接的依赖关系。这意味着现在您需要手动安装 `@rspack/core` 和 `@rspack/cli`。这使得 Rspack 更加接近 webpack。从长远来看，`@rspack/cli` 的定位将不再是开箱即用的解决方案。我们建议使用 [Rsbuild](https://rsbuild.dev/) 作为开箱即用的解决方案。
+`@rspack/core` 现在是 `@rspack/cli` 的 peerDependency，而不是直接的依赖关系。这意味着现在你需要手动安装 `@rspack/core` 和 `@rspack/cli`。这使得 Rspack 更加接近 webpack。从长远来看，`@rspack/cli` 的定位将不再是开箱即用的解决方案。我们建议使用 [Rsbuild](https://rsbuild.dev/) 作为开箱即用的解决方案。
 
 ### 废弃默认转换
 
@@ -148,7 +148,7 @@ module.exports = {
 
 ### 废弃 builtin:sass-loader
 
-`builtin:sass-loader` 现已被废弃。如果您正在使用它，请迁移到 `sass-loader`。Rspack 将在 v0.5.0 中移除 `builtin:sass-loader`。
+`builtin:sass-loader` 现已被废弃。如果你正在使用它，请迁移到 `sass-loader`。Rspack 将在 v0.5.0 中移除 `builtin:sass-loader`。
 
 ### experiments.incrementalRebuild 配置废弃
 
@@ -158,7 +158,7 @@ module.exports = {
 
 以前，一些 API 可能会通过从 @rspack/core 重新导出而被意外导出。现在通过此重构，我们从 @rspack/core 中清理了导出的 API。
 
-这不应该造成任何问题，但如果您意外导出了 API，则可能会出现问题，您可能会以不正确的方式使用 Rspack。
+这不应该造成任何问题，但如果你意外导出了 API，则可能会出现问题，你可能会以不正确的方式使用 Rspack。
 
 如果确实有需要从此重构中移除的 API，请在 Rspack 仓库中提出问题。
 
@@ -182,7 +182,7 @@ module.exports = {
 
 ### 选择 `@rspack/cli` 还是 `Rsbuild`？
 
-如果您的应用程序是 CSR 应用程序，则我们强烈建议您使用 Rsbuild 而不是自行配置 Rspack，因为与 `@rspack/cli` 相比，Rsbuild 更容易使用。
+如果你的应用程序是 CSR 应用程序，则我们强烈建议你使用 Rsbuild 而不是自行配置 Rspack，因为与 `@rspack/cli` 相比，Rsbuild 更容易使用。
 
 ### 升级 Node.js 版本
 
@@ -217,7 +217,7 @@ module.exports = {
 
 ### 对于 React 应用程序，请使用 `@rspack/plugin-react-refresh` 来支持 Fast Refresh
 
-当我们禁用默认转换时，`builtin.react.refresh` 将无法工作，因此您需要使用 `@rspack/plugin-react-refresh` 来启用 Fast Refresh，更多细节请参阅 [Deprecating builtin.react.refresh](#废弃-builtinreactrefresh)。
+当我们禁用默认转换时，`builtin.react.refresh` 将无法工作，因此你需要使用 `@rspack/plugin-react-refresh` 来启用 Fast Refresh，更多细节请参阅 [Deprecating builtin.react.refresh](#废弃-builtinreactrefresh)。
 
 ### 迁移 builtin options 到 builtin plugins
 

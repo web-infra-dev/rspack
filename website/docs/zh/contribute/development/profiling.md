@@ -79,7 +79,7 @@ speedscope CPU.20230522.154658.14577.0.001.cpuprofile
 
 ## Mac Xcode instruments
 
-如果您使用的是 Mac，则 Xcode Instruments 工具可用于生成 CPU profile 文件。
+如果你使用的是 Mac，则 Xcode Instruments 工具可用于生成 CPU profile 文件。
 
 ![image](https://github.com/SyMind/rspack-dev-guide/assets/19852293/124e3aee-944a-4509-bb93-1c9213f026d3)
 
@@ -91,7 +91,7 @@ xcode-select --install
 
 对于普通 Rust 构建, [`cargo instruments`](https://github.com/cmyr/cargo-instruments) 可以用作胶水用于分析和创建 tracing 文件。
 
-由于 Rspack 需要相当长的时间来构建，因此您可以使用以下过程而无需调用 `cargo Instruments`。
+由于 Rspack 需要相当长的时间来构建，因此你可以使用以下过程而无需调用 `cargo Instruments`。
 它具有相同的效果。
 
 在根工作区的 `Cargo.toml`，在 `[profile.release]` 部分中打开调试符号并禁用符号剥离
