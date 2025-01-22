@@ -34,6 +34,7 @@ macro_rules! expect {
 }
 
 use std::borrow::Cow;
+use std::future::ready;
 use std::sync::Arc;
 
 use builder_context::BuiltinPluginOptions;
@@ -1543,12 +1544,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // .json
     ModuleRule {
       test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Ok(
+        Box::pin(ready(Ok(
           ctx
             .as_str()
             .map(|data| data.ends_with(".json"))
             .unwrap_or_default(),
-        )
+        )))
       }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
@@ -1568,12 +1569,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // .mjs
     ModuleRule {
       test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Ok(
+        Box::pin(ready(Ok(
           ctx
             .as_str()
             .map(|data| data.ends_with(".mjs"))
             .unwrap_or_default(),
-        )
+        )))
       }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
@@ -1594,12 +1595,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // .js with type:module
     ModuleRule {
       test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Ok(
+        Box::pin(ready(Ok(
           ctx
             .as_str()
             .map(|data| data.ends_with(".js"))
             .unwrap_or_default(),
-        )
+        )))
       }))),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
@@ -1624,12 +1625,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // .cjs
     ModuleRule {
       test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Ok(
+        Box::pin(ready(Ok(
           ctx
             .as_str()
             .map(|data| data.ends_with(".cjs"))
             .unwrap_or_default(),
-        )
+        )))
       }))),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
@@ -1640,12 +1641,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // .js with type:commonjs
     ModuleRule {
       test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Ok(
+        Box::pin(ready(Ok(
           ctx
             .as_str()
             .map(|data| data.ends_with(".js"))
             .unwrap_or_default(),
-        )
+        )))
       }))),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
@@ -1692,12 +1693,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     rules.extend(vec![
       ModuleRule {
         test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Ok(
+          Box::pin(ready(Ok(
             ctx
               .as_str()
               .map(|data| data.ends_with(".wasm"))
               .unwrap_or_default(),
-          )
+          )))
         }))),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
@@ -1755,12 +1756,12 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     rules.extend(vec![
       ModuleRule {
         test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Ok(
+          Box::pin(ready(Ok(
             ctx
               .as_str()
               .map(|data| data.ends_with(".css"))
               .unwrap_or_default(),
-          )
+          )))
         }))),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssAuto),
@@ -1796,7 +1797,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       dependency: Some(RuleSetCondition::String("url".into())),
       one_of: Some(vec![
         ModuleRule {
-          scheme: Some(RuleSetCondition::String("data".into())),
+          scheme: Some(RuleSetCondition::String("data".into()).into()),
           effect: ModuleRuleEffect {
             r#type: Some(ModuleType::AssetInline),
             ..Default::default()
