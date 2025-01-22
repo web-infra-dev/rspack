@@ -81,7 +81,12 @@ impl ProvidePlugin {
 }
 
 impl JavascriptParserPlugin for ProvidePlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(
+    &self,
+    _parser: &mut JavascriptParser,
+    str: &str,
+    _is_parameter: bool,
+  ) -> Option<bool> {
     let names = self.cached_names();
     names.iter().any(|l| l.eq(str)).then_some(true)
   }

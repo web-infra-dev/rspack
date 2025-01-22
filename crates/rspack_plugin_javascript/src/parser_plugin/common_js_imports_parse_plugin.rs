@@ -348,7 +348,12 @@ impl CommonJsImportsParserPlugin {
 }
 
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
-  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(
+    &self,
+    parser: &mut JavascriptParser,
+    str: &str,
+    _is_parameter: bool,
+  ) -> Option<bool> {
     if str == expr_name::REQUIRE && parser.is_unresolved_ident(str) {
       Some(true)
     } else {

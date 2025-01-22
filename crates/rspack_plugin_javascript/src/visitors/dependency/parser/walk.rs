@@ -367,7 +367,7 @@ impl JavascriptParser<'_> {
       {
         let drive = self.plugin_drive.clone();
         if drive
-          .can_rename(self, &renamed_identifier)
+          .can_rename(self, &renamed_identifier, false)
           .unwrap_or_default()
         {
           if !drive
@@ -800,7 +800,7 @@ impl JavascriptParser<'_> {
       for param in &expr.function.params {
         let ident = param.pat.as_ident().expect("should be a `BindingIdent`");
         fn_params.push(ident);
-        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
+        if get_variable_info(self, &Expr::Ident(ident.id.clone()), true).is_none() {
           scope_params.push(Cow::Borrowed(&param.pat));
         }
       }
@@ -808,7 +808,7 @@ impl JavascriptParser<'_> {
       for param in &expr.params {
         let ident = param.as_ident().expect("should be a `BindingIdent`");
         fn_params.push(ident);
-        if get_variable_info(self, &Expr::Ident(ident.id.clone())).is_none() {
+        if get_variable_info(self, &Expr::Ident(ident.id.clone()), true).is_none() {
           scope_params.push(Cow::Borrowed(param));
         }
       }
@@ -1080,7 +1080,9 @@ impl JavascriptParser<'_> {
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && let drive = self.plugin_drive.clone()
         && rename_identifier
-          .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
+          .call_hooks_name(self, |this, for_name| {
+            drive.can_rename(this, for_name, false)
+          })
           .unwrap_or_default()
       {
         if !rename_identifier
@@ -1485,11 +1487,14 @@ fn member_prop_len(member_prop: &MemberProp) -> Option<usize> {
 fn get_variable_info<'p>(
   parser: &'p mut JavascriptParser,
   expr: &Expr,
+  is_parameter: bool,
 ) -> Option<&'p VariableInfo> {
   if let Some(rename_identifier) = parser.get_rename_identifier(expr)
     && let drive = parser.plugin_drive.clone()
     && rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+      .call_hooks_name(parser, |this, for_name| {
+        drive.can_rename(this, for_name, is_parameter)
+      })
       .unwrap_or_default()
     && !rename_identifier
       .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
@@ -1504,7 +1509,9 @@ fn get_variable_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<Strin
   if let Some(rename_identifier) = parser.get_rename_identifier(expr)
     && let drive = parser.plugin_drive.clone()
     && rename_identifier
-      .call_hooks_name(parser, |this, for_name| drive.can_rename(this, for_name))
+      .call_hooks_name(parser, |this, for_name| {
+        drive.can_rename(this, for_name, false)
+      })
       .unwrap_or_default()
     && !rename_identifier
       .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))

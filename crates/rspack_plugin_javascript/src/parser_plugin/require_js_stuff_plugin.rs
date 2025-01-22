@@ -174,8 +174,13 @@ impl JavascriptParserPlugin for RequireJsStuffPlugin {
     None
   }
 
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
-    if for_name == DEFINE {
+  fn can_rename(
+    &self,
+    _parser: &mut JavascriptParser,
+    for_name: &str,
+    is_parameter: bool,
+  ) -> Option<bool> {
+    if for_name == DEFINE && !is_parameter {
       return Some(true);
     }
     None

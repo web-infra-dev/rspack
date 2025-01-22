@@ -358,7 +358,7 @@ pub(super) struct DefineParserPlugin {
 }
 
 impl JavascriptParserPlugin for DefineParserPlugin {
-  fn can_rename(&self, _: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(&self, _: &mut JavascriptParser, str: &str, _is_parameter: bool) -> Option<bool> {
     self.walk_data.can_rename.contains(str).then_some(true)
   }
 
