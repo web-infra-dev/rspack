@@ -1,3 +1,4 @@
+mod amd;
 mod api_plugin;
 mod check_var_decl;
 mod common_js_exports_parse_plugin;
@@ -27,15 +28,13 @@ mod use_strict_plugin;
 mod webpack_included_plugin;
 mod worker_plugin;
 
-pub mod amd_define_dependency_parser_plugin;
-pub mod amd_require_dependencies_block_parser_plugin;
 pub mod define_plugin;
 pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
-pub mod require_js_stuff_plugin;
 
-pub(crate) use self::amd_define_dependency_parser_plugin::AMDDefineDependencyParserPlugin;
-pub(crate) use self::amd_require_dependencies_block_parser_plugin::AMDRequireDependenciesBlockParserPlugin;
+pub(crate) use self::amd::AMDDefineDependencyParserPlugin;
+pub(crate) use self::amd::AMDParserPlugin;
+pub(crate) use self::amd::AMDRequireDependenciesBlockParserPlugin;
 pub(crate) use self::api_plugin::APIPlugin;
 pub(crate) use self::check_var_decl::CheckVarDeclaratorIdent;
 pub(crate) use self::common_js_exports_parse_plugin::CommonJsExportsParserPlugin;
@@ -60,7 +59,6 @@ pub(crate) use self::r#const::{is_logic_op, ConstPlugin};
 pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
 pub(crate) use self::require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin;
 pub(crate) use self::require_ensure_dependencies_block_parse_plugin::RequireEnsureDependenciesBlockParserPlugin;
-pub(crate) use self::require_js_stuff_plugin::RequireJsStuffPlugin;
 pub(crate) use self::url_plugin::URLPlugin;
 pub(crate) use self::use_strict_plugin::UseStrictPlugin;
 pub(crate) use self::webpack_included_plugin::WebpackIsIncludedPlugin;

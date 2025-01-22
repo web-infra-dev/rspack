@@ -13,7 +13,6 @@ use swc_core::{
   },
 };
 
-use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
     amd_define_dependency::AmdDefineDependency,
@@ -22,6 +21,7 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{scope_info::FreeName, JavascriptParser, Statement},
+  JavascriptParserPlugin,
 };
 
 pub struct AMDDefineDependencyParserPlugin;
