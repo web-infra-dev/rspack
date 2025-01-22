@@ -461,6 +461,8 @@ export class Chunk {
         name: Record<string | number, string>;
     };
     // (undocumented)
+    getEntryOptions(): Readonly<EntryOptions> | undefined;
+    // (undocumented)
     get groupsIterable(): ReadonlySet<ChunkGroup>;
     // (undocumented)
     readonly hash?: string;
@@ -6843,11 +6845,9 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -6858,10 +6858,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -6920,11 +6922,9 @@ export const rspackOptions: z.ZodObject<{
     }, {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -6935,10 +6935,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -8624,11 +8626,9 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -8639,10 +8639,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -9229,11 +9231,9 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -9244,10 +9244,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;

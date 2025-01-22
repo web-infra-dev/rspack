@@ -5,6 +5,7 @@ use napi_derive::napi;
 use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
+use crate::compilation::entries::EntryOptionsDTO;
 use crate::JsChunkGroupWrapper;
 
 #[napi]
@@ -233,6 +234,15 @@ impl JsChunk {
         .map(|group| JsChunkGroupWrapper::new(group.ukey, compilation))
         .collect::<Vec<_>>(),
     )
+  }
+
+  #[napi(ts_return_type = "EntryOptionsDTO | undefined")]
+  pub fn get_entry_options(&self) -> napi::Result<Option<EntryOptionsDTO>> {
+    let (compilation, chunk) = self.as_ref()?;
+
+    let entry_options = chunk.get_entry_options(&compilation.chunk_group_by_ukey);
+
+    Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
   }
 }
 
