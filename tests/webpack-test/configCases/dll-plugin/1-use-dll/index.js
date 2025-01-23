@@ -32,11 +32,7 @@ it("should load an ES module from dll (star export)", function() {
 });
 
 it("should load a module with loader applied", function() {
-	expect(require("dll/g.abc.js")).toBe(
-		"string"
-		// FIXME: should use number in deterministic module ids
-		// "number"
-	);
+	expect(require("dll/g.abc.js")).toBe("number");
 });
 
 it("should give modules the correct ids", function() {

@@ -44,10 +44,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 843,
+		              size: 841,
 		            },
 		          ],
-		          assetsSize: 843,
+		          assetsSize: 841,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,
@@ -77,10 +77,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk.js,
-		        size: 843,
+		        size: 841,
 		      },
 		    ],
-		    assetsSize: 843,
+		    assetsSize: 841,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: chunk.js.map,
@@ -102,10 +102,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-c.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -117,10 +117,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-a.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -134,10 +134,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-b.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -158,10 +158,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-a.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -177,10 +177,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-b.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -196,10 +196,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-c.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -233,10 +233,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 843,
+		              size: 841,
 		            },
 		          ],
-		          assetsSize: 843,
+		          assetsSize: 841,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,

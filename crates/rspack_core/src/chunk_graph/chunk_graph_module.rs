@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
+use rspack_macros::cacheable;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
@@ -19,6 +20,7 @@ use crate::{
 };
 use crate::{ChunkGraph, Module};
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleId {
   inner: Arc<str>,
@@ -36,6 +38,12 @@ impl From<&str> for ModuleId {
   }
 }
 
+impl From<u32> for ModuleId {
+  fn from(n: u32) -> Self {
+    Self::from(n.to_string())
+  }
+}
+
 impl fmt::Display for ModuleId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.as_str())
@@ -47,7 +55,11 @@ impl Serialize for ModuleId {
   where
     S: Serializer,
   {
-    serializer.serialize_str(self.as_str())
+    if let Some(n) = self.as_number() {
+      serializer.serialize_u32(n)
+    } else {
+      serializer.serialize_str(self.as_str())
+    }
   }
 }
 
@@ -58,8 +70,8 @@ impl Borrow<str> for ModuleId {
 }
 
 impl ModuleId {
-  pub fn as_number(&self) -> Option<i32> {
-    self.inner.parse().ok()
+  pub fn as_number(&self) -> Option<u32> {
+    self.inner.parse::<u32>().ok()
   }
 
   pub fn as_str(&self) -> &str {

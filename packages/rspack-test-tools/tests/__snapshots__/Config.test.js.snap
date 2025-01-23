@@ -369,7 +369,7 @@ export * from "external1-alias";
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out 1`] = `
 var __webpack_modules__ = ({
-"851": (function (module) {
+851: (function (module) {
 module.exports = 'b'
 
 }),
@@ -403,12 +403,12 @@ return module.exports;
 // startup
 // Load entry module and return exports
 // This entry module is referenced by other modules so it can't be inlined
-var __webpack_exports__ = __webpack_require__("851");
+var __webpack_exports__ = __webpack_require__(851);
 `;
 
 exports[`config config/library/modern-module-force-concaten step  should pass: .cjs should bail out when bundling 1`] = `
 var __webpack_modules__ = ({
-"997": (function (module) {
+997: (function (module) {
 module.exports = 'bar'
 
 }),
@@ -477,7 +477,7 @@ __webpack_require__.o = function (obj, prop) {
 const foo = 'foo'
 
 // EXTERNAL MODULE: ./e/bar.cjs
-var bar = __webpack_require__("997");
+var bar = __webpack_require__(997);
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 ;// CONCATENATED MODULE: ./e/index.js
 
@@ -541,11 +541,11 @@ export { file_namespaceObject as default };
 exports[`config config/library/modern-module-force-concaten step  should pass: external module should bail out when bundling 1`] = `
 import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "node:module";
 var __webpack_modules__ = ({
-"17": (function (module) {
+17: (function (module) {
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
 
 }),
-"441": (function (module, __unused_webpack_exports, __webpack_require__) {
+441: (function (module, __unused_webpack_exports, __webpack_require__) {
 const path = __webpack_require__(17)
 
 module.exports = path.sep
@@ -614,7 +614,7 @@ __webpack_require__.o = function (obj, prop) {
 /************************************************************************/
 
 // EXTERNAL MODULE: ./f/bar.cjs
-var bar = __webpack_require__("441");
+var bar = __webpack_require__(441);
 var bar_default = /*#__PURE__*/__webpack_require__.n(bar);
 ;// CONCATENATED MODULE: ./f/foo.js
 const foo = 'foo'
@@ -632,7 +632,7 @@ export { value };
 
 exports[`config config/library/modern-module-force-concaten step  should pass: harmony export should concat, even with bailout reason 1`] = `
 var __webpack_modules__ = ({
-"974": (function (module) {
+974: (function (module) {
 module.exports = 'foo'
 
 
@@ -699,7 +699,7 @@ __webpack_require__.o = function (obj, prop) {
 /************************************************************************/
 
 // EXTERNAL MODULE: ./g/foo.js
-var foo = __webpack_require__("974");
+var foo = __webpack_require__(974);
 var foo_default = /*#__PURE__*/__webpack_require__.n(foo);
 ;// CONCATENATED MODULE: ./g/index.js
 
