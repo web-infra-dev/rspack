@@ -99,9 +99,7 @@ export const getRawOptions = (
 		experiments,
 		node: getRawNode(options.node),
 		profile: options.profile!,
-		amd: options.amd
-			? JSON.stringify(options.amd || {})
-			: undefined,
+		amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
 		bail: options.bail!,
 		__references: {}
 	};
