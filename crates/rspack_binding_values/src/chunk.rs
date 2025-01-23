@@ -241,9 +241,9 @@ thread_local! {
 }
 
 pub struct JsChunkWrapper {
-  chunk_ukey: ChunkUkey,
-  compilation_id: CompilationId,
-  compilation: NonNull<Compilation>,
+  pub chunk_ukey: ChunkUkey,
+  pub compilation_id: CompilationId,
+  pub compilation: NonNull<Compilation>,
 }
 
 unsafe impl Send for JsChunkWrapper {}

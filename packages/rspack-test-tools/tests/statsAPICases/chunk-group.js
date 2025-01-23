@@ -26,17 +26,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14544,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14544,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 689,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 689,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -215,17 +215,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14544,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14544,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 689,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 689,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
