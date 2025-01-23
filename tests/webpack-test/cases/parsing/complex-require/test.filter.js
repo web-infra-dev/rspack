@@ -11,7 +11,7 @@ module.exports = function (config) {
 module.exports = () => {
 	return [
 		FilteredStatus.PARTIAL_PASS,
-		"https://github.com/web-infra-dev/rspack/issues/4313",
+		"amd require context",
 		"require(String.raw``)"
 	];
 };
