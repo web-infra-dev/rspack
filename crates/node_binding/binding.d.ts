@@ -1368,7 +1368,7 @@ export interface RawDllManifest {
 export interface RawDllManifestContentItem {
   buildMeta?: JsBuildMeta
   exports?: string[] | true
-  id?: string
+  id?: number | string
 }
 
 export interface RawDllReferenceAgencyPluginOptions {
