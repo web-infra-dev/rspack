@@ -3,6 +3,7 @@ mod raw_bundle_info;
 mod raw_copy;
 mod raw_css_extract;
 mod raw_dll;
+mod raw_flight_client_entry_plugin;
 mod raw_html;
 mod raw_ids;
 mod raw_ignore;
@@ -18,6 +19,7 @@ mod raw_swc_js_minimizer;
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
+use raw_flight_client_entry_plugin::RawFlightClientEntryPluginOptions;
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
@@ -63,6 +65,7 @@ use rspack_plugin_mf::{
   ConsumeSharedPlugin, ContainerPlugin, ContainerReferencePlugin, ModuleFederationRuntimePlugin,
   ProvideSharedPlugin, ShareRuntimePlugin,
 };
+use rspack_plugin_next_flight_client_entry::FlightClientEntryPlugin;
 use rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
@@ -197,6 +200,8 @@ pub enum BuiltinPluginName {
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
+
+  FlightClientEntryPlugin,
 }
 
 #[napi(object)]
@@ -557,6 +562,11 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::FlightClientEntryPlugin => {
+        let raw_options = downcast_into::<RawFlightClientEntryPluginOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(FlightClientEntryPlugin::new(options).boxed());
       }
     }
     Ok(())

@@ -102,6 +102,7 @@ rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 json                                   = { workspace = true }
+rspack_plugin_next_flight_client_entry = { workspace = true }
 
 
 [build-dependencies]

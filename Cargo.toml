@@ -191,6 +191,7 @@ rspack_swc_plugin_import               = { version = "0.2.0", path = "crates/swc
 rspack_testing                         = { version = "0.2.0", path = "crates/rspack_testing" }
 rspack_tracing                         = { version = "0.2.0", path = "crates/rspack_tracing" }
 rspack_util                            = { version = "0.2.0", path = "crates/rspack_util" }
+rspack_plugin_next_flight_client_entry = { path = "crates/rspack_plugin_next_flight_client_entry" }
 
 
 [workspace.metadata.release]
