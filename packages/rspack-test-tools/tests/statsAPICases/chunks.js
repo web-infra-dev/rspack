@@ -247,7 +247,7 @@ module.exports = {
 		    size: 85,
 		    sizes: Object {
 		      javascript: 85,
-		      runtime: 9140,
+		      runtime: 8965,
 		    },
 		    type: chunk,
 		  },

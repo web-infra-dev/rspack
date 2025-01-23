@@ -31,7 +31,7 @@ __webpack_require__.m = __webpack_modules__;
 /************************************************************************/
 // webpack/runtime/create_fake_namespace_object
 (() => {
-var getProto = Object.getPrototypeOf ? function(obj) { return Object.getPrototypeOf(obj); } : function(obj) { return obj.__proto__ };
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
@@ -51,9 +51,9 @@ __webpack_require__.t = function(value, mode) {
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach(function(key) { def[key] = function() { return  value[key]; } });
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
 	}
-	def['default'] = function() { return value };
+	def['default'] = () => (value);
 	__webpack_require__.d(ns, def);
 	return ns;
 };
@@ -241,30 +241,29 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 })();
 // webpack/runtime/auto_public_path
 (() => {
+var scriptUrl;
 
-    var scriptUrl;
-    if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
-    var document = __webpack_require__.g.document;
-    if (!scriptUrl && document) {
-      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
-      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
-      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
-      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
-      if (!scriptUrl) {
-        var scripts = document.getElementsByTagName("script");
-            if (scripts.length) {
-              var i = scripts.length - 1;
-              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-            }
-      }
-      }
-    
-    // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
-    // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
-    if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-    scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-    __webpack_require__.p = scriptUrl
-    
+if (__webpack_require__.g.importScripts) scriptUrl = __webpack_require__.g.location + "";
+var document = __webpack_require__.g.document;
+if (!scriptUrl && document) {
+  // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
+  // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
+  // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
+  if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
+  if (!scriptUrl) {
+    var scripts = document.getElementsByTagName("script");
+    if (scripts.length) {
+      var i = scripts.length - 1;
+      while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
+    }
+  }
+}
+
+// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
+// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
+if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+__webpack_require__.p = scriptUrl
 })();
 // webpack/runtime/jsonp_chunk_loading
 (() => {
