@@ -209,6 +209,8 @@ Object {
 }
 `;
 
+exports[`new-code-splitting config cases new-code-splitting config cases/builtins/enable-chunk-loading step  should pass 1`] = `Chunk loading type "non-existing" is not enabled. EnableChunkLoadingPlugin need to be used to enable this type of chunk loading. This usually happens through the "output.enabledChunkLoadingTypes" option. If you are using a function as entry which sets "chunkLoading", you need to add all potential chunk loading types to "output.enabledChunkLoadingTypes". These types are enabled: custom, import, async-node`;
+
 exports[`new-code-splitting config cases new-code-splitting config cases/chunk-index/available-modules-order-index exported tests should compile 1`] = `
 .m {
   color: red;
