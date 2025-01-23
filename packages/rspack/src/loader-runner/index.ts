@@ -26,7 +26,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import type { Context, Tracer } from "@rspack/tracing";
+import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
@@ -340,36 +340,64 @@ function getCurrentLoader(
 	}
 	return null;
 }
-let tracingCache!: { tracer?: Tracer; activeContext?: Context };
-async function tryTrace(context: JsLoaderContext) {
+
+// FIXME: a temporary fix, we may need to change @rspack/tracing to commonjs really fix it
+let cachedTracing:
+	| {
+			trace: TraceAPI;
+			propagation: PropagationAPI;
+			context: ContextAPI;
+	  }
+	| null
+	| undefined;
+
+async function getCachedTracing() {
 	// disable tracing in non-profile mode
 	if (!process.env.RSPACK_PROFILE) {
-		return {};
+		cachedTracing = null;
+		return cachedTracing;
 	}
-	try {
-		const {
-			trace,
-			propagation,
-			context: tracingContext
-		} = await import("@rspack/tracing");
+	if (cachedTracing) {
+		return cachedTracing;
+	}
+	if (cachedTracing === undefined) {
+		try {
+			const tracing = await import("@rspack/tracing");
+			cachedTracing = {
+				trace: tracing.trace,
+				propagation: tracing.propagation,
+				context: tracing.context
+			};
+			return cachedTracing;
+		} catch (e) {
+			cachedTracing = null;
+			return cachedTracing;
+		}
+	} else {
+		cachedTracing = null;
+		return cachedTracing;
+	}
+}
+
+async function tryTrace(context: JsLoaderContext) {
+	const cachedTracing = await getCachedTracing();
+	if (cachedTracing) {
+		const { trace, propagation, context: tracingContext } = cachedTracing;
 		const tracer = trace.getTracer("rspack-loader-runner");
 		const activeContext = propagation.extract(
 			tracingContext.active(),
 			context.__internal__tracingCarrier
 		);
-		tracingCache = { tracer, activeContext };
-		return tracingCache;
-	} catch (error) {
-		tracingCache = {};
-		return tracingCache;
+		return { trace, tracer, activeContext };
 	}
+	return null;
 }
 
 export async function runLoaders(
 	compiler: Compiler,
 	context: JsLoaderContext
 ): Promise<JsLoaderContext> {
-	const { tracer, activeContext } = await tryTrace(context);
+	const { tracer, activeContext } = (await tryTrace(context)) ?? {};
 
 	const loaderState = context.loaderState;
 
