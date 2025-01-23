@@ -216,9 +216,10 @@ inherits = "release"
 lto = "fat"
 
 [profile.release-debug]
-debug    = 'line-tables-only'
-inherits = "release"
-strip    = false
+debug           = 'line-tables-only'
+inherits        = "release"
+split-debuginfo = "off"
+strip           = false
 
 [profile.release-debug.package.'*']
 debug = false
