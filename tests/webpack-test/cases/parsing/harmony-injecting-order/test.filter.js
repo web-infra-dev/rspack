@@ -1,4 +1,3 @@
-
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4313"}
+module.exports = () => {return "__webpack_amd_options__ module variable"}
 
 							

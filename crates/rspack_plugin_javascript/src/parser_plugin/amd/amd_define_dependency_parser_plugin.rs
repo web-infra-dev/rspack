@@ -289,10 +289,6 @@ impl AMDDefineDependencyParserPlugin {
           }
         } else {
           // define([…], …)
-          if !first_arg.expr.is_array() {
-            return None;
-          }
-
           array = Some(&first_arg.expr);
 
           if is_callable(&second_arg.expr) {

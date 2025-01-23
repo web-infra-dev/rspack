@@ -4,7 +4,7 @@ it("require([...]) should work well", async function () {
 
 	await p;
 
-	expect(require('./fn')).toHaveBeenCalledWith(123);
+	expect(require('./fn').value).toBe(123);
 });
 
 it("require([...], function () {}) should work well", function (done) {
