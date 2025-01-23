@@ -54,7 +54,7 @@ impl EntryOptionsDTO {
   #[napi(getter)]
   pub fn chunk_loading(&self) -> Either<&str, ()> {
     match &self.0.chunk_loading {
-      Some(c) => Either::A(c.into()),
+      Some(c) => Either::A(c.as_str()),
       None => Either::B(()),
     }
   }
