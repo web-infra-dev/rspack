@@ -14,6 +14,7 @@ use rspack_hook::plugin_hook;
 use rspack_hook::Hook as _;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
+use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_runtime::RuntimePlugin;
 
 use self::interceptor::*;
@@ -71,6 +72,7 @@ pub struct JsHooksAdapterPlugin {
   register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps,
   register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps,
   register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps,
+  register_real_content_hash_plugin_update_hash_taps: RegisterRealContentHashPluginUpdateHashTaps,
 }
 
 impl fmt::Debug for JsHooksAdapterPlugin {
@@ -321,6 +323,12 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
       .compilation
       .tap(runtime_hooks_adapter_compilation::new(self));
 
+    ctx
+      .context
+      .compiler_hooks
+      .compilation
+      .tap(real_content_hash_hooks_adapter_compilation::new(self));
+
     Ok(())
   }
 
@@ -413,6 +421,9 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
     self
       .register_runtime_plugin_link_prefetch_taps
       .clear_cache();
+    self
+      .register_real_content_hash_plugin_update_hash_taps
+      .clear_cache();
   }
 }
 
@@ -481,6 +492,21 @@ async fn runtime_hooks_adapter_compilation(
   hooks
     .link_prefetch
     .intercept(self.register_runtime_plugin_link_prefetch_taps.clone());
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
+async fn real_content_hash_hooks_adapter_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> rspack_error::Result<()> {
+  let mut hooks = RealContentHashPlugin::get_compilation_hooks_mut(compilation);
+  hooks.update_hash.intercept(
+    self
+      .register_real_content_hash_plugin_update_hash_taps
+      .clone(),
+  );
   Ok(())
 }
 
@@ -680,6 +706,11 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_runtime_plugin_link_prefetch_taps,
           non_skippable_registers.clone(),
         ),
+        register_real_content_hash_plugin_update_hash_taps:
+          RegisterRealContentHashPluginUpdateHashTaps::new(
+            register_js_taps.register_real_content_hash_plugin_update_hash_taps,
+            non_skippable_registers.clone(),
+          ),
         non_skippable_registers,
       }
       .into(),

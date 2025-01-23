@@ -21,7 +21,7 @@ use rspack_binding_values::{
   JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
   JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
   JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsRuntimeRequirementInTreeResult, JsUpdateHashData, ToJsCompatSourceOwned,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -68,6 +68,9 @@ use rspack_plugin_html::{
   HtmlPluginBeforeAssetTagGenerationHook, HtmlPluginBeforeEmit, HtmlPluginBeforeEmitHook,
 };
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
+use rspack_plugin_real_content_hash::{
+  RealContentHashPluginUpdateHash, RealContentHashPluginUpdateHashHook,
+};
 use rspack_plugin_runtime::{
   CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
   RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
@@ -395,6 +398,7 @@ pub enum RegisterJsTapKind {
   RuntimePluginCreateScript,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
+  RealContentHashPluginUpdateHash,
 }
 
 #[derive(Default, Clone)]
@@ -599,20 +603,26 @@ pub struct RegisterJsTaps {
   pub register_html_plugin_after_emit_taps:
     RegisterFunction<JsAfterEmitData, Promise<JsAfterEmitData>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => string | undefined); stage: number; }>"
   )]
   pub register_runtime_plugin_create_script_taps:
     RegisterFunction<JsCreateScriptData, Option<String>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => string | undefined); stage: number; }>"
   )]
   pub register_runtime_plugin_link_preload_taps:
     RegisterFunction<JsLinkPreloadData, Option<String>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => string | undefined); stage: number; }>"
   )]
   pub register_runtime_plugin_link_prefetch_taps:
     RegisterFunction<JsLinkPrefetchData, Option<String>>,
+
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsUpdateHashData) => string | undefined); stage: number; }>"
+  )]
+  pub register_real_content_hash_plugin_update_hash_taps:
+    RegisterFunction<JsUpdateHashData, Option<String>>,
 }
 
 /* Compiler Hooks */
@@ -981,6 +991,14 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::RuntimePluginLinkPrefetch,
+  skip = true,
+);
+define_register!(
+  RegisterRealContentHashPluginUpdateHashTaps,
+  tap = RealContentHashPluginUpdateHashTap<JsUpdateHashData, Option<String>> @ RealContentHashPluginUpdateHashHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RealContentHashPluginUpdateHash,
   skip = true,
 );
 
@@ -1864,6 +1882,29 @@ impl RuntimePluginLinkPrefetch for RuntimePluginLinkPrefetchTap {
       data.code = code;
     }
     Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
+  async fn run(
+    &self,
+    assets: &mut Vec<Vec<u8>>,
+    old_hash: &mut String,
+  ) -> rspack_error::Result<Option<String>> {
+    let assets = std::mem::take(assets)
+      .into_iter()
+      .map(|asset| asset.into())
+      .collect::<Vec<_>>();
+    let old_hash = std::mem::take(old_hash);
+    self
+      .function
+      .call_with_sync(JsUpdateHashData { assets, old_hash })
+      .await
   }
 
   fn stage(&self) -> i32 {

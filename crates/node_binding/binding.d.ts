@@ -1130,6 +1130,11 @@ export interface JsTap {
   stage: number
 }
 
+export interface JsUpdateHashData {
+  assets: Array<Buffer>
+  oldHash: string
+}
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -2135,7 +2140,8 @@ export declare enum RegisterJsTapKind {
   HtmlPluginAfterEmit = 40,
   RuntimePluginCreateScript = 41,
   RuntimePluginLinkPreload = 42,
-  RuntimePluginLinkPrefetch = 43
+  RuntimePluginLinkPrefetch = 43,
+  RealContentHashPluginUpdateHash = 44
 }
 
 export interface RegisterJsTaps {
@@ -2180,9 +2186,10 @@ export interface RegisterJsTaps {
   registerHtmlPluginAfterTemplateExecutionTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterTemplateExecutionData) => JsAfterTemplateExecutionData); stage: number; }>
   registerHtmlPluginBeforeEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>
   registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
-  registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>
-  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
-  registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
+  registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => string | undefined); stage: number; }>
+  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => string | undefined); stage: number; }>
+  registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => string | undefined); stage: number; }>
+  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((arg: JsUpdateHashData) => string | undefined); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {
