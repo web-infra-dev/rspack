@@ -41,6 +41,7 @@ rspack_plugin_wasm                    = { workspace = true }
 rspack_plugin_worker                  = { workspace = true }
 
 [dev-dependencies]
+insta = { workspace = true, features = ["filters"] }
 tokio = { workspace = true }
 
 [lints]
