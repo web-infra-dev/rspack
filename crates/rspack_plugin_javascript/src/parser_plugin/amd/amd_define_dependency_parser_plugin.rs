@@ -70,14 +70,12 @@ fn is_callable(expr: &Expr) -> bool {
 /// define('ui/foo/bar', ['./baz', '../qux'], ...);
 /// - 'ui/foo/baz'
 /// - 'ui/qux'
-fn lookup(parent: &Option<Atom>, module: &str) -> Atom {
-  if let Some(parent) = parent
-    && module.starts_with('.')
-  {
+fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
+  if module.starts_with('.') {
     let mut path: Vec<&str> = parent.split('/').collect();
     path.pop();
 
-    for seg in module.split('.') {
+    for seg in module.split('/') {
       if seg == ".." {
         path.pop();
       } else if seg != "." {
@@ -219,9 +217,12 @@ impl AMDDefineDependencyParserPlugin {
           MODULE.into(),
           Some(RuntimeGlobals::MODULE),
         ))
-      } else if let Some(local_module) =
-        parser.get_local_module_mut(&lookup(named_module, param_str))
-      {
+      } else if let Some(local_module) = parser.get_local_module_mut(
+        &named_module
+          .as_ref()
+          .map(|parent| lookup(parent, param_str))
+          .unwrap_or(param_str.into()),
+      ) {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
           local_module.clone(),
@@ -600,8 +601,8 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
 
   /**
    * unlike js, it's hard to share the LocalModule instance in Rust.
-   * so the AmdDefineDependency will get a clone of LocalModule in parser.local_modules.
-   * synchronize the used flag to the AmdDefineDependency's local_module at the end of the parse.
+   * so the AMDDefineDependency will get a clone of LocalModule in parser.local_modules.
+   * synchronize the used flag to the AMDDefineDependency's local_module at the end of the parse.
    */
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     for dep in parser.presentational_dependencies.iter_mut() {
@@ -616,5 +617,17 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
       }
     }
     None
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_lookup() {
+    assert_eq!(lookup("ui/foo", "./bar"), "ui/bar");
+    assert_eq!(lookup("ui/foo", "../bar"), "bar");
+    assert_eq!(lookup("ui/foo", "bar"), "bar");
   }
 }

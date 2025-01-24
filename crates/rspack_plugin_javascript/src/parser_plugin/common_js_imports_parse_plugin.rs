@@ -7,6 +7,7 @@ use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, Ident, MemberExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
+use crate::dependency::local_module_dependency::LocalModuleDependency;
 use crate::dependency::{
   CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
   RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
@@ -274,12 +275,24 @@ impl CommonJsImportsParserPlugin {
         return Some(true);
       }
     }
+    if param.is_string()
+      && let Some(local_module) = parser.get_local_module_mut(param.string())
+    {
+      local_module.flag_used();
+      let span = call_expr.span();
+      let dep = Box::new(LocalModuleDependency::new(
+        local_module.clone(),
+        Some((span.real_lo(), span.real_hi())),
+        false,
+      ));
+      parser.presentational_dependencies.push(dep);
+      return Some(true);
+    }
 
     if matches!(parser.javascript_options.require_dynamic, Some(false)) && !param.is_string() {
       return None;
     }
 
-    // FIXME: should support `LocalModuleDependency`
     if self
       .process_require_item(parser, call_expr.span, &param)
       .is_none()
