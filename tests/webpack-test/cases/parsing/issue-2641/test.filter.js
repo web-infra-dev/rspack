@@ -1,4 +1,4 @@
 
-module.exports = () => {return "error callback on missing module in context"}
+module.exports = () => {return "amd require context"}
 
 							
