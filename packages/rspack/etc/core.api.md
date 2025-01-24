@@ -1540,7 +1540,7 @@ export interface DllReferencePluginOptionsContent {
     [k: string]: {
         buildMeta?: JsBuildMeta;
         exports?: string[] | true;
-        id?: string;
+        id?: string | number;
     };
 }
 
