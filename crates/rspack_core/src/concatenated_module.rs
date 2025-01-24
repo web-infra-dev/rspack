@@ -438,6 +438,10 @@ impl ConcatenatedModule {
     self.id
   }
 
+  pub fn get_root(&self) -> ModuleIdentifier {
+    self.root_module_ctxt.id
+  }
+
   pub fn get_modules(&self) -> &[ConcatenatedInnerModule] {
     self.modules.as_slice()
   }

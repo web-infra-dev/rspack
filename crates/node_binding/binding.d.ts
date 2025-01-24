@@ -366,6 +366,7 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
@@ -826,6 +827,157 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+}
+
+export interface JsRsdoctorAsset {
+  ukey: number
+  path: string
+  chunks: Array<number>
+  size: number
+}
+
+export interface JsRsdoctorAssetPatch {
+  assets: Array<JsRsdoctorAsset>
+  chunkAssets: Array<JsRsdoctorChunkAssets>
+  entrypointAssets: Array<JsRsdoctorEntrypointAssets>
+}
+
+export interface JsRsdoctorChunk {
+  ukey: number
+  name: string
+  initial: boolean
+  entry: boolean
+  dependencies: Array<number>
+  imported: Array<number>
+}
+
+export interface JsRsdoctorChunkAssets {
+  chunk: number
+  assets: Array<number>
+}
+
+export interface JsRsdoctorChunkGraph {
+  chunks: Array<JsRsdoctorChunk>
+  entrypoints: Array<JsRsdoctorEntrypoint>
+}
+
+export interface JsRsdoctorChunkModules {
+  chunk: number
+  modules: Array<number>
+}
+
+export interface JsRsdoctorDependency {
+  ukey: number
+  kind: string
+  request: string
+  module: number
+  dependency: number
+}
+
+export interface JsRsdoctorEntrypoint {
+  ukey: number
+  name: string
+  chunks: Array<number>
+}
+
+export interface JsRsdoctorEntrypointAssets {
+  entrypoint: number
+  assets: Array<number>
+}
+
+export interface JsRsdoctorExportInfo {
+  ukey: number
+  name: string
+  from?: number
+  variable?: number
+  identifier?: JsRsdoctorStatement
+  sideEffects: Array<number>
+}
+
+export interface JsRsdoctorModule {
+  ukey: number
+  identifier: string
+  path: string
+  isEntry: boolean
+  kind: 'normal' | 'concatenated'
+  layer?: string
+  dependencies: Array<number>
+  imported: Array<number>
+  modules: Array<number>
+  belongModules: Array<number>
+  chunks: Array<number>
+}
+
+export interface JsRsdoctorModuleGraph {
+  modules: Array<JsRsdoctorModule>
+  dependencies: Array<JsRsdoctorDependency>
+  chunkModules: Array<JsRsdoctorChunkModules>
+}
+
+export interface JsRsdoctorModuleGraphModule {
+  ukey: number
+  module: number
+  exports: Array<number>
+  sideEffects: Array<number>
+  variables: Array<number>
+  dynamic: boolean
+}
+
+export interface JsRsdoctorModuleId {
+  module: number
+  renderId: string
+}
+
+export interface JsRsdoctorModuleIdsPatch {
+  moduleIds: Array<JsRsdoctorModuleId>
+}
+
+export interface JsRsdoctorModuleOriginalSource {
+  module: number
+  source: string
+  size: number
+}
+
+export interface JsRsdoctorModuleSourcesPatch {
+  moduleOriginalSources: Array<JsRsdoctorModuleOriginalSource>
+}
+
+export interface JsRsdoctorSideEffect {
+  ukey: number
+  name: string
+  originName?: string
+  module: number
+  identifier: JsRsdoctorStatement
+  isNameSpace: boolean
+  fromDependency?: number
+  exports: Array<number>
+  variable?: number
+}
+
+export interface JsRsdoctorSourcePosition {
+  line?: number
+  column?: number
+  index?: number
+}
+
+export interface JsRsdoctorSourceRange {
+  start: JsRsdoctorSourcePosition
+  end?: JsRsdoctorSourcePosition
+}
+
+export interface JsRsdoctorStatement {
+  module: number
+  sourcePosition?: JsRsdoctorSourceRange
+  transformedPosition: JsRsdoctorSourceRange
+}
+
+export interface JsRsdoctorVariable {
+  ukey: number
+  name: string
+  module: number
+  usedInfo: string
+  identififer: JsRsdoctorStatement
+  exported?: number
 }
 
 export interface JsRspackDiagnostic {
@@ -1962,6 +2114,11 @@ export interface RawResolveTsconfigOptions {
   references?: Array<string>
 }
 
+export interface RawRsdoctorPluginOptions {
+  moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
+  chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
+}
+
 export interface RawRspackFuture {
 
 }
@@ -2135,7 +2292,12 @@ export declare enum RegisterJsTapKind {
   HtmlPluginAfterEmit = 40,
   RuntimePluginCreateScript = 41,
   RuntimePluginLinkPreload = 42,
-  RuntimePluginLinkPrefetch = 43
+  RuntimePluginLinkPrefetch = 43,
+  RsdoctorPluginModuleGraph = 44,
+  RsdoctorPluginChunkGraph = 45,
+  RsdoctorPluginModuleIds = 46,
+  RsdoctorPluginModuleSources = 47,
+  RsdoctorPluginAssets = 48
 }
 
 export interface RegisterJsTaps {
@@ -2183,6 +2345,11 @@ export interface RegisterJsTaps {
   registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>
   registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
+  registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
+  registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {
