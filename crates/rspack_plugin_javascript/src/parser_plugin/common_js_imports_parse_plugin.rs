@@ -4,7 +4,7 @@ use rspack_core::{
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
 use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Ident, MemberExpr, UnaryExpr};
+use swc_core::ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr};
 
 use super::JavascriptParserPlugin;
 use crate::dependency::local_module_dependency::LocalModuleDependency;
@@ -85,6 +85,34 @@ fn create_require_resolve_context_dependency(
     attributes: None,
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
+}
+
+enum CallOrNewExpr<'a> {
+  Call(&'a CallExpr),
+  New(&'a NewExpr),
+}
+
+impl CallOrNewExpr<'_> {
+  pub fn callee(&self) -> Option<&Expr> {
+    match self {
+      CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr().map(|e| &**e),
+      CallOrNewExpr::New(new_expr) => Some(&new_expr.callee),
+    }
+  }
+
+  pub fn args(&self) -> Option<&[ExprOrSpread]> {
+    match self {
+      CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
+      CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
+    }
+  }
+
+  pub fn span(&self) -> Span {
+    match self {
+      CallOrNewExpr::Call(call_expr) => call_expr.span,
+      CallOrNewExpr::New(new_expr) => new_expr.span,
+    }
+  }
 }
 
 pub struct CommonJsImportsParserPlugin;
@@ -239,33 +267,28 @@ impl CommonJsImportsParserPlugin {
   fn require_handler(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    expr: CallOrNewExpr,
     for_name: &str,
   ) -> Option<bool> {
-    let is_require_expr = for_name == expr_name::REQUIRE
-      || call_expr
-        .callee
-        .as_expr()
-        .is_some_and(|expr| expr_matcher::is_module_require(&**expr)); // FIXME: remove `module.require`
+    let callee = expr.callee()?;
+    let is_require_expr = for_name == expr_name::REQUIRE || expr_matcher::is_module_require(callee); // FIXME: remove `module.require`
+    let args = expr.args()?;
 
-    if !is_require_expr || call_expr.args.len() != 1 {
+    if !is_require_expr || args.len() != 1 {
       return None;
     }
 
-    let argument_expr = &call_expr.args[0].expr;
+    let argument_expr = &args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
-        if self
-          .process_require_item(parser, call_expr.span(), p)
-          .is_none()
-        {
+        if self.process_require_item(parser, expr.span(), p).is_none() {
           is_expression = true;
         }
       }
       if !is_expression {
-        let range: DependencyRange = call_expr.callee.span().into();
+        let range: DependencyRange = callee.span().into();
         parser
           .presentational_dependencies
           .push(Box::new(RequireHeaderDependency::new(
@@ -279,11 +302,11 @@ impl CommonJsImportsParserPlugin {
       && let Some(local_module) = parser.get_local_module_mut(param.string())
     {
       local_module.flag_used();
-      let span = call_expr.span();
+      let span = expr.span();
       let dep = Box::new(LocalModuleDependency::new(
         local_module.clone(),
         Some((span.real_lo(), span.real_hi())),
-        false,
+        matches!(expr, CallOrNewExpr::New(_)),
       ));
       parser.presentational_dependencies.push(dep);
       return Some(true);
@@ -294,12 +317,13 @@ impl CommonJsImportsParserPlugin {
     }
 
     if self
-      .process_require_item(parser, call_expr.span, &param)
+      .process_require_item(parser, expr.span(), &param)
       .is_none()
+      && let CallOrNewExpr::Call(call_expr) = expr
     {
       self.process_require_context(parser, call_expr, &param);
     } else {
-      let range: DependencyRange = call_expr.callee.span().into();
+      let range: DependencyRange = callee.span().into();
       parser
         .presentational_dependencies
         .push(Box::new(RequireHeaderDependency::new(
@@ -487,7 +511,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if self
-      .require_handler(parser, call_expr, for_name)
+      .require_handler(parser, CallOrNewExpr::Call(call_expr), for_name)
       .unwrap_or_default()
     {
       Some(true)
@@ -496,6 +520,22 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       Some(true)
     } else if for_name == expr_name::REQUIRE_RESOLVE_WEAK {
       self.process_resolve(parser, call_expr, true);
+      Some(true)
+    } else {
+      None
+    }
+  }
+
+  fn new_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    new_expr: &NewExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if self
+      .require_handler(parser, CallOrNewExpr::New(new_expr), for_name)
+      .unwrap_or_default()
+    {
       Some(true)
     } else {
       None
