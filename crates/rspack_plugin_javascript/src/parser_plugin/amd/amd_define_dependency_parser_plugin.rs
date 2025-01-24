@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, RuntimeGlobals, SpanExt,
+  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, Dependency, RuntimeGlobals,
+  SpanExt,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap;
@@ -15,7 +16,8 @@ use swc_core::{
 
 use crate::{
   dependency::{
-    amd_define_dependency::AmdDefineDependency,
+    amd_define_dependency::AMDDefineDependency,
+    amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
   },
@@ -65,21 +67,17 @@ fn is_callable(expr: &Expr) -> bool {
   is_unbound_function_expression(expr) || is_bound_function_expression(expr)
 }
 
-/**
- * lookup
- *
- * define('ui/foo/bar', ['./baz', '../qux'], ...);
- * - 'ui/foo/baz'
- * - 'ui/qux'
- */
-fn resolve_mod_name(mod_name: &Option<Atom>, dep_name: &str) -> Atom {
-  if let Some(mod_name) = mod_name
-    && dep_name.starts_with('.')
+/// define('ui/foo/bar', ['./baz', '../qux'], ...);
+/// - 'ui/foo/baz'
+/// - 'ui/qux'
+fn lookup(parent: &Option<Atom>, module: &str) -> Atom {
+  if let Some(parent) = parent
+    && module.starts_with('.')
   {
-    let mut path: Vec<&str> = mod_name.split('/').collect();
+    let mut path: Vec<&str> = parent.split('/').collect();
     path.pop();
 
-    for seg in dep_name.split('.') {
+    for seg in module.split('.') {
       if seg == ".." {
         path.pop();
       } else if seg != "." {
@@ -89,7 +87,7 @@ fn resolve_mod_name(mod_name: &Option<Atom>, dep_name: &str) -> Atom {
 
     path.join("/").into()
   } else {
-    dep_name.into()
+    module.into()
   }
 }
 
@@ -140,9 +138,38 @@ impl AMDDefineDependencyParserPlugin {
         }
       }
       return Some(true);
+    } else if param.is_const_array() {
+      let mut deps: Vec<AMDRequireArrayItem> = vec![];
+      let array = param.array();
+      for (i, request) in array.iter().enumerate() {
+        if request == "require" {
+          identifiers.insert(i, REQUIRE);
+          deps.push(AMDRequireArrayItem::String(
+            RuntimeGlobals::REQUIRE.name().into(),
+          ));
+        } else if request == "exports" {
+          identifiers.insert(i, EXPORTS);
+          deps.push(AMDRequireArrayItem::String(request.into()));
+        } else if request == "module" {
+          identifiers.insert(i, MODULE);
+          deps.push(AMDRequireArrayItem::String(request.into()));
+        } else if let Some(local_module) = parser.get_local_module_mut(request) {
+          local_module.flag_used();
+          deps.push(AMDRequireArrayItem::LocalModuleDependency {
+            local_module_variable_name: local_module.variable_name(),
+          })
+        } else {
+          let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
+          dep.set_optional(parser.in_try);
+          deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
+          parser.dependencies.push(Box::new(dep));
+        }
+      }
+      let range = param.range();
+      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1));
+      parser.presentational_dependencies.push(Box::new(dep));
+      return Some(true);
     }
-    // currently, there is no ConstArray in rspack
-    // TODO: check if `param` is a const string array
     None
   }
 
@@ -193,7 +220,7 @@ impl AMDDefineDependencyParserPlugin {
           Some(RuntimeGlobals::MODULE),
         ))
       } else if let Some(local_module) =
-        parser.get_local_module_mut(&resolve_mod_name(named_module, param_str))
+        parser.get_local_module_mut(&lookup(named_module, param_str))
       {
         local_module.flag_used();
         let dep = Box::new(LocalModuleDependency::new(
@@ -206,7 +233,7 @@ impl AMDDefineDependencyParserPlugin {
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
           Atom::new(param_str.as_str()),
-          range,
+          Some(range),
         ));
         dep.set_optional(parser.in_try);
         parser.dependencies.push(dep);
@@ -542,7 +569,7 @@ impl AMDDefineDependencyParserPlugin {
       .as_ref()
       .map(|name| parser.add_local_module(name.as_str()));
 
-    let dep = Box::new(AmdDefineDependency::new(
+    let dep = Box::new(AMDDefineDependency::new(
       (call_expr.span.real_lo(), call_expr.span.real_hi()),
       array.map(|expr| span_to_range(expr.span())),
       func.map(|expr| span_to_range(expr.span())),
@@ -578,7 +605,7 @@ impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
    */
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     for dep in parser.presentational_dependencies.iter_mut() {
-      if let Some(define_dep) = dep.as_any_mut().downcast_mut::<AmdDefineDependency>()
+      if let Some(define_dep) = dep.as_any_mut().downcast_mut::<AMDDefineDependency>()
         && let Some(local_module) = define_dep.get_local_module_mut()
         && parser
           .local_modules
