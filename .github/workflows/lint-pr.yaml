@@ -6,6 +6,10 @@ on:
       - opened
       - edited
 
+permissions:
+  # Allow `amannn/action-semantic-pull-request` to read pull requests
+  pull-requests: read
+
 jobs:
   lint-pr-title:
     name: Validate PR title
