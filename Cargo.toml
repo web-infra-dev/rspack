@@ -216,14 +216,9 @@ inherits = "release"
 lto = "fat"
 
 [profile.release-debug]
-debug           = 'line-tables-only'
 inherits        = "release"
 split-debuginfo = "off"
 strip           = false
-
-[profile.release-debug.package.'*']
-debug = false
-strip = true
 
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
