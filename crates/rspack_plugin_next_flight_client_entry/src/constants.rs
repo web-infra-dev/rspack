@@ -114,3 +114,5 @@ pub struct WebpackLayersGroup {
   pub bundled: [WebpackLayerName; 6],
   pub app_pages: [WebpackLayerName; 4],
 }
+
+pub const APP_CLIENT_INTERNALS: &'static str = "app-pages-internals";

@@ -11,8 +11,8 @@ use std::{
 
 use async_trait::async_trait;
 use constants::{
-  BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY, WEBPACK_LAYERS,
-  WEBPACK_RESOURCE_QUERIES,
+  APP_CLIENT_INTERNALS, BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY,
+  WEBPACK_LAYERS, WEBPACK_RESOURCE_QUERIES,
 };
 use derive_more::Debug;
 use for_each_entry_module::for_each_entry_module;
@@ -78,12 +78,22 @@ pub struct State {
 
 pub type StateCb = Box<dyn Fn(State) -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
+pub struct ShouldInvalidateCbCtx {
+  pub entry_name: String,
+  pub absolute_page_path: String,
+  pub bundle_path: String,
+  pub client_browser_loader: String,
+}
+
+pub type ShouldInvalidateCb = Box<dyn Fn(ShouldInvalidateCbCtx) -> bool + Sync + Send>;
+
 pub struct Options {
   pub dev: bool,
   pub app_dir: Utf8PathBuf,
   pub is_edge_server: bool,
   pub encryption_key: String,
   pub builtin_app_loader: bool,
+  pub should_invalidate_cb: ShouldInvalidateCb,
   pub state_cb: StateCb,
 }
 
@@ -428,6 +438,8 @@ pub struct FlightClientEntryPlugin {
   asset_prefix: &'static str,
   webpack_runtime: RuntimeSpec,
   app_loader: &'static str,
+  #[debug(skip)]
+  should_invalidate_cb: ShouldInvalidateCb,
 
   #[debug(skip)]
   plugin_state: Mutex<State>,
@@ -461,6 +473,7 @@ impl FlightClientEntryPlugin {
       asset_prefix,
       webpack_runtime,
       app_loader,
+      options.should_invalidate_cb,
       Mutex::new(Default::default()),
     )
   }
@@ -653,42 +666,19 @@ impl FlightClientEntryPlugin {
     // Add for the client compilation
     // Inject the entry to the client compiler.
     if self.dev {
-      // TODO
-
-      // let mut entries = get_entries(&compiler.output_path);
-      // let page_key = get_entry_key(COMPILER_NAMES.client, PAGE_TYPES.APP, bundle_path);
-
-      // if !entries.contains_key(&page_key) {
-      //   entries.insert(
-      //     page_key.clone(),
-      //     EntryData {
-      //       type_: EntryTypes::CHILD_ENTRY,
-      //       parent_entries: vec![entry_name.to_string()].into_iter().collect(),
-      //       absolute_entry_file_path: absolute_page_path.map(|s| s.to_string()),
-      //       bundle_path: bundle_path.to_string(),
-      //       request: client_browser_loader.clone(),
-      //       dispose: false,
-      //       last_active_time: std::time::SystemTime::now(),
-      //     },
-      //   );
-      //   should_invalidate = true;
-      // } else {
-      //   let entry_data = entries.get_mut(&page_key).unwrap();
-      //   // New version of the client loader
-      //   if entry_data.request != client_browser_loader {
-      //     entry_data.request = client_browser_loader.clone();
-      //     should_invalidate = true;
-      //   }
-      //   if entry_data.type_ == EntryTypes::CHILD_ENTRY {
-      //     entry_data.parent_entries.insert(entry_name.to_string());
-      //   }
-      //   entry_data.dispose = false;
-      //   entry_data.last_active_time = std::time::SystemTime::now();
-      // }
+      let should_invalidate_cb_ctx = ShouldInvalidateCbCtx {
+        entry_name: entry_name.to_string(),
+        absolute_page_path,
+        bundle_path,
+        client_browser_loader: client_browser_loader.to_string(),
+      };
+      let should_invalidate_cb = &self.should_invalidate_cb;
+      should_invalidate = should_invalidate_cb(should_invalidate_cb_ctx);
     } else {
-      // plugin_state
-      //   .injected_client_entries
-      //   .insert(bundle_path.to_string(), client_browser_loader.clone());
+      let mut plugin_state = self.plugin_state.lock().unwrap();
+      plugin_state
+        .injected_client_entries
+        .insert(bundle_path, client_browser_loader.clone());
     }
 
     let client_component_ssr_entry_dep = EntryDependency::new(
@@ -1075,17 +1065,10 @@ impl FlightClientEntryPlugin {
           ClientEntry {
             entry_name: name.to_string(),
             client_imports: internal_client_component_entry_imports,
-            bundle_path: todo!(),
-            absolute_page_path: todo!(),
+            bundle_path: APP_CLIENT_INTERNALS.to_string(),
+            absolute_page_path: "".to_string(),
           },
         ));
-        // this.injectClientEntryAndSSRModules({
-        //   compiler,
-        //   compilation,
-        //   entryName: name,
-        //   clientImports: { ...internalClientComponentEntryImports },
-        //   bundlePath: APP_CLIENT_INTERNALS,
-        // })
       }
 
       if !action_entry_imports.is_empty() {
