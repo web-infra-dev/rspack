@@ -146,6 +146,7 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
+        exclude: /node_modules[\\/]core-js/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
@@ -159,6 +160,7 @@ module.exports = {
                 'safari >= 14',
               ],
             },
+            isModule: 'unknown',
             // ...other options
           },
         },
@@ -167,6 +169,11 @@ module.exports = {
   },
 };
 ```
+
+注意事项：
+
+- 你需要通过 [exclude](/config/module#ruleexclude) 来排除 `core-js` 包，因为 `core-js` 如果被 SWC 编译，会导致无法正常工作。
+- 如果你需要引用非 ES modules 的模块，需要添加 [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule) 来允许 SWC 识别模块的类型。
 
 ## 类型声明
 
