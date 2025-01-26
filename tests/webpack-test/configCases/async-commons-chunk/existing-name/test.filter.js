@@ -1,1 +1,1 @@
-module.exports = () => {return "amd require ensure"}
+module.exports = () => {return "Nested blocks"}

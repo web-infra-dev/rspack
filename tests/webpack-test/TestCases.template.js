@@ -97,7 +97,7 @@ const describeCases = config => {
 							});
 							let options = {
 								...testConfig,
-								amd: {},
+								amd: {}, // TODO(AMD): remove this
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",

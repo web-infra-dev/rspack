@@ -86,7 +86,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
           let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
           dep.set_optional(parser.in_try);
           deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
-          parser.dependencies.push(Box::new(dep));
+          block_deps.push(Box::new(dep));
         }
       }
       let range = param.range();
