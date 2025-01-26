@@ -22,9 +22,9 @@ use is_metadata_route::is_metadata_route;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  make::repair::build, ApplyContext, BoxDependency, Compilation, CompilerAfterEmit,
-  CompilerFinishMake, CompilerOptions, DependenciesBlock, Dependency, DependencyId,
-  EntryDependency, EntryOptions, Module, NormalModule, Plugin, PluginContext, RuntimeSpec,
+  ApplyContext, BoxDependency, Compilation, CompilerAfterEmit, CompilerFinishMake, CompilerOptions,
+  Dependency, DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph, NormalModule,
+  Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -33,7 +33,6 @@ use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
 };
-use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 
@@ -270,35 +269,31 @@ fn get_module_resource(module: &dyn Module) -> String {
 }
 
 pub fn get_assumed_source_type(module: &dyn Module, source_type: String) -> String {
-  // let build_info = get_module_build_info(module);
-  // let detected_client_entry_type =
-  //   build_info.and_then(|info| info.rsc.as_ref().map(|rsc| &rsc.client_entry_type));
-  // let client_refs = build_info
-  //   .and_then(|info| info.rsc.as_ref().map(|rsc| &rsc.client_refs))
-  //   .unwrap_or(&vec![]);
+  let build_info = get_module_build_info(module);
+  let detected_client_entry_type = build_info.rsc.client_entry_type;
+  let client_refs = build_info.rsc.client_refs.unwrap_or(vec![]);
 
-  // // It's tricky to detect the type of a client boundary, but we should always
-  // // use the `module` type when we can, to support `export *` and `export from`
-  // // syntax in other modules that import this client boundary.
+  // It's tricky to detect the type of a client boundary, but we should always
+  // use the `module` type when we can, to support `export *` and `export from`
+  // syntax in other modules that import this client boundary.
 
-  // if source_type == "auto" {
-  //   if detected_client_entry_type == Some(&"auto".to_string()) {
-  //     if client_refs.is_empty() {
-  //       // If there's zero export detected in the client boundary, and it's the
-  //       // `auto` type, we can safely assume it's a CJS module because it doesn't
-  //       // have ESM exports.
-  //       return "commonjs".to_string();
-  //     } else if !client_refs.contains(&"*".to_string()) {
-  //       // Otherwise, we assume it's an ESM module.
-  //       return "module".to_string();
-  //     }
-  //   } else if detected_client_entry_type == Some(&"cjs".to_string()) {
-  //     return "commonjs".to_string();
-  //   }
-  // }
+  if source_type == "auto" {
+    if detected_client_entry_type == Some("auto".to_string()) {
+      if client_refs.is_empty() {
+        // If there's zero export detected in the client boundary, and it's the
+        // `auto` type, we can safely assume it's a CJS module because it doesn't
+        // have ESM exports.
+        return "commonjs".to_string();
+      } else if !client_refs.contains(&"*".to_string()) {
+        // Otherwise, we assume it's an ESM module.
+        return "module".to_string();
+      }
+    } else if detected_client_entry_type == Some("cjs".to_string()) {
+      return "commonjs".to_string();
+    }
+  }
 
-  // source_type.to_string()
-  todo!()
+  source_type.to_string()
 }
 
 fn add_client_import(
@@ -359,6 +354,49 @@ fn add_client_import(
     }
   }
 }
+
+fn collect_actions_in_dep(
+  module: &NormalModule,
+  module_graph: &ModuleGraph,
+  collected_actions: &mut HashMap<String, Vec<ActionIdNamePair>>,
+  visited_module: &mut HashSet<String>,
+) {
+  let mod_resource = get_module_resource(module);
+  if mod_resource.is_empty() {
+    return;
+  }
+
+  if visited_module.contains(&mod_resource) {
+    return;
+  }
+  visited_module.insert(mod_resource.clone());
+
+  let actions = get_actions_from_build_info(module);
+  if let Some(actions) = actions {
+    collected_actions.insert(mod_resource.clone(), actions.into_iter().collect());
+  }
+
+  // Collect used exported actions transversely.
+  for dependency_id in module_graph.get_outgoing_connections_in_order(&module.identifier()) {
+    let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+      continue;
+    };
+    let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
+    else {
+      continue;
+    };
+    let Some(resolved_module) = resolved_module.as_normal_module() else {
+      continue;
+    };
+    collect_actions_in_dep(
+      resolved_module,
+      module_graph,
+      collected_actions,
+      visited_module,
+    );
+  }
+}
+
 struct MetadataRouteLoaderOptions<'a> {
   file_path: &'a str,
   is_dynamic_route_extension: &'a str,
@@ -821,9 +859,63 @@ impl FlightClientEntryPlugin {
   fn collect_client_actions_from_dependencies(
     &self,
     compilation: &Compilation,
-    dependency: Vec<DependencyId>,
+    dependencies: Vec<DependencyId>,
   ) -> Vec<(String, Vec<ActionIdNamePair>)> {
-    todo!()
+    // action file path -> action names
+    let mut collected_actions = HashMap::default();
+
+    // Keep track of checked modules to avoid infinite loops with recursive imports.
+    let mut visited_module = HashSet::default();
+    let mut visited_entry = HashSet::default();
+
+    let module_graph = compilation.get_module_graph();
+
+    for entry_dependency_id in &dependencies {
+      let Some(ssr_entry_module) = module_graph.get_resolved_module(entry_dependency_id) else {
+        continue;
+      };
+      for dependency_id in
+        module_graph.get_outgoing_connections_in_order(&ssr_entry_module.identifier())
+      {
+        let Some(dep_module) = module_graph.dependency_by_id(dependency_id) else {
+          continue;
+        };
+        let Some(dep_module) = dep_module.as_module_dependency() else {
+          continue;
+        };
+        let request = dep_module.request();
+
+        // It is possible that the same entry is added multiple times in the
+        // connection graph. We can just skip these to speed up the process.
+        if visited_entry.contains(request) {
+          continue;
+        }
+        visited_entry.insert(request);
+
+        let Some(connction) = module_graph.connection_by_dependency_id(dependency_id) else {
+          continue;
+        };
+        let Some(resolved_module) = module_graph.module_by_identifier(&connction.resolved_module)
+        else {
+          continue;
+        };
+        let Some(resolved_module) = resolved_module.as_normal_module() else {
+          continue;
+        };
+        // Don't traverse the module graph anymore once hitting the action layer.
+        if !request.contains("next-flight-action-entry-loader") {
+          // Traverse the module graph to find all client components.
+          collect_actions_in_dep(
+            resolved_module,
+            &module_graph,
+            &mut collected_actions,
+            &mut visited_module,
+          );
+        }
+      }
+    }
+
+    collected_actions.into_iter().collect()
   }
 
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
@@ -1157,8 +1249,8 @@ impl Plugin for FlightClientEntryPlugin {
   }
 }
 
-fn is_app_route_route(route: &str) -> bool {
-  todo!()
+pub fn is_app_route_route(route: &str) -> bool {
+  route.ends_with("/route")
 }
 
 struct InjectedClientEntry {
