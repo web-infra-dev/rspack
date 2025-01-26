@@ -280,10 +280,10 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
-"asset react.js 2.08 KiB [emitted] (name: react)
+"asset react.js 2.15 KiB [emitted] (name: react)
 ./react.js 74 bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/index.js 186 bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/cjs/react.production.js 16.5 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
