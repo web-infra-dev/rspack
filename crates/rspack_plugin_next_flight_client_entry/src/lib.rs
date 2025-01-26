@@ -105,7 +105,88 @@ fn get_metadata_route_resource(request: &str) -> MetadataRouteLoaderOptions {
 }
 
 fn deduplicate_css_imports_for_entry(merged_css_imports: CssImports) -> CssImports {
-  todo!()
+  // If multiple entry module connections are having the same CSS import,
+  // we only need to have one module to keep track of that CSS import.
+  // It is based on the fact that if a page or a layout is rendered in the
+  // given entry, all its parent layouts are always rendered too.
+  // This can avoid duplicate CSS imports in the generated CSS manifest,
+  // for example, if a page and its parent layout are both using the same
+  // CSS import, we only need to have the layout to keep track of that CSS
+  // import.
+  // To achieve this, we need to first collect all the CSS imports from
+  // every connection, and deduplicate them in the order of layers from
+  // top to bottom. The implementation can be generally described as:
+  // - Sort by number of `/` in the request path (the more `/`, the deeper)
+  // - When in the same depth, sort by the filename (template < layout < page and others)
+
+  // Sort the connections as described above.
+  let mut sorted_css_imports: Vec<(String, Vec<String>)> = merged_css_imports.into_iter().collect();
+  sorted_css_imports.sort_by(|a, b| {
+    let (a_path, _) = a;
+    let (b_path, _) = b;
+
+    let a_depth = a_path.split('/').count();
+    let b_depth = b_path.split('/').count();
+
+    if a_depth != b_depth {
+      return a_depth.cmp(&b_depth);
+    }
+
+    let a_name = std::path::Path::new(a_path)
+      .file_stem()
+      .unwrap()
+      .to_str()
+      .unwrap();
+    let b_name = std::path::Path::new(b_path)
+      .file_stem()
+      .unwrap()
+      .to_str()
+      .unwrap();
+
+    let index_a = ["template", "layout"]
+      .iter()
+      .position(|&x| x == a_name)
+      .unwrap_or(usize::MAX);
+    let index_b = ["template", "layout"]
+      .iter()
+      .position(|&x| x == b_name)
+      .unwrap_or(usize::MAX);
+
+    if index_a == usize::MAX {
+      return std::cmp::Ordering::Greater;
+    }
+    if index_b == usize::MAX {
+      return std::cmp::Ordering::Less;
+    }
+    index_a.cmp(&index_b)
+  });
+
+  let mut deduped_css_imports: CssImports = HashMap::new();
+  let mut tracked_css_imports = HashSet::new();
+  for (entry_name, css_imports) in sorted_css_imports {
+    for css_import in css_imports {
+      if tracked_css_imports.contains(&css_import) {
+        continue;
+      }
+
+      // Only track CSS imports that are in files that can inherit CSS.
+      let filename = std::path::Path::new(&entry_name)
+        .file_stem()
+        .unwrap()
+        .to_str()
+        .unwrap();
+      if ["template", "layout"].contains(&filename) {
+        tracked_css_imports.insert(css_import.clone());
+      }
+
+      deduped_css_imports
+        .entry(entry_name.clone())
+        .or_insert_with(Vec::new)
+        .push(css_import.clone());
+    }
+  }
+
+  deduped_css_imports
 }
 
 fn parse(query: &str) -> MetadataRouteLoaderOptions {
