@@ -745,6 +745,12 @@ impl<'a> ModuleGraph<'a> {
     Ok(())
   }
 
+  pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&BoxModule> {
+    self
+      .connection_by_dependency_id(dependency_id)
+      .and_then(|con| self.module_by_identifier(&con.resolved_module))
+  }
+
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     self.loop_partials(|p| p.modules.get(identifier))?.as_ref()
