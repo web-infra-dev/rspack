@@ -124,7 +124,7 @@ pub async fn load_next_js_template(
   }
 
   // Check to see if there's any remaining template variables.
-  let regex = lazy_regex::regex!("/VAR_[A-Z_]+");
+  let regex = lazy_regex::lazy_regex!("/VAR_[A-Z_]+");
   let matches = regex
     .find_iter(&content)
     .map(|m| m.as_str().to_string())

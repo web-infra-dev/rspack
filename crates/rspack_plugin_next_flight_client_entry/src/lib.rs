@@ -2,6 +2,7 @@ mod constants;
 mod for_each_entry_module;
 mod get_module_build_info;
 mod is_metadata_route;
+
 use std::{
   collections::{HashMap, HashSet},
   path::Path,
@@ -70,6 +71,7 @@ pub struct Options {
   pub app_dir: Utf8PathBuf,
   pub is_edge_server: bool,
   pub encryption_key: String,
+  pub builtin_app_loader: bool,
   pub state_cb: StateCb,
 }
 
@@ -454,16 +456,356 @@ struct ActionEntry {
 
 #[plugin]
 #[derive(Debug)]
-pub struct FlightClientEntryPlugin {}
+pub struct FlightClientEntryPlugin {
+  app_loader: &'static str,
+}
 
 impl FlightClientEntryPlugin {
   pub fn new(options: Options) -> Self {
-    Self::new_inner()
+    let app_loader = if options.builtin_app_loader {
+      "builtin:next-app-loader"
+    } else {
+      "next-app-loader"
+    };
+    Self::new_inner(app_loader)
+  }
+
+  fn inject_client_entry_and_ssr_modules(&self, client_entry: ClientEntry) -> InjectedClientEntry {
+    todo!()
+  }
+
+  fn inject_action_entry(
+    &self,
+    action_entry: ActionEntry,
+  ) -> BoxFuture<'static, InjectedActionEntry> {
+    todo!()
+  }
+
+  fn collect_component_info_from_server_entry_dependency(
+    &self,
+    entry_request: &str,
+    compilation: &Compilation,
+    resolved_module: &dyn Module,
+  ) -> ComponentInfo {
+    // // Keep track of checked modules to avoid infinite loops with recursive imports.
+    // let mut visited_of_client_components_traverse = HashSet::new();
+
+    // // Info to collect.
+    // let mut client_component_imports: ClientComponentImports = HashMap::new();
+    // let mut action_imports: Vec<(String, Vec<ActionIdNamePair>)> = Vec::new();
+    // let mut css_imports = CssImports::new();
+
+    // // Traverse the module graph to find all client components.
+    // filter_client_components(
+    //   resolved_module,
+    //   &[],
+    //   visited_of_client_components_traverse,
+    //   client_component_imports,
+    //   action_imports,
+    //   css_imports,
+    //   compilation,
+    // );
+
+    // ComponentInfo {
+    //   css_imports,
+    //   client_component_imports,
+    //   action_imports,
+    // }
+    todo!()
+  }
+
+  fn collect_client_actions_from_dependencies(
+    &self,
+    compilation: &Compilation,
+    dependency: Vec<DependencyId>,
+  ) -> Vec<(String, Vec<ActionIdNamePair>)> {
+    todo!()
+  }
+
+  async fn create_client_entries(&self, compilation: &mut Compilation) {
+    let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Vec::new();
+
+    let mut created_ssr_dependencies_for_entry: HashMap<String, Vec<DependencyId>> = HashMap::new();
+
+    let mut add_action_entry_list: Vec<BoxFuture<'static, InjectedActionEntry>> = Vec::new();
+
+    let mut action_maps_per_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
+      HashMap::new();
+
+    let mut created_action_ids: HashSet<String> = HashSet::new();
+
+    let module_graph = compilation.get_module_graph();
+    for (name, entry_module) in for_each_entry_module(&compilation, &module_graph) {
+      let mut internal_client_component_entry_imports = ClientComponentImports::new();
+      let mut action_entry_imports: HashMap<String, Vec<ActionIdNamePair>> = HashMap::new();
+      let mut client_entries_to_inject = Vec::new();
+      let mut merged_css_imports: CssImports = CssImports::new();
+
+      for dependency_id in module_graph.get_outgoing_connections_in_order(&entry_module.id()) {
+        let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+          continue;
+        };
+        let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
+          continue;
+        };
+        let Some(dependency) = dependency.as_module_dependency() else {
+          continue;
+        };
+        // Entry can be any user defined entry files such as layout, page, error, loading, etc.
+        let mut entry_request = dependency.request();
+
+        if entry_request.ends_with(WEBPACK_RESOURCE_QUERIES.metadata_route) {
+          let metadata_route_resource = get_metadata_route_resource(&entry_request);
+          if metadata_route_resource.is_dynamic_route_extension == "1" {
+            entry_request = metadata_route_resource.file_path;
+          }
+        }
+
+        let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
+        else {
+          continue;
+        };
+        let component_info = self.collect_component_info_from_server_entry_dependency(
+          &entry_request,
+          &compilation,
+          resolved_module.as_ref(),
+        );
+
+        for (dep, actions) in component_info.action_imports {
+          action_entry_imports.insert(dep, actions);
+        }
+
+        let entry_request = Path::new(entry_request);
+
+        let is_absolute_request = entry_request.is_absolute();
+
+        // Next.js internals are put into a separate entry.
+        if !is_absolute_request {
+          for value in component_info.client_component_imports.keys() {
+            internal_client_component_entry_imports.insert(value.to_string(), HashSet::new());
+          }
+          continue;
+        }
+
+        // TODO-APP: Enable these lines. This ensures no entrypoint is created for layout/page when there are no client components.
+        // Currently disabled because it causes test failures in CI.
+        // if client_imports.is_empty() && action_imports.is_empty() {
+        //     continue;
+        // }
+
+        let relative_request = if is_absolute_request {
+          entry_request
+            .strip_prefix(&compilation.options.context)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string()
+        } else {
+          entry_request.to_string_lossy().to_string()
+        };
+
+        // Replace file suffix as `.js` will be added.
+        let mut bundle_path = normalize_path_sep(
+          &relative_request
+            .replace(r"\.[^.\\/]+$", "")
+            .replace(r"^src[\\/]", ""),
+        );
+
+        // For metadata routes, the entry name can be used as the bundle path,
+        // as it has been normalized already.
+        if is_metadata_route(&bundle_path) {
+          bundle_path = name.to_string();
+        }
+
+        merged_css_imports.extend(component_info.css_imports);
+
+        client_entries_to_inject.push(ClientEntry {
+          // compiler: compiler.clone(),
+          // compilation: compilation.clone(),
+          entry_name: name.to_string(),
+          client_component_imports: component_info.client_component_imports,
+          bundle_path: bundle_path.clone(),
+          absolute_page_path: entry_request.to_string_lossy().to_string(),
+        });
+
+        // The webpack implementation of writing the client reference manifest relies on all entrypoints writing a page.js even when there is no client components in the page.
+        // It needs the file in order to write the reference manifest for the path in the `.next/server` folder.
+        // TODO-APP: This could be better handled, however Turbopack does not have the same problem as we resolve client components in a single graph.
+        if *name == format!("app{}", UNDERSCORE_NOT_FOUND_ROUTE_ENTRY)
+          && bundle_path == "app/not-found"
+        {
+          client_entries_to_inject.push(ClientEntry {
+            // compiler: compiler.clone(),
+            // compilation: compilation.clone(),
+            entry_name: name.to_string(),
+            client_component_imports: HashMap::new(),
+            bundle_path: format!("app{}", UNDERSCORE_NOT_FOUND_ROUTE_ENTRY),
+            absolute_page_path: entry_request.to_string_lossy().to_string(),
+          });
+        }
+      }
+
+      // Make sure CSS imports are deduplicated before injecting the client entry
+      // and SSR modules.
+      let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
+      for mut client_entry_to_inject in client_entries_to_inject {
+        let client_imports = &mut client_entry_to_inject.client_component_imports;
+        if let Some(css_imports) =
+          deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
+        {
+          for curr in css_imports {
+            client_imports.insert(curr.clone(), HashSet::new());
+          }
+        }
+
+        let entry_name = client_entry_to_inject.entry_name.to_string();
+        let injected = self.inject_client_entry_and_ssr_modules(client_entry_to_inject);
+
+        // Track all created SSR dependencies for each entry from the server layer.
+        created_ssr_dependencies_for_entry
+          .entry(entry_name)
+          .or_insert_with(Vec::new)
+          .push(injected.ssr_dep);
+
+        add_client_entry_and_ssr_modules_list.push(injected);
+      }
+
+      if is_app_route_route(name.as_str()) {
+        // Create internal app
+        add_client_entry_and_ssr_modules_list.push(self.inject_client_entry_and_ssr_modules(
+          ClientEntry {
+            entry_name: name.to_string(),
+            client_component_imports: internal_client_component_entry_imports,
+            bundle_path: todo!(),
+            absolute_page_path: todo!(),
+          },
+        ));
+        // this.injectClientEntryAndSSRModules({
+        //   compiler,
+        //   compilation,
+        //   entryName: name,
+        //   clientImports: { ...internalClientComponentEntryImports },
+        //   bundlePath: APP_CLIENT_INTERNALS,
+        // })
+      }
+
+      if !action_entry_imports.is_empty() {
+        if !action_maps_per_entry.contains_key(name) {
+          action_maps_per_entry.insert(name.to_string(), HashMap::new());
+        }
+        let entry = action_maps_per_entry.get_mut(name).unwrap();
+        for (key, value) in action_entry_imports {
+          entry.insert(key, value);
+        }
+      }
+    }
+
+    for (name, action_entry_imports) in action_maps_per_entry {
+      add_action_entry_list.push(self.inject_action_entry(ActionEntry {
+        // compiler: compiler.clone(),
+        // compilation: compilation.clone(),
+        actions: action_entry_imports,
+        entry_name: name.clone(),
+        bundle_path: name,
+        from_client: false,
+        created_action_ids: created_action_ids.clone(),
+      }));
+    }
+
+    // // Invalidate in development to trigger recompilation
+    // let invalidator = get_invalidator(&compiler.output_path);
+    // // Check if any of the entry injections need an invalidation
+    // if let Some(invalidator) = invalidator {
+    //   if add_client_entry_and_ssr_modules_list
+    //     .iter()
+    //     .any(|(should_invalidate, _)| *should_invalidate)
+    //   {
+    //     invalidator.invalidate(&[COMPILER_NAMES.client]);
+    //   }
+    // }
+
+    // Client compiler is invalidated before awaiting the compilation of the SSR
+    // and RSC client component entries so that the client compiler is running
+    // in parallel to the server compiler.
+    futures::future::join_all(add_client_entry_and_ssr_modules_list.into_iter().flat_map(
+      |add_client_entry_and_ssr_modules| {
+        vec![
+          add_client_entry_and_ssr_modules.add_rsc_entry_promise,
+          add_client_entry_and_ssr_modules.add_ssr_entry_promise,
+        ]
+      },
+    ))
+    .await;
+
+    // Wait for action entries to be added.
+    futures::future::join_all(add_action_entry_list).await;
+
+    let mut added_client_action_entry_list: Vec<BoxFuture<'static, InjectedActionEntry>> =
+      Vec::new();
+    let mut action_maps_per_client_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
+      HashMap::new();
+
+    // We need to create extra action entries that are created from the
+    // client layer.
+    // Start from each entry's created SSR dependency from our previous step.
+    for (name, ssr_entry_dependencies) in created_ssr_dependencies_for_entry {
+      // Collect from all entries, e.g. layout.js, page.js, loading.js, ...
+      // add aggregate them.
+      let action_entry_imports =
+        self.collect_client_actions_from_dependencies(compilation, ssr_entry_dependencies);
+
+      if !action_entry_imports.is_empty() {
+        if !action_maps_per_client_entry.contains_key(&name) {
+          action_maps_per_client_entry.insert(name.clone(), HashMap::new());
+        }
+        let entry = action_maps_per_client_entry.get_mut(&name).unwrap();
+        for (key, value) in action_entry_imports {
+          entry.insert(key.clone(), value);
+        }
+      }
+    }
+
+    for (entry_name, action_entry_imports) in action_maps_per_client_entry {
+      // If an action method is already created in the server layer, we don't
+      // need to create it again in the action layer.
+      // This is to avoid duplicate action instances and make sure the module
+      // state is shared.
+      let mut remaining_client_imported_actions = false;
+      let mut remaining_action_entry_imports = HashMap::new();
+      for (dep, actions) in action_entry_imports {
+        let mut remaining_action_names = Vec::new();
+        for action in actions {
+          // `action` is a [id, name] pair.
+          if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.id)) {
+            remaining_action_names.push(action);
+          }
+        }
+        if !remaining_action_names.is_empty() {
+          remaining_action_entry_imports.insert(dep.clone(), remaining_action_names);
+          remaining_client_imported_actions = true;
+        }
+      }
+
+      if remaining_client_imported_actions {
+        added_client_action_entry_list.push(self.inject_action_entry(ActionEntry {
+          // compiler: compiler.clone(),
+          // compilation: compilation.clone(),
+          actions: remaining_action_entry_imports,
+          entry_name: entry_name.clone(),
+          bundle_path: entry_name.clone(),
+          from_client: true,
+          created_action_ids: created_action_ids.clone(),
+        }));
+      }
+    }
+
+    futures::future::join_all(added_client_action_entry_list).await;
   }
 }
 
 #[plugin_hook(CompilerFinishMake for FlightClientEntryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  self.create_client_entries(compilation).await;
   Ok(())
 }
 
@@ -494,4 +836,22 @@ impl Plugin for FlightClientEntryPlugin {
 
     Ok(())
   }
+}
+
+fn is_app_route_route(route: &str) -> bool {
+  todo!()
+}
+
+struct InjectedClientEntry {
+  should_invalidate: bool,
+  add_ssr_entry_promise: BoxFuture<'static, ()>,
+  add_rsc_entry_promise: BoxFuture<'static, ()>,
+  ssr_dep: DependencyId,
+}
+
+struct InjectedActionEntry {
+  // shouldInvalidate: boolean,
+  // addSSREntryPromise: Promise<void>,
+  // addRSCEntryPromise: Promise<void>,
+  // ssr_dep: DependencyId,
 }
