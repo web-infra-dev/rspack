@@ -22,9 +22,9 @@ use is_metadata_route::is_metadata_route;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ApplyContext, BoxDependency, Compilation, CompilerAfterEmit, CompilerFinishMake, CompilerOptions,
-  Dependency, DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph, NormalModule,
-  Plugin, PluginContext, RuntimeSpec,
+  ApplyContext, BoxDependency, ChunkGraph, Compilation, CompilerAfterEmit, CompilerFinishMake,
+  CompilerOptions, Dependency, DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph,
+  ModuleId, ModuleIdentifier, NormalModule, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -1206,6 +1206,125 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 // Next.js uses the after compile hook, but after emit should achieve the same result
 #[plugin_hook(CompilerAfterEmit for FlightClientEntryPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
+  let mut plugin_state = self.plugin_state.lock().unwrap();
+
+  let record_module = &mut |module_id: &ModuleId, module_identifier: &ModuleIdentifier| {
+    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+      return;
+    };
+    let Some(module) = module.as_normal_module() else {
+      return;
+    };
+    // Match Resource is undefined unless an import is using the inline match resource syntax
+    // https://webpack.js.org/api/loaders/#inline-matchresource
+    let resource_resolved_data = module.resource_resolved_data();
+    let mod_path = module
+      .match_resource()
+      .map(|match_resource| match_resource.resource.clone())
+      .or_else(|| {
+        resource_resolved_data
+          .resource_path
+          .as_ref()
+          .map(|path| path.to_string())
+      });
+    let mod_query = resource_resolved_data
+      .resource_query
+      .as_ref()
+      .map(|query| query.as_str())
+      .unwrap_or_default();
+    // query is already part of mod.resource
+    // so it's only necessary to add it for matchResource or mod.resourceResolveData
+    let mod_resource = if let Some(mod_path) = mod_path {
+      if mod_path.starts_with(BARREL_OPTIMIZATION_PREFIX) {
+        todo!()
+        // format_barrel_optimized_resource(&module.resource, &mod_path)
+      } else {
+        format!("{}{}", mod_path, mod_query)
+      }
+    } else {
+      resource_resolved_data.resource.to_string()
+    };
+
+    if !mod_resource.is_empty() {
+      if module.get_layer().map(|layer| layer.as_str())
+        == Some(WEBPACK_LAYERS.react_server_components)
+      {
+        let key = Path::new(&mod_resource)
+          .strip_prefix(&compilation.options.context)
+          .unwrap()
+          .to_str()
+          .unwrap()
+          .replace("/next/dist/esm/", "/next/dist/");
+
+        let module_info = ModuleInfo {
+          module_id: module_id.to_string(),
+          is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
+        };
+
+        if self.is_edge_server {
+          plugin_state.edge_rsc_modules.insert(key, module_info);
+        } else {
+          plugin_state.rsc_modules.insert(key, module_info);
+        }
+      }
+    }
+
+    if module.get_layer().map(|layer| layer.as_str()) != Some(WEBPACK_LAYERS.server_side_rendering)
+    {
+      return;
+    }
+
+    // Check mod resource to exclude the empty resource module like virtual module created by next-flight-client-entry-loader
+    if !mod_resource.is_empty() {
+      // Note that this isn't that reliable as webpack is still possible to assign
+      // additional queries to make sure there's no conflict even using the `named`
+      // module ID strategy.
+      let mut ssr_named_module_id = Path::new(&mod_resource)
+        .strip_prefix(&compilation.options.context)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+      if !ssr_named_module_id.starts_with('.') {
+        // TODO use getModuleId instead
+        ssr_named_module_id = format!("./{}", normalize_path_sep(&ssr_named_module_id));
+      }
+
+      let module_info = ModuleInfo {
+        module_id: module_id.to_string(),
+        is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
+      };
+
+      if self.is_edge_server {
+        plugin_state.edge_ssr_modules.insert(
+          ssr_named_module_id.replace("/next/dist/esm/", "/next/dist/"),
+          module_info,
+        );
+      } else {
+        plugin_state
+          .ssr_modules
+          .insert(ssr_named_module_id, module_info);
+      }
+    }
+  };
+
+  let mut chunk_groups_iter = compilation.chunk_group_by_ukey.values();
+  if let Some(chunk_group) = chunk_groups_iter.next() {
+    for chunk_ukey in &chunk_group.chunks {
+      let chunk_modules = compilation
+        .chunk_graph
+        .get_chunk_modules_identifier(chunk_ukey);
+      for module_identifier in chunk_modules {
+        if let Some(module_id) =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+        {
+          record_module(module_id, module_identifier);
+        }
+      }
+    }
+  }
   Ok(())
 }
 
