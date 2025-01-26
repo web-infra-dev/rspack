@@ -75,7 +75,7 @@ use ustr::Ustr;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
-mod build_chunk_graph;
+pub mod build_chunk_graph;
 mod stats;
 pub use stats::*;
 mod runtime;
