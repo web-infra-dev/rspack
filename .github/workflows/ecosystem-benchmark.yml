@@ -15,6 +15,9 @@ on:
       - "website/**"
     tags-ignore:
       - "**"
+  issue_comment:
+    types: [created, deleted]
+        
 
 permissions:
   # Allow commenting on commits
