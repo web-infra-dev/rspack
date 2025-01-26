@@ -5383,6 +5383,7 @@ name = "rspack_plugin_next_flight_client_entry"
 version = "0.2.0"
 dependencies = [
  "async-trait",
+ "derive_more 1.0.0",
  "futures",
  "hashlink",
  "indexmap 2.7.0",
