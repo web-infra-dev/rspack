@@ -172,8 +172,8 @@ module.exports = {
 
 Note:
 
-- You need to exclude the `core-js` package via [exclude](/config/module#ruleexclude), because if `core-js` is compiled by SWC, it will not work properly.
-- If you need to reference non-ES modules, you need to add [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule) to allow SWC to recognize the module type.
+- Make sure to [exclude](/config/module#ruleexclude) the `core-js` package, as `core-js` will not work properly if compiled by SWC.
+- When importing non-ES modules, add [isModule: 'unknown'](https://swc.rs/docs/configuration/compilation#ismodule) to allow SWC to correctly identify the module type.
 
 ## Type declaration
 
