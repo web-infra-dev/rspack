@@ -10,7 +10,8 @@ use std::{
 
 use async_trait::async_trait;
 use constants::{
-  BARREL_OPTIMIZATION_PREFIX, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY, WEBPACK_RESOURCE_QUERIES,
+  BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY, WEBPACK_LAYERS,
+  WEBPACK_RESOURCE_QUERIES,
 };
 use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
@@ -18,12 +19,14 @@ use get_module_build_info::get_rsc_module_information;
 use is_metadata_route::is_metadata_route;
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ApplyContext, Compilation, CompilerAfterEmit, CompilerFinishMake, CompilerOptions,
-  DependenciesBlock, DependencyId, EntryDependency, Module, NormalModule, Plugin, PluginContext,
+  ApplyContext, BoxDependency, Compilation, CompilerAfterEmit, CompilerFinishMake, CompilerOptions,
+  DependenciesBlock, Dependency, DependencyId, EntryDependency, EntryOptions, Module, NormalModule,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8PathBuf;
+use serde_json::json;
 
 pub struct Worker {
   pub module_id: String,
@@ -441,7 +444,7 @@ struct ClientEntry {
   // compiler: Compiler,
   // compilation: &'a Compilation,
   entry_name: String,
-  client_component_imports: ClientComponentImports,
+  client_imports: ClientComponentImports,
   bundle_path: String,
   absolute_page_path: String,
 }
@@ -457,21 +460,190 @@ struct ActionEntry {
 #[plugin]
 #[derive(Debug)]
 pub struct FlightClientEntryPlugin {
+  dev: bool,
+  app_dir: Utf8PathBuf,
+  is_edge_server: bool,
+  asset_prefix: &'static str,
+  webpack_runtime: &'static str,
   app_loader: &'static str,
 }
 
 impl FlightClientEntryPlugin {
   pub fn new(options: Options) -> Self {
+    let asset_prefix = if !options.dev && !options.is_edge_server {
+      "../"
+    } else {
+      ""
+    };
+    let webpack_runtime = if options.is_edge_server {
+      "edge-runtime-webpack"
+    } else {
+      "webpack-runtime"
+    };
     let app_loader = if options.builtin_app_loader {
       "builtin:next-app-loader"
     } else {
       "next-app-loader"
     };
-    Self::new_inner(app_loader)
+    Self::new_inner(
+      options.dev,
+      options.app_dir,
+      options.is_edge_server,
+      asset_prefix,
+      webpack_runtime,
+      app_loader,
+    )
   }
 
-  fn inject_client_entry_and_ssr_modules(&self, client_entry: ClientEntry) -> InjectedClientEntry {
-    todo!()
+  fn inject_client_entry_and_ssr_modules(
+    &self,
+    compilation: &Compilation,
+    client_entry: ClientEntry,
+  ) -> InjectedClientEntry {
+    let ClientEntry {
+      entry_name,
+      client_imports,
+      bundle_path,
+      absolute_page_path,
+    } = client_entry;
+
+    let mut should_invalidate = false;
+
+    let mut modules: Vec<_> = client_imports
+      .keys()
+      .map(|client_import_path| {
+        let ids: Vec<_> = client_imports[client_import_path].iter().cloned().collect();
+        (client_import_path.clone(), ids)
+      })
+      .collect();
+
+    modules.sort_by(|a, b| {
+      if REGEX_CSS.is_match(&b.0) {
+        std::cmp::Ordering::Greater
+      } else {
+        a.0.cmp(&b.0)
+      }
+    });
+
+    // For the client entry, we always use the CJS build of Next.js. If the
+    // server is using the ESM build (when using the Edge runtime), we need to
+    // replace them.
+    let client_browser_loader = format!(
+      "next-flight-client-entry-loader?{}!",
+      serde_json::to_string(&json!({
+          "modules": if self.is_edge_server {
+              modules.iter().map(|(request, ids)| {
+                  json!({
+                      "request": request.replace(
+                          r"/next/dist/esm/",
+                          &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
+                      ),
+                      "ids": ids
+                  })
+              }).collect::<Vec<_>>()
+          } else {
+              modules.iter().map(|(request, ids)| {
+                  json!({
+                      "request": request,
+                      "ids": ids
+                  })
+              }).collect::<Vec<_>>()
+          },
+          "server": false
+      }))
+      .unwrap()
+    );
+
+    let client_server_loader = format!(
+      "next-flight-client-entry-loader?{}!",
+      serde_json::to_string(&json!({
+          "modules": modules.iter().map(|(request, ids)| {
+              json!({
+                  "request": request,
+                  "ids": ids
+              })
+          }).collect::<Vec<_>>(),
+          "server": true
+      }))
+      .unwrap()
+    );
+
+    // Add for the client compilation
+    // Inject the entry to the client compiler.
+    if self.dev {
+      // TODO
+
+      // let mut entries = get_entries(&compiler.output_path);
+      // let page_key = get_entry_key(COMPILER_NAMES.client, PAGE_TYPES.APP, bundle_path);
+
+      // if !entries.contains_key(&page_key) {
+      //   entries.insert(
+      //     page_key.clone(),
+      //     EntryData {
+      //       type_: EntryTypes::CHILD_ENTRY,
+      //       parent_entries: vec![entry_name.to_string()].into_iter().collect(),
+      //       absolute_entry_file_path: absolute_page_path.map(|s| s.to_string()),
+      //       bundle_path: bundle_path.to_string(),
+      //       request: client_browser_loader.clone(),
+      //       dispose: false,
+      //       last_active_time: std::time::SystemTime::now(),
+      //     },
+      //   );
+      //   should_invalidate = true;
+      // } else {
+      //   let entry_data = entries.get_mut(&page_key).unwrap();
+      //   // New version of the client loader
+      //   if entry_data.request != client_browser_loader {
+      //     entry_data.request = client_browser_loader.clone();
+      //     should_invalidate = true;
+      //   }
+      //   if entry_data.type_ == EntryTypes::CHILD_ENTRY {
+      //     entry_data.parent_entries.insert(entry_name.to_string());
+      //   }
+      //   entry_data.dispose = false;
+      //   entry_data.last_active_time = std::time::SystemTime::now();
+      // }
+    } else {
+      // plugin_state
+      //   .injected_client_entries
+      //   .insert(bundle_path.to_string(), client_browser_loader.clone());
+    }
+
+    let client_component_ssr_entry_dep = EntryDependency::new(
+      client_browser_loader,
+      compilation.options.context.clone(),
+      Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
+      false,
+    );
+    let ssr_dep = *(client_component_ssr_entry_dep.id());
+
+    let client_component_rsc_entry_dep = EntryDependency::new(
+      client_server_loader,
+      compilation.options.context.clone(),
+      Some(WEBPACK_LAYERS.react_server_components.to_string()),
+      false,
+    );
+
+    InjectedClientEntry {
+      should_invalidate,
+      add_ssr_entry: (
+        Box::new(client_component_ssr_entry_dep),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          layer: Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
+          ..Default::default()
+        },
+      ),
+      add_rsc_entry: (
+        Box::new(client_component_rsc_entry_dep),
+        EntryOptions {
+          name: Some(entry_name.to_string()),
+          layer: Some(WEBPACK_LAYERS.react_server_components.to_string()),
+          ..Default::default()
+        },
+      ),
+      ssr_dep,
+    }
   }
 
   fn inject_action_entry(
@@ -522,7 +694,7 @@ impl FlightClientEntryPlugin {
     todo!()
   }
 
-  async fn create_client_entries(&self, compilation: &mut Compilation) {
+  async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Vec::new();
 
     let mut created_ssr_dependencies_for_entry: HashMap<String, Vec<DependencyId>> = HashMap::new();
@@ -623,7 +795,7 @@ impl FlightClientEntryPlugin {
           // compiler: compiler.clone(),
           // compilation: compilation.clone(),
           entry_name: name.to_string(),
-          client_component_imports: component_info.client_component_imports,
+          client_imports: component_info.client_component_imports,
           bundle_path: bundle_path.clone(),
           absolute_page_path: entry_request.to_string_lossy().to_string(),
         });
@@ -638,7 +810,7 @@ impl FlightClientEntryPlugin {
             // compiler: compiler.clone(),
             // compilation: compilation.clone(),
             entry_name: name.to_string(),
-            client_component_imports: HashMap::new(),
+            client_imports: HashMap::new(),
             bundle_path: format!("app{}", UNDERSCORE_NOT_FOUND_ROUTE_ENTRY),
             absolute_page_path: entry_request.to_string_lossy().to_string(),
           });
@@ -649,7 +821,7 @@ impl FlightClientEntryPlugin {
       // and SSR modules.
       let deduped_css_imports = deduplicate_css_imports_for_entry(merged_css_imports);
       for mut client_entry_to_inject in client_entries_to_inject {
-        let client_imports = &mut client_entry_to_inject.client_component_imports;
+        let client_imports = &mut client_entry_to_inject.client_imports;
         if let Some(css_imports) =
           deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
         {
@@ -659,7 +831,8 @@ impl FlightClientEntryPlugin {
         }
 
         let entry_name = client_entry_to_inject.entry_name.to_string();
-        let injected = self.inject_client_entry_and_ssr_modules(client_entry_to_inject);
+        let injected =
+          self.inject_client_entry_and_ssr_modules(compilation, client_entry_to_inject);
 
         // Track all created SSR dependencies for each entry from the server layer.
         created_ssr_dependencies_for_entry
@@ -673,9 +846,10 @@ impl FlightClientEntryPlugin {
       if is_app_route_route(name.as_str()) {
         // Create internal app
         add_client_entry_and_ssr_modules_list.push(self.inject_client_entry_and_ssr_modules(
+          compilation,
           ClientEntry {
             entry_name: name.to_string(),
-            client_component_imports: internal_client_component_entry_imports,
+            client_imports: internal_client_component_entry_imports,
             bundle_path: todo!(),
             absolute_page_path: todo!(),
           },
@@ -727,15 +901,16 @@ impl FlightClientEntryPlugin {
     // Client compiler is invalidated before awaiting the compilation of the SSR
     // and RSC client component entries so that the client compiler is running
     // in parallel to the server compiler.
-    futures::future::join_all(add_client_entry_and_ssr_modules_list.into_iter().flat_map(
-      |add_client_entry_and_ssr_modules| {
+    let args = add_client_entry_and_ssr_modules_list
+      .into_iter()
+      .flat_map(|add_client_entry_and_ssr_modules| {
         vec![
-          add_client_entry_and_ssr_modules.add_rsc_entry_promise,
-          add_client_entry_and_ssr_modules.add_ssr_entry_promise,
+          add_client_entry_and_ssr_modules.add_rsc_entry,
+          add_client_entry_and_ssr_modules.add_ssr_entry,
         ]
-      },
-    ))
-    .await;
+      })
+      .collect::<Vec<_>>();
+    compilation.add_include(args).await?;
 
     // Wait for action entries to be added.
     futures::future::join_all(add_action_entry_list).await;
@@ -800,12 +975,13 @@ impl FlightClientEntryPlugin {
     }
 
     futures::future::join_all(added_client_action_entry_list).await;
+    Ok(())
   }
 }
 
 #[plugin_hook(CompilerFinishMake for FlightClientEntryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  self.create_client_entries(compilation).await;
+  self.create_client_entries(compilation).await?;
   Ok(())
 }
 
@@ -844,8 +1020,8 @@ fn is_app_route_route(route: &str) -> bool {
 
 struct InjectedClientEntry {
   should_invalidate: bool,
-  add_ssr_entry_promise: BoxFuture<'static, ()>,
-  add_rsc_entry_promise: BoxFuture<'static, ()>,
+  add_ssr_entry: (BoxDependency, EntryOptions),
+  add_rsc_entry: (BoxDependency, EntryOptions),
   ssr_dep: DependencyId,
 }
 
