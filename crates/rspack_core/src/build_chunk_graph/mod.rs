@@ -10,7 +10,7 @@ pub(crate) mod incremental;
 pub(crate) mod new_code_splitter;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
-pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
+pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
   let enable_incremental = compilation
     .incremental
     .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
@@ -19,6 +19,7 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
   } else {
     Default::default()
   };
+
   splitter.update_with_compilation(compilation)?;
 
   if !enable_incremental || splitter.chunk_group_infos.is_empty() {
@@ -49,7 +50,7 @@ pub(crate) fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::
 }
 
 #[instrument(skip_all)]
-pub(crate) fn build_chunk_graph_new(compilation: &mut Compilation) -> rspack_error::Result<()> {
+pub fn build_chunk_graph_new(compilation: &mut Compilation) -> rspack_error::Result<()> {
   new_code_splitter::code_split(compilation)?;
   Ok(())
 }

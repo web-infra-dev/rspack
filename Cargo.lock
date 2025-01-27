@@ -4219,6 +4219,7 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_fs",
+ "serde_json",
  "tokio",
 ]
 
