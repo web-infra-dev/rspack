@@ -20,6 +20,7 @@ rspack_util           = { workspace = true }
 
 async-trait              = { workspace = true }
 derive_more              = { workspace = true }
+form_urlencoded          = "1.2.1"
 futures                  = { workspace = true }
 hashlink                 = { workspace = true }
 indexmap                 = { workspace = true }
@@ -31,6 +32,8 @@ rspack_plugin_javascript = { workspace = true }
 rustc-hash               = { workspace = true }
 serde                    = { workspace = true }
 serde_json               = { workspace = true }
+serde_urlencoded         = "0.7.1"
+sugar_path               = { workspace = true }
 tokio                    = { workspace = true, features = ["rt"] }
 tracing                  = { workspace = true }
 
