@@ -799,7 +799,7 @@ export interface JsModuleDescriptor {
 
 export interface JsModuleInfo {
   moduleId: string
-  isAsync: boolean
+  async: boolean
 }
 
 export interface JsModulePair {

@@ -54,7 +54,7 @@ type Actions = HashMap<String, Action>;
 #[derive(Clone, Serialize)]
 pub struct ModuleInfo {
   pub module_id: String,
-  pub is_async: bool,
+  pub r#async: bool,
 }
 
 #[derive(Default, Clone)]
@@ -449,12 +449,6 @@ pub struct Manifest {
   pub edge: Actions,
 }
 
-#[derive(Serialize)]
-pub struct LoaderParams {
-  pub modules: String,
-  pub server: bool,
-}
-
 #[plugin]
 #[derive(Debug)]
 pub struct FlightClientEntryPlugin {
@@ -638,6 +632,7 @@ impl FlightClientEntryPlugin {
 
     let mut should_invalidate = false;
 
+    // client_imports key 缺少
     let mut modules: Vec<_> = client_imports
       .keys()
       .map(|client_import_path| {
@@ -658,61 +653,43 @@ impl FlightClientEntryPlugin {
     // server is using the ESM build (when using the Edge runtime), we need to
     // replace them.
     let client_browser_loader = {
-      let modules = if self.is_edge_server {
-        modules
-          .iter()
-          .map(|(request, ids)| {
-            serde_json::to_string(&json!({
-                "request": request.replace(
-                    r"/next/dist/esm/",
-                    &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
-                ),
-                "ids": ids
-            }))
-            .unwrap()
-          })
-          .join(",")
-      } else {
-        modules
-          .iter()
-          .map(|(request, ids)| {
-            serde_json::to_string(&json!({
-                "request": request,
-                "ids": ids
-            }))
-            .unwrap()
-          })
-          .join(",")
-      };
-      let params = LoaderParams {
-        modules,
-        server: false,
-      };
-      format!(
-        "next-flight-client-entry-loader?{}!",
-        serde_urlencoded::to_string(params).unwrap()
-      )
-    };
-
-    let client_server_loader = {
-      let modules = modules
-        .iter()
-        .map(|(request, ids)| {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      for (request, ids) in &modules {
+        let module_json = if self.is_edge_server {
+          serde_json::to_string(&json!({
+              "request": request.replace(
+                  r"/next/dist/esm/",
+                  &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
+              ),
+              "ids": ids
+          }))
+          .unwrap()
+        } else {
           serde_json::to_string(&json!({
               "request": request,
               "ids": ids
           }))
           .unwrap()
-        })
-        .join(",");
-      let params = LoaderParams {
-        modules,
-        server: true,
-      };
-      format!(
-        "next-flight-client-entry-loader?{}!",
-        serde_urlencoded::to_string(params).unwrap()
-      )
+        };
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "false");
+
+      format!("next-flight-client-entry-loader?{}!", serializer.finish())
+    };
+
+    let client_server_loader = {
+      let mut serializer = form_urlencoded::Serializer::new(String::new());
+      for (request, ids) in &modules {
+        let module_json = serde_json::to_string(&json!({
+            "request": request,
+            "ids": ids
+        }))
+        .unwrap();
+        serializer.append_pair("modules", &module_json);
+      }
+      serializer.append_pair("server", "true");
+      format!("next-flight-client-entry-loader?{}!", serializer.finish())
     };
 
     // Add for the client compilation
@@ -825,7 +802,7 @@ impl FlightClientEntryPlugin {
           bundle_path.to_string(),
           ModuleInfo {
             module_id: "".to_string(), // TODO: What's the meaning of this?
-            is_async: false,
+            r#async: false,
           },
         );
 
@@ -1060,6 +1037,7 @@ impl FlightClientEntryPlugin {
           // compiler: compiler.clone(),
           // compilation: compilation.clone(),
           entry_name: name.to_string(),
+          // client_component_imports keys 缺少很多
           client_imports: component_info.client_component_imports,
           bundle_path: bundle_path.clone(),
           absolute_page_path: entry_request.to_string_lossy().to_string(),
@@ -1293,7 +1271,7 @@ impl FlightClientEntryPlugin {
               .or_insert_with(Default::default);
             let module_info = ModuleInfo {
               module_id: module_id.to_string(),
-              is_async: ModuleGraph::is_async(&compilation, module_identifier),
+              r#async: ModuleGraph::is_async(&compilation, module_identifier),
             };
             if from_client {
               module_pair.client = Some(module_info);
@@ -1458,7 +1436,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
           let module_info = ModuleInfo {
             module_id: module_id.to_string(),
-            is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
+            r#async: ModuleGraph::is_async(&compilation, &module.identifier()),
           };
 
           if self.is_edge_server {
@@ -1492,7 +1470,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         let module_info = ModuleInfo {
           module_id: module_id.to_string(),
-          is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
+          r#async: ModuleGraph::is_async(&compilation, &module.identifier()),
         };
 
         if self.is_edge_server {

@@ -29,6 +29,7 @@ tokio       = { workspace = true, features = ["rt"] }
 tracing     = { workspace = true }
 futures     = { workspace = true }
 querystring = { version = "1.1.0" }
+form_urlencoded = "1.2.1"
 sugar_path= { workspace = true }
 serde_urlencoded = "0.7.1"
 lazy-regex               = "3.4.1"

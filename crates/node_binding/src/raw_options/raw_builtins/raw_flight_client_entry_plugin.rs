@@ -7,14 +7,14 @@ use rustc_hash::FxHashMap as HashMap;
 #[napi(object, object_from_js = false)]
 pub struct JsModuleInfo {
   pub module_id: String,
-  pub is_async: bool,
+  pub r#async: bool,
 }
 
 impl From<ModuleInfo> for JsModuleInfo {
   fn from(value: ModuleInfo) -> Self {
     JsModuleInfo {
       module_id: value.module_id,
-      is_async: value.is_async,
+      r#async: value.r#async,
     }
   }
 }

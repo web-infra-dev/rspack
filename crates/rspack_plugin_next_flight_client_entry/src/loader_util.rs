@@ -58,5 +58,5 @@ pub fn is_client_component_entry_module(module: &dyn Module) -> bool {
 // Determine if the whole module is client action, 'use server' in nested closure in the client module
 fn is_action_client_layer_module(module: &dyn Module) -> bool {
   let build_info = get_module_build_info(module);
-  build_info.rsc.r#type == RSC_MODULE_TYPES.client
+  build_info.rsc.actions.is_some() && build_info.rsc.r#type == RSC_MODULE_TYPES.client
 }

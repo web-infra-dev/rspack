@@ -5384,6 +5384,7 @@ version = "0.2.0"
 dependencies = [
  "async-trait",
  "derive_more 1.0.0",
+ "form_urlencoded",
  "futures",
  "hashlink",
  "indexmap 2.7.0",
