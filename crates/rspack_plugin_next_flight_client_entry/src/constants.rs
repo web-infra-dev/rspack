@@ -116,3 +116,6 @@ pub struct WebpackLayersGroup {
 }
 
 pub const APP_CLIENT_INTERNALS: &'static str = "app-pages-internals";
+
+// server/server-reference-manifest
+pub const SERVER_REFERENCE_MANIFEST: &str = "server-reference-manifest";

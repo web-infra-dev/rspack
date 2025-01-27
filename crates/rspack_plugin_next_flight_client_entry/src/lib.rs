@@ -5,14 +5,16 @@ mod is_metadata_route;
 mod loader_util;
 
 use std::{
+  mem,
+  ops::DerefMut,
   path::Path,
   sync::{Arc, Mutex},
 };
 
 use async_trait::async_trait;
 use constants::{
-  APP_CLIENT_INTERNALS, BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY,
-  WEBPACK_LAYERS, WEBPACK_RESOURCE_QUERIES,
+  APP_CLIENT_INTERNALS, BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, SERVER_REFERENCE_MANIFEST,
+  UNDERSCORE_NOT_FOUND_ROUTE_ENTRY, WEBPACK_LAYERS, WEBPACK_RESOURCE_QUERIES,
 };
 use derive_more::Debug;
 use for_each_entry_module::for_each_entry_module;
@@ -22,9 +24,11 @@ use is_metadata_route::is_metadata_route;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ApplyContext, BoxDependency, ChunkGraph, Compilation, CompilerAfterEmit, CompilerFinishMake,
-  CompilerOptions, Dependency, DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph,
-  ModuleId, ModuleIdentifier, NormalModule, Plugin, PluginContext, RuntimeSpec,
+  rspack_sources::{RawSource, SourceExt},
+  ApplyContext, AssetInfo, BoxDependency, ChunkGraph, Compilation, CompilationAsset,
+  CompilationProcessAssets, CompilerAfterEmit, CompilerFinishMake, CompilerOptions, Dependency,
+  DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph, ModuleId, ModuleIdentifier,
+  NormalModule, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -34,25 +38,24 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use serde::Serialize;
 use serde_json::json;
 
-pub struct Worker {
-  pub module_id: String,
-  pub is_async: bool,
-}
-
+#[derive(Clone, Serialize)]
 pub struct Action {
-  pub workers: HashMap<String, Worker>,
+  pub workers: HashMap<String, ModuleInfo>,
   pub layer: HashMap<String, String>,
 }
 
 type Actions = HashMap<String, Action>;
 
+#[derive(Clone, Serialize)]
 pub struct ModuleInfo {
   pub module_id: String,
   pub is_async: bool,
 }
 
+#[derive(Default, Clone)]
 pub struct ModulePair {
   pub server: Option<ModuleInfo>,
   pub client: Option<ModuleInfo>,
@@ -429,17 +432,28 @@ struct ActionEntry<'a> {
   created_action_ids: &'a mut HashSet<String>,
 }
 
+#[derive(Serialize)]
+pub struct Manifest {
+  // Assign a unique encryption key during production build.
+  pub encryption_key: String,
+  pub node: Actions,
+  pub edge: Actions,
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct FlightClientEntryPlugin {
   dev: bool,
   app_dir: Utf8PathBuf,
   is_edge_server: bool,
+  encryption_key: String,
   asset_prefix: &'static str,
   webpack_runtime: RuntimeSpec,
   app_loader: &'static str,
   #[debug(skip)]
   should_invalidate_cb: ShouldInvalidateCb,
+  #[debug(skip)]
+  state_cb: StateCb,
 
   #[debug(skip)]
   plugin_state: Mutex<State>,
@@ -470,10 +484,12 @@ impl FlightClientEntryPlugin {
       options.dev,
       options.app_dir,
       options.is_edge_server,
+      options.encryption_key,
       asset_prefix,
       webpack_runtime,
       app_loader,
       options.should_invalidate_cb,
+      options.state_cb,
       Mutex::new(Default::default()),
     )
   }
@@ -771,7 +787,7 @@ impl FlightClientEntryPlugin {
         let action = current_compiler_server_actions.get_mut(id).unwrap();
         action.workers.insert(
           bundle_path.to_string(),
-          Worker {
+          ModuleInfo {
             module_id: "".to_string(), // TODO: What's the meaning of this?
             is_async: false,
           },
@@ -1195,6 +1211,149 @@ impl FlightClientEntryPlugin {
       .await?;
     Ok(())
   }
+
+  fn create_action_assets(&self, compilation: &mut Compilation) {
+    let mut server_manifest = Manifest {
+      encryption_key: self.encryption_key.to_string(),
+      node: HashMap::default(),
+      edge: HashMap::default(),
+    };
+
+    let mut plugin_state = self.plugin_state.lock().unwrap();
+
+    // traverse modules
+    for chunk_group in compilation.chunk_group_by_ukey.values() {
+      for chunk_ukey in &chunk_group.chunks {
+        let chunk_modules = compilation
+          .chunk_graph
+          .get_chunk_modules_identifier(chunk_ukey);
+        for module_identifier in chunk_modules {
+          // Go through all action entries and record the module ID for each entry.
+          let Some(chunk_group_name) = chunk_group.name() else {
+            continue;
+          };
+          let module = compilation.module_by_identifier(module_identifier);
+          let Some(module) = module else {
+            continue;
+          };
+          let Some(module) = module.as_normal_module() else {
+            continue;
+          };
+          let mod_request = module.request();
+          let Some(module_id) =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+          else {
+            continue;
+          };
+          if mod_request.contains("next-flight-action-entry-loader") {
+            let from_client = mod_request.contains("&__client_imported__=true");
+
+            let mapping = if self.is_edge_server {
+              &mut plugin_state.edge_server_action_modules
+            } else {
+              &mut plugin_state.server_action_modules
+            };
+
+            let module_pair = mapping
+              .entry(chunk_group_name.to_string())
+              .or_insert_with(Default::default);
+            let module_info = ModuleInfo {
+              module_id: module_id.to_string(),
+              is_async: ModuleGraph::is_async(&compilation, module_identifier),
+            };
+            if from_client {
+              module_pair.client = Some(module_info);
+            } else {
+              module_pair.server = Some(module_info);
+            }
+          }
+        }
+      }
+    }
+
+    for (id, mut action) in plugin_state.server_actions.clone() {
+      for (name, workers) in &mut action.workers {
+        let module_pair = plugin_state
+          .server_action_modules
+          .entry(name.to_string())
+          .or_insert_with(Default::default);
+        let module_info = if action.layer.get(name).map(|layer| layer.as_str())
+          == Some(WEBPACK_LAYERS.action_browser)
+        {
+          module_pair.client.clone()
+        } else {
+          module_pair.server.clone()
+        };
+        if let Some(module_info) = module_info {
+          plugin_state
+            .server_actions
+            .get_mut(&id)
+            .unwrap()
+            .workers
+            .insert(name.to_string(), module_info.clone());
+          *workers = module_info;
+        }
+      }
+      server_manifest.node.insert(id.clone(), action);
+    }
+
+    for (id, mut action) in plugin_state.edge_server_actions.clone() {
+      for (name, workers) in &mut action.workers {
+        let module_pair = plugin_state
+          .edge_server_action_modules
+          .entry(name.to_string())
+          .or_insert_with(Default::default);
+        let module_info = if action.layer.get(name).map(|layer| layer.as_str())
+          == Some(WEBPACK_LAYERS.action_browser)
+        {
+          module_pair.client.clone()
+        } else {
+          module_pair.server.clone()
+        };
+        if let Some(module_info) = module_info {
+          plugin_state
+            .server_actions
+            .get_mut(&id)
+            .unwrap()
+            .workers
+            .insert(name.to_string(), module_info.clone());
+          *workers = module_info;
+        }
+      }
+      server_manifest.edge.insert(id.clone(), action);
+    }
+
+    let edge_server_manifest = Manifest {
+      encryption_key: "process.env.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY".to_string(),
+      node: server_manifest.node.clone(),
+      edge: server_manifest.edge.clone(),
+    };
+
+    let json = if self.dev {
+      serde_json::to_string_pretty(&server_manifest).unwrap()
+    } else {
+      serde_json::to_string(&server_manifest).unwrap()
+    };
+    let edge_json = if self.dev {
+      serde_json::to_string_pretty(&edge_server_manifest).unwrap()
+    } else {
+      serde_json::to_string(&edge_server_manifest).unwrap()
+    };
+
+    let assets = compilation.assets_mut();
+    assets.insert(
+      format!("{}{}.js", self.asset_prefix, SERVER_REFERENCE_MANIFEST),
+      CompilationAsset::new(
+        Some(RawSource::from(format!("self.__RSC_SERVER_MANIFEST={}", edge_json)).boxed()),
+        AssetInfo::default(),
+      ),
+    );
+
+    assets.insert(
+      format!("{}{}.json", self.asset_prefix, SERVER_REFERENCE_MANIFEST),
+      CompilationAsset::new(Some(RawSource::from(json).boxed()), AssetInfo::default()),
+    );
+  }
 }
 
 #[plugin_hook(CompilerFinishMake for FlightClientEntryPlugin)]
@@ -1206,56 +1365,93 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 // Next.js uses the after compile hook, but after emit should achieve the same result
 #[plugin_hook(CompilerAfterEmit for FlightClientEntryPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let module_graph = compilation.get_module_graph();
-  let mut plugin_state = self.plugin_state.lock().unwrap();
+  let state = {
+    let module_graph = compilation.get_module_graph();
+    let mut plugin_state = self.plugin_state.lock().unwrap();
 
-  let record_module = &mut |module_id: &ModuleId, module_identifier: &ModuleIdentifier| {
-    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-      return;
-    };
-    let Some(module) = module.as_normal_module() else {
-      return;
-    };
-    // Match Resource is undefined unless an import is using the inline match resource syntax
-    // https://webpack.js.org/api/loaders/#inline-matchresource
-    let resource_resolved_data = module.resource_resolved_data();
-    let mod_path = module
-      .match_resource()
-      .map(|match_resource| match_resource.resource.clone())
-      .or_else(|| {
-        resource_resolved_data
-          .resource_path
-          .as_ref()
-          .map(|path| path.to_string())
-      });
-    let mod_query = resource_resolved_data
-      .resource_query
-      .as_ref()
-      .map(|query| query.as_str())
-      .unwrap_or_default();
-    // query is already part of mod.resource
-    // so it's only necessary to add it for matchResource or mod.resourceResolveData
-    let mod_resource = if let Some(mod_path) = mod_path {
-      if mod_path.starts_with(BARREL_OPTIMIZATION_PREFIX) {
-        todo!()
-        // format_barrel_optimized_resource(&module.resource, &mod_path)
+    let record_module = &mut |module_id: &ModuleId, module_identifier: &ModuleIdentifier| {
+      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+        return;
+      };
+      let Some(module) = module.as_normal_module() else {
+        return;
+      };
+      // Match Resource is undefined unless an import is using the inline match resource syntax
+      // https://webpack.js.org/api/loaders/#inline-matchresource
+      let resource_resolved_data = module.resource_resolved_data();
+      let mod_path = module
+        .match_resource()
+        .map(|match_resource| match_resource.resource.clone())
+        .or_else(|| {
+          resource_resolved_data
+            .resource_path
+            .as_ref()
+            .map(|path| path.to_string())
+        });
+      let mod_query = resource_resolved_data
+        .resource_query
+        .as_ref()
+        .map(|query| query.as_str())
+        .unwrap_or_default();
+      // query is already part of mod.resource
+      // so it's only necessary to add it for matchResource or mod.resourceResolveData
+      let mod_resource = if let Some(mod_path) = mod_path {
+        if mod_path.starts_with(BARREL_OPTIMIZATION_PREFIX) {
+          todo!()
+          // format_barrel_optimized_resource(&module.resource, &mod_path)
+        } else {
+          format!("{}{}", mod_path, mod_query)
+        }
       } else {
-        format!("{}{}", mod_path, mod_query)
-      }
-    } else {
-      resource_resolved_data.resource.to_string()
-    };
+        resource_resolved_data.resource.to_string()
+      };
 
-    if !mod_resource.is_empty() {
+      if !mod_resource.is_empty() {
+        if module.get_layer().map(|layer| layer.as_str())
+          == Some(WEBPACK_LAYERS.react_server_components)
+        {
+          let key = Path::new(&mod_resource)
+            .strip_prefix(&compilation.options.context)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace("/next/dist/esm/", "/next/dist/");
+
+          let module_info = ModuleInfo {
+            module_id: module_id.to_string(),
+            is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
+          };
+
+          if self.is_edge_server {
+            plugin_state.edge_rsc_modules.insert(key, module_info);
+          } else {
+            plugin_state.rsc_modules.insert(key, module_info);
+          }
+        }
+      }
+
       if module.get_layer().map(|layer| layer.as_str())
-        == Some(WEBPACK_LAYERS.react_server_components)
+        != Some(WEBPACK_LAYERS.server_side_rendering)
       {
-        let key = Path::new(&mod_resource)
+        return;
+      }
+
+      // Check mod resource to exclude the empty resource module like virtual module created by next-flight-client-entry-loader
+      if !mod_resource.is_empty() {
+        // Note that this isn't that reliable as webpack is still possible to assign
+        // additional queries to make sure there's no conflict even using the `named`
+        // module ID strategy.
+        let mut ssr_named_module_id = Path::new(&mod_resource)
           .strip_prefix(&compilation.options.context)
           .unwrap()
           .to_str()
           .unwrap()
-          .replace("/next/dist/esm/", "/next/dist/");
+          .to_string();
+
+        if !ssr_named_module_id.starts_with('.') {
+          // TODO use getModuleId instead
+          ssr_named_module_id = format!("./{}", normalize_path_sep(&ssr_named_module_id));
+        }
 
         let module_info = ModuleInfo {
           module_id: module_id.to_string(),
@@ -1263,68 +1459,45 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
         };
 
         if self.is_edge_server {
-          plugin_state.edge_rsc_modules.insert(key, module_info);
+          plugin_state.edge_ssr_modules.insert(
+            ssr_named_module_id.replace("/next/dist/esm/", "/next/dist/"),
+            module_info,
+          );
         } else {
-          plugin_state.rsc_modules.insert(key, module_info);
+          plugin_state
+            .ssr_modules
+            .insert(ssr_named_module_id, module_info);
+        }
+      }
+    };
+
+    for chunk_group in compilation.chunk_group_by_ukey.values() {
+      for chunk_ukey in &chunk_group.chunks {
+        let chunk_modules = compilation
+          .chunk_graph
+          .get_chunk_modules_identifier(chunk_ukey);
+        for module_identifier in chunk_modules {
+          if let Some(module_id) =
+            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
+          {
+            record_module(module_id, module_identifier);
+          }
         }
       }
     }
 
-    if module.get_layer().map(|layer| layer.as_str()) != Some(WEBPACK_LAYERS.server_side_rendering)
-    {
-      return;
-    }
-
-    // Check mod resource to exclude the empty resource module like virtual module created by next-flight-client-entry-loader
-    if !mod_resource.is_empty() {
-      // Note that this isn't that reliable as webpack is still possible to assign
-      // additional queries to make sure there's no conflict even using the `named`
-      // module ID strategy.
-      let mut ssr_named_module_id = Path::new(&mod_resource)
-        .strip_prefix(&compilation.options.context)
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
-
-      if !ssr_named_module_id.starts_with('.') {
-        // TODO use getModuleId instead
-        ssr_named_module_id = format!("./{}", normalize_path_sep(&ssr_named_module_id));
-      }
-
-      let module_info = ModuleInfo {
-        module_id: module_id.to_string(),
-        is_async: ModuleGraph::is_async(&compilation, &module.identifier()),
-      };
-
-      if self.is_edge_server {
-        plugin_state.edge_ssr_modules.insert(
-          ssr_named_module_id.replace("/next/dist/esm/", "/next/dist/"),
-          module_info,
-        );
-      } else {
-        plugin_state
-          .ssr_modules
-          .insert(ssr_named_module_id, module_info);
-      }
-    }
+    mem::take(plugin_state.deref_mut())
   };
 
-  let mut chunk_groups_iter = compilation.chunk_group_by_ukey.values();
-  if let Some(chunk_group) = chunk_groups_iter.next() {
-    for chunk_ukey in &chunk_group.chunks {
-      let chunk_modules = compilation
-        .chunk_graph
-        .get_chunk_modules_identifier(chunk_ukey);
-      for module_identifier in chunk_modules {
-        if let Some(module_id) =
-          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
-        {
-          record_module(module_id, module_identifier);
-        }
-      }
-    }
-  }
+  let state_cb = self.state_cb.as_ref();
+  state_cb(state).await?;
+
+  Ok(())
+}
+
+#[plugin_hook(CompilationProcessAssets for FlightClientEntryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  self.create_action_assets(compilation);
   Ok(())
 }
 
@@ -1346,6 +1519,12 @@ impl Plugin for FlightClientEntryPlugin {
       .compiler_hooks
       .after_emit
       .tap(after_emit::new(self));
+
+    ctx
+      .context
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
 
     Ok(())
   }
