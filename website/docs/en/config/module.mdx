@@ -17,7 +17,7 @@ Used to decide how to handle different types of modules in a project.
 
 An array of rules applied by default for modules.
 
-See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L364) for details.
+See [source code](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381) for details.
 
 ```js title=rspack.config.js
 module.exports = {
@@ -110,12 +110,24 @@ module.exports = {
 
 Parser options for `asset` modules.
 
-#### module.parser.asset.dataUrlCondition
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset.dataUrlCondition
 
 - **Type:** `{ maxSize: number }`
 - **Default:** `{ maxSize: 8096 }`
 
-If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for Asset Module scenarios.
+If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for [Asset modules](/guide/features/asset-module).
 
 ```js title=rspack.config.js
 module.exports = {
@@ -123,7 +135,7 @@ module.exports = {
     parser: {
       asset: {
         dataUrlCondition: {
-          // Modules' size smaller than or equal to 4KB and ending with `.png` will be Base64 encoded.
+          // Modules' size smaller than or equal to 4KB will be Base64 encoded.
           maxSize: 4 * 1024,
         },
       },
@@ -136,7 +148,19 @@ module.exports = {
 
 Parser options for `javascript` modules.
 
-#### module.parser.javascript.dynamicImportMode
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportMode
 
 <PropertyType
   type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
@@ -145,7 +169,19 @@ Parser options for `javascript` modules.
 
 Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
 
-#### module.parser.javascript.dynamicImportPrefetch
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportMode: 'eager',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPrefetch
 
 <PropertyType
   type="boolean | number"
@@ -154,7 +190,19 @@ Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/m
 
 Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
 
-#### module.parser.javascript.dynamicImportPreload
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPrefetch: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportPreload
 
 <PropertyType
   type="boolean | number"
@@ -163,7 +211,19 @@ Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runti
 
 Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
 
-#### module.parser.javascript.dynamicImportFetchPriority
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportPreload: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.dynamicImportFetchPriority
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -174,7 +234,19 @@ Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime
 
 Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
 
-#### module.parser.javascript.url
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        dynamicImportFetchPriority: 'high',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.url
 
 <PropertyType
   type="true | false | 'relative'"
@@ -193,7 +265,19 @@ When use 'relative', Rspack would generate relative URLs for `new URL()` syntax,
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
-#### module.parser.javascript.exprContextCritical
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        url: 'relative',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.exprContextCritical
 
 <PropertyType
   type="boolean | undefined"
@@ -202,7 +286,19 @@ When use 'relative', Rspack would generate relative URLs for `new URL()` syntax,
 
 Enable warnings for full dynamic dependencies (`import(variable)`).
 
-#### module.parser.javascript.wrappedContextCritical
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        exprContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextCritical
 
 <PropertyType
   type="boolean | undefined"
@@ -211,7 +307,19 @@ Enable warnings for full dynamic dependencies (`import(variable)`).
 
 Enable warnings for partial dynamic dependencies (`import("./path/to/" + variable)`).
 
-#### module.parser.javascript.wrappedContextRegExp
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextCritical: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.wrappedContextRegExp
 
 <PropertyType
   type="RegExp | undefined"
@@ -220,7 +328,19 @@ Enable warnings for partial dynamic dependencies (`import("./path/to/" + variabl
 
 Set a regular expression to match wrapped dynamic dependencies.
 
-#### module.parser.javascript.importMeta
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextRegExp: /\.js$/,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
@@ -228,7 +348,19 @@ Set a regular expression to match wrapped dynamic dependencies.
 
 Enable or disable evaluating `import.meta`.
 
-#### module.parser.javascript.exportsPresence
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.exportsPresence
 
 <PropertyType
   type="'error' | 'warn' | 'auto' | false"
@@ -242,25 +374,73 @@ Warn or error for using non-existent exports and conflicting re-exports.
 - `"auto"`: Depending on whether the module is a strict ESM, give an error if it is, otherwise give a warning.
 - `false`: Disable this feature.
 
-#### module.parser.javascript.importExportsPresence
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.importExportsPresence
 
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
-Warn or error for using non-existent exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+Warn or error for using non-existent exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
 
-#### module.parser.javascript.reexportExportsPresence
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        importExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.reexportExportsPresence
 
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
-Warn or error for conflicting re-exports, defaulting to the configuration of `module.parser.javascript.exportsPresence`.
+Warn or error for conflicting re-exports, defaulting to the configuration of [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence).
 
-#### module.parser.javascript.strictExportPresence
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        reexportExportsPresence: 'error',
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.strictExportPresence
 
 - **Type:** `boolean`
 
 Emit errors instead of warnings when imported names don't exist in imported module.
 
-#### module.parser.javascript.worker
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        strictExportPresence: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
@@ -268,7 +448,7 @@ Emit errors instead of warnings when imported names don't exist in imported modu
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
-```js
+```js title=rspack.config.js
 module.exports = {
   module: {
     parser: {
@@ -289,7 +469,7 @@ module.exports = {
 };
 ```
 
-#### module.parser.javascript.overrideStrict
+### module.parser.javascript.overrideStrict
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
@@ -299,27 +479,87 @@ Override the module to strict or non-strict.
 
 This may affect the behavior of the module (some behaviors differ between strict and non-strict), so please configure this option carefully.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      javascript: {
+        overrideStrict: 'strict',
+      },
+    },
+  },
+};
+```
+
 ### module.parser["javascript/auto"]
 
 Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'javascript/auto': {
+        // options
+      },
+    },
+  },
+};
+```
 
 ### module.parser["javascript/dynamic"]
 
 Parser options for `javascript/dynamic` modules, same as the [`javascript` parser options](#moduleparserjavascript).
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'javascript/dynamic': {
+        // options
+      },
+    },
+  },
+};
+```
+
 ### module.parser["javascript/esm"]
 
 Parser options for `javascript/esm` modules, same as the [`javascript` parser options](#moduleparserjavascript).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'javascript/esm': {
+        // options
+      },
+    },
+  },
+};
+```
 
 ### module.parser["css/auto"]
 
 Parser options for `css/auto` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.parser["css/auto"].namedExports
+### module.parser["css/auto"].namedExports
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -327,6 +567,18 @@ This configuration will only take effect when `experiments.css = true`.
 Use ES modules named export for CSS exports.
 
 When using `namedExports: true`, you can use namespace export or named export:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
 
 ```js
 // namespace export
@@ -336,6 +588,18 @@ import { class1, class2 } from './index.module.css';
 ```
 
 When using `namedExports: false`, in addition to namespace export and named export, default export can also be used:
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+  },
+};
+```
 
 ```js
 // namespace export
@@ -352,25 +616,73 @@ import classes, { class1, class2 } from './index.module.css';
 
 Parser options for `css` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.parser.css.namedExports
+### module.parser.css.namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      css: {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
 
 ### module.parser["css/module"]
 
 Parser options for `css/module` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.parser["css/module"].namedExports
+### module.parser["css/module"].namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    parser: {
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
 
 ## module.generator
 
@@ -432,7 +744,19 @@ module.exports = {
 
 Generator options for `asset` modules.
 
-#### module.generator.asset.dataUrl
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.dataUrl
 
 - **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **Default:** `{}`
@@ -472,21 +796,49 @@ module.exports = {
 };
 ```
 
-##### module.generator.asset.dataUrl.encoding
+### module.generator.asset.dataUrl.encoding
 
 - **Type:** `false | 'base64'`
 - **Default:** `'base64'`
 
 When set to 'base64', module source will be encoded using Base64 algorithm. Setting encoding to false will disable encoding. Only for modules with module type `'asset'` or `'asset/inline'`.
 
-##### module.generator.asset.dataUrl.mimetype
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.dataUrl.mimetype
 
 - **Type:** `string`
 - **Default:** `require('mime-types').lookup(ext)`
 
 A mimetype for data URI. Resolves from module resource extension by default. Only for modules with module type `'asset'` or `'asset/inline'`.
 
-#### module.generator.asset.importMode
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.importMode
 
 - **Type:** `'url' | 'preserve'`
 - **Default:** `'url'`
@@ -524,7 +876,7 @@ module.exports = {
 };
 ```
 
-#### module.generator.asset.filename
+### module.generator.asset.filename
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -544,7 +896,7 @@ module.exports = {
 };
 ```
 
-#### module.generator.asset.outputPath
+### module.generator.asset.outputPath
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -553,7 +905,19 @@ Emit the asset in the specified folder relative to [`output.path`](/config/outpu
 
 Only for modules with module type `'asset'` or `'asset/resource'`.
 
-#### module.generator.asset.publicPath
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      asset: {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### module.generator.asset.publicPath
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -572,7 +936,7 @@ module.exports = {
 };
 ```
 
-#### module.generator.asset.emit
+### module.generator.asset.emit
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -613,54 +977,192 @@ module.exports = {
 
 Generator options for `asset/inline` modules.
 
-#### module.generator["asset/inline"].dataUrl
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/inline': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl
 
 Same as [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl).
 
-##### module.generator["asset/inline"].dataUrl.encoding
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          // options
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl.encoding
 
 Same as [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding).
 
-##### module.generator["asset/inline"].dataUrl.mimetype
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/inline"].dataUrl.mimetype
 
 Same as [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
 
 ### module.generator["asset/resource"]
 
 Generator options for `asset/resource` modules.
 
-#### module.generator["asset/resource"].importMode
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].importMode
 
 Same as [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode).
 
-#### module.generator["asset/resource"].filename
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].filename
 
 Same as [`module.generator["asset"].filename`](#modulegeneratorassetfilename).
 
-#### module.generator["asset/resource"].outputPath
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].outputPath
 
 Same as [`module.generator["asset"].outputPath`](#modulegeneratorassetoutputpath).
 
-#### module.generator["asset/resource"].publicPath
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### module.generator["asset/resource"].publicPath
 
 Same as [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'asset/resource': {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
 
 ### module.generator["css/auto"]
 
 Generator options for `css/auto` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.generator["css/auto"].exportsConvention
+### module.generator["css/auto"].exportsConvention
 
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **Default:** `'as-is'`
 
 Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
 
-#### module.generator["css/auto"].exportsOnly
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].exportsOnly
 
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
@@ -669,23 +1171,59 @@ If `true`, **only exports** the identifier mappings from CSS into the output Jav
 
 If `false`, generate stylesheets and embed them in the template.
 
-#### module.generator["css/auto"].localIdentName
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentName
 
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
 
 Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
-#### module.generator["css/auto"].esModule
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].esModule
 
 - **Type:** `boolean`
 - **Default:** `true`
 
 This configuration is available for improved ESM-CJS interoperability purposes.
 
-Whether to add `__esModule` to the exports of CSS; if added, it will be treated as an ES modules during esm-cjs interop, otherwise, it will be treated as a CommonJS Module.
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as ES modules during ESM-CJS interop, otherwise, it will be treated as a CommonJS Module.
 
-For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct esm-cjs interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/auto': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct ESM-CJS interop, to obtain the correct exports (this can be used in conjunction with [Rule.test](#ruletest) and other matching conditions to add it only for that particular component library).
 
 The original source code of the third-party component library:
 
@@ -722,41 +1260,137 @@ function Button() {
 
 Generator options for `css` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.generator.css.exportsOnly
+### module.generator.css.exportsOnly
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
-#### module.generator.css.esModule
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      css: {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator.css.esModule
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      css: {
+        esModule: true,
+      },
+    },
+  },
+};
+```
 
 ### module.generator["css/module"]
 
 Generator options for `css/module` modules.
 
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
 :::warning
-This configuration will only take effect when `experiments.css = true`.
+This configuration will only work if [experiments.css](/config/experiments#experimentscss) is enabled.
 :::
 
-#### module.generator["css/module"].exportsConvention
+### module.generator["css/module"].exportsConvention
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
 
-#### module.generator["css/module"].exportsOnly
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/module': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsOnly
 
 Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
 
-#### module.generator["css/module"].localIdentName
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentName
 
 Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
 
-#### module.generator["css/module"].esModule
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].esModule
 
 Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title=rspack.config.js
+module.exports = {
+  module: {
+    generator: {
+      'css/module': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
 
 ## module.rules
 
@@ -780,7 +1414,7 @@ Defines the processing behavior of the corresponding matching module, e.g. :
 - Apply the module's type (`Rule.type`)
 - Apply the module's resolve configuration (`Rule.resolve`)
 
-#### Condition
+### Condition
 
 - **Type:** `string | RegExp | Condition[] | LogicalConditions`
 
@@ -803,7 +1437,7 @@ Condition represents the form of matching a given input, and it supports the fol
   - `{ not: Condition }`: All Conditions must NOT match.
 - `(value: string) => boolean`: If it's called with the input and return a truthy value, the match is succeeds.
 
-#### Nested rule
+### Nested rule
 
 Nested Rule can be specified under the properties [`Rule.rules`](#rulerules) and [`Rule.oneOf`](#ruleoneof), These rules are evaluated only when the parent Rule condition matches. Each nested rule can contain its own conditions.
 
@@ -872,7 +1506,7 @@ Matches all modules that match this resource, and will match against Resource (t
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
 
 :::warning
-This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 A basic example:
@@ -1229,7 +1863,7 @@ All `type` options are as follows:
 Used to mark the layer of the matching module. A group of modules could be united in one layer which could then be used in split chunks, stats or [entry options](/config/entry#entrydescriptionlayer).
 
 :::warning
-This configuration will only take effect when [experiments.layers = true](/config/experiments#experimentslayers).
+This configuration will only work if [experiments.layers = true](/config/experiments#experimentslayers).
 :::
 
 ```js title=rspack.config.js
