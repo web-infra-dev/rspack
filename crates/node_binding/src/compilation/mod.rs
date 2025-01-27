@@ -741,7 +741,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, RawEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void"
+    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsDependency | null, JsModule | null][]) => void"
   )]
   pub fn add_include(
     &mut self,

@@ -21,6 +21,7 @@ use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
 use get_module_build_info::get_module_build_info;
 use is_metadata_route::is_metadata_route;
+use itertools::Itertools;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use rspack_collections::Identifiable;
 use rspack_core::{
@@ -40,6 +41,7 @@ use rspack_plugin_javascript::dependency::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use serde_json::json;
+use sugar_path::SugarPath;
 
 #[derive(Clone, Serialize)]
 pub struct Action {
@@ -90,6 +92,8 @@ pub struct ShouldInvalidateCbCtx {
 
 pub type ShouldInvalidateCb = Box<dyn Fn(ShouldInvalidateCbCtx) -> bool + Sync + Send>;
 
+pub type InvalidateCb = Box<dyn Fn() + Sync + Send>;
+
 pub struct Options {
   pub dev: bool,
   pub app_dir: Utf8PathBuf,
@@ -97,6 +101,7 @@ pub struct Options {
   pub encryption_key: String,
   pub builtin_app_loader: bool,
   pub should_invalidate_cb: ShouldInvalidateCb,
+  pub invalidate_cb: InvalidateCb,
   pub state_cb: StateCb,
 }
 
@@ -332,7 +337,11 @@ fn add_client_import(
     .entry(mod_request.to_string())
     .or_insert_with(HashSet::default);
 
-  if imported_identifiers[0] == "*" {
+  if imported_identifiers
+    .get(0)
+    .map(|identifier| identifier.as_str())
+    == Some("*")
+  {
     // If there's collected import path with named import identifiers,
     // or there's nothing in collected imports are empty.
     // we should include the whole module.
@@ -440,6 +449,12 @@ pub struct Manifest {
   pub edge: Actions,
 }
 
+#[derive(Serialize)]
+pub struct LoaderParams {
+  pub modules: String,
+  pub server: bool,
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct FlightClientEntryPlugin {
@@ -452,6 +467,8 @@ pub struct FlightClientEntryPlugin {
   app_loader: &'static str,
   #[debug(skip)]
   should_invalidate_cb: ShouldInvalidateCb,
+  #[debug(skip)]
+  invalidate_cb: InvalidateCb,
   #[debug(skip)]
   state_cb: StateCb,
 
@@ -489,6 +506,7 @@ impl FlightClientEntryPlugin {
       webpack_runtime,
       app_loader,
       options.should_invalidate_cb,
+      options.invalidate_cb,
       options.state_cb,
       Mutex::new(Default::default()),
     )
@@ -639,45 +657,63 @@ impl FlightClientEntryPlugin {
     // For the client entry, we always use the CJS build of Next.js. If the
     // server is using the ESM build (when using the Edge runtime), we need to
     // replace them.
-    let client_browser_loader = format!(
-      "next-flight-client-entry-loader?{}!",
-      serde_json::to_string(&json!({
-          "modules": if self.is_edge_server {
-              modules.iter().map(|(request, ids)| {
-                  json!({
-                      "request": request.replace(
-                          r"/next/dist/esm/",
-                          &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
-                      ),
-                      "ids": ids
-                  })
-              }).collect::<Vec<_>>()
-          } else {
-              modules.iter().map(|(request, ids)| {
-                  json!({
-                      "request": request,
-                      "ids": ids
-                  })
-              }).collect::<Vec<_>>()
-          },
-          "server": false
-      }))
-      .unwrap()
-    );
+    let client_browser_loader = {
+      let modules = if self.is_edge_server {
+        modules
+          .iter()
+          .map(|(request, ids)| {
+            serde_json::to_string(&json!({
+                "request": request.replace(
+                    r"/next/dist/esm/",
+                    &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
+                ),
+                "ids": ids
+            }))
+            .unwrap()
+          })
+          .join(",")
+      } else {
+        modules
+          .iter()
+          .map(|(request, ids)| {
+            serde_json::to_string(&json!({
+                "request": request,
+                "ids": ids
+            }))
+            .unwrap()
+          })
+          .join(",")
+      };
+      let params = LoaderParams {
+        modules,
+        server: false,
+      };
+      format!(
+        "next-flight-client-entry-loader?{}!",
+        serde_urlencoded::to_string(params).unwrap()
+      )
+    };
 
-    let client_server_loader = format!(
-      "next-flight-client-entry-loader?{}!",
-      serde_json::to_string(&json!({
-          "modules": modules.iter().map(|(request, ids)| {
-              json!({
-                  "request": request,
-                  "ids": ids
-              })
-          }).collect::<Vec<_>>(),
-          "server": true
-      }))
-      .unwrap()
-    );
+    let client_server_loader = {
+      let modules = modules
+        .iter()
+        .map(|(request, ids)| {
+          serde_json::to_string(&json!({
+              "request": request,
+              "ids": ids
+          }))
+          .unwrap()
+        })
+        .join(",");
+      let params = LoaderParams {
+        modules,
+        server: true,
+      };
+      format!(
+        "next-flight-client-entry-loader?{}!",
+        serde_urlencoded::to_string(params).unwrap()
+      )
+    };
 
     // Add for the client compilation
     // Inject the entry to the client compiler.
@@ -998,10 +1034,8 @@ impl FlightClientEntryPlugin {
 
         let relative_request = if is_absolute_request {
           entry_request
-            .strip_prefix(&compilation.options.context)
-            .unwrap()
-            .to_str()
-            .unwrap()
+            .relative(&compilation.options.context)
+            .to_string_lossy()
             .to_string()
         } else {
           entry_request.to_string_lossy().to_string()
@@ -1115,17 +1149,17 @@ impl FlightClientEntryPlugin {
         .map(|injected| add_action_entry_list.push(injected));
     }
 
-    // // Invalidate in development to trigger recompilation
-    // let invalidator = get_invalidator(&compiler.output_path);
-    // // Check if any of the entry injections need an invalidation
-    // if let Some(invalidator) = invalidator {
-    //   if add_client_entry_and_ssr_modules_list
-    //     .iter()
-    //     .any(|(should_invalidate, _)| *should_invalidate)
-    //   {
-    //     invalidator.invalidate(&[COMPILER_NAMES.client]);
-    //   }
-    // }
+    // Invalidate in development to trigger recompilation
+    if self.dev {
+      // Check if any of the entry injections need an invalidation
+      if add_client_entry_and_ssr_modules_list
+        .iter()
+        .any(|injected| injected.should_invalidate)
+      {
+        let invalidate_cb = self.invalidate_cb.as_ref();
+        invalidate_cb();
+      }
+    }
 
     // Client compiler is invalidated before awaiting the compilation of the SSR
     // and RSC client component entries so that the client compiler is running
@@ -1344,7 +1378,13 @@ impl FlightClientEntryPlugin {
     assets.insert(
       format!("{}{}.js", self.asset_prefix, SERVER_REFERENCE_MANIFEST),
       CompilationAsset::new(
-        Some(RawSource::from(format!("self.__RSC_SERVER_MANIFEST={}", edge_json)).boxed()),
+        Some(
+          RawSource::from(format!(
+            "self.__RSC_SERVER_MANIFEST={}",
+            serde_json::to_string(&edge_json).unwrap()
+          ))
+          .boxed(),
+        ),
         AssetInfo::default(),
       ),
     );
@@ -1411,10 +1451,9 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
           == Some(WEBPACK_LAYERS.react_server_components)
         {
           let key = Path::new(&mod_resource)
-            .strip_prefix(&compilation.options.context)
-            .unwrap()
-            .to_str()
-            .unwrap()
+            .relative(&compilation.options.context)
+            .to_string_lossy()
+            .to_string()
             .replace("/next/dist/esm/", "/next/dist/");
 
           let module_info = ModuleInfo {
@@ -1442,10 +1481,8 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
         // additional queries to make sure there's no conflict even using the `named`
         // module ID strategy.
         let mut ssr_named_module_id = Path::new(&mod_resource)
-          .strip_prefix(&compilation.options.context)
-          .unwrap()
-          .to_str()
-          .unwrap()
+          .relative(&compilation.options.context)
+          .to_string_lossy()
           .to_string();
 
         if !ssr_named_module_id.starts_with('.') {

@@ -262,6 +262,7 @@ export type {
 	CssExtractRspackLoaderOptions,
 	CssExtractRspackPluginOptions
 } from "./builtin-plugin";
+export type { FlightClientEntryPluginOptions } from "./builtin-plugin";
 export { HtmlRspackPlugin } from "./builtin-plugin";
 export { SwcJsMinimizerRspackPlugin } from "./builtin-plugin";
 export { LightningCssMinimizerRspackPlugin } from "./builtin-plugin";
@@ -271,6 +272,7 @@ export { EvalSourceMapDevToolPlugin } from "./builtin-plugin";
 export { EvalDevToolModulePlugin } from "./builtin-plugin";
 export { CssExtractRspackPlugin } from "./builtin-plugin";
 export { ContextReplacementPlugin } from "./builtin-plugin";
+export { FlightClientEntryPlugin } from "./builtin-plugin";
 
 ///// Rspack Postfixed Internal Loaders /////
 export type {

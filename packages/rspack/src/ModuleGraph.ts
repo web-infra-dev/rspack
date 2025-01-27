@@ -99,6 +99,12 @@ export default class ModuleGraph {
 		return connections;
 	}
 
+	getIncomingConnections(module: Module): ModuleGraphConnection[] {
+		return this.#inner
+			.getIncomingConnections(Module.__to_binding(module))
+			.map(binding => ModuleGraphConnection.__from_binding(binding));
+	}
+
 	getParentBlockIndex(dependency: Dependency): number {
 		let index = this.#parentBlockIndexMap.get(dependency);
 		if (index === undefined) {

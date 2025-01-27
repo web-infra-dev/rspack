@@ -78,6 +78,7 @@ pub struct JsExternalItemFnCtx {
   pub context: String,
   pub dependency_type: String,
   pub context_info: ContextInfo,
+  #[napi(ts_type = "JsResolver")]
   pub resolver: JsResolverWrapper,
 }
 
