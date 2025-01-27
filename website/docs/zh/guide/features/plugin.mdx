@@ -1,23 +1,69 @@
 # 插件
 
-如果说 [Loader](/guide/features/loader) 是文件转换（预处理）的核心，那么插件（Plugin）则是 Rspack 整体构建流程的核心组成部分，大部分 Rspack 的原生实现依赖了 Rust 侧的插件系统。
-对于 Node 的用户来说，你无需担心和 Rust 的 Interop 问题，因为 Rspack 会自动帮你处理好这些细节，你只需要关注如何使用插件即可。
+如果说 [loader](/guide/features/loader) 是文件转换（预处理）的核心，那么插件（plugin）则是 Rspack 整体构建流程的核心组成部分，Rspack 大部分的原生实现都依赖于 Rust 侧的插件系统。
+
+对于 Node.js 的用户来说，你无需担心 Node.js 和 Rust 的互操作问题，因为 Rspack 会自动帮你处理好这些细节，你只需要关注如何使用插件即可。
 
 ## 使用插件
 
-下面是一个例子，在 `rspack.config.js` 中使用已经兼容的 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)：
+Rspack 提供了 [plugins](/config/plugins) 配置项，用于注册一组 Rspack 或 webpack 插件来自定义构建过程。
+
+下面是一个例子，在 `rspack.config.js` 中使用 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) 插件：
 
 ```js title="rspack.config.js"
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 module.exports = {
-  plugins: [new BundleAnalyzerPlugin()],
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // options
+    }),
+  ],
 };
 ```
 
 如果你正在寻找更多的 Rspack 插件，请查看 [插件](/plugins/index) 列表。
 
 你也可以参考 [Plugin 兼容](/guide/compatibility/plugin) 列表，查看已通过 Rspack 兼容性测试的 webpack 插件。
+
+## 其他插件
+
+### Unplugin
+
+[unplugin](https://github.com/unjs/unplugin) 是一个适用于不同构建工具的统一插件系统。你可以在 Rspack 中使用基于 unplugin 实现的插件，通常需要引入插件的 `/rspack` 子路径，并通过 `plugins` 注册它。
+
+下面是使用 [unplugin-vue-components](https://www.npmjs.com/package/unplugin-vue-components) 的示例：
+
+```js title=rspack.config.js
+const Components = require('unplugin-vue-components/rspack');
+
+module.exports = {
+  plugins: [
+    Components.default({
+      // options
+    }),
+  ],
+};
+```
+
+### SWC 插件
+
+在 Rspack 内置的 [swc-loader](/guide/features/builtin-swc-loader) 中，你可以使用 SWC 的 Wasm 插件，详见 [jsc.experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins)。
+
+### Rsbuild 插件
+
+[Rsbuild](https://rsbuild.dev) 是基于 Rspack 的构建工具，并且具备一套独立的插件系统。
+
+请注意，你无法在 Rspack 中使用 Rsbuild 插件，因为 Rspack 是更加底层的工具，但你可以在 Rsbuild 中使用 Rspack 插件。
+
+下面是 Rspack 与 Rsbuild 可用的插件对比：
+
+| 使用的工具 | Rspack 插件 | webpack 插件 | Rsbuild 插件 | Unplugins | SWC 插件 |
+| ---------- | ----------- | ------------ | ------------ | --------- | -------- |
+| Rspack     | ✅          | ✅           | ❌           | ✅        | ✅       |
+| Rsbuild    | ✅          | ✅           | ✅           | ✅        | ✅       |
+
+> 请查看 [Rsbuild 插件文档](https://rsbuild.dev/zh/plugins/list/index) 来获取更多信息。
 
 ## 编写一个插件
 
