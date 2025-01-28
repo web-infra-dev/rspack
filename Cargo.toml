@@ -217,7 +217,8 @@ inherits = "release"
 lto = "fat"
 
 [profile.release-debug]
-debug           = true
+# reduce debug size for linux
+debug           = 'limited'
 inherits        = "release"
 split-debuginfo = "off"
 strip           = false
