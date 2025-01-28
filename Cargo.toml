@@ -232,7 +232,7 @@ opt-level = 2
 debug           = 'limited'
 inherits        = "release"
 split-debuginfo = "off"
-strip           = false
+strip           = "debuginfo"
 
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
