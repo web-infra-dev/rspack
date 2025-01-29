@@ -641,7 +641,7 @@ impl FlightClientEntryPlugin {
       })
       .collect();
 
-    modules.sort_by(|a, b| {
+    modules.sort_unstable_by(|a, b| {
       if REGEX_CSS.is_match(&b.0) {
         std::cmp::Ordering::Greater
       } else {
