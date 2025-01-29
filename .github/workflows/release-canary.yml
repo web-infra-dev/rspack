@@ -14,6 +14,7 @@ on:
         options:
           - release
           - release-debug
+          - dev
         description: "release-debug means release with debug info for profile"
 
 permissions:
