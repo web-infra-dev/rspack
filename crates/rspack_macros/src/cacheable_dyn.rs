@@ -42,7 +42,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                 ArchiveUnsized, ArchivedMetadata, DeserializeUnsized, Portable, SerializeUnsized,
             };
             use rspack_cacheable::{
-                r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn},
+                r#dyn::{validation::CHECK_BYTES_REGISTRY, ArchivedDynMetadata, DeserializeDyn, VTablePtr},
                 DeserializeError, Deserializer, SerializeError, Serializer, Validator,
             };
 
@@ -122,7 +122,7 @@ pub fn impl_trait(mut input: ItemTrait) -> TokenStream {
                     value: *const Self,
                     context: &mut Validator,
                 ) -> Result<(), DeserializeError> {
-                    let vtable: usize = std::mem::transmute(ptr_meta::metadata(value));
+                    let vtable = VTablePtr::new(ptr_meta::metadata(value));
                     if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
                         check_bytes_dyn(value.cast(), context)?;
                         Ok(())
@@ -181,18 +181,12 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
 
   input.items.push(parse_quote! {
         fn __dyn_id(&self) -> u64 {
-            *#dyn_id_ident
+            #dyn_id_ident
         }
   });
 
   quote! {
-      static #dyn_id_ident: std::sync::LazyLock<u64> = std::sync::LazyLock::new(|| {
-          use std::hash::{DefaultHasher, Hash, Hasher};
-          let mut hasher = DefaultHasher::new();
-          module_path!().hash(&mut hasher);
-          line!().hash(&mut hasher);
-          hasher.finish()
-      });
+      const #dyn_id_ident: u64 = rspack_cacheable::xxhash_rust::const_xxh64::xxh64(concat!(module_path!(), ":", line!()).as_bytes(), 0);
 
       #input
 
@@ -204,19 +198,19 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
           use rspack_cacheable::{
               r#dyn::{
                   validation::{default_check_bytes_dyn, CheckBytesEntry},
-                  DeserializeDyn, DynEntry,
+                  DeserializeDyn, DynEntry, VTablePtr,
               },
               DeserializeError, Deserializer,
           };
 
-          fn get_vtable() -> usize {
+          const fn get_vtable() -> VTablePtr {
               unsafe {
-                  core::mem::transmute(ptr_meta::metadata(
+                  VTablePtr::new(ptr_meta::metadata(
                       core::ptr::null::<Archived<#target_ident>>() as *const <dyn #trait_ident as ArchiveUnsized>::Archived
                   ))
               }
           }
-          inventory::submit! { DynEntry::new(*#dyn_id_ident, get_vtable()) }
+          inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable()) }
           inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<#target_ident>>) }
 
           impl DeserializeDyn<dyn #trait_ident> for #archived_target_ident
