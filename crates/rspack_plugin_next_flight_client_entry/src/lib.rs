@@ -24,6 +24,7 @@ use get_module_build_info::get_module_build_info;
 use is_metadata_route::is_metadata_route;
 use itertools::Itertools;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
+use regex::Regex;
 use rspack_collections::Identifiable;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
@@ -645,7 +646,7 @@ impl FlightClientEntryPlugin {
     modules.sort_unstable_by(|a, b| {
       let a_is_css = REGEX_CSS.is_match(&a.0);
       let b_is_css = REGEX_CSS.is_match(&b.0);
-      match ((a_is_css, b_is_css)) {
+      match (a_is_css, b_is_css) {
         (false, true) => Ordering::Less,
         (true, false) => Ordering::Greater,
         (_, _) => a.0.cmp(&b.0),
@@ -1020,13 +1021,13 @@ impl FlightClientEntryPlugin {
         } else {
           entry_request.to_string_lossy().to_string()
         };
+        let re1 = Regex::new(r"\.[^.\\/]+$").unwrap();
+        let re2 = Regex::new(r"^src[\\/]").unwrap();
+        let replaced_path = &re1.replace_all(&relative_request, "");
+        let replaced_path = re2.replace_all(&replaced_path, "");
 
         // Replace file suffix as `.js` will be added.
-        let mut bundle_path = normalize_path_sep(
-          &relative_request
-            .replace(r"\.[^.\\/]+$", "")
-            .replace(r"^src[\\/]", ""),
-        );
+        let mut bundle_path = normalize_path_sep(&replaced_path);
 
         // For metadata routes, the entry name can be used as the bundle path,
         // as it has been normalized already.
