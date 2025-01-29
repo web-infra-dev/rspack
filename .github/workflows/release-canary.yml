@@ -18,9 +18,9 @@ on:
         default: release
         options:
           - release
-          - profiling
-          - ci
-        description: "profiling means release with debug info for profiling, ci means release with debug info and faster build time"
+          - release-debug
+          - dev
+        description: "release-debug means release with debug info for profile"
 
 permissions:
   # To publish packages with provenance
