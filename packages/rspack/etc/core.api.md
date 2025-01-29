@@ -6360,7 +6360,7 @@ export const rspackOptions: z.ZodObject<{
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
                 client: z.ZodOptional<z.ZodString>;
-                listen: z.ZodUnion<[z.ZodOptional<z.ZodNumber>, z.ZodObject<{
+                listen: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodNumber, z.ZodObject<{
                     port: z.ZodOptional<z.ZodNumber>;
                     host: z.ZodOptional<z.ZodString>;
                     backlog: z.ZodOptional<z.ZodNumber>;
@@ -6387,8 +6387,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                }>]>;
+                }>]>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodVoid>]>>;
                 protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
+                server: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodAny>]>>;
             }, "strip", z.ZodTypeAny, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6400,8 +6401,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6413,8 +6415,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }>>;
             imports: z.ZodOptional<z.ZodBoolean>;
             entries: z.ZodOptional<z.ZodBoolean>;
@@ -6434,8 +6437,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }, {
             entries?: boolean | undefined;
@@ -6452,8 +6456,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
@@ -6572,8 +6577,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -6639,8 +6645,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -8585,8 +8592,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -9190,8 +9198,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
