@@ -3,8 +3,6 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
-use async_scoped::{Scope, TokioScope};
-
 /// Run futures in parallel.
 ///
 ///
@@ -38,6 +36,7 @@ impl<T> FuturesResults<T> {
   }
 }
 
+#[cfg(not(target_family = "wasm"))]
 impl<Fut> FromIterator<Fut> for FuturesResults<Fut::Output>
 where
   Fut: Future + Send,
@@ -47,6 +46,8 @@ where
   where
     I: IntoIterator<Item = Fut>,
   {
+    use async_scoped::{Scope, TokioScope};
+
     let (_, inner) = Scope::scope_and_block(|s: &mut TokioScope<'_, _>| {
       iter.into_iter().for_each(|fut| {
         s.spawn(fut);
@@ -67,6 +68,24 @@ where
           }
         })
         .collect(),
+    }
+  }
+}
+
+#[cfg(target_family = "wasm")]
+impl<Fut> FromIterator<Fut> for FuturesResults<Fut::Output>
+where
+  Fut: Future + Send,
+  Fut::Output: Send + 'static,
+{
+  fn from_iter<I>(iter: I) -> Self
+  where
+    I: IntoIterator<Item = Fut>,
+  {
+    use futures::future::join_all;
+
+    Self {
+      inner: futures::executor::block_on(join_all(iter)),
     }
   }
 }
