@@ -13,6 +13,13 @@ const { spawn } = require("child_process");
 
 const CARGO_SAFELY_EXIT_CODE = 0;
 
+// Faster release for CI & canary with `thin` LTO
+let release = process.argv.includes("--release");
+// Slower release for production with `fat` LTO
+let releaseProd = process.argv.includes("--release-prod");
+// release with debug
+let releaseDebug = process.argv.includes("--release-debug");
+let releaseDev = process.argv.includes("--release-dev");
 let watch = process.argv.includes("--watch");
 
 build().then((value) => {
@@ -40,6 +47,9 @@ async function build() {
 		];
 		if (values.profile) {
 			args.push("--profile", values.profile)
+		}
+		if (releaseDev) {
+			args.push('--profile release-dev')
 		}
 		if (watch) {
 			args.push("--watch");
