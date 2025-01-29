@@ -5,6 +5,7 @@ mod is_metadata_route;
 mod loader_util;
 
 use std::{
+  cmp::Ordering,
   mem,
   ops::DerefMut,
   path::Path,
@@ -642,10 +643,12 @@ impl FlightClientEntryPlugin {
       .collect();
 
     modules.sort_unstable_by(|a, b| {
-      if REGEX_CSS.is_match(&b.0) {
-        std::cmp::Ordering::Greater
-      } else {
-        a.0.cmp(&b.0)
+      let a_is_css = REGEX_CSS.is_match(&a.0);
+      let b_is_css = REGEX_CSS.is_match(&b.0);
+      match ((a_is_css, b_is_css)) {
+        (false, true) => Ordering::Less,
+        (true, false) => Ordering::Greater,
+        (_, _) => a.0.cmp(&b.0),
       }
     });
 
