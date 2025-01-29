@@ -32,6 +32,7 @@
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "build:binding:release-debug": "pnpm --filter @rspack/binding run build:release-debug",
     "build:binding:release-prod": "pnpm --filter @rspack/binding run build:release-prod",
+    "build:binding:release-dev": "pnpm --filter @rspack/binding run build:release-dev",
     "prepare": "is-ci || husky",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",

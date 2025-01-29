@@ -32,6 +32,7 @@
     "build:release-prod:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release-prod",
     "build:release-prod:win": "cross-env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release-prod",
     "build:release-debug": "node scripts/build.js --release-debug",
+    "build:release-dev": "node scripts/build.js --release-dev",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
