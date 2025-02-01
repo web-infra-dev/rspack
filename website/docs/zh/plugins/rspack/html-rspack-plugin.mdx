@@ -13,28 +13,28 @@ new rspack.HtmlRspackPlugin(options);
 
 ## 对比
 
-在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
+在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
 
 ### 性能
 
-由于 `rspack.HtmlRspackPlugin` 是基于 Rust 实现的，因此它的构建性能显著高于 html-webpack-plugin 插件，尤其是在构建大量 HTML 文件的场景下。
+由于 `rspack.HtmlRspackPlugin` 是基于 Rust 实现的，因此它的构建性能显著高于 `html-webpack-plugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
 ### 功能
 
-`rspack.HtmlRspackPlugin` 的功能是 `html-webpack-plugin` 的子集。为了保证插件的性能，我们没有实现 html-webpack-plugin 提供的所有功能。
+`rspack.HtmlRspackPlugin` 的功能是 `html-webpack-plugin` 的子集。为了保证插件的性能，我们没有实现 `html-webpack-plugin` 提供的所有功能。
 
-如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
+如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 
 :::warning
-`rspack.HtmlRspackPlugin` 不支持完整的 EJS 语法, 仅支持 EJS 语法的一个子集，如果你对完整的 EJS 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
+`rspack.HtmlRspackPlugin` 不支持完整的 [EJS](https://github.com/mde/ejs/blob/main/docs/syntax.md) 语法, 仅支持 EJS 语法的一个子集，如果你对完整的 EJS 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
 Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `html-webpack-plugin` 相同的语法。
 :::
 
 ### 支持的 EJS 语法
 
-仅支持如下基本的插值表达式、循环和判断，这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
+仅支持如下基本的插值表达式、循环和判断，这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 EJS 语法目前均不支持。
 
-#### \<%-: Escaped output
+#### Escaped output `<%-`
 
 对插值内容进行 escape：
 
@@ -54,7 +54,7 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 <p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
 ```
 
-#### \<%=: Unescaped output
+#### Unescaped output `<%=`
 
 不对插值内容进行 escape：
 
@@ -111,7 +111,7 @@ module.exports = {
 };
 ```
 
-这将生成一个包含以下内容的 `dist/index.html` 文件：
+这将生成一个包含以下内容的 "_dist/index.html_" 文件：
 
 ```html
 <!doctype html>
@@ -563,7 +563,7 @@ module.exports = {
 
 ## Hooks
 
-HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
+HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `rspack.HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
 
 ```js title="rspack.config.js"
 const HtmlModifyPlugin = {
