@@ -95,14 +95,14 @@ export type HtmlRspackPluginOptions = {
 	/** Adds the given favicon path to the output HTML. */
 	favicon?: string;
 
+	/** Allows to inject meta-tags. */
+	meta?: Record<string, string | Record<string, string>>;
+
 	/**
 	 * If true then append a unique rspack compilation hash to all included scripts and CSS files.
 	 * This is useful for cache busting
 	 * @default false
 	 * */
-	meta?: Record<string, string | Record<string, string>>;
-
-	/** Inject a base tag */
 	hash?: boolean;
 };
 
