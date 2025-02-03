@@ -17,7 +17,8 @@ rspack = { workspace = true }
 rspack_fs = { workspace = true }
 rspack_core = { workspace = true }
 tokio = { workspace = true }
+serde_json = { workspace = true }
 
 [[bench]]
-name    = "basic"
+name    = "benches"
 harness = false

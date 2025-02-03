@@ -1,22 +1,69 @@
 # Plugins
 
-If [loaders](/guide/features/loader) are the workhorse for file transformations (preprocessing), then plugins are the workhorse for the overall Rspack build process. Most of Rspack's native implementations rely on the Rust side of the plugin system. For Node users, you don't need to worry about compatibility issues with Rust, because Rspack takes care of those details for you automatically. You can just focus on how to use the plugins. Find out [plugins](/plugins/index) you can use with Rspack.
+If [loaders](/guide/features/loader) are the workhorse for file transformations (preprocessing), then plugins are the workhorse for the overall Rspack build process. Most of Rspack's native implementations rely on the Rust side of the plugin system.
+
+For Node.js users, you don't need to worry about interoperability issues with Node.js and Rust, because Rspack takes care of those details for you automatically. You can just focus on how to use the plugins.
 
 ## Plugin usage
 
-Here's an example of how to use the already compatible [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) in `rspack.config.js`:
+Rspack provides the [plugins](/config/plugins) configuration, which is used to register a set of Rspack or webpack plugins to customize the build process.
+
+Here is an example of using the [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) in `rspack.config.js`:
 
 ```js title="rspack.config.js"
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 module.exports = {
-  plugins: [new BundleAnalyzerPlugin()],
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // options
+    }),
+  ],
 };
 ```
 
 If you're looking for more Rspack plugins, have a look at the great list of [supported plugins](/plugins/index).
 
 You can also refer to [Plugin compat](/guide/compatibility/plugin) for the list of webpack plugins that have passed Rspack compatibility tests.
+
+## Other plugins
+
+### Unplugin
+
+[unplugin](https://github.com/unjs/unplugin) is a unified plugin system for various build tools. You can use plugins implemented based on unplugin in Rspack, typically by importing the `/rspack` subpath of the plugin and registering it through `plugins`.
+
+Here is an example of using [unplugin-vue-components](https://www.npmjs.com/package/unplugin-vue-components):
+
+```js title=rspack.config.js
+const Components = require('unplugin-vue-components/rspack');
+
+module.exports = {
+  plugins: [
+    Components.default({
+      // options
+    }),
+  ],
+};
+```
+
+### SWC plugins
+
+In the built-in [swc-loader](/guide/features/builtin-swc-loader) of Rspack, you can use SWC's Wasm plugins, see [jsc.experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins).
+
+### Rsbuild plugins
+
+[Rsbuild](https://rsbuild.dev) is a build tool based on Rspack, and Rsbuild has its own plugin system.
+
+Please note that you cannot use Rsbuild plugins in Rspack, because Rspack is a more low-level tool, but you can use Rspack plugins in Rsbuild.
+
+Here is a comparison table for the plugins that can be used in Rspack and Rsbuild:
+
+| Tool used | Rspack plugins | webpack plugins | Rsbuild plugins | Unplugins | SWC plugins |
+| --------- | -------------- | --------------- | --------------- | --------- | ----------- |
+| Rspack    | ✅             | ✅              | ❌              | ✅        | ✅          |
+| Rsbuild   | ✅             | ✅              | ✅              | ✅        | ✅          |
+
+> Please refer to the [Rsbuild plugin documentation](https://rsbuild.dev/plugins/list/index) for more information.
 
 ## Write a plugin
 

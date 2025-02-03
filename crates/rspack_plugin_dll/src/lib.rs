@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_core::{BuildMeta, LibraryType};
+use rspack_core::{BuildMeta, LibraryType, ModuleId};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 use serde::{ser::SerializeSeq, Serialize};
@@ -51,7 +51,7 @@ pub struct DllManifestContentItem {
   pub exports: Option<DllManifestContentItemExports>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub id: Option<String>,
+  pub id: Option<ModuleId>,
 }
 
 #[derive(Debug, Clone, Serialize)]

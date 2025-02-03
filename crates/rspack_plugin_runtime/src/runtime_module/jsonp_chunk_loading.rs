@@ -1,4 +1,7 @@
+use std::ptr::NonNull;
+
 use cow_utils::CowUtils;
+use pollster::block_on;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -11,6 +14,7 @@ use super::generate_javascript_hmr_runtime;
 use crate::{
   get_chunk_runtime_requirements,
   runtime_module::utils::{chunk_has_js, get_initial_chunk_ids, stringify_chunks},
+  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
 };
 
 #[impl_runtime_module]
@@ -62,6 +66,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
+
+    let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
     let condition_map =
       compilation
@@ -142,10 +148,38 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           format!("link.crossOrigin = {}", cross_origin_loading)
         }
       };
+      let link_prefetch_code = r#"
+    var link = document.createElement('link');
+    $CROSS_ORIGIN$
+    if (__webpack_require__.nc) {
+      link.setAttribute("nonce", __webpack_require__.nc);
+    }
+    link.rel = "prefetch";
+    link.as = "script";
+    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
+      "#
+      .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
+      .to_string();
+
+      let chunk_ukey = self.chunk.expect("The chunk should be attached");
+      let res = block_on(async {
+        hooks
+          .link_prefetch
+          .call(LinkPrefetchData {
+            code: link_prefetch_code,
+            chunk: RuntimeModuleChunkWrapper {
+              chunk_ukey,
+              compilation_id: compilation.id(),
+              compilation: NonNull::from(compilation),
+            },
+          })
+          .await
+      })?;
+
       source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
           .cow_replace("$JS_MATCHER$", &js_matcher)
-          .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
+          .cow_replace("$LINK_PREFETCH$", &res.code)
           .into_owned(),
       ));
     }
@@ -185,12 +219,41 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         "#
       };
 
+      let link_preload_code = r#"
+    var link = document.createElement('link');
+    $SCRIPT_TYPE_LINK_PRE$
+    link.charset = 'utf-8';
+    if (__webpack_require__.nc) {
+      link.setAttribute("nonce", __webpack_require__.nc);
+    }
+    $SCRIPT_TYPE_LINK_POST$
+    link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
+    $CROSS_ORIGIN$  
+      "#
+      .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
+      .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
+      .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)
+      .to_string();
+
+      let chunk_ukey = self.chunk.expect("The chunk should be attached");
+      let res = block_on(async {
+        hooks
+          .link_preload
+          .call(LinkPreloadData {
+            code: link_preload_code,
+            chunk: RuntimeModuleChunkWrapper {
+              chunk_ukey,
+              compilation_id: compilation.id(),
+              compilation: NonNull::from(compilation),
+            },
+          })
+          .await
+      })?;
+
       source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_preload.js")
           .cow_replace("$JS_MATCHER$", &js_matcher)
-          .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
-          .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
-          .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)
+          .cow_replace("$LINK_PRELOAD$", &res.code)
           .into_owned(),
       ));
     }

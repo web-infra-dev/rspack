@@ -26,17 +26,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14544,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14544,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 689,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 689,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -44,10 +44,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 843,
+		              size: 841,
 		            },
 		          ],
-		          assetsSize: 843,
+		          assetsSize: 841,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,
@@ -77,10 +77,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk.js,
-		        size: 843,
+		        size: 841,
 		      },
 		    ],
-		    assetsSize: 843,
+		    assetsSize: 841,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: chunk.js.map,
@@ -102,10 +102,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-c.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -117,10 +117,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-a.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -134,10 +134,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-b.js,
-		              size: 136,
+		              size: 134,
 		            },
 		          ],
-		          assetsSize: 136,
+		          assetsSize: 134,
 		          auxiliaryAssets: Array [],
 		          auxiliaryAssetsSize: 0,
 		          chunks: Array [
@@ -158,10 +158,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-a.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -177,10 +177,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-b.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -196,10 +196,10 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-c.js,
-		        size: 136,
+		        size: 134,
 		      },
 		    ],
-		    assetsSize: 136,
+		    assetsSize: 134,
 		    auxiliaryAssets: Array [],
 		    auxiliaryAssetsSize: 0,
 		    childAssets: Object {},
@@ -215,17 +215,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14505,
+		        size: 14544,
 		      },
 		    ],
-		    assetsSize: 14505,
+		    assetsSize: 14544,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 684,
+		        size: 689,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 684,
+		    auxiliaryAssetsSize: 689,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -233,10 +233,10 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 843,
+		              size: 841,
 		            },
 		          ],
-		          assetsSize: 843,
+		          assetsSize: 841,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,

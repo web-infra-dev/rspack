@@ -1,15 +1,17 @@
 const promise = Promise.all([
   import("./a"),
-  import("./a?1"),
-  import("./a?2"),
+  import("./b"),
+  import("./c"),
 ]);
 
 it("should not change the chunk id for updating a module", async () => {
   const [a, b, c] = await promise;
-  expect(a.default).toBe(WATCH_STEP + "id");
-  expect(b.default).toBe(WATCH_STEP + "id?1");
-  expect(c.default).toBe(WATCH_STEP + "id?2");
-  expect(__STATS__.chunks.map(c => c.id)).toEqual(['a_js', 'a_js_1', 'a_js_2', 'main']);
+  expect(await a.default()).toBe(`a1|${WATCH_STEP}`);
+  expect(await b.default()).toBe("b1");
+  expect(c.default).toBe("c");
+  const chunks = __STATS__.chunks.map(c => c.id);
+  chunks.sort();
+  expect(chunks).toEqual(['a1_js', 'a_js', 'b1_js', 'b_js', 'c_js', 'main']);
 })
 
 it("should have correct log when incremental enabled", async () => {
@@ -21,12 +23,12 @@ it("should have correct log when incremental enabled", async () => {
     const content = incrementalLog[0];
     switch (WATCH_STEP) {
       case "0":
-        expect(content.includes("4 chunks are affected, 4 in total")).toBe(true);
-        expect(content.includes("4 chunks are updated by set_chunk_id, with 1 chunks using name as id, and 0 unnamed chunks")).toBe(true);
+        expect(content.includes("6 chunks are affected, 6 in total")).toBe(true);
+        expect(content.includes("6 chunks are updated by set_chunk_id, with 1 chunks using name as id, and 0 unnamed chunks")).toBe(true);
         break;
       case "1":
-        expect(content.includes("0 chunks are affected, 4 in total")).toBe(true);
-        expect(content.includes("0 chunks are updated by set_chunk_id, with 0 chunks using name as id, and 0 unnamed chunks")).toBe(true);
+        expect(content.includes("2 chunks are affected, 6 in total")).toBe(true);
+        expect(content.includes("2 chunks are updated by set_chunk_id, with 0 chunks using name as id, and 0 unnamed chunks")).toBe(true);
         break;
     }
   }

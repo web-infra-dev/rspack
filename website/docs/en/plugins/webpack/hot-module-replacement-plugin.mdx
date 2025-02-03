@@ -13,6 +13,7 @@ Enabling HMR is straightforward and in most cases no options are necessary.
 Note that HMR can not be used in production build. You can use `process.env.NODE_ENV` to determine if it is a development environment.
 
 ```js title="rspack.config.js"
+const { rspack } = require('@rspack/core');
 const isDev = process.env.NODE_ENV === 'development';
 
 module.exports = {

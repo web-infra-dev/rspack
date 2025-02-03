@@ -3,8 +3,8 @@ use std::{borrow::Cow, iter};
 use either::Either;
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, RuntimeGlobals,
-  SharedSourceMap, SpanExt,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, Dependency, DependencyRange,
+  RuntimeGlobals, SharedSourceMap, SpanExt,
 };
 use rspack_error::miette::Severity;
 use rspack_util::atom::Atom;
@@ -15,9 +15,11 @@ use swc_core::{
 
 use crate::{
   dependency::{
+    amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency,
-    local_module_dependency::LocalModuleDependency, unsupported_dependency::UnsupportedDependency,
+    local_module_dependency::LocalModuleDependency,
+    unsupported_dependency::UnsupportedDependency,
   },
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
@@ -64,6 +66,32 @@ impl AMDRequireDependenciesBlockParserPlugin {
           self.process_context(parser, call_expr, item);
         }
       }
+      return Some(true);
+    } else if param.is_const_array() {
+      let mut deps: Vec<AMDRequireArrayItem> = vec![];
+      let array = param.array();
+      for request in array.iter() {
+        if request == "require" {
+          deps.push(AMDRequireArrayItem::String(
+            RuntimeGlobals::REQUIRE.name().into(),
+          ));
+        } else if request == "exports" || request == "module" {
+          deps.push(AMDRequireArrayItem::String(request.into()));
+        } else if let Some(local_module) = parser.get_local_module_mut(request) {
+          local_module.flag_used();
+          deps.push(AMDRequireArrayItem::LocalModuleDependency {
+            local_module_variable_name: local_module.variable_name(),
+          })
+        } else {
+          let mut dep = AMDRequireItemDependency::new(request.as_str().into(), None);
+          dep.set_optional(parser.in_try);
+          deps.push(AMDRequireArrayItem::AMDRequireItemDependency { dep_id: *dep.id() });
+          block_deps.push(Box::new(dep));
+        }
+      }
+      let range = param.range();
+      let dep = AMDRequireArrayDependency::new(deps, (range.0, range.1 - 1));
+      parser.presentational_dependencies.push(Box::new(dep));
       return Some(true);
     }
     None
@@ -130,7 +158,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       } else {
         let mut dep = Box::new(AMDRequireItemDependency::new(
           Atom::new(param_str.as_str()),
-          range,
+          Some(range),
         ));
         dep.set_optional(parser.in_try);
         block_deps.push(dep);

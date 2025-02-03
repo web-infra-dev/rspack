@@ -1,4 +1,7 @@
+use std::ptr::NonNull;
+
 use cow_utils::CowUtils;
+use pollster::block_on;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -6,7 +9,9 @@ use rspack_core::{
   ChunkUkey, Compilation, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
 };
 
-use crate::get_chunk_runtime_requirements;
+use crate::{
+  get_chunk_runtime_requirements, CreateScriptData, RuntimeModuleChunkWrapper, RuntimePlugin,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -50,9 +55,9 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         } else {
           format!(
             r#"
-            if (script.src.indexOf(window.location.origin + '/') !== 0) {{
-              script.crossOrigin = "{cross_origin}";
-            }}
+    if (script.src.indexOf(window.location.origin + '/') !== 0) {{
+      script.crossOrigin = "{cross_origin}";
+    }}
             "#
           )
         }
@@ -83,50 +88,99 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       "".to_string()
     };
 
-    Ok(RawStringSource::from(
-      include_str!("runtime/load_script.js")
-        .cow_replace(
-          "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-          &cross_origin_loading,
-        )
-        .cow_replace("$URL$", &url)
-        .cow_replace("$SCRIPT_TYPE$", &script_type)
-        .cow_replace("$SCRIPT_CHARSET$", &script_charset)
-        .cow_replace("$CHUNK_LOAD_TIMEOUT$", &compilation.options.output.chunk_load_timeout.to_string())
-        .cow_replace("$CHUNK_LOAD_TIMEOUT_IN_SECONDS$", &compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string())
-        .cow_replace(
-          "$UNIQUE_GET_ATTRIBUTE$",
-          match unique_prefix {
-            Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
-            None => r#"s.getAttribute("src") == url"#,
-          },
-        )
-        .cow_replace("$FETCH_PRIORITY_SET_ATTRIBUTE$", if with_fetch_priority {
-          r#"
-            if(fetchPriority) {
-              script.setAttribute("fetchpriority", fetchPriority);
-            }
-          "#
-        } else {
-          ""
-        })
-        .cow_replace("$FETCH_PRIORITY$", if with_fetch_priority {
-          ", fetchPriority"
-        } else {
-          ""
-        })
-        .cow_replace(
-          "$UNIQUE_SET_ATTRIBUTE$",
-          match unique_prefix {
-            Some(_) => r#"script.setAttribute("data-webpack", dataWebpackPrefix + key);"#,
-            None => "",
-          },
-        )
-        .cow_replace(
-          "$UNIQUE_PREFIX$",
-          unique_prefix.unwrap_or_default().as_str(),
-        ).into_owned(),
+    let create_script_code = r#"
+    script = document.createElement('script');
+    $SCRIPT_TYPE$
+		$SCRIPT_CHARSET$
+		script.timeout = $CHUNK_LOAD_TIMEOUT_IN_SECONDS$;
+		if (__webpack_require__.nc) {
+			script.setAttribute("nonce", __webpack_require__.nc);
+		}
+		$UNIQUE_SET_ATTRIBUTE$
+		$FETCH_PRIORITY_SET_ATTRIBUTE$
+		script.src = $URL$;
+		$CROSS_ORIGIN_LOADING$
+    "#
+    .cow_replace("$SCRIPT_TYPE$", &script_type)
+    .cow_replace("$SCRIPT_CHARSET$", &script_charset)
+    .cow_replace(
+      "$CHUNK_LOAD_TIMEOUT_IN_SECONDS$",
+      &compilation
+        .options
+        .output
+        .chunk_load_timeout
+        .saturating_div(1000)
+        .to_string(),
     )
-    .boxed())
+    .cow_replace(
+      "$UNIQUE_SET_ATTRIBUTE$",
+      match unique_prefix {
+        Some(_) => r#"script.setAttribute("data-webpack", dataWebpackPrefix + key);"#,
+        None => "",
+      },
+    )
+    .cow_replace(
+      "$FETCH_PRIORITY_SET_ATTRIBUTE$",
+      if with_fetch_priority {
+        r#"
+    if(fetchPriority) {
+      script.setAttribute("fetchpriority", fetchPriority);
+    }
+      "#
+      } else {
+        ""
+      },
+    )
+    .cow_replace("$URL$", &url)
+    .cow_replace("$CROSS_ORIGIN_LOADING$", &cross_origin_loading)
+    .to_string();
+
+    let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
+    let chunk_ukey = self.chunk_ukey;
+    let res = block_on(async {
+      hooks
+        .create_script
+        .call(CreateScriptData {
+          code: create_script_code,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await
+    })?;
+
+    Ok(
+      RawStringSource::from(
+        include_str!("runtime/load_script.js")
+          .cow_replace("$CREATE_SCRIPT$", &res.code)
+          .cow_replace(
+            "$CHUNK_LOAD_TIMEOUT$",
+            &compilation.options.output.chunk_load_timeout.to_string(),
+          )
+          .cow_replace(
+            "$FETCH_PRIORITY$",
+            if with_fetch_priority {
+              ", fetchPriority"
+            } else {
+              ""
+            },
+          )
+           .cow_replace(
+      "$UNIQUE_GET_ATTRIBUTE$",
+            match unique_prefix {
+              Some(_) => r#"s.getAttribute("src") == url || s.getAttribute("data-webpack") == dataWebpackPrefix + key"#,
+              None => r#"s.getAttribute("src") == url"#,
+            },
+          )
+          .cow_replace(
+            "$UNIQUE_PREFIX$",
+            unique_prefix.unwrap_or_default().as_str(),
+          )
+          .into_owned(),
+      )
+      .boxed(),
+    )
   }
 }

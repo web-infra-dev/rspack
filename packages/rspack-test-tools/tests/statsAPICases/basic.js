@@ -20,8 +20,8 @@ module.exports = {
 		expect(stats?.toJson(statsOptions)).toMatchSnapshot();
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		PublicPath: auto
-		asset main.js 206 bytes {909} [emitted] (name: main)
-		Entrypoint main 206 bytes = main.js
+		asset main.js 204 bytes {909} [emitted] (name: main)
+		Entrypoint main 204 bytes = main.js
 		chunk {909} (runtime: main) main.js (main) 55 bytes [entry] [rendered]
 		  > ./fixtures/a main
 		  ./fixtures/a.js [585] 55 bytes {909} [depth 0] [built] [code generated]
@@ -37,7 +37,7 @@ module.exports = {
 		  entry ./fixtures/a
 		  cjs self exports reference self [585] ./fixtures/a.js
 		  
-		Rspack compiled successfully (71a1e7d194ca24f9)
+		Rspack compiled successfully (59afbeeb2d3dd524)
 	`);
 	}
 };

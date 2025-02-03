@@ -13,28 +13,28 @@ new rspack.HtmlRspackPlugin(options);
 
 ## Comparison
 
-Before using `rspack.HtmlRspackPlugin`, please note that there are some differences between `rspack.HtmlRspackPlugin` and the community [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin).
+Before using `rspack.HtmlRspackPlugin`, please note that there are some differences between `rspack.HtmlRspackPlugin` and the community [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin).
 
 ### Performance
 
-Because `rspack.HtmlRspackPlugin` is implemented in Rust, its build performance is significantly better than html-webpack-plugin, especially in scenarios where many HTML files are being built.
+Because `rspack.HtmlRspackPlugin` is implemented in Rust, its build performance is significantly better than `html-webpack-plugin`, especially in scenarios where many HTML files are being built.
 
 ### Features
 
-The features of `rspack.HtmlRspackPlugin` are a subset of `html-webpack-plugin`. To ensure the performance of the plugin, we have not implemented all the features provided by html-webpack-plugin.
+The features of `rspack.HtmlRspackPlugin` are a subset of `html-webpack-plugin`. To ensure the performance of the plugin, we have not implemented all the features provided by `html-webpack-plugin`.
 
-If its options do not meet your needs, you can also directly use the community [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin).
+If its options do not meet your needs, you can also directly use the community [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin).
 
 :::warning
-`rspack.HtmlRspackPlugin` does not support the full `ejs` syntax; it only supports a subset of the `ejs` syntax. If you need full `ejs` syntax support, you can use `html-webpack-plugin` directly.
-In order to align the default template syntax of `html-webpack-plugin`, Rspack changed the default EJS escape and unescape to be the same as `html-webpack-plugin`'s default syntax.
+`rspack.HtmlRspackPlugin` does not support the full [EJS syntax](https://github.com/mde/ejs/blob/main/docs/syntax.md), it only supports a subset of the EJS syntax. If you need the full EJS syntax support, you can use `html-webpack-plugin` directly.
+In order to align with the default template syntax of `html-webpack-plugin`, Rspack changed the default EJS escape and unescape to be the same as `html-webpack-plugin`'s default syntax.
 :::
 
 ### Supported EJS syntax
 
 Only the following basic interpolation expressions and some control statements are supported. Here, the interpolation expressions only support the most basic string types and do not support arbitrary JavaScript expressions. Other EJS syntaxes are currently not supported.
 
-#### \<%-: Escaped output
+#### Escaped output `<%-`
 
 Escapes the content within the interpolation:
 
@@ -54,7 +54,7 @@ Escapes the content within the interpolation:
 <p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
 ```
 
-#### \<%=: Unescaped output
+#### Unescaped output `<%=`
 
 Does not escape the content within the interpolation:
 
@@ -111,7 +111,7 @@ module.exports = {
 };
 ```
 
-This will generate a file `dist/index.html` containing the following:
+This will generate a file "_dist/index.html_" containing the following:
 
 ```html
 <!doctype html>
@@ -140,14 +140,23 @@ type HtmlRspackPluginOptions = {
   title?: string;
   filename?: string | ((entry: string) => string);
   template?: string;
-  templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
-  templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
-  inject?: 'head' | 'body' | boolean;
+  templateContent?:
+    | string
+    | ((params: Record<string, any>) => string | Promise<string>);
+  templateParameters?:
+    | Record<string, string>
+    | boolean
+    | ((
+        params: Record<string, any>,
+      ) => Record<string, any> | Promise<Record<string, any>>);
+  inject?: boolean | 'head' | 'body';
   publicPath?: string;
-  base?: string | {
-    href?: string;
-    target?: '_self' | '_blank' | '_parent' | '_top'
-  };
+  base?:
+    | string
+    | {
+        href?: string;
+        target?: '_self' | '_blank' | '_parent' | '_top';
+      };
   scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
   chunks?: string[];
   excludeChunks?: string[];
@@ -184,113 +193,114 @@ type HtmlRspackPluginOptions = {
   body={[
     {
       name: '`title`',
-      type: '`string|undefined`',
-      default: 'undefined',
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: 'The title to use for the generated HTML document.',
     },
     {
       name: '`filename`',
-      type: '`string|undefined|((entry: string) => string)`',
-      default: "'index.html'",
+      type: '`string | undefined | ((entry: string) => string)`',
+      default: '`"index.html"`',
       description:
-        'The file to write the HTML to. Defaults to `index.html`. You can specify a subdirectory here too (eg: pages/index.html).',
+        'The file to write the HTML to. You can specify a subdirectory here too (e.g.: `"pages/index.html"`).',
     },
     {
       name: '`template`',
-      type: '`string|undefined`',
-      default: 'undefined',
-      description: 'The template file path',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'The template file path.',
     },
     {
       name: '`templateContent`',
-      type: '`string|undefined|((params: Record<string, any>) => string | Promise<string>)`',
-      default: 'undefined',
+      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
+      default: '`undefined`',
       description:
-        'The template file content, priority is greater than template. When using a function, pass in the template parameters and use the returned string as the template content.',
+        'The template file content, priority is greater than `template` option. When using a function, pass in the template parameters and use the returned string as the template content.',
     },
     {
       name: '`templateParameters`',
-      type: '`Record<string, string>|(oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>`',
-      default: '{}',
+      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
+      default: '`undefined`',
       description:
         'Allows to overwrite the parameters used in the template. When using a function, pass in the original template parameters and use the returned object as the final template parameters.',
     },
     {
       name: '`inject`',
-      type: "`'head' | 'body' | boolean | undefined`",
-      default: 'undefined',
+      type: '`boolean | undefined | "head" | "body"`',
+      default: '`true`',
       description:
-        'The script and link tag inject position in `template`. Use false to not inject. If not specified, it will be automatically determined based on `scriptLoading`.',
+        'The script and link tag inject position in template. Use `false` to not inject. If not specified, it will be automatically determined based on `scriptLoading` value.',
     },
     {
       name: '`publicPath`',
-      type: '`string`',
-      default: "''",
-      description: 'The publicPath used for script and link tags.',
+      type: '`string | undefined`',
+      default: '`undefined`',
+      description: 'The public path used for script and link tags.',
+    },
+    {
+      name: '`base`',
+      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
+      default: '`undefined`',
+      description:
+        'Inject a [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag.',
     },
     {
       name: '`scriptLoading`',
-      type: "`'blocking'|'defer'|'module'|'systemjs-module'|undefined`",
-      default: "'defer'",
+      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
+      default: '`"defer"`',
       description:
-        "Modern browsers support non blocking javascript loading ('defer') to improve the page startup performance. Setting to 'module' adds attribute type='module'. This also implies 'defer', since modules are automatically deferred.",
+        'Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance. Setting this option to `"module"` adds attribute `type="module"` to the `script`. This also implies `defer` attribute on the `script`, since modules are automatically deferred.',
     },
     {
       name: '`chunks`',
-      type: '`string[]|undefined`',
-      default: 'undefined',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
       description: 'Allows you to add only some chunks.',
     },
     {
       name: '`excludeChunks`',
-      type: '`string[]|undefined`',
-      default: 'undefined',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
       description: 'Allows you to skip some chunks.',
     },
     {
       name: '`chunksSortMode`',
-      type: "`'auto'|'manual'`",
-      default: "'auto'",
+      type: '`"auto" | "manual"`',
+      default: '`"auto"`',
       description:
         'Allows to control how chunks should be sorted before they are included to the HTML.',
     },
     {
       name: '`sri`',
-      type: "`'sha256'|'sha384'|'sha512'|undefined`",
-      default: 'undefined',
-      description: 'The sri hash algorithm, disabled by default.',
+      type: '`"sha256"" | "sha384"" | "sha512"" | undefined`',
+      default: '`undefined`',
+      description: 'The SRI hash algorithm, disabled by default.',
     },
     {
       name: '`minify`',
       type: '`boolean`',
-      default: 'false',
-      description: 'Controls whether to minify the output.',
+      default: '`undefined`',
+      description:
+        'Controls whether to minify the output, disabled by default.',
     },
     {
       name: '`favicon`',
-      type: '`string|undefined`',
-      default: 'undefined',
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: 'Adds the given favicon path to the output HTML.',
     },
     {
       name: '`meta`',
-      type: '`Record<string, string|Record<string, string>>` ',
-      default: '{}',
+      type: '`Record<string, string | Record<string, string>>`',
+      default: '`{}`',
       description: 'Allows to inject meta-tags.',
     },
     {
       name: '`hash`',
       type: '`boolean`',
-      default: 'false',
+      default: '`undefined`',
       description:
-        'If true then append a unique rspack compilation hash to all included scripts and CSS files. This is useful for cache busting',
-    },
-    {
-      name: '`base`',
-      type: '`string|object|undefined`',
-      default: 'undefined',
-      description:
-        'Inject a [base](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) tag',
+        'If `true` then append a unique Rspack compilation hash to all included scripts and CSS files. This is useful for cache busting.',
     },
   ]}
 />
@@ -555,7 +565,7 @@ module.exports = {
 
 ## Hooks
 
-HtmlRspackPlugin provides some hooks that allow you to modify tags or generated HTML code. The hooks object can be obtained through `HtmlRspackPlugin.getCompilationHooks`:
+HtmlRspackPlugin provides some hooks that allow you to modify tags or generated HTML code. The hooks object can be obtained through `rspack.HtmlRspackPlugin.getCompilationHooks`:
 
 ```js title="rspack.config.js"
 const HtmlModifyPlugin = {

@@ -155,7 +155,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         manifest_content.insert(
           ident.into_owned(),
           DllManifestContentItem {
-            id: id.map(|id| id.to_string()),
+            id: id.map(|id| id.to_owned()),
             build_meta: build_meta.cloned(),
             exports: provided_exports,
           },

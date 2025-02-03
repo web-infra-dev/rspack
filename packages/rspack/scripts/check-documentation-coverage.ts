@@ -108,7 +108,10 @@ function checkPluginsDocumentationCoverage() {
 	const implementedPlugins = getImplementedPlugins();
 	const documentedPlugins = getDocumentedPlugins();
 
-	const excludedPlugins = ["OriginEntryPlugin"];
+	const excludedPlugins = [
+		"OriginEntryPlugin",
+		"RuntimePlugin" // This plugin only provides hooks, should not be used separately
+	];
 
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(
 		plugin =>

@@ -159,9 +159,27 @@ impl BuilderContext {
 
       // DevTool plugins
       BuiltinPluginOptions::SourceMapDevToolPlugin(options) => {
+        plugins.push(
+          rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
+            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+              module: options.module,
+              cheap: !options.columns,
+            },
+          )
+          .boxed(),
+        );
         plugins.push(rspack_plugin_devtool::SourceMapDevToolPlugin::new(options).boxed());
       }
       BuiltinPluginOptions::EvalSourceMapDevToolPlugin(options) => {
+        plugins.push(
+          rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
+            rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
+              module: options.module,
+              cheap: !options.columns,
+            },
+          )
+          .boxed(),
+        );
         plugins.push(rspack_plugin_devtool::EvalSourceMapDevToolPlugin::new(options).boxed());
       }
       BuiltinPluginOptions::EvalDevToolModulePlugin(options) => {

@@ -58,7 +58,7 @@ runtime modules 1.61 KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (6f7f39d3a0485d93)
+Rspack compiled successfully (d02a6857e8f1f969)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `
@@ -96,9 +96,9 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`statsOutput statsOutput/filename should print correct stats for 1`] = `
-asset 909.xxxx.js 9.14 KiB [emitted] (name: main)
-asset 521.xxxx.js 322 bytes [emitted]
-runtime modules 7.54 KiB 11 modules
+asset 909.xxxx.js 9.15 KiB [emitted] (name: main)
+asset 521.xxxx.js 320 bytes [emitted]
+runtime modules 7.55 KiB 11 modules
 cacheable modules 70 bytes
   ./index.js 38 bytes [built] [code generated]
   ./dynamic.js 32 bytes [built] [code generated]
@@ -150,41 +150,41 @@ exports[`statsOutput statsOutput/limit-chunk-count-plugin should print correct s
 
 2 chunks:
   asset bundle2.js 10.6 KiB [emitted] (name: main)
-  asset 76.bundle2.js 497 bytes [emitted] (name: c)
+  asset 76.bundle2.js 491 bytes [emitted] (name: c)
   chunk (runtime: main) 76.bundle2.js (c) 74 bytes <{76}> <{909}> >{76}< [rendered]
     dependent modules 44 bytes [dependent] 2 modules
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) 8.73 KiB (runtime) >{76}< [entry] [rendered]
+  chunk (runtime: main) bundle2.js (main) 145 bytes (javascript) 8.74 KiB (runtime) >{76}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   2 chunks (Rspack x.x.x) compiled successfully in X s
 
 3 chunks:
   asset bundle3.js 10.6 KiB [emitted] (name: main)
-  asset 76.bundle3.js 387 bytes [emitted] (name: c)
-  asset 345.bundle3.js 186 bytes [emitted]
+  asset 76.bundle3.js 385 bytes [emitted] (name: c)
+  asset 345.bundle3.js 182 bytes [emitted]
   chunk (runtime: main) 345.bundle3.js 44 bytes <{76}> [rendered]
     ./d.js 22 bytes [built] [code generated]
     ./e.js 22 bytes [built] [code generated]
   chunk (runtime: main) 76.bundle3.js (c) 30 bytes <{909}> >{345}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) 8.73 KiB (runtime) >{76}< [entry] [rendered]
+  chunk (runtime: main) bundle3.js (main) 145 bytes (javascript) 8.74 KiB (runtime) >{76}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   3 chunks (Rspack x.x.x) compiled successfully in X s
 
 4 chunks:
   asset bundle4.js 10.6 KiB [emitted] (name: main)
-  asset 76.bundle4.js 387 bytes [emitted] (name: c)
-  asset 697.bundle4.js 130 bytes [emitted]
-  asset 753.bundle4.js 130 bytes [emitted]
+  asset 76.bundle4.js 385 bytes [emitted] (name: c)
+  asset 697.bundle4.js 128 bytes [emitted]
+  asset 753.bundle4.js 128 bytes [emitted]
   chunk (runtime: main) 697.bundle4.js 22 bytes <{76}> [rendered]
     ./e.js 22 bytes [built] [code generated]
   chunk (runtime: main) 753.bundle4.js 22 bytes <{76}> [rendered]
     ./d.js 22 bytes [built] [code generated]
   chunk (runtime: main) 76.bundle4.js (c) 30 bytes <{909}> >{697}< >{753}< [rendered]
     ./c.js 30 bytes [built] [code generated]
-  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) 8.73 KiB (runtime) >{76}< [entry] [rendered]
+  chunk (runtime: main) bundle4.js (main) 145 bytes (javascript) 8.74 KiB (runtime) >{76}< [entry] [rendered]
     dependent modules 22 bytes [dependent] 1 module
     ./index.js 123 bytes [built] [code generated]
   4 chunks (Rspack x.x.x) compiled successfully in X s
@@ -217,8 +217,8 @@ Rspack compiled with 1 error
 `;
 
 exports[`statsOutput statsOutput/named-chunk-group should print correct stats for 1`] = `
-Entrypoint main 9.13 KiB = main.js
-Chunk Group cimanyd 322 bytes = cimanyd.js
+Entrypoint main 9.14 KiB = main.js
+Chunk Group cimanyd 320 bytes = cimanyd.js
 `;
 
 exports[`statsOutput statsOutput/nonexistent-import-source-error should print correct stats for 1`] = `
@@ -238,8 +238,8 @@ Entrypoint e2 10.6 KiB = e2.js
 chunk (runtime: e1) 0.js 24 bytes [rendered]
 chunk (runtime: e1) 1.js 52 bytes [rendered]
 chunk (runtime: e1, e2) 2.js 22 bytes [rendered]
-chunk (runtime: e1) e1.js (e1) 74 bytes (javascript) 8.72 KiB (runtime) [entry] [rendered]
-chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.72 KiB (runtime) [entry] [rendered]
+chunk (runtime: e1) e1.js (e1) 74 bytes (javascript) 8.73 KiB (runtime) [entry] [rendered]
+chunk (runtime: e2) e2.js (e2) 51 bytes (javascript) 8.73 KiB (runtime) [entry] [rendered]
 `;
 
 exports[`statsOutput statsOutput/optimization-runtime-chunk should print correct stats for 1`] = `
@@ -298,10 +298,10 @@ Rspack compiled with 1 error
 
 exports[`statsOutput statsOutput/performance-disabled should print correct stats for 1`] = `
 asset main.js 304 KiB [emitted] (name: main)
-asset 697.js 130 bytes [emitted]
-asset 753.js 130 bytes [emitted]
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
 Entrypoint main 304 KiB = main.js
-runtime modules 8.72 KiB 12 modules
+runtime modules 8.73 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 49 bytes [built] [code generated]
   ./a.js 293 KiB [built] [code generated]
@@ -314,10 +314,10 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`statsOutput statsOutput/performance-error should print correct stats for 1`] = `
 asset main.js 304 KiB [emitted] [big] (name: main)
-asset 697.js 130 bytes [emitted]
-asset 753.js 130 bytes [emitted]
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
 Entrypoint main [big] 304 KiB = main.js
-runtime modules 8.72 KiB 12 modules
+runtime modules 8.73 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]
   ./a.js 293 KiB [built] [code generated]
@@ -327,11 +327,11 @@ cacheable modules 293 KiB
   ./e.js 22 bytes [built] [code generated]
 
 ERROR in × asset size limit: The following asset(s) exceed the recommended size limit (244.141 KiB). This can impact web performance.Assets:
-  │   main.js (303.818 KiB)
+  │   main.js (303.823 KiB)
 
 
 ERROR in × entrypoint size limit: The following entrypoint(s) combined asset size exceeds the recommended limit (244.141 KiB). This can impact web performance.Entrypoints:
-  │   main (303.818 KiB)
+  │   main (303.823 KiB)
   │       main.js
 
 
@@ -340,10 +340,10 @@ Rspack x.x.x compiled with 2 errors in X s
 
 exports[`statsOutput statsOutput/performance-no-hints should print correct stats for 1`] = `
 asset main.js 304 KiB [emitted] [big] (name: main)
-asset 697.js 130 bytes [emitted]
-asset 753.js 130 bytes [emitted]
+asset 697.js 128 bytes [emitted]
+asset 753.js 128 bytes [emitted]
 Entrypoint main [big] 304 KiB = main.js
-runtime modules 8.72 KiB 12 modules
+runtime modules 8.73 KiB 12 modules
 cacheable modules 293 KiB
   ./index.js 48 bytes [built] [code generated]
   ./a.js 293 KiB [built] [code generated]
@@ -411,7 +411,7 @@ webpack/runtime/make_namespace_object 280 bytes [code generated]
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
-asset main.js 1.8 KiB [emitted] (name: main)
+asset main.js 1.79 KiB [emitted] (name: main)
 ./example.js 70 bytes [built] [code generated]
   [no exports used]
 ./increment.js 251 bytes [built] [code generated]

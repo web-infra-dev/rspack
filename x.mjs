@@ -202,6 +202,7 @@ const rspackCommand = program.command("rspack").alias("rs").description(`
 
 rspackCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async ({ debug }) => {
 		try {
 			if (!debug) {
@@ -219,6 +220,7 @@ program
 	.command("rspack-debug")
 	.alias("rsd")
 	.description("Alias for `x rspack --debug`")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async () => {
 		await launchRspackCli(getVariadicArgs());
 	});
@@ -233,6 +235,7 @@ const jestCommand = program.command("jest").alias("j").description(`
 
 jestCommand
 	.option("-d, --debug", "Launch debugger in VSCode")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async ({ debug }) => {
 		if (!debug) {
 			await $`npx jest ${getVariadicArgs()}`;
@@ -246,6 +249,7 @@ program
 	.command("jest-debug")
 	.alias("jd")
 	.description("Alias for `x jest --debug`")
+	.argument("[args...]", "Arguments pass through to rspack cli")
 	.action(async () => {
 		await launchJestWithArgs(getVariadicArgs());
 	});

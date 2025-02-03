@@ -1006,11 +1006,11 @@ impl JavascriptParser<'_> {
           .or_else(|| {
             let info = self.get_variable_info(name);
             if let Some(info) = info {
-              if let Some(FreeName::String(_)) = &info.free_name {
+              if let Some(FreeName::String(name)) = &info.free_name {
                 let mut eval =
                   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
-                  ident.sym.to_string(),
+                  name.to_owned(),
                   ExportedVariableInfo::VariableInfo(info.id()),
                   None,
                   None,

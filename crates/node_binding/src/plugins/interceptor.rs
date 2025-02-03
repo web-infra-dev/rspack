@@ -17,10 +17,11 @@ use rspack_binding_values::{
   JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
   JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModuleWrapper,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
+  JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
+  JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
+  JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -67,6 +68,11 @@ use rspack_plugin_html::{
   HtmlPluginBeforeAssetTagGenerationHook, HtmlPluginBeforeEmit, HtmlPluginBeforeEmitHook,
 };
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
+use rspack_plugin_runtime::{
+  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
+  RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
+  RuntimePluginLinkPreload, RuntimePluginLinkPreloadHook,
+};
 
 #[napi(object)]
 pub struct JsTap<'f> {
@@ -386,6 +392,9 @@ pub enum RegisterJsTapKind {
   HtmlPluginAfterTemplateExecution,
   HtmlPluginBeforeEmit,
   HtmlPluginAfterEmit,
+  RuntimePluginCreateScript,
+  RuntimePluginLinkPreload,
+  RuntimePluginLinkPrefetch,
 }
 
 #[derive(Default, Clone)]
@@ -589,6 +598,21 @@ pub struct RegisterJsTaps {
   )]
   pub register_html_plugin_after_emit_taps:
     RegisterFunction<JsAfterEmitData, Promise<JsAfterEmitData>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_create_script_taps:
+    RegisterFunction<JsCreateScriptData, Option<String>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_link_preload_taps:
+    RegisterFunction<JsLinkPreloadData, Option<String>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>"
+  )]
+  pub register_runtime_plugin_link_prefetch_taps:
+    RegisterFunction<JsLinkPrefetchData, Option<String>>,
 }
 
 /* Compiler Hooks */
@@ -933,6 +957,30 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::HtmlPluginAfterEmit,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginCreateScriptTaps,
+  tap = RuntimePluginCreateScriptTap<JsCreateScriptData, Option<String>> @ RuntimePluginCreateScriptHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RuntimePluginCreateScript,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginLinkPreloadTaps,
+  tap = RuntimePluginLinkPreloadTap<JsLinkPreloadData, Option<String>> @ RuntimePluginLinkPreloadHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RuntimePluginLinkPreload,
+  skip = true,
+);
+define_register!(
+  RegisterRuntimePluginLinkPrefetchTaps,
+  tap = RuntimePluginLinkPrefetchTap<JsLinkPrefetchData, Option<String>> @ RuntimePluginLinkPrefetchHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RuntimePluginLinkPrefetch,
   skip = true,
 );
 
@@ -1762,6 +1810,60 @@ impl HtmlPluginAfterEmit for HtmlPluginAfterEmitTap {
       .call_with_promise(JsAfterEmitData::from(data))
       .await?;
     Ok(result.into())
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginCreateScript for RuntimePluginCreateScriptTap {
+  async fn run(&self, mut data: CreateScriptData) -> rspack_error::Result<CreateScriptData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsCreateScriptData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginLinkPreload for RuntimePluginLinkPreloadTap {
+  async fn run(&self, mut data: LinkPreloadData) -> rspack_error::Result<LinkPreloadData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsLinkPreloadData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RuntimePluginLinkPrefetch for RuntimePluginLinkPrefetchTap {
+  async fn run(&self, mut data: LinkPrefetchData) -> rspack_error::Result<LinkPrefetchData> {
+    if let Some(code) = self
+      .function
+      .call_with_sync(JsLinkPrefetchData::from(data.clone()))
+      .await?
+    {
+      data.code = code;
+    }
+    Ok(data)
   }
 
   fn stage(&self) -> i32 {

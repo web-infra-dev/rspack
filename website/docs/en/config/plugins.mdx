@@ -1,22 +1,46 @@
 # Plugins
 
-The `plugins` option is used to customize the Rspack build process in a variety of ways. Rspack comes with a variety built-in plugins available under `rspack.[plugin-name]`. See [Plugins page](/plugins/index) for a list of plugins and documentation but note that there are a lot more out in the community.
+- **Type:**
 
-- **Type:** `Array<RspackPluginInstance | RspackPluginFunction | RspackBuiltinPlugin>`
+```ts
+type Falsy = false | '' | 0 | null | undefined;
+
+type Plugin =
+  | RspackPluginInstance
+  | RspackPluginFunction
+  | WebpackPluginInstance
+  | WebpackPluginFunction
+  | Falsy;
+
+type Plugins = Plugin[];
+```
+
 - **Default:** `[]`
 
-An array of webpack plugins. For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to create global constants which can be configured at compile time. This can be useful for allowing different behavior between development builds and release builds.
+The `plugins` option is used to register a set of Rspack or webpack plugins to customize the build process.
+
+Please refer to [Plugins page](/guide/features/plugin) for more information on using plugins in Rspack.
+
+## Built-in plugins
+
+Rspack comes with a variety built-in plugins available under `rspack.PluginName`.
+
+For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to replaces variables in your code with other values or expressions at compile time. You can access it via `rspack.DefinePlugin` and create a plugin instance with `new`:
 
 ```js title=rspack.config.js
+const { rspack } = require('@rspack/core');
+
 module.exports = {
   //...
   plugins: [
     new rspack.DefinePlugin({
-      // Definitions...
+      // pass plugin options
     }),
   ],
 };
 ```
+
+## webpack plugins
 
 Rspack strives to maintain compatibility with the webpack plugin ecosystem to leverage the excellent features that have been accumulated and validated by the community. Please refer to the [Plugin Compatibility List](/guide/compatibility/plugin) to access a list of webpack plugins that have passed our compatibility tests:
 
@@ -27,5 +51,20 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   //...
   plugins: [new HtmlWebpackPlugin()],
+};
+```
+
+## Disable plugins
+
+Rspack ignores `false`、`''`、`0`、`null` 和 `undefined` values in the `plugins` array, which allows you to easily disable a plugin.
+
+For example, enable [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin) only in the development environment:
+
+```js title=rspack.config.js
+const { rspack } = require('@rspack/core');
+const isDev = process.env.NODE_ENV === 'development';
+
+module.exports = {
+  plugins: [isDev && new rspack.HotModuleReplacementPlugin()],
 };
 ```

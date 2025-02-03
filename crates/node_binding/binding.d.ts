@@ -592,6 +592,11 @@ export interface JsCreateData {
   resource: string
 }
 
+export interface JsCreateScriptData {
+  code: string
+  chunk: JsChunk
+}
+
 export interface JsDefaultObjectRedirectWarnObject {
   ignore: boolean
 }
@@ -717,6 +722,16 @@ export interface JsLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: string | JsLibraryAuxiliaryComment
   amdContainer?: string
+}
+
+export interface JsLinkPrefetchData {
+  code: string
+  chunk: JsChunk
+}
+
+export interface JsLinkPreloadData {
+  code: string
+  chunk: JsChunk
 }
 
 export interface JsLoaderContext {
@@ -1353,7 +1368,7 @@ export interface RawDllManifest {
 export interface RawDllManifestContentItem {
   buildMeta?: JsBuildMeta
   exports?: string[] | true
-  id?: string
+  id?: number | string
 }
 
 export interface RawDllReferenceAgencyPluginOptions {
@@ -2117,7 +2132,10 @@ export declare enum RegisterJsTapKind {
   HtmlPluginAlterAssetTagGroups = 37,
   HtmlPluginAfterTemplateExecution = 38,
   HtmlPluginBeforeEmit = 39,
-  HtmlPluginAfterEmit = 40
+  HtmlPluginAfterEmit = 40,
+  RuntimePluginCreateScript = 41,
+  RuntimePluginLinkPreload = 42,
+  RuntimePluginLinkPrefetch = 43
 }
 
 export interface RegisterJsTaps {
@@ -2162,6 +2180,9 @@ export interface RegisterJsTaps {
   registerHtmlPluginAfterTemplateExecutionTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterTemplateExecutionData) => JsAfterTemplateExecutionData); stage: number; }>
   registerHtmlPluginBeforeEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeEmitData) => JsBeforeEmitData); stage: number; }>
   registerHtmlPluginAfterEmitTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAfterEmitData) => JsAfterEmitData); stage: number; }>
+  registerRuntimePluginCreateScriptTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>
+  registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
+  registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
 }
 
 export interface ThreadsafeNodeFS {
