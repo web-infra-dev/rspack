@@ -28,7 +28,7 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
-        npm install -g corepack@0.31.0
+        npm install -g corepack@0.31.0 --force
         echo "Corepack version: $(corepack --version)"
         corepack enable
 
