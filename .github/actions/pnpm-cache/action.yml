@@ -29,6 +29,7 @@ runs:
       shell: bash
       run: |
         npm install -g corepack@latest --force
+        echo "Corepack version: $(corepack --version)"
         corepack enable
 
     # https://pnpm.io/continuous-integration#github-actions

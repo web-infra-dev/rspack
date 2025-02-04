@@ -43,6 +43,7 @@ runs:
           rustup target add ${{ inputs.target }}
 
           npm install -g corepack@latest --force
+          echo "Corepack version: $(corepack --version)"
           corepack enable
 
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
