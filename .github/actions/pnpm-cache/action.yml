@@ -28,6 +28,7 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
+        npm install -g corepack@latest --force
         corepack enable
 
     # https://pnpm.io/continuous-integration#github-actions
