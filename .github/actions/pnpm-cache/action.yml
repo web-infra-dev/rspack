@@ -24,14 +24,24 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    - name: Enable corepack
+      if: ${{ inputs.node-version != '16' }}
+      shell: bash
+      run: |
+        npm uninstall -g corepack
+        npm install -g corepack@0.31.0 --force
+        echo "Corepack version: $(corepack --version)"
+        corepack enable
+
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
       uses: pnpm/action-setup@v4
+      if: ${{ inputs.node-version == '16' }}
       with:
         dest: ${{ runner.tool_cache }}/pnpm
         # Use `@pnpm/exe` for Node 16
-        standalone: ${{ inputs.node-version == '16' }}
+        standalone: true
 
     - name: Get pnpm store directory
       id: pnpm-cache
