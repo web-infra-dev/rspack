@@ -42,7 +42,8 @@ runs:
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
 
-          npm install -g corepack@0.31.0 --force
+          npm uninstall -g corepack
+          npm install -g corepack@0.31.0 --force --location=global
           echo "Corepack version: $(corepack --version)"
           corepack enable
 
