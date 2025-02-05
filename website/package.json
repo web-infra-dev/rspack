@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@rspress/plugin-rss": "1.40.2",
+    "@rspress/plugin-rss": "1.41.0",
     "@types/node": "^20.17.10",
     "@types/react": "^19.0.8",
     "@types/semver": "^7.5.6",
@@ -40,7 +40,7 @@
     "prettier": "3.4.2",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.0.2",
-    "rspress": "1.40.2",
+    "rspress": "1.41.0",
     "rspress-plugin-font-open-sans": "1.0.0",
     "rspress-plugin-sitemap": "^1.1.1",
     "typescript": "^5.7.2"
