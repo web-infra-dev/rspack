@@ -28,10 +28,8 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
-        npm uninstall -g corepack
-        npm install -g corepack@0.31.0 --force
         echo "Corepack version: $(corepack --version)"
-        corepack enable
+        COREPACK_INTEGRITY_KEYS=0 corepack enable
 
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
