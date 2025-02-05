@@ -33,8 +33,7 @@ runs:
           NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
           export PATH="$NPM_PREFIX:$PATH"
         fi
-        npm uninstall -g corepack
-        npm install -g corepack@0.31.0 --force --location=global
+        npm install -g corepack@0.31.0 --force
         echo "Corepack version: $(corepack --version)"
         corepack enable
 
