@@ -62,7 +62,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 
 [Samply](https://github.com/mstange/samply) 支持同时对 Rust 和 JavaScript 进行性能分析，可通过如下步骤进行完整的性能分析:
 
-- 运行以下命令启动性能分析
+- 运行以下命令启动性能分析：
 
 ```sh
  samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
