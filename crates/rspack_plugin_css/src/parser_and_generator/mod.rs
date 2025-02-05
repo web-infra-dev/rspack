@@ -24,7 +24,7 @@ use rspack_error::{
   miette::Diagnostic, IntoTWithDiagnosticArray, Result, RspackSeverity, TWithDiagnosticArray,
 };
 use rspack_util::ext::DynHash;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   dependency::CssSelfReferenceLocalIdentDependency,
@@ -87,6 +87,7 @@ pub struct CssParserAndGenerator {
   pub es_module: bool,
   #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
   pub exports: Option<CssExports>,
+  pub local_names: Option<FxHashMap<String, String>>,
   pub hot: bool,
 }
 
@@ -243,6 +244,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
               },
             );
           }
+
+          let local_names = self.local_names.get_or_insert_default();
+          local_names.insert(name.into_owned(), local_ident.clone());
+
           dependencies.push(Box::new(CssLocalIdentDependency::new(
             local_ident,
             convention_names,
@@ -315,6 +320,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
               },
             );
           }
+
+          let local_names = self.local_names.get_or_insert_default();
+          local_names.insert(name.into_owned(), local_ident.clone());
+
           dependencies.push(Box::new(CssLocalIdentDependency::new(
             local_ident.clone(),
             convention_names,
@@ -355,6 +364,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
               vec![],
             )));
           }
+
           let exports = self.exports.get_or_insert_default();
           for name in names {
             for local_class in local_classes.iter() {
@@ -494,8 +504,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let mut concate_source = ConcatSource::default();
           if let Some(ref exports) = self.exports {
             let mg = generate_context.compilation.get_module_graph();
-            let unused_exports =
-              get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+            let unused_exports = get_unused_local_ident(
+              exports,
+              self
+                .local_names
+                .as_ref()
+                .expect("local names must be set when self.exports is set"),
+              module.identifier(),
+              generate_context.runtime,
+              &mg,
+            );
             generate_context.data.insert(unused_exports);
             let exports =
               get_used_exports(exports, module.identifier(), generate_context.runtime, &mg);
@@ -522,8 +540,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
             ("", "", "")
           };
           if let Some(exports) = &self.exports {
-            let unused_exports =
-              get_unused_local_ident(exports, module.identifier(), generate_context.runtime, &mg);
+            let unused_exports = get_unused_local_ident(
+              exports,
+              self
+                .local_names
+                .as_ref()
+                .expect("local names must be set when self.exports is set"),
+              module.identifier(),
+              generate_context.runtime,
+              &mg,
+            );
             generate_context.data.insert(unused_exports);
 
             let exports =
@@ -625,6 +651,7 @@ pub struct CodeGenerationDataUnusedLocalIdent {
 
 fn get_unused_local_ident(
   exports: &CssExports,
+  local_names: &FxHashMap<String, String>,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   mg: &ModuleGraph,
@@ -641,11 +668,7 @@ fn get_unused_local_ident(
           false
         }
       })
-      .flat_map(|(_, exports)| {
-        exports
-          .iter()
-          .map(|export| unescape(&export.ident).into_owned())
-      })
+      .filter_map(|(export_name, _)| local_names.get(export_name).cloned())
       .collect(),
   }
 }

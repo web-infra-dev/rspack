@@ -425,6 +425,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: None,
           local_ident_name: None,
           exports_only: g.exports_only.expect("should have exports_only"),
@@ -445,6 +446,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),
@@ -472,6 +474,7 @@ impl Plugin for CssPlugin {
           .expect("should have CssAutoGeneratorOptions");
         Box::new(CssParserAndGenerator {
           exports: None,
+          local_names: None,
           convention: Some(
             g.exports_convention
               .expect("should have exports_convention"),

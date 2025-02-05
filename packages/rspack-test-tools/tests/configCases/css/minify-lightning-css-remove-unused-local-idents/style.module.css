@@ -13,3 +13,11 @@
 .local\/unused {
   color: blue
 }
+
+.compose {
+  composes: composed-local;
+}
+
+.composed-local {
+  background-color: green;
+}
