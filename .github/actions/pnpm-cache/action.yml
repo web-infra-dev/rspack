@@ -28,7 +28,15 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
-        npm i -g --force corepack && which -a corepack && corepack enable
+        if [[ "${{runner.os}}" == "Windows" ]]; then
+          # add the npm prefix to PATH to ensure the installed corepack work properly
+          NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
+          export PATH="$NPM_PREFIX:$PATH"
+        fi
+        npm install -g corepack@0.31.0 --force
+        echo "Corepack version: $(corepack --version)"
+        corepack enable
+
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
