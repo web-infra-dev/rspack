@@ -90,7 +90,7 @@ napi-build  = { version = "2.1.4" }
 napi-derive = { version = "3.0.0-alpha.22" }
 
 # Serialize and Deserialize
-inventory = { version = "=0.1" }
+inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
