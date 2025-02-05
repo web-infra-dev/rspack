@@ -484,7 +484,7 @@ impl Compiler {
     Ok(())
   }
 
-  fn new_compilation_params(&self) -> CompilationParams {
+  pub fn new_compilation_params(&self) -> CompilationParams {
     CompilationParams {
       normal_module_factory: Arc::new(NormalModuleFactory::new(
         self.options.clone(),

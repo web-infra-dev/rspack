@@ -110,6 +110,30 @@ export default defineConfig({
       },
     ],
   },
+  head: [
+    ({ routePath }) => {
+      const getOgImage = () => {
+        if (routePath.endsWith('blog/announcing-0-7')) {
+          return 'assets/rspack-og-image-v0-7.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-0-alpha')) {
+          return 'assets/rspack-og-image-v1-0-alpha.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-0')) {
+          return 'assets/rspack-og-image-v1-0.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-1')) {
+          return 'assets/rspack-og-image-v1-1.png';
+        }
+        if (routePath.endsWith('blog/announcing-1-2')) {
+          return 'assets/rspack-og-image-v1-2.png';
+        }
+        // default
+        return 'rspack-og-image.png';
+      };
+      return `<meta property="og:image" content="https://assets.rspack.dev/rspack/${getOgImage()}">`;
+    },
+  ],
   builderConfig: {
     dev: {
       // TODO: @JSerFeng needs to fix this
@@ -121,7 +145,6 @@ export default defineConfig({
         title: 'Rspack',
         type: 'website',
         url: PUBLISH_URL,
-        image: 'https://assets.rspack.dev/rspack/rspack-og-image.png',
         description: 'Fast Rust-based web bundler',
         twitter: {
           site: '@rspack_dev',

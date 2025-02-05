@@ -13,28 +13,28 @@ new rspack.HtmlRspackPlugin(options);
 
 ## 对比
 
-在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
+在使用 `rspack.HtmlRspackPlugin` 之前，请注意 `rspack.HtmlRspackPlugin` 和社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 插件存在一些差异。
 
 ### 性能
 
-由于 `rspack.HtmlRspackPlugin` 是基于 Rust 实现的，因此它的构建性能显著高于 html-webpack-plugin 插件，尤其是在构建大量 HTML 文件的场景下。
+由于 `rspack.HtmlRspackPlugin` 是基于 Rust 实现的，因此它的构建性能显著高于 `html-webpack-plugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
 ### 功能
 
-`rspack.HtmlRspackPlugin` 的功能是 `html-webpack-plugin` 的子集。为了保证插件的性能，我们没有实现 html-webpack-plugin 提供的所有功能。
+`rspack.HtmlRspackPlugin` 的功能是 `html-webpack-plugin` 的子集。为了保证插件的性能，我们没有实现 `html-webpack-plugin` 提供的所有功能。
 
-如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [html-webpack-plugin](https://www.npmjs.com/package/html-webpack-plugin) 插件。
+如果它提供的配置项无法满足你的需求，你也可以直接使用社区的 [`html-webpack-plugin`](https://www.npmjs.com/package/html-webpack-plugin) 插件。
 
 :::warning
-`rspack.HtmlRspackPlugin` 不支持完整的 EJS 语法, 仅支持 EJS 语法的一个子集，如果你对完整的 EJS 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
+`rspack.HtmlRspackPlugin` 不支持完整的 [EJS](https://github.com/mde/ejs/blob/main/docs/syntax.md) 语法, 仅支持 EJS 语法的一个子集，如果你对完整的 EJS 语法支持有需求，可以直接使用 `html-webpack-plugin`。为了和 `html-webpack-plugin` 的默认的插值语法对齐，
 Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `html-webpack-plugin` 相同的语法。
 :::
 
 ### 支持的 EJS 语法
 
-仅支持如下基本的插值表达式、循环和判断，这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 `ejs` 语法目前均不支持。
+仅支持如下基本的插值表达式、循环和判断，这里的插值表达式只支持最基本的字符串类型，不支持任意的 JavaScript 表达式，其他的 EJS 语法目前均不支持。
 
-#### \<%-: Escaped output
+#### Escaped output `<%-`
 
 对插值内容进行 escape：
 
@@ -54,7 +54,7 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 <p>Hello, the Most Honorable Rspack&lt;y&gt;.</p>
 ```
 
-#### \<%=: Unescaped output
+#### Unescaped output `<%=`
 
 不对插值内容进行 escape：
 
@@ -111,7 +111,7 @@ module.exports = {
 };
 ```
 
-这将生成一个包含以下内容的 `dist/index.html` 文件：
+这将生成一个包含以下内容的 "_dist/index.html_" 文件：
 
 ```html
 <!doctype html>
@@ -140,14 +140,23 @@ type HtmlRspackPluginOptions = {
   title?: string;
   filename?: string | ((entry: string) => string);
   template?: string;
-  templateContent?: string | ((params: Record<string, any>) => string | Promise<string>);
-  templateParameters?: Record<string, string> | (oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>;
-  inject?: 'head' | 'body' | boolean;
+  templateContent?:
+    | string
+    | ((params: Record<string, any>) => string | Promise<string>);
+  templateParameters?:
+    | Record<string, string>
+    | boolean
+    | ((
+        params: Record<string, any>,
+      ) => Record<string, any> | Promise<Record<string, any>>);
+  inject?: boolean | 'head' | 'body';
   publicPath?: string;
-  base?: string | {
-    href?: string;
-    target?: '_self' | '_blank' | '_parent' | '_top'
-  };
+  base?:
+    | string
+    | {
+        href?: string;
+        target?: '_self' | '_blank' | '_parent' | '_top';
+      };
   scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
   chunks?: string[];
   excludeChunks?: string[];
@@ -184,111 +193,111 @@ type HtmlRspackPluginOptions = {
   body={[
     {
       name: '`title`',
-      type: '`string|undefined`',
-      default: 'undefined',
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: '构建 HTML 的标题',
     },
     {
       name: '`filename`',
-      type: '`string|undefined|((entry: string) => string)`',
-      default: "'index.html'",
-      description: '输出的文件名，可以指定子目录，例如 `pages/index.html`',
+      type: '`string | undefined | ((entry: string) => string)`',
+      default: '`"index.html"`',
+      description: '输出的文件名，可以指定子目录，例如 `"pages/index.html"`',
     },
     {
       name: '`template`',
-      type: '`string|undefined`',
-      default: 'undefined',
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: '模版文件路径，支持 ejs',
     },
     {
       name: '`templateContent`',
-      type: '`string|undefined|((params: Record<string, any>) => string | Promise<string>)`',
-      default: 'undefined',
+      type: '`string | undefined | ((params: Record<string, any>) => string | Promise<string>)`',
+      default: '`undefined`',
       description:
         '模版文件内容，优先级大于 template，使用函数时传入渲染参数并将返回的字符串作为模板内容',
     },
     {
       name: '`templateParameters`',
-      type: '`Record<string, string>|(oldParams: params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>`',
-      default: '{}',
+      type: '`Record<string, string> | undefined | boolean | ((params: Record<string, any>) => Record<string, any> | Promise<Record<string, any>>)`',
+      default: '`undefined`',
       description:
         '传递给模版的参数，使用函数时传入渲染参数，并将返回的内容作为最终的渲染参数',
     },
     {
       name: '`inject`',
-      type: "`'head'|'body'|boolean|undefined`",
-      default: 'undefined',
+      type: '`boolean | undefined | "head" | "body"`',
+      default: '`true`',
       description:
-        '产物注入位置，使用 `false` 则不注入，不指定时则会根据 scriptLoading 的配置自动判断',
+        '产物注入位置，使用 `false` 则不注入，不指定时则会根据 `scriptLoading` 的配置自动判断',
     },
     {
       name: '`publicPath`',
-      type: '`string`',
-      default: "''",
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: 'script 和 link 标签的 publicPath',
     },
     {
-      name: '`scriptLoading`',
-      type: "`'blocking'|'defer'|'module'|'systemjs-module'|undefined`",
-      default: "'defer'",
+      name: '`base`',
+      type: '`string | undefined | { href?: string; target?: "_self" | "_blank" | "_parent" | "_top" }`',
+      default: '`undefined`',
       description:
-        '现代浏览器支持使用 defer 来异步加载 js，设置为 module 则会添加 `type="module"` 同时使用 defer',
+        '注入一个 [`base`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) 标签',
+    },
+    {
+      name: '`scriptLoading`',
+      type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
+      default: '`"defer"`',
+      description:
+        '现代浏览器支持使用 `defer` 来异步加载 JavaScript，设置为 `"module"` 则会添加 `type="module"` 同时使用 `defer`',
     },
     {
       name: '`chunks`',
-      type: '`string[]|undefined`',
-      default: 'undefined',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
       description: '配置需要注入的 chunk，默认注入所有 chunk',
     },
     {
       name: '`excludeChunks`',
-      type: '`string[]|undefined`',
-      default: 'undefined',
+      type: '`string[] | undefined`',
+      default: '`undefined`',
       description: '配置需要跳过注入的 chunk',
     },
     {
       name: '`chunksSortMode`',
-      type: "`'auto'|'manual'`",
-      default: "'auto'",
+      type: '`"auto" | "manual"`',
+      default: '`"auto"`',
       description: '配置 chunk 的排序模式',
     },
     {
       name: '`sri`',
-      type: "`'sha256'|'sha384'|'sha512'|undefined`",
-      default: 'undefined',
-      description: 'sri hash 算法，默认不开启 sri',
+      type: '`"sha256"" | "sha384"" | "sha512"" | undefined`',
+      default: '`undefined`',
+      description: 'SRI hash 算法，默认不开启 SRI',
     },
     {
       name: '`minify`',
       type: '`boolean`',
-      default: 'false',
+      default: '`undefined`',
       description: '是否启用压缩',
     },
     {
       name: '`favicon`',
-      type: '`string|undefined`',
-      default: 'undefined',
+      type: '`string | undefined`',
+      default: '`undefined`',
       description: '配置 HTML 图标',
     },
     {
       name: '`meta`',
-      type: '`Record<string, string|Record<string, string>>` ',
-      default: '{}',
+      type: '`Record<string, string | Record<string, string>>`',
+      default: '`{}`',
       description: '配置需要注入 HTML 的 meta',
     },
     {
       name: '`hash`',
       type: '`boolean`',
-      default: 'false',
+      default: '`undefined`',
       description:
         '是否在生成加载路径时添加 compilation 的哈希值作为后缀，以让缓存失效',
-    },
-    {
-      name: '`base`',
-      type: '`string|object|undefined`',
-      default: 'undefined',
-      description:
-        '注入一个 [base](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base) 标签',
     },
   ]}
 />
@@ -554,7 +563,7 @@ module.exports = {
 
 ## Hooks
 
-HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
+HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `rspack.HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
 
 ```js title="rspack.config.js"
 const HtmlModifyPlugin = {
