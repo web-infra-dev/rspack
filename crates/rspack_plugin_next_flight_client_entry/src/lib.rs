@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod constants;
 mod for_each_entry_module;
 mod get_module_build_info;
@@ -20,7 +22,7 @@ use constants::{
 use derive_more::Debug;
 use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
-use get_module_build_info::get_module_build_info;
+use get_module_build_info::get_module_rsc_information;
 use is_metadata_route::is_metadata_route;
 use itertools::Itertools;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
@@ -289,26 +291,31 @@ fn get_module_resource(module: &dyn Module) -> String {
 }
 
 pub fn get_assumed_source_type(module: &dyn Module, source_type: String) -> String {
-  let build_info = get_module_build_info(module);
-  let detected_client_entry_type = build_info.rsc.client_entry_type;
-  let client_refs = build_info.rsc.client_refs.unwrap_or(vec![]);
+  let rsc = get_module_rsc_information(module);
+  let detected_client_entry_type = rsc
+    .as_ref()
+    .and_then(|rsc| rsc.client_entry_type.as_deref());
+  let client_refs: &[String] = rsc
+    .as_ref()
+    .and_then(|rsc| rsc.client_refs.as_ref().map(|r| r.as_slice()))
+    .unwrap_or_default();
 
   // It's tricky to detect the type of a client boundary, but we should always
   // use the `module` type when we can, to support `export *` and `export from`
   // syntax in other modules that import this client boundary.
 
   if source_type == "auto" {
-    if detected_client_entry_type == Some("auto".to_string()) {
+    if detected_client_entry_type == Some("auto") {
       if client_refs.is_empty() {
         // If there's zero export detected in the client boundary, and it's the
         // `auto` type, we can safely assume it's a CJS module because it doesn't
         // have ESM exports.
         return "commonjs".to_string();
-      } else if !client_refs.contains(&"*".to_string()) {
+      } else if !client_refs.iter().any(|e| e == "*") {
         // Otherwise, we assume it's an ESM module.
         return "module".to_string();
       }
-    } else if detected_client_entry_type == Some("cjs".to_string()) {
+    } else if detected_client_entry_type == Some("cjs") {
       return "commonjs".to_string();
     }
   }
@@ -323,9 +330,9 @@ fn add_client_import(
   imported_identifiers: &[String],
   is_first_visit_module: bool,
 ) {
-  let build_info = get_module_build_info(module);
-  let client_entry_type = build_info.rsc.client_entry_type;
-  let is_cjs_module = client_entry_type == Some("cjs".to_string());
+  let rsc = get_module_rsc_information(module);
+  let client_entry_type = rsc.and_then(|rsc| rsc.client_entry_type);
+  let is_cjs_module = matches!(client_entry_type, Some(t) if t == "cjs");
   let assumed_source_type = get_assumed_source_type(
     module,
     if is_cjs_module {
@@ -1090,7 +1097,7 @@ impl FlightClientEntryPlugin {
         add_client_entry_and_ssr_modules_list.push(injected);
       }
 
-      if is_app_route_route(name.as_str()) {
+      if !is_app_route_route(name.as_str()) {
         // Create internal app
         add_client_entry_and_ssr_modules_list.push(self.inject_client_entry_and_ssr_modules(
           compilation,
@@ -1450,7 +1457,10 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
       }
-
+      if mod_resource.contains("app/style.css") {
+        dbg!(module.get_layer());
+        dbg!(module.identifier());
+      }
       if module.get_layer().map(|layer| layer.as_str())
         != Some(WEBPACK_LAYERS.server_side_rendering)
       {
@@ -1500,6 +1510,18 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
             ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
           {
             record_module(module_id, module_identifier);
+
+            if let Some(module) = module_graph.module_by_identifier(module_identifier)
+              && let Some(module) = module.as_concatenated_module()
+            {
+              for m in module.get_modules() {
+                if let Some(module_id) =
+                  ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.id)
+                {
+                  record_module(module_id, &m.id);
+                }
+              }
+            }
           }
         }
       }
