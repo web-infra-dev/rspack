@@ -76,7 +76,8 @@ Node.js 目前仅在 linux 平台支持 `--perf-prof`，而 samply 里的 JavaSc
 
 #### JavaScript profiler
 
-Rspack 的 JavaScript 通常执行在 Node.js 线程里，选择 Node.js 线程查看 Node.js 侧的耗时分布
+Rspack 的 JavaScript 代码通常执行在 Node.js 线程里，选择 Node.js 线程查看 Node.js 侧的耗时分布。
+
 ![Javascript Profiling](https://assets.rspack.dev/rspack/assets/profiling-javascript.png)
 
 #### Rust profiler
