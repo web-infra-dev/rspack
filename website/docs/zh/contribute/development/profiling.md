@@ -18,16 +18,16 @@
 just build release-debug
 ```
 
-2. 修改项目的 `package.json`
+2. 更改 `@rspack/core` 和 `@rspack/cli`，使用 `link` 协议链接到本地​​构建的 Rspack：
 
 ```diff title="package.json"
-dependencies: {
+  dependencies: {
 -    "@rspack/core": "x.y.z",
 -    "@rspack/cli": "x.y.z",
-# link protocol only works in pnpm
+     # link protocol only works in pnpm
 +    "@rspack/core": "link:{your_rspack_repo}/packages/rspack",
 +    "@rspack/cli": "link:{your_rspack_repo}/packages/rspack-cli"
-}
+  }
 ```
 
 3. 重新安装依赖

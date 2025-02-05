@@ -10,22 +10,22 @@ Since different profilers have different strengths. It is good to use more than 
 
 Performance analysis should be conducted on a release version that includes debug information. This approach ensures accurate performance results while providing sufficient debug information for analysis. Use the following command to profiling using local build rspack.
 
-1. build a release version with debug information:
+1. Build a release version with debug information:
 
 ```sh
 just build release-debug
 ```
 
-2. change `@rspack/core` and `@rspack/cli` to use `link` protocol to link to local build rspack
+2. Change `@rspack/core` and `@rspack/cli` to use `link` protocol to link to local build Rspack:
 
 ```diff title="package.json"
-dependencies: {
+  dependencies: {
 -    "@rspack/core": "x.y.z",
 -    "@rspack/cli": "x.y.z",
-# link protocol only works in pnpm
+     # link protocol only works in pnpm
 +    "@rspack/core": "link:{your_rspack_repo}/packages/rspack",
 +    "@rspack/cli": "link:{your_rspack_repo}/packages/rspack-cli"
-}
+  }
 ```
 
 3. reinstall
