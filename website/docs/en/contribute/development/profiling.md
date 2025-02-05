@@ -28,7 +28,7 @@ just build release-debug
   }
 ```
 
-3. reinstall
+3. Reinstall:
 
 ```sh
 pnpm install
