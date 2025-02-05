@@ -8,6 +8,14 @@
 
 <!-- toc -->
 
+## Build release version with debug info
+
+性能分析应基于包含调试信息的发布版本进行。这种方法既能确保性能结果的准确性，又能提供充足的调试信息用于分析。使用以下命令来构建带有调试信息的发布版本：
+
+```sh
+just build release-debug
+```
+
 ## Tracing
 
 [`tracing`](https://crates.io/crates/tracing) 被用于度量（instrumenting） Rspack。
@@ -47,6 +55,35 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 ```
 
 将打印传递给 Rspack 的选项以及每个单独的 tracing 事件.
+
+## CPU profiling
+
+### Samply
+
+[Samply](https://github.com/mstange/samply) 支持同时对 Rust 和 JavaScript 进行性能分析,可通过如下步骤进行完整的性能分析:
+
+- 运行以下命令启动性能分析
+
+```sh
+ samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
+```
+
+- 命令执行完毕后会自动在 [firefox profiler](https://profiler.firefox.com/) 打开分析结果，如下截图来自 [samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10) 。
+
+:::warning
+Node.js 目前仅在 linux 平台支持 `--perf-prof`，而 samply 里的 JavaScript Profiling 依赖 `--perf-prof`的支持，如果你需要在其他平台使用 samply 进行 JavaScript Profiling，可以选择使用 docker 里进行 profiling，或者可以基于 [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) 自行在 MacOs 平台编译 Node.js 用于 profiling。
+:::
+
+#### JavaScript profiler
+
+Rspack 的 JavaScript 通常执行在 Node.js 线程里，选择 Node.js 线程查看 Node.js 侧的耗时分布
+![Javascript Profiling](https://assets.rspack.dev/rspack/assets/profiling-javascript.png)
+
+#### Rust profiler
+
+Rspack 的 Rust 通常执行在 tokio 线程里，选择 tokio 线程就可以查看 Rust 侧的耗时分布
+
+![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
 
 ### Nodejs profiling
 
