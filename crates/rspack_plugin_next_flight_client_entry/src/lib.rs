@@ -1485,7 +1485,10 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
       }
-
+      if mod_resource.contains("app/style.css") {
+        dbg!(module.get_layer());
+        dbg!(module.identifier());
+      }
       if module.get_layer().map(|layer| layer.as_str())
         != Some(WEBPACK_LAYERS.server_side_rendering)
       {
@@ -1540,7 +1543,11 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
               && let Some(module) = module.as_concatenated_module()
             {
               for m in module.get_modules() {
-                record_module(module_id, &m.id);
+                if let Some(module_id) =
+                  ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.id)
+                {
+                  record_module(module_id, &m.id);
+                }
               }
             }
           }
