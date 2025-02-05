@@ -81,7 +81,7 @@ Rspack 的 JavaScript 通常执行在 Node.js 线程里，选择 Node.js 线程�
 
 #### Rust profiler
 
-Rspack 的 Rust 通常执行在 tokio 线程里，选择 tokio 线程就可以查看 Rust 侧的耗时分布
+Rspack 的 Rust 代码通常执行在 tokio 线程里，选择 tokio 线程就可以查看 Rust 侧的耗时分布。
 
 ![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
 
