@@ -151,9 +151,11 @@ compiler.hooks.compilation.tap(
 compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
-    normalModuleFactory.hooks.resolveForScheme.for('https').tap('MyPlugin', resourceData => {
-      console.log(JSON.stringify(resourceData, null, 2));
-    });
+    normalModuleFactory.hooks.resolveForScheme
+      .for('https')
+      .tap('MyPlugin', resourceData => {
+        console.log(JSON.stringify(resourceData, null, 2));
+      });
   },
 );
 ```
