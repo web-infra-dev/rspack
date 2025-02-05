@@ -30,7 +30,7 @@ just build release-debug
   }
 ```
 
-3. 重新安装依赖
+3. 重新安装依赖：
 
 ```sh
 pnpm install
