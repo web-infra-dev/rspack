@@ -31,6 +31,7 @@ rspack_loader_runner     = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_swc_plugin_import = { workspace = true }
 rspack_util              = { workspace = true }
+rustc-hash               = { workspace = true }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 stacker                  = { workspace = true }

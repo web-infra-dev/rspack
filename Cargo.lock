@@ -4614,6 +4614,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_swc_plugin_import",
  "rspack_util",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
  "stacker",
@@ -5316,6 +5317,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
+ "rustc-hash 2.1.0",
  "serde_json",
  "swc_config",
  "swc_core",
@@ -6197,16 +6199,16 @@ dependencies = [
 
 [[package]]
 name = "swc_atoms"
-version = "3.0.4"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31cf812d2f10fd40a9c11227fe0e2e09779113f6ae6f04bd396ac5da92b69c91"
+checksum = "31b770be7f8c626633841a0408e2b66b0d6a395a5a0a565a1591f15dc05af8d3"
 dependencies = [
  "bytecheck 0.8.0",
  "hstr",
  "once_cell",
  "rancor",
  "rkyv 0.8.8",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
 ]
 
@@ -7282,13 +7284,13 @@ dependencies = [
 
 [[package]]
 name = "swc_transform_common"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f23ade45bb0d8b5299022dc0f674c2125512412f5b26f42cfaffa16dcc00d56b"
+checksum = "79319c2165695896119f0cb22847dedfb0bd7f77acd98dbc5bc1f081105db6f3"
 dependencies = [
  "better_scoped_tls",
  "once_cell",
- "rustc-hash 1.1.0",
+ "rustc-hash 2.1.0",
  "serde",
  "serde_json",
 ]
