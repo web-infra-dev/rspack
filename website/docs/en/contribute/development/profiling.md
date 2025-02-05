@@ -60,7 +60,7 @@ will print the options passed to Rspack as well as each individual tracing event
 
 [Samply](https://github.com/mstange/samply) supports performance analysis for both Rust and JavaScript simultaneously. Follow these steps to perform a complete performance analysis:
 
-• Run the following command to start performance analysis:
+- Run the following command to start performance analysis:
 
 ```sh
 samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
