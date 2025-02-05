@@ -69,7 +69,7 @@ samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspa
 • After the command execution, the analysis results will automatically open in the Firefox Profiler. The screenshot below is from a Samply profiler.
 
 :::warning
-Node.js currently only supports `--perf-prof` on Linux platforms. JavaScript profiling in Samply depends on `--perf-prof` support. If you need to use Samply for JavaScript profiling on other platforms, consider using Docker for profiling, or you can compile Node.js yourself for MacOS using [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) for profiling purposes.
+Node.js currently only supports `--perf-prof` on Linux platforms. JavaScript profiling in Samply depends on `--perf-prof` support. If you need to use Samply for JavaScript profiling on other platforms, consider using Docker for profiling, or you can compile Node.js yourself for macOS using [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) for profiling purposes.
 :::
 
 #### JavaScript profiling
