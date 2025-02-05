@@ -42,10 +42,8 @@ runs:
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
 
-          # corepack > 0.24.1 will use native fetch
-          # and native fetch not support HTTP_PROXY
-          # https://github.com/nodejs/undici/issues/1650
-          npm install -g corepack@0.24.1
+          npm install -g corepack@0.31.0 --force
+          echo "Corepack version: $(corepack --version)"
           corepack enable
 
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
