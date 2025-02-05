@@ -19,7 +19,7 @@ use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::concatenated_module::ConcatenatedModule;
@@ -67,6 +67,8 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+
+  pub parse_meta: HashMap<String, String>,
 }
 
 impl Default for BuildInfo {
@@ -85,6 +87,7 @@ impl Default for BuildInfo {
       json_data: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      parse_meta: HashMap::default(),
     }
   }
 }

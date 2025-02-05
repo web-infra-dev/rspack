@@ -366,6 +366,7 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  SwcDtsEmitRspackPlugin = 'SwcDtsEmitRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin'
 }
@@ -2054,6 +2055,10 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+}
+
+export interface RawSwcDtsEmitRspackPluginOptions {
+  extension?: string
 }
 
 export interface RawSwcJsMinimizerOptions {

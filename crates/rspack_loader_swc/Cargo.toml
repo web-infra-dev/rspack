@@ -28,6 +28,8 @@ rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_loader_runner     = { workspace = true }
+rspack_paths             = { workspace = true }
+rspack_plugin_emit_dts   = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_swc_plugin_import = { workspace = true }
 rspack_util              = { workspace = true }
@@ -37,8 +39,8 @@ stacker                  = { workspace = true }
 swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
+swc_typescript           = { workspace = true }
 tracing                  = { workspace = true }
-url                      = "2.5.0"
-
+url                      = "2.5.4"
 [build-dependencies]
 cargo_toml = { version = "0.21.0" }
