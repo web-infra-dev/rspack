@@ -6,6 +6,34 @@ Since different profilers have different strengths. It is good to use more than 
 
 <!-- toc -->
 
+## Build release version with debug info
+
+Performance analysis should be conducted on a release version that includes debug information. This approach ensures accurate performance results while providing sufficient debug information for analysis. Use the following command to profiling using local build rspack.
+
+1. Build a release version with debug information:
+
+```sh
+just build release-debug
+```
+
+2. Change `@rspack/core` and `@rspack/cli` to use `link` protocol to link to local build Rspack:
+
+```diff title="package.json"
+  dependencies: {
+-    "@rspack/core": "x.y.z",
+-    "@rspack/cli": "x.y.z",
+     # link protocol only works in pnpm
++    "@rspack/core": "link:{your_rspack_repo}/packages/rspack",
++    "@rspack/cli": "link:{your_rspack_repo}/packages/rspack-cli"
+  }
+```
+
+3. Reinstall:
+
+```sh
+pnpm install
+```
+
 ## Tracing
 
 [`tracing`](https://crates.io/crates/tracing) is used to instrumenting Rspack.
@@ -45,6 +73,36 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 ```
 
 will print the options passed to Rspack as well as each individual tracing event.
+
+## CPU profiling
+
+### Samply
+
+[Samply](https://github.com/mstange/samply) supports performance analysis for both Rust and JavaScript simultaneously. Follow these steps to perform a complete performance analysis:
+
+- Run the following command to start performance analysis:
+
+```sh
+samply record -- node --perf-prof --perf-basic-prof {your_rspack_folder}/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
+```
+
+- After the command execution, the analysis results will automatically open in the [Firefox Profiler](https://profiler.firefox.com/). The screenshot below is from a [Samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10).
+
+:::warning
+Node.js currently only supports `--perf-prof` on Linux platforms. JavaScript profiling in Samply depends on `--perf-prof` support. If you need to use Samply for JavaScript profiling on other platforms, consider using Docker for profiling, or you can compile Node.js yourself for macOS using [node-perf-maps](https://github.com/tmm1/node/tree/v8-perf-maps) for profiling purposes.
+:::
+
+#### JavaScript profiling
+
+Rspack’s JavaScript typically runs in the Node.js thread. Select the Node.js thread to view the time distribution on the Node.js side.
+
+![Javascript Profiling](https://assets.rspack.dev/rspack/assets/profiling-javascript.png)
+
+#### Rust profiling
+
+Rspack’s Rust code usually runs in the tokio thread. Select the tokio thread to view the time distribution on the Rust side.
+
+![Rust Profiling](https://assets.rspack.dev/rspack/assets/profiling-rust.png)
 
 ### Node.js profiling
 

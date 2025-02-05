@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use rkyv::bytecheck::CheckBytes;
 
+use super::VTablePtr;
 use crate::{DeserializeError, Validator};
 
 type CheckBytesDyn = unsafe fn(*const u8, &mut Validator<'_>) -> Result<(), DeserializeError>;
@@ -20,13 +21,13 @@ where
 }
 
 pub struct CheckBytesEntry {
-  vtable: usize,
+  vtable: VTablePtr,
   check_bytes_dyn: CheckBytesDyn,
 }
 
 impl CheckBytesEntry {
   #[doc(hidden)]
-  pub fn new(vtable: usize, check_bytes_dyn: CheckBytesDyn) -> Self {
+  pub const fn new(vtable: VTablePtr, check_bytes_dyn: CheckBytesDyn) -> Self {
     Self {
       vtable,
       check_bytes_dyn,
@@ -36,7 +37,7 @@ impl CheckBytesEntry {
 
 inventory::collect!(CheckBytesEntry);
 
-pub static CHECK_BYTES_REGISTRY: std::sync::LazyLock<HashMap<usize, CheckBytesDyn>> =
+pub static CHECK_BYTES_REGISTRY: std::sync::LazyLock<HashMap<VTablePtr, CheckBytesDyn>> =
   std::sync::LazyLock::new(|| {
     let mut result = HashMap::default();
     for entry in inventory::iter::<CheckBytesEntry> {

@@ -1,10 +1,12 @@
-#![allow(clippy::unwrap_used)]
 #![feature(trait_upcasting)]
+#![allow(unused_attributes)]
+#![allow(clippy::unwrap_used)]
 
 use std::sync::Arc;
 
+use criterion::criterion_group;
 use rspack::builder::{Builder as _, Devtool};
-use rspack_benchmark::{criterion_group, criterion_main, Criterion};
+use rspack_benchmark::Criterion;
 use rspack_core::Compiler;
 use rspack_fs::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
 use tokio::runtime::Builder;
@@ -12,7 +14,7 @@ use tokio::runtime::Builder;
 trait FileSystem: ReadableFileSystem + WritableFileSystem + Send + Sync {}
 impl<T: ReadableFileSystem + WritableFileSystem + Send + Sync> FileSystem for T {}
 
-async fn basic(fs: Arc<dyn FileSystem>, sm: bool) {
+async fn basic_compile(fs: Arc<dyn FileSystem>, sm: bool) {
   let mut builder = Compiler::builder();
 
   builder
@@ -36,7 +38,7 @@ async fn basic(fs: Arc<dyn FileSystem>, sm: bool) {
     .is_empty());
 }
 
-pub fn criterion_benchmark(c: &mut Criterion) {
+pub fn basic_benchmark(c: &mut Criterion) {
   let rt = Builder::new_multi_thread().build().unwrap();
 
   let fs = MemoryFileSystem::default();
@@ -59,17 +61,16 @@ pub fn criterion_benchmark(c: &mut Criterion) {
   c.bench_function("basic", |b| {
     b.to_async(&rt).iter(|| {
       let fs = fs.clone();
-      basic(fs, false)
+      basic_compile(fs, false)
     });
   });
 
   c.bench_function("basic_sourcemap", |b| {
     b.to_async(&rt).iter(|| {
       let fs = fs.clone();
-      basic(fs, true)
+      basic_compile(fs, true)
     });
   });
 }
 
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);
+criterion_group!(basic, basic_benchmark);

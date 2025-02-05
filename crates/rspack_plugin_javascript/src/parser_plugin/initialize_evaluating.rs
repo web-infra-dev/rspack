@@ -8,6 +8,7 @@ const SLICE_METHOD_NAME: &str = "slice";
 const REPLACE_METHOD_NAME: &str = "replace";
 const CONCAT_METHOD_NAME: &str = "concat";
 const INDEXOF_METHOD_NAME: &str = "indexOf";
+const SPLIT_METHOD_NAME: &str = "split";
 // TODO: substr, substring
 
 pub struct InitializeEvaluating;
@@ -179,6 +180,29 @@ impl JavascriptParserPlugin for InitializeEvaluating {
         );
         return Some(eval);
       }
+    } else if property == SPLIT_METHOD_NAME
+      && param.is_string()
+      && expr.args.len() == 1
+      && expr.args[0].spread.is_none()
+    {
+      let arg = parser.evaluate_expression(&expr.args[0].expr);
+      let array: Vec<String> = if arg.is_string() {
+        param
+          .string()
+          .split(arg.string())
+          .map(|s| s.to_owned())
+          .collect()
+      } else if arg.is_regexp() {
+        let raw = arg.regexp();
+        let regex = eval_regexp_to_regexp(&raw.0, &raw.1);
+        regex.split(param.string()).map(|s| s.to_owned()).collect()
+      } else {
+        return None;
+      };
+      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.hi().0);
+      res.set_array(array);
+      res.set_side_effects(param.could_have_side_effects());
+      return Some(res);
     }
 
     None

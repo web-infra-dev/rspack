@@ -13,6 +13,7 @@ new rspack.HotModuleReplacementPlugin();
 注意 HMR 不能被用于生产构建，因此你需要通过 `process.env.NODE_ENV` 来判断当前是否是开发环境。
 
 ```js title="rspack.config.js"
+const { rspack } = require('@rspack/core');
 const isDev = process.env.NODE_ENV === 'development';
 
 module.exports = {

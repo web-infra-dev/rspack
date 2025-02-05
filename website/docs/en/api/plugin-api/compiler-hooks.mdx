@@ -58,7 +58,7 @@ HookThisCompilation --> HookCompilation(<a href="#compilation">hooks.compilation
 HookCompilation --> HookMake(<a href="#make">hooks.make</a>)
 HookMake --> CreateModuleGraph(Create module graph)
 CreateModuleGraph <--> RunLoaders(Run loaders on modules)
-CreateModuleGraph --> HookFinishMake(hooks.finishMake)
+CreateModuleGraph --> HookFinishMake(<a href="#finishmake">hooks.finishMake</a>)
 HookFinishMake --> CompilationFinish("compilation.finish()")
 CompilationFinish --> CompilationSeal("compilation.seal()")
 CompilationSeal --> HookAfterCompile(<a href="#aftercompile">hooks.afterCompile</a>)
@@ -67,8 +67,8 @@ HookAfterCompile --> Callback("callback()")
 class Compile flow-start
 class Callback,CloseCallback flow-end
 class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
-class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
-class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
+class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookFinishMake,HookAfterCompile flow-hook
+class HookNormalModuleFactory,HookContextModuleFactory flow-hook-non-support
 `}
 
 </Mermaid>
@@ -303,6 +303,26 @@ Called before the make phase.
 In the make phase, Rspack will build the module graph starting from the entry, and use the loader to handle each module.
 
 - **Type:** `AsyncParallelHook<[Compilation]>`
+- **Arguments:**
+  - `Compilation`: current [compilation](/api/javascript-api/compilation) object
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `finishMake`
+
+Called after finishing the make phase.
+
+In the make phase, Rspack builds the module graph starting from the entry and uses loaders to handle each module. This hook is called when that process completes.
+
+- **Type:** `AsyncSeriesHook<[Compilation]>`
 - **Arguments:**
   - `Compilation`: current [compilation](/api/javascript-api/compilation) object
 

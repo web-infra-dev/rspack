@@ -15,7 +15,6 @@ permissions:
 
 jobs:
   issue-labeled:
-    permissions:
     runs-on: ubuntu-latest
     steps:
       - name: 🤔 Need Reproduce

@@ -90,14 +90,14 @@ napi-build  = { version = "2.1.4" }
 napi-derive = { version = "3.0.0-alpha.22" }
 
 # Serialize and Deserialize
-inventory = { version = "=0.1" }
+inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
 swc                 = { version = "=10.0.0" }
 swc_config          = { version = "=1.0.0" }
-swc_core            = { version = "=10.1.0", default-features = false }
-swc_ecma_minifier   = { version = "=7.0.1", default-features = false }
+swc_core            = { version = "=10.7.0", default-features = false }
+swc_ecma_minifier   = { version = "=7.5.0", default-features = false }
 swc_error_reporters = { version = "=6.0.0" }
 swc_html            = { version = "=7.0.0" }
 swc_html_minifier   = { version = "=7.0.0", default-features = false }

@@ -121,8 +121,10 @@ module.exports = {
   optimization: {
     splitChunks: {
       cacheGroups: {
-        test: /\/some-lib\//,
-        name: 'lib',
+        someLib: {
+          test: /\/some-lib\//,
+          name: 'lib',
+        },
       },
     },
   },

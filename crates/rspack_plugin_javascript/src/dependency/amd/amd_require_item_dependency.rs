@@ -12,12 +12,12 @@ pub struct AMDRequireItemDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
-  range: (u32, u32),
+  range: Option<(u32, u32)>,
   optional: bool,
 }
 
 impl AMDRequireItemDependency {
-  pub fn new(request: Atom, range: (u32, u32)) -> Self {
+  pub fn new(request: Atom, range: Option<(u32, u32)>) -> Self {
     Self {
       id: DependencyId::new(),
       request,
@@ -57,6 +57,9 @@ impl DependencyTemplate for AMDRequireItemDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
+    let Some(range) = &self.range else {
+      return;
+    };
     // ModuleDependencyTemplateAsRequireId
     let content = module_raw(
       code_generatable_context.compilation,
@@ -65,7 +68,7 @@ impl DependencyTemplate for AMDRequireItemDependency {
       &self.request,
       self.weak(),
     );
-    source.replace(self.range.0, self.range.1, &content, None);
+    source.replace(range.0, range.1, &content, None);
   }
 
   fn dependency_id(&self) -> Option<DependencyId> {

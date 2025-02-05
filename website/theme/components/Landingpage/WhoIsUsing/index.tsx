@@ -16,6 +16,7 @@ import discordLogo from './assets/discord.svg';
 import getaroundLogo from './assets/getaround.svg';
 import googleLogo from './assets/google.svg';
 import intuitLogo from './assets/intuit.svg';
+import khanAcademyLogo from './assets/khan-academy.svg';
 import kuaishouLogo from './assets/kuaishou.svg';
 import microsoftLogo from './assets/microsoft.svg';
 import nioLogo from './assets/nio.svg';
@@ -128,6 +129,12 @@ const companyList: Company[] = [
     logo: deepseekLogo,
     url: 'https://deepseek.com',
     width: 140,
+  },
+  {
+    name: 'Khan Academy',
+    logo: khanAcademyLogo,
+    url: 'https://khanacademy.org/',
+    width: 180,
   },
 ];
 
