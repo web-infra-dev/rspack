@@ -8,10 +8,30 @@ Since different profilers have different strengths. It is good to use more than 
 
 ## Build release version with debug info
 
-Performance analysis should be conducted on a release version that includes debug information. This approach ensures accurate performance results while providing sufficient debug information for analysis. Use the following command to build a release version with debug information:
+Performance analysis should be conducted on a release version that includes debug information. This approach ensures accurate performance results while providing sufficient debug information for analysis. Use the following command to profiling using local build rspack.
+
+1. build a release version with debug information:
 
 ```sh
 just build release-debug
+```
+
+2. change `@rspack/core` and `@rspack/cli` to use `link` protocol to link to local build rspack
+
+```diff title="package.json"
+dependencies: {
+-    "@rspack/core": "x.y.z",
+-    "@rspack/cli": "x.y.z",
+# link protocol only works in pnpm
++    "@rspack/core": "link:{your_rspack_repo}/packages/rspack",
++    "@rspack/cli": "link:{your_rspack_repo}/packages/rspack-cli"
+}
+```
+
+3. reinstall
+
+```sh
+pnpm install
 ```
 
 ## Tracing
@@ -63,7 +83,7 @@ will print the options passed to Rspack as well as each individual tracing event
 - Run the following command to start performance analysis:
 
 ```sh
-samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
+samply record -- node --perf-prof --perf-basic-prof {your_rspack_folder}/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
 ```
 
 - After the command execution, the analysis results will automatically open in the [Firefox Profiler](https://profiler.firefox.com/). The screenshot below is from a [Samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10).

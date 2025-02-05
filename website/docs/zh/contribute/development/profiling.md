@@ -10,10 +10,30 @@
 
 ## Build release version with debug info
 
-性能分析应基于包含调试信息的发布版本进行。这种方法既能确保性能结果的准确性，又能提供充足的调试信息用于分析。使用以下命令来构建带有调试信息的发布版本：
+性能分析应基于包含调试信息的发布版本进行。这种方法既能确保性能结果的准确性，又能提供充足的调试信息用于分析。使用以下命令使用本地的 rspack 进行 profiling
+
+1. 构建带有调试信息的发布版本：
 
 ```sh
 just build release-debug
+```
+
+2. 修改项目的 `package.json`
+
+```diff title="package.json"
+dependencies: {
+-    "@rspack/core": "x.y.z",
+-    "@rspack/cli": "x.y.z",
+# link protocol only works in pnpm
++    "@rspack/core": "link:{your_rspack_repo}/packages/rspack",
++    "@rspack/cli": "link:{your_rspack_repo}/packages/rspack-cli"
+}
+```
+
+3. 重新安装依赖
+
+```sh
+pnpm install
 ```
 
 ## Tracing
@@ -65,7 +85,7 @@ RSPACK_PROFILE=TRACE=layer=logger rspack build
 - 运行以下命令启动性能分析：
 
 ```sh
- samply record -- node --perf-prof --perf-basic-prof packages/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
+samply record -- node --perf-prof --perf-basic-prof {your_rspack_folder}/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
 ```
 
 - 命令执行完毕后会自动在 [Firefox profiler](https://profiler.firefox.com/) 打开分析结果，如下截图来自 [Samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10)。
