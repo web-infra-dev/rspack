@@ -204,11 +204,9 @@ pub fn impl_impl(mut input: ItemImpl) -> TokenStream {
           };
 
           const fn get_vtable() -> VTablePtr {
-              unsafe {
-                  VTablePtr::new(ptr_meta::metadata(
-                      core::ptr::null::<Archived<#target_ident>>() as *const <dyn #trait_ident as ArchiveUnsized>::Archived
-                  ))
-              }
+              VTablePtr::new(ptr_meta::metadata(
+                  core::ptr::null::<Archived<#target_ident>>() as *const <dyn #trait_ident as ArchiveUnsized>::Archived
+              ))
           }
           inventory::submit! { DynEntry::new(#dyn_id_ident, get_vtable()) }
           inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<#target_ident>>) }

@@ -144,10 +144,8 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     };
 
     const fn get_vtable() -> VTablePtr {
-      unsafe {
-        VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Dog>>()
-          as *const <dyn Animal<&'static str> as ArchiveUnsized>::Archived))
-      }
+      VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Dog>>()
+        as *const <dyn Animal<&'static str> as ArchiveUnsized>::Archived))
     }
     inventory::submit! { DynEntry::new(__DYN_ID_DOG_ANIMAL, get_vtable()) }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Dog>>) }
@@ -206,10 +204,8 @@ fn test_manual_cacheable_dyn_macro_with_generics() {
     };
 
     const fn get_vtable() -> VTablePtr {
-      unsafe {
-        VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Cat>>()
-          as *const <dyn Animal<String> as ArchiveUnsized>::Archived))
-      }
+      VTablePtr::new(ptr_meta::metadata(core::ptr::null::<Archived<Cat>>()
+        as *const <dyn Animal<String> as ArchiveUnsized>::Archived))
     }
     inventory::submit! { DynEntry::new(__DYN_ID_CAT_ANIMAL, get_vtable()) }
     inventory::submit! { CheckBytesEntry::new(get_vtable(), default_check_bytes_dyn::<Archived<Cat>>)}
