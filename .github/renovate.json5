@@ -79,14 +79,25 @@
 		{
 			groupName: "Rspack",
 			matchManagers: ["npm"],
-			matchPackageNames: ["/@rspack/"]
+			matchPackageNames: ["/^@rspack/"]
 		},
 		// Babel npm packages
 		{
 			groupName: "babel",
-			groupSlug: "babel",
 			matchManagers: ["npm"],
 			matchPackageNames: ["/babel/"]
+		},
+		// Types npm packages
+		{
+			groupName: "types",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@types/"]
+		},
+		// SWC npm packages
+		{
+			groupName: "SWC",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@swc/"]
 		},
 		// Rspack crates
 		{
