@@ -215,6 +215,9 @@ export class Module {
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
+	declare readonly resourceResolveData: Record<string, any> | undefined;
+	declare readonly matchResource: string | undefined;
+	declare readonly loaders: string[] | undefined;
 
 	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
@@ -317,14 +320,20 @@ export class Module {
 			},
 			resourceResolveData: {
 				enumerable: true,
-				get(): ResolveData | undefined {
-					return module.resourceResolveData as any;
+				get(): Record<string, any> | undefined {
+					return module.resourceResolveData;
 				}
 			},
 			matchResource: {
 				enumerable: true,
 				get(): string | undefined {
 					return module.matchResource;
+				}
+			},
+			loaders: {
+				enumerable: true,
+				get(): string[] | undefined {
+					return module.loaders;
 				}
 			}
 		});
