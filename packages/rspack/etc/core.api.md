@@ -5061,7 +5061,7 @@ type ResourceData = {
 };
 
 // @public (undocumented)
-type ResourceDataWithData = ResourceData & {
+export type ResourceDataWithData = ResourceData & {
     data?: Record<string, any>;
 };
 
@@ -5129,6 +5129,7 @@ declare namespace rspackExports {
         ChunkGroup,
         Module,
         ResolveData,
+        ResourceDataWithData,
         MultiStats,
         NormalModule,
         NormalModuleFactory,
