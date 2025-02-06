@@ -32,8 +32,8 @@ use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
   ApplyContext, AssetInfo, BoxDependency, ChunkGraph, Compilation, CompilationAsset,
   CompilationProcessAssets, CompilerAfterEmit, CompilerFinishMake, CompilerOptions, Dependency,
-  DependencyId, EntryDependency, EntryOptions, Module, ModuleGraph, ModuleId, ModuleIdentifier,
-  NormalModule, Plugin, PluginContext, RuntimeSpec,
+  DependencyId, EntryDependency, EntryOptions, Logger, Module, ModuleGraph, ModuleId,
+  ModuleIdentifier, NormalModule, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -1386,13 +1386,21 @@ impl FlightClientEntryPlugin {
 
 #[plugin_hook(CompilerFinishMake for FlightClientEntryPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.FlightClientEntryPlugin");
+
+  let start = logger.time("create client entries");
   self.create_client_entries(compilation).await?;
+  logger.time_end(start);
+
   Ok(())
 }
 
 // Next.js uses the after compile hook, but after emit should achieve the same result
 #[plugin_hook(CompilerAfterEmit for FlightClientEntryPlugin)]
 async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.FlightClientEntryPlugin");
+
+  let start = logger.time("after emit");
   let state = {
     let module_graph = compilation.get_module_graph();
     let mut plugin_state = self.plugin_state.lock().unwrap();
@@ -1531,13 +1539,19 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let state_cb = self.state_cb.as_ref();
   state_cb(state).await?;
+  logger.time_end(start);
 
   Ok(())
 }
 
 #[plugin_hook(CompilationProcessAssets for FlightClientEntryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_HASH)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.FlightClientEntryPlugin");
+
+  let start = logger.time("process assets");
   self.create_action_assets(compilation);
+  logger.time_end(start);
+
   Ok(())
 }
 
