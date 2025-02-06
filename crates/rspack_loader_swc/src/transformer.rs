@@ -1,6 +1,6 @@
 use either::Either;
+use rustc_hash::FxHashMap;
 use swc_core::atoms::Atom;
-use swc_core::common::collections::AHashMap;
 use swc_core::common::BytePos;
 use swc_core::ecma::ast::Pass;
 use swc_core::ecma::ast::{noop_pass, Ident};
@@ -34,7 +34,7 @@ pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Pass + '
 }
 
 pub struct IdentCollector {
-  pub names: AHashMap<BytePos, Atom>,
+  pub names: FxHashMap<BytePos, Atom>,
 }
 
 impl Visit for IdentCollector {
