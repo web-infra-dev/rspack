@@ -493,6 +493,8 @@ class ChunkGraph {
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
     // (undocumented)
+    getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null;
+    // (undocumented)
     getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
     // (undocumented)
     getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module>;
