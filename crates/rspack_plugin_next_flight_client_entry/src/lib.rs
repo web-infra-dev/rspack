@@ -48,7 +48,7 @@ use serde_json::json;
 use sugar_path::SugarPath;
 
 static NEXT_DIST_ESM_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("[\\/]next[\\/]dist[\\/]esm[\\/]").unwrap());
+  Lazy::new(|| Regex::new(r"[\\/]next[\\/]dist[\\/]esm[\\/]").unwrap());
 
 static NEXT_DIST: Lazy<String> = Lazy::new(|| {
   format!(
@@ -1166,7 +1166,16 @@ impl FlightClientEntryPlugin {
       })
       .chain(add_action_entry_list.into_iter())
       .collect::<Vec<_>>();
+    let included_deps: Vec<_> = args.iter().map(|(dep, _)| *dep.id()).collect();
     compilation.add_include(args).await?;
+    for dep in included_deps {
+      let mut mg = compilation.get_module_graph_mut();
+      let Some(m) = mg.get_module_by_dependency_id(&dep) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&m.identifier());
+      info.set_used_in_unknown_way(&mut mg, Some(&self.webpack_runtime));
+    }
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     let mut action_maps_per_client_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
@@ -1228,9 +1237,21 @@ impl FlightClientEntryPlugin {
           .map(|injected| added_client_action_entry_list.push(injected));
       }
     }
+    let included_deps: Vec<_> = added_client_action_entry_list
+      .iter()
+      .map(|(dep, _)| *dep.id())
+      .collect();
     compilation
       .add_include(added_client_action_entry_list)
       .await?;
+    for dep in included_deps {
+      let mut mg = compilation.get_module_graph_mut();
+      let Some(m) = mg.get_module_by_dependency_id(&dep) else {
+        continue;
+      };
+      let info = mg.get_exports_info(&m.identifier());
+      info.set_used_in_unknown_way(&mut mg, Some(&self.webpack_runtime));
+    }
     Ok(())
   }
 
@@ -1464,10 +1485,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
       }
-      if mod_resource.contains("app/style.css") {
-        dbg!(module.get_layer());
-        dbg!(module.identifier());
-      }
+
       if module.get_layer().map(|layer| layer.as_str())
         != Some(WEBPACK_LAYERS.server_side_rendering)
       {
@@ -1522,11 +1540,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
               && let Some(module) = module.as_concatenated_module()
             {
               for m in module.get_modules() {
-                if let Some(module_id) =
-                  ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.id)
-                {
-                  record_module(module_id, &m.id);
-                }
+                record_module(module_id, &m.id);
               }
             }
           }
