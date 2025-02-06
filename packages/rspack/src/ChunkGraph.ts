@@ -1,9 +1,9 @@
 import type { JsChunkGraph } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
-import { Module } from "./Module";
-import { DependenciesBlock } from "./DependenciesBlock";
 import { ChunkGroup } from "./ChunkGroup";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { Module } from "./Module";
 
 export class ChunkGraph {
 	#inner: JsChunkGraph;
