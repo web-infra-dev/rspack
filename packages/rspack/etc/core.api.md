@@ -7,7 +7,6 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
-import { Assumptions } from './assumptions';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -216,6 +215,35 @@ export type AssetResourceGeneratorOptions = {
 
 // @public (undocumented)
 export type Assets = Record<string, Source>;
+
+// @public (undocumented)
+interface Assumptions {
+    arrayLikeIsIterable?: boolean;
+    constantReexports?: boolean;
+    constantSuper?: boolean;
+    enumerableModuleMeta?: boolean;
+    ignoreFunctionLength?: boolean;
+    // (undocumented)
+    ignoreFunctionName?: boolean;
+    ignoreToPrimitiveHint?: boolean;
+    iterableIsArray?: boolean;
+    mutableTemplateObject?: boolean;
+    noClassCalls?: boolean;
+    noDocumentAll?: boolean;
+    noIncompleteNsImportDetection?: boolean;
+    noNewArrows?: boolean;
+    objectRestNoSymbols?: boolean;
+    privateFieldsAsProperties?: boolean;
+    pureGetters?: boolean;
+    setClassMethods?: boolean;
+    setComputedProperties?: boolean;
+    setPublicClassFields?: boolean;
+    setSpreadProperties?: boolean;
+    skipForOfIteratorClosing?: boolean;
+    superIsCallableConstructor?: boolean;
+    // @deprecated (undocumented)
+    tsEnumIsReadonly?: boolean;
+}
 
 // @public
 export type AsyncChunks = boolean;
@@ -494,6 +522,8 @@ export type ChunkFormat = string | false;
 class ChunkGraph {
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
+    // (undocumented)
+    getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null;
     // (undocumented)
     getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
     // (undocumented)
@@ -3806,13 +3836,21 @@ class ModuleGraph {
     // (undocumented)
     getExportsInfo(module: Module): ExportsInfo;
     // (undocumented)
+    getIncomingConnections(module: Module): ModuleGraphConnection[];
+    // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
     getModule(dependency: Dependency): Module | null;
     // (undocumented)
     getOutgoingConnections(module: Module): ModuleGraphConnection[];
     // (undocumented)
+    getParentBlockIndex(dependency: Dependency): number;
+    // (undocumented)
+    getParentModule(dependency: Dependency): Module | null;
+    // (undocumented)
     getResolvedModule(dependency: Dependency): Module | null;
+    // (undocumented)
+    isAsync(module: Module): boolean;
 }
 
 // @public (undocumented)

@@ -78,6 +78,7 @@ export declare class JsChunkGraph {
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
   getModuleId(jsModule: JsModule): string | null
+  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -247,6 +248,9 @@ export declare class JsModuleGraph {
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
+  getParentModule(jsDependency: JsDependency): JsModule | null
+  getParentBlockIndex(jsDependency: JsDependency): number
+  isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
