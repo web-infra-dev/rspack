@@ -7,7 +7,6 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
-import { Assumptions } from './assumptions';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -216,6 +215,35 @@ export type AssetResourceGeneratorOptions = {
 
 // @public (undocumented)
 export type Assets = Record<string, Source>;
+
+// @public (undocumented)
+interface Assumptions {
+    arrayLikeIsIterable?: boolean;
+    constantReexports?: boolean;
+    constantSuper?: boolean;
+    enumerableModuleMeta?: boolean;
+    ignoreFunctionLength?: boolean;
+    // (undocumented)
+    ignoreFunctionName?: boolean;
+    ignoreToPrimitiveHint?: boolean;
+    iterableIsArray?: boolean;
+    mutableTemplateObject?: boolean;
+    noClassCalls?: boolean;
+    noDocumentAll?: boolean;
+    noIncompleteNsImportDetection?: boolean;
+    noNewArrows?: boolean;
+    objectRestNoSymbols?: boolean;
+    privateFieldsAsProperties?: boolean;
+    pureGetters?: boolean;
+    setClassMethods?: boolean;
+    setComputedProperties?: boolean;
+    setPublicClassFields?: boolean;
+    setSpreadProperties?: boolean;
+    skipForOfIteratorClosing?: boolean;
+    superIsCallableConstructor?: boolean;
+    // @deprecated (undocumented)
+    tsEnumIsReadonly?: boolean;
+}
 
 // @public
 export type AsyncChunks = boolean;
