@@ -134,7 +134,7 @@ module.exports = {
 
 ## output.chunkLoading
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 
 The method to load chunks (methods included by default are `'jsonp'` (web), `'import'` (ESM), `'importScripts'` (webworker), `'require'` (sync node.js), `'async-node'` (async node.js), but others might be added by plugins). The default value will be determined based on the configuration of [`target`](#target) and [`chunkFormat`](#outputchunkformat).
 

@@ -1594,13 +1594,23 @@ const ElectronTargetPlugin: {
 };
 
 // @public (undocumented)
-const EnableChunkLoadingPlugin: {
+class EnableChunkLoadingPlugin extends EnableChunkLoadingPluginInner {
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    static checkEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+    // (undocumented)
+    static setEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+}
+
+// @public (undocumented)
+const EnableChunkLoadingPluginInner: {
     new (type: string): {
         name: BuiltinPluginName;
         _args: [type: string];
         affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
     };
 };
 
