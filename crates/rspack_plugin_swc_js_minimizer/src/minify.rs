@@ -17,11 +17,11 @@ use rspack_plugin_javascript::{
   ExtractedCommentsInfo, IsModule, SourceMapsConfig, TransformOutput,
 };
 use rspack_util::swc::minify_file_comments;
+use rustc_hash::FxHashMap;
 use swc_config::config_types::BoolOr;
 use swc_core::{
   base::config::JsMinifyCommentOption,
   common::{
-    collections::AHashMap,
     comments::{CommentKind, Comments, SingleThreadedComments},
     errors::{Emitter, Handler, HANDLER},
     BytePos, FileName, Mark, SourceMap, GLOBALS,
@@ -295,7 +295,7 @@ pub fn minify(
 }
 
 pub struct IdentCollector {
-  names: AHashMap<BytePos, Atom>,
+  names: FxHashMap<BytePos, Atom>,
 }
 
 impl Visit for IdentCollector {

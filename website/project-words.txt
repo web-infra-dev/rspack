@@ -157,6 +157,7 @@ ruleoneof
 ruleparserdataurlcondition
 Rust
 rustup
+samply
 sanyuan
 Shenzhen
 shulaoda

@@ -2730,15 +2730,15 @@ impl OutputOptionsBuilder {
 
     let enabled_chunk_loading_types = f!(self.enabled_chunk_loading_types.take(), || {
       let mut enabled_chunk_loading_types = vec![];
-      if let ChunkLoading::Enable(ty) = chunk_loading {
-        enabled_chunk_loading_types.push(ty);
+      if let ChunkLoading::Enable(ty) = &chunk_loading {
+        enabled_chunk_loading_types.push(ty.clone());
       }
-      if let ChunkLoading::Enable(ty) = worker_chunk_loading {
-        enabled_chunk_loading_types.push(ty);
+      if let ChunkLoading::Enable(ty) = &worker_chunk_loading {
+        enabled_chunk_loading_types.push(ty.clone());
       }
       for (_, desc) in entry.iter() {
         if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
-          enabled_chunk_loading_types.push(*ty);
+          enabled_chunk_loading_types.push(ty.clone());
         }
       }
       enabled_chunk_loading_types
@@ -2746,7 +2746,7 @@ impl OutputOptionsBuilder {
     for ty in enabled_chunk_loading_types.iter() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(*ty));
+        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty.clone()));
     }
 
     let enabled_wasm_loading_types = f!(self.enabled_wasm_loading_types.take(), || {

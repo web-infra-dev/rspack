@@ -1,5 +1,5 @@
 mod dependencies;
-mod entries;
+pub mod entries;
 
 use std::cell::RefCell;
 use std::collections::HashMap;

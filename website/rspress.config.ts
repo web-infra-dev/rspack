@@ -24,6 +24,9 @@ export default defineConfig({
     checkDeadLinks: true,
     highlightLanguages: [['rs', 'rust']],
   },
+  search: {
+    codeBlocks: true,
+  },
   route: {
     cleanUrls: true,
   },
@@ -136,8 +139,7 @@ export default defineConfig({
   ],
   builderConfig: {
     dev: {
-      // TODO: @JSerFeng needs to fix this
-      // lazyCompilation: true,
+      lazyCompilation: true,
     },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),

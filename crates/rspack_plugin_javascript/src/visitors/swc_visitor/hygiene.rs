@@ -6,7 +6,6 @@ use swc_core::ecma::visit::VisitMut;
 pub fn hygiene(keep_class_names: bool, top_level_mark: Mark) -> impl 'static + Pass + VisitMut {
   hygiene_with_config(Config {
     keep_class_names,
-    safari_10: true,
     top_level_mark,
     ignore_eval: false,
     // FIXME: support user passing preserved_symbols in the future

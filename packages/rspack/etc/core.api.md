@@ -461,6 +461,8 @@ export class Chunk {
         name: Record<string | number, string>;
     };
     // (undocumented)
+    getEntryOptions(): Readonly<EntryOptions> | undefined;
+    // (undocumented)
     get groupsIterable(): ReadonlySet<ChunkGroup>;
     // (undocumented)
     readonly hash?: string;
@@ -1594,13 +1596,23 @@ const ElectronTargetPlugin: {
 };
 
 // @public (undocumented)
-const EnableChunkLoadingPlugin: {
+class EnableChunkLoadingPlugin extends EnableChunkLoadingPluginInner {
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    static checkEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+    // (undocumented)
+    static setEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+}
+
+// @public (undocumented)
+const EnableChunkLoadingPluginInner: {
     new (type: string): {
         name: BuiltinPluginName;
         _args: [type: string];
         affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
     };
 };
 
@@ -5061,7 +5073,7 @@ type ResourceData = {
 };
 
 // @public (undocumented)
-type ResourceDataWithData = ResourceData & {
+export type ResourceDataWithData = ResourceData & {
     data?: Record<string, any>;
 };
 
@@ -5129,6 +5141,7 @@ declare namespace rspackExports {
         ChunkGroup,
         Module,
         ResolveData,
+        ResourceDataWithData,
         MultiStats,
         NormalModule,
         NormalModuleFactory,
@@ -6360,7 +6373,7 @@ export const rspackOptions: z.ZodObject<{
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
                 client: z.ZodOptional<z.ZodString>;
-                listen: z.ZodUnion<[z.ZodOptional<z.ZodNumber>, z.ZodObject<{
+                listen: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodNumber, z.ZodObject<{
                     port: z.ZodOptional<z.ZodNumber>;
                     host: z.ZodOptional<z.ZodString>;
                     backlog: z.ZodOptional<z.ZodNumber>;
@@ -6387,8 +6400,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                }>]>;
+                }>]>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodVoid>]>>;
                 protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
+                server: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodAny>]>>;
             }, "strip", z.ZodTypeAny, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6400,8 +6414,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6413,8 +6428,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }>>;
             imports: z.ZodOptional<z.ZodBoolean>;
             entries: z.ZodOptional<z.ZodBoolean>;
@@ -6434,8 +6450,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }, {
             entries?: boolean | undefined;
@@ -6452,8 +6469,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
@@ -6572,8 +6590,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -6639,8 +6658,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -6844,11 +6864,9 @@ export const rspackOptions: z.ZodObject<{
     }, "strict", z.ZodTypeAny, {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -6859,10 +6877,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -6921,11 +6941,9 @@ export const rspackOptions: z.ZodObject<{
     }, {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -6936,10 +6954,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -8585,8 +8605,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -8625,11 +8646,9 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -8640,10 +8659,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
@@ -9190,8 +9211,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -9230,11 +9252,9 @@ export const rspackOptions: z.ZodObject<{
     stats?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | {
         modules?: boolean | undefined;
         chunks?: boolean | undefined;
-        ids?: boolean | undefined;
-        runtime?: boolean | undefined;
-        hash?: boolean | undefined;
         all?: boolean | undefined;
         version?: boolean | undefined;
+        runtime?: boolean | undefined;
         publicPath?: boolean | undefined;
         preset?: boolean | "none" | "verbose" | "normal" | "errors-only" | "errors-warnings" | "minimal" | "detailed" | "summary" | undefined;
         assets?: boolean | undefined;
@@ -9245,10 +9265,12 @@ export const rspackOptions: z.ZodObject<{
         errors?: boolean | undefined;
         errorsCount?: boolean | undefined;
         colors?: boolean | undefined;
+        hash?: boolean | undefined;
         reasons?: boolean | undefined;
         outputPath?: boolean | undefined;
         chunkModules?: boolean | undefined;
         chunkRelations?: boolean | undefined;
+        ids?: boolean | undefined;
         timings?: boolean | undefined;
         builtAt?: boolean | undefined;
         moduleAssets?: boolean | undefined;
