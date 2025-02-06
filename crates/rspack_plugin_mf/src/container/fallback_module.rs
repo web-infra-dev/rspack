@@ -28,8 +28,8 @@ pub struct FallbackModule {
   lib_ident: String,
   requests: Vec<String>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl FallbackModule {
@@ -50,8 +50,11 @@ impl FallbackModule {
       lib_ident,
       requests,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -127,19 +130,12 @@ impl Module for FallbackModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let build_info = BuildInfo {
-      strict: true,
-      ..Default::default()
-    };
-
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
       dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
     Ok(BuildResult {
-      build_info,
-      build_meta: Default::default(),
       dependencies,
       blocks: Vec::new(),
       optimization_bailouts: vec![],

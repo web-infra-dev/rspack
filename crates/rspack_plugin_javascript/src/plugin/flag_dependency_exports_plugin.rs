@@ -46,11 +46,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         .mg
         .module_by_identifier(&module_id)
         .expect("should have module");
-      let is_module_without_exports = if let Some(build_meta) = module.build_meta() {
-        build_meta.exports_type == BuildMetaExportsType::Unset
-      } else {
-        true
-      };
+      let is_module_without_exports =
+        module.build_meta().exports_type == BuildMetaExportsType::Unset;
       if is_module_without_exports {
         let other_exports_info = exports_info.other_exports_info(self.mg);
         if !matches!(
@@ -63,12 +60,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         }
       }
 
-      if !module
-        .build_info()
-        .as_ref()
-        .map(|item| item.hash.is_some())
-        .unwrap_or_default()
-      {
+      if module.build_info().hash.is_none() {
         exports_info.set_has_provide_info(self.mg);
         q.enqueue(module_id);
         continue;

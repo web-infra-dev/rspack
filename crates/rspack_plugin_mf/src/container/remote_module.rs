@@ -37,8 +37,8 @@ pub struct RemoteModule {
   pub share_scope: String,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl RemoteModule {
@@ -68,8 +68,11 @@ impl RemoteModule {
       share_scope,
       remote_key,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -145,11 +148,6 @@ impl Module for RemoteModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let build_info = BuildInfo {
-      strict: true,
-      ..Default::default()
-    };
-
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     if self.external_requests.len() == 1 {
       let dep = RemoteToExternalDependency::new(self.external_requests[0].clone());
@@ -160,8 +158,6 @@ impl Module for RemoteModule {
     }
 
     Ok(BuildResult {
-      build_info,
-      build_meta: Default::default(),
       dependencies,
       blocks: Vec::new(),
       optimization_bailouts: vec![],

@@ -309,19 +309,19 @@ mod t {
       todo!()
     }
 
-    fn build_info(&self) -> Option<&BuildInfo> {
+    fn build_info(&self) -> &BuildInfo {
       todo!()
     }
 
-    fn set_build_info(&mut self, _build_info: BuildInfo) {
+    fn build_info_mut(&mut self) -> &mut BuildInfo {
       todo!()
     }
 
-    fn build_meta(&self) -> Option<&BuildMeta> {
+    fn build_meta(&self) -> &BuildMeta {
       todo!()
     }
 
-    fn set_build_meta(&mut self, _build_meta: BuildMeta) {
+    fn build_meta_mut(&mut self) -> &mut BuildMeta {
       todo!()
     }
 

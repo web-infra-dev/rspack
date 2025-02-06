@@ -33,8 +33,8 @@ pub struct DelegatedModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl DelegatedModule {
@@ -112,9 +112,9 @@ impl Module for DelegatedModule {
         false,
       )) as BoxDependency,
     ];
+    self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
       dependencies,
-      build_meta: self.delegate_data.build_meta.clone().unwrap_or_default(),
       ..Default::default()
     })
   }
@@ -193,7 +193,7 @@ impl Module for DelegatedModule {
   }
 
   fn need_build(&self) -> bool {
-    self.build_meta.is_none()
+    false
   }
 
   fn update_hash(

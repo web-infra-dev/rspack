@@ -75,23 +75,17 @@ async fn succeed_module(
     side_effect_free: Some(false),
   });
 
-  let module_concatenation_bailout = module
-    .build_info()
-    .and_then(|info| info.module_concatenation_bailout.as_ref());
-
-  if module_concatenation_bailout.is_none() {
+  let module_identifier = module.identifier();
+  let build_info = module.build_info_mut();
+  if build_info.module_concatenation_bailout.is_none() {
     // webpack avoid those modules be concatenated using add a virtual module_graph_connection.
     // see: https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/FlagAllModulesAsUsedPlugin.js#L42
     // Rspack need incremental build, so we should not add virtual connection to module.
     // We can add a bail reason to avoid those modules be concatenated.
-    let mut build_info = module.build_info().cloned().unwrap_or_default();
     build_info.module_concatenation_bailout = Some(format!(
       "Module {} is referenced by {}",
-      module.identifier(),
-      &self.explanation
+      module_identifier, &self.explanation
     ));
-
-    module.set_build_info(build_info);
   }
 
   Ok(())

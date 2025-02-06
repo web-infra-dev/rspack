@@ -78,12 +78,11 @@ impl MakeOccasion {
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
     for (_, module) in artifact.get_module_graph().modules() {
-      if let Some(build_info) = module.build_info() {
-        file_dep.add_batch_file(&build_info.file_dependencies);
-        context_dep.add_batch_file(&build_info.context_dependencies);
-        missing_dep.add_batch_file(&build_info.missing_dependencies);
-        build_dep.add_batch_file(&build_info.build_dependencies);
-      }
+      let build_info = module.build_info();
+      file_dep.add_batch_file(&build_info.file_dependencies);
+      context_dep.add_batch_file(&build_info.context_dependencies);
+      missing_dep.add_batch_file(&build_info.missing_dependencies);
+      build_dep.add_batch_file(&build_info.build_dependencies);
     }
     artifact.file_dependencies = file_dep;
     artifact.context_dependencies = context_dep;

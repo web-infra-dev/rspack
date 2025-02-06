@@ -179,8 +179,8 @@ pub struct ExternalModule {
   /// Request intended by user (without loaders from config)
   pub user_request: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   dependency_meta: DependencyMeta,
 }
 
@@ -219,8 +219,12 @@ impl ExternalModule {
       external_type,
       user_request,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        top_level_declarations: Some(FxHashSet::default()),
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
     }
@@ -533,38 +537,27 @@ impl Module for ExternalModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolved_external_type = self.resolve_external_type();
-    let build_info = BuildInfo {
-      top_level_declarations: Some(FxHashSet::default()),
-      strict: true,
-      ..Default::default()
-    };
 
-    let mut build_result = BuildResult {
-      build_info,
-      build_meta: Default::default(),
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    };
     // TODO add exports_type for request
     match resolved_external_type {
-      "this" => build_result.build_info.strict = false,
-      "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "script" | "promise" => build_result.build_meta.has_top_level_await = true,
+      "this" => self.build_info.strict = false,
+      "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "script" | "promise" => self.build_meta.has_top_level_await = true,
       "import" => {
-        build_result.build_meta.has_top_level_await = true;
-        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        self.build_meta.has_top_level_await = true;
+        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
       }
-      _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
+      _ => self.build_meta.exports_type = BuildMetaExportsType::Dynamic,
     }
-    build_result
-      .dependencies
-      .push(Box::new(StaticExportsDependency::new(
+    Ok(BuildResult {
+      dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         false,
-      )));
-    Ok(build_result)
+      ))],
+      blocks: Vec::new(),
+      optimization_bailouts: vec![],
+    })
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
