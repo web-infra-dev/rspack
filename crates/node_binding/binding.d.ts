@@ -700,6 +700,10 @@ export interface JsHtmlPluginTag {
   asset?: string
 }
 
+export interface JsLibIdentOptions {
+  context: string
+}
+
 export interface JsLibraryAuxiliaryComment {
   root?: string
   commonjs?: string
