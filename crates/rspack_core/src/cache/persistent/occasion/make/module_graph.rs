@@ -132,6 +132,7 @@ pub async fn recovery_module_graph(
   let mut need_check_dep = vec![];
   let mut partial = ModuleGraphPartial::default();
   let mut mg = ModuleGraph::new(vec![], Some(&mut partial));
+<<<<<<< HEAD
   storage
     .load(SCOPE)
     .await?
@@ -167,6 +168,37 @@ pub async fn recovery_module_graph(
       mg.set_exports_info(exports_info.id(), exports_info);
       mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
       mg.set_export_info(other_exports_info.id(), other_exports_info);
+=======
+  for (_, v) in storage.load(SCOPE).await? {
+    let mut node: Node =
+      from_bytes(&v, context).expect("unexpected module graph deserialize failed");
+    for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
+      mg.set_parents(
+        *dep.id(),
+        DependencyParents {
+          block: parent_block,
+          module: node.module.identifier(),
+          index_in_block,
+        },
+      );
+      mg.add_dependency(dep);
+    }
+    for con in node.connections {
+      need_check_dep.push((con.dependency_id, *con.module_identifier()));
+      mg.cache_recovery_connection(con);
+    }
+    for block in node.blocks {
+      mg.add_block(Box::new(block));
+    }
+    // recovery exports/export info
+    let other_exports_info = ExportInfoData::new(None, None);
+    let side_effects_only_info = ExportInfoData::new(Some("*side effects only*".into()), None);
+    let exports_info = ExportsInfoData::new(other_exports_info.id(), side_effects_only_info.id());
+    node.mgm.exports = exports_info.id();
+    mg.set_exports_info(exports_info.id(), exports_info);
+    mg.set_export_info(side_effects_only_info.id(), side_effects_only_info);
+    mg.set_export_info(other_exports_info.id(), other_exports_info);
+>>>>>>> efd841507 (feat: getParentBlockIndex)
 
       mg.add_module_graph_module(node.mgm);
       mg.add_module(node.module);

@@ -168,4 +168,15 @@ impl JsModuleGraph {
       },
     )
   }
+
+  #[napi]
+  pub fn get_parent_block_index(&self, js_dependency: &JsDependency) -> napi::Result<i64> {
+    let (_, module_graph) = self.as_ref()?;
+    Ok(
+      match module_graph.get_parent_block_index(&js_dependency.dependency_id) {
+        Some(block_index) => block_index as i64,
+        None => -1,
+      },
+    )
+  }
 }

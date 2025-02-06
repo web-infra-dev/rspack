@@ -35,6 +35,7 @@ pub struct DependencyExtraMeta {
 pub struct DependencyParents {
   pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
+  pub index_in_block: usize,
 }
 
 #[derive(Debug, Default)]
@@ -547,6 +548,13 @@ impl<'a> ModuleGraph<'a> {
       .as_ref()
       .map(|p| &p.block)?
       .as_ref()
+  }
+
+  pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
+    self
+      .loop_partials(|p| p.dependency_id_to_parents.get(dependency_id))?
+      .as_ref()
+      .map(|p| p.index_in_block)
   }
 
   pub fn block_by_id(

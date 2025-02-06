@@ -155,7 +155,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
      -> Vec<Box<AsyncDependenciesBlock>> {
-      for dependency in dependencies {
+      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
@@ -166,6 +166,7 @@ impl Task<MakeTaskContext> for BuildResultTask {
           DependencyParents {
             block: current_block.as_ref().map(|block| block.identifier()),
             module: module.identifier(),
+            index_in_block,
           },
         );
         module_graph.add_dependency(dependency);
