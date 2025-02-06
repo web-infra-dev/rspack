@@ -1,10 +1,12 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
+use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
-  ExportsArgument, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage,
+  SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -16,6 +18,11 @@ use crate::{
   JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
   JsDependencyWrapper, JsResourceData, ToJsCompatSource,
 };
+
+#[napi(object)]
+pub struct JsLibIdentOptions {
+  pub context: String,
+}
 
 #[derive(Default)]
 #[napi(object)]
