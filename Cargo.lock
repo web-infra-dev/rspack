@@ -4808,6 +4808,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash 2.1.0",
  "simd-json",
+ "sugar_path",
  "tracing",
 ]
 
