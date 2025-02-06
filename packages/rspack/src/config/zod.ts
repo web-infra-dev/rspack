@@ -1384,7 +1384,8 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	rsc: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

@@ -372,7 +372,10 @@ export declare enum BuiltinPluginName {
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin'
+  LazyCompilationPlugin = 'LazyCompilationPlugin',
+  RSCClientEntryRspackPlugin = 'RSCClientEntryRspackPlugin',
+  RSCClientReferenceManifestRspackPlugin = 'RSCClientReferenceManifestRspackPlugin',
+  RSCProxyRspackPlugin = 'RSCProxyRspackPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -1437,6 +1440,7 @@ incremental?: false | { [key: string]: boolean }
 parallelCodeSplitting: boolean
 rspackFuture?: RawRspackFuture
 cache: boolean | { type: "persistent" } & RawExperimentCacheOptionsPersistent | { type: "memory" }
+rsc: boolean
 }
 
 export interface RawExperimentSnapshotOptions {
@@ -1899,6 +1903,11 @@ export interface RawProvideOptions {
   strictVersion?: boolean
 }
 
+export interface RawReactRoute {
+  name: ChunkName
+  import: RoutePath
+}
+
 export interface RawRelated {
   sourceMap?: string
 }
@@ -1965,6 +1974,14 @@ export interface RawResolveTsconfigOptions {
   configFile: string
   referencesType: "auto" | "manual" | "disabled"
   references?: Array<string>
+}
+
+export interface RawRscClientEntryRspackPluginOptions {
+  routes?: Array<RawReactRoute>
+}
+
+export interface RawRscClientReferenceManifestRspackPluginOptions {
+  routes?: Array<RawReactRoute>
 }
 
 export interface RawRspackFuture {

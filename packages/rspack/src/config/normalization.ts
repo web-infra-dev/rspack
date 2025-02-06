@@ -608,6 +608,7 @@ export interface ExperimentsNormalized {
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
+	rsc?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

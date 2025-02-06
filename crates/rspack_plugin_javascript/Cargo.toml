@@ -31,6 +31,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_ids = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_plugin_rsc = { path = "../rspack_plugin_rsc" }
 rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
