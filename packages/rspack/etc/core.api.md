@@ -3836,13 +3836,21 @@ class ModuleGraph {
     // (undocumented)
     getExportsInfo(module: Module): ExportsInfo;
     // (undocumented)
+    getIncomingConnections(module: Module): ModuleGraphConnection[];
+    // (undocumented)
     getIssuer(module: Module): Module | null;
     // (undocumented)
     getModule(dependency: Dependency): Module | null;
     // (undocumented)
     getOutgoingConnections(module: Module): ModuleGraphConnection[];
     // (undocumented)
+    getParentBlockIndex(dependency: Dependency): number;
+    // (undocumented)
+    getParentModule(dependency: Dependency): Module | null;
+    // (undocumented)
     getResolvedModule(dependency: Dependency): Module | null;
+    // (undocumented)
+    isAsync(module: Module): boolean;
 }
 
 // @public (undocumented)

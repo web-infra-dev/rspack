@@ -27,6 +27,13 @@ export default class ModuleGraph {
 		return binding ? Module.__from_binding(binding) : null;
 	}
 
+	getParentModule(dependency: Dependency): Module | null {
+		const binding = this.#inner.getParentModule(
+			Dependency.__to_binding(dependency)
+		);
+		return binding ? Module.__from_binding(binding) : null;
+	}
+
 	getIssuer(module: Module): Module | null {
 		const binding = this.#inner.getIssuer(Module.__to_binding(module));
 		return binding ? Module.__from_binding(binding) : null;
@@ -49,5 +56,19 @@ export default class ModuleGraph {
 		return this.#inner
 			.getOutgoingConnections(Module.__to_binding(module))
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
+	}
+
+	getIncomingConnections(module: Module): ModuleGraphConnection[] {
+		return this.#inner
+			.getIncomingConnections(Module.__to_binding(module))
+			.map(binding => ModuleGraphConnection.__from_binding(binding));
+	}
+
+	getParentBlockIndex(dependency: Dependency): number {
+		return this.#inner.getParentBlockIndex(Dependency.__to_binding(dependency));
+	}
+
+	isAsync(module: Module): boolean {
+		return this.#inner.isAsync(Module.__to_binding(module));
 	}
 }
