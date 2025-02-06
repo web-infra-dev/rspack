@@ -239,7 +239,6 @@ export declare class JsModule {
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
-  get loaders(): Array<string> | undefined
 }
 
 export declare class JsModuleGraph {
