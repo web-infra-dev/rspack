@@ -1836,11 +1836,11 @@ namespace errorUtil {
         message?: string;
     };
     const // (undocumented)
-    errToObj: (message?: ErrMessage | undefined) => {
+    errToObj: (message?: ErrMessage) => {
         message?: string | undefined;
     };
     const // (undocumented)
-    toString: (message?: ErrMessage | undefined) => string | undefined;
+    toString: (message?: ErrMessage) => string | undefined;
 }
 
 // @public (undocumented)
@@ -10137,6 +10137,43 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
     raw(compiler: Compiler): BuiltinPlugin;
 }
 
+// @public
+type StandardSchemaV1<Input = unknown, Output = Input> = {
+    readonly "~standard": StandardSchemaV1.Props<Input, Output>;
+};
+
+// @public (undocumented)
+namespace StandardSchemaV1 {
+    interface FailureResult {
+        readonly issues: ReadonlyArray<Issue>;
+    }
+    type InferInput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["input"];
+    type InferOutput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["output"];
+    interface Issue {
+        readonly message: string;
+        readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined;
+    }
+    interface PathSegment {
+        readonly key: PropertyKey;
+    }
+    interface Props<Input = unknown, Output = Input> {
+        readonly types?: Types<Input, Output> | undefined;
+        readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>;
+        readonly vendor: string;
+        readonly version: 1;
+    }
+    type Result<Output> = SuccessResult<Output> | FailureResult;
+    interface SuccessResult<Output> {
+        readonly issues?: undefined;
+        readonly value: Output;
+    }
+    interface Types<Input = unknown, Output = Input> {
+        readonly input: Input;
+        readonly output: Output;
+    }
+        {  };
+}
+
 // @public (undocumented)
 type Stat = {
     (path: PathLike, callback: StatsCallback): void;
@@ -10404,7 +10441,7 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
-type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "base64" | {
+type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "cidr" | "base64" | "jwt" | "base64url" | {
     includes: string;
     position?: number;
 } | {
@@ -11600,7 +11637,7 @@ interface ZodDefaultDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
 // @public (undocumented)
 class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<T>> extends ZodType<Output, ZodEffectsDef<T>, Input> {
     // (undocumented)
-    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"], input<I>>;
+    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"]>;
     // (undocumented)
     static createWithPreprocess: <I extends ZodTypeAny>(preprocess: (arg: unknown, ctx: RefinementCtx) => unknown, schema: I, params?: RawCreateParams) => ZodEffects<I, I["_output"], unknown>;
     // (undocumented)
@@ -11930,25 +11967,25 @@ interface ZodOptionalDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
 
 // @public (undocumented)
 const ZodParsedType: {
-    function: "function";
-    number: "number";
     string: "string";
+    number: "number";
+    bigint: "bigint";
+    boolean: "boolean";
+    symbol: "symbol";
+    undefined: "undefined";
+    object: "object";
+    function: "function";
+    map: "map";
     nan: "nan";
     integer: "integer";
     float: "float";
-    boolean: "boolean";
     date: "date";
-    bigint: "bigint";
-    symbol: "symbol";
-    undefined: "undefined";
     null: "null";
     array: "array";
-    object: "object";
     unknown: "unknown";
     promise: "promise";
     void: "void";
     never: "never";
-    map: "map";
     set: "set";
 };
 
@@ -12048,6 +12085,10 @@ interface ZodTooSmallIssue extends ZodIssueBase {
 
 // @public (undocumented)
 abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input = Output> {
+    // (undocumented)
+    "~standard": StandardSchemaV1.Props<Input, Output>;
+    // (undocumented)
+    "~validate"(data: unknown): StandardSchemaV1.Result<Output> | Promise<StandardSchemaV1.Result<Output>>;
     constructor(def: Def);
     // (undocumented)
     and<T extends ZodTypeAny>(incoming: T): ZodIntersection<this, T>;
@@ -12127,7 +12168,7 @@ abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input 
     safeParse(data: unknown, params?: Partial<ParseParams>): SafeParseReturnType<Input, Output>;
     // (undocumented)
     safeParseAsync(data: unknown, params?: Partial<ParseParams>): Promise<SafeParseReturnType<Input, Output>>;
-    spa: (data: unknown, params?: Partial<ParseParams> | undefined) => Promise<SafeParseReturnType<Input, Output>>;
+    spa: (data: unknown, params?: Partial<ParseParams>) => Promise<SafeParseReturnType<Input, Output>>;
     // (undocumented)
     superRefine<RefinedOutput extends Output>(refinement: (arg: Output, ctx: RefinementCtx) => arg is RefinedOutput): ZodEffects<this, RefinedOutput, Input>;
     // (undocumented)
