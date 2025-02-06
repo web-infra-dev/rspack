@@ -58,6 +58,7 @@ async function build() {
 		if (process.env.RUST_TARGET) {
 			args.push("--target", process.env.RUST_TARGET);
 		}
+		args.push("--no-dts-cache");
 		if (!process.env.DISABLE_PLUGIN) {
 			args.push("--no-default-features");
 			args.push("--features plugin");
