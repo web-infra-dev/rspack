@@ -67,6 +67,7 @@ export declare class JsChunk {
   getAllInitialChunks(): JsChunk[]
   getAllReferencedChunks(): JsChunk[]
   groups(): JsChunkGroup[]
+  getEntryOptions(): EntryOptionsDTO | undefined
 }
 
 export declare class JsChunkGraph {

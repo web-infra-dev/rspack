@@ -12,6 +12,7 @@ type Chunk = {
   getAllAsyncChunks(): Iterable<Chunk>;
   getAllInitialChunks(): Iterable<Chunk>;
   getAllReferencedChunks(): Iterable<Chunk>;
+  getEntryOptions(): EntryOptions | undefined;
   get groupsIterable(): Iterable<ChunkGroup>;
   hash?: Readonly<string>;
   hasRuntime(): boolean;
