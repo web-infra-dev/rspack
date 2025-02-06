@@ -152,7 +152,6 @@ pub struct NormalModule {
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
   parsed: bool,
-  last_successful_build_meta: BuildMeta,
 }
 
 #[cacheable]
@@ -240,7 +239,6 @@ impl NormalModule {
       build_meta: None,
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
-      last_successful_build_meta: BuildMeta::default(),
     }
   }
 
@@ -600,9 +598,7 @@ impl Module for NormalModule {
       .split_into_parts();
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
-      build_meta = self.last_successful_build_meta.clone();
-    } else {
-      self.last_successful_build_meta = build_meta.clone();
+      build_meta = Default::default();
     }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
