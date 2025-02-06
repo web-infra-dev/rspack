@@ -150,13 +150,11 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
 
-        let build_meta = module.build_meta();
-
         manifest_content.insert(
           ident.into_owned(),
           DllManifestContentItem {
             id: id.map(|id| id.to_owned()),
-            build_meta: build_meta.cloned(),
+            build_meta: module.build_meta().clone(),
             exports: provided_exports,
           },
         );

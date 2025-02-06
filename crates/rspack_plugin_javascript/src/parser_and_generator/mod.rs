@@ -320,12 +320,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     // Only ES modules are valid for optimization
-    if module.build_meta().is_none()
-      || module
-        .build_meta()
-        .map(|meta| meta.exports_type != BuildMetaExportsType::Namespace)
-        .unwrap_or_default()
-    {
+    if module.build_meta().exports_type != BuildMetaExportsType::Namespace {
       return Some("Module is not an ECMAScript module".into());
     }
 
@@ -343,9 +338,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some("Module is not an ECMAScript module".into());
     }
 
-    if let Some(info) = module.build_info()
-      && let Some(bailout) = info.module_concatenation_bailout.as_deref()
-    {
+    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
       return Some(format!("Module uses {bailout}").into());
     }
     None

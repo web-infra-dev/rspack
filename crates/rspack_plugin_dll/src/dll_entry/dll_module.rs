@@ -23,9 +23,9 @@ pub struct DllModule {
 
   factory_meta: Option<FactoryMeta>,
 
-  build_info: Option<BuildInfo>,
+  build_info: BuildInfo,
 
-  build_meta: Option<BuildMeta>,
+  build_meta: BuildMeta,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 
@@ -123,7 +123,7 @@ impl Module for DllModule {
   }
 
   fn need_build(&self) -> bool {
-    self.build_meta.is_none()
+    false
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {

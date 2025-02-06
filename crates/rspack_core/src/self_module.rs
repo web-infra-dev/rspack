@@ -9,10 +9,9 @@ use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkUkey, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType,
+  impl_module_meta_info, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, ChunkUkey,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
 };
 
 #[impl_source_map_config]
@@ -24,8 +23,8 @@ pub struct SelfModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl SelfModule {
@@ -37,8 +36,11 @@ impl SelfModule {
       blocks: Default::default(),
       dependencies: Default::default(),
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -107,25 +109,6 @@ impl Module for SelfModule {
 
   fn chunk_condition(&self, _chunk: &ChunkUkey, _compilation: &Compilation) -> Option<bool> {
     None
-  }
-
-  async fn build(
-    &mut self,
-    _build_context: BuildContext,
-    _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    let build_info = BuildInfo {
-      strict: true,
-      ..Default::default()
-    };
-
-    Ok(BuildResult {
-      build_info,
-      build_meta: Default::default(),
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    })
   }
 
   // #[tracing::instrument("SelfModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

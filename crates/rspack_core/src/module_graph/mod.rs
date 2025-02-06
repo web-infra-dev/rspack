@@ -928,7 +928,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
       .module_by_identifier(module_id)
-      .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
+      .and_then(|m| m.build_info().hash.as_ref())
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different

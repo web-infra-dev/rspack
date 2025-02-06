@@ -28,8 +28,8 @@ static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   factory_meta: Option<FactoryMeta>,
   cacheable: bool,
 
@@ -77,8 +77,8 @@ impl LazyCompilationProxyModule {
     let identifier = format!("lazy-compilation-proxy|{original_module}").into();
 
     Self {
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: Default::default(),
       cacheable,
       create_data,
       readable_identifier,
@@ -170,13 +170,10 @@ impl Module for LazyCompilationProxyModule {
     files.extend(self.create_data.file_dependencies.clone());
     files.insert(Path::new(&self.resource).into());
 
+    self.build_info.cacheable = self.cacheable;
+    self.build_info.file_dependencies = files;
+
     Ok(BuildResult {
-      build_info: BuildInfo {
-        cacheable: self.cacheable,
-        file_dependencies: files,
-        ..Default::default()
-      },
-      build_meta: BuildMeta::default(),
       dependencies,
       blocks,
       optimization_bailouts: vec![],

@@ -580,7 +580,7 @@ impl ModuleConcatenationPlugin {
       side_effect_connection_state: box_module
         .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
       factory_meta: box_module.factory_meta().cloned(),
-      build_meta: box_module.build_meta().cloned(),
+      build_meta: box_module.build_meta().clone(),
     };
     let modules = modules_set
       .iter()
@@ -765,11 +765,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m
-          .and_then(|m| m.build_info())
-          .expect("should have build info")
-          .strict
-        {
+        if !m.expect("should have module").build_info().strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }

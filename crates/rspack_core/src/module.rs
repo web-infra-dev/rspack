@@ -182,8 +182,6 @@ pub struct BuildMeta {
 #[derive(Debug, Default)]
 pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
-  pub build_meta: BuildMeta,
-  pub build_info: BuildInfo,
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<String>,
@@ -234,41 +232,27 @@ pub trait Module:
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      build_info: Default::default(),
-      build_meta: Default::default(),
-      dependencies: Vec::new(),
-      blocks: Vec::new(),
-      optimization_bailouts: vec![],
-    })
+    Ok(Default::default())
   }
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
   fn set_factory_meta(&mut self, factory_meta: FactoryMeta);
 
-  fn build_info(&self) -> Option<&BuildInfo>;
+  fn build_info(&self) -> &BuildInfo;
 
-  fn set_build_info(&mut self, build_info: BuildInfo);
+  fn build_info_mut(&mut self) -> &mut BuildInfo;
 
-  fn build_meta(&self) -> Option<&BuildMeta>;
+  fn build_meta(&self) -> &BuildMeta;
 
-  fn set_build_meta(&mut self, build_meta: BuildMeta);
+  fn build_meta_mut(&mut self) -> &mut BuildMeta;
 
   fn get_exports_argument(&self) -> ExportsArgument {
-    self
-      .build_meta()
-      .as_ref()
-      .map(|m| m.exports_argument)
-      .unwrap_or_default()
+    self.build_meta().exports_argument
   }
 
   fn get_module_argument(&self) -> ModuleArgument {
-    self
-      .build_meta()
-      .as_ref()
-      .map(|m| m.module_argument)
-      .unwrap_or_default()
+    self.build_meta().module_argument
   }
 
   fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {
@@ -276,10 +260,7 @@ pub trait Module:
   }
 
   fn get_strict_esm_module(&self) -> bool {
-    self
-      .build_meta()
-      .as_ref()
-      .is_some_and(|m| m.strict_esm_module)
+    self.build_meta().strict_esm_module
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -371,24 +352,18 @@ pub trait Module:
   }
 
   fn need_build(&self) -> bool {
-    if let Some(build_info) = self.build_info() {
-      if !build_info.cacheable {
-        return true;
-      }
-    }
-    false
+    !self.build_info().cacheable
   }
 
   fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
-    if let Some(build_info) = self.build_info() {
-      for item in modified_file {
-        if build_info.file_dependencies.contains(item)
-          || build_info.build_dependencies.contains(item)
-          || build_info.context_dependencies.contains(item)
-          || build_info.missing_dependencies.contains(item)
-        {
-          return true;
-        }
+    let build_info = self.build_info();
+    for item in modified_file {
+      if build_info.file_dependencies.contains(item)
+        || build_info.build_dependencies.contains(item)
+        || build_info.context_dependencies.contains(item)
+        || build_info.missing_dependencies.contains(item)
+      {
+        return true;
       }
     }
 
@@ -402,101 +377,93 @@ pub trait Module:
 
 fn get_exports_type_impl(
   identifier: ModuleIdentifier,
-  build_meta: Option<&BuildMeta>,
+  build_meta: &BuildMeta,
   mg: &ModuleGraph,
   strict: bool,
 ) -> ExportsType {
-  if let Some((export_type, default_object)) = build_meta
-    .as_ref()
-    .map(|m| (&m.exports_type, &m.default_object))
-  {
-    match export_type {
-      BuildMetaExportsType::Flagged => {
+  let export_type = &build_meta.exports_type;
+  let default_object = &build_meta.default_object;
+  match export_type {
+    BuildMetaExportsType::Flagged => {
+      if strict {
+        ExportsType::DefaultWithNamed
+      } else {
+        ExportsType::Namespace
+      }
+    }
+    BuildMetaExportsType::Namespace => ExportsType::Namespace,
+    BuildMetaExportsType::Default => match default_object {
+      BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+      BuildMetaDefaultObject::RedirectWarn { .. } => {
         if strict {
-          ExportsType::DefaultWithNamed
+          ExportsType::DefaultOnly
         } else {
-          ExportsType::Namespace
+          ExportsType::DefaultWithNamed
         }
       }
-      BuildMetaExportsType::Namespace => ExportsType::Namespace,
-      BuildMetaExportsType::Default => match default_object {
-        BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-        BuildMetaDefaultObject::RedirectWarn { .. } => {
-          if strict {
-            ExportsType::DefaultOnly
-          } else {
-            ExportsType::DefaultWithNamed
+      BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
+    },
+    BuildMetaExportsType::Dynamic => {
+      if strict {
+        ExportsType::DefaultWithNamed
+      } else {
+        fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
+          match default_object {
+            BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
+            BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
+            _ => ExportsType::DefaultOnly,
           }
         }
-        BuildMetaDefaultObject::False => ExportsType::DefaultOnly,
-      },
-      BuildMetaExportsType::Dynamic => {
-        if strict {
-          ExportsType::DefaultWithNamed
-        } else {
-          fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
-            match default_object {
-              BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-              BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
-              _ => ExportsType::DefaultOnly,
-            }
-          }
 
-          if let Some(export_info) =
-            mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
-          {
-            if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
-              handle_default(default_object)
-            } else {
-              let Some(target) = export_info.get_target(mg) else {
+        if let Some(export_info) =
+          mg.get_read_only_export_info(&identifier, Atom::from("__esModule"))
+        {
+          if matches!(export_info.provided(mg), Some(ExportInfoProvided::False)) {
+            handle_default(default_object)
+          } else {
+            let Some(target) = export_info.get_target(mg) else {
+              return ExportsType::Dynamic;
+            };
+            if target
+              .export
+              .and_then(|t| {
+                if t.len() == 1 {
+                  t.first().cloned()
+                } else {
+                  None
+                }
+              })
+              .is_some_and(|v| v == "__esModule")
+            {
+              let Some(target_exports_type) = mg
+                .module_by_identifier(&target.module)
+                .map(|m| m.build_meta().exports_type)
+              else {
                 return ExportsType::Dynamic;
               };
-              if target
-                .export
-                .and_then(|t| {
-                  if t.len() == 1 {
-                    t.first().cloned()
-                  } else {
-                    None
-                  }
-                })
-                .is_some_and(|v| v == "__esModule")
-              {
-                let Some(target_exports_type) = mg
-                  .module_by_identifier(&target.module)
-                  .and_then(|m| m.build_meta())
-                  .map(|meta| meta.exports_type)
-                else {
-                  return ExportsType::Dynamic;
-                };
-                match target_exports_type {
-                  BuildMetaExportsType::Flagged => ExportsType::Namespace,
-                  BuildMetaExportsType::Namespace => ExportsType::Namespace,
-                  BuildMetaExportsType::Default => handle_default(default_object),
-                  _ => ExportsType::Dynamic,
-                }
-              } else {
-                ExportsType::Dynamic
+              match target_exports_type {
+                BuildMetaExportsType::Flagged => ExportsType::Namespace,
+                BuildMetaExportsType::Namespace => ExportsType::Namespace,
+                BuildMetaExportsType::Default => handle_default(default_object),
+                _ => ExportsType::Dynamic,
               }
+            } else {
+              ExportsType::Dynamic
             }
-          } else {
-            ExportsType::DefaultWithNamed
           }
-        }
-      }
-      // align to undefined
-      BuildMetaExportsType::Unset => {
-        if strict {
-          ExportsType::DefaultWithNamed
         } else {
-          ExportsType::Dynamic
+          ExportsType::DefaultWithNamed
         }
       }
     }
-  } else if strict {
-    ExportsType::DefaultWithNamed
-  } else {
-    ExportsType::Dynamic
+    // align to undefined
+    BuildMetaExportsType::Unset => {
+      if strict {
+        ExportsType::DefaultWithNamed
+      } else {
+        ExportsType::Dynamic
+      }
+    }
   }
 }
 
@@ -565,20 +532,20 @@ macro_rules! impl_module_meta_info {
       self.factory_meta = Some(v);
     }
 
-    fn build_info(&self) -> Option<&$crate::BuildInfo> {
-      self.build_info.as_ref()
+    fn build_info(&self) -> &$crate::BuildInfo {
+      &self.build_info
     }
 
-    fn set_build_info(&mut self, v: $crate::BuildInfo) {
-      self.build_info = Some(v);
+    fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
+      &mut self.build_info
     }
 
-    fn build_meta(&self) -> Option<&$crate::BuildMeta> {
-      self.build_meta.as_ref()
+    fn build_meta(&self) -> &$crate::BuildMeta {
+      &self.build_meta
     }
 
-    fn set_build_meta(&mut self, v: $crate::BuildMeta) {
-      self.build_meta = Some(v);
+    fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
+      &mut self.build_meta
     }
   };
 }
@@ -746,23 +713,23 @@ mod test {
           unreachable!()
         }
 
-        fn build_info(&self) -> Option<&crate::BuildInfo> {
+        fn build_info(&self) -> &crate::BuildInfo {
           unreachable!()
         }
 
-        fn build_meta(&self) -> Option<&crate::BuildMeta> {
+        fn build_info_mut(&mut self) -> &mut crate::BuildInfo {
+          unreachable!()
+        }
+
+        fn build_meta(&self) -> &crate::BuildMeta {
+          unreachable!()
+        }
+
+        fn build_meta_mut(&mut self) -> &mut crate::BuildMeta {
           unreachable!()
         }
 
         fn set_factory_meta(&mut self, _: crate::FactoryMeta) {
-          unreachable!()
-        }
-
-        fn set_build_info(&mut self, _: crate::BuildInfo) {
-          unreachable!()
-        }
-
-        fn set_build_meta(&mut self, _: crate::BuildMeta) {
           unreachable!()
         }
       }
