@@ -24,7 +24,7 @@ use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
 use get_module_build_info::get_module_rsc_information;
 use is_metadata_route::is_metadata_route;
-use itertools::Itertools;
+use lazy_regex::Lazy;
 use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use regex::Regex;
 use rspack_collections::Identifiable;
@@ -46,6 +46,18 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use serde_json::json;
 use sugar_path::SugarPath;
+
+static NEXT_DIST_ESM_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new("[\\/]next[\\/]dist[\\/]esm[\\/]").unwrap());
+
+static NEXT_DIST: Lazy<String> = Lazy::new(|| {
+  format!(
+    "{}next{}dist{}",
+    std::path::MAIN_SEPARATOR,
+    std::path::MAIN_SEPARATOR,
+    std::path::MAIN_SEPARATOR
+  )
+});
 
 #[derive(Clone, Serialize)]
 pub struct Action {
@@ -641,7 +653,6 @@ impl FlightClientEntryPlugin {
 
     let mut should_invalidate = false;
 
-    // client_imports key 缺少
     let mut modules: Vec<_> = client_imports
       .keys()
       .map(|client_import_path| {
@@ -668,10 +679,7 @@ impl FlightClientEntryPlugin {
       for (request, ids) in &modules {
         let module_json = if self.is_edge_server {
           serde_json::to_string(&json!({
-              "request": request.replace(
-                  r"/next/dist/esm/",
-                  &format!("/next/dist/{}", std::path::MAIN_SEPARATOR)
-              ),
+              "request": NEXT_DIST_ESM_REGEX.replace(request, &*NEXT_DIST),
               "ids": ids
           }))
           .unwrap()
@@ -722,7 +730,7 @@ impl FlightClientEntryPlugin {
     }
 
     let client_component_ssr_entry_dep = EntryDependency::new(
-      client_browser_loader,
+      client_server_loader.to_string(),
       compilation.options.context.clone(),
       Some(WEBPACK_LAYERS.server_side_rendering.to_string()),
       false,
@@ -1045,10 +1053,7 @@ impl FlightClientEntryPlugin {
         merged_css_imports.extend(component_info.css_imports);
 
         client_entries_to_inject.push(ClientEntry {
-          // compiler: compiler.clone(),
-          // compilation: compilation.clone(),
           entry_name: name.to_string(),
-          // client_component_imports keys 缺少很多
           client_imports: component_info.client_component_imports,
           bundle_path: bundle_path.clone(),
           absolute_page_path: entry_request.to_string_lossy().to_string(),
@@ -1061,8 +1066,6 @@ impl FlightClientEntryPlugin {
           && bundle_path == "app/not-found"
         {
           client_entries_to_inject.push(ClientEntry {
-            // compiler: compiler.clone(),
-            // compilation: compilation.clone(),
             entry_name: name.to_string(),
             client_imports: HashMap::default(),
             bundle_path: format!("app{}", UNDERSCORE_NOT_FOUND_ROUTE_ENTRY),
@@ -1126,8 +1129,6 @@ impl FlightClientEntryPlugin {
         .inject_action_entry(
           compilation,
           ActionEntry {
-            // compiler: compiler.clone(),
-            // compilation: compilation.clone(),
             actions: action_entry_imports,
             entry_name: name.clone(),
             bundle_path: name,
@@ -1217,8 +1218,6 @@ impl FlightClientEntryPlugin {
           .inject_action_entry(
             compilation,
             ActionEntry {
-              // compiler: compiler.clone(),
-              // compilation: compilation.clone(),
               actions: remaining_action_entry_imports,
               entry_name: entry_name.clone(),
               bundle_path: entry_name.clone(),

@@ -1,8 +1,11 @@
+use lazy_regex::Lazy;
+use regex::Regex;
 use rspack_core::Module;
 use serde::Deserialize;
 
-const RSPACK_RSC_MODULE_INFORMATION: &str =
-  r"/\* __rspack_internal_rsc_module_information_do_not_use__ (\{[^}]+\}) \*/";
+static RSPACK_RSC_MODULE_INFORMATION: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"/\* __rspack_internal_rsc_module_information_do_not_use__ (\{[^}]+\}) \*/").unwrap()
+});
 
 const CLIENT_DIRECTIVE: &str = "use client";
 const SERVER_ACTION_DIRECTIVE: &str = "use server";
@@ -30,8 +33,7 @@ pub struct RSCMeta {
 }
 
 fn get_rsc_module_information(source: &str) -> Option<RSCMeta> {
-  regex::Regex::new(RSPACK_RSC_MODULE_INFORMATION)
-    .unwrap()
+  RSPACK_RSC_MODULE_INFORMATION
     .captures(source)
     .and_then(|caps| caps.get(1).map(|m| m.as_str()))
     .and_then(|info| serde_json::from_str(info).unwrap())
