@@ -80,12 +80,6 @@ export default class ModuleGraph {
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
 
-	getIncomingConnections(module: Module): ModuleGraphConnection[] {
-		return this.#inner
-			.getIncomingConnections(Module.__to_binding(module))
-			.map(binding => ModuleGraphConnection.__from_binding(binding));
-	}
-
 	getParentBlockIndex(dependency: Dependency): number {
 		const depBinding = bindingDependencyFactory.getBinding(dependency);
 		if (depBinding) {
