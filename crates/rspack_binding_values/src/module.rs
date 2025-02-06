@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::JsCompatSourceOwned;
 use crate::{
   JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
-  JsDependencyWrapper, ToJsCompatSource,
+  JsDependencyWrapper, JsResourceData, ToJsCompatSource,
 };
 
 #[derive(Default)]
@@ -279,6 +279,32 @@ impl JsModule {
   pub fn use_source_map(&mut self) -> napi::Result<bool> {
     let module = self.as_ref()?;
     Ok(module.get_source_map_kind().source_map())
+  }
+
+  #[napi]
+  pub fn lib_ident(
+    &mut self,
+    env: Env,
+    options: JsLibIdentOptions,
+  ) -> napi::Result<Option<JsString>> {
+    let module = self.as_ref()?;
+    Ok(
+      match module.lib_ident(LibIdentOptions {
+        context: &options.context,
+      }) {
+        Some(lib_ident) => Some(env.create_string(lib_ident.as_ref())?),
+        None => None,
+      },
+    )
+  }
+
+  #[napi(getter)]
+  pub fn resource_resolve_data(&mut self) -> napi::Result<Either<JsResourceData, ()>> {
+    let module = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(module) => Either::A(module.resource_resolved_data().into()),
+      None => Either::B(()),
+    })
   }
 }
 
