@@ -82,16 +82,22 @@ const getBackend =
 		const listen =
 			typeof options.listen === "function"
 				? options.listen
-				: (server: Server) => {
-						let listen = options.listen;
-						if (typeof listen === "object" && !("port" in listen))
-							listen = { ...listen, port: undefined };
-						server.listen(listen);
-					};
+				: typeof options.server === "function"
+					? // if user offers custom server, no need to listen
+						() => {}
+					: (server: Server) => {
+							let listen = options.listen;
+							if (typeof listen === "object" && !("port" in listen))
+								listen = { ...listen, port: undefined };
+							server.listen(listen);
+						};
 
 		const protocol = options.protocol || (isHttps ? "https" : "http");
 
 		const requestListener = (req: any, res: ServerResponse) => {
+			if (!req.url.startsWith(prefix)) {
+				return;
+			}
 			const keys = req.url.slice(prefix.length).split("@");
 			req.socket.on("close", () => {
 				setTimeout(() => {
