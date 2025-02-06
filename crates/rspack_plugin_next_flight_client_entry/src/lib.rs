@@ -48,7 +48,7 @@ use serde_json::json;
 use sugar_path::SugarPath;
 
 static NEXT_DIST_ESM_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"[\\/]next[\\/]dist[\\/]esm[\\/]").unwrap());
+  Lazy::new(|| Regex::new("[\\/]next[\\/]dist[\\/]esm[\\/]").unwrap());
 
 static NEXT_DIST: Lazy<String> = Lazy::new(|| {
   format!(
