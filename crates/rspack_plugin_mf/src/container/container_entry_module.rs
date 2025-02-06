@@ -34,8 +34,8 @@ pub struct ContainerEntryModule {
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: String,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   enhanced: bool,
 }
 
@@ -59,8 +59,15 @@ impl ContainerEntryModule {
       exposes,
       share_scope,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        top_level_declarations: Some(FxHashSet::default()),
+        ..Default::default()
+      },
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Namespace,
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
       enhanced,
     }
@@ -161,15 +168,6 @@ impl Module for ContainerEntryModule {
     )));
 
     Ok(BuildResult {
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
-        ..Default::default()
-      },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
       dependencies,
       blocks,
       ..Default::default()

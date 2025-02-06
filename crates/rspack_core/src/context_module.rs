@@ -168,8 +168,8 @@ pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -186,8 +186,12 @@ impl ContextModule {
       identifier: create_identifier(&options),
       options,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: BuildMeta {
+        exports_type: BuildMetaExportsType::Default,
+        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -975,18 +979,9 @@ impl Module for ContextModule {
     let mut context_dependencies: HashSet<ArcPath> = Default::default();
     context_dependencies.insert(self.options.resource.as_std_path().into());
 
-    let build_info = BuildInfo {
-      context_dependencies,
-      ..Default::default()
-    };
+    self.build_info.context_dependencies = context_dependencies;
 
     Ok(BuildResult {
-      build_info,
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
-        ..Default::default()
-      },
       dependencies,
       blocks,
       optimization_bailouts: vec![],

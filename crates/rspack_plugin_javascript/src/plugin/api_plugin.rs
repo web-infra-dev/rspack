@@ -33,9 +33,7 @@ fn render_module_content(
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
 ) -> Result<()> {
-  if let Some(build_info) = module.build_info()
-    && build_info.need_create_require
-  {
+  if module.build_info().need_create_require {
     let need_prefix = compilation
       .options
       .output

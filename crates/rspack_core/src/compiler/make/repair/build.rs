@@ -6,8 +6,8 @@ use rspack_fs::ReadableFileSystem;
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildInfo, BuildResult, CompilationId,
-  CompilerOptions, DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
+  AsyncDependenciesBlock, BoxDependency, BuildContext, BuildResult, CompilationId, CompilerOptions,
+  DependencyParents, Module, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -110,18 +110,13 @@ impl Task<MakeTaskContext> for BuildResultTask {
       compilation_id,
     } = *self;
 
-    module.set_build_info(build_result.build_info);
-    module.set_build_meta(build_result.build_meta);
-
     plugin_driver
       .compilation_hooks
       .succeed_module
       .call(compilation_id, &mut module)
       .await?;
 
-    let build_info_default = BuildInfo::default();
-
-    let build_info = module.build_info().unwrap_or(&build_info_default);
+    let build_info = module.build_info();
 
     let artifact = &mut context.artifact;
     let module_graph =

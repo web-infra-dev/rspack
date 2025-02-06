@@ -841,7 +841,7 @@ impl Stats<'_> {
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
-      stats.cacheable = module.build_info().map(|i| i.cacheable);
+      stats.cacheable = Some(module.build_info().cacheable);
       stats.optional = Some(module_graph.is_optional(&identifier));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;

@@ -301,10 +301,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .expect("should have module");
     let mgm_exports_info = mgm.exports;
     if !used_exports.is_empty() {
-      let need_insert = match module.build_meta() {
-        Some(build_meta) => matches!(build_meta.exports_type, BuildMetaExportsType::Unset),
-        None => true,
-      };
+      let need_insert = matches!(
+        module.build_meta().exports_type,
+        BuildMetaExportsType::Unset
+      );
       if need_insert {
         let flag = mgm_exports_info.set_used_without_info(&mut module_graph, runtime.as_ref());
         if flag {

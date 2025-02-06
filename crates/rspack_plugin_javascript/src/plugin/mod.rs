@@ -346,8 +346,7 @@ impl JsPlugin {
               .or_else(|| {
                 module_graph
                   .module_by_identifier(module)
-                  .and_then(|m| m.build_info())
-                  .and_then(|build_info| build_info.top_level_declarations.as_ref())
+                  .and_then(|m| m.build_info().top_level_declarations.as_ref())
               });
             top_level_decls.is_none()
           } {
@@ -556,14 +555,7 @@ impl JsPlugin {
         "(function() { // webpackBootstrap\n"
       }));
     }
-    if !all_strict
-      && all_modules.iter().all(|m| {
-        let build_info = m
-          .build_info()
-          .expect("should have build_info in render_main");
-        build_info.strict
-      })
-    {
+    if !all_strict && all_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
@@ -677,7 +669,7 @@ impl JsPlugin {
 
         chunk_init_fragments.extend(fragments);
         chunk_init_fragments.extend(additional_fragments);
-        let inner_strict = !all_strict && m.build_info().expect("should have build_info").strict;
+        let inner_strict = !all_strict && m.build_info().strict;
         let module_runtime_requirements =
           ChunkGraph::get_module_runtime_requirements(compilation, *m_identifier, chunk.runtime());
         let exports = module_runtime_requirements
@@ -811,13 +803,7 @@ impl JsPlugin {
     has_chunk_modules_result: bool,
     output_path: &str,
   ) -> Result<Option<IdentifierMap<Arc<dyn Source>>>> {
-    let inner_strict = !all_strict
-      && all_modules.iter().all(|m| {
-        let build_info = m
-          .build_info()
-          .expect("should have build_info in rename_inline_modules");
-        build_info.strict
-      });
+    let inner_strict = !all_strict && all_modules.iter().all(|m| m.build_info().strict);
     let is_multiple_entries = inlined_modules.len() > 1;
     let single_entry_with_modules = inlined_modules.len() == 1 && has_chunk_modules_result;
 
@@ -860,7 +846,7 @@ impl JsPlugin {
                   self.rename_module_cache.get_inlined_info(&m.identifier())
                 {
                   if let (Some(hash_current), Some(hash_cache)) = (
-                    m.build_info().and_then(|i| i.hash.as_ref()),
+                    m.build_info().hash.as_ref(),
                     ident_info_with_hash.hash.as_ref(),
                   ) {
                     if *hash_current == *hash_cache {
@@ -874,10 +860,9 @@ impl JsPlugin {
                 .rename_module_cache
                 .get_non_inlined_idents(&m.identifier())
               {
-                if let (Some(hash_current), Some(hash_cache)) = (
-                  m.build_info().and_then(|i| i.hash.as_ref()),
-                  idents_with_hash.hash.as_ref(),
-                ) {
+                if let (Some(hash_current), Some(hash_cache)) =
+                  (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
+                {
                   if *hash_current == *hash_cache {
                     acc
                       .all_used_names
@@ -1132,14 +1117,7 @@ impl JsPlugin {
       module_graph,
     );
     let mut sources = ConcatSource::default();
-    if !all_strict
-      && chunk_modules.iter().all(|m| {
-        let build_info = m
-          .build_info()
-          .expect("should have build_info in render_main");
-        build_info.strict
-      })
-    {
+    if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"

@@ -8,9 +8,9 @@ use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Context, DependenciesBlock,
-  DependencyId, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildInfo,
+  BuildMeta, CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use crate::{module_update_hash, Compilation, ConcatenationScope, FactoryMeta};
 
@@ -26,8 +26,8 @@ pub struct RawModule {
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -48,8 +48,12 @@ impl RawModule {
       readable_identifier,
       runtime_requirements,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        cacheable: true,
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -110,22 +114,6 @@ impl Module for RawModule {
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     f64::max(1.0, self.source.size() as f64)
-  }
-
-  async fn build(
-    &mut self,
-    _build_context: BuildContext,
-    _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      build_info: BuildInfo {
-        cacheable: true,
-        strict: true,
-        ..Default::default()
-      },
-      dependencies: vec![],
-      ..Default::default()
-    })
   }
 
   // #[tracing::instrument("RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]

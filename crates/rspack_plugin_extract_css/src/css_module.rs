@@ -13,10 +13,8 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_paths::ArcPath;
 use rspack_util::ext::DynHash;
 use rspack_util::itoa;
-use rustc_hash::FxHashSet;
 
 use crate::css_dependency::CssDependency;
 use crate::plugin::{MODULE_TYPE, SOURCE_TYPE};
@@ -35,18 +33,13 @@ pub(crate) struct CssModule {
   pub(crate) identifier_index: u32,
 
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
   identifier__: Identifier,
-  cacheable: bool,
-  file_dependencies: FxHashSet<ArcPath>,
-  context_dependencies: FxHashSet<ArcPath>,
-  missing_dependencies: FxHashSet<ArcPath>,
-  build_dependencies: FxHashSet<ArcPath>,
 }
 
 impl CssModule {
@@ -73,15 +66,18 @@ impl CssModule {
       blocks: vec![],
       dependencies: vec![],
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        cacheable: dep.cacheable,
+        strict: true,
+        file_dependencies: dep.file_dependencies,
+        context_dependencies: dep.context_dependencies,
+        missing_dependencies: dep.missing_dependencies,
+        build_dependencies: dep.build_dependencies,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
       identifier__,
-      cacheable: dep.cacheable,
-      file_dependencies: dep.file_dependencies,
-      context_dependencies: dep.context_dependencies,
-      missing_dependencies: dep.missing_dependencies,
-      build_dependencies: dep.build_dependencies,
     }
   }
 
@@ -169,19 +165,8 @@ impl Module for CssModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    Ok(BuildResult {
-      build_info: BuildInfo {
-        hash: Some(self.compute_hash(&build_context.compiler_options)),
-        cacheable: self.cacheable,
-        strict: true,
-        file_dependencies: self.file_dependencies.clone(),
-        context_dependencies: self.context_dependencies.clone(),
-        missing_dependencies: self.missing_dependencies.clone(),
-        build_dependencies: self.build_dependencies.clone(),
-        ..Default::default()
-      },
-      ..Default::default()
-    })
+    self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
+    Ok(Default::default())
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
@@ -205,12 +190,7 @@ impl Module for CssModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<()> {
     module_update_hash(self, hasher, compilation, runtime);
-    self
-      .build_info
-      .as_ref()
-      .expect("should update_hash after build")
-      .hash
-      .dyn_hash(hasher);
+    self.build_info.hash.dyn_hash(hasher);
     Ok(())
   }
 }

@@ -222,22 +222,20 @@ impl Task<MakeTaskContext> for ExecuteTask {
       |mut res, m| {
         let module = module_graph.module_by_identifier(m).expect("unreachable");
         let build_info = &module.build_info();
-        if let Some(info) = build_info {
-          res
-            .file_dependencies
-            .extend(info.file_dependencies.iter().cloned());
-          res
-            .context_dependencies
-            .extend(info.context_dependencies.iter().cloned());
-          res
-            .missing_dependencies
-            .extend(info.missing_dependencies.iter().cloned());
-          res
-            .build_dependencies
-            .extend(info.build_dependencies.iter().cloned());
-          if !info.cacheable {
-            res.cacheable = false;
-          }
+        res
+          .file_dependencies
+          .extend(build_info.file_dependencies.iter().cloned());
+        res
+          .context_dependencies
+          .extend(build_info.context_dependencies.iter().cloned());
+        res
+          .missing_dependencies
+          .extend(build_info.missing_dependencies.iter().cloned());
+        res
+          .build_dependencies
+          .extend(build_info.build_dependencies.iter().cloned());
+        if !build_info.cacheable {
+          res.cacheable = false;
         }
         res
       },

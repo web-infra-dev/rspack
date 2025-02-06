@@ -48,7 +48,7 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState, Context,
   DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
+  ExportInfoProvided, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
   MaybeDynamicTargetExportInfoHashKey, Module, ModuleDependency, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
@@ -77,7 +77,7 @@ pub struct RootModuleContext {
   pub layer: Option<ModuleLayer>,
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Option<FactoryMeta>,
-  pub build_meta: Option<BuildMeta>,
+  pub build_meta: BuildMeta,
 }
 
 #[allow(unused)]
@@ -373,7 +373,7 @@ pub struct ConcatenatedModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
   #[cacheable(with=Skip)]
   diagnostics: Mutex<Vec<Diagnostic>>,
-  build_info: Option<BuildInfo>,
+  build_info: BuildInfo,
 }
 
 #[allow(unused)]
@@ -395,7 +395,13 @@ impl ConcatenatedModule {
       blocks: vec![],
       cached_source_sizes: DashMap::default(),
       diagnostics: Mutex::new(vec![]),
-      build_info: None,
+      build_info: BuildInfo {
+        cacheable: true,
+        hash: None,
+        strict: true,
+        top_level_declarations: Some(Default::default()),
+        ..Default::default()
+      },
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -493,20 +499,20 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.factory_meta = Some(v);
   }
 
-  fn build_info(&self) -> Option<&BuildInfo> {
-    self.build_info.as_ref()
+  fn build_info(&self) -> &BuildInfo {
+    &self.build_info
   }
 
-  fn set_build_meta(&mut self, v: BuildMeta) {
-    self.root_module_ctxt.build_meta = Some(v);
+  fn build_info_mut(&mut self) -> &mut BuildInfo {
+    &mut self.build_info
   }
 
-  fn build_meta(&self) -> Option<&BuildMeta> {
-    self.root_module_ctxt.build_meta.as_ref()
+  fn build_meta(&self) -> &BuildMeta {
+    &self.root_module_ctxt.build_meta
   }
 
-  fn set_build_info(&mut self, v: BuildInfo) {
-    self.build_info = Some(v);
+  fn build_meta_mut(&mut self) -> &mut BuildMeta {
+    &mut self.root_module_ctxt.build_meta
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -548,21 +554,6 @@ impl Module for ConcatenatedModule {
     let compilation = compilation.expect("should pass compilation");
     // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L774-L784
     // Some fields does not exists in rspack
-    let mut build_info = BuildInfo {
-      cacheable: true,
-      hash: None,
-      strict: true,
-      file_dependencies: Default::default(),
-      context_dependencies: Default::default(),
-      missing_dependencies: Default::default(),
-      build_dependencies: Default::default(),
-      esm_named_exports: Default::default(),
-      all_star_exports: Default::default(),
-      need_create_require: Default::default(),
-      json_data: Default::default(),
-      top_level_declarations: Some(Default::default()),
-      module_concatenation_bailout: Default::default(),
-    };
     self.clear_diagnostics();
 
     let module_graph = compilation.get_module_graph();
@@ -575,11 +566,11 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&m.id)
         .expect("should have module");
-      let cur_build_info = module.build_info().expect("should have module info");
+      let cur_build_info = module.build_info();
 
       // populate cacheable
       if !cur_build_info.cacheable {
-        build_info.cacheable = false;
+        self.build_info.cacheable = false;
       }
 
       // populate dependencies
@@ -605,17 +596,15 @@ impl Module for ConcatenatedModule {
       drop(diagnostics_guard);
 
       // populate topLevelDeclarations
-      if let Some(module_build_info) = module.build_info() {
-        if let Some(decls) = &module_build_info.top_level_declarations
-          && let Some(top_level_declarations) = &mut build_info.top_level_declarations
-        {
-          top_level_declarations.extend(decls.iter().cloned());
-        } else {
-          build_info.top_level_declarations = None;
-        }
+      let module_build_info = module.build_info();
+      if let Some(decls) = &module_build_info.top_level_declarations
+        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
+      {
+        top_level_declarations.extend(decls.iter().cloned());
+      } else {
+        self.build_info.top_level_declarations = None;
       }
     }
-    self.set_build_info(build_info);
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())
   }
@@ -728,10 +717,8 @@ impl Module for ConcatenatedModule {
         .module_by_identifier(&info.id())
         .expect("should have module identifier");
       let readable_identifier = module.readable_identifier(&context);
-      let exports_type: Option<BuildMetaExportsType> =
-        module.build_meta().map(|item| item.exports_type);
-      let default_object: Option<BuildMetaDefaultObject> =
-        module.build_meta().map(|item| item.default_object);
+      let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
+      let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
@@ -820,7 +807,7 @@ impl Module for ConcatenatedModule {
         }
       }
       // Handle additional logic based on module build meta
-      if exports_type != Some(BuildMetaExportsType::Namespace) {
+      if exports_type != BuildMetaExportsType::Namespace {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject",
           &all_used_names,
@@ -832,8 +819,8 @@ impl Module for ConcatenatedModule {
         top_level_declarations.insert(external_name_interop.clone());
       }
 
-      if exports_type == Some(BuildMetaExportsType::Default)
-        && !matches!(default_object, Some(BuildMetaDefaultObject::Redirect))
+      if exports_type == BuildMetaExportsType::Default
+        && !matches!(default_object, BuildMetaDefaultObject::Redirect)
       {
         let external_name_interop: Atom = find_new_name(
           "namespaceObject2",
@@ -848,7 +835,7 @@ impl Module for ConcatenatedModule {
 
       if matches!(
         exports_type,
-        Some(BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset)
+        BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
       ) {
         let external_name_interop: Atom =
           find_new_name("default", &all_used_names, None, &readable_identifier);
@@ -867,7 +854,7 @@ impl Module for ConcatenatedModule {
         let module = module_graph
           .module_by_identifier(&info.module)
           .expect("should have module");
-        let build_meta = module.build_meta().expect("should have build meta");
+        let build_meta = module.build_meta();
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
@@ -944,10 +931,7 @@ impl Module for ConcatenatedModule {
     let root_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have box module");
-    let strict_esm_module = root_module
-      .build_meta()
-      .map(|item| item.strict_esm_module)
-      .unwrap_or_default();
+    let strict_esm_module = root_module.build_meta().strict_esm_module;
 
     let exports_info = module_graph.get_exports_info(&root_module_id);
     let mut exports_final_names: Vec<(String, String)> = vec![];
@@ -1023,9 +1007,7 @@ impl Module for ConcatenatedModule {
         ));
       }
 
-      let exports_argument = self
-        .build_meta()
-        .map_or(ExportsArgument::Exports, |meta| meta.exports_argument);
+      let exports_argument = self.build_meta().exports_argument;
 
       let should_skip_render_definitions = compilation
         .plugin_driver
@@ -1094,10 +1076,7 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(module_info_id)
           .expect("should have box module");
         let module_readable_identifier = box_module.readable_identifier(&context);
-        let strict_esm_module = box_module
-          .build_meta()
-          .map(|meta| meta.strict_esm_module)
-          .unwrap_or_default();
+        let strict_esm_module = box_module.build_meta().strict_esm_module;
         let name_space_name = module_info.namespace_object_name.clone();
 
         if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
@@ -2162,8 +2141,8 @@ impl ConcatenatedModule {
               // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L457
               let build_meta = mg
                 .module_by_identifier(&ref_info.id())
-                .and_then(|m| m.build_meta())
-                .expect("should have module meta");
+                .expect("should have module")
+                .build_meta();
               return Self::get_final_binding(
                 mg,
                 &ref_info.id(),

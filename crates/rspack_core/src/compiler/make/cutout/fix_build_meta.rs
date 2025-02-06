@@ -18,11 +18,9 @@ impl FixBuildMeta {
     let module = module_graph
       .module_by_identifier(module_identifier)
       .expect("should have module");
-    if let Some(build_meta) = module.build_meta() {
-      self
-        .origin_module_build_meta
-        .insert(*module_identifier, build_meta.clone());
-    }
+    self
+      .origin_module_build_meta
+      .insert(*module_identifier, module.build_meta().clone());
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {
@@ -31,7 +29,7 @@ impl FixBuildMeta {
       if let Some(module) = module_graph.module_by_identifier_mut(&id) {
         if let Some(module) = module.as_normal_module_mut() {
           if matches!(module.source(), NormalModuleSource::BuiltFailed(_)) {
-            module.set_build_meta(build_meta);
+            *module.build_meta_mut() = build_meta;
           }
         }
       }

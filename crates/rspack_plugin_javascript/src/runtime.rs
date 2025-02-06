@@ -188,10 +188,7 @@ pub fn render_module(
       "(function ({}) {{\n",
       args.join(", ")
     )));
-    if let Some(build_info) = &module.build_info()
-      && build_info.strict
-      && !all_strict
-    {
+    if module.build_info().strict && !all_strict {
       sources.add(RawStringSource::from_static("\"use strict\";\n"));
     }
     sources.add(render_source.source);
