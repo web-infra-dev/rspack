@@ -3709,6 +3709,8 @@ export class Module {
     // (undocumented)
     readonly layer: null | string;
     // (undocumented)
+    readonly matchResource: string | undefined;
+    // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
     nameForCondition(): string | null;
@@ -3720,6 +3722,8 @@ export class Module {
     readonly request?: string;
     // (undocumented)
     readonly resource?: string;
+    // (undocumented)
+    readonly resourceResolveData: Record<string, any> | undefined;
     // (undocumented)
     size(type?: string): number;
     // (undocumented)
