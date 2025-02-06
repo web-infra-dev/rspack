@@ -57,4 +57,10 @@ export default class ModuleGraph {
 			.getOutgoingConnections(Module.__to_binding(module))
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
+
+	getIncomingConnections(module: Module): ModuleGraphConnection[] {
+		return this.#inner
+			.getIncomingConnections(Module.__to_binding(module))
+			.map(binding => ModuleGraphConnection.__from_binding(binding));
+	}
 }
