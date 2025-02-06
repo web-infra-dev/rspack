@@ -596,9 +596,11 @@ impl Module for NormalModule {
         parse_meta: loader_result.parse_meta,
       })?
       .split_into_parts();
+    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
+      build_meta = Default::default();
+    }
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
-      build_meta = Default::default();
     }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
