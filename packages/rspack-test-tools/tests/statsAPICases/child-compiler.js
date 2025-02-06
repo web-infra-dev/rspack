@@ -90,7 +90,7 @@ module.exports = {
 		        related: Object {},
 		      },
 		      name: main.js,
-		      size: 206,
+		      size: 204,
 		      type: asset,
 		    },
 		  ],

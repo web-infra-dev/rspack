@@ -59,7 +59,7 @@ HookThisCompilation --> HookCompilation(<a href="#compilation">hooks.compilation
 HookCompilation --> HookMake(<a href="#make">hooks.make</a>)
 HookMake --> CreateModuleGraph(创建模块图)
 CreateModuleGraph <--> RunLoaders(执行 loader 编译模块)
-CreateModuleGraph --> HookFinishMake(hooks.finishMake)
+CreateModuleGraph --> HookFinishMake(<a href="#finishmake">hooks.finishMake</a>)
 HookFinishMake --> CompilationFinish("compilation.finish()")
 CompilationFinish --> CompilationSeal("compilation.seal()")
 CompilationSeal --> HookAfterCompile(<a href="#aftercompile">hooks.afterCompile</a>)
@@ -68,8 +68,8 @@ HookAfterCompile --> Callback("callback()")
 class Compile flow-start
 class Callback,CloseCallback flow-end
 class CompilationParams,Compilation,CreateModuleGraph,RunLoaders,CompilationFinish,CompilationSeal flow-process
-class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookAfterCompile flow-hook
-class HookNormalModuleFactory,HookContextModuleFactory,HookFinishMake flow-hook-non-support
+class HookBeforeCompile,HookCompile,HookThisCompilation,HookCompilation,HookMake,HookFinishMake,HookAfterCompile flow-hook
+class HookNormalModuleFactory,HookContextModuleFactory flow-hook-non-support
 `}
 
 </Mermaid>
@@ -296,12 +296,29 @@ compilation 创建之后执行。
     <CompilationType />
   </CollapsePanel>
 </Collapse>
-
 ## `make`
 
 在 make 阶段开始前调用，在 make 阶段会以 entry 为起点构建模块依赖图，并使用 loader 处理各个模块。
 
 - **类型：** `AsyncParallelHook<[Compilation]>`
+- **参数：**
+  - `Compilation`: 当前 [Compilation](/api/javascript-api/compilation) 对象
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="Compilation.ts"
+    key="Compilation"
+  >
+    <CompilationType />
+  </CollapsePanel>
+</Collapse>
+
+## `finishMake`
+
+在 make 阶段结束后调用。在 make 阶段，Rspack 会以 entry 为起点构建模块依赖图，并使用 loader 处理各个模块，当这个过程完成时会触发此钩子。
+
+- **类型：** `AsyncSeriesHook<[Compilation]>`
 - **参数：**
   - `Compilation`: 当前 [Compilation](/api/javascript-api/compilation) 对象
 

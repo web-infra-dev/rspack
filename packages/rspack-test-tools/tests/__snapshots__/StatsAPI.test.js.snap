@@ -29,7 +29,7 @@ Object {
       isOverSizeLimit: false,
       name: main.js,
       related: Array [],
-      size: 206,
+      size: 204,
       type: asset,
     },
   ],
@@ -49,7 +49,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: dc21001e16b79ee1,
+      hash: 50f4182a210ae3fc,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -158,10 +158,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 206,
+          size: 204,
         },
       ],
-      assetsSize: 206,
+      assetsSize: 204,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
@@ -179,7 +179,7 @@ Object {
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: 71a1e7d194ca24f9,
+  hash: 59afbeeb2d3dd524,
   modules: Array [
     Object {
       assets: Array [],
@@ -258,10 +258,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 206,
+          size: 204,
         },
       ],
-      assetsSize: 206,
+      assetsSize: 204,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
@@ -330,7 +330,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: bf2cde18064956f4,
+      hash: b0c3f5be812244f9,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -718,7 +718,7 @@ Object {
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: 8a4abcf81482ccb3,
+  hash: 869653cdb9b09f07,
   modules: Array [
     Object {
       assets: Array [],
@@ -1504,7 +1504,7 @@ Object {
         related: Object {},
       },
       name: main.js,
-      size: 206,
+      size: 204,
       type: asset,
     },
   ],
@@ -1521,7 +1521,7 @@ Object {
       files: Array [
         main.js,
       ],
-      hash: dc21001e16b79ee1,
+      hash: 50f4182a210ae3fc,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -1661,7 +1661,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: 7a2353722113f6b4,
+      hash: e813d411c0f3d316,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -2030,7 +2030,7 @@ exports.c = require("./c?c=3");,
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: bbbee3eda42d5c59,
+  hash: 27d6c5d54c85318d,
   modules: Array [
     Object {
       assets: Array [],

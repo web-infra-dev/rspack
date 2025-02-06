@@ -1542,7 +1542,7 @@ export interface DllReferencePluginOptionsContent {
     [k: string]: {
         buildMeta?: JsBuildMeta;
         exports?: string[] | true;
-        id?: string;
+        id?: string | number;
     };
 }
 
@@ -1596,13 +1596,23 @@ const ElectronTargetPlugin: {
 };
 
 // @public (undocumented)
-const EnableChunkLoadingPlugin: {
+class EnableChunkLoadingPlugin extends EnableChunkLoadingPluginInner {
+    // (undocumented)
+    apply(compiler: Compiler): void;
+    // (undocumented)
+    static checkEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+    // (undocumented)
+    static setEnabled(compiler: Compiler, type: ChunkLoadingType): void;
+}
+
+// @public (undocumented)
+const EnableChunkLoadingPluginInner: {
     new (type: string): {
         name: BuiltinPluginName;
         _args: [type: string];
         affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
-        raw(compiler: Compiler_2): BuiltinPlugin;
-        apply(compiler: Compiler_2): void;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
     };
 };
 
@@ -5063,7 +5073,7 @@ type ResourceData = {
 };
 
 // @public (undocumented)
-type ResourceDataWithData = ResourceData & {
+export type ResourceDataWithData = ResourceData & {
     data?: Record<string, any>;
 };
 
@@ -5131,6 +5141,7 @@ declare namespace rspackExports {
         ChunkGroup,
         Module,
         ResolveData,
+        ResourceDataWithData,
         MultiStats,
         NormalModule,
         NormalModuleFactory,
@@ -5169,6 +5180,7 @@ declare namespace rspackExports {
         HotModuleReplacementPlugin,
         NoEmitOnErrorsPlugin,
         WarnCaseSensitiveModulesPlugin,
+        RuntimePlugin,
         DllPlugin,
         DllPluginOptions,
         DllReferencePlugin,
@@ -6361,7 +6373,7 @@ export const rspackOptions: z.ZodObject<{
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
                 client: z.ZodOptional<z.ZodString>;
-                listen: z.ZodUnion<[z.ZodOptional<z.ZodNumber>, z.ZodObject<{
+                listen: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodNumber, z.ZodObject<{
                     port: z.ZodOptional<z.ZodNumber>;
                     host: z.ZodOptional<z.ZodString>;
                     backlog: z.ZodOptional<z.ZodNumber>;
@@ -6388,8 +6400,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                }>]>;
+                }>]>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodVoid>]>>;
                 protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
+                server: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodAny>]>>;
             }, "strip", z.ZodTypeAny, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6401,8 +6414,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }, {
                 client?: string | undefined;
                 listen?: number | {
@@ -6414,8 +6428,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             }>>;
             imports: z.ZodOptional<z.ZodBoolean>;
             entries: z.ZodOptional<z.ZodBoolean>;
@@ -6435,8 +6450,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }, {
             entries?: boolean | undefined;
@@ -6453,8 +6469,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
@@ -6573,8 +6590,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -6640,8 +6658,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -8586,8 +8605,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -9191,8 +9211,9 @@ export const rspackOptions: z.ZodObject<{
                     readableAll?: boolean | undefined;
                     writableAll?: boolean | undefined;
                     ipv6Only?: boolean | undefined;
-                } | undefined;
+                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
                 protocol?: "http" | "https" | undefined;
+                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
@@ -9898,6 +9919,30 @@ enum RuntimeModuleStage {
     // (undocumented)
     TRIGGER = 20
 }
+
+// @public (undocumented)
+export const RuntimePlugin: typeof RuntimePluginImpl & {
+    getHooks: (compilation: Compilation) => RuntimePluginHooks;
+    getCompilationHooks: (compilation: Compilation) => RuntimePluginHooks;
+};
+
+// @public (undocumented)
+type RuntimePluginHooks = {
+    createScript: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    linkPreload: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+    linkPrefetch: liteTapable.SyncWaterfallHook<[string, Chunk]>;
+};
+
+// @public (undocumented)
+const RuntimePluginImpl: {
+    new (): {
+        name: binding.BuiltinPluginName;
+        _args: [];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): binding.BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
 
 // @public (undocumented)
 type RuntimePlugins = string[];

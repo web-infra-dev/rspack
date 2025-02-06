@@ -141,6 +141,26 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     None
   }
 
+  fn identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    ident: &swc_core::ecma::ast::Ident,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == DEFINE {
+      parser
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          ident.span().real_lo(),
+          ident.span().real_hi(),
+          RuntimeGlobals::AMD_DEFINE.name().into(),
+          Some(RuntimeGlobals::AMD_DEFINE),
+        )));
+      return Some(true);
+    }
+    None
+  }
+
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,

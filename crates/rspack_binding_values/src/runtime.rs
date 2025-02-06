@@ -4,6 +4,9 @@ use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
+use rspack_plugin_runtime::{
+  CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
+};
 use rustc_hash::FxHashMap;
 
 use crate::JsChunkWrapper;
@@ -172,5 +175,63 @@ impl JsRuntimeRequirementInTreeResult {
     }
 
     runtime_requirements
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsCreateScriptData {
+  pub code: String,
+  #[napi(ts_type = "JsChunk")]
+  pub chunk: JsChunkWrapper,
+}
+
+impl From<CreateScriptData> for JsCreateScriptData {
+  fn from(value: CreateScriptData) -> Self {
+    Self {
+      code: value.code,
+      chunk: value.chunk.into(),
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsLinkPreloadData {
+  pub code: String,
+  #[napi(ts_type = "JsChunk")]
+  pub chunk: JsChunkWrapper,
+}
+
+impl From<LinkPreloadData> for JsLinkPreloadData {
+  fn from(value: LinkPreloadData) -> Self {
+    Self {
+      code: value.code,
+      chunk: value.chunk.into(),
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
+pub struct JsLinkPrefetchData {
+  pub code: String,
+  #[napi(ts_type = "JsChunk")]
+  pub chunk: JsChunkWrapper,
+}
+
+impl From<LinkPrefetchData> for JsLinkPrefetchData {
+  fn from(value: LinkPrefetchData) -> Self {
+    Self {
+      code: value.code,
+      chunk: value.chunk.into(),
+    }
+  }
+}
+
+impl From<RuntimeModuleChunkWrapper> for JsChunkWrapper {
+  fn from(value: RuntimeModuleChunkWrapper) -> Self {
+    Self {
+      chunk_ukey: value.chunk_ukey,
+      compilation_id: value.compilation_id,
+      compilation: value.compilation,
+    }
   }
 }

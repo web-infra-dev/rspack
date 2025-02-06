@@ -92,31 +92,30 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
-	// {
-	// 	resolve: {
-	// 		alias: {
-	// 			library: path.resolve(testPath, "../0-create-library/amd.js")
-	// 		}
-	// 	},
-	// 	plugins: [
-	// 		new webpack.DefinePlugin({
-	// 			NAME: JSON.stringify("amd")
-	// 		})
-	// 	]
-	// },
-	// {
-	// 	resolve: {
-	// 		alias: {
-	// 			library: path.resolve(testPath, "../0-create-library/amd-iife.js")
-	// 		}
-	// 	},
-	// 	plugins: [
-	// 		new webpack.DefinePlugin({
-	// 			NAME: JSON.stringify("amd-iife")
-	// 		})
-	// 	]
-	// },
+	{
+		resolve: {
+			alias: {
+				library: path.resolve(testPath, "../0-create-library/amd.js")
+			}
+		},
+		plugins: [
+			new webpack.DefinePlugin({
+				NAME: JSON.stringify("amd")
+			})
+		]
+	},
+	{
+		resolve: {
+			alias: {
+				library: path.resolve(testPath, "../0-create-library/amd-iife.js")
+			}
+		},
+		plugins: [
+			new webpack.DefinePlugin({
+				NAME: JSON.stringify("amd-iife")
+			})
+		]
+	},
 	{
 		externals: {
 			library: `promise (require(${JSON.stringify(
@@ -315,7 +314,7 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
+	// TODO: amd esm import exports presence check
 	// {
 	// 	resolve: {
 	// 		alias: {
@@ -452,17 +451,16 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
-	// TODO: https://github.com/web-infra-dev/rspack/issues/4313
-	// {
-	// 	resolve: {
-	// 		alias: {
-	// 			library: path.resolve(testPath, "../0-create-library/entryC.js")
-	// 		}
-	// 	},
-	// 	plugins: [
-	// 		new webpack.DefinePlugin({
-	// 			NAME: JSON.stringify("entryC")
-	// 		})
-	// 	]
-	// }
+	{
+		resolve: {
+			alias: {
+				library: path.resolve(testPath, "../0-create-library/entryC.js")
+			}
+		},
+		plugins: [
+			new webpack.DefinePlugin({
+				NAME: JSON.stringify("entryC")
+			})
+		]
+	}
 ];

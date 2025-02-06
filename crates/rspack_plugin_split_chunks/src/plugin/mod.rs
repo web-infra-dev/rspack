@@ -49,7 +49,7 @@ impl SplitChunksPlugin {
     tracing::trace!("prepared module_group_map {:#?}", module_group_map);
     logger.time_end(start);
 
-    let start = logger.time("ensure min size fit");
+    let start: rspack_core::StartTime = logger.time("ensure min size fit");
     self.ensure_min_size_fit(compilation, &mut module_group_map);
     logger.time_end(start);
 
@@ -162,7 +162,7 @@ impl Debug for SplitChunksPlugin {
 }
 
 #[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
-fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+pub fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.inner_impl(compilation)?;
   Ok(None)
 }

@@ -14,6 +14,10 @@ use rkyv::{
 };
 
 pub mod validation;
+mod vtable_ptr;
+
+pub use vtable_ptr::VTablePtr;
+
 use crate::{DeserializeError, Deserializer, SerializeError, Serializer};
 
 /// A trait object that can be archived.
@@ -140,35 +144,35 @@ impl<T: ?Sized> ArchivedDynMetadata<T> {
   /// Returns the pointer metadata for the trait object this metadata refers to.
   pub fn lookup_metadata(&self) -> DynMetadata<T> {
     unsafe {
-      std::mem::transmute(
-        *DYN_REGISTRY
-          .get(&self.dyn_id.to_native())
-          .expect("attempted to get vtable for an unregistered impl"),
-      )
+      DYN_REGISTRY
+        .get(&self.dyn_id.to_native())
+        .expect("attempted to get vtable for an unregistered impl")
+        .cast()
     }
   }
 }
 
 pub struct DynEntry {
   dyn_id: u64,
-  vtable: usize,
+  vtable: VTablePtr,
 }
 
 impl DynEntry {
-  pub fn new(dyn_id: u64, vtable: usize) -> Self {
+  pub const fn new(dyn_id: u64, vtable: VTablePtr) -> Self {
     Self { dyn_id, vtable }
   }
 }
 
 inventory::collect!(DynEntry);
 
-static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, usize>> = std::sync::LazyLock::new(|| {
-  let mut result = HashMap::default();
-  for entry in inventory::iter::<DynEntry> {
-    let old_value = result.insert(entry.dyn_id, entry.vtable);
-    if old_value.is_some() {
-      panic!("cacheable_dyn init global REGISTRY error, duplicate implementation.")
+static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, VTablePtr>> =
+  std::sync::LazyLock::new(|| {
+    let mut result = HashMap::default();
+    for entry in inventory::iter::<DynEntry> {
+      let old_value = result.insert(entry.dyn_id, entry.vtable);
+      if old_value.is_some() {
+        panic!("cacheable_dyn init global REGISTRY error, duplicate implementation.")
+      }
     }
-  }
-  result
-});
+    result
+  });

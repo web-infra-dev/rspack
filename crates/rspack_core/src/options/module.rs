@@ -782,7 +782,7 @@ impl<'s> From<&'s serde_json::Value> for DataRef<'s> {
 }
 
 impl DataRef<'_> {
-  fn as_str(&self) -> Option<&str> {
+  pub fn as_str(&self) -> Option<&str> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),

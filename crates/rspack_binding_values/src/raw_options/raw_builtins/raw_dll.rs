@@ -1,5 +1,6 @@
 use napi::Either;
 use napi_derive::napi;
+use rspack_core::ModuleId;
 use rspack_plugin_dll::{
   DllEntryPluginOptions, DllManifest, DllManifestContent, DllManifestContentItem,
   DllManifestContentItemExports, DllReferenceAgencyPluginOptions, LibManifestPluginOptions,
@@ -83,7 +84,7 @@ pub struct RawDllManifestContentItem {
   pub build_meta: Option<JsBuildMeta>,
   #[napi(ts_type = "string[] | true")]
   pub exports: Option<Either<Vec<String>, bool>>,
-  pub id: Option<String>,
+  pub id: Option<Either<u32, String>>,
 }
 
 impl From<RawDllManifestContentItem> for DllManifestContentItem {
@@ -106,7 +107,10 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
     Self {
       build_meta: value.build_meta.map(|meta| meta.into()),
       exports,
-      id: value.id,
+      id: value.id.map(|id| match id {
+        Either::A(n) => ModuleId::from(n),
+        Either::B(s) => ModuleId::from(s),
+      }),
     }
   }
 }

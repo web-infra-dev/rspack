@@ -9,10 +9,11 @@ use rspack_core::{
   throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
   Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
-use rspack_util::source_map::ModuleSourceMapConfig;
+use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
 use crate::{DllManifestContentItem, DllManifestContentItemExports};
@@ -24,7 +25,7 @@ pub type SourceRequest = String;
 #[derive(Debug, Default)]
 pub struct DelegatedModule {
   source_request: SourceRequest,
-  request: Option<String>,
+  request: Option<ModuleId>,
   delegation_type: String,
   user_request: String,
   original_request: Option<String>,
@@ -143,7 +144,7 @@ impl Module for DelegatedModule {
     let str = match source_module {
       Some(_) => {
         let mut s = format!(
-          "module.exports = {}",
+          "module.exports = ({})",
           module_raw(
             compilation,
             &mut code_generation_result.runtime_requirements,
@@ -153,10 +154,12 @@ impl Module for DelegatedModule {
           )
         );
 
-        let request = self
-          .request
-          .as_ref()
-          .expect("manifest content should have `id`.");
+        let request = json_stringify(
+          self
+            .request
+            .as_ref()
+            .expect("manifest content should have `id`."),
+        );
 
         match self.delegation_type.as_ref() {
           "require" => {
@@ -215,7 +218,11 @@ impl Identifiable for DelegatedModule {
   fn identifier(&self) -> Identifier {
     format!(
       "delegated {} from {}",
-      self.request.as_deref().unwrap_or_default(),
+      self
+        .request
+        .as_ref()
+        .map(|r| r.to_string())
+        .unwrap_or_default(),
       self.source_request
     )
     .into()

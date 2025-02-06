@@ -1338,8 +1338,13 @@ const lazyCompilationOptions = z.object({
 	backend: z
 		.object({
 			client: z.string().optional(),
-			listen: z.number().optional().or(listenOptions),
-			protocol: z.enum(["http", "https"]).optional()
+			listen: z
+				.number()
+				.or(listenOptions)
+				.or(z.function().args(z.any()).returns(z.void()))
+				.optional(),
+			protocol: z.enum(["http", "https"]).optional(),
+			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
 		})
 		.optional(),
 	imports: z.boolean().optional(),

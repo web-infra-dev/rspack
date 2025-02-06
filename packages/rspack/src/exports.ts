@@ -27,7 +27,7 @@ export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { Chunk } from "./Chunk";
 export type { ChunkGroup } from "./ChunkGroup";
-export type { Module, ResolveData } from "./Module";
+export type { Module, ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
@@ -104,6 +104,7 @@ export { ExternalsPlugin } from "./builtin-plugin";
 export { HotModuleReplacementPlugin } from "./builtin-plugin";
 export { NoEmitOnErrorsPlugin } from "./builtin-plugin";
 export { WarnCaseSensitiveModulesPlugin } from "./builtin-plugin";
+export { RuntimePlugin } from "./builtin-plugin";
 export { DllPlugin, type DllPluginOptions } from "./lib/DllPlugin";
 export {
 	DllReferencePlugin,

@@ -7,6 +7,6 @@ module.exports = function (config) {
 };
 
 */
-module.exports = () => {return "https://github.com/web-infra-dev/rspack/issues/4313"}
+module.exports = () => {return "amd require context"}
 
 							

@@ -1,35 +1,33 @@
+use std::borrow::Cow;
+
 use itertools::Itertools;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, AsModuleDependency, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyTemplate, DependencyType, ModuleDependency,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::atom::Atom;
 
-use super::{
-  amd_require_item_dependency::AMDRequireItemDependency,
-  local_module_dependency::LocalModuleDependency,
-};
+use super::amd_require_item_dependency::AMDRequireItemDependency;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub enum AmdDep {
-  String(#[cacheable(with=AsPreset)] Atom),
-  LocalModuleDependency(LocalModuleDependency),
-  AMDRequireItemDependency(AMDRequireItemDependency),
+pub enum AMDRequireArrayItem {
+  String(String),
+  LocalModuleDependency { local_module_variable_name: String },
+  AMDRequireItemDependency { dep_id: DependencyId },
 }
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct AmdRequireArrayDependency {
+pub struct AMDRequireArrayDependency {
   id: DependencyId,
-  deps_array: Vec<AmdDep>,
+  deps_array: Vec<AMDRequireArrayItem>,
   range: (u32, u32),
 }
 
-impl AmdRequireArrayDependency {
-  pub fn new(deps_array: Vec<AmdDep>, range: (u32, u32)) -> Self {
+impl AMDRequireArrayDependency {
+  pub fn new(deps_array: Vec<AMDRequireArrayItem>, range: (u32, u32)) -> Self {
     Self {
       id: DependencyId::new(),
       deps_array,
@@ -39,7 +37,7 @@ impl AmdRequireArrayDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for AmdRequireArrayDependency {
+impl Dependency for AMDRequireArrayDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -57,7 +55,7 @@ impl Dependency for AmdRequireArrayDependency {
   }
 }
 
-impl AmdRequireArrayDependency {
+impl AMDRequireArrayDependency {
   fn get_content(&self, code_generatable_context: &mut TemplateContext) -> String {
     format!(
       "[{}]",
@@ -69,26 +67,36 @@ impl AmdRequireArrayDependency {
     )
   }
 
-  fn content_for_dependency(
-    dep: &AmdDep,
+  fn content_for_dependency<'a>(
+    dep: &'a AMDRequireArrayItem,
     code_generatable_context: &mut TemplateContext,
-  ) -> String {
+  ) -> Cow<'a, str> {
     match dep {
-      AmdDep::String(name) => name.to_string(),
-      AmdDep::LocalModuleDependency(dep) => dep.get_variable_name(),
-      AmdDep::AMDRequireItemDependency(dep) => module_raw(
-        code_generatable_context.compilation,
-        code_generatable_context.runtime_requirements,
-        dep.id(),
-        dep.request(),
-        dep.weak(),
-      ),
+      AMDRequireArrayItem::String(name) => name.into(),
+      AMDRequireArrayItem::LocalModuleDependency {
+        local_module_variable_name,
+      } => local_module_variable_name.into(),
+      AMDRequireArrayItem::AMDRequireItemDependency { dep_id } => {
+        let mg = code_generatable_context.compilation.get_module_graph();
+        let dep = mg
+          .dependency_by_id(dep_id)
+          .and_then(|dep| dep.downcast_ref::<AMDRequireItemDependency>())
+          .expect("should have AMDRequireItemDependency");
+        module_raw(
+          code_generatable_context.compilation,
+          code_generatable_context.runtime_requirements,
+          dep_id,
+          dep.request(),
+          dep.weak(),
+        )
+        .into()
+      }
     }
   }
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for AmdRequireArrayDependency {
+impl DependencyTemplate for AMDRequireArrayDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -111,6 +119,6 @@ impl DependencyTemplate for AmdRequireArrayDependency {
   }
 }
 
-impl AsModuleDependency for AmdRequireArrayDependency {}
+impl AsModuleDependency for AMDRequireArrayDependency {}
 
-impl AsContextDependency for AmdRequireArrayDependency {}
+impl AsContextDependency for AMDRequireArrayDependency {}
