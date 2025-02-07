@@ -2,12 +2,11 @@
 use std::sync::Arc;
 
 use criterion::criterion_group;
-use rspack::builder::{
-  Builder as _, BuilderContext, ExperimentsBuilder, OptimizationOptionsBuilder,
-};
+use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  build_chunk_graph, fast_set, incremental::IncrementalPasses, Compilation, Compiler,
+  build_chunk_graph, fast_set, incremental::IncrementalPasses, Compilation, Compiler, Experiments,
+  Optimization,
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use tokio::runtime::Builder;
@@ -109,22 +108,13 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
 
-  let mut builder_context = BuilderContext::default();
   let mut compiler = Compiler::builder()
     .context("/")
     .entry("main", "/src/dynamic-0.js")
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
-    .optimization(
-      OptimizationOptionsBuilder::default()
-        .remove_available_modules(true)
-        .build(&mut builder_context, true, false, false),
-    )
-    .experiments(
-      ExperimentsBuilder::default()
-        .incremental(IncrementalPasses::empty())
-        .build(&mut builder_context, true, false),
-    )
+    .optimization(Optimization::builder().remove_available_modules(true))
+    .experiments(Experiments::builder().incremental(IncrementalPasses::empty()))
     .build();
 
   fast_set(
