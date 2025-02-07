@@ -61,7 +61,11 @@
 				"miette",
 				"rkyv",
 				"rspack_resolver",
-				"inventory"
+				"inventory",
+				"opentelemetry",
+				"opentelemetry_sdk",
+				"opentelemetry-otlp",
+				"tracing-opentelemetry"
 			]
 		},
 		{
@@ -114,7 +118,11 @@
 				"owo-colors",
 				"miette",
 				"rkyv",
-				"inventory"
+				"inventory",
+				"opentelemetry",
+				"opentelemetry_sdk",
+				"opentelemetry-otlp",
+				"tracing-opentelemetry"
 			],
 			enabled: false
 		},
