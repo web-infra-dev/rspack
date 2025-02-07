@@ -131,7 +131,6 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
 
     let overall_min_size = create_sizes(raw_opts.min_size);
 
-    println!("overall_min_size {:#?}", overall_min_size);
     let overall_max_size = create_sizes(raw_opts.max_size);
 
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
@@ -155,7 +154,6 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
           } else {
             &overall_min_size
           });
-          println!("min_size {:#?}", &min_size);
 
           let max_size = create_sizes(v.max_size);
 
