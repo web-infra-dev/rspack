@@ -10,7 +10,7 @@ impl NodePath for Utf8Path {
   // In Node.js, when the join method is passed an absolute path, it simply concatenates the paths and then normalizes the resulting path
   fn node_join(&self, path: impl AsRef<Utf8Path>) -> Utf8PathBuf {
     let path = path.as_ref();
-    let path = if path.is_absolute() {
+    let path = if self.parent().is_some() && path.is_absolute() {
       #[allow(clippy::unwrap_used)]
       path.strip_prefix("/").unwrap()
     } else {
@@ -26,9 +26,26 @@ mod test {
 
   #[test]
   fn test_node_join() {
+    // test cases from: https://github.com/nodejs/node/blob/19bfc833544859c318d7a4239449678b26ecd3dd/test/parallel/test-path-join.js#L9
     assert_eq!(
       Utf8Path::new("foo").node_join("/bar"),
       Utf8PathBuf::from("foo/bar")
+    );
+    assert_eq!(
+      Utf8Path::new("").node_join("/foo"),
+      Utf8PathBuf::from("/foo")
+    );
+    assert_eq!(
+      Utf8Path::new("").node_join("").node_join("/foo"),
+      Utf8PathBuf::from("/foo")
+    );
+    assert_eq!(
+      Utf8Path::new("").node_join("/").node_join("foo"),
+      Utf8PathBuf::from("/foo")
+    );
+    assert_eq!(
+      Utf8Path::new("").node_join("/").node_join("/foo"),
+      Utf8PathBuf::from("/foo")
     );
   }
 }
