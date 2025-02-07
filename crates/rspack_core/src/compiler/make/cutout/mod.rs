@@ -3,7 +3,7 @@ mod fix_build_meta;
 mod fix_issuers;
 mod has_module_graph_change;
 
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierSet, UkeySet};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{
@@ -30,30 +30,17 @@ impl Cutout {
     let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
     let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
-    let mut remove_entry_deps = HashSet::default();
+    let mut removed_deps = UkeySet::default();
 
     let module_graph = artifact.get_module_graph();
 
     for item in params {
       match item {
+        // TODO: BuildEntry will always have one at most, remove it from params
         MakeParam::BuildEntry(deps) => {
-          for dep_id in deps {
-            if !entry_dependencies.contains(&dep_id) {
-              force_build_deps.insert((dep_id, None));
-              entry_dependencies.insert(dep_id);
-            }
-          }
-        }
-        MakeParam::BuildEntryAndClean(deps) => {
-          remove_entry_deps.extend(std::mem::take(&mut entry_dependencies));
+          force_build_deps.extend(deps.difference(&entry_dependencies).map(|d| (*d, None)));
+          removed_deps.extend(entry_dependencies.difference(&deps));
           entry_dependencies = deps;
-          for dep_id in &entry_dependencies {
-            if remove_entry_deps.contains(dep_id) {
-              remove_entry_deps.remove(dep_id);
-            } else {
-              force_build_deps.insert((*dep_id, None));
-            }
-          }
         }
         MakeParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
@@ -75,22 +62,22 @@ impl Cutout {
           }))
         }
         MakeParam::RemovedFiles(files) => {
-          force_build_modules.extend(module_graph.modules().values().flat_map(|module| {
-            let mut res = vec![];
-
+          for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
-              // add module id
-              res.push(module.identifier());
               // add parent module id
-              res.extend(
+              force_build_modules.extend(
                 module_graph
                   .get_incoming_connections(&module.identifier())
                   .filter_map(|connect| connect.original_module_identifier),
-              )
+              );
+              removed_deps.extend(
+                module_graph
+                  .get_incoming_connections(&module.identifier())
+                  .map(|connect| connect.dependency_id),
+              );
             }
-            res
-          }))
+          }
         }
         MakeParam::ForceBuildDeps(deps) => {
           for item in deps {
@@ -123,21 +110,21 @@ impl Cutout {
         .analyze_force_build_module(artifact, module_identifier);
     }
 
-    // do revoke module and collect deps
-    for id in force_build_modules {
-      force_build_deps.extend(artifact.revoke_module(&id));
-    }
-
     let mut module_graph = artifact.get_module_graph_mut();
-    for dep_id in remove_entry_deps {
+    for dep_id in removed_deps {
       // connection may have been deleted by revoke module
       if let Some(con) = module_graph.connection_by_dependency_id(&dep_id) {
+        // need clean_isolated_module to check whether the module is still used by other deps
         self
           .clean_isolated_module
           .add_need_check_module(*con.module_identifier());
         module_graph.revoke_connection(&dep_id, true);
       }
-      force_build_deps.remove(&(dep_id, None));
+    }
+
+    // do revoke module and collect deps
+    for id in force_build_modules {
+      force_build_deps.extend(artifact.revoke_module(&id));
     }
 
     artifact.entry_dependencies = entry_dependencies;
