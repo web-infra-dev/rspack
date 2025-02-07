@@ -232,6 +232,26 @@ impl CompilerBuilder {
 
   /// Set options for module configuration.
   ///
+  /// Both are accepted:
+  /// - [`ModuleOptionsBuilder`]
+  /// - [`ModuleOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
+  /// use rspack_core::{Compiler, ModuleOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().module(ModuleOptionsBuilder::default().rules(vec![]));
+  ///
+  /// // `ModuleOptions::builder` equals to `ModuleOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().module(ModuleOptions::builder().rules(vec![]));
+  ///
+  /// // Directly passing `ModuleOptions`
+  /// let compiler = Compiler::builder().module(ModuleOptions::default());
+  /// ```
+  ///
   /// See [`CompilerOptionsBuilder::module`] for more details.
   pub fn module<V>(&mut self, module: V) -> &mut Self
   where
@@ -242,6 +262,26 @@ impl CompilerBuilder {
   }
 
   /// Set options for output.
+  ///
+  /// Both are accepted:
+  /// - [`OutputOptionsBuilder`]
+  /// - [`OutputOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
+  /// use rspack_core::{Compiler, OutputOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().output(OutputOptionsBuilder::default().path("/dist"));
+  ///
+  /// // `OutputOptions::builder` equals to `OutputOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().output(OutputOptions::builder().path("/dist"));
+  ///
+  /// // Or directly passing `OutputOptions`
+  /// // let compiler = Compiler::builder().output(OutputOptions { ... });
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::output`] for more details.
   pub fn output<V>(&mut self, output: V) -> &mut Self
@@ -254,6 +294,28 @@ impl CompilerBuilder {
 
   /// Set options for optimization.
   ///
+  /// Both are accepted:
+  /// - [`OptimizationOptionsBuilder`]
+  /// - [`Optimization`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
+  /// use rspack_core::{Compiler, Optimization};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///
+  /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///
+  /// // Or directly passing `Optimization`
+  /// // let compiler = Compiler::builder().optimization(Optimization { ... });
+  /// ```
+  ///
   /// See [`CompilerOptionsBuilder::optimization`] for more details.
   pub fn optimization<V>(&mut self, optimization: V) -> &mut Self
   where
@@ -264,6 +326,17 @@ impl CompilerBuilder {
   }
 
   /// Set options for Node.js environment.
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, NodeOptionBuilder};
+  /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler =
+  ///   Compiler::builder().node(NodeOptionBuilder::default().global(NodeGlobalOption::True));
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::node`] for more details.
   pub fn node<V>(&mut self, node: V) -> &mut Self
@@ -291,6 +364,29 @@ impl CompilerBuilder {
   }
 
   /// Set options for experiments.
+  ///
+  /// Both are accepted:
+  /// - [`ExperimentsBuilder`]
+  /// - [`Experiments`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ExperimentsBuilder};
+  /// use rspack_core::incremental::IncrementalPasses;
+  /// use rspack_core::{Compiler, Experiments};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///
+  /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  ///
+  /// // Or directly passing `Experiments`
+  /// // let compiler = Compiler::builder().experiments(Experiments { ... });
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::experiments`] for more details.
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
@@ -580,6 +676,26 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for module configuration.
+  ///
+  /// Both are accepted:
+  /// - [`ModuleOptionsBuilder`]
+  /// - [`ModuleOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
+  /// use rspack_core::{Compiler, ModuleOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().module(ModuleOptionsBuilder::default().rules(vec![]));
+  ///
+  /// // `ModuleOptions::builder` equals to `ModuleOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().module(ModuleOptions::builder().rules(vec![]));
+  ///
+  /// // Directly passing `ModuleOptions`
+  /// let compiler = Compiler::builder().module(ModuleOptions::default());
+  /// ```
   pub fn module<V>(&mut self, module: V) -> &mut Self
   where
     V: Into<ModuleOptionsBuilder>,
@@ -595,6 +711,26 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for output.
+  ///
+  /// Both are accepted:
+  /// - [`OutputOptionsBuilder`]
+  /// - [`OutputOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
+  /// use rspack_core::{Compiler, OutputOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().output(OutputOptionsBuilder::default().path("/dist"));
+  ///
+  /// // `OutputOptions::builder` equals to `OutputOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().output(OutputOptions::builder().path("/dist"));
+  ///
+  /// // Or directly passing `OutputOptions`
+  /// // let compiler = Compiler::builder().output(OutputOptions { ... });
+  /// ```
   pub fn output<V>(&mut self, output: V) -> &mut Self
   where
     V: Into<OutputOptionsBuilder>,
@@ -603,7 +739,29 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  /// Set options for optimization.
+  /// Set options for optimization.  
+  ///
+  /// Both are accepted:
+  /// - [`OptimizationOptionsBuilder`]
+  /// - [`Optimization`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
+  /// use rspack_core::{Compiler, Optimization};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///
+  /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///
+  /// // Or directly passing `Optimization`
+  /// // let compiler = Compiler::builder().optimization(Optimization { ... });
+  /// ```
   pub fn optimization<V>(&mut self, optimization: V) -> &mut Self
   where
     V: Into<OptimizationOptionsBuilder>,
@@ -613,6 +771,18 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for Node.js environment.
+  ///
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, NodeOptionBuilder};
+  /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler =
+  ///   Compiler::builder().node(NodeOptionBuilder::default().global(NodeGlobalOption::True));
+  /// ```
   pub fn node<V>(&mut self, node: V) -> &mut Self
   where
     V: Into<NodeOptionBuilder>,
@@ -628,6 +798,29 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for experiments.
+  ///
+  /// Both are accepted:
+  /// - [`ExperimentsBuilder`]
+  /// - [`Experiments`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ExperimentsBuilder};
+  /// use rspack_core::incremental::IncrementalPasses;
+  /// use rspack_core::{Compiler, Experiments};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///
+  /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  ///
+  /// // Or directly passing `Experiments`
+  /// // let compiler = Compiler::builder().experiments(Experiments { ... });
+  /// ```
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
   where
     V: Into<ExperimentsBuilder>,
@@ -1276,7 +1469,7 @@ impl NodeOptionBuilder {
   /// Build [`NodeOption`] from options.
   ///
   /// [`NodeOption`]: rspack_core::options::NodeOption
-  pub fn build(
+  fn build(
     &mut self,
     target_properties: &TargetProperties,
     output_module: bool,
@@ -1399,8 +1592,10 @@ impl ModuleOptionsBuilder {
 
   /// Build [`ModuleOptions`] from options.
   ///
+  /// Normally, you don't need to call this function, it's used internally by [`CompilerBuilder::build`].
+  ///
   /// [`ModuleOptions`]: rspack_core::options::ModuleOptions
-  pub fn build(
+  fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
     async_web_assembly: bool,
@@ -2360,7 +2555,7 @@ impl OutputOptionsBuilder {
   ///
   /// [`OutputOptions`]: rspack_core::options::OutputOptions
   #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
-  pub fn build(
+  fn build(
     &mut self,
     builder_context: &mut BuilderContext,
     context: &Context,
@@ -3090,7 +3285,7 @@ impl OptimizationOptionsBuilder {
   /// Build [`Optimization`] from options.
   ///
   /// [`Optimization`]: rspack_core::options::Optimization
-  pub fn build(
+  fn build(
     &mut self,
     builder_context: &mut BuilderContext,
     development: bool,
@@ -3432,7 +3627,7 @@ impl ExperimentsBuilder {
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
-  pub fn build(
+  fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
     development: bool,
