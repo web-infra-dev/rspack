@@ -245,7 +245,7 @@ class Compiler {
 		this.idle = false;
 
 		this.watchMode = false;
-		// this is a little tricky since applyDefaultOptions is executed later,so we don't get resolve.pnp default value
+		// this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
 		// we need to call pnp defaultValue early here
 		this.resolverFactory = new ResolverFactory(
 			options.resolve.pnp ?? getPnpDefault()
