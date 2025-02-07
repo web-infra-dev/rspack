@@ -27,7 +27,7 @@ Rspack 附带了许多内置插件，你可以通过 `rspack.PluginName` 访问�
 
 例如，[`DefinePlugin`](/plugins/webpack/define-plugin) 允许你在编译时将代码中的变量替换为其他值或表达式。你可以通过 `rspack.DefinePlugin` 来访问它，并使用 `new` 来创建插件实例：
 
-```ts title="rspack.config.mjs"
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
@@ -44,7 +44,7 @@ export default {
 
 Rspack 致力于兼容 webpack 生态中的插件，让用户能够使用社区中经过验证的优秀功能。你可以查看 [插件兼容列表](/guide/compatibility/plugin) 来获取已通过兼容性测试的 webpack 插件清单：
 
-```ts title="rspack.config.mjs"
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
@@ -60,7 +60,7 @@ Rspack 会忽略 `plugins` 数组中的 `false`、`''`、`0`、`null` 和 `undef
 
 比如，仅在开发环境中启用 [HotModuleReplacementPlugin](/plugins/webpack/hot-module-replacement-plugin)：
 
-```ts title="rspack.config.mjs"
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 const isDev = process.env.NODE_ENV === 'development';

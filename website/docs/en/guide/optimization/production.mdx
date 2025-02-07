@@ -8,7 +8,7 @@ It is recommended to enable SourceMap for production environments to facilitate 
 
 During the production build, Rspack uses the built-in minimizer to minify JavaScript and CSS code by default. You can use [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) and [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) for configuration.
 
-```ts title="rspack.config.mjs"
+```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
 
 export default {
