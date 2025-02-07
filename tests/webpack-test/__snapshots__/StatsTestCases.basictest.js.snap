@@ -312,10 +312,10 @@ Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
-"asset react.js 2.15 KiB [emitted] (name: react)
+"asset react.js 2.08 KiB [emitted] (name: react)
 ./react.js 74 bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/index.js 186 bytes [built] [code generated]
-../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/cjs/react.production.js 16.5 KiB [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js 190 bytes [built] [code generated]
+../../../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js 6.77 KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
@@ -336,12 +336,12 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
-"asset app.824f7ad4e050d52c-1.js 52 bytes [emitted] [immutable] (name: app)
+"asset app.65cf6affbf0cd0c0-1.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 205 bytes [orphan] 3 modules
 ./entry-1.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset app.05ce3dc57a31149c-2.js 52 bytes [emitted] [immutable] (name: app)
+asset app.61e784f58e359016-2.js 52 bytes [emitted] [immutable] (name: app)
 orphan modules 212 bytes [orphan] 3 modules
 ./entry-2.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -497,8 +497,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset 7d308f468b6a0d1b.js 10.4 KiB [emitted] [immutable] (name: main)
-asset 7342054f673663df.js 167 bytes [emitted] [immutable]"
+"asset 740788fdff79d6ed.js 10.4 KiB [emitted] [immutable] (name: main)
+asset 1c0222a0ac19cf1f.js 167 bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
@@ -581,19 +581,19 @@ Rspack x.x.x compiled with 2 warnings"
 `;
 
 exports[`StatsTestCases should print correct stats for issue-7577 1`] = `
-"asset a-runtime~main-8ed37b9e446eb01b.js 3.69 KiB [emitted] [immutable] (name: runtime~main)
+"asset a-runtime~main-5f65213afaf17c09.js 3.69 KiB [emitted] [immutable] (name: runtime~main)
 asset a-main-f9892dc0f961d982.js 387 bytes [emitted] [immutable] (name: main)
-asset a-all-a_js-cace9eea394248e7.js 128 bytes [emitted] [immutable] (id hint: all)
-Entrypoint main 4.19 KiB = a-runtime~main-8ed37b9e446eb01b.js 3.69 KiB a-all-a_js-cace9eea394248e7.js 128 bytes a-main-f9892dc0f961d982.js 387 bytes
+asset a-all-a_js-918a9036f0cd242b.js 128 bytes [emitted] [immutable] (id hint: all)
+Entrypoint main 4.19 KiB = a-runtime~main-5f65213afaf17c09.js 3.69 KiB a-all-a_js-918a9036f0cd242b.js 128 bytes a-main-f9892dc0f961d982.js 387 bytes
 runtime modules 2.59 KiB 3 modules
 ./a.js 18 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
 
-asset b-runtime~main-d374c52d52a8c105.js 4.38 KiB [emitted] [immutable] (name: runtime~main)
-asset b-all-b_js-f689e3be6ed05e06.js 453 bytes [emitted] [immutable] (id hint: all)
+asset b-runtime~main-8a8cd486e9842284.js 4.38 KiB [emitted] [immutable] (name: runtime~main)
+asset b-all-b_js-9c8883a8b9b3d692.js 453 bytes [emitted] [immutable] (id hint: all)
 asset b-main-a97968a81f0fafdb.js 420 bytes [emitted] [immutable] (name: main)
-asset b-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 5.41 KiB = b-runtime~main-d374c52d52a8c105.js 4.38 KiB b-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes b-all-b_js-f689e3be6ed05e06.js 453 bytes b-main-a97968a81f0fafdb.js 420 bytes
+asset b-vendors-node_modules_vendor_js-01281488ed24fc05.js 173 bytes [emitted] [immutable] (id hint: vendors)
+Entrypoint main 5.41 KiB = b-runtime~main-8a8cd486e9842284.js 4.38 KiB b-vendors-node_modules_vendor_js-01281488ed24fc05.js 173 bytes b-all-b_js-9c8883a8b9b3d692.js 453 bytes b-main-a97968a81f0fafdb.js 420 bytes
 runtime modules 3.17 KiB 5 modules
 cacheable modules 40 bytes
   ./b.js 17 bytes [built] [code generated]
@@ -601,12 +601,12 @@ cacheable modules 40 bytes
 Rspack x.x.x compiled successfully in X.23
 
 assets by chunk 862 bytes (id hint: all)
-  asset c-all-b_js-b683c5304b71900e.js 480 bytes [emitted] [immutable] (id hint: all)
-  asset c-all-c_js-2c876c6ecab93d9b.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-cf6fa4193cfaab7e.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
-asset c-main-1b0ba12f79ed8053.js 643 bytes [emitted] [immutable] (name: main)
-asset c-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-cf6fa4193cfaab7e.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
+  asset c-all-b_js-1655a389a0bf9852.js 480 bytes [emitted] [immutable] (id hint: all)
+  asset c-all-c_js-b08d5b511c537202.js 382 bytes [emitted] [immutable] (id hint: all)
+asset c-runtime~main-970964ed7997197f.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+asset c-main-6841207d93383d6a.js 643 bytes [emitted] [immutable] (name: main)
+asset c-vendors-node_modules_vendor_js-01281488ed24fc05.js 173 bytes [emitted] [immutable] (id hint: vendors)
+Entrypoint main 12.1 KiB = c-runtime~main-970964ed7997197f.js 11.1 KiB c-all-c_js-b08d5b511c537202.js 382 bytes c-main-6841207d93383d6a.js 643 bytes
 runtime modules 9.73 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
@@ -1458,8 +1458,8 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   asset production-a.js 10.6 KiB [emitted] (name: a)
   asset production-b.js 10.6 KiB [emitted] (name: b)
   asset production-dx_js.js 843 bytes [emitted]
-  asset production-dw_js-_b3b00.js 834 bytes [emitted]
-  asset production-dw_js-_b3b01.js 834 bytes [emitted]
+  asset production-dw_js-_ec0f0.js 834 bytes [emitted]
+  asset production-dw_js-_ec0f1.js 834 bytes [emitted]
   asset production-dy_js.js 827 bytes [emitted]
   asset production-dz_js.js 827 bytes [emitted]
   asset production-c.js 45 bytes [emitted] (name: c)
@@ -1488,11 +1488,11 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
   chunk (runtime: c) production-c.js (c) 9 bytes [entry] [rendered]
     ./c.js 9 bytes [built] [code generated]
       [no exports used]
-  chunk (runtime: a) production-dw_js-_b3b00.js 168 bytes [rendered]
+  chunk (runtime: a) production-dw_js-_ec0f0.js 168 bytes [rendered]
     ./dw.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
-  chunk (runtime: b) production-dw_js-_b3b01.js 168 bytes [rendered]
+  chunk (runtime: b) production-dw_js-_ec0f1.js 168 bytes [rendered]
     ./dw.js 46 bytes [built] [code generated]
     ./module.js?chunk 122 bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
