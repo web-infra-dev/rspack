@@ -298,18 +298,18 @@ fn create_module_layer_filter(
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
     Either3::A(regex) => {
-      Arc::new(move |layer| layer.map(|layer| regex.test(&layer)).unwrap_or_default())
+      Arc::new(move |layer| Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()))
     }
     Either3::B(js_str) => {
       let test = js_str.into_string();
       Arc::new(move |layer| {
-        if let Some(layer) = layer {
+        Ok(if let Some(layer) = layer {
           layer.starts_with(&test)
         } else {
           test.is_empty()
-        }
+        })
       })
     }
-    Either3::C(ts_fn) => Arc::new(move |layer| ts_fn.blocking_call_with_sync(layer).unwrap()),
+    Either3::C(ts_fn) => Arc::new(move |layer| ts_fn.blocking_call_with_sync(layer)),
   }
 }
