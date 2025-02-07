@@ -1230,6 +1230,11 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
+	layer: z
+		.string()
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string().optional()]), z.boolean()))
+		.optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 }) satisfies z.ZodType<t.OptimizationSplitChunksCacheGroup>;
 
