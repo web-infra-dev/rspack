@@ -11,6 +11,7 @@ impl NodePath for Utf8Path {
   fn node_join(&self, path: impl AsRef<Utf8Path>) -> Utf8PathBuf {
     let path = path.as_ref();
     let path = if path.is_absolute() {
+      #[allow(clippy::unwrap_used)]
       path.strip_prefix("/").unwrap()
     } else {
       path
@@ -26,10 +27,7 @@ mod test {
   #[test]
   fn test_node_join() {
     assert_eq!(
-      Utf8Path::new("foo")
-        .node_join("/bar")
-        .canonicalize()
-        .unwrap(),
+      Utf8Path::new("foo").node_join("/bar"),
       Utf8PathBuf::from("foo/bar")
     );
   }
