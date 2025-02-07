@@ -1574,7 +1574,6 @@ export interface RawEnvironment {
   module?: boolean
   optionalChaining?: boolean
   templateLiteral?: boolean
-  dynamicImportInWorker?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {
