@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/entry-context/#context" />
 
@@ -18,7 +19,27 @@ By default, Rspack uses the current working directory of the Node.js process as 
 
 ## Example
 
-For example, you can use `__dirname` as the base directory:
+For example, you can use [`__dirname`](https://nodejs.org/docs/latest/api/modules.html#__dirname) as the base directory:
+
+<Tabs>
+  <Tab label="ESM">
+
+```ts title="rspack.config.mjs"
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default {
+  context: __dirname,
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
 
 ```ts title="rspack.config.js"
 module.exports = {
@@ -28,5 +49,8 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 In the above example, the `main` entry will be resolved based on the `path.join(__dirname, './src/index.js')` path.

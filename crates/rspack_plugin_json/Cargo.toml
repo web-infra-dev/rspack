@@ -8,10 +8,10 @@ version     = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cow-utils    = { workspace = true }
-json         = { workspace = true }
-ropey        = "1.6.1"
+cow-utils        = { workspace = true }
+json             = { workspace = true }
+ropey            = "1.6.1"
 rspack_cacheable = { workspace = true }
-rspack_core  = { workspace = true }
-rspack_error = { workspace = true }
-rspack_util  = { workspace = true }
+rspack_core      = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_util      = { workspace = true }

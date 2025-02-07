@@ -3,7 +3,7 @@
 > 详见 [Logger 对象](/api/javascript-api/logger)
 
 ```ts
-export type Logger = {
+type Logger = {
   getChildLogger: (name: string | (() => string)) => Logger; // 创建子 Logger
   error(...args: any[]): void; // 展示错误日志
   warn(...args: any[]): void; //  展示警告日志

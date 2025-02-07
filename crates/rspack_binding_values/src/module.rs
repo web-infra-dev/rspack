@@ -1,10 +1,12 @@
 use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
+use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
-  ExportsArgument, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage,
+  SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -14,8 +16,13 @@ use rustc_hash::FxHashMap as HashMap;
 use super::JsCompatSourceOwned;
 use crate::{
   JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
-  JsDependencyWrapper, ToJsCompatSource,
+  JsDependencyWrapper, JsResourceData, ToJsCompatSource,
 };
+
+#[napi(object)]
+pub struct JsLibIdentOptions {
+  pub context: String,
+}
 
 #[derive(Default)]
 #[napi(object)]
@@ -279,6 +286,44 @@ impl JsModule {
   pub fn use_source_map(&mut self) -> napi::Result<bool> {
     let module = self.as_ref()?;
     Ok(module.get_source_map_kind().source_map())
+  }
+
+  #[napi]
+  pub fn lib_ident(
+    &mut self,
+    env: Env,
+    options: JsLibIdentOptions,
+  ) -> napi::Result<Option<JsString>> {
+    let module = self.as_ref()?;
+    Ok(
+      match module.lib_ident(LibIdentOptions {
+        context: &options.context,
+      }) {
+        Some(lib_ident) => Some(env.create_string(lib_ident.as_ref())?),
+        None => None,
+      },
+    )
+  }
+
+  #[napi(getter)]
+  pub fn resource_resolve_data(&mut self) -> napi::Result<Either<JsResourceData, ()>> {
+    let module = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(module) => Either::A(module.resource_resolved_data().into()),
+      None => Either::B(()),
+    })
+  }
+
+  #[napi(getter)]
+  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
+    let module = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(module) => match &module.match_resource() {
+        Some(match_resource) => Either::A(&match_resource.resource),
+        None => Either::B(()),
+      },
+      None => Either::B(()),
+    })
   }
 }
 

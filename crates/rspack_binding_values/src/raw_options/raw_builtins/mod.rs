@@ -68,6 +68,7 @@ use rspack_plugin_progress::ProgressPlugin;
 use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin;
 use rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin;
+use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_runtime::{
   enable_chunk_loading_plugin, ArrayPushCallbackChunkFormatPlugin, BundlerInfoPlugin,
   ChunkPrefetchPreloadPlugin, CommonJsChunkFormatPlugin, ModuleChunkFormatPlugin, RuntimePlugin,
@@ -102,7 +103,7 @@ use self::{
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
-use crate::entry::JsEntryPluginOptions;
+use crate::{entry::JsEntryPluginOptions, RawRsdoctorPluginOptions};
 use crate::{
   plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawContextReplacementPluginOptions,
   RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
@@ -192,6 +193,7 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  RsdoctorPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
@@ -557,6 +559,11 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::RsdoctorPlugin => {
+        let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(RsdoctorPlugin::new(options).boxed());
       }
     }
     Ok(())

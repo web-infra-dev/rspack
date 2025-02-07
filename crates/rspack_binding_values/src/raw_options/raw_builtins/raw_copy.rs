@@ -110,7 +110,7 @@ impl From<RawCopyPattern> for CopyPattern {
       }),
       context: context.map(Into::into),
       to_type: if let Some(to_type) = to_type {
-        match to_type.cow_to_lowercase().as_ref() {
+        match to_type.cow_to_ascii_lowercase().as_ref() {
           "dir" => Some(ToType::Dir),
           "file" => Some(ToType::File),
           "template" => Some(ToType::Template),

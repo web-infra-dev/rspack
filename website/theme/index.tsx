@@ -1,5 +1,6 @@
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
+import ConfigProvider from 'antd/es/config-provider';
 import { NoSSR, useLang, usePageData } from 'rspress/runtime';
 import Theme from 'rspress/theme';
 import { HomeLayout } from './pages';
@@ -11,27 +12,43 @@ const Layout = () => {
   const { page } = usePageData();
   const lang = useLang();
   return (
-    <Theme.Layout
-      beforeNavTitle={<NavIcon />}
-      beforeNav={
-        ANNOUNCEMENT_URL && (
-          <NoSSR>
-            <Announcement
-              href={
-                lang === 'en' ? ANNOUNCEMENT_URL : `/${lang}${ANNOUNCEMENT_URL}`
-              }
-              message={
-                lang === 'en'
-                  ? 'Rspack 1.0 has been released!'
-                  : 'Rspack 1.0 正式发布！'
-              }
-              localStorageKey="rspack-announcement-closed"
-              display={page.pageType === 'home'}
-            />
-          </NoSSR>
-        )
-      }
-    />
+    <ConfigProvider
+      theme={{
+        // Update tokens for Collapse in dark mode
+        token: {
+          colorBorder: 'var(--rp-c-divider)',
+        },
+        components: {
+          Collapse: {
+            contentBg: 'transparent',
+          },
+        },
+      }}
+    >
+      <Theme.Layout
+        beforeNavTitle={<NavIcon />}
+        beforeNav={
+          ANNOUNCEMENT_URL && (
+            <NoSSR>
+              <Announcement
+                href={
+                  lang === 'en'
+                    ? ANNOUNCEMENT_URL
+                    : `/${lang}${ANNOUNCEMENT_URL}`
+                }
+                message={
+                  lang === 'en'
+                    ? 'Rspack 1.0 has been released!'
+                    : 'Rspack 1.0 正式发布！'
+                }
+                localStorageKey="rspack-announcement-closed"
+                display={page.pageType === 'home'}
+              />
+            </NoSSR>
+          )
+        }
+      />
+    </ConfigProvider>
   );
 };
 
