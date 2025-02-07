@@ -83,10 +83,18 @@ impl JsChunkGroup {
 
     Ok(js_origins)
   }
-}
 
-#[napi]
-impl JsChunkGroup {
+  #[napi(getter, ts_return_type = "JsChunkGroup[]")]
+  pub fn children_iterable(&self) -> napi::Result<Vec<JsChunkGroupWrapper>> {
+    let (compilation, chunk_graph) = self.as_ref()?;
+    Ok(
+      chunk_graph
+        .children_iterable()
+        .map(|ukey| JsChunkGroupWrapper::new(*ukey, compilation))
+        .collect::<Vec<_>>(),
+    )
+  }
+
   #[napi]
   pub fn is_initial(&self) -> napi::Result<bool> {
     let (_, chunk_group) = self.as_ref()?;

@@ -10,6 +10,7 @@ export class ChunkGroup {
 	declare readonly index?: number;
 	declare readonly name?: string;
 	declare readonly origins: ReadonlyArray<ChunkGroupOrigin>;
+	declare readonly childrenIterable: Set<ChunkGroup>;
 
 	#inner: JsChunkGroup;
 
@@ -56,6 +57,14 @@ export class ChunkGroup {
 							: undefined,
 						request: origin.request
 					}));
+				}
+			},
+			childrenIterable: {
+				enumerable: true,
+				get: () => {
+					return this.#inner.childrenIterable.map(child =>
+						ChunkGroup.__from_binding(child)
+					);
 				}
 			}
 		});
