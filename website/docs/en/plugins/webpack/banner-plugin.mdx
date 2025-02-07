@@ -111,8 +111,10 @@ type BannerPluginArgument = BannerContent | BannerPluginOptions;
 
 Add a banner to the bottom of each chunk file.
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.BannerPlugin({
       banner: 'hello world',
