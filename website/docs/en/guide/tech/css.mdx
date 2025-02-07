@@ -14,8 +14,8 @@ Rspack provides the [experiment.css](/config/experiments#experimentscss) option,
 
 > If you create a new project based on Rspack, it is recommended to use this method.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     css: true,
   },
@@ -30,8 +30,8 @@ After enabling `experiment.css`, Rspack will support the following three module 
 
 For files ending in `*.css`, Rspack will treat them as `type: 'css/auto'` by default. You can also configure `type: 'css/auto'` to customize which files are treated as CSS files. For example, treat `.less` files as CSS files:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -56,10 +56,10 @@ If you are migrating a webpack project that uses [mini-css-extract-plugin](https
 
 - Add configuration:
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -89,8 +89,8 @@ Rspack supports using [css-loader](https://github.com/webpack-contrib/css-loader
 
 - Add configuration:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -133,8 +133,8 @@ document.getElementById('element').className = red;
 
 To enable default imports in Rspack, you need to set `namedExports` to `false` in your `rspack.config.js` file. This allows you, when using CSS Modules, to import the entire style module by default import, in addition to namespace imports and named imports:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {
@@ -160,8 +160,8 @@ Rspack supports [postcss-loader](https://github.com/webpack-contrib/postcss-load
 
 <PackageManagerTabs command="add postcss postcss-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -192,8 +192,8 @@ Rspack supports [sass-loader](https://github.com/webpack-contrib/sass-loader), w
 
 <PackageManagerTabs command="add sass-embedded sass-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -225,8 +225,8 @@ Rspack supports [less-loader](https://github.com/webpack-contrib/less-loader), w
 
 <PackageManagerTabs command="add less less-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -267,8 +267,8 @@ Once installed, you need to configure `postcss-loader` in `rspack.config.js` to 
 
 Here is an example configuration for handling `.css` files, if you need to handle `.scss` or `.less` files, you can refer to this example for modifications.
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

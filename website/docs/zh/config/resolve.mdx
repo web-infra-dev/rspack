@@ -49,8 +49,8 @@ import WebpackLicense from '@components/WebpackLicense';
 
 用于描述的 JSON 文件。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     descriptionFiles: ['package.json'],
   },
@@ -65,8 +65,8 @@ module.exports = {
 
 如果是 `true`，将不允许无扩展名文件。默认如果 `./foo` 有 `.js` 扩展，`require('./foo')` 可以正常运行。但如果启用此选项，只有 `require('./foo.js')` 能够正常工作。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     enforceExtension: false,
   },
@@ -108,8 +108,8 @@ module.exports = {
 
 定义拓展名的别名，例如：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     extensionAlias: {
       '.js': ['.ts', '.js'],
@@ -133,8 +133,8 @@ Rspack 在解析 `import './foo.js'` 时，会依次尝试解析 `'./foo.ts'` �
 
 当常规解析失败时重定向模块请求。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   resolve: {
     fallback: {
@@ -149,10 +149,10 @@ Rspack 默认不会为 Node.js 核心模块提供 polyfills，这意味着如果
 
 你可以使用 [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) 来自动 polyfill Node.js 核心模块。
 
-```js title="rspack.config.js"
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+```js title="rspack.config.mjs"
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
-module.exports = {
+export default {
   // ...
   plugins: [new NodePolyfillPlugin()],
 };
@@ -160,8 +160,12 @@ module.exports = {
 
 或者参考 webpack 4 使用的 Node.js polyfills 列表：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
   //...
   resolve: {
     fallback: {
@@ -226,8 +230,8 @@ module.exports = {
 
 当 `target` 配置为 `'web'`, `'webworker'`, 或未指定时，默认值为 `["browser", "module", "main"]`。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFields: ['browser', 'module', 'main'],
   },
@@ -236,8 +240,8 @@ module.exports = {
 
 对于任何其他 `target`（包括 `'node'`）, 默认值为 `["module", "main"]`。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFields: ['module', 'main'],
   },
@@ -265,8 +269,8 @@ module.exports = {
 
 可以配置多个文件名后缀：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFiles: ['index', 'main'],
   },
@@ -301,8 +305,8 @@ Rspack 中用来替代 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/pac
 - **类型：** `string | object | undefined`
 - **默认值:** `undefined`
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -379,8 +383,8 @@ module.exports = {
 
 当 [`!!process.versions.pnp`](https://yarnpkg.com/advanced/pnpapi#processversionspnp) 为 `true` 时（即应用在 Yarn PnP 环境中运行时），它默认是启用的。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   resolve: {
     pnp: true,

@@ -565,8 +565,8 @@ type ExecuteModuleContext = {
 
 可通过修改运行时依赖集合以添加额外的内置运行时模块：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {
@@ -605,8 +605,8 @@ console.log(__webpack_require__.h);
 
 可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义运行时模块：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {
@@ -659,8 +659,8 @@ console.log(__webpack_require__.mock('index.js'));
 
 可通过 `source` 字段修改该运行时模块生成的代码。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     {
       apply(compiler) {

@@ -36,16 +36,16 @@ import WebpackLicense from '@components/WebpackLicense';
 
 指定 Compiler 需要编译为 Node.js 环境下的代码：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   target: 'node',
 };
 ```
 
 当传递多个 target 时，Rspack 将使用公共的 features 子集：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // Rspack 将为 web 平台生成运行时代码，并且只使用 ES5 特性
   target: ['web', 'es5'],
 };
@@ -53,8 +53,8 @@ module.exports = {
 
 注意并非所有 target 都可以混合使用。当指定 Compiler 需要编译为多个平台时，则会报错：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   target: ['web', 'node'],
 };
 ```
@@ -84,8 +84,8 @@ module.exports = {
 
 可以选择指定一个 node 或 electron 的版本。这在上表中用 [[X].Y] 表示。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   target: 'node18.12',
 };
@@ -97,8 +97,8 @@ module.exports = {
 
 如果上述列表中的预设 target 都不符合你的需求，你可以将 `target` 设置为 `false`，这将告诉 Rspack 不使用任何插件。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   target: false,
 };

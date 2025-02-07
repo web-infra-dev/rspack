@@ -20,8 +20,8 @@ Refer to [Loader API - Examples](/api/loader-api/examples) to learn how to devel
 
 CSS is a first-class citizen of Rspack, so processing of CSS files is natively supported. For `Less` files, you need to use an external [less-loader](https://github.com/webpack-contrib/less-loader) to transform the contents of the file accordingly.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -46,8 +46,8 @@ You can chain multiple loaders for a particular [Rule](/config/module#rule) matc
 
 For example, you can use [less-loader](https://github.com/webpack-contrib/less-loader) to do the transformation between Less to CSS types and [postcss-loader](https://github.com/webpack-contrib/postcss-loader) for the transformed source code to perform a secondary transformation, which will then get passed to Rspack's CSS post-processor for further processing.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -71,8 +71,8 @@ module.exports = {
 
 You can use [Rule.use](/config/module#ruleuse) to pass the relevant configuration to the loader, for example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

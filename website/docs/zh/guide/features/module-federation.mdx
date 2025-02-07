@@ -61,10 +61,10 @@ module.exports = {
 
 你可以通过 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 来使用它，无须安装任何插件。
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   output: {
     // set uniqueName explicitly to make HMR works
     uniqueName: 'app',

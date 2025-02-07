@@ -19,8 +19,8 @@ import WebpackLicense from '@components/WebpackLicense';
 
 详见[源代码](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts#L381)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     defaultRules: [
       '...', // 使用 "..." 来引用 Rspack 默认规则
@@ -40,24 +40,28 @@ module.exports = {
 
 请注意：这些文件依然还会被已配置的 loaders 处理。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     noParse: /typescript|watermark-dom/,
   },
 };
 ```
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
   module: {
     noParse: [require.resolve('typescript'), /watermark-dom/],
   },
 };
 ```
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     noParse: request => /typescript|watermark-dom/.test(request),
   },
@@ -71,8 +75,8 @@ module.exports = {
 
 使用 `module.parser` 在一个地方配置所有解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       // asset 模块的解析器选项
@@ -110,8 +114,8 @@ module.exports = {
 
 `asset` 模块的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       asset: {
@@ -129,8 +133,8 @@ module.exports = {
 
 如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能作用于 [Asset modules](/guide/features/asset-module)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       asset: {
@@ -148,8 +152,8 @@ module.exports = {
 
 `javascript` 模块的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -169,8 +173,8 @@ module.exports = {
 
 指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -190,8 +194,8 @@ module.exports = {
 
 指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -211,8 +215,8 @@ module.exports = {
 
 指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -234,8 +238,8 @@ module.exports = {
 
 指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -265,8 +269,8 @@ module.exports = {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -286,8 +290,8 @@ module.exports = {
 
 启用完全动态依赖（`import(variable)`）的警告。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -307,8 +311,8 @@ module.exports = {
 
 启用部分动态依赖（`import("./path/to/" + variable)`）的警告。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -328,8 +332,8 @@ module.exports = {
 
 设置正则表达式，用于匹配包裹的动态依赖。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -348,8 +352,8 @@ module.exports = {
 
 是否要解析替换 `import.meta`。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -374,8 +378,8 @@ module.exports = {
 - `"auto"`：根据模块是否为严格 ESM，如果是严格 ESM 则报错，否则警告。
 - `false`：关闭该功能。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -392,8 +396,8 @@ module.exports = {
 
 当使用了不存在的导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -410,8 +414,8 @@ module.exports = {
 
 当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#moduleparserjavascriptexportspresence) 的配置。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -428,8 +432,8 @@ module.exports = {
 
 当导入的名称在导入模块中不存在时，发出错误而不是警告。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -448,8 +452,8 @@ module.exports = {
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -479,8 +483,8 @@ module.exports = {
 
 这可能会影响模块的行为（某些行为在严格模式和非严格模式之间有所不同），因此请谨慎配置此选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       javascript: {
@@ -495,8 +499,8 @@ module.exports = {
 
 `javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'javascript/auto': {
@@ -511,8 +515,8 @@ module.exports = {
 
 `javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'javascript/dynamic': {
@@ -527,8 +531,8 @@ module.exports = {
 
 `javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'javascript/esm': {
@@ -543,8 +547,8 @@ module.exports = {
 
 `css/auto` 模块的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {
@@ -568,8 +572,8 @@ module.exports = {
 
 当使用 `namedExports: true` 时，你可以使用命名空间导出或命名导出：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {
@@ -589,8 +593,8 @@ import { class1, class2 } from './index.module.css';
 
 当使用 `namedExports: false` 时，除了命名空间导出和命名导出之外，还可以用默认导出：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {
@@ -616,8 +620,8 @@ import classes, { class1, class2 } from './index.module.css';
 
 `css` 模块的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       css: {
@@ -636,8 +640,8 @@ module.exports = {
 
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       css: {
@@ -652,8 +656,8 @@ module.exports = {
 
 `css/module` 模块的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/module': {
@@ -672,8 +676,8 @@ module.exports = {
 
 和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/module': {
@@ -691,8 +695,8 @@ module.exports = {
 
 使用 `module.generator` 在一个地方配置所有生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       // asset 模块的生成器选项
@@ -744,8 +748,8 @@ module.exports = {
 
 `asset` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -763,8 +767,8 @@ module.exports = {
 
 仅对模块类型为 `asset` 或 `'asset/inline'` 的模块生效。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -780,8 +784,12 @@ module.exports = {
 
 当被作为一个函数使用，它必须为每个模块执行且并须返回一个 data URI 字符串。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
   //...
   module: {
     generator: {
@@ -803,8 +811,8 @@ module.exports = {
 
 设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset/inline'` 的模块生效。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -824,8 +832,8 @@ module.exports = {
 
 dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset/inline'` 的模块生效。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -850,8 +858,8 @@ module.exports = {
 
 - `'asset'`:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -864,8 +872,8 @@ module.exports = {
 
 - `'asset/resource'`:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -884,8 +892,8 @@ module.exports = {
 
 覆盖 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -905,8 +913,8 @@ module.exports = {
 
 仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -924,8 +932,8 @@ module.exports = {
 
 覆盖 [`output.publicPath`](/config/output#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -947,8 +955,8 @@ module.exports = {
 
 - `'asset'`：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       asset: {
@@ -961,8 +969,8 @@ module.exports = {
 
 - `'asset/resource'`：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -977,8 +985,8 @@ module.exports = {
 
 `asset/inline` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/inline': {
@@ -993,8 +1001,8 @@ module.exports = {
 
 和 [`module.generator["asset"].dataUrl`](#modulegeneratorassetdataurl) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/inline': {
@@ -1011,8 +1019,8 @@ module.exports = {
 
 和 [`module.generator["asset"].dataUrl.encoding`](#modulegeneratorassetdataurlencoding) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/inline': {
@@ -1029,8 +1037,8 @@ module.exports = {
 
 和 [`module.generator["asset"].dataUrl.mimetype`](#modulegeneratorassetdataurlmimetype) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/inline': {
@@ -1047,8 +1055,8 @@ module.exports = {
 
 `asset/resource` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -1063,8 +1071,8 @@ module.exports = {
 
 和 [`module.generator["asset"].importMode`](#modulegeneratorassetimportmode) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -1079,8 +1087,8 @@ module.exports = {
 
 和 [`module.generator["asset"].filename`](#modulegeneratorassetfilename) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -1095,8 +1103,8 @@ module.exports = {
 
 和 [`module.generator["asset"].outputPath`](#modulegeneratorassetoutputpath) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -1111,8 +1119,8 @@ module.exports = {
 
 和 [`module.generator["asset"].publicPath`](#modulegeneratorassetpublicpath) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'asset/resource': {
@@ -1127,8 +1135,8 @@ module.exports = {
 
 `css/auto` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/auto': {
@@ -1150,8 +1158,8 @@ module.exports = {
 
 自定义 CSS 导出名称如何导出到 JavaScript 模块，例如保留原样、转换为驼峰命名等等。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/auto': {
@@ -1171,8 +1179,8 @@ module.exports = {
 
 如果为 `false`，生成 stylesheets 并将其注入到 template 中。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/auto': {
@@ -1190,8 +1198,8 @@ module.exports = {
 
 自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/auto': {
@@ -1209,8 +1217,8 @@ module.exports = {
 
 是否为 CSS 的导出添加 `__esModule`，如果添加则会在 ESM-CJS interop 时当作 ES modules，否则当作 CommonJS modules。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/auto': {
@@ -1258,8 +1266,8 @@ function Button() {
 
 `css` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       css: {
@@ -1278,8 +1286,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       css: {
@@ -1294,8 +1302,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       css: {
@@ -1310,8 +1318,8 @@ module.exports = {
 
 `css/module` 模块的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/module': {
@@ -1330,8 +1338,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/module': {
@@ -1346,8 +1354,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/module': {
@@ -1362,8 +1370,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/module': {
@@ -1378,8 +1386,8 @@ module.exports = {
 
 和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     generator: {
       'css/module': {
@@ -1509,8 +1517,8 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 
 一个基础示例：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1523,8 +1531,8 @@ module.exports = {
 
 一个更复杂的示例是结合 [entry options](/config/entry#entrydescriptionlayer) 来同时构建 modern 和 legacy 产物：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     index: {
       import: './src/index.js',
@@ -1575,8 +1583,8 @@ module.exports = {
 
 比如，你可以通过以下配置将内联的 data uri 资源当作单独的资源处理：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1606,8 +1614,8 @@ module.exports = {
 
 例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1634,8 +1642,8 @@ module.exports = {
 
 例如，以下配置会与 `{ type: "url" }` 匹配，会将匹配到的模块的 [`type`](/config/module#ruletype) 修改为 `"asset/resource"`：
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1708,8 +1716,8 @@ module.exports = {
 
 对于通过规则条件匹配的特定模块的解析器选项，这将覆盖 `module.parser` 中的解析器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1733,8 +1741,8 @@ module.exports = {
 
 对于通过规则条件匹配的特定模块的生成器选项，这将覆盖 `module.generator` 中的生成器选项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -1757,8 +1765,8 @@ module.exports = {
 
 标记模块是否存在副作用，这会影响 [Tree Shaking](/guide/optimization/tree-shaking) 的结果。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   module: {
     rules: [
@@ -1779,8 +1787,8 @@ module.exports = {
 
 当指定为 `'pre'` 时，该 loader 会在其他所有 loader 之前执行。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   module: {
     rules: [
@@ -1796,8 +1804,8 @@ module.exports = {
 
 当指定为 `'post'` 时，该 loader 会在其他所有 loader 之后执行。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   module: {
     rules: [
@@ -1826,8 +1834,8 @@ module.exports = {
 
 例如，如果你想通过一个自定义 Loader 加载 `.json` 文件，你需要将类型设置为 `javascript/auto` 以绕过 Rspack 内置的 JSON 导入。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   module: {
     rules: [
@@ -1863,8 +1871,8 @@ module.exports = {
 只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   module: {
     rules: [
@@ -1897,8 +1905,8 @@ interface RawFuncUseCtx {
 
 用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   module: {
     rules: [
@@ -1921,8 +1929,8 @@ module.exports = {
 
 也可以使用一个函数：
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   module: {
     rules: [
@@ -1952,8 +1960,8 @@ module.exports = {
 //TODO: 添加 link 到 resolve
 }
 
-```ts title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

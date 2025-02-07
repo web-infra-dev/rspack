@@ -13,8 +13,8 @@ These are the remaining configuration options supported by rspack.
 
 Set the value of `require.amd` or `define.amd`. Setting `amd` to false will disable Rspack's AMD support.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   amd: {
     jQuery: true,
   },
@@ -28,8 +28,8 @@ module.exports = {
 Fail out on the first error instead of tolerating it. By default Rspack will log these errors in red in the terminal, as well as the browser console when using HMR, but continue bundling.
 To enable it:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   bail: true,
 };
 ```
@@ -76,8 +76,8 @@ module.exports = [
 
 Tells Rspack to ignore specific warnings.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
 };
@@ -92,8 +92,8 @@ module.exports = {
 
 Name of the configuration. Used when loading multiple configurations.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   name: 'admin-app',
 };
@@ -110,8 +110,8 @@ Expose custom values into the [loader context](/api/loader-api/context).
 
 For example, you can define a new variable in the loader context:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   loader: {
     answer: 42,

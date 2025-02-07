@@ -18,8 +18,10 @@ See [output.chunkLoading](/config/output#outputchunkloading) for details.
 
 Implement a custom chunk loading plugin using `EnableChunkLoadingPlugin.setEnabled`:
 
-```js
-class CustomChunkLoadingPlugin {
+```js title="CustomChunkLoadingPlugin.mjs"
+import { rspack } from '@rspack/core';
+
+export class CustomChunkLoadingPlugin {
   apply(compiler) {
     rspack.javascript.EnableChunkLoadingPlugin.setEnabled(
       compiler,
@@ -29,9 +31,11 @@ class CustomChunkLoadingPlugin {
 }
 ```
 
-Then use `output.chunkLoading: 'custom-chunk-loading'` in `rspack.config.js`:
+Then use `output.chunkLoading: 'custom-chunk-loading'` in Rspack config:
 
-```js
+```js title="rspack.config.mjs"
+import { CustomChunkLoadingPlugin } from './CustomChunkLoadingPlugin.mjs';
+
 export default {
   output: {
     chunkLoading: 'custom-chunk-loading',

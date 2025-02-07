@@ -426,8 +426,8 @@ addRuntimeModule(
 
 以下代码添加一个运行时模块，该模块定义 `__webpack_require__.mock`，并添加到 `"main"` Chunk 中：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {

@@ -103,10 +103,10 @@ Rspack 修改了 EJS 的 escape 和 unescape 的默认语法，使其采用和 `
 
 只需像这样，将插件添加到你的 Rspack 配置中：
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [new rspack.HtmlRspackPlugin()],
 };
 ```
@@ -325,10 +325,10 @@ type HtmlRspackPluginOptions = {
 </html>
 ```
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({
       title: "My HTML Template"
@@ -342,10 +342,10 @@ module.exports = {
 
 通过 `templateContent` 指定 HTML 模板内容：
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({
       title: "My HTML Template"
@@ -369,10 +369,10 @@ module.exports = {
 
 - 在 `templateContent` 中传入函数
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({
       title: "My HTML Template"
@@ -404,10 +404,10 @@ module.exports = ({ htmlRspackPlugin }) => `
 `;
 ```
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({
       title: "My HTML Template"
@@ -452,10 +452,10 @@ module.exports = {
 
 可以通过如下配置指定需要注入的 chunk：
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new HtmlRspackPlugin({
       chunks: ['app'],
@@ -466,10 +466,10 @@ module.exports = {
 
 也可以通过如下配置排除掉特定的 chunk：
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new HtmlRspackPlugin({
       excludeChunks: ['app'],
@@ -486,10 +486,10 @@ module.exports = {
 
 通过如下配置添加键值对以生成 `<meta>` 标签:
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new HtmlRspackPlugin({
       meta: {

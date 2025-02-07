@@ -19,16 +19,16 @@ import PropertyType from '@components/PropertyType';
 
 设置单个入口时，直接将入口模块的路径作为字符串传入 `entry` 配置项即可。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './src/index.js',
 };
 ```
 
 以上写法会自动将入口模块的名称设置为 `main`，等价于以下写法：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     main: './src/index.js',
   },
@@ -43,10 +43,10 @@ module.exports = {
 
 你也可以使用 Node.js 中的 [path 模块](https://nodejs.org/api/path.html) 来生成一个绝对路径，并传递给 `entry` 配置项：
 
-```ts title="rspack.config.js"
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   entry: path.join(__dirname, './src/index.js'),
 };
 ```
@@ -57,8 +57,8 @@ module.exports = {
 
 比如以下示例，会将 `pre.js` 和 `post.js` 构建到 `page` 的产物中。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     page: ['./src/pre.js', './src/post.js'],
   },
@@ -73,8 +73,8 @@ module.exports = {
 
 比如以下示例，会将 `page1` 和 `page2` 作为两个入口进行构建：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     page1: './src/page1/index.js',
     page2: './src/page2/index.js',
@@ -95,8 +95,8 @@ module.exports = {
 
 一个或多个入口模块的路径。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     foo: {
       import: './src/foo.js',
@@ -107,8 +107,8 @@ module.exports = {
 
 `import` 属性可以设置多个路径：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     foo: {
       import: ['./src/foo.js', './src/bar.js'],
@@ -128,8 +128,8 @@ module.exports = {
 
 `runtime` 属性用于设置运行时 `chunk` 的名称，比如将 `main` 入口的 chunk 名称设置为 `'foo'`：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     main: {
       import: './src/index.js',
@@ -228,8 +228,8 @@ module.exports = {
 只有在 [experiments.layers = true](/config/experiments#experimentslayers) 时该配置才会生效。
 :::
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     index: {
       import: './src/index.js',
@@ -248,8 +248,8 @@ module.exports = {
 
 > 要注意的是，`make` 事件在 webpack 启动和每当[监听文件变化](/config/watch)时都会触发。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   entry: () => './demo',
 };
@@ -257,8 +257,8 @@ module.exports = {
 
 或者：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   entry: () => new Promise(resolve => resolve(['./demo', './demo2'])),
 };
@@ -266,8 +266,8 @@ module.exports = {
 
 例如，你可以使用动态入口来从外部来源（远程服务器，文件系统内容或者数据库）获取真正的入口：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry() {
     return fetchPathsFromSomeExternalSource(); // 返回一个会被用像 ['src/main-layout.js', 'src/admin-layout.js'] 的东西 resolve 的 promise
   },

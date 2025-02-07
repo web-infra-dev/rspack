@@ -22,8 +22,8 @@ Loader 属于对资源的前处理，而 [Rule.type](/config/module#ruletype) �
 
 CSS 为 Rspack 的一等公民，因此对于 CSS 文件的处理是原生支持的。而对于 `Less` 文件来说，则需要借助外部的 [less-loader](https://github.com/webpack-contrib/less-loader) 对文件的内容做相应的转换：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -48,8 +48,8 @@ module.exports = {
 
 例如，你可以使用 [less-loader](https://github.com/webpack-contrib/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack-contrib/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -73,8 +73,8 @@ module.exports = {
 
 你可以使用 [Rule.use](/config/module#ruleuse) 给 loader 传递相关配置，例如：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

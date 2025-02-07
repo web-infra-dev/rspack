@@ -12,8 +12,8 @@ Options for infrastructure level logging. Generally used for logs unrelated to t
 
 Append lines to the output instead of updating existing output, useful for status messages. This option is used only when no custom [console](#infrastructureloggingconsole) is provided.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     appendOnly: true,
@@ -35,8 +35,8 @@ module.exports = {
 
 Enable colorful output for infrastructure level logging. This option is used only when no custom [console](#infrastructureloggingconsole) is provided.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     colors: true,
@@ -58,8 +58,8 @@ module.exports = {
 
 Customize the console used for infrastructure level logging.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     console: yourCustomConsole(),
@@ -74,8 +74,8 @@ module.exports = {
 
 Enable debug information of specified loggers such as plugins or loaders. Similar to [stats.loggingDebug](/config/stats#statsloggingdebug) option but for infrastructure. Defaults to `false`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     level: 'info',
@@ -100,8 +100,8 @@ Possible values:
 - `'log'` - errors, warnings, info messages, log messages, groups, clears. Collapsed groups are displayed in a collapsed state.
 - `'verbose'` - log everything except debug and trace. Collapsed groups are displayed in expanded state.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     level: 'info',
@@ -116,8 +116,8 @@ module.exports = {
 
 Stream used for logging output. Defaults to `process.stderr`. This option is used only when no custom [console](#infrastructureloggingconsole) is provided.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   infrastructureLogging: {
     stream: process.stderr,

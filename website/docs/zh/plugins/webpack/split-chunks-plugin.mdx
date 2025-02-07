@@ -30,8 +30,8 @@ Rspack 的默认配置符合 Web 性能最佳实践，但是项目的最佳策�
 
 下面这个配置对象代表 `SplitChunksPlugin` 的默认行为。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -73,8 +73,8 @@ Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheG
 
 缓存组可以继承和/或覆盖来自 `splitChunks.{cacheGroup}.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -99,8 +99,8 @@ module.exports = {
 
 还可以传递正则表达式，它是 `(chunk) => regex.test(chunk.name)` 的缩写。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -273,8 +273,8 @@ chunk baz
 
 缓存组可以继承和/或覆盖来自 `splitChunks.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在缓存组级别上进行配置。将它们设置为 `false` 以禁用任何默认缓存组。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -319,8 +319,8 @@ module.exports = {
 
 仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
