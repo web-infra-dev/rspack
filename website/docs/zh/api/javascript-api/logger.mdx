@@ -166,7 +166,7 @@ Rspack compiled successfully in 49 ms
 - **类型：**: `assert(assertion: any, ...args: any[]): void;`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.assert(false, "I am an assert error");
 logger.assert(true, "Never displayed");
 ```
@@ -186,7 +186,7 @@ LOG from TEST
 - **类型：** `status(...args: any[]): void`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.status("status info");
 ```
 
@@ -204,7 +204,7 @@ logger.status("status info");
 - **类型：** `trace(): void`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.trace();
 ```
 
@@ -225,7 +225,7 @@ DEBUG LOG from TEST
 - **类型：** `clear(): void;`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.debug("not displayed");
 logger.clear();
 logger.debug("will displayed");
@@ -246,7 +246,7 @@ logger.debug("will displayed");
 - `groupCollapsed(...args: any[]): void`: 将日志进行分组。默认显示为折叠 `logger.log` 日志，当日志记录级别设置为 'verbose' 或 'debug' 时，显示展开的日志。
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.group("Group");
 logger.info("Info");
 logger.log("Log");
@@ -288,7 +288,7 @@ logger.log("End");
 - `timeAggregateEnd(label: any): void`: 结束叠加记录时间差，并获得时间差总和。
 
 <Columns>
-```js title=rspack.config.js
+```js
 const wait = time => new Promise(resolve => setTimeout(resolve, time))
 logger.time("normal");
 await wait(100);
@@ -325,7 +325,7 @@ logger.timeAggregateEnd("aggregate")
 可以通过 `logger.getChildLogger()` 来创建子 Logger，其方法完全一致。
 
 <Columns>
-```js title=rspack.config.js
+```js
 const logger = compiler.getInfrastructureLogger("TEST");
 logger.info("logger info");
 const childLogger = logger.getChildLogger("CHILD");

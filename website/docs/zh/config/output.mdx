@@ -742,8 +742,8 @@ export default {
 
 内部 `import.meta` 对象的名字，可将其换成 polyfill 的对象。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     importMetaName: 'pseudoImport.meta',
@@ -759,8 +759,8 @@ module.exports = {
 
 一起来看一个简单的示例。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   entry: './src/index.js',
   output: {

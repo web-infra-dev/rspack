@@ -110,8 +110,8 @@ Expose custom values into the [loader context](/api/loader-api/context).
 
 For example, you can define a new variable in the loader context:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   loader: {
     answer: 42,

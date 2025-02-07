@@ -29,8 +29,8 @@ import WebpackLicense from '@components/WebpackLicense';
 | `named`         | 使用有意义、方便调试的内容当作模块 id。                                      |
 | `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。 |
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     moduleIds: 'deterministic',
   },
@@ -59,8 +59,8 @@ module.exports = {
 | `'size'`          | 使用让初始下载包大小更小的数字 id。                                                      |
 | `'total-size'`    | 使用让总下载包大小更小的数字 id。                                                        |
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     chunkIds: 'deterministic',
   },
@@ -73,8 +73,8 @@ module.exports = {
 
 是否合并重复的 chunks，将 `optimization.mergeDuplicateChunks` 设置成 `false` 来关闭该优化。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     mergeDuplicateChunks: false,
   },
@@ -93,8 +93,8 @@ module.exports = {
 
 是否使用 [`optimization.minimizer`](#optimizationminimizer) 中声明的压缩器对产物进行压缩。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     minimize: true,
   },
@@ -160,8 +160,8 @@ module.exports = {
 
 检测并移除打包过程中产生的空 Chunk。将 `optimization.removeEmptyChunks` 设置为 `false` 来禁用该优化。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     removeEmptyChunks: false,
   },
@@ -181,8 +181,8 @@ module.exports = {
 
 设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含运行时的额外 chunk。该设置等同于：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: {
       name: entrypoint => `runtime~${entrypoint.name}`,
@@ -193,8 +193,8 @@ module.exports = {
 
 设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: 'runtime',
   },
@@ -203,8 +203,8 @@ module.exports = {
 
 设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: {
       // 这将生成一个名为 `my-name.js` 的 chunk
@@ -232,8 +232,8 @@ module.exports = {
 
 如果将 `realContentHash` 设置为 `false`，则使用编译流程中的内部数据计算哈希，在某些情况下，即使产物内容完全一致也可能导致哈希变化。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     realContentHash: true,
@@ -257,8 +257,8 @@ Rspack 支持通过 `optimization.splitChunks` 配置项来对 Chunk 进行拆�
 
 开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     providedExports: false,
@@ -292,8 +292,8 @@ module.exports = {
 
 `optimization.sideEffects` 依赖于启用 [`optimization.providedExports`](#optimizationprovidedexports)。这在构建时会有一定的成本，但消除模块对性能有积极的影响，因为生成的代码更少。这个优化的效果取决于你的代码库，尝试使用它来获得可能的性能提升。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     sideEffects: true,
@@ -303,8 +303,8 @@ module.exports = {
 
 如果你只希望 Rspack 使用手动指定的 `sideEffects` 标志（通过 `package.json` 和 `module.rule.sideEffects`），而不分析源代码，可以这样配置：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     sideEffects: 'flag',
@@ -331,8 +331,8 @@ module.exports = {
 告诉 Rspack 对每个模块确定使用的导出。这取决于 `optimization.providedExports`。
 `optimization.usedExports` 收集的信息被其他优化或代码生成使用，即不会为未使用的导出生成导出信息，当所有用法兼容时，导出名称会被缩短为单个字符标识符。压缩器中的死代码消除将受益于此，并且可以删除未使用的导出。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     usedExports: false,
@@ -429,8 +429,8 @@ Rspack 将 `process.env.NODE_ENV` 设置为给定的字符串。除非该值被�
 - 任意字符串：设置 `process.env.NODE_ENV` 的值。
 - false：不设置 `process.env.NODE_ENV` 的值。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     nodeEnv: 'production',
@@ -454,8 +454,8 @@ module.exports = {
 
 开启 `optimization.emitOnErrors` 时，即使编译过程中发生错误，Rspack 也会生成产物。这些错误会被注入到产物代码中，运行它们时会抛出错误。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     emitOnErrors: true,
   },

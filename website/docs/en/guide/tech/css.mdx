@@ -133,8 +133,8 @@ document.getElementById('element').className = red;
 
 To enable default imports in Rspack, you need to set `namedExports` to `false` in your `rspack.config.js` file. This allows you, when using CSS Modules, to import the entire style module by default import, in addition to namespace imports and named imports:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {

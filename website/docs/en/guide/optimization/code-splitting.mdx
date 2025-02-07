@@ -116,8 +116,8 @@ When rebuild, you will find that `shared.js` has been extracted separately, and 
 
 We can specify certain modules to be forcibly grouped into a single Chunk, for example, the following configuration:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     splitChunks: {
       cacheGroups: {

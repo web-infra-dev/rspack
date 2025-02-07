@@ -750,8 +750,8 @@ export default {
 
 The name of the native `import.meta` object (can be exchanged for a polyfill).
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     importMetaName: 'pseudoImport.meta',
@@ -767,8 +767,8 @@ Output a library exposing the exports of your entry point.
 
 Let's take a look at an example.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   entry: './src/index.js',
   output: {

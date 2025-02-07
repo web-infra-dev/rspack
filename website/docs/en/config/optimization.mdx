@@ -29,8 +29,8 @@ The following string values are supported:
 | `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
 | `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     moduleIds: 'deterministic',
   },
@@ -61,8 +61,8 @@ The following string values are supported:
 | `'size'`          | Use numeric ids to make the initial download package smaller.                                                                                  |
 | `'total-size'`    | Use numeric ids to make the overall download package smaller.                                                                                  |
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     chunkIds: 'deterministic',
   },
@@ -75,8 +75,8 @@ module.exports = {
 
 Whether to merge chunks which contain the same modules. Setting `optimization.mergeDuplicateChunks` to `false` will disable this optimization.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     mergeDuplicateChunks: false,
   },
@@ -95,8 +95,8 @@ module.exports = {
 
 Whether to use the minimizer declared in [`optimization.minimizer`](#optimizationminimizer) to minimize the bundle.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     minimize: true,
   },
@@ -162,8 +162,8 @@ module.exports = {
 
 Detect and remove empty chunks generated in the compilation. Setting `optimization.removeEmptyChunks` to `false` will disable this optimization.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     removeEmptyChunks: false,
   },
@@ -183,8 +183,8 @@ Defaults to `false`, which means the runtime code is inlined into the entry chun
 
 Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point. This setting is an alias for:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: {
       name: entrypoint => `runtime~${entrypoint.name}`,
@@ -195,8 +195,8 @@ module.exports = {
 
 Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk. This setting is an alias for:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: 'runtime',
   },
@@ -205,8 +205,8 @@ module.exports = {
 
 By setting `optimization.runtimeChunk` to an object it can provide the `name` property which stands for the name for the runtime chunks.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     runtimeChunk: {
       // this will generate a chunk named `my-name.js`
@@ -234,8 +234,8 @@ Adds an additional hash compilation pass after the assets have been processed to
 
 If realContentHash is set to false, internal data is used to calculate the hash and it can change when assets are identical in some cases.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     realContentHash: true,
@@ -283,8 +283,8 @@ Please note that `sideEffects` should be in the npm module's `package.json` file
 This dependency has a build time cost, but eliminating modules has positive impact on performance because of less code generation.
 Effect of this optimization depends on your codebase, try it for possible performance wins.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     sideEffects: true,
@@ -294,8 +294,8 @@ module.exports = {
 
 If you only want Rspack use the manual `sideEffects` flag via (`package.json` and `module.rule.sideEffects`) and don't analyse source code:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     sideEffects: 'flag',
@@ -315,8 +315,8 @@ When `optimization.sideEffects` is true , Rspack will also flag modules as side 
 
 After enabling, Rspack will analyze which exports the module provides, including re-exported modules. A warning or error will be issued when importing members that reference non-existent exports. By default, `optimization.providedExports` is enabled. This analysis will increase build time. You may consider disabling this configuration in development mode. Disabling it may lead to errors related to runtime circular dependencies as mentioned in the [SideEffects section](/guide/optimization/tree-shaking#reexports-optimization).
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     providedExports: false,
@@ -338,8 +338,8 @@ Tells Rspack to determine used exports for each module. This depends on `optimiz
 Information collected by `optimization.usedExports` is used by other optimizations or code generation i.e.
 Exports are not generated for unused exports, export names are mangled to single char identifiers when all usages are compatible. Dead code elimination in minimizers will benefit from this and can remove unused exports.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     usedExports: false,
@@ -436,8 +436,8 @@ Possible values:
 - any string: the value to set `process.env.NODE_ENV` to.
 - false: do not modify/set the value of `process.env.NODE_ENV`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     nodeEnv: 'production',
@@ -461,8 +461,8 @@ When [mode](/config/mode) is set to `'none'`, `optimization.nodeEnv` defaults to
 
 Use the `optimization.emitOnErrors` to emit assets whenever there are errors while compiling. This ensures that erroring assets are emitted. The errors are emitted into the generated code and will cause errors at runtime.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     emitOnErrors: true,
   },

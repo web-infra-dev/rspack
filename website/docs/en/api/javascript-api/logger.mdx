@@ -166,7 +166,7 @@ Display errors when assertion is false.
 - **Type:**: `assert(assertion: any, ...args: any[]): void;`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.assert(false, "I am an assert error");
 logger.assert(true, "Never displayed");
 ```
@@ -186,7 +186,7 @@ Display progress status information, use `console.status` if exists, otherwise f
 - **Type:** `status(...args: any[]): void`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.status("status info");
 ```
 
@@ -204,7 +204,7 @@ Display a stack trace, only available while using compilation logger and also ne
 - **Type:** `trace(): void`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.trace();
 ```
 
@@ -225,7 +225,7 @@ Clean all logs, just like `console.clear()`.
 - **Type:** `clear(): void;`
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.debug("not displayed");
 logger.clear();
 logger.debug("will displayed");
@@ -246,7 +246,7 @@ Includes these methods:
 - `groupCollapsed(...args: any[]): void`: to group messages together. Displayed collapsed like `logger.log`. Displayed expanded when logging level is set to `'verbose'` or `'debug'`.
 
 <Columns>
-```js title=rspack.config.js
+```js
 logger.group("Group");
 logger.info("Info");
 logger.log("Log");
@@ -288,7 +288,7 @@ Includes these methods:
 - `timeAggregateEnd(label: any): void`: to end the aggregate capturing and record the total difference.
 
 <Columns>
-```js title=rspack.config.js
+```js
 const wait = time => new Promise(resolve => setTimeout(resolve, time))
 logger.time("normal");
 await wait(100);
@@ -325,7 +325,7 @@ Includes these methods:
 You can also create a child logger with `logger.getChildLogger()`. Child logger has same methods.
 
 <Columns>
-```js title=rspack.config.js
+```js
 const logger = compiler.getInfrastructureLogger("TEST");
 logger.info("logger info");
 const childLogger = logger.getChildLogger("CHILD");

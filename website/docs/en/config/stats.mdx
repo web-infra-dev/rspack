@@ -456,8 +456,8 @@ Whether to add logging output:
 
 Whether to display the debug information of the specified [loggers](/api/javascript-api/logger) such as Plugins or Loaders. When `stats.logging` is set to `false`, `stats.loggingDebug` option is ignored.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   stats: {
     loggingDebug: [
