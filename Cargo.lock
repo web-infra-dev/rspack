@@ -4822,6 +4822,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_paths",
  "rspack_plugin_externals",
  "rspack_util",
  "rustc-hash 2.1.0",
