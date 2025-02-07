@@ -13,11 +13,11 @@ Rspack 提供两种方案来支持 Vue：
 
 目前，Rspack 已经完成了对 Vue3 的支持，请确保你的 [vue-loader](https://github.com/vuejs/vue-loader) 版本 >= 17.2.2，并进行如下配置：
 
-```js title="rspack.config.js"
-const { VueLoaderPlugin } = require('vue-loader');
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+import { VueLoaderPlugin } from 'vue-loader';
 
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
+export default defineConfig({
   // ...
   plugins: [new VueLoaderPlugin()],
   module: {
@@ -33,8 +33,7 @@ const config = {
       },
     ],
   },
-};
-module.exports = config;
+});
 ```
 
 由于 Rspack 原生支持了 CSS 模块的编译，因此你无需配置与 CSS 相关的 loader。另外，当你尝试使用 CSS 预处理器（如：less）时，你只需要添加如下配置即可：
@@ -140,10 +139,10 @@ TypeScript 语法是通过 Rspack 内置的 `builtin:swc-loader` 进行支持的
 
 然后添加以下配置，即可在 `.jsx` 文件中使用 Vue 3 JSX 语法：
 
-```js title="rspack.config.js"
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
-  context: __dirname,
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   entry: {
     main: './src/index.jsx',
   },
@@ -162,8 +161,7 @@ const config = {
       },
     ],
   },
-};
-module.exports = config;
+});
 ```
 
 Rspack 提供了一个 Vue JSX 的[示例](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/vue3-jsx)可供参考。
