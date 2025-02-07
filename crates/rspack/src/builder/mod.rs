@@ -61,7 +61,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 use target::{get_targets_properties, TargetProperties};
 
@@ -232,6 +232,26 @@ impl CompilerBuilder {
 
   /// Set options for module configuration.
   ///
+  /// Both are accepted:
+  /// - [`ModuleOptionsBuilder`]
+  /// - [`ModuleOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
+  /// use rspack_core::{Compiler, ModuleOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().module(ModuleOptionsBuilder::default().rules(vec![]));
+  ///
+  /// // `ModuleOptions::builder` equals to `ModuleOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().module(ModuleOptions::builder().rules(vec![]));
+  ///
+  /// // Directly passing `ModuleOptions`
+  /// let compiler = Compiler::builder().module(ModuleOptions::default());
+  /// ```
+  ///
   /// See [`CompilerOptionsBuilder::module`] for more details.
   pub fn module<V>(&mut self, module: V) -> &mut Self
   where
@@ -242,6 +262,26 @@ impl CompilerBuilder {
   }
 
   /// Set options for output.
+  ///
+  /// Both are accepted:
+  /// - [`OutputOptionsBuilder`]
+  /// - [`OutputOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
+  /// use rspack_core::{Compiler, OutputOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().output(OutputOptionsBuilder::default().path("/dist"));
+  ///
+  /// // `OutputOptions::builder` equals to `OutputOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().output(OutputOptions::builder().path("/dist"));
+  ///
+  /// // Or directly passing `OutputOptions`
+  /// // let compiler = Compiler::builder().output(OutputOptions { ... });
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::output`] for more details.
   pub fn output<V>(&mut self, output: V) -> &mut Self
@@ -254,6 +294,28 @@ impl CompilerBuilder {
 
   /// Set options for optimization.
   ///
+  /// Both are accepted:
+  /// - [`OptimizationOptionsBuilder`]
+  /// - [`Optimization`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
+  /// use rspack_core::{Compiler, Optimization};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///
+  /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///
+  /// // Or directly passing `Optimization`
+  /// // let compiler = Compiler::builder().optimization(Optimization { ... });
+  /// ```
+  ///
   /// See [`CompilerOptionsBuilder::optimization`] for more details.
   pub fn optimization<V>(&mut self, optimization: V) -> &mut Self
   where
@@ -264,6 +326,17 @@ impl CompilerBuilder {
   }
 
   /// Set options for Node.js environment.
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, NodeOptionBuilder};
+  /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler =
+  ///   Compiler::builder().node(NodeOptionBuilder::default().global(NodeGlobalOption::True));
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::node`] for more details.
   pub fn node<V>(&mut self, node: V) -> &mut Self
@@ -291,6 +364,29 @@ impl CompilerBuilder {
   }
 
   /// Set options for experiments.
+  ///
+  /// Both are accepted:
+  /// - [`ExperimentsBuilder`]
+  /// - [`Experiments`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ExperimentsBuilder};
+  /// use rspack_core::incremental::IncrementalPasses;
+  /// use rspack_core::{Compiler, Experiments};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///
+  /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  ///
+  /// // Or directly passing `Experiments`
+  /// // let compiler = Compiler::builder().experiments(Experiments { ... });
+  /// ```
   ///
   /// See [`CompilerOptionsBuilder::experiments`] for more details.
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
@@ -580,6 +676,26 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for module configuration.
+  ///
+  /// Both are accepted:
+  /// - [`ModuleOptionsBuilder`]
+  /// - [`ModuleOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ModuleOptionsBuilder};
+  /// use rspack_core::{Compiler, ModuleOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().module(ModuleOptionsBuilder::default().rules(vec![]));
+  ///
+  /// // `ModuleOptions::builder` equals to `ModuleOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().module(ModuleOptions::builder().rules(vec![]));
+  ///
+  /// // Directly passing `ModuleOptions`
+  /// let compiler = Compiler::builder().module(ModuleOptions::default());
+  /// ```
   pub fn module<V>(&mut self, module: V) -> &mut Self
   where
     V: Into<ModuleOptionsBuilder>,
@@ -595,6 +711,26 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for output.
+  ///
+  /// Both are accepted:
+  /// - [`OutputOptionsBuilder`]
+  /// - [`OutputOptions`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OutputOptionsBuilder};
+  /// use rspack_core::{Compiler, OutputOptions};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder().output(OutputOptionsBuilder::default().path("/dist"));
+  ///
+  /// // `OutputOptions::builder` equals to `OutputOptionsBuilder::default()`
+  /// let compiler = Compiler::builder().output(OutputOptions::builder().path("/dist"));
+  ///
+  /// // Or directly passing `OutputOptions`
+  /// // let compiler = Compiler::builder().output(OutputOptions { ... });
+  /// ```
   pub fn output<V>(&mut self, output: V) -> &mut Self
   where
     V: Into<OutputOptionsBuilder>,
@@ -603,7 +739,29 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  /// Set options for optimization.
+  /// Set options for optimization.  
+  ///
+  /// Both are accepted:
+  /// - [`OptimizationOptionsBuilder`]
+  /// - [`Optimization`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, OptimizationOptionsBuilder};
+  /// use rspack_core::{Compiler, Optimization};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///
+  /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///
+  /// // Or directly passing `Optimization`
+  /// // let compiler = Compiler::builder().optimization(Optimization { ... });
+  /// ```
   pub fn optimization<V>(&mut self, optimization: V) -> &mut Self
   where
     V: Into<OptimizationOptionsBuilder>,
@@ -613,6 +771,18 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for Node.js environment.
+  ///
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, NodeOptionBuilder};
+  /// use rspack_core::{Compiler, NodeGlobalOption, NodeOption};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler =
+  ///   Compiler::builder().node(NodeOptionBuilder::default().global(NodeGlobalOption::True));
+  /// ```
   pub fn node<V>(&mut self, node: V) -> &mut Self
   where
     V: Into<NodeOptionBuilder>,
@@ -628,6 +798,29 @@ impl CompilerOptionsBuilder {
   }
 
   /// Set options for experiments.
+  ///
+  /// Both are accepted:
+  /// - [`ExperimentsBuilder`]
+  /// - [`Experiments`]
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use rspack::builder::{Builder as _, ExperimentsBuilder};
+  /// use rspack_core::incremental::IncrementalPasses;
+  /// use rspack_core::{Compiler, Experiments};
+  ///
+  /// // Using builder without calling `build()`
+  /// let compiler = Compiler::builder()
+  ///   .experiments(ExperimentsBuilder::default().incremental(IncrementalPasses::empty()));
+  ///
+  /// // `Experiments::builder` equals to `ExperimentsBuilder::default()`
+  /// let compiler =
+  ///   Compiler::builder().experiments(Experiments::builder().incremental(IncrementalPasses::empty()));
+  ///
+  /// // Or directly passing `Experiments`
+  /// // let compiler = Compiler::builder().experiments(Experiments { ... });
+  /// ```
   pub fn experiments<V>(&mut self, experiments: V) -> &mut Self
   where
     V: Into<ExperimentsBuilder>,
@@ -661,6 +854,15 @@ impl CompilerOptionsBuilder {
     let development = matches!(self.mode, Some(Mode::Development));
     let production = matches!(self.mode, Some(Mode::Production) | None);
     let mode = d!(self.mode.take(), Mode::Production);
+
+    if self.entry.is_empty() {
+      self
+        .entry
+        .insert("main".to_string(), EntryDescription::default());
+    }
+    self.entry.iter_mut().for_each(|(_, entry)| {
+      entry.import.get_or_insert(vec!["./src".to_string()]);
+    });
 
     let devtool = f!(self.devtool.take(), || {
       if development {
@@ -934,7 +1136,8 @@ impl CompilerOptionsBuilder {
           depend_on: desc.depend_on,
           layer: None,
         };
-        desc.import.into_iter().for_each(|import| {
+        // SAFETY: `desc.import` is not `None` as entry has been normalized above.
+        expect!(desc.import).into_iter().for_each(|import| {
           builder_context
             .plugins
             .push(BuiltinPluginOptions::EntryPlugin((
@@ -1102,6 +1305,7 @@ fn get_resolve_defaults(
       },
     ),
     ("commonjs".into(), cjs_deps()),
+    ("amd".into(), cjs_deps()),
     ("unknown".into(), cjs_deps()),
   ];
 
@@ -1276,7 +1480,7 @@ impl NodeOptionBuilder {
   /// Build [`NodeOption`] from options.
   ///
   /// [`NodeOption`]: rspack_core::options::NodeOption
-  pub fn build(
+  fn build(
     &mut self,
     target_properties: &TargetProperties,
     output_module: bool,
@@ -1399,8 +1603,10 @@ impl ModuleOptionsBuilder {
 
   /// Build [`ModuleOptions`] from options.
   ///
+  /// Normally, you don't need to call this function, it's used internally by [`CompilerBuilder::build`].
+  ///
   /// [`ModuleOptions`]: rspack_core::options::ModuleOptions
-  pub fn build(
+  fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
     async_web_assembly: bool,
@@ -2360,7 +2566,7 @@ impl OutputOptionsBuilder {
   ///
   /// [`OutputOptions`]: rspack_core::options::OutputOptions
   #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
-  pub fn build(
+  fn build(
     &mut self,
     builder_context: &mut BuilderContext,
     context: &Context,
@@ -2728,47 +2934,59 @@ impl OutputOptionsBuilder {
         .push(BuiltinPluginOptions::EnableLibraryPlugin(ty.clone()));
     }
 
-    let enabled_chunk_loading_types = f!(self.enabled_chunk_loading_types.take(), || {
-      let mut enabled_chunk_loading_types = vec![];
-      if let ChunkLoading::Enable(ty) = &chunk_loading {
-        enabled_chunk_loading_types.push(ty.clone());
-      }
-      if let ChunkLoading::Enable(ty) = &worker_chunk_loading {
-        enabled_chunk_loading_types.push(ty.clone());
-      }
-      for (_, desc) in entry.iter() {
-        if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
-          enabled_chunk_loading_types.push(ty.clone());
+    let enabled_chunk_loading_types = f!(
+      self
+        .enabled_chunk_loading_types
+        .take()
+        .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
+      || {
+        let mut enabled_chunk_loading_types = HashSet::default();
+        if let ChunkLoading::Enable(ty) = &chunk_loading {
+          enabled_chunk_loading_types.insert(ty.clone());
         }
+        if let ChunkLoading::Enable(ty) = &worker_chunk_loading {
+          enabled_chunk_loading_types.insert(ty.clone());
+        }
+        for (_, desc) in entry.iter() {
+          if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
+            enabled_chunk_loading_types.insert(ty.clone());
+          }
+        }
+        enabled_chunk_loading_types
       }
-      enabled_chunk_loading_types
-    });
-    for ty in enabled_chunk_loading_types.iter() {
+    );
+    for ty in enabled_chunk_loading_types {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty.clone()));
+        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty));
     }
 
-    let enabled_wasm_loading_types = f!(self.enabled_wasm_loading_types.take(), || {
-      let mut enabled_wasm_loading_types = vec![];
-      if let WasmLoading::Enable(ty) = wasm_loading {
-        enabled_wasm_loading_types.push(ty);
+    let enabled_wasm_loading_types = f!(
+      self
+        .enabled_wasm_loading_types
+        .take()
+        .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
+      || {
+        let mut enabled_wasm_loading_types = HashSet::default();
+        if let WasmLoading::Enable(ty) = wasm_loading {
+          enabled_wasm_loading_types.insert(ty);
+        }
+        if let WasmLoading::Enable(ty) = worker_wasm_loading {
+          enabled_wasm_loading_types.insert(ty);
+        }
+        // for (_, desc) in entry.iter() {
+        //   if let Some(wasm_loading) = &desc.wasm_loading {
+        //     enabled_wasm_loading_types.push(wasm_loading.clone());
+        //   }
+        // }
+        enabled_wasm_loading_types
       }
-      if let WasmLoading::Enable(ty) = worker_wasm_loading {
-        enabled_wasm_loading_types.push(ty);
-      }
-      // for (_, desc) in entry.iter() {
-      //   if let Some(wasm_loading) = &desc.wasm_loading {
-      //     enabled_wasm_loading_types.push(wasm_loading.clone());
-      //   }
-      // }
-      enabled_wasm_loading_types
-    });
+    );
 
-    for ty in enabled_wasm_loading_types.iter() {
+    for ty in enabled_wasm_loading_types {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(*ty));
+        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(ty));
     }
 
     let script_type = f!(self.script_type.take(), || {
@@ -2779,21 +2997,35 @@ impl OutputOptionsBuilder {
       }
     });
 
-    let environment = Environment {
-      r#const: tp.and_then(|t| t.r#const),
-      arrow_function: tp.and_then(|t| t.arrow_function),
-      node_prefix_for_core_modules: tp.and_then(|t| t.node_prefix_for_core_modules),
-      async_function: tp.and_then(|t| t.async_function),
-      big_int_literal: tp.and_then(|t| t.big_int_literal),
-      destructuring: tp.and_then(|t| t.destructuring),
-      for_of: tp.and_then(|t| t.for_of),
-      global_this: tp.and_then(|t| t.global_this),
-      optional_chaining: tp.and_then(|t| t.optional_chaining),
-      document: tp.and_then(|t| t.document),
-      dynamic_import: tp.and_then(|t| t.dynamic_import),
-      template_literal: tp.and_then(|t| t.template_literal),
-      module: tp.and_then(|t| t.module),
-    };
+    macro_rules! optimistic {
+      ($tp:expr) => {
+        matches!($tp, Some(true)) || $tp.is_none()
+      };
+    }
+    macro_rules! conditionally_optimistic {
+      ($tp:expr, $condition:expr) => {
+        ($tp.is_none() && $condition) || $tp.unwrap_or_default()
+      };
+    }
+
+    let mut environment = f!(self.environment.take(), Environment::default);
+    environment.global_this = tp.and_then(|t| t.global_this);
+    environment.big_int_literal = tp.map(|t| optimistic!(t.big_int_literal));
+    environment.r#const = tp.map(|t| optimistic!(t.r#const));
+    environment.arrow_function = tp.map(|t| optimistic!(t.arrow_function));
+    environment.async_function = tp.map(|t| optimistic!(t.async_function));
+    environment.for_of = tp.map(|t| optimistic!(t.for_of));
+    environment.destructuring = tp.map(|t| optimistic!(t.destructuring));
+    environment.optional_chaining = tp.map(|t| optimistic!(t.optional_chaining));
+    environment.node_prefix_for_core_modules =
+      tp.map(|t| optimistic!(t.node_prefix_for_core_modules));
+    environment.template_literal = tp.map(|t| optimistic!(t.template_literal));
+    environment.dynamic_import =
+      tp.map(|t| conditionally_optimistic!(t.dynamic_import, output_module));
+    environment.dynamic_import_in_worker =
+      tp.map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module));
+    environment.module = tp.map(|t| conditionally_optimistic!(t.module, output_module));
+    environment.document = tp.map(|t| optimistic!(t.document));
 
     OutputOptions {
       path,
@@ -3090,7 +3322,7 @@ impl OptimizationOptionsBuilder {
   /// Build [`Optimization`] from options.
   ///
   /// [`Optimization`]: rspack_core::options::Optimization
-  pub fn build(
+  fn build(
     &mut self,
     builder_context: &mut BuilderContext,
     development: bool,
@@ -3288,22 +3520,26 @@ impl OptimizationOptionsBuilder {
     });
     builder_context.plugins.extend(minimizer);
 
-    let node_env = f!(self.node_env.take(), || {
+    let node_env = self.node_env.take().or_else(|| {
       if production {
-        "production".to_string()
+        Some("production".to_string())
+      } else if development {
+        Some("development".to_string())
       } else {
-        "development".to_string()
+        None
       }
     });
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::DefinePlugin(
-        [(
-          "process.env.NODE_ENV".to_string(),
-          format!("{}", json!(node_env)).into(),
-        )]
-        .into(),
-      ));
+    if let Some(node_env) = node_env {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::DefinePlugin(
+          [(
+            "process.env.NODE_ENV".to_string(),
+            format!("{}", json!(node_env)).into(),
+          )]
+          .into(),
+        ));
+    }
 
     Optimization {
       remove_available_modules,
@@ -3432,7 +3668,7 @@ impl ExperimentsBuilder {
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
-  pub fn build(
+  fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
     development: bool,

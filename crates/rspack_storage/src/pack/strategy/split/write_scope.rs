@@ -162,6 +162,23 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     Ok(())
   }
 
+  async fn release_scope(&self, scope: &mut PackScope) -> Result<()> {
+    if let Some(release_generation) = self.release_generation {
+      let meta = scope.meta.expect_value();
+      let packs = scope.packs.expect_value_mut();
+      let current_generation = meta.generation;
+
+      for (bucket_pack_metas, bucket_packs) in meta.packs.iter().zip(packs) {
+        for (pack_meta, pack) in bucket_pack_metas.iter().zip(bucket_packs) {
+          if current_generation - pack_meta.generation > release_generation {
+            pack.contents.release();
+          }
+        }
+      }
+    }
+    Ok(())
+  }
+
   async fn optimize_scope(&self, scope: &mut PackScope) -> Result<()> {
     if !scope.loaded() {
       panic!("scope not loaded, run `load` first");
@@ -252,19 +269,12 @@ impl ScopeWriteStrategy for SplitPackStrategy {
     for bucket_pack_metas in meta.packs.iter() {
       let mut bucket_packs = vec![];
       for pack_meta in bucket_pack_metas {
-        let mut pack = wrote_packs
-          .remove(&pack_meta.hash)
-          .expect("should have pack");
-
-        if let Some(release_generation) = self.release_generation {
-          if meta.generation - pack_meta.generation > release_generation {
-            pack.contents.release();
-          }
-        }
-
-        bucket_packs.push(pack);
+        bucket_packs.push(
+          wrote_packs
+            .remove(&pack_meta.hash)
+            .expect("should have pack"),
+        );
       }
-
       wrote_scope_packs.push(bucket_packs);
     }
 

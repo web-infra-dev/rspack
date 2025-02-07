@@ -46,10 +46,16 @@ import type { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
+import type { JsLibIdentOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
 import type { JsModuleGraphConnection } from '@rspack/binding';
+import { JsRsdoctorAssetPatch } from '@rspack/binding';
+import { JsRsdoctorChunkGraph } from '@rspack/binding';
+import { JsRsdoctorModuleGraph } from '@rspack/binding';
+import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
+import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -1866,11 +1872,11 @@ namespace errorUtil {
         message?: string;
     };
     const // (undocumented)
-    errToObj: (message?: ErrMessage | undefined) => {
+    errToObj: (message?: ErrMessage) => {
         message?: string | undefined;
     };
     const // (undocumented)
-    toString: (message?: ErrMessage | undefined) => string | undefined;
+    toString: (message?: ErrMessage) => string | undefined;
 }
 
 // @public (undocumented)
@@ -2034,6 +2040,8 @@ interface Experiments_2 {
     };
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+    // (undocumented)
+    RsdoctorPlugin: typeof RsdoctorPlugin;
 }
 
 // @public (undocumented)
@@ -3739,6 +3747,10 @@ export class Module {
     // (undocumented)
     readonly layer: null | string;
     // (undocumented)
+    libIdent(options: JsLibIdentOptions): string | null;
+    // (undocumented)
+    readonly matchResource: string | undefined;
+    // (undocumented)
     readonly modules: Module[] | undefined;
     // (undocumented)
     nameForCondition(): string | null;
@@ -3750,6 +3762,8 @@ export class Module {
     readonly request?: string;
     // (undocumented)
     readonly resource?: string;
+    // (undocumented)
+    readonly resourceResolveData: Record<string, any> | undefined;
     // (undocumented)
     size(type?: string): number;
     // (undocumented)
@@ -5116,6 +5130,51 @@ export type ResourceDataWithData = ResourceData & {
 };
 
 // @public (undocumented)
+const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
+    getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
+    getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
+};
+
+// @public (undocumented)
+export namespace RsdoctorPluginData {
+    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch };
+}
+
+// @public (undocumented)
+export type RsdoctorPluginHooks = {
+    moduleGraph: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleGraph
+    ], false | void>;
+    chunkGraph: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorChunkGraph
+    ], false | void>;
+    moduleIds: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleIdsPatch
+    ], false | void>;
+    moduleSources: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleSourcesPatch
+    ], false | void>;
+    assets: liteTapable.AsyncSeriesBailHook<[JsRsdoctorAssetPatch], false | void>;
+};
+
+// @public (undocumented)
+const RsdoctorPluginImpl: {
+    new (c?: RsdoctorPluginOptions | undefined): {
+        name: BuiltinPluginName;
+        _args: [c?: RsdoctorPluginOptions | undefined];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+
+// @public (undocumented)
+type RsdoctorPluginOptions = {
+    moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
+    chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+};
+
+// @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
     webpack: Rspack;
@@ -5269,6 +5328,8 @@ declare namespace rspackExports {
         SharedObject,
         SharePluginOptions,
         sharing,
+        RsdoctorPluginData,
+        RsdoctorPluginHooks,
         HtmlRspackPluginOptions,
         SwcJsMinimizerRspackPluginOptions,
         LightningCssMinimizerRspackPluginOptions,
@@ -10175,6 +10236,43 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
     raw(compiler: Compiler): BuiltinPlugin;
 }
 
+// @public
+type StandardSchemaV1<Input = unknown, Output = Input> = {
+    readonly "~standard": StandardSchemaV1.Props<Input, Output>;
+};
+
+// @public (undocumented)
+namespace StandardSchemaV1 {
+    interface FailureResult {
+        readonly issues: ReadonlyArray<Issue>;
+    }
+    type InferInput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["input"];
+    type InferOutput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["output"];
+    interface Issue {
+        readonly message: string;
+        readonly path?: ReadonlyArray<PropertyKey | PathSegment> | undefined;
+    }
+    interface PathSegment {
+        readonly key: PropertyKey;
+    }
+    interface Props<Input = unknown, Output = Input> {
+        readonly types?: Types<Input, Output> | undefined;
+        readonly validate: (value: unknown) => Result<Output> | Promise<Result<Output>>;
+        readonly vendor: string;
+        readonly version: 1;
+    }
+    type Result<Output> = SuccessResult<Output> | FailureResult;
+    interface SuccessResult<Output> {
+        readonly issues?: undefined;
+        readonly value: Output;
+    }
+    interface Types<Input = unknown, Output = Input> {
+        readonly input: Input;
+        readonly output: Output;
+    }
+        {  };
+}
+
 // @public (undocumented)
 type Stat = {
     (path: PathLike, callback: StatsCallback): void;
@@ -10442,7 +10540,7 @@ type StringCallback = (err: NodeJS.ErrnoException | null, data?: string) => void
 type StringOrBufferCallback = (err: NodeJS.ErrnoException | null, data?: string | Buffer) => void;
 
 // @public (undocumented)
-type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "base64" | {
+type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" | "cuid" | "cuid2" | "ulid" | "datetime" | "date" | "time" | "duration" | "ip" | "cidr" | "base64" | "jwt" | "base64url" | {
     includes: string;
     position?: number;
 } | {
@@ -11638,7 +11736,7 @@ interface ZodDefaultDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
 // @public (undocumented)
 class ZodEffects<T extends ZodTypeAny, Output = output<T>, Input = input<T>> extends ZodType<Output, ZodEffectsDef<T>, Input> {
     // (undocumented)
-    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"], input<I>>;
+    static create: <I extends ZodTypeAny>(schema: I, effect: Effect<I["_output"]>, params?: RawCreateParams) => ZodEffects<I, I["_output"]>;
     // (undocumented)
     static createWithPreprocess: <I extends ZodTypeAny>(preprocess: (arg: unknown, ctx: RefinementCtx) => unknown, schema: I, params?: RawCreateParams) => ZodEffects<I, I["_output"], unknown>;
     // (undocumented)
@@ -11968,25 +12066,25 @@ interface ZodOptionalDef<T extends ZodTypeAny = ZodTypeAny> extends ZodTypeDef {
 
 // @public (undocumented)
 const ZodParsedType: {
-    function: "function";
-    number: "number";
     string: "string";
+    number: "number";
+    bigint: "bigint";
+    boolean: "boolean";
+    symbol: "symbol";
+    undefined: "undefined";
+    object: "object";
+    function: "function";
+    map: "map";
     nan: "nan";
     integer: "integer";
     float: "float";
-    boolean: "boolean";
     date: "date";
-    bigint: "bigint";
-    symbol: "symbol";
-    undefined: "undefined";
     null: "null";
     array: "array";
-    object: "object";
     unknown: "unknown";
     promise: "promise";
     void: "void";
     never: "never";
-    map: "map";
     set: "set";
 };
 
@@ -12086,6 +12184,10 @@ interface ZodTooSmallIssue extends ZodIssueBase {
 
 // @public (undocumented)
 abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input = Output> {
+    // (undocumented)
+    "~standard": StandardSchemaV1.Props<Input, Output>;
+    // (undocumented)
+    "~validate"(data: unknown): StandardSchemaV1.Result<Output> | Promise<StandardSchemaV1.Result<Output>>;
     constructor(def: Def);
     // (undocumented)
     and<T extends ZodTypeAny>(incoming: T): ZodIntersection<this, T>;
@@ -12165,7 +12267,7 @@ abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef, Input 
     safeParse(data: unknown, params?: Partial<ParseParams>): SafeParseReturnType<Input, Output>;
     // (undocumented)
     safeParseAsync(data: unknown, params?: Partial<ParseParams>): Promise<SafeParseReturnType<Input, Output>>;
-    spa: (data: unknown, params?: Partial<ParseParams> | undefined) => Promise<SafeParseReturnType<Input, Output>>;
+    spa: (data: unknown, params?: Partial<ParseParams>) => Promise<SafeParseReturnType<Input, Output>>;
     // (undocumented)
     superRefine<RefinedOutput extends Output>(refinement: (arg: Output, ctx: RefinementCtx) => arg is RefinedOutput): ZodEffects<this, RefinedOutput, Input>;
     // (undocumented)

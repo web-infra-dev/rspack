@@ -2466,13 +2466,13 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.41.1"
+version = "1.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e9ffc4d4892617c50a928c52b2961cb5174b6fc6ebf252b2fac9d21955c48b8"
+checksum = "6513e4067e16e69ed1db5ab56048ed65db32d10ba5fc1217f5393f8f17d8b5a5"
 dependencies = [
  "console",
- "lazy_static",
  "linked-hash-map",
+ "once_cell",
  "regex",
  "serde",
  "similar",
@@ -4144,6 +4144,7 @@ dependencies = [
  "bitflags 2.6.0",
  "enum-tag",
  "indexmap 2.7.0",
+ "insta",
  "regex",
  "rspack_core",
  "rspack_fs",
@@ -4268,6 +4269,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_remove_empty_chunks",
+ "rspack_plugin_rsdoctor",
  "rspack_plugin_runtime",
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
@@ -4675,6 +4677,7 @@ dependencies = [
  "rspack_paths",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
+ "rspack_plugin_rsdoctor",
  "rspack_plugin_runtime",
  "rspack_tracing",
  "rspack_util",
@@ -5178,6 +5181,26 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_rsdoctor"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "dashmap 6.1.0",
+ "futures",
+ "indexmap 2.7.0",
+ "rayon",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_util",
+ "rustc-hash 2.1.0",
+ "tokio",
  "tracing",
 ]
 

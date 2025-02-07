@@ -260,6 +260,7 @@ pub mod test_pack_utils {
     let mut changed = WriteScopeResult::default();
     changed.extend(strategy.write_packs(scope).await?);
     changed.extend(strategy.write_meta(scope).await?);
+    strategy.release_scope(scope).await?;
     strategy.merge_changed(changed.clone()).await?;
     flag_scope_wrote(scope);
 

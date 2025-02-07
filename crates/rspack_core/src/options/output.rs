@@ -177,7 +177,7 @@ impl From<&str> for WasmLoading {
   }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
@@ -472,7 +472,7 @@ pub struct LibraryCustomUmdObject {
   pub root: Option<Vec<String>>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: Option<bool>,
   pub arrow_function: Option<bool>,
@@ -487,6 +487,7 @@ pub struct Environment {
   pub module: Option<bool>,
   pub optional_chaining: Option<bool>,
   pub template_literal: Option<bool>,
+  pub dynamic_import_in_worker: Option<bool>,
 }
 
 impl Environment {
@@ -520,6 +521,10 @@ impl Environment {
 
   pub fn supports_dynamic_import(&self) -> bool {
     self.dynamic_import.unwrap_or_default()
+  }
+
+  pub fn supports_dynamic_import_in_worker(&self) -> bool {
+    self.dynamic_import_in_worker.unwrap_or_default()
   }
 
   pub fn supports_for_of(&self) -> bool {

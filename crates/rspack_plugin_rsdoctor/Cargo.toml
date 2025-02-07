@@ -1,0 +1,27 @@
+[package]
+description = "rspack rsdoctor native plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_rsdoctor"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait        = { workspace = true }
+dashmap            = { workspace = true }
+futures            = { workspace = true }
+indexmap           = { workspace = true }
+rayon              = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+rspack_hook        = { workspace = true }
+rspack_paths       = { workspace = true }
+rspack_util        = { workspace = true }
+rustc-hash         = { workspace = true }
+tokio              = { workspace = true }
+tracing            = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
