@@ -8,7 +8,7 @@ pub type EntryItem = Vec<String>;
 
 #[derive(Debug, Clone, Default)]
 pub struct EntryDescription {
-  pub import: EntryItem,
+  pub import: Option<EntryItem>,
   pub runtime: Option<String>,
   pub chunk_loading: Option<ChunkLoading>,
   pub async_chunks: Option<bool>,
@@ -25,7 +25,7 @@ where
 {
   fn from(value: V) -> Self {
     Self {
-      import: vec![value.into()],
+      import: Some(vec![value.into()]),
       ..Default::default()
     }
   }

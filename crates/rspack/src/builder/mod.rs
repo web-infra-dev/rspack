@@ -61,7 +61,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 use target::{get_targets_properties, TargetProperties};
 
@@ -855,6 +855,15 @@ impl CompilerOptionsBuilder {
     let production = matches!(self.mode, Some(Mode::Production) | None);
     let mode = d!(self.mode.take(), Mode::Production);
 
+    if self.entry.is_empty() {
+      self
+        .entry
+        .insert("main".to_string(), EntryDescription::default());
+    }
+    self.entry.iter_mut().for_each(|(_, entry)| {
+      entry.import.get_or_insert(vec!["./src".to_string()]);
+    });
+
     let devtool = f!(self.devtool.take(), || {
       if development {
         Devtool::Eval
@@ -1127,7 +1136,8 @@ impl CompilerOptionsBuilder {
           depend_on: desc.depend_on,
           layer: None,
         };
-        desc.import.into_iter().for_each(|import| {
+        // SAFETY: `desc.import` is not `None` as entry has been normalized above.
+        expect!(desc.import).into_iter().for_each(|import| {
           builder_context
             .plugins
             .push(BuiltinPluginOptions::EntryPlugin((
@@ -1295,6 +1305,7 @@ fn get_resolve_defaults(
       },
     ),
     ("commonjs".into(), cjs_deps()),
+    ("amd".into(), cjs_deps()),
     ("unknown".into(), cjs_deps()),
   ];
 
@@ -2923,47 +2934,59 @@ impl OutputOptionsBuilder {
         .push(BuiltinPluginOptions::EnableLibraryPlugin(ty.clone()));
     }
 
-    let enabled_chunk_loading_types = f!(self.enabled_chunk_loading_types.take(), || {
-      let mut enabled_chunk_loading_types = vec![];
-      if let ChunkLoading::Enable(ty) = &chunk_loading {
-        enabled_chunk_loading_types.push(ty.clone());
-      }
-      if let ChunkLoading::Enable(ty) = &worker_chunk_loading {
-        enabled_chunk_loading_types.push(ty.clone());
-      }
-      for (_, desc) in entry.iter() {
-        if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
-          enabled_chunk_loading_types.push(ty.clone());
+    let enabled_chunk_loading_types = f!(
+      self
+        .enabled_chunk_loading_types
+        .take()
+        .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
+      || {
+        let mut enabled_chunk_loading_types = HashSet::default();
+        if let ChunkLoading::Enable(ty) = &chunk_loading {
+          enabled_chunk_loading_types.insert(ty.clone());
         }
+        if let ChunkLoading::Enable(ty) = &worker_chunk_loading {
+          enabled_chunk_loading_types.insert(ty.clone());
+        }
+        for (_, desc) in entry.iter() {
+          if let Some(ChunkLoading::Enable(ty)) = &desc.chunk_loading {
+            enabled_chunk_loading_types.insert(ty.clone());
+          }
+        }
+        enabled_chunk_loading_types
       }
-      enabled_chunk_loading_types
-    });
-    for ty in enabled_chunk_loading_types.iter() {
+    );
+    for ty in enabled_chunk_loading_types {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty.clone()));
+        .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty));
     }
 
-    let enabled_wasm_loading_types = f!(self.enabled_wasm_loading_types.take(), || {
-      let mut enabled_wasm_loading_types = vec![];
-      if let WasmLoading::Enable(ty) = wasm_loading {
-        enabled_wasm_loading_types.push(ty);
+    let enabled_wasm_loading_types = f!(
+      self
+        .enabled_wasm_loading_types
+        .take()
+        .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
+      || {
+        let mut enabled_wasm_loading_types = HashSet::default();
+        if let WasmLoading::Enable(ty) = wasm_loading {
+          enabled_wasm_loading_types.insert(ty);
+        }
+        if let WasmLoading::Enable(ty) = worker_wasm_loading {
+          enabled_wasm_loading_types.insert(ty);
+        }
+        // for (_, desc) in entry.iter() {
+        //   if let Some(wasm_loading) = &desc.wasm_loading {
+        //     enabled_wasm_loading_types.push(wasm_loading.clone());
+        //   }
+        // }
+        enabled_wasm_loading_types
       }
-      if let WasmLoading::Enable(ty) = worker_wasm_loading {
-        enabled_wasm_loading_types.push(ty);
-      }
-      // for (_, desc) in entry.iter() {
-      //   if let Some(wasm_loading) = &desc.wasm_loading {
-      //     enabled_wasm_loading_types.push(wasm_loading.clone());
-      //   }
-      // }
-      enabled_wasm_loading_types
-    });
+    );
 
-    for ty in enabled_wasm_loading_types.iter() {
+    for ty in enabled_wasm_loading_types {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(*ty));
+        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(ty));
     }
 
     let script_type = f!(self.script_type.take(), || {
@@ -2974,21 +2997,35 @@ impl OutputOptionsBuilder {
       }
     });
 
-    let environment = Environment {
-      r#const: tp.and_then(|t| t.r#const),
-      arrow_function: tp.and_then(|t| t.arrow_function),
-      node_prefix_for_core_modules: tp.and_then(|t| t.node_prefix_for_core_modules),
-      async_function: tp.and_then(|t| t.async_function),
-      big_int_literal: tp.and_then(|t| t.big_int_literal),
-      destructuring: tp.and_then(|t| t.destructuring),
-      for_of: tp.and_then(|t| t.for_of),
-      global_this: tp.and_then(|t| t.global_this),
-      optional_chaining: tp.and_then(|t| t.optional_chaining),
-      document: tp.and_then(|t| t.document),
-      dynamic_import: tp.and_then(|t| t.dynamic_import),
-      template_literal: tp.and_then(|t| t.template_literal),
-      module: tp.and_then(|t| t.module),
-    };
+    macro_rules! optimistic {
+      ($tp:expr) => {
+        matches!($tp, Some(true)) || $tp.is_none()
+      };
+    }
+    macro_rules! conditionally_optimistic {
+      ($tp:expr, $condition:expr) => {
+        ($tp.is_none() && $condition) || $tp.unwrap_or_default()
+      };
+    }
+
+    let mut environment = f!(self.environment.take(), Environment::default);
+    environment.global_this = tp.and_then(|t| t.global_this);
+    environment.big_int_literal = tp.map(|t| optimistic!(t.big_int_literal));
+    environment.r#const = tp.map(|t| optimistic!(t.r#const));
+    environment.arrow_function = tp.map(|t| optimistic!(t.arrow_function));
+    environment.async_function = tp.map(|t| optimistic!(t.async_function));
+    environment.for_of = tp.map(|t| optimistic!(t.for_of));
+    environment.destructuring = tp.map(|t| optimistic!(t.destructuring));
+    environment.optional_chaining = tp.map(|t| optimistic!(t.optional_chaining));
+    environment.node_prefix_for_core_modules =
+      tp.map(|t| optimistic!(t.node_prefix_for_core_modules));
+    environment.template_literal = tp.map(|t| optimistic!(t.template_literal));
+    environment.dynamic_import =
+      tp.map(|t| conditionally_optimistic!(t.dynamic_import, output_module));
+    environment.dynamic_import_in_worker =
+      tp.map(|t| conditionally_optimistic!(t.dynamic_import_in_worker, output_module));
+    environment.module = tp.map(|t| conditionally_optimistic!(t.module, output_module));
+    environment.document = tp.map(|t| optimistic!(t.document));
 
     OutputOptions {
       path,
@@ -3483,22 +3520,26 @@ impl OptimizationOptionsBuilder {
     });
     builder_context.plugins.extend(minimizer);
 
-    let node_env = f!(self.node_env.take(), || {
+    let node_env = self.node_env.take().or_else(|| {
       if production {
-        "production".to_string()
+        Some("production".to_string())
+      } else if development {
+        Some("development".to_string())
       } else {
-        "development".to_string()
+        None
       }
     });
-    builder_context
-      .plugins
-      .push(BuiltinPluginOptions::DefinePlugin(
-        [(
-          "process.env.NODE_ENV".to_string(),
-          format!("{}", json!(node_env)).into(),
-        )]
-        .into(),
-      ));
+    if let Some(node_env) = node_env {
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::DefinePlugin(
+          [(
+            "process.env.NODE_ENV".to_string(),
+            format!("{}", json!(node_env)).into(),
+          )]
+          .into(),
+        ));
+    }
 
     Optimization {
       remove_available_modules,
