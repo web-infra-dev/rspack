@@ -146,7 +146,9 @@ impl ScopeManager {
           let mut scopes = self.scopes.lock().await;
           let scope = scopes.get_mut(name).expect("should have scope");
           self.strategy.ensure_contents(scope).await?;
-          Ok(scope.get_contents())
+          let res = scope.get_contents();
+          self.strategy.release_scope(scope).await?;
+          Ok(res)
         }
         // create empty scope if not exists
         ValidateResult::NotExists => {
@@ -269,6 +271,7 @@ async fn save_scopes(
     if scope.loaded() {
       res.extend(strategy.write_packs(scope).await?);
       res.extend(strategy.write_meta(scope).await?);
+      strategy.release_scope(scope).await?;
     }
     Ok(res)
   }))
