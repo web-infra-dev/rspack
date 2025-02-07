@@ -10,6 +10,7 @@ use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
+use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -358,7 +359,7 @@ impl Compiler {
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
-      let file_path = output_path.join(target_file);
+      let file_path = output_path.node_join(target_file);
       self
         .output_filesystem
         .create_dir_all(

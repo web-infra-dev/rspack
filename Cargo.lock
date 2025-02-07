@@ -5453,6 +5453,7 @@ dependencies = [
  "regex",
  "ropey",
  "rspack_cacheable",
+ "rspack_paths",
  "rspack_regex",
  "rustc-hash 2.1.0",
  "serde",
