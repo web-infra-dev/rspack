@@ -47,6 +47,7 @@ import type { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
+import type { JsLibIdentOptions } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
 import type { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
@@ -3708,6 +3709,8 @@ export class Module {
     identifier(): string;
     // (undocumented)
     readonly layer: null | string;
+    // (undocumented)
+    libIdent(options: JsLibIdentOptions): string | null;
     // (undocumented)
     readonly matchResource: string | undefined;
     // (undocumented)
