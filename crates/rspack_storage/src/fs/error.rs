@@ -58,7 +58,7 @@ impl FSError {
       return true;
     }
     let error_content = self.inner.to_string();
-    let lower_case_error_content = error_content.cow_to_lowercase();
+    let lower_case_error_content = error_content.cow_to_ascii_lowercase();
     lower_case_error_content.contains("no such file")
       || lower_case_error_content.contains("file not exists")
   }
