@@ -39,8 +39,8 @@ __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  b: () => (/* reexport */ b_namespaceObject),
   a: () => (/* reexport */ a_namespaceObject),
+  b: () => (/* reexport */ b_namespaceObject),
   c: () => (/* reexport */ c_1)
 });
 // NAMESPACE OBJECT: ./a.css
