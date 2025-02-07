@@ -3,7 +3,7 @@
 > See [Logger API](/api/javascript-api/logger) for more details
 
 ```ts
-export type Logger = {
+type Logger = {
   getChildLogger: (name: string | (() => string)) => Logger; // create a child logger
   error(...args: any[]): void; // display errors
   warn(...args: any[]): void; //  display warnings

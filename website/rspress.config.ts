@@ -82,6 +82,11 @@ export default defineConfig({
         content: 'https://twitter.com/rspack_dev',
       },
       {
+        icon: 'bluesky',
+        mode: 'link',
+        content: 'https://bsky.app/profile/rspack.dev',
+      },
+      {
         icon: 'lark',
         mode: 'link',
         content:

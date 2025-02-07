@@ -1885,14 +1885,12 @@ module.exports = {
 - **Type:**
 
 ```ts
-export type RuleSetUse =
+type RuleSetUse =
   | RuleSetUseItem[]
   | RuleSetUseItem
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-export type RuleSetUseItem =
-  | { loader: string; options: Record<string, any> }
-  | string;
-export interface RawFuncUseCtx {
+type RuleSetUseItem = { loader: string; options: Record<string, any> } | string;
+interface RawFuncUseCtx {
   resource?: string;
   realResource?: string;
   resourceQuery?: string;
