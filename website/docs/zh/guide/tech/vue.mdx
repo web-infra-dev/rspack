@@ -57,8 +57,8 @@ module.exports = config;
 
 如果你不希望生成 CSS 文件，也可以直接配合 [`css-loader`](https://github.com/webpack-contrib/css-loader) 和 [`vue-style-loader`](https://github.com/vuejs/vue-style-loader) 组合使用：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -92,8 +92,8 @@ Rspack 已经完成对 Vue2（使用 vue-loader@15）的兼容。
 
 请确保在配置 Vue2 项目时关闭 `experiments.css` 或在 CSS 相关的规则中使用 `Rule.type = "javascript/auto"`：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

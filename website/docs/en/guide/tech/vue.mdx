@@ -57,8 +57,8 @@ At this time, Rspack will use the built-in CSS processor for post-processing.
 
 If you don't want to generate CSS files, you can also use a combination of [`css-loader`](https://github.com/webpack-contrib/css-loader) and [`vue-style-loader`](https://github.com/vuejs/vue-style-loader):
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -92,8 +92,8 @@ Rspack has completed compatibility with Vue2 (using vue-loader@15).
 
 Please make sure to turn off `experiments.css` when configuring Vue2 projects or use `Rule.type = "javascript/auto"` in CSS-related rules:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

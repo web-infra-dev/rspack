@@ -36,16 +36,16 @@ The `esX` in the `target` configuration can only specify the ECMAScript version 
 
 Specify that the Compiler needs to compile to the Node.js environment:
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   target: 'node',
 };
 ```
 
 When multiple targets are passed, then common subset of features will be used:
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   // Rspack will generate a runtime code for web platform and will use only ES5 features
   target: ['web', 'es5'],
 };
@@ -53,8 +53,8 @@ module.exports = {
 
 Note that not all targets may be mixed for now. When specifying that the Compiler needs to be compiled for multiple platforms, an error is reported:
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   target: ['web', 'node'],
 };
 ```
@@ -84,8 +84,8 @@ Supported browserslist values:
 
 A version of node or electron may be optionally specified. This is denoted by the [[X].Y] in the table above.
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   // ...
   target: 'node18.12',
 };
@@ -97,8 +97,8 @@ When Rspack generates runtime code, this helps determine which ES features can b
 
 If none of the predefined targets in the above list meet your needs, you can set `target` to `false`, which will instruct Rspack not to use any plugins.
 
-```ts title="rspack.config.js"
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   // ...
   target: false,
 };
