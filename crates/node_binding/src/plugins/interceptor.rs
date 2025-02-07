@@ -20,8 +20,9 @@ use rspack_binding_values::{
   JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
   JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
   JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
-  JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
-  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -68,6 +69,13 @@ use rspack_plugin_html::{
   HtmlPluginBeforeAssetTagGenerationHook, HtmlPluginBeforeEmit, HtmlPluginBeforeEmitHook,
 };
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
+use rspack_plugin_rsdoctor::{
+  RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleIdsPatch,
+  RsdoctorModuleSourcesPatch, RsdoctorPluginAssets, RsdoctorPluginAssetsHook,
+  RsdoctorPluginChunkGraph, RsdoctorPluginChunkGraphHook, RsdoctorPluginModuleGraph,
+  RsdoctorPluginModuleGraphHook, RsdoctorPluginModuleIds, RsdoctorPluginModuleIdsHook,
+  RsdoctorPluginModuleSources, RsdoctorPluginModuleSourcesHook,
+};
 use rspack_plugin_runtime::{
   CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimePluginCreateScript,
   RuntimePluginCreateScriptHook, RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook,
@@ -395,6 +403,11 @@ pub enum RegisterJsTapKind {
   RuntimePluginCreateScript,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
+  RsdoctorPluginModuleGraph,
+  RsdoctorPluginChunkGraph,
+  RsdoctorPluginModuleIds,
+  RsdoctorPluginModuleSources,
+  RsdoctorPluginAssets,
 }
 
 #[derive(Default, Clone)]
@@ -568,6 +581,7 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsChunk) => Buffer); stage: number; }>"
   )]
   pub register_javascript_modules_chunk_hash_taps: RegisterFunction<JsChunkWrapper, Buffer>,
+  // html plugin
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeAssetTagGenerationData) => JsBeforeAssetTagGenerationData); stage: number; }>"
   )]
@@ -598,6 +612,7 @@ pub struct RegisterJsTaps {
   )]
   pub register_html_plugin_after_emit_taps:
     RegisterFunction<JsAfterEmitData, Promise<JsAfterEmitData>>,
+  // runtime plugin
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCreateScriptData) => String); stage: number; }>"
   )]
@@ -613,6 +628,32 @@ pub struct RegisterJsTaps {
   )]
   pub register_runtime_plugin_link_prefetch_taps:
     RegisterFunction<JsLinkPrefetchData, Option<String>>,
+  // rsdoctor plugin
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_rsdoctor_plugin_module_graph_taps:
+    RegisterFunction<JsRsdoctorModuleGraph, Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_rsdoctor_plugin_chunk_graph_taps:
+    RegisterFunction<JsRsdoctorChunkGraph, Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_rsdoctor_plugin_module_ids_taps:
+    RegisterFunction<JsRsdoctorModuleIdsPatch, Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_rsdoctor_plugin_module_sources_taps:
+    RegisterFunction<JsRsdoctorModuleSourcesPatch, Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>"
+  )]
+  pub register_rsdoctor_plugin_assets_taps:
+    RegisterFunction<JsRsdoctorAssetPatch, Promise<Option<bool>>>,
 }
 
 /* Compiler Hooks */
@@ -981,6 +1022,52 @@ define_register!(
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::RuntimePluginLinkPrefetch,
+  skip = true,
+);
+
+/* Rsdoctor Plugin Hooks */
+define_register!(
+  RegisterRsdoctorPluginModuleGraphTaps,
+  tap = RsdoctorPluginModuleGraphTap<JsRsdoctorModuleGraph, Promise<Option<bool>>> @ RsdoctorPluginModuleGraphHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RsdoctorPluginModuleGraph,
+  skip = true,
+);
+
+define_register!(
+  RegisterRsdoctorPluginChunkGraphTaps,
+  tap = RsdoctorPluginChunkGraphTap<JsRsdoctorChunkGraph, Promise<Option<bool>>> @ RsdoctorPluginChunkGraphHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RsdoctorPluginChunkGraph,
+  skip = true,
+);
+
+define_register!(
+  RegisterRsdoctorPluginAssetsTaps,
+  tap = RsdoctorPluginAssetsTap<JsRsdoctorAssetPatch, Promise<Option<bool>>> @ RsdoctorPluginAssetsHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RsdoctorPluginAssets,
+  skip = true,
+);
+
+define_register!(
+  RegisterRsdoctorPluginModuleIdsTaps,
+  tap = RsdoctorPluginModuleIdsTap<JsRsdoctorModuleIdsPatch, Promise<Option<bool>>> @ RsdoctorPluginModuleIdsHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RsdoctorPluginModuleIds,
+  skip = true,
+);
+
+define_register!(
+  RegisterRsdoctorPluginModuleSourcesTaps,
+  tap = RsdoctorPluginModuleSourcesTap<JsRsdoctorModuleSourcesPatch, Promise<Option<bool>>> @ RsdoctorPluginModuleSourcesHook,
+  cache = true,
+  sync = false,
+  kind = RegisterJsTapKind::RsdoctorPluginModuleSources,
   skip = true,
 );
 
@@ -1866,6 +1953,85 @@ impl RuntimePluginLinkPrefetch for RuntimePluginLinkPrefetchTap {
     Ok(data)
   }
 
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RsdoctorPluginModuleGraph for RsdoctorPluginModuleGraphTap {
+  async fn run(&self, data: &mut RsdoctorModuleGraph) -> rspack_error::Result<Option<bool>> {
+    let data = std::mem::take(data);
+    let bail = self
+      .function
+      .call_with_promise(JsRsdoctorModuleGraph::from(data))
+      .await?;
+    Ok(bail)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RsdoctorPluginChunkGraph for RsdoctorPluginChunkGraphTap {
+  async fn run(&self, data: &mut RsdoctorChunkGraph) -> rspack_error::Result<Option<bool>> {
+    let data = std::mem::take(data);
+    let bail = self
+      .function
+      .call_with_promise(JsRsdoctorChunkGraph::from(data))
+      .await?;
+    Ok(bail)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RsdoctorPluginModuleIds for RsdoctorPluginModuleIdsTap {
+  async fn run(&self, data: &mut RsdoctorModuleIdsPatch) -> rspack_error::Result<Option<bool>> {
+    let data = std::mem::take(data);
+    let bail = self
+      .function
+      .call_with_promise(JsRsdoctorModuleIdsPatch::from(data))
+      .await?;
+    Ok(bail)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RsdoctorPluginModuleSources for RsdoctorPluginModuleSourcesTap {
+  async fn run(&self, data: &mut RsdoctorModuleSourcesPatch) -> rspack_error::Result<Option<bool>> {
+    let data = std::mem::take(data);
+    let bail = self
+      .function
+      .call_with_promise(JsRsdoctorModuleSourcesPatch::from(data))
+      .await?;
+    Ok(bail)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RsdoctorPluginAssets for RsdoctorPluginAssetsTap {
+  async fn run(&self, data: &mut RsdoctorAssetPatch) -> rspack_error::Result<Option<bool>> {
+    let data = std::mem::take(data);
+    let bail = self
+      .function
+      .call_with_promise(JsRsdoctorAssetPatch::from(data))
+      .await?;
+    Ok(bail)
+  }
   fn stage(&self) -> i32 {
     self.stage
   }

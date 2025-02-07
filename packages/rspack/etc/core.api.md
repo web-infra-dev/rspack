@@ -51,6 +51,11 @@ import { JsLoaderItem } from '@rspack/binding';
 import type { JsModule } from '@rspack/binding';
 import type { JsModuleGraph } from '@rspack/binding';
 import type { JsModuleGraphConnection } from '@rspack/binding';
+import { JsRsdoctorAssetPatch } from '@rspack/binding';
+import { JsRsdoctorChunkGraph } from '@rspack/binding';
+import { JsRsdoctorModuleGraph } from '@rspack/binding';
+import { JsRsdoctorModuleIdsPatch } from '@rspack/binding';
+import { JsRsdoctorModuleSourcesPatch } from '@rspack/binding';
 import { JsRuntimeModule } from '@rspack/binding';
 import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
@@ -2035,6 +2040,8 @@ interface Experiments_2 {
     };
     // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
+    // (undocumented)
+    RsdoctorPlugin: typeof RsdoctorPlugin;
 }
 
 // @public (undocumented)
@@ -5123,6 +5130,51 @@ export type ResourceDataWithData = ResourceData & {
 };
 
 // @public (undocumented)
+const RsdoctorPlugin: typeof RsdoctorPluginImpl & {
+    getHooks: (compilation: Compilation) => RsdoctorPluginHooks;
+    getCompilationHooks: (compilation: Compilation) => RsdoctorPluginHooks;
+};
+
+// @public (undocumented)
+export namespace RsdoctorPluginData {
+    export type { JsRsdoctorAsset as RsdoctorAsset, JsRsdoctorChunkGraph as RsdoctorChunkGraph, JsRsdoctorModuleGraph as RsdoctorModuleGraph, JsRsdoctorChunk as RsdoctorChunk, JsRsdoctorModule as RsdoctorModule, JsRsdoctorSideEffect as RsdoctorSideEffect, JsRsdoctorExportInfo as RsdoctorExportInfo, JsRsdoctorVariable as RsdoctorVariable, JsRsdoctorDependency as RsdoctorDependency, JsRsdoctorEntrypoint as RsdoctorEntrypoint, JsRsdoctorStatement as RsdoctorStatement, JsRsdoctorSourceRange as RsdoctorSourceRange, JsRsdoctorSourcePosition as RsdoctorSourcePosition, JsRsdoctorModuleGraphModule as RsdoctorModuleGraphModule, JsRsdoctorModuleIdsPatch as RsdoctorModuleIdsPatch, JsRsdoctorModuleOriginalSource as RsdoctorModuleOriginalSource, JsRsdoctorAssetPatch as RsdoctorAssetPatch, JsRsdoctorChunkAssets as RsdoctorChunkAssets, JsRsdoctorEntrypointAssets as RsdoctorEntrypointAssets, JsRsdoctorChunkModules as RsdoctorChunkModules, JsRsdoctorModuleSourcesPatch as RsdoctorModuleSourcesPatch };
+}
+
+// @public (undocumented)
+export type RsdoctorPluginHooks = {
+    moduleGraph: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleGraph
+    ], false | void>;
+    chunkGraph: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorChunkGraph
+    ], false | void>;
+    moduleIds: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleIdsPatch
+    ], false | void>;
+    moduleSources: liteTapable.AsyncSeriesBailHook<[
+    JsRsdoctorModuleSourcesPatch
+    ], false | void>;
+    assets: liteTapable.AsyncSeriesBailHook<[JsRsdoctorAssetPatch], false | void>;
+};
+
+// @public (undocumented)
+const RsdoctorPluginImpl: {
+    new (c?: RsdoctorPluginOptions | undefined): {
+        name: BuiltinPluginName;
+        _args: [c?: RsdoctorPluginOptions | undefined];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+
+// @public (undocumented)
+type RsdoctorPluginOptions = {
+    moduleGraphFeatures?: boolean | Array<"graph" | "ids" | "sources">;
+    chunkGraphFeatures?: boolean | Array<"graph" | "assets">;
+};
+
+// @public (undocumented)
 type Rspack = typeof rspack_2 & typeof rspackExports & {
     rspack: Rspack;
     webpack: Rspack;
@@ -5276,6 +5328,8 @@ declare namespace rspackExports {
         SharedObject,
         SharePluginOptions,
         sharing,
+        RsdoctorPluginData,
+        RsdoctorPluginHooks,
         HtmlRspackPluginOptions,
         SwcJsMinimizerRspackPluginOptions,
         LightningCssMinimizerRspackPluginOptions,

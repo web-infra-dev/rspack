@@ -75,6 +75,7 @@ rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }
 rspack_plugin_remove_duplicate_modules = { workspace = true }
 rspack_plugin_remove_empty_chunks      = { workspace = true }
+rspack_plugin_rsdoctor                 = { workspace = true }
 rspack_plugin_runtime                  = { workspace = true }
 rspack_plugin_runtime_chunk            = { workspace = true }
 rspack_plugin_schemes                  = { workspace = true }

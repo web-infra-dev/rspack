@@ -42,7 +42,7 @@ pub struct ChunkGroup {
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
 
   // keep order for children
-  pub(crate) children: IndexSet<ChunkGroupUkey>,
+  pub children: IndexSet<ChunkGroupUkey>,
   async_entrypoints: UkeySet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,

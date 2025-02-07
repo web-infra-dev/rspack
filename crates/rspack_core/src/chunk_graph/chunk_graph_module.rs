@@ -267,6 +267,16 @@ impl ChunkGraph {
       .set_hashes(module_identifier, hashes);
   }
 
+  pub fn try_get_module_chunks(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&UkeySet<ChunkUkey>> {
+    self
+      .chunk_graph_module_by_module_identifier
+      .get(module_identifier)
+      .map(|cgm| &cgm.chunks)
+  }
+
   #[instrument("chunk_graph:get_module_graph_hash", skip_all, fields(module = ?module.identifier()))]
   pub fn get_module_graph_hash(
     &self,
