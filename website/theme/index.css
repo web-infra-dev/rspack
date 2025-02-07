@@ -10,8 +10,8 @@ summary {
   --rp-c-brand-lighter: #f2a65a;
   --rp-c-link: var(--rp-c-brand);
   --rp-c-brand-tint: rgba(250, 192, 61, 0.15);
-  --rp-code-title-bg: rgba(250, 192, 61, 0.15);
-  --rp-code-block-bg: rgba(214, 188, 70, 0.05);
+  --rp-code-title-bg: rgba(250, 192, 61, 0.1);
+  --rp-code-block-bg: #fefcf5;
   --rp-custom-block-info-bg: rgba(250, 192, 61, 0.05);
   --rp-custom-block-info-border: rgba(250, 192, 61, 0.5);
   --rp-home-hero-image-width: 300px;
