@@ -27,10 +27,10 @@ For all configuration options, see the [plugin documentation](https://github.com
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: 'index.js',
   output: {
     path: path.resolve(__dirname, './dist'),

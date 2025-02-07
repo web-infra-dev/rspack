@@ -157,8 +157,8 @@ type To =
 
 拷贝的输出路径，可以是绝对路径、相对路径或者是 Rspack 的模版字符串，例如 `'[name].[hash][ext]'`。当不指定 `to` 时，则相当于是 Rspack 的 [output.path](/config/output#outputpath)。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -224,8 +224,8 @@ module.exports = {
 
 - `dir`:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -242,8 +242,8 @@ module.exports = {
 
 - `file`:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -260,8 +260,8 @@ module.exports = {
 
 - `template`:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -283,8 +283,8 @@ module.exports = {
 
 当没有找到对应的文件或目录时，是否忽略错误。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -305,8 +305,8 @@ module.exports = {
 
 当产物中已经有同名的文件时，是否覆写该文件。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [{ from: 'file.txt', force: true }],
@@ -324,8 +324,8 @@ module.exports = {
 
 当设置 [force](#force) 为 `true` 时，如果匹配到同样的文件，优先级高的会覆写优先级低的。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -370,8 +370,8 @@ type GlobOptions = {
 
 glob 匹配的选项。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -404,8 +404,8 @@ type Transform = (
 
 允许修改文件内容。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [

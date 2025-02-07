@@ -36,8 +36,8 @@ Notable changes:
 
 Rspack v1.2 introduced an experimental cache configuration that supports persistent caching, which can significantly improve hot startup speed.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -66,8 +66,8 @@ If you encounter any issues while using persistent cache, please feel free to re
 
 Rspack has added support for [Yarn PnP](https://yarnpkg.com/features/pnp), which is enabled by default based on `process.versions.pnp` (that is, when the application is running in a Yarn PnP environment), and can also be forced to enable by configuring `resolve.pnp` to `true`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     pnp: true,
   },
@@ -84,8 +84,8 @@ Special thanks to [@arcanis](https://x.com/arcanis), the lead maintainer for Yar
 
 In previous versions of Rspack, the code splitting would take up a lot of time under HMR. In Rspack v1.2, we implemented a new code splitting algorithm that supports multithreading and more efficient incremental rebuilds. If your code base contains a lot of dynamic imports, and code splitting will take a lot of time. Enabling this new feature can significantly improve the performance of code splitting.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     parallelCodeSplitting: true,
   },
@@ -108,8 +108,8 @@ This change will not affect symlinked resources in monorepo, as symlinked resour
 
 If you prefer to keep the previous behavior, you can set:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   watchOptions: {
     ignored: [],
   },
@@ -183,8 +183,8 @@ The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-module
 
 If you prefer to keep the previous behavior, you can set:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
 ```

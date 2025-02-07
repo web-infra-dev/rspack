@@ -21,8 +21,8 @@ import PropertyType from '@components/PropertyType';
 
 支持基于[新规范](https://github.com/WebAssembly/esm-integration)的 WebAssembly，这使 WebAssembly 模块成为异步模块。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     asyncWebAssembly: true,
   },
@@ -38,8 +38,8 @@ module.exports = {
 
 开启之后，将尽可能输出符合 ECMAScript 语法的代码。例如，使用 `import()` 加载 chunk，使用 ESM exports 等等。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     outputModule: true,
   },
@@ -62,8 +62,8 @@ module.exports = {
 
 基本示例：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     css: true,
   },
@@ -77,8 +77,8 @@ module.exports = {
 
 使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     futureDefaults: true,
   },
@@ -94,8 +94,8 @@ module.exports = {
 
 默认开启，可通过该配置关闭：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     topLevelAwait: false,
   },
@@ -151,10 +151,10 @@ type LazyCompilationOptions =
 
 如果设置为 true，则默认会对入口模块以及 `import()` 指向的模块进行懒编译。你可以通过配置对象形式，来决定是否只对入口或只对 `import()` 生效。`entries` 决定是否对入口生效，`import()` 决定是否对 `import()` 生效。
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   experiments: {
     // 仅在 dev 模式下开启
     lazyCompilation: isDev,
@@ -194,8 +194,8 @@ type ListenOptions = {
 
 如果不排除掉，并且开启 entry 的懒编译，该 client 在第一次访问页面时不会被编译，因此需要一次额外的刷新才能让其真正生效。
 
-```ts
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
 const options = {
   experiments: {
@@ -229,8 +229,8 @@ new compiler.webpack.EntryPlugin(compiler.context, 'dev-client.js', {
 
 模块默认的 layer 为 `null`，模块默认会继承其父模块的 layer，你可以通过 `entryOptions.layer` 为一个入口模块添加 layer，也可以通过 [`module.rule[].layer`](/config/module#rulelayer) 为匹配到的模块添加 layer，同时可以通过 [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer) 根据父模块的 layer 进行匹配。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     layers: true,
   },
@@ -271,9 +271,10 @@ type Incremental = {
 
 是否增量地进行重构建，加快重构建或 HMR 的速度，建议仅在开发时启用：
 
-```js
-const isDev = process.env.NODE_ENV;
-module.exports = {
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
   mode: isDev ? 'development' : 'production',
   experiments: {
     incremental: isDev,
@@ -283,8 +284,8 @@ module.exports = {
 
 `true` 表示对全部阶段启用增量，`false` 表示对全部阶段关闭增量，也可以仅对指定的部分阶段开启增量：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     // 对全部阶段启用增量
     incremental: true,
@@ -314,8 +315,8 @@ module.exports = {
 
 开启后会启用新的多线程 code splitting 算法，如果你的项目中包含较多的动态引用，开启后可以显著降低 code splitting 阶段耗时，在未来 Rspack 会默认开启这个配置项。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     parallelCodeSplitting: true,
   },
@@ -355,8 +356,8 @@ module.exports = {
 - [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__)：注入版本信息
 - [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__)：注入打包工具唯一ID
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     rspackFuture: {
       bundlerInfo: { force: false },
@@ -405,8 +406,8 @@ production 模式下 `config.cache` 默认值为 `false`，这会导致此配置
 
 可以配置 `experiment.cache` 为 `false` 来禁用缓存，这与配置 [config.cache](/config/cache) 为 `false` 没有差别。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: false,
@@ -418,8 +419,8 @@ module.exports = {
 
 可以配置 `experiment.cache` 为 `true` 或者 `{ "type": "memory" }` 来启动内存缓存。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: true,
@@ -431,8 +432,8 @@ module.exports = {
 
 可以配置 `experiment.cache` 为 `{ "type": "persistent" }` 来启用持久化缓存。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -454,8 +455,8 @@ module.exports = {
 推荐添加 \_\_filename 到 buildDependencies 中
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -519,8 +520,8 @@ module.exports = {
 
 配置缓存存储，目前仅支持文件系统存储，可以通过 `directory` 设置缓存路径，默认为 `node_modules/.cache/rspack`。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -546,8 +547,8 @@ Rspack cache 配置与 webpack cache 配置的用法存在差异， 你可以参
 
 1. 根据 webpack 缓存类型，设置 Rspack 缓存类型，持久化缓存继续后续步骤，其他类型缓存到这一步即可。
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   type: 'filesystem',
 - },
@@ -562,8 +563,8 @@ module.exports = {
 
 2. 迁移 `cache.buildDependencies`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   buildDependencies: {
 -     config: [__filename, path.join(__dirname, "package.json")],
@@ -585,8 +586,8 @@ module.exports = {
 
 3. 迁移 `cache.version` & `cache.name`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   name: `${config.name}-${config.mode}-${otherFlags}`,
 -   version: appVersion
@@ -602,8 +603,8 @@ module.exports = {
 
 4. 迁移 `snapshot`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - snapshot: {
 -   immutablePaths: [path.join(__dirname, "constant")],
 -   managedPaths: [path.join(__dirname, "node_modules")],
@@ -624,8 +625,8 @@ module.exports = {
 
 5. 迁移 `cache.cacheDirectory`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
 - },

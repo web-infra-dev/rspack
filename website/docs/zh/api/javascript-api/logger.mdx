@@ -87,8 +87,8 @@ module.exports = function (source) {
 使用 `compilation.getLogger` 时，可通过 `stats.logging` 和 `stats.loggingDebug` 来控制日志的展示等级：
 
 <Columns>
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [{
     apply(compiler) {
       compiler.hooks.thisCompilation.tap("test plugin", compilation => {
@@ -126,8 +126,8 @@ DEBUG LOG from TEST
 当使用 `compiler.getInfrastructureLogger` 时，可通过 `infrastructureLogging.level` 和 `infrastructureLogging.debug` 来控制日志的展示等级：
 
 <Columns>
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [{
     apply(compiler) {
       compiler.hooks.thisCompilation.tap("test plugin", compilation => {

@@ -317,24 +317,26 @@ import { MyButton as Btn } from 'foo';
 
 添加以下配置：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
-            import: [{
-               libraryName: 'foo',
-               customName: 'foo/es/{{ member }}',
-            }]
-          }
-        }
-      }
-    ]
-  }
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -350,24 +352,26 @@ import Btn from 'foo/es/MyButton';
 
 配置如下：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
-            import: [{
-               libraryName: 'foo',
-               customName: 'foo/es/{{ kebabCase member }}',
-            }]
-          }
-        }
-      }
-    ]
-  }
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ kebabCase member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -385,26 +389,26 @@ import Btn from 'foo/es/my-button';
 
 再以经典的 4 版本的 [ant-design](https://4x.ant.design/) 为例，我们只需要如下配置：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
             import: [
               {
                 libraryName: 'antd',
                 style: '{{member}}/style/index.css',
-            },
-            ]
-          }
-        }
-      }
-    ]
-  }
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -419,26 +423,26 @@ import 'antd/es/button/style/index.css';
 
 当然如果你已经配置了对 `less` 的支持，也可以直接使用如下配置：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
             import: [
               {
                 libraryName: 'antd',
                 style: true,
-            },
-            ]
-          }
-        }
-      }
-    ]
-  }
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 

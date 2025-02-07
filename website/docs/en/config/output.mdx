@@ -56,8 +56,8 @@ Note that these filenames need to be generated at runtime to send the requests f
 
 By default `[id].js` is used or a value inferred from [`output.filename`](/config/output#outputfilename)(`[name]` is replaced with `[id]` or `[id].` is prepended).
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     //...
@@ -68,8 +68,8 @@ module.exports = {
 
 Usage as a function:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     chunkFilename: pathData => {
@@ -92,8 +92,8 @@ The default value of this option depends on the [`target`](/config/target) and [
 
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     chunkFormat: 'commonjs',
   },
@@ -107,8 +107,8 @@ module.exports = {
 
 The Number of milliseconds before chunk request timed out.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     //...
@@ -124,8 +124,8 @@ module.exports = {
 
 The global variable is used by Rspack for loading chunks.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     chunkLoadingGlobal: 'myCustomFunc',
   },
@@ -144,8 +144,8 @@ The default value of this option depends on the [`target`](/config/target) and [
 
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     chunkLoading: 'async-node',
   },
@@ -159,8 +159,8 @@ module.exports = {
 
 Before generating the products, delete all files in the output directory.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     clean: true, // Clean the output directory before emit.
@@ -188,8 +188,8 @@ Tells Rspack to check if to be emitted file already exists and has the same cont
 Rspack will not write output file when file already exists on disk with the same content.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     compareBeforeEmit: false,
@@ -271,8 +271,8 @@ This option is only used when [`devtool`](/config/devtool.html) uses an option t
 
 Customize the names used in each source map's `sources` array. This can be done by passing a template string or function. For example, when using `devtool: 'eval'`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     devtoolModuleFilenameTemplate:
@@ -296,8 +296,8 @@ The following substitutions are available in template strings
 
 When using a function, the same options are available camel-cased via the `info` parameter:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     devtoolModuleFilenameTemplate: info => {
@@ -325,8 +325,8 @@ For example, if you have 2 libraries, with namespaces `library1` and `library2`,
 
 List of chunk loading types enabled for use by entry points. Will be automatically filled by Rspack. Only needed when using a function as entry option and returning chunkLoading option from there.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     enabledChunkLoadingTypes: ['jsonp', 'require'],
@@ -341,8 +341,8 @@ module.exports = {
 
 List of library types enabled for use by entry points.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     enabledLibraryTypes: ['module'],
@@ -357,8 +357,8 @@ module.exports = {
 
 List of Wasm loading types enabled for use by entry points.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     enabledWasmLoadingTypes: ['fetch'],
@@ -370,8 +370,8 @@ module.exports = {
 
 Tell Rspack what kind of ES-features may be used in the generated runtime-code.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     environment: {
       // The environment supports arrow functions ('() => { ... }').
@@ -417,8 +417,8 @@ This option determines the name of each output bundle. The bundle is written to 
 
 For a single [`entry`](/config/entry.html) point, this can be a static name.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     filename: 'bundle.js',
   },
@@ -439,8 +439,8 @@ Rspack performs code splitting optimizations on user input code, which may inclu
 
 Use [Entry](/config/entry.html) name:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     filename: '[name].bundle.js',
@@ -450,8 +450,8 @@ module.exports = {
 
 Using internal chunk id:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     filename: '[id].bundle.js',
@@ -461,8 +461,8 @@ module.exports = {
 
 Using hashes generated from the generated content:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     filename: '[contenthash].bundle.js',
@@ -472,8 +472,8 @@ module.exports = {
 
 Combining multiple substitutions:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     filename: '[name].[contenthash].bundle.js',
@@ -483,8 +483,8 @@ module.exports = {
 
 Using the function to return the filename:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     filename: pathData => {
@@ -614,8 +614,8 @@ The return value of your entry point will be assigned to the global object using
 
 For example:
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   output: {
     library: 'myLib',
@@ -647,8 +647,8 @@ The prefix length of the hash digest to use.
 
 The hashing algorithm to use.
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     hashFunction: 'xxhash64',
@@ -676,8 +676,8 @@ Customize the filenames of hot update chunks. See [`output.filename`](#outputfil
 
 The only placeholders allowed here are `[id]` and `[fullhash]`, the default being:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     hotUpdateChunkFilename: '[id].[fullhash].hot-update.js',
@@ -718,8 +718,8 @@ Typically you don't need to change `output.hotUpdateMainFilename`.
 
 Tells Rspack to add [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) wrapper around emitted code.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     iife: true,
@@ -734,8 +734,8 @@ module.exports = {
 
 The name of the native `import()` function. Can be used for polyfilling, e.g. with [`dynamic-import-polyfill`](https://github.com/GoogleChromeLabs/dynamic-import-polyfill).
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     importFunctionName: '__import__',
@@ -845,8 +845,8 @@ Use a container(defined in global space) for calling `define`/`require` function
 Note that the value of `amdContainer` **must be** set as a global variable.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -896,8 +896,8 @@ These options assign the return value of the entry point (e.g. whatever the entr
 
 ##### type: 'var'
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1075,8 +1075,8 @@ These options will result in a bundle that comes with a complete header to ensur
 
 ##### type: 'module'
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   experiments: {
     outputModule: true,
@@ -1178,8 +1178,8 @@ AMD modules require that the entry chunk (e.g. the first script loaded by the `<
 
 With the following configuration:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1218,8 +1218,8 @@ This bundle will not work as expected, or not work at all (in the case of the al
 
 ##### type: 'amd-require'
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1362,8 +1362,8 @@ System.register(
 
 **type: 'jsonp'**
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1391,8 +1391,8 @@ Specify which export should be exposed as a library.
 
 It is `undefined` by default, which will export the whole (namespace) object. The examples below demonstrate the effect of this configuration when using [`output.library.type: 'var'`](#type-var).
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     library: {
       name: 'MyLibrary',
@@ -1412,8 +1412,8 @@ var MyLibrary = _entry_return_.default;
 
 You can pass an array to `output.library.export` as well, it will be interpreted as a path to a module to be assigned to the library name:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     library: {
       name: 'MyLibrary',
@@ -1529,8 +1529,8 @@ When enabled, Rspack will set [`output.iife`](#outputiife) to `false`, [`output.
 
 If you're using Rspack to compile a library to be consumed by others, make sure to set [`output.libraryTarget`](#librarytarget-module) to `'module'` when `output.module` is `true`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   experiments: {
     outputModule: true,
@@ -1575,8 +1575,8 @@ Tells Rspack to include comments in bundles with information about the contained
 While the data these comments can provide is useful during development when reading the generated code, it **should not** be used in production.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     pathinfo: true,
@@ -1597,8 +1597,8 @@ This option determines the URL prefix of the referenced resource, such as: image
 
 For example, given a configuration file.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     publicPath: '/assets/',
     chunkFilename: '[id].chunk.js',
@@ -1613,8 +1613,8 @@ For a reference to an image, the request URL looks like this: `/assets/logo.png`
 
 Also, it is useful when you deploy the product using a CDN
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     publicPath: 'https://cdn.example.com/assets/',
     assetModuleFilename: '[name][ext]',
@@ -1652,8 +1652,8 @@ This option allows loading asynchronous chunks with a custom script type, such a
 If [`output.module`](#outputmodule) is set to `true`, `output.scriptType` will default to `'module'` instead of `false`.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     scriptType: 'module',
@@ -1677,8 +1677,8 @@ The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output
 
 Handle error in module loading as per EcmaScript Modules spec at a performance cost.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     strictModuleErrorHandling: true,
@@ -1705,8 +1705,8 @@ It is disabled by default (no compatibility, script URLs are strings).
 - When set to a non-empty string, its value will be used as a policy name.
 - When set to an object, the policy name is taken from the object's `policyName` property.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     trustedTypes: {
@@ -1725,8 +1725,8 @@ module.exports = {
 
 Determine whether to proceed with loading in anticipation that [`require-trusted-types-for 'script'`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) has not been enforced or to immediately fail when the call to `trustedTypes.createPolicy(...)` fails due to the policy name being absent from the CSP `trusted-types` list or being a duplicate.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     //...
@@ -1749,8 +1749,8 @@ A unique name of the Rspack build to avoid multiple Rspack runtimes to conflict 
 
 - [`output.chunkLoadingGlobal`](#outputchunkloadingglobal)
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     uniqueName: 'my-package-xyz',
   },
@@ -1769,8 +1769,8 @@ The default value can be affected by different [`target`](/config/target):
 - Defaults to `'fetch'` if [`target`](/config/target) is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
 - Defaults to `'async-node'` if [`target`](/config/target) is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     wasmLoading: 'fetch',
@@ -1785,8 +1785,8 @@ module.exports = {
 
 Specifies the filename of WebAssembly modules. It should be provided as a relative path within the `output.path` directory
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     webassemblyModuleFilename: '[id].[hash].wasm',
@@ -1805,8 +1805,8 @@ The new option `workerChunkLoading` controls the chunk loading of workers.
 The default value of this option depends on the [`target`](/config/target) setting. For more details, search for `"workerChunkLoading"` [in the Rspack defaults](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts).
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     workerChunkLoading: false,
@@ -1821,8 +1821,8 @@ module.exports = {
 
 Set a public path for Worker, defaults to value of [output.publicPath](#outputpublicpath). Only use this option if your worker scripts are located in a different path from your other scripts.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     workerPublicPath: '/workerPublicPath2/',
@@ -1837,8 +1837,8 @@ module.exports = {
 
 Option to set the method of loading WebAssembly Modules in workers, defaults to the value of [output.wasmLoading](#outputwasmloading).
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     workerWasmLoading: 'fetch',

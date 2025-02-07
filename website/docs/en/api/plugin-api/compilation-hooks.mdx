@@ -564,8 +564,8 @@ Called after the tree runtime requirements collection.
 
 Additional builtin runtime modules can be added here by modifying the runtime requirements set.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {
@@ -604,8 +604,8 @@ Called during adding runtime modules to the compilation.
 
 Additional builtin runtime modules can be added here by modifying the runtime requirements set or calling [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) to add custom runtime modules.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {
@@ -657,8 +657,8 @@ Called after a runtime module is added into the compilation.
 
 Generated code of this runtime module can be modified through its `source` property.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [
     {
       apply(compiler) {

@@ -472,8 +472,8 @@ module.exports = {
 
 目前，`optimization.avoidEntryIife` 只能优化单个入口模块及其他模块共存时的 IIFE。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     avoidEntryIife: true,

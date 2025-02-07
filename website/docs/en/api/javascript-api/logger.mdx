@@ -87,8 +87,8 @@ Methods are in turn from high to low according to the log level:
 While using `compilation.getLogger`, the output level can be controlled by `stats.logging` and `stats.loggingDebug`:
 
 <Columns>
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [{
     apply(compiler) {
       compiler.hooks.thisCompilation.tap("test plugin", compilation => {
@@ -126,8 +126,8 @@ DEBUG LOG from TEST
 While using `compiler.getInfrastructureLogger`, the output level can be controlled by `infrastructureLogging.level` and `infrastructureLogging.debug`:
 
 <Columns>
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   plugins: [{
     apply(compiler) {
       compiler.hooks.thisCompilation.tap("test plugin", compilation => {

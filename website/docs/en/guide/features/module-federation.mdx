@@ -59,10 +59,10 @@ This is the version built into Rspack. In addition to supporting Module Federati
 
 You can use it through Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) without installing any additional plugins.
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   output: {
     // set uniqueName explicitly to make HMR works
     uniqueName: 'app',

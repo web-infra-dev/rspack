@@ -21,8 +21,8 @@ In minor releases, Rspack may make changes to the APIs of these experimental fea
 
 Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     asyncWebAssembly: true,
   },
@@ -38,8 +38,8 @@ And it is enabled by default when [experiments.futureDefaults](#experimentsfutur
 
 Once enabled, Rspack will output ECMAScript module syntax whenever possible. For instance, `import()` to load chunks, ESM exports to expose chunk data, among others.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     outputModule: true,
   },
@@ -62,8 +62,8 @@ Once enabled, Rspack will enable native CSS support, and CSS related parser and 
 
 Basic example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     css: true,
   },
@@ -77,8 +77,8 @@ module.exports = {
 
 Use defaults of the next major Rspack and show warnings in any problematic places.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     futureDefaults: true,
   },
@@ -94,8 +94,8 @@ Enable support for [Top-level await](https://github.com/tc39/proposal-top-level-
 
 Enabled by default and can be disabled with this configuration:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     topLevelAwait: false,
   },
@@ -151,10 +151,10 @@ Enable lazy compilation, which can greatly improve the dev startup performance o
 
 If set to true, lazy compilation will be applied by default to both entry modules and modules pointed to by `import()`. You can decide whether it applies only to entries or only to `import()` through a configuration object. The `entries` option determines whether it applies to entries, while the `import()` option determines whether it applies to `import()`.
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   experiments: {
     // only enabled in dev mode
     lazyCompilation: isDev,
@@ -196,8 +196,8 @@ If not excluded and lazy compilation of entry is enabled, this client will not b
 
 For example:
 
-```ts
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
 const options = {
   experiments: {
@@ -231,8 +231,8 @@ The `layer` of the `index.js` module is by default `null`, and its `identifier` 
 
 By default, a module's layer is `null`, and it will inherit its parent module's layer. You can add a layer to an entry module using `entryOptions.layer`, and you can add a layer to matched modules using [`module.rule[].layer`](/config/module#rulelayer). Additionally, you can match based on the parent module's layer using [`module.rule[].issuerLayer`](/config/module#ruleissuerlayer).
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     layers: true,
   },
@@ -273,9 +273,10 @@ type Incremental = {
 
 Whether to enable incremental rebuild to speed up the rebuild speed. It is recommended to enable it only during development.
 
-```js
-const isDev = process.env.NODE_ENV;
-module.exports = {
+```js title="rspack.config.mjs"
+const isDev = process.env.NODE_ENV === 'development';
+
+export default {
   mode: isDev ? 'development' : 'production',
   experiments: {
     incremental: isDev,
@@ -285,8 +286,8 @@ module.exports = {
 
 `true` means enable incremental for all stages. `false` means disable incremental for all stages. Incremental can also be enabled only for specified partial stages:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     // enable incremental for all stages
     incremental: true,
@@ -316,8 +317,8 @@ This feature is experimental. You can check its relevant progress at [rspack#810
 
 Enabling this configuration will activate a new multi-threaded code splitting algorithm. If your project includes many dynamic imports, this can greatly reduce the time spent on the code splitting process. In the future, Rspack will have this enabled by default.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     parallelCodeSplitting: true,
   },
@@ -358,8 +359,8 @@ The default injection can be disabled by setting `force` to `false`. Then inject
 - [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
 - [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     rspackFuture: { bundlerInfo: { force: false } },
   },
@@ -406,8 +407,8 @@ In production mode, the default value of `config.cache` is `false`, which will c
 
 Configuring `experiment.cache` to `false` to disable cache, which is no different from configuring the [config.cache](/config/cache) to `false`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: false,
@@ -419,8 +420,8 @@ module.exports = {
 
 Configuring `experiment.cache` to `true` or `{ "type": "memory" }` to enable memory cache.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: true,
@@ -432,8 +433,8 @@ module.exports = {
 
 Configuring `experiment.cache` to `{ "type": "persistent" }` to enable persistent cache.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -455,8 +456,8 @@ module.exports = {
 It's recommended to set `cache.buildDependencies`: [__filename] in your rspack configuration to get the latest configuration.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -520,8 +521,8 @@ Specifies an array of paths in `snapshot.managedPaths` that are not managed by t
 
 Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -547,8 +548,8 @@ The Rspack cache configuration is different from the webpack cache configuration
 
 1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   type: 'filesystem',
 - },
@@ -563,8 +564,8 @@ module.exports = {
 
 2. Migrate `cache.buildDependencies`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   buildDependencies: {
 -     config: [__filename, path.join(__dirname, "package.json")],
@@ -586,8 +587,8 @@ module.exports = {
 
 3. Migrate `cache.version` and `cache.name`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   name: `${config.name}-${config.mode}-${otherFlags}`,
 -   version: appVersion
@@ -603,8 +604,8 @@ module.exports = {
 
 4. Migrate `snapshot`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - snapshot: {
 -   immutablePaths: [path.join(__dirname, "constant")],
 -   managedPaths: [path.join(__dirname, "node_modules")],
@@ -625,8 +626,8 @@ module.exports = {
 
 5. Migrate `cache.cacheDirectory`
 
-```diff title="rspack.config.js"
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
 - cache: {
 -   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
 - },

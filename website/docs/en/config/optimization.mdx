@@ -479,8 +479,8 @@ Use `optimization.avoidEntryIife` to avoid wrapping the entry module in an IIFE 
 
 Currently, `optimization.avoidEntryIife` can only optimize a single entry module along with other modules.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     avoidEntryIife: true,

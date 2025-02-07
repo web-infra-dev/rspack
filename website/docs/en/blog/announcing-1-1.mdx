@@ -188,8 +188,8 @@ Rspack's [output.hashFunction](/config/output#outputhashfunction) now defaults t
 
 If you prefer the previous hash function, you can set:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     hashFunction: 'md5',
     hashDigestLength: 20,
