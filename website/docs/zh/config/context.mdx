@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/entry-context/#context" />
 
@@ -18,9 +19,29 @@ import PropertyType from '@components/PropertyType';
 
 ## 示例
 
-比如，你可以使用 `__dirname` 作为基础目录：
+比如，你可以使用 [`__dirname`](https://nodejs.org/docs/latest/api/modules.html#__dirname) 作为基础目录：
 
-```ts title="rspack.config.js"
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default {
+  context: __dirname,
+  entry: {
+    main: './src/index.js',
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.js"
 module.exports = {
   context: __dirname,
   entry: {
@@ -28,5 +49,8 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 在上述例子中，`main` 入口会基于 `path.join(__dirname, './src/index.js')` 路径进行解析。

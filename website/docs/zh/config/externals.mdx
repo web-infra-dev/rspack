@@ -25,8 +25,8 @@ import { Stability } from '../../../components/ApiMeta';
 ></script>
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'jquery',
@@ -52,8 +52,8 @@ $('.my-element').animate(/* ... */);
 
 如果你只定义一个 external，也可以使用快捷语法：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: 'jquery',
 };
@@ -61,8 +61,8 @@ module.exports = {
 
 等价于
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'jquery',
@@ -74,8 +74,8 @@ module.exports = {
 
 例如，如果外部库是一个 [CommonJS 模块](#externalstypecommonjs)，你可以指定
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'commonjs jquery',
@@ -85,8 +85,8 @@ module.exports = {
 
 ### 字符串数组
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     subtract: ['./math', 'subtract'],
@@ -100,8 +100,8 @@ module.exports = {
 
 与[字符串语法](#字符串)类似，你可以在数组的第一个元素中使用 `${externalsType} ${libraryName}` 语法指定外部库类型，例如：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     subtract: ['commonjs ./math', 'subtract'],
@@ -115,8 +115,8 @@ module.exports = {
 带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: {
     // 在 `libraryTarget: 'umd'` 和 `externalsType: 'umd'` 时，需严格遵循以下格式：
     lodash: {
@@ -157,8 +157,8 @@ module.exports = {
 
 例如，要外部化所有导入路径与正则表达式匹配的导入，可以这样做：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: [
     function ({ context, request }, callback) {
@@ -176,8 +176,8 @@ module.exports = {
 
 其他使用不同模块格式的例子：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // 外部化为 `@scope/library` 的 `commonjs2` 模块
@@ -187,8 +187,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // 外部化名为 `nameOfGlobal` 的全局变量
@@ -198,8 +198,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // 外部化为 `@scope/library` 模块中的具名导出
@@ -209,8 +209,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // 外部化为 UMD 模块
@@ -229,8 +229,8 @@ module.exports = {
 
 符合给定正则表达式的每个依赖项都将从打包产物中排除。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: /^(jquery|\$)$/i,
 };
@@ -242,8 +242,8 @@ module.exports = {
 
 有时你可能希望使用上述语法的组合。这可以通过以下方式完成：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: [
     {
@@ -306,8 +306,8 @@ module.exports = {
 - [`'var'`](#externalstypevar)
 - [`'window'`](#externalstypewindow)
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externalsType: 'promise',
 };
@@ -323,8 +323,8 @@ module.exports = {
 import fs from 'fs-extra';
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'commonjs',
   externals: {
@@ -352,8 +352,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'global',
   externals: {
@@ -385,8 +385,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     outputModule: true,
   },
@@ -421,8 +421,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'import',
   externals: {
     jquery: 'jquery',
@@ -466,8 +466,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'module-import',
   externals: {
     jquery: 'jquery',
@@ -501,8 +501,8 @@ async function foo() {
 
 当一个模块没有通过 `import` 或 `import()` 导入时，Rspack 将使用 `"module"` externals type 作为回退。如果你想使用不同类型的 externals 作为回退，你可以在 `externals` 选项中指定一个函数。例如：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: "module-import",
   externals: [
     function (
@@ -538,8 +538,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'commonjs-import',
   externals: {
     lodash: 'lodash',
@@ -616,8 +616,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'promise',
   externals: {
@@ -642,8 +642,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'self',
   externals: {
@@ -665,8 +665,8 @@ jq('.my-element').animate(/* ... */);
 
 **语法**
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'script',
   externals: {
     packageName: [
@@ -681,8 +681,8 @@ module.exports = {
 
 如果不打算指定任何属性也可以使用快捷语法：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'script',
   externals: {
     packageName: 'global@http://example.com/script.js', // 这里没有属性
@@ -696,8 +696,8 @@ module.exports = {
 
 让我们从 CDN 加载一个 `lodash`：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'script',
   externals: {
@@ -715,8 +715,8 @@ console.log(_.head([1, 2, 3]));
 
 下面是我们如何为上述示例指定属性的方法：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'script',
   externals: {
@@ -752,8 +752,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'this',
   externals: {
@@ -780,8 +780,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'var',
   externals: {
@@ -808,8 +808,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```javascript title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'window',
   externals: {
@@ -885,8 +885,8 @@ jq('.my-element').animate(/* ... */);
 
 使用 `node` 预设将不会打包内置模块，并将它们视为外部模块，当使用时通过 `require()` 加载它们。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsPresets: {
     node: true,

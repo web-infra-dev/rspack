@@ -149,10 +149,9 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
 
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
   parsed: bool,
-  last_successful_build_meta: BuildMeta,
 }
 
 #[cacheable]
@@ -236,11 +235,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: Default::default(),
+      build_meta: Default::default(),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
-      last_successful_build_meta: BuildMeta::default(),
     }
   }
 
@@ -412,9 +410,6 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     self.clear_diagnostics();
 
-    let mut build_info = BuildInfo::default();
-    let mut build_meta = BuildMeta::default();
-
     // so does webpack
     self.parsed = true;
 
@@ -454,22 +449,22 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(mut r) => {
         let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
-          build_info.file_dependencies = captured_error
+          self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
             .into_iter()
             .map(Into::into)
             .collect();
-          build_info.context_dependencies = captured_error
+          self.build_info.context_dependencies = captured_error
             .take_context_dependencies()
             .into_iter()
             .map(Into::into)
             .collect();
-          build_info.missing_dependencies = captured_error
+          self.build_info.missing_dependencies = captured_error
             .take_missing_dependencies()
             .into_iter()
             .map(Into::into)
             .collect();
-          build_info.build_dependencies = captured_error
+          self.build_info.build_dependencies = captured_error
             .take_build_dependencies()
             .into_iter()
             .map(Into::into)
@@ -501,11 +496,9 @@ impl Module for NormalModule {
         self.source = NormalModuleSource::BuiltFailed(diagnostic.clone());
         self.add_diagnostic(diagnostic);
 
-        build_info.hash =
-          Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
+        self.build_info.hash =
+          Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
         return Ok(BuildResult {
-          build_info,
-          build_meta,
           dependencies: Vec::new(),
           blocks: Vec::new(),
           optimization_bailouts: vec![],
@@ -527,23 +520,23 @@ impl Module for NormalModule {
     };
     let original_source = self.create_source(content, loader_result.source_map)?;
 
-    build_info.cacheable = loader_result.cacheable;
-    build_info.file_dependencies = loader_result
+    self.build_info.cacheable = loader_result.cacheable;
+    self.build_info.file_dependencies = loader_result
       .file_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    build_info.context_dependencies = loader_result
+    self.build_info.context_dependencies = loader_result
       .context_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    build_info.missing_dependencies = loader_result
+    self.build_info.missing_dependencies = loader_result
       .missing_dependencies
       .into_iter()
       .map(Into::into)
       .collect();
-    build_info.build_dependencies = loader_result
+    self.build_info.build_dependencies = loader_result
       .build_dependencies
       .into_iter()
       .map(Into::into)
@@ -556,12 +549,10 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
+      self.build_info.hash =
+        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
       return Ok(BuildResult {
-        build_info,
-        build_meta,
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: Vec::new(),
@@ -593,16 +584,16 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        build_info: &mut build_info,
-        build_meta: &mut build_meta,
+        build_info: &mut self.build_info,
+        build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
       })?
       .split_into_parts();
+    if diagnostics.iter().any(|d| d.severity() == Severity::Error) {
+      self.build_meta = Default::default();
+    }
     if !diagnostics.is_empty() {
       self.add_diagnostics(diagnostics);
-      build_meta = self.last_successful_build_meta.clone();
-    } else {
-      self.last_successful_build_meta = build_meta.clone();
     }
     let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self.readable_identifier(&build_context.compiler_options.context);
@@ -620,12 +611,10 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    build_info.hash =
-      Some(self.init_build_hash(&build_context.compiler_options.output, &build_meta));
+    self.build_info.hash =
+      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
     Ok(BuildResult {
-      build_info,
-      build_meta,
       dependencies,
       blocks,
       optimization_bailouts,
@@ -697,12 +686,7 @@ impl Module for NormalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<()> {
-    self
-      .build_info
-      .as_ref()
-      .expect("should update_hash after build")
-      .hash
-      .dyn_hash(hasher);
+    self.build_info.hash.dyn_hash(hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if matches!(&self.source, NormalModuleSource::BuiltSucceed(_)) {
       self
@@ -776,9 +760,7 @@ impl Module for NormalModule {
     if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
       return ConnectionState::Bool(!side_effect_free);
     }
-    if let Some(side_effect_free) = self.build_meta().and_then(|m| m.side_effect_free)
-      && side_effect_free
-    {
+    if Some(true) == self.build_meta().side_effect_free {
       // use module chain instead of is_evaluating_side_effects to mut module graph
       if module_chain.contains(&self.identifier()) {
         return ConnectionState::CircularConnection;

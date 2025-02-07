@@ -44,8 +44,7 @@ impl Serialize for DllManifestContentItemExports {
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DllManifestContentItem {
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub build_meta: Option<BuildMeta>,
+  pub build_meta: BuildMeta,
 
   #[serde(skip_serializing_if = "Option::is_none")]
   pub exports: Option<DllManifestContentItemExports>,

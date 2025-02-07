@@ -35,6 +35,7 @@ pub struct DependencyExtraMeta {
 pub struct DependencyParents {
   pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
+  pub index_in_block: usize,
 }
 
 #[derive(Debug, Default)]
@@ -549,6 +550,13 @@ impl<'a> ModuleGraph<'a> {
       .as_ref()
   }
 
+  pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
+    self
+      .loop_partials(|p| p.dependency_id_to_parents.get(dependency_id))?
+      .as_ref()
+      .map(|p| p.index_in_block)
+  }
+
   pub fn block_by_id(
     &self,
     block_id: &AsyncDependenciesBlockIdentifier,
@@ -920,7 +928,7 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
       .module_by_identifier(module_id)
-      .and_then(|mgm| mgm.build_info().as_ref().and_then(|i| i.hash.as_ref()))
+      .and_then(|m| m.build_info().hash.as_ref())
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different

@@ -14,8 +14,8 @@ Rspack 提供了 [experiment.css](/config/experiments#experimentscss) 选项，�
 
 > 如果你基于 Rspack 创建了一个新项目，那么推荐使用该方式。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     css: true,
   },
@@ -30,8 +30,8 @@ module.exports = {
 
 对于 `*.css` 结尾的文件，Rspack 会默认将其视为 `type: 'css/auto'`，你也可以通过配置 `type: 'css/auto'`，自定义将哪些文件视为 CSS 文件。比如，将 `.less` 文件视为 CSS 文件：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -56,10 +56,10 @@ Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 
 
 - 添加配置：
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -89,8 +89,8 @@ Rspack 支持使用 [css-loader](https://github.com/webpack-contrib/css-loader) 
 
 - 添加配置：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -133,8 +133,8 @@ document.getElementById('element').className = red;
 
 要在 Rspack 中启用默认导入方式，你需要在 `rspack.config.js` 文件中将 `namedExports` 配置为 `false`。这允许你在用到 CSS Modules 时，除了命名空间导入和具名导入，也能通过默认导入整个样式模块：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     parser: {
       'css/auto': {
@@ -160,8 +160,8 @@ Rspack 支持使用 [postcss-loader](https://github.com/webpack-contrib/postcss-
 
 <PackageManagerTabs command="add postcss postcss-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -192,8 +192,8 @@ Rspack 支持使用 [sass-loader](https://github.com/webpack-contrib/sass-loader
 
 <PackageManagerTabs command="add sass-embedded sass-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -225,8 +225,8 @@ Rspack 支持使用 [less-loader](https://github.com/webpack-contrib/less-loader
 
 <PackageManagerTabs command="add less less-loader -D" />
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -267,8 +267,8 @@ module.exports = {
 
 下面是一个处理 `.css` 文件的配置示例，如果你需要处理 `.scss` 或 `.less` 文件，可以参考该示例进行修改。
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

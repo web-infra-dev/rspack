@@ -14,10 +14,10 @@ Module Federation v1.0 已经不再迭代，我们推荐使用 Module Federation
 
 ## 示例
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.container.ModuleFederationPluginV1({
       // options

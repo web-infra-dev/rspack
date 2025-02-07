@@ -147,17 +147,21 @@ pub fn impl_runtime_module(
 
       fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
 
-      fn build_info(&self) -> Option<&::rspack_core::BuildInfo> {
-        None
+      fn build_info(&self) -> &::rspack_core::BuildInfo {
+        unreachable!()
       }
 
-      fn set_build_info(&mut self, v: ::rspack_core::BuildInfo) {}
-
-      fn build_meta(&self) -> Option<&::rspack_core::BuildMeta> {
-        None
+      fn build_info_mut(&mut self) -> &mut ::rspack_core::BuildInfo {
+        unreachable!()
       }
 
-      fn set_build_meta(&mut self, v: ::rspack_core::BuildMeta) {}
+      fn build_meta(&self) -> &::rspack_core::BuildMeta {
+        unreachable!()
+      }
+
+      fn build_meta_mut(&mut self) -> &mut ::rspack_core::BuildMeta {
+        unreachable!()
+      }
 
       fn get_diagnostics(&self) -> Vec<::rspack_error::Diagnostic> {
         vec![]

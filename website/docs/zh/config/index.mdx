@@ -6,12 +6,12 @@ Rspack 提供了与 webpack 相似的配置项，通过本章节，你可以了�
 
 ## 配置文件
 
-当你运行 Rspack 的命令行工具时，Rspack 会自动读取当前路径下的 `rspack.config.js` 文件。
+当你运行 Rspack 的命令行工具时，Rspack 会自动读取当前路径下的 `rspack.config.*` 文件。
 
 一个基础的 Rspack 配置文件如下所示：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     main: './src/index.js',
   },

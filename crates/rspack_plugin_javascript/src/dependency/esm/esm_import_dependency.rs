@@ -243,13 +243,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   let parent_module = module_graph
     .module_by_identifier(parent_module_identifier)
     .expect("should have module");
-  let exports_type = imported_module.get_exports_type(
-    module_graph,
-    parent_module
-      .build_meta()
-      .expect("should have build_meta")
-      .strict_esm_module,
-  );
+  let exports_type =
+    imported_module.get_exports_type(module_graph, parent_module.build_meta().strict_esm_module);
   let create_error = |message: String| {
     let (severity, title) = if should_error {
       (Severity::Error, "ESModulesLinkingError")
@@ -373,10 +368,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       if !ids.is_empty()
         && ids[0] != "default"
         && matches!(
-          imported_module
-            .build_meta()
-            .expect("should have build_meta")
-            .default_object,
+          imported_module.build_meta().default_object,
           BuildMetaDefaultObject::RedirectWarn { ignore: false }
         )
       {

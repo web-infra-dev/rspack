@@ -13,7 +13,6 @@ pub mod infallible;
 pub mod itoa;
 pub mod location;
 pub mod number_hash;
-pub mod path;
 pub mod queue;
 pub mod size;
 pub mod source_map;

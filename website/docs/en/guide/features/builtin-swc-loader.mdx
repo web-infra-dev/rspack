@@ -317,24 +317,26 @@ import { MyButton as Btn } from 'foo';
 
 Apply following configurations:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
-            import: [{
-               libraryName: 'foo',
-               customName: 'foo/es/{{ member }}',
-            }]
-          }
-        }
-      }
-    ]
-  }
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -348,24 +350,26 @@ Template `customName: 'foo/es/{{ member }}'` is the same as ``customName: (membe
 
 The template used here is [handlebars](https://handlebarsjs.com). There are some useful builtin helpers, Take the above import statement as an example:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
-            import: [{
-               libraryName: 'foo',
-               customName: 'foo/es/{{ kebabCase member }}',
-            }]
-          }
-        }
-      }
-    ]
-  }
+            import: [
+              {
+                libraryName: 'foo',
+                customName: 'foo/es/{{ kebabCase member }}',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -383,26 +387,26 @@ You can check the document of [babel-plugin-import](https://www.npmjs.com/packag
 
 Taking the classic 4.x version of [ant-design](https://4x.ant.design/) as an example, we only need to configure it as follows:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
             import: [
               {
                 libraryName: 'antd',
                 style: '{{member}}/style/index.css',
-            },
-            ]
-          }
-        }
-      }
-    ]
-  }
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 
@@ -417,26 +421,26 @@ Then you can see the style file is automatically imported and applied on the pag
 
 Of course, if you have already configured support for `less`, you can simply use the following configuration:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         use: 'builtin:swc-loader',
         options: {
-          ...
+          // ...
           rspackExperiments: {
             import: [
               {
                 libraryName: 'antd',
                 style: true,
-            },
-            ]
-          }
-        }
-      }
-    ]
-  }
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 };
 ```
 

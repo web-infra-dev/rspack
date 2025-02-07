@@ -94,8 +94,7 @@ impl ESMExportImportedSpecifierDependency {
       .get_parent_module(&self.id)
       .and_then(|ident| module_graph.module_by_identifier(ident))
       .expect("should have mgm")
-      .build_info()
-      .expect("should have build info");
+      .build_info();
     &build_info.esm_named_exports
   }
 
@@ -109,7 +108,7 @@ impl ESMExportImportedSpecifierDependency {
       .and_then(|ident| module_graph.module_by_identifier(ident));
 
     if let Some(module) = module {
-      let build_info = module.build_info().expect("should have build info");
+      let build_info = module.build_info();
       Some(&build_info.all_star_exports)
     } else {
       None

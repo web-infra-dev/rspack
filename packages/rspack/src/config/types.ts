@@ -2216,6 +2216,11 @@ export type OptimizationSplitChunksCacheGroup = {
 
 	/** Sets the hint for chunk id. It will be added to chunk's filename. */
 	idHint?: string;
+
+	/**
+	 * Assign modules to a cache group by module layer.
+	 */
+	layer?: string | ((layer?: string) => boolean) | RegExp;
 } & SharedOptimizationSplitChunksCacheGroup;
 
 /** Tell Rspack how to splitting chunks. */

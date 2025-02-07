@@ -36,8 +36,8 @@ Rspack v1.2 已经正式发布！
 
 在 Rspack v1.2 中，我们实验性的支持了持久化缓存，其会将构建中的缓存信息写入到存储介质中，加速下次 Rspack 的启动速度。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   cache: true,
   experiments: {
     cache: {
@@ -66,8 +66,8 @@ module.exports = {
 
 Rspack 迎来了对 [Yarn PnP](https://yarnpkg.com/features/pnp) 的支持，其默认根据 `process.versions.pnp`（即应用在 Yarn PnP 环境中运行时）来进行开启，也可以将 `resolve.pnp` 配置为 `true` 来强制开启。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     pnp: true,
   },
@@ -84,8 +84,8 @@ module.exports = {
 
 在之前的 Rspack 版本中，code splitting 算法在 HMR 下会占用大量的耗时，在 Rspack v1.2 中，我们实现了全新的 code splitting 算法，它支持多线程，增量构建效率更高。如果你的代码库包含大量动态导入，code splitting 可能会花费大量时间，开启这项新功能可以显著提高 code splitting 的性能。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     parallelCodeSplitting: true,
   },
@@ -108,8 +108,8 @@ Rspack v1.2 将不再监听 `node_modules` 和 `.git` 目录下的文件变动�
 
 如果你倾向于保持之前的行为，可以设置 ：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   watchOptions: {
     ignored: [],
   },
@@ -183,8 +183,10 @@ Rsbuild v1.2 已经与 Rspack v1.2 同步发布，并带来了多项新特性：
 
 如果你倾向于保持之前的行为，可以设置：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
 ```

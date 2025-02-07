@@ -363,10 +363,11 @@ fn is_pure_call_expr(
     .unwrap_or(false);
   if !pure_flag {
     let expr = Expr::Call(call_expr.clone());
-    !expr.may_have_side_effects(&ExprCtx {
+    !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
       in_strict: false,
       is_unresolved_ref_safe: false,
+      remaining_depth: 4,
     })
   } else {
     call_expr.args.iter().all(|arg| {
@@ -438,10 +439,11 @@ pub fn is_pure_expression<'a>(
 
         _is_pure_expression(cur, unresolved_ctxt, comments, paren_spans)
       }
-      _ => !expr.may_have_side_effects(&ExprCtx {
+      _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,
         in_strict: false,
+        remaining_depth: 4,
       }),
     }
   }

@@ -1230,6 +1230,11 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 	reuseExistingChunk: z.boolean().optional(),
 	type: z.string().or(z.instanceof(RegExp)).optional(),
 	idHint: z.string().optional(),
+	layer: z
+		.string()
+		.or(z.instanceof(RegExp))
+		.or(z.function(z.tuple([z.string().optional()]), z.boolean()))
+		.optional(),
 	...sharedOptimizationSplitChunksCacheGroup
 }) satisfies z.ZodType<t.OptimizationSplitChunksCacheGroup>;
 
@@ -1338,8 +1343,13 @@ const lazyCompilationOptions = z.object({
 	backend: z
 		.object({
 			client: z.string().optional(),
-			listen: z.number().optional().or(listenOptions),
-			protocol: z.enum(["http", "https"]).optional()
+			listen: z
+				.number()
+				.or(listenOptions)
+				.or(z.function().args(z.any()).returns(z.void()))
+				.optional(),
+			protocol: z.enum(["http", "https"]).optional(),
+			server: z.record(z.any()).or(z.function().returns(z.any())).optional()
 		})
 		.optional(),
 	imports: z.boolean().optional(),

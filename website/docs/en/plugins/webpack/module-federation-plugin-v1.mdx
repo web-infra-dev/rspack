@@ -11,15 +11,15 @@ new rspack.container.ModuleFederationPluginV1();
 ```
 
 :::tip
-Module Federation v1.0 is no longer being iterated. We recommend using Module Federation v1.5 or v2.0. See [Module Federation](/guide/features/module-federation)。
+Module Federation v1.0 is no longer being iterated. We recommend using Module Federation v1.5 or v2.0. See [Module Federation](/guide/features/module-federation).
 :::
 
 ## Example
 
-```js title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   plugins: [
     new rspack.container.ModuleFederationPluginV1({
       // options

@@ -53,8 +53,8 @@ We have implemented optimization.realContentHash, which calculates the Hash base
 
 In the new version, System/ESM products can be generated, and the configuration for outputting ESM products is as follows:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   experiments: {
     outputModule: true,
@@ -93,8 +93,8 @@ import x from 'data:text/javascript,export default 42';
 
 In addition, we have supported `mimetype` and `scheme` as two types of module rule conditions. For example, you can make resources with `scheme` as `'data'` no longer treated as inline processing, but as separate resource files through the following method:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -112,8 +112,8 @@ module.exports = {
 
   In version 0.1.12, we further aligned the file name generation logic with webpack, and refactored the implementation of file name generation. However, the [ext] in `output.filename`, `output.chunkFilename`, `output.cssFilename`, and `output.cssChunkFilename` will no longer be replaced. This behavior is now consistent with webpack but is a breaking change for versions of Rspack prior to 0.1.12. If you used [ext] in the above 4 filename configurations, you need to change it to the corresponding `.js` or `.css`, for example:
 
-  ```diff title="rspack.config.js"
-  module.exports = {
+  ```diff title="rspack.config.mjs"
+  export default {
     output: {
   -    filename: "[name][ext]",
   +    filename: "[name].js",

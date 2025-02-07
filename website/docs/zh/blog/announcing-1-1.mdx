@@ -189,8 +189,8 @@ Rspack 的 [output.hashFunction](/config/output#outputhashfunction) 现在默认
 
 如果你倾向于使用之前的哈希函数，可以设置：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   output: {
     hashFunction: 'md5',
     hashDigestLength: 20,

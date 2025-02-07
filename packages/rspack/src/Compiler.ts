@@ -15,15 +15,6 @@ import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import Cache from "./lib/Cache";
 import CacheFacade from "./lib/CacheFacade";
 
-import {
-	__from_binding_runtime_globals,
-	__to_binding_runtime_globals
-} from "./RuntimeGlobals";
-import {
-	JsLoaderRspackPlugin,
-	createRuntimePluginHooksRegisters
-} from "./builtin-plugin";
-
 import type { Chunk } from "./Chunk";
 import { Compilation } from "./Compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
@@ -34,8 +25,17 @@ import {
 import { NormalModuleFactory } from "./NormalModuleFactory";
 import { ResolverFactory } from "./ResolverFactory";
 import { RuleSetCompiler } from "./RuleSetCompiler";
+import {
+	__from_binding_runtime_globals,
+	__to_binding_runtime_globals
+} from "./RuntimeGlobals";
 import { Stats } from "./Stats";
 import { Watching } from "./Watching";
+import {
+	JsLoaderRspackPlugin,
+	createRsdoctorPluginHooksRegisters,
+	createRuntimePluginHooksRegisters
+} from "./builtin-plugin";
 import { getRawOptions } from "./config";
 import { rspack } from "./index";
 import { unsupported } from "./util";
@@ -853,7 +853,16 @@ class Compiler {
 				createMapTap
 			),
 			...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
-			...createRuntimePluginHooksRegisters(getCompiler, createTap, createMapTap)
+			...createRuntimePluginHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			),
+			...createRsdoctorPluginHooksRegisters(
+				getCompiler,
+				createTap,
+				createMapTap
+			)
 		};
 	}
 

@@ -62,20 +62,20 @@ impl MakeArtifact {
     let module = module_graph
       .module_by_identifier(module_identifier)
       .expect("should have module");
-    if let Some(build_info) = module.build_info() {
-      self
-        .file_dependencies
-        .remove_batch_file(&build_info.file_dependencies);
-      self
-        .context_dependencies
-        .remove_batch_file(&build_info.context_dependencies);
-      self
-        .missing_dependencies
-        .remove_batch_file(&build_info.missing_dependencies);
-      self
-        .build_dependencies
-        .remove_batch_file(&build_info.build_dependencies);
-    }
+    let build_info = module.build_info();
+    self
+      .file_dependencies
+      .remove_batch_file(&build_info.file_dependencies);
+    self
+      .context_dependencies
+      .remove_batch_file(&build_info.context_dependencies);
+    self
+      .missing_dependencies
+      .remove_batch_file(&build_info.missing_dependencies);
+    self
+      .build_dependencies
+      .remove_batch_file(&build_info.build_dependencies);
+
     self.revoked_modules.insert(*module_identifier);
     module_graph.revoke_module(module_identifier)
   }

@@ -75,18 +75,32 @@
 			groupName: "napi",
 			matchPackagePrefixes: ["napi", "@napi-rs/"]
 		},
+		// Rspack npm packages
 		{
-			// rspack packages
-			groupName: "@rspack/dev-server @rspack/plugin-react-refresh @rspack/plugin-preact-refresh",
+			groupName: "Rspack",
 			matchManagers: ["npm"],
-			matchPackageNames: [
-				"@rspack/dev-server",
-				"@rspack/plugin-react-refresh",
-				"@rspack/plugin-preact-refresh"
-			]
+			matchPackageNames: ["/^@rspack/"]
 		},
+		// Babel npm packages
 		{
-			// rspack crates
+			groupName: "babel",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/babel/"]
+		},
+		// Types npm packages
+		{
+			groupName: "types",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@types/"]
+		},
+		// SWC npm packages
+		{
+			groupName: "SWC",
+			matchManagers: ["npm"],
+			matchPackageNames: ["/^@swc/"]
+		},
+		// Rspack crates
+		{
 			groupName: "crate rspack_resolver",
 			matchManagers: ["cargo"],
 			matchPackageNames: ["rspack_resolver"]
@@ -123,20 +137,15 @@
 				"@biomejs/biome",
 				"prettier"
 			],
-			// bump major in a separate PR
-			matchUpdateTypes: ["patch", "minor"]
+			// bump major and minor in a separate PR
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "npm dependencies",
 			matchManagers: ["npm"],
 			matchDepTypes: ["dependencies"],
-			excludePackageNames: [
-				"@rspack/dev-server",
-				"@rspack/plugin-react-refresh",
-				"@rspack/plugin-preact-refresh"
-			],
-			// bump major in a separate PR
-			matchUpdateTypes: ["patch", "minor"]
+			// bump major and minor in a separate PR
+			matchUpdateTypes: ["patch"]
 		},
 		{
 			groupName: "webpack",
@@ -167,8 +176,8 @@
 			matchManagers: ["npm"],
 			matchPackageNames: ["@biomejs/biome", "prettier"]
 		},
+		// Rspress npm packages
 		{
-			// document
 			groupName: "rspress",
 			matchManagers: ["npm"],
 			matchFileNames: ["website/package.json"],

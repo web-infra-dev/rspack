@@ -6,12 +6,12 @@ Rspack provides configurations similar to webpack. This chapter will show you ho
 
 ## Configuration file
 
-When you run the Rspack CLI, Rspack automatically reads the `rspack.config.js` file in the current working directory.
+When you run the Rspack CLI, Rspack automatically reads the `rspack.config.*` file in the current working directory.
 
 A basic Rspack configuration file looks like this:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: {
     main: './src/index.js',
   },

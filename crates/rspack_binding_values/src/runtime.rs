@@ -135,7 +135,7 @@ impl JsAdditionalTreeRuntimeRequirementsResult {
 
     for item in self.runtime_requirements.value.iter() {
       let snake_case = item.to_snake_case();
-      let name = snake_case.cow_to_uppercase();
+      let name = snake_case.cow_to_ascii_uppercase();
 
       if let Some(item) = RUNTIME_GLOBAL_MAP.1.get(name.as_ref()) {
         runtime_requirements.extend(*item);
@@ -168,7 +168,7 @@ impl JsRuntimeRequirementInTreeResult {
 
       if let Some(item) = RUNTIME_GLOBAL_MAP
         .1
-        .get(snake_name.cow_to_uppercase().as_ref())
+        .get(snake_name.cow_to_ascii_uppercase().as_ref())
       {
         runtime_requirements.extend(*item);
       }

@@ -41,8 +41,8 @@ pub struct ProvideSharedModule {
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
   factory_meta: Option<FactoryMeta>,
-  build_info: Option<BuildInfo>,
-  build_meta: Option<BuildMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
 }
 
 impl ProvideSharedModule {
@@ -76,8 +76,11 @@ impl ProvideSharedModule {
       required_version,
       strict_version,
       factory_meta: None,
-      build_info: None,
-      build_meta: None,
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
+      build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -160,11 +163,6 @@ impl Module for ProvideSharedModule {
     }
 
     Ok(BuildResult {
-      build_info: BuildInfo {
-        strict: true,
-        ..Default::default()
-      },
-      build_meta: Default::default(),
       dependencies,
       blocks,
       ..Default::default()

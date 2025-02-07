@@ -24,6 +24,9 @@ export default defineConfig({
     checkDeadLinks: true,
     highlightLanguages: [['rs', 'rust']],
   },
+  search: {
+    codeBlocks: true,
+  },
   route: {
     cleanUrls: true,
   },
@@ -77,6 +80,11 @@ export default defineConfig({
         icon: 'x',
         mode: 'link',
         content: 'https://twitter.com/rspack_dev',
+      },
+      {
+        icon: 'bluesky',
+        mode: 'link',
+        content: 'https://bsky.app/profile/rspack.dev',
       },
       {
         icon: 'lark',
@@ -136,8 +144,7 @@ export default defineConfig({
   ],
   builderConfig: {
     dev: {
-      // TODO: @JSerFeng needs to fix this
-      // lazyCompilation: true,
+      lazyCompilation: true,
     },
     plugins: [
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),

@@ -43,7 +43,7 @@
     "yargs": "17.6.2"
   },
   "devDependencies": {
-    "@rslib/core": "0.2.2",
+    "@rslib/core": "0.4.0",
     "@rspack/core": "workspace:*",
     "@rspack/tracing": "workspace:*",
     "@types/interpret": "^1.1.3",

@@ -3,7 +3,8 @@ import type {
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
-	JsFactoryMeta
+	JsFactoryMeta,
+	JsLibIdentOptions
 } from "@rspack/binding";
 import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
@@ -215,6 +216,8 @@ export class Module {
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
+	declare readonly resourceResolveData: Record<string, any> | undefined;
+	declare readonly matchResource: string | undefined;
 
 	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
@@ -314,6 +317,18 @@ export class Module {
 				get(): boolean {
 					return module.useSourceMap;
 				}
+			},
+			resourceResolveData: {
+				enumerable: true,
+				get(): Record<string, any> | undefined {
+					return module.resourceResolveData;
+				}
+			},
+			matchResource: {
+				enumerable: true,
+				get(): string | undefined {
+					return module.matchResource;
+				}
 			}
 		});
 	}
@@ -341,6 +356,10 @@ export class Module {
 			return this.#inner.size(type);
 		}
 		return 0;
+	}
+
+	libIdent(options: JsLibIdentOptions): string | null {
+		return this.#inner.libIdent(options);
 	}
 }
 

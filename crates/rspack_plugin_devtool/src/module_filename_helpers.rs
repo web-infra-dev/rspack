@@ -195,7 +195,7 @@ impl ModuleFilenameHelpers {
           .as_str();
 
         if content.len() + 2 == full_match.len() {
-          match content.cow_to_lowercase().as_ref() {
+          match content.cow_to_ascii_lowercase().as_ref() {
             "identifier" => Cow::from(&ctx.identifier),
             "short-identifier" => Cow::from(&ctx.short_identifier),
             "resource" => Cow::from(&ctx.resource),

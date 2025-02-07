@@ -218,12 +218,7 @@ impl ExportPresenceMode {
       ExportPresenceMode::None => None,
       ExportPresenceMode::Warn => Some(false),
       ExportPresenceMode::Error => Some(true),
-      ExportPresenceMode::Auto => Some(
-        module
-          .build_meta()
-          .map(|m| m.strict_esm_module)
-          .unwrap_or_default(),
-      ),
+      ExportPresenceMode::Auto => Some(module.build_meta().strict_esm_module),
     }
   }
 }

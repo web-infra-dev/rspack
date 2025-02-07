@@ -84,6 +84,7 @@ define_hook!(CompilationRuntimeRequirementInChunk: SyncSeriesBail(compilation: &
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationAfterCodeGeneration: SyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
@@ -117,6 +118,7 @@ pub struct CompilationHooks {
   pub additional_tree_runtime_requirements: CompilationAdditionalTreeRuntimeRequirementsHook,
   pub runtime_requirement_in_tree: CompilationRuntimeRequirementInTreeHook,
   pub optimize_code_generation: CompilationOptimizeCodeGenerationHook,
+  pub after_code_generation: CompilationAfterCodeGenerationHook,
   pub chunk_hash: CompilationChunkHashHook,
   pub content_hash: CompilationContentHashHook,
   pub render_manifest: CompilationRenderManifestHook,
@@ -1441,6 +1443,11 @@ impl Compilation {
       self.get_module_graph().modules().keys().copied().collect()
     };
     self.code_generation(code_generation_modules)?;
+
+    plugin_driver
+      .compilation_hooks
+      .after_code_generation
+      .call(self)?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");

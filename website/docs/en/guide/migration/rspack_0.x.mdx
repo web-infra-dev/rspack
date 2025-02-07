@@ -16,8 +16,8 @@ In Rspack 0.x, `experiments.css` was enabled by default, which means files endin
 
 If you rely on the built-in feature to handle CSS files without using any loaders, or if you have used the following configuration to handle CSS files:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

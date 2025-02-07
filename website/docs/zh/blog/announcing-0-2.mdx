@@ -51,8 +51,8 @@ ContextModuleFactory hooks
 
 在新版本中，支持了生成 System/ESM 产物，输出 ESM 的产物配置如下：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   experiments: {
     outputModule: true,
@@ -91,8 +91,8 @@ import x from 'data:text/javascript,export default 42';
 
 除此之外我们还支持了 `mimetype` 和 `scheme` 这两种 module rule condition，比如，你可以通过以下方式让 `scheme` 为 `'data'` 的资源不再当作内联处理，而是作为单独的资源文件
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -110,8 +110,8 @@ module.exports = {
 
   在 0.1.12 版本我们为了进一步对齐 webpack 的文件名生成逻辑，重构了文件名生成的实现，但导致 [ext] 在 `output.filename`、`output.chunkFilename`、`output.cssFilename` 和 `output.cssChunkFilename` 中的 [ext] 不会再被替换，这一行为现在和 webpack 保持一致，但对于 Rspack 0.1.12 之前的版本造成了 breaking change，如果你在以上 4 个文件名配置中使用了 [ext]，你需要修改成对应的 `.js` 或 `.css`，比如：
 
-  ```diff title="rspack.config.js"
-  module.exports = {
+  ```diff title="rspack.config.mjs"
+  export default {
     output: {
   -    filename: "[name][ext]",
   +    filename: "[name].js",

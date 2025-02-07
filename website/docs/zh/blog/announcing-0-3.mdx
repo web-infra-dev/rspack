@@ -124,10 +124,10 @@ new Worker(new URL('./worker.js', import.meta.url), {
 
 Rspack 虽然提供了很多 SWC 的编译配置选项，但是这些配置都是全局性的编译配置，业务侧如果需要不同的模块走不同的 SWC 转换逻辑则难以满足，因此 Rspack 支持 `builtin:swc-loader` 以提供更精细的 SWC 转换配置，`builtin:swc-loader` 相比于 JS 版本的 [swc-loader](https://github.com/swc-project/swc-loader) 性能更优。你可以通过如下方式使用 `builtin:swc-loader`
 
-```js
-const path = require('path');
-/** @type {import('@rspack/cli').Configuration} */
-const config = {
+```js title="rspack.config.mjs"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   module: {
     rules: [
       {
@@ -156,8 +156,7 @@ const config = {
       },
     ],
   },
-};
-module.exports = config;
+});
 ```
 
 更多的示例可参考 [examples/builtin-swc-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/builtin-swc-loader)

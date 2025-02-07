@@ -14,20 +14,20 @@ The `mode` configuration is used to set the build mode of Rspack to enable the d
 
 ## Usage
 
-You can set the mode directly in `rspack.config.js`:
+You can set the mode directly in Rspack config:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   mode: 'production',
 };
 ```
 
 In actual scenarios, you can dynamically set the mode according to `process.env.NODE_ENV`:
 
-```ts title="rspack.config.js"
+```js title="rspack.config.mjs"
 const isProduction = process.env.NODE_ENV === 'production';
 
-module.exports = {
+export default {
   mode: isProduction ? 'production' : 'development',
 };
 ```

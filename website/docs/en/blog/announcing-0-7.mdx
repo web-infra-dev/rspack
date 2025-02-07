@@ -59,10 +59,10 @@ When a developer accesses a particular page of the site, the build for that page
 
 Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   experiments: {
     lazyCompilation: isDev,
   },
@@ -171,7 +171,7 @@ Upgraded the Rust crate `swc_core` to `0.91.x`. This will affect users of the SW
 
 In version v0.7, the Rust crate `swc_core` has been upgraded to `0.91.x`. Users of the SWC Wasm plugin need to ensure version consistency with `swc_core` being used, otherwise, it may lead to unforeseen issues.
 
-For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of SWC。
+For more details, please see this [document](https://swc.rs/docs/plugin/selecting-swc-core#091x) of SWC.
 
 ### Replace resolve.browserField with resolve.aliasFields
 
