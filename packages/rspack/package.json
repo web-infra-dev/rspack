@@ -57,7 +57,7 @@
     "@types/webpack-sources": "3.2.3",
     "browserslist": "^4.21.3",
     "cross-env": "^7.0.3",
-    "enhanced-resolve": "5.17.1",
+    "enhanced-resolve": "5.18.1",
     "graceful-fs": "4.2.11",
     "json-parse-even-better-errors": "^3.0.0",
     "prebundle": "^1.2.7",
