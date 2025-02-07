@@ -237,6 +237,9 @@ export declare class JsModule {
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  get resourceResolveData(): JsResourceData | undefined
+  get matchResource(): string | undefined
 }
 
 export declare class JsModuleGraph {
@@ -698,6 +701,10 @@ export interface JsHtmlPluginTag {
   voidTag: boolean
   innerHTML?: string
   asset?: string
+}
+
+export interface JsLibIdentOptions {
+  context: string
 }
 
 export interface JsLibraryAuxiliaryComment {
