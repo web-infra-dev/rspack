@@ -184,6 +184,8 @@ Rsbuild v1.2 已经与 Rspack v1.2 同步发布，并带来了多项新特性：
 如果你倾向于保持之前的行为，可以设置：
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };

@@ -184,6 +184,8 @@ The [WarnCaseSensitiveModulesPlugin](/plugins/webpack/warn-case-sensitive-module
 If you prefer to keep the previous behavior, you can set:
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   plugins: [new rspack.WarnCaseSensitiveModulesPlugin()],
 };
