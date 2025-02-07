@@ -13,8 +13,8 @@ import WebpackLicense from '@components/WebpackLicense';
 
 开启监听模式，使 Rspack 在第一次构建完后不会退出，而是继续监听文件变更，并在变更时触发重新编译。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   watch: true,
 };
@@ -30,8 +30,8 @@ module.exports = {
 
 监听模式相关的配置项。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   watchOptions: {
     ignored: /node_modules/,
@@ -47,8 +47,8 @@ module.exports = {
 
 当第一个文件更改后，在触发 rebuild 前存在一个延迟时间，Rspack 会将这段时间内进行的任何其他更改都聚合到一次 rebuild 里。你可以通过这个选项来设置这个时间，以毫秒为单位：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     aggregateTimeout: 600,
@@ -67,8 +67,8 @@ Rspack 从 v1.2.0 开始，默认排除 `node_modules` 和 `.git` 目录下的�
 
 如果你希望监听 `node_modules` 目录，可以设置为仅排除 `.git` 目录：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: /\.git/,
@@ -78,8 +78,8 @@ module.exports = {
 
 `ignored` 可以使用 glob 匹配：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: '**/.git',
@@ -89,8 +89,8 @@ module.exports = {
 
 还可以使用多个 glob 匹配：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
@@ -100,10 +100,10 @@ module.exports = {
 
 还可以指定为一个或多个绝对路径：
 
-```js title=rspack.config.js
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
@@ -122,8 +122,8 @@ module.exports = {
 
 当设置为 `true` 时，默认的轮询间隔为 5007 毫秒。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     poll: true,
@@ -133,8 +133,8 @@ module.exports = {
 
 还可以设置一个自定义的轮询间隔：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     poll: 1000, // 每秒检查一次
@@ -149,8 +149,8 @@ module.exports = {
 
 是否根据软链接查找文件。这通常是不需要的，因为 Rspack 已经使用 [resolve.symlinks](/config/resolve#resolvesymlinks) 解析了软链接。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     followSymlinks: true,
@@ -164,8 +164,8 @@ module.exports = {
 
 当 stdin 流结束时停止监听。
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     stdin: true,

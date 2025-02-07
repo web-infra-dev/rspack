@@ -13,8 +13,8 @@ Rspack can watch files and recompile whenever they change.
 
 Turn on watch mode. This means that after the initial build, Rspack will continue to watch for changes in any of the resolved files.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   watch: true,
 };
@@ -30,8 +30,8 @@ module.exports = {
 
 A set of options used to customize watch mode.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   watchOptions: {
     ignored: /node_modules/,
@@ -47,8 +47,8 @@ module.exports = {
 
 Add a delay before rebuilding once the first file changed. This allows Rspack to aggregate any other changes made during this time period into one rebuild. Pass a value in milliseconds:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     aggregateTimeout: 600,
@@ -67,8 +67,8 @@ Since Rspack v1.2.0, `node_modules` and `.git` directories are excluded by defau
 
 If you want to watch the `node_modules` directory, you can set it to only exclude the `.git` directory:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: /\.git/,
@@ -78,8 +78,8 @@ module.exports = {
 
 `ignored` can use glob matching:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: '**/.git',
@@ -89,8 +89,8 @@ module.exports = {
 
 It is also possible to use multiple glob patterns:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     ignored: ['**/files/**/*.js', '**/.git', '**/node_modules'],
@@ -100,10 +100,10 @@ module.exports = {
 
 In addition, you can specify one or more absolute paths:
 
-```js title=rspack.config.js
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   //...
   watchOptions: {
     ignored: [path.posix.resolve(__dirname, './ignored-dir')],
@@ -122,8 +122,8 @@ Whether to watch by polling.
 
 When set to `true`, the default polling interval is 5007 milliseconds.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     poll: true,
@@ -133,8 +133,8 @@ module.exports = {
 
 It can also set a custom polling interval:
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     poll: 1000, // Check for changes every second
@@ -149,8 +149,8 @@ module.exports = {
 
 Follow symbolic links while looking for a file. This is usually not needed as Rspack already resolves symlinks with [resolve.symlinks](/config/resolve#resolvesymlinks).
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     followSymlinks: true,
@@ -164,8 +164,8 @@ module.exports = {
 
 Stop watching when stdin stream has ended.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   watchOptions: {
     stdin: true,

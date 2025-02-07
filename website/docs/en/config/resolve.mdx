@@ -49,8 +49,8 @@ Same as node's [conditionNames](https://nodejs.org/api/packages.html#conditional
 
 The JSON files to use for descriptions.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     descriptionFiles: ['package.json'],
   },
@@ -65,8 +65,8 @@ By default, It changes to `true` if [resolve.extensions](#resolveextensions) con
 
 If `true`, it will not allow extension-less files. So by default `require('./foo')` works if `./foo` has a `.js` extension, but with this enabled only `require('./foo.js')` will work.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     enforceExtension: false,
   },
@@ -108,8 +108,8 @@ Parse modules in order, e.g. `require('. /index')`, will try to parse `'. /index
 
 Define alias for the extension. e.g.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     extensionAlias: {
       '.js': ['.ts', '.js'],
@@ -133,8 +133,8 @@ Rspack will try to resolve `'./foo.ts'` and `./foo.js'` sequentially when resolv
 
 Redirect module requests when normal resolving fails.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   resolve: {
     fallback: {
@@ -149,10 +149,10 @@ Rspack does not polyfills Node.js core modules automatically which means if you 
 
 You could use [node-polyfill-webpack-plugin](https://www.npmjs.com/package/node-polyfill-webpack-plugin) to polyfill Node.js core API automatically.
 
-```js title="rspack.config.js"
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+```js title="rspack.config.mjs"
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
-module.exports = {
+export default {
   // ...
   plugins: [new NodePolyfillPlugin()],
 };
@@ -160,8 +160,12 @@ module.exports = {
 
 Or refer to the list of Node.js polyfills used by webpack 4:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
   //...
   resolve: {
     fallback: {
@@ -226,8 +230,8 @@ When importing from an npm package, for example `import React from 'react'`, `re
 
 If `target` is `'web'`, `'webworker'`, or not specified, the default value is `["browser", "module", "main"]`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFields: ['browser', 'module', 'main'],
   },
@@ -236,8 +240,8 @@ module.exports = {
 
 For any other `target` (including `'node'`), the default value is `["module", "main"]`.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFields: ['module', 'main'],
   },
@@ -265,8 +269,8 @@ The filename suffix when resolving directories, e.g. `require('. /dir/')` will t
 
 Can configure multiple filename suffixes:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     mainFiles: ['index', 'main'],
   },
@@ -301,8 +305,8 @@ Opt for absolute paths when resolving, in relation to `resolve.roots`.
 
 The replacement of [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin) in Rspack.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     // string
     tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -381,8 +385,8 @@ It's enabled by default if [`!!process.versions.pnp`](https://yarnpkg.com/advanc
 
 Example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   resolve: {
     pnp: true,
