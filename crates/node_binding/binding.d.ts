@@ -1226,7 +1226,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
   type?: RegExp | string
-  layer?: RegExp | string
+  layer?: RegExp | string | ((layer?: string) => boolean)
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes

@@ -75,7 +75,7 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | string")]
   #[debug(skip)]
   pub r#type: Option<Either<RspackRegex, JsString>>,
-  #[napi(ts_type = "RegExp | string")]
+  #[napi(ts_type = "RegExp | string | ((layer?: string) => boolean)")]
   #[debug(skip)]
   pub layer: Option<Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>>,
   pub automatic_name_delimiter: Option<String>,
