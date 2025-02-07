@@ -3,7 +3,8 @@ import type {
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
 	JsCreateData,
-	JsFactoryMeta
+	JsFactoryMeta,
+	JsLibIdentOptions
 } from "@rspack/binding";
 import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
@@ -355,6 +356,10 @@ export class Module {
 			return this.#inner.size(type);
 		}
 		return 0;
+	}
+
+	libIdent(options: JsLibIdentOptions): string | null {
+		return this.#inner.libIdent(options);
 	}
 }
 
