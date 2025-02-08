@@ -68,7 +68,7 @@
     "webpack-sources": "3.2.3"
   },
   "devDependencies": {
-    "@arco-design/web-react": "^2.56.1",
+    "@arco-design/web-react": "^2.65.0",
     "@monaco-editor/react": "^4.6.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
