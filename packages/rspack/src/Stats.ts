@@ -106,8 +106,7 @@ export class Stats {
 			});
 		} catch (e) {
 			console.warn(
-				"Failed to get stats. " +
-					"Are you trying to access the stats from the previous compilation?"
+				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);
 		}
 		return stats as StatsCompilation;
@@ -149,8 +148,7 @@ export class Stats {
 			});
 		} catch (e) {
 			console.warn(
-				"Failed to get stats. " +
-					"Are you trying to access the stats from the previous compilation?"
+				`Failed to get stats due to error: ${(e as Error)?.message}, are you trying to access the stats from the previous compilation?`
 			);
 		}
 
