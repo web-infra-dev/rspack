@@ -155,7 +155,9 @@ impl Task<MakeTaskContext> for ExecuteTask {
 
     compilation.create_module_hashes(modules.clone())?;
 
-    compilation.code_generation_modules(&mut None, modules.clone())?;
+    compilation
+      .code_generation_modules(&mut None, modules.clone())
+      .await?;
     compilation
       .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
       .await?;
@@ -210,7 +212,8 @@ impl Task<MakeTaskContext> for ExecuteTask {
         &runtime_modules,
         &codegen_results,
         &id,
-      );
+      )
+      .await;
 
     let module_graph = compilation.get_module_graph();
     let mut execute_result = modules.iter().fold(

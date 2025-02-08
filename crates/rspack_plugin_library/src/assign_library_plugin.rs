@@ -210,7 +210,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRender for AssignLibraryPlugin)]
-fn render(
+async fn render(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -238,7 +238,7 @@ fn render(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for AssignLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -316,7 +316,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesEmbedInRuntimeBailout for AssignLibraryPlugin)]
-fn embed_in_runtime_bailout(
+async fn embed_in_runtime_bailout(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -354,7 +354,7 @@ fn embed_in_runtime_bailout(
 }
 
 #[plugin_hook(JavascriptModulesStrictRuntimeBailout for AssignLibraryPlugin)]
-fn strict_runtime_bailout(
+async fn strict_runtime_bailout(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -454,7 +454,7 @@ impl Plugin for AssignLibraryPlugin {
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for AssignLibraryPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,

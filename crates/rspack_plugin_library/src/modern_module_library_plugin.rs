@@ -137,7 +137,7 @@ impl ModernModuleLibraryPlugin {
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModernModuleLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -420,7 +420,7 @@ async fn compilation(
 }
 
 #[plugin_hook(ConcatenatedModuleExportsDefinitions for ModernModuleLibraryPlugin)]
-fn exports_definitions(
+async fn exports_definitions(
   &self,
   _exports_definitions: &mut Vec<(String, String)>,
   is_entry_module: bool,

@@ -4975,6 +4975,7 @@ dependencies = [
  "dashmap 6.1.0",
  "either",
  "fast-glob",
+ "futures",
  "indexmap 2.7.0",
  "indoc",
  "itertools 0.14.0",

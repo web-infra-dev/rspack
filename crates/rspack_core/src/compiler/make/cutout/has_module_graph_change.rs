@@ -143,6 +143,7 @@ impl HasModuleGraphChange {
 mod t {
   use std::borrow::Cow;
 
+  use async_trait::async_trait;
   use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
@@ -276,6 +277,7 @@ mod t {
   impl_empty_diagnosable_trait!(TestModule);
 
   #[cacheable_dyn]
+  #[async_trait]
   impl Module for TestModule {
     fn module_type(&self) -> &ModuleType {
       todo!()
@@ -325,7 +327,7 @@ mod t {
       todo!()
     }
 
-    fn code_generation(
+    async fn code_generation(
       &self,
       _compilation: &Compilation,
       _runtime: Option<&RuntimeSpec>,

@@ -1,3 +1,4 @@
+use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_core::chunk_graph_chunk::ChunkId;
 use rspack_core::rspack_sources::{
@@ -15,28 +16,30 @@ use crate::{JsPlugin, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 
-pub fn render_chunk_modules(
+pub async fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   ordered_modules: &Vec<&BoxModule>,
   all_strict: bool,
   output_path: &str,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let mut module_code_array = ordered_modules
-    .par_iter()
-    .filter_map(|module| {
-      render_module(
-        compilation,
-        chunk_ukey,
-        module,
-        all_strict,
-        true,
-        output_path,
-      )
-      .transpose()
-      .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
-    })
-    .collect::<Result<Vec<_>>>()?;
+  let mut module_code_array = join_all(ordered_modules.iter().map(|module| async {
+    render_module(
+      compilation,
+      chunk_ukey,
+      module,
+      all_strict,
+      true,
+      output_path,
+    )
+    .await
+    .transpose()
+    .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
+  }))
+  .await
+  .into_iter()
+  .filter_map(|res| res)
+  .collect::<Result<Vec<_>>>()?;
 
   if module_code_array.is_empty() {
     return Ok(None);
@@ -73,7 +76,7 @@ pub fn render_chunk_modules(
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
-pub fn render_module(
+pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   module: &BoxModule,
@@ -129,12 +132,15 @@ pub fn render_module(
     }
   };
 
-  hooks.render_module_content.call(
-    compilation,
-    module,
-    &mut render_source,
-    &mut module_chunk_init_fragments,
-  )?;
+  hooks
+    .render_module_content
+    .call(
+      compilation,
+      module,
+      &mut render_source,
+      &mut module_chunk_init_fragments,
+    )
+    .await?;
   let mut sources = ConcatSource::default();
 
   if factory {

@@ -13,6 +13,7 @@ cow-utils = { workspace = true }
 dashmap = { workspace = true }
 either = { workspace = true }
 fast-glob = "0.4.3"
+futures = { workspace = true }
 indexmap = { workspace = true }
 indoc = { workspace = true }
 itertools = { workspace = true }

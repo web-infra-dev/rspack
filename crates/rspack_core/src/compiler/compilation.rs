@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use futures::{future::join_all, FutureExt};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -65,25 +66,25 @@ define_hook!(CompilationBuildModule: AsyncSeries(compilation_id: CompilationId, 
 define_hook!(CompilationStillValidModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
-  SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  AsyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationSeal: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeDependencies: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationAfterOptimizeModules: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationOptimizeChunks: SyncSeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationOptimizeChunks: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeChunkModules: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilationModuleIds: SyncSeries(compilation: &mut Compilation));
-define_hook!(CompilationChunkIds: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationModuleIds: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationChunkIds: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationRuntimeModule: AsyncSeries(compilation: &mut Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey));
-define_hook!(CompilationAdditionalModuleRuntimeRequirements: SyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalModuleRuntimeRequirements: AsyncSeries(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInModule: SyncSeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
-define_hook!(CompilationAdditionalChunkRuntimeRequirements: SyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
+define_hook!(CompilationAdditionalChunkRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInChunk: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: AsyncSeries(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals));
 define_hook!(CompilationRuntimeRequirementInTree: SyncSeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
-define_hook!(CompilationOptimizeCodeGeneration: SyncSeries(compilation: &mut Compilation));
+define_hook!(CompilationOptimizeCodeGeneration: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationChunkHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
 define_hook!(CompilationContentHash: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
 define_hook!(CompilationRenderManifest: AsyncSeries(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>));
@@ -856,7 +857,7 @@ impl Compilation {
   }
 
   #[instrument("Compilation:code_generation", skip_all)]
-  fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
+  async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
@@ -877,8 +878,12 @@ impl Compilation {
       }
     }
 
-    self.code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)?;
-    self.code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)?;
+    self
+      .code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)
+      .await?;
+    self
+      .code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)
+      .await?;
 
     if let Some(counter) = codegen_cache_counter {
       logger.cache_end(counter);
@@ -887,13 +892,12 @@ impl Compilation {
     Ok(())
   }
 
-  pub(crate) fn code_generation_modules(
+  pub(crate) async fn code_generation_modules(
     &mut self,
     cache_counter: &mut Option<CacheCount>,
     modules: IdentifierSet,
   ) -> Result<()> {
     let chunk_graph = &self.chunk_graph;
-    let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
     for module in modules {
       let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
@@ -937,33 +941,42 @@ impl Compilation {
         jobs.extend(map.into_values());
       }
     }
-    let results = jobs
-      .into_par_iter()
-      .map(|job| {
-        let module = job.module;
-        (
-          module,
-          self
-            .old_cache
-            .code_generate_occasion
-            .use_cache(job, |module, runtime| {
-              let module = module_graph
-                .module_by_identifier(&module)
-                .expect("should have module");
-              module
-                .code_generation(self, Some(runtime), None)
-                .map(|mut codegen_res| {
-                  codegen_res.set_hash(
-                    &self.options.output.hash_function,
-                    &self.options.output.hash_digest,
-                    &self.options.output.hash_salt,
-                  );
-                  codegen_res
-                })
-            }),
-        )
-      })
-      .collect::<Vec<_>>();
+    let compilation = &*self;
+    let results = join_all(jobs.into_iter().map(|job| async move {
+      let CodeGenerationJob {
+        module,
+        hash,
+        runtime,
+        runtimes,
+      } = job;
+      let generate_task = async {
+        let module_graph = compilation.get_module_graph();
+        let module = module_graph
+          .module_by_identifier(&module)
+          .expect("should have module");
+        module
+          .code_generation(compilation, Some(&runtime), None)
+          .await
+          .map(|mut codegen_res| {
+            codegen_res.set_hash(
+              &compilation.options.output.hash_function,
+              &compilation.options.output.hash_digest,
+              &compilation.options.output.hash_salt,
+            );
+            codegen_res
+          })
+      }
+      .boxed();
+      (
+        module,
+        compilation
+          .old_cache
+          .code_generate_occasion
+          .use_cache(module, hash, runtimes, generate_task)
+          .await,
+      )
+    }))
+    .await;
     for (module, (codegen_res, runtimes, from_cache)) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
@@ -1311,7 +1324,8 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .optimize_dependencies
-        .call(self)?,
+        .call(self)
+        .await?,
       Some(true)
     ) {}
     logger.time_end(start);
@@ -1346,7 +1360,11 @@ impl Compilation {
       .instrument(info_span!("Compilation:after_optimize_modules"))
       .await?;
     while matches!(
-      plugin_driver.compilation_hooks.optimize_chunks.call(self)?,
+      plugin_driver
+        .compilation_hooks
+        .optimize_chunks
+        .call(self)
+        .await?,
       Some(true)
     ) {}
     logger.time_end(start);
@@ -1372,12 +1390,14 @@ impl Compilation {
 
     let start = logger.time("module ids");
     tracing::info_span!("Compilation:module_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))?;
+      .in_scope(|| plugin_driver.compilation_hooks.module_ids.call(self))
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("chunk ids");
     tracing::info_span!("Compilation:chunk_ids")
-      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))?;
+      .in_scope(|| plugin_driver.compilation_hooks.chunk_ids.call(self))
+      .await?;
     logger.time_end(start);
 
     self.assign_runtime_ids();
@@ -1408,12 +1428,14 @@ impl Compilation {
     self.create_module_hashes(create_module_hashes_modules)?;
 
     let start = logger.time("optimize code generation");
-    tracing::info_span!("Compilation::optimize_code_generation").in_scope(|| {
-      plugin_driver
-        .compilation_hooks
-        .optimize_code_generation
-        .call(self)
-    })?;
+    tracing::info_span!("Compilation::optimize_code_generation")
+      .in_scope(|| {
+        plugin_driver
+          .compilation_hooks
+          .optimize_code_generation
+          .call(self)
+      })
+      .await?;
     logger.time_end(start);
 
     let start = logger.time("code generation");
@@ -1440,7 +1462,7 @@ impl Compilation {
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self.code_generation(code_generation_modules)?;
+    self.code_generation(code_generation_modules).await?;
     logger.time_end(start);
 
     let start = logger.time("runtime requirements");
@@ -1549,7 +1571,7 @@ impl Compilation {
     self
       .create_hash(create_hash_chunks, plugin_driver.clone())
       .await?;
-    self.runtime_modules_code_generation()?;
+    self.runtime_modules_code_generation().await?;
     logger.time_end(start);
 
     let start = logger.time("create module assets");
@@ -1639,51 +1661,70 @@ impl Compilation {
   ) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let start = logger.time("runtime requirements.modules");
-    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RuntimeGlobals>)> = modules
-      .into_par_iter()
-      .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
-      .map(|module| {
-        let runtimes = self
-          .chunk_graph
-          .get_module_runtimes(module, &self.chunk_by_ukey);
-        let mut map = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
-          let runtime_requirements = self
-            .old_cache
-            .process_runtime_requirements_occasion
-            .use_cache(module, &runtime, self, |module, runtime| {
-              let mut runtime_requirements = self
-                .code_generation_results
-                .get_runtime_requirements(&module, Some(runtime));
 
-              plugin_driver
-                .compilation_hooks
-                .additional_module_runtime_requirements
-                .call(self, &module, &mut runtime_requirements)?;
+    let compilation = &*self;
+    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RuntimeGlobals>)> = join_all(
+      modules
+        .into_iter()
+        .filter(|module: &rspack_collections::Identifier| {
+          self.chunk_graph.get_number_of_module_chunks(*module) > 0
+        })
+        .map(|module| {
+          let plugin_driver = plugin_driver.clone();
+          async move {
+            let runtimes = compilation
+              .chunk_graph
+              .get_module_runtimes(module, &compilation.chunk_by_ukey);
+            let mut map = RuntimeSpecMap::new();
+            for runtime in runtimes.into_values() {
+              let runtime_requirements = compilation
+                .old_cache
+                .process_runtime_requirements_occasion
+                .use_cache(
+                  module,
+                  &runtime,
+                  compilation,
+                  async {
+                    let mut runtime_requirements = compilation
+                      .code_generation_results
+                      .get_runtime_requirements(&module, Some(&runtime));
 
-              process_runtime_requirement_hook(
-                &mut runtime_requirements,
-                |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
-                  plugin_driver
-                    .compilation_hooks
-                    .runtime_requirement_in_module
-                    .call(
-                      self,
-                      &module,
-                      all_runtime_requirements,
-                      runtime_requirements,
-                      runtime_requirements_mut,
+                    plugin_driver
+                      .compilation_hooks
+                      .additional_module_runtime_requirements
+                      .call(compilation, &module, &mut runtime_requirements)
+                      .await?;
+
+                    process_runtime_requirement_hook(
+                      &mut runtime_requirements,
+                      |all_runtime_requirements, runtime_requirements, runtime_requirements_mut| {
+                        plugin_driver
+                          .compilation_hooks
+                          .runtime_requirement_in_module
+                          .call(
+                            compilation,
+                            &module,
+                            all_runtime_requirements,
+                            runtime_requirements,
+                            runtime_requirements_mut,
+                          )?;
+                        Ok(())
+                      },
                     )?;
-                  Ok(())
-                },
-              )?;
-              Ok(runtime_requirements)
-            })?;
-          map.set(runtime, runtime_requirements);
-        }
-        Ok((module, map))
-      })
-      .collect::<Result<_>>()?;
+                    Ok(runtime_requirements)
+                  }
+                  .boxed(),
+                )
+                .await?;
+              map.set(runtime, runtime_requirements);
+            }
+            Ok((module, map))
+          }
+        }),
+    )
+    .await
+    .into_iter()
+    .collect::<Result<_>>()?;
     for (module, map) in results {
       ChunkGraph::set_module_runtime_requirements(self, module, map);
     }
@@ -1720,7 +1761,8 @@ impl Compilation {
       plugin_driver
         .compilation_hooks
         .additional_chunk_runtime_requirements
-        .call(self, chunk_ukey, &mut set)?;
+        .call(self, chunk_ukey, &mut set)
+        .await?;
 
       process_runtime_requirement_hook(
         &mut set,
@@ -2053,18 +2095,19 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  pub fn runtime_modules_code_generation(&mut self) -> Result<()> {
-    self.runtime_modules_code_generation_source = self
-      .runtime_modules
-      .par_iter()
-      .map(|(runtime_module_identifier, runtime_module)| -> Result<_> {
-        let result = runtime_module.code_generation(self, None, None)?;
+  pub async fn runtime_modules_code_generation(&mut self) -> Result<()> {
+    self.runtime_modules_code_generation_source = join_all(self.runtime_modules.iter().map(
+      |(runtime_module_identifier, runtime_module)| async {
+        let result = runtime_module.code_generation(self, None, None).await?;
         let source = result
           .get(&SourceType::Runtime)
           .expect("should have source");
         Ok((*runtime_module_identifier, source.clone()))
-      })
-      .collect::<Result<_>>()?;
+      },
+    ))
+    .await
+    .into_iter()
+    .collect::<Result<_>>()?;
     self
       .code_generated_modules
       .extend(self.runtime_modules.keys().copied());

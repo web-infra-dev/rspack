@@ -54,7 +54,7 @@ async fn compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderStartup for ModuleLibraryPlugin)]
-fn render_startup(
+async fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,

@@ -35,7 +35,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for ArrayPushCallbackChunkFormatPlugin)]
-fn additional_chunk_runtime_requirements(
+async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &mut Compilation,
   chunk_ukey: &ChunkUkey,
@@ -92,7 +92,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for ArrayPushCallbackChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -155,12 +155,15 @@ fn render_chunk(
         let mut render_source = RenderSource {
           source: start_up_source,
         };
-        hooks.render_startup.call(
-          compilation,
-          chunk_ukey,
-          last_entry_module,
-          &mut render_source,
-        )?;
+        hooks
+          .render_startup
+          .call(
+            compilation,
+            chunk_ukey,
+            last_entry_module,
+            &mut render_source,
+          )
+          .await?;
         source.add(render_source.source);
         let runtime_requirements =
           ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);

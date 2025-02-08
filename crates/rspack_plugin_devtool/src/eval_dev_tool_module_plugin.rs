@@ -90,7 +90,7 @@ async fn eval_devtool_plugin_compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_render_module_content(
+async fn eval_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -169,7 +169,7 @@ async fn eval_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {
@@ -197,7 +197,7 @@ impl Plugin for EvalDevToolModulePlugin {
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalDevToolModulePlugin)]
-fn eval_devtool_plugin_additional_module_runtime_requirements(
+async fn eval_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,

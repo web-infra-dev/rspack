@@ -129,7 +129,7 @@ impl Module for RawModule {
   }
 
   // #[tracing::instrument("RawModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &crate::Compilation,
     _runtime: Option<&RuntimeSpec>,

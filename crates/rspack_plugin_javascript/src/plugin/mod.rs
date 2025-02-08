@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
 
-use rayon::prelude::*;
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -197,7 +196,7 @@ impl JsPlugin {
     sources
   }
 
-  pub fn render_bootstrap(
+  pub async fn render_bootstrap(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -355,7 +354,7 @@ impl JsPlugin {
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation);
-          let bailout = hooks.inline_in_runtime_bailout.call(compilation)?;
+          let bailout = hooks.inline_in_runtime_bailout.call(compilation).await?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
             allow_inline_startup = false;
@@ -531,7 +530,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation)?;
+    } = self.render_bootstrap(chunk_ukey, compilation).await?;
     let module_graph = &compilation.get_module_graph();
     let all_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       chunk_ukey,
@@ -564,7 +563,11 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks
+        .strict_runtime_bailout
+        .call(compilation, chunk_ukey)
+        .await?
+      {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -590,7 +593,8 @@ impl JsPlugin {
       &chunk_modules,
       all_strict,
       output_path,
-    )?;
+    )
+    .await?;
     let has_chunk_modules_result = chunk_modules_result.is_some();
     if has_chunk_modules_result
       || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES)
@@ -644,15 +648,17 @@ impl JsPlugin {
       }
 
       let renamed_inline_modules = if compilation.options.optimization.avoid_entry_iife {
-        self.get_renamed_inline_module(
-          &all_modules,
-          inlined_modules,
-          compilation,
-          chunk_ukey,
-          all_strict,
-          has_chunk_modules_result,
-          output_path,
-        )?
+        self
+          .get_renamed_inline_module(
+            &all_modules,
+            inlined_modules,
+            compilation,
+            chunk_ukey,
+            all_strict,
+            has_chunk_modules_result,
+            output_path,
+          )
+          .await?
       } else {
         None
       };
@@ -662,7 +668,7 @@ impl JsPlugin {
           .module_by_identifier(m_identifier)
           .expect("should have module");
         let Some((mut rendered_module, fragments, additional_fragments)) =
-          render_module(compilation, chunk_ukey, m, all_strict, false, output_path)?
+          render_module(compilation, chunk_ukey, m, all_strict, false, output_path).await?
         else {
           continue;
         };
@@ -697,7 +703,8 @@ impl JsPlugin {
         } else {
           hooks
             .embed_in_runtime_bailout
-            .call(compilation, m, chunk)?
+            .call(compilation, m, chunk)
+            .await?
             .map(|s| s.into())
         };
         let footer;
@@ -744,12 +751,15 @@ impl JsPlugin {
       let mut render_source = RenderSource {
         source: startup_sources.boxed(),
       };
-      hooks.render_startup.call(
-        compilation,
-        chunk_ukey,
-        last_entry_module,
-        &mut render_source,
-      )?;
+      hooks
+        .render_startup
+        .call(
+          compilation,
+          chunk_ukey,
+          last_entry_module,
+          &mut render_source,
+        )
+        .await?;
       sources.add(render_source.source);
     } else if let Some(last_entry_module) = compilation
       .chunk_graph
@@ -760,12 +770,15 @@ impl JsPlugin {
       let mut render_source = RenderSource {
         source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
       };
-      hooks.render_startup.call(
-        compilation,
-        chunk_ukey,
-        last_entry_module,
-        &mut render_source,
-      )?;
+      hooks
+        .render_startup
+        .call(
+          compilation,
+          chunk_ukey,
+          last_entry_module,
+          &mut render_source,
+        )
+        .await?;
       sources.add(render_source.source);
     }
     if has_entry_modules
@@ -788,7 +801,8 @@ impl JsPlugin {
     };
     hooks
       .render
-      .call(compilation, chunk_ukey, &mut render_source)?;
+      .call(compilation, chunk_ukey, &mut render_source)
+      .await?;
     Ok(if iife {
       ConcatSource::new([
         render_source.source,
@@ -801,7 +815,7 @@ impl JsPlugin {
   }
 
   #[allow(clippy::too_many_arguments)]
-  pub fn get_renamed_inline_module(
+  pub async fn get_renamed_inline_module(
     &self,
     all_modules: &[&BoxModule],
     inlined_modules: &IdentifierLinkedMap<ChunkGroupUkey>,
@@ -835,189 +849,168 @@ impl JsPlugin {
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     // make patch in parallel iteration
-    let rename_info_patch = all_modules
-      .par_iter()
-      .fold(
-        || {
-          Ok(RenameInfoPatch {
-            inlined_modules_to_info: IdentifierMap::default(),
-            non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
-          })
-        },
-        |mut acc, m: &&BoxModule| {
-          let is_inlined_module = inlined_modules.contains_key(&m.identifier());
+    let mut rename_info_patch = Ok(RenameInfoPatch {
+      inlined_modules_to_info: IdentifierMap::default(),
+      non_inlined_module_through_idents: Vec::new(),
+      all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
+    });
+    for m in all_modules.iter() {
+      let is_inlined_module = inlined_modules.contains_key(&m.identifier());
 
-          if let Ok(acc) = acc.as_mut() {
-            if let Some((rendered_module, ..)) =
-              render_module(compilation, chunk_ukey, m, all_strict, false, output_path)?
+      if let Ok(rename_info_patch) = rename_info_patch.as_mut() {
+        if let Some((rendered_module, ..)) =
+          render_module(compilation, chunk_ukey, m, all_strict, false, output_path).await?
+        {
+          let code = rendered_module;
+          let mut use_cache = false;
+
+          if is_inlined_module {
+            if let Some(ident_info_with_hash) =
+              self.rename_module_cache.get_inlined_info(&m.identifier())
             {
-              let code = rendered_module;
-              let mut use_cache = false;
-
-              if is_inlined_module {
-                if let Some(ident_info_with_hash) =
-                  self.rename_module_cache.get_inlined_info(&m.identifier())
-                {
-                  if let (Some(hash_current), Some(hash_cache)) = (
-                    m.build_info().and_then(|i| i.hash.as_ref()),
-                    ident_info_with_hash.hash.as_ref(),
-                  ) {
-                    if *hash_current == *hash_cache {
-                      let WithHash { value, .. } = (*ident_info_with_hash).clone();
-                      acc.inlined_modules_to_info.insert(m.identifier(), value);
-                      use_cache = true;
-                    }
-                  }
-                }
-              } else if let Some(idents_with_hash) = self
-                .rename_module_cache
-                .get_non_inlined_idents(&m.identifier())
-              {
-                if let (Some(hash_current), Some(hash_cache)) = (
-                  m.build_info().and_then(|i| i.hash.as_ref()),
-                  idents_with_hash.hash.as_ref(),
-                ) {
-                  if *hash_current == *hash_cache {
-                    acc
-                      .all_used_names
-                      .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
-                    acc
-                      .non_inlined_module_through_idents
-                      .extend(idents_with_hash.value.clone());
-                    use_cache = true;
-                  }
+              if let (Some(hash_current), Some(hash_cache)) = (
+                m.build_info().and_then(|i| i.hash.as_ref()),
+                ident_info_with_hash.hash.as_ref(),
+              ) {
+                if *hash_current == *hash_cache {
+                  let WithHash { value, .. } = (*ident_info_with_hash).clone();
+                  rename_info_patch
+                    .inlined_modules_to_info
+                    .insert(m.identifier(), value);
+                  use_cache = true;
                 }
               }
-
-              if !use_cache {
-                let cm: Arc<swc_core::common::SourceMap> = Default::default();
-                let fm = cm.new_source_file(
-                  Arc::new(FileName::Custom(m.identifier().to_string())),
-                  code.source().to_string(),
-                );
-                let comments = swc_node_comments::SwcComments::default();
-                let mut errors = vec![];
-
-                if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
-                  &fm,
-                  swc_core::ecma::parser::Syntax::default(),
-                  swc_core::ecma::ast::EsVersion::EsNext,
-                  Some(&comments),
-                  &mut errors,
-                ) {
-                  let mut ast: Ast = Ast::new(program, cm, Some(comments));
-                  let mut global_ctxt = SyntaxContext::empty();
-                  let mut module_ctxt = SyntaxContext::empty();
-
-                  ast.transform(|program, context| {
-                    global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                    module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                    program.visit_mut_with(&mut resolver(
-                      context.unresolved_mark,
-                      context.top_level_mark,
-                      false,
-                    ));
-                  });
-
-                  let mut collector = IdentCollector::default();
-                  ast.visit(|program, _ctxt| {
-                    program.visit_with(&mut collector);
-                  });
-
-                  if is_inlined_module {
-                    let mut module_scope_idents = Vec::new();
-
-                    for ident in collector.ids {
-                      if ident.id.ctxt == global_ctxt
-                        || ident.id.ctxt != module_ctxt
-                        || ident.is_class_expr_with_ident
-                      {
-                        acc.all_used_names.insert(ident.id.sym.clone());
-                      }
-
-                      if ident.id.ctxt == module_ctxt {
-                        acc.all_used_names.insert(ident.id.sym.clone());
-                        module_scope_idents.push(Arc::new(ident));
-                      }
-                    }
-
-                    let ident = m.identifier();
-
-                    let info = InlinedModuleInfo {
-                      source: code.clone(),
-                      module_scope_idents,
-                      used_in_non_inlined: Vec::new(),
-                    };
-                    let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
-
-                    self.rename_module_cache.inlined_modules_to_info.insert(
-                      ident,
-                      WithHash {
-                        hash: ChunkGraph::get_module_hash(compilation, ident, runtime).cloned(),
-                        value: info.clone(),
-                      },
-                    );
-
-                    acc.inlined_modules_to_info.insert(ident, info);
-                  } else {
-                    let mut idents_vec = vec![];
-                    let module_ident = m.identifier();
-                    let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
-
-                    for ident in collector.ids {
-                      if ident.id.ctxt == global_ctxt {
-                        acc.all_used_names.insert(ident.clone().id.sym.clone());
-                        idents_vec.push(ident.clone());
-                        acc.non_inlined_module_through_idents.push(ident);
-                      }
-                    }
-
-                    self
-                      .rename_module_cache
-                      .non_inlined_modules_through_idents
-                      .insert(
-                        module_ident,
-                        WithHash {
-                          hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
-                            .cloned(),
-                          value: idents_vec.clone(),
-                        },
-                      );
-                  }
-                }
+            }
+          } else if let Some(idents_with_hash) = self
+            .rename_module_cache
+            .get_non_inlined_idents(&m.identifier())
+          {
+            if let (Some(hash_current), Some(hash_cache)) = (
+              m.build_info().and_then(|i| i.hash.as_ref()),
+              idents_with_hash.hash.as_ref(),
+            ) {
+              if *hash_current == *hash_cache {
+                rename_info_patch
+                  .all_used_names
+                  .extend(idents_with_hash.value.iter().map(|v| v.id.sym.clone()));
+                rename_info_patch
+                  .non_inlined_module_through_idents
+                  .extend(idents_with_hash.value.clone());
+                use_cache = true;
               }
             }
           }
 
-          acc
-        },
-      )
-      .reduce(
-        || {
-          Ok(RenameInfoPatch {
-            inlined_modules_to_info: IdentifierMap::default(),
-            non_inlined_module_through_idents: Vec::new(),
-            all_used_names: HashSet::from_iter(RESERVED_NAMES.iter().map(|item| Atom::new(*item))),
-          })
-        },
-        |acc, chunk| match acc {
-          Ok(mut acc) => match chunk {
-            Ok(chunk) => {
-              acc
-                .inlined_modules_to_info
-                .extend(chunk.inlined_modules_to_info);
-              acc
-                .non_inlined_module_through_idents
-                .extend(chunk.non_inlined_module_through_idents);
-              acc.all_used_names.extend(chunk.all_used_names);
-              Ok(acc)
+          if !use_cache {
+            let cm: Arc<swc_core::common::SourceMap> = Default::default();
+            let fm = cm.new_source_file(
+              Arc::new(FileName::Custom(m.identifier().to_string())),
+              code.source().to_string(),
+            );
+            let comments = swc_node_comments::SwcComments::default();
+            let mut errors = vec![];
+
+            if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
+              &fm,
+              swc_core::ecma::parser::Syntax::default(),
+              swc_core::ecma::ast::EsVersion::EsNext,
+              Some(&comments),
+              &mut errors,
+            ) {
+              let mut ast: Ast = Ast::new(program, cm, Some(comments));
+              let mut global_ctxt = SyntaxContext::empty();
+              let mut module_ctxt = SyntaxContext::empty();
+
+              ast.transform(|program, context| {
+                global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
+                module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
+                program.visit_mut_with(&mut resolver(
+                  context.unresolved_mark,
+                  context.top_level_mark,
+                  false,
+                ));
+              });
+
+              let mut collector = IdentCollector::default();
+              ast.visit(|program, _ctxt| {
+                program.visit_with(&mut collector);
+              });
+
+              if is_inlined_module {
+                let mut module_scope_idents = Vec::new();
+
+                for ident in collector.ids {
+                  if ident.id.ctxt == global_ctxt
+                    || ident.id.ctxt != module_ctxt
+                    || ident.is_class_expr_with_ident
+                  {
+                    rename_info_patch
+                      .all_used_names
+                      .insert(ident.id.sym.clone());
+                  }
+
+                  if ident.id.ctxt == module_ctxt {
+                    rename_info_patch
+                      .all_used_names
+                      .insert(ident.id.sym.clone());
+                    module_scope_idents.push(Arc::new(ident));
+                  }
+                }
+
+                let ident = m.identifier();
+
+                let info = InlinedModuleInfo {
+                  source: code.clone(),
+                  module_scope_idents,
+                  used_in_non_inlined: Vec::new(),
+                };
+                let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+
+                self.rename_module_cache.inlined_modules_to_info.insert(
+                  ident,
+                  WithHash {
+                    hash: ChunkGraph::get_module_hash(compilation, ident, runtime).cloned(),
+                    value: info.clone(),
+                  },
+                );
+
+                rename_info_patch
+                  .inlined_modules_to_info
+                  .insert(ident, info);
+              } else {
+                let mut idents_vec = vec![];
+                let module_ident = m.identifier();
+                let runtime = compilation.chunk_by_ukey.expect_get(chunk_ukey).runtime();
+
+                for ident in collector.ids {
+                  if ident.id.ctxt == global_ctxt {
+                    rename_info_patch
+                      .all_used_names
+                      .insert(ident.clone().id.sym.clone());
+                    idents_vec.push(ident.clone());
+                    rename_info_patch
+                      .non_inlined_module_through_idents
+                      .push(ident);
+                  }
+                }
+
+                self
+                  .rename_module_cache
+                  .non_inlined_modules_through_idents
+                  .insert(
+                    module_ident,
+                    WithHash {
+                      hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
+                        .cloned(),
+                      value: idents_vec.clone(),
+                    },
+                  );
+              }
             }
-            Err(e) => Err(e),
-          },
-          Err(e) => Err(e),
-        },
-      );
+          }
+        }
+      }
+    }
 
     match rename_info_patch {
       Ok(rename_info_patch) => {
@@ -1140,7 +1133,11 @@ impl JsPlugin {
         build_info.strict
       })
     {
-      if let Some(strict_bailout) = hooks.strict_runtime_bailout.call(compilation, chunk_ukey)? {
+      if let Some(strict_bailout) = hooks
+        .strict_runtime_bailout
+        .call(compilation, chunk_ukey)
+        .await?
+      {
         sources.add(RawStringSource::from(format!(
           "// runtime can't be in strict mode because {strict_bailout}.\n"
         )));
@@ -1155,14 +1152,16 @@ impl JsPlugin {
       &chunk_modules,
       all_strict,
       output_path,
-    )?
+    )
+    .await?
     .unwrap_or_else(|| (RawStringSource::from_static("{}").boxed(), Vec::new()));
     let mut render_source = RenderSource {
       source: chunk_modules_source,
     };
     hooks
       .render_chunk
-      .call(compilation, chunk_ukey, &mut render_source)?;
+      .call(compilation, chunk_ukey, &mut render_source)
+      .await?;
     let source_with_fragments = render_init_fragments(
       render_source.source,
       chunk_init_fragments,
@@ -1173,7 +1172,8 @@ impl JsPlugin {
     };
     hooks
       .render
-      .call(compilation, chunk_ukey, &mut render_source)?;
+      .call(compilation, chunk_ukey, &mut render_source)
+      .await?;
     sources.add(render_source.source);
     if !is_module {
       sources.add(RawStringSource::from_static(";"));
@@ -1193,7 +1193,7 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub fn update_hash_with_bootstrap(
+  pub async fn update_hash_with_bootstrap(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -1204,7 +1204,7 @@ impl JsPlugin {
       header,
       startup,
       allow_inline_startup,
-    } = self.render_bootstrap(chunk_ukey, compilation)?;
+    } = self.render_bootstrap(chunk_ukey, compilation).await?;
     header.hash(hasher);
     startup.hash(hasher);
     allow_inline_startup.hash(hasher);

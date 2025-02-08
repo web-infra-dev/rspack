@@ -116,6 +116,7 @@ pub fn impl_runtime_module(
       }
     }
 
+    #[async_trait::async_trait]
     #[rspack_cacheable::cacheable_dyn]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {
@@ -163,7 +164,7 @@ pub fn impl_runtime_module(
         vec![]
       }
 
-      fn code_generation(
+      async fn code_generation(
         &self,
         compilation: &::rspack_core::Compilation,
         _runtime: Option<&::rspack_core::RuntimeSpec>,

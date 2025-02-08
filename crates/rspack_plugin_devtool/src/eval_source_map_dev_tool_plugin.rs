@@ -81,7 +81,7 @@ async fn eval_source_map_devtool_plugin_compilation(
 }
 
 #[plugin_hook(JavascriptModulesRenderModuleContent for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_render_module_content(
+async fn eval_source_map_devtool_plugin_render_module_content(
   &self,
   compilation: &Compilation,
   module: &BoxModule,
@@ -194,7 +194,7 @@ async fn eval_source_map_devtool_plugin_js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesInlineInRuntimeBailout for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
+async fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
   &self,
   _compilation: &Compilation,
 ) -> Result<Option<String>> {
@@ -202,7 +202,7 @@ fn eval_source_map_devtool_plugin_inline_in_runtime_bailout(
 }
 
 #[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EvalSourceMapDevToolPlugin)]
-fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
+async fn eval_source_map_devtool_plugin_additional_module_runtime_requirements(
   &self,
   compilation: &Compilation,
   _module: &ModuleIdentifier,

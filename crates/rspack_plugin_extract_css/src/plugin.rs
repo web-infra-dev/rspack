@@ -672,7 +672,7 @@ async fn render_manifest(
 }
 
 #[plugin_hook(NormalModuleFactoryParser for PluginCssExtract)]
-fn nmf_parser(
+async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut dyn ParserAndGenerator,

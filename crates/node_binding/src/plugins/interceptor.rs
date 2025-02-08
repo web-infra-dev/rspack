@@ -710,7 +710,7 @@ define_register!(
   RegisterCompilationExecuteModuleTaps,
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
   cache = false,
-  sync = true,
+  sync = false,
   kind = RegisterJsTapKind::CompilationExecuteModule,
   skip = true,
 );
@@ -1153,7 +1153,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
 
 #[async_trait]
 impl CompilationExecuteModule for CompilationExecuteModuleTap {
-  fn run(
+  async fn run(
     &self,
     entry: &ModuleIdentifier,
     runtime_modules: &IdentifierSet,

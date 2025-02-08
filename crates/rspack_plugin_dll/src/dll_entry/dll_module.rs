@@ -98,7 +98,7 @@ impl Module for DllModule {
     })
   }
 
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

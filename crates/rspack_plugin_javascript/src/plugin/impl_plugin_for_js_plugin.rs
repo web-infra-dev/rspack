@@ -164,7 +164,9 @@ async fn chunk_hash(
     .expect_get(chunk_ukey)
     .has_runtime(&compilation.chunk_group_by_ukey)
   {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
+    self
+      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+      .await?;
   }
   Ok(())
 }
@@ -182,7 +184,9 @@ async fn content_hash(
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    self.update_hash_with_bootstrap(chunk_ukey, compilation, hasher)?;
+    self
+      .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
+      .await?;
   } else {
     chunk.id(&compilation.chunk_ids_artifact).hash(&mut hasher);
   }
