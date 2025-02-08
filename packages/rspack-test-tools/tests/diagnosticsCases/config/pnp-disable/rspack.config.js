@@ -2,9 +2,9 @@
 module.exports = {
 	context: __dirname,
 	entry: {
-		main: './index.js'
+		main: "./index.js"
 	},
 	resolve: {
 		pnp: false
 	}
-}
+};

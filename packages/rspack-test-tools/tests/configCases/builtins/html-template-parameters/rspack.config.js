@@ -11,12 +11,12 @@ module.exports = {
 		rules: [
 			{
 				test: /\.css$/,
-				use: [CssExtractRspackPlugin.loader, "css-loader"],
-			},
-		],
+				use: [CssExtractRspackPlugin.loader, "css-loader"]
+			}
+		]
 	},
 	experiments: {
-		css: false,
+		css: false
 	},
 	plugins: [
 		new CssExtractRspackPlugin(),
@@ -30,8 +30,8 @@ module.exports = {
 			inject: false,
 			favicon: "./favicon.ico",
 			templateParameters: {
-				foo: "bar",
-			},
+				foo: "bar"
+			}
 		})
 	]
 };

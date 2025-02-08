@@ -9,7 +9,7 @@ module.exports = {
 	},
 	node: false,
 	experiments: {
-		outputModule: true,
+		outputModule: true
 	},
 	target: "node"
 };

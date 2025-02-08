@@ -44,7 +44,7 @@ module.exports = [
 	{
 		...common,
 		experiments: {
-			outputModule: true,
+			outputModule: true
 		},
 		output: {
 			filename: "module/[name].mjs",

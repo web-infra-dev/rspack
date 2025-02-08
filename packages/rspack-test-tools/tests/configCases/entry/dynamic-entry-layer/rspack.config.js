@@ -4,11 +4,11 @@ module.exports = {
 		return Promise.resolve({
 			bundle0: {
 				import: "./index.js",
-				layer: "client",
+				layer: "client"
 			}
 		});
 	},
 	experiments: {
-		layers: true,
+		layers: true
 	}
 };

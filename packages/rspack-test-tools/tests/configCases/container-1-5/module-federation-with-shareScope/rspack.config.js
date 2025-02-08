@@ -6,7 +6,7 @@ const common = {
 	},
 	optimization: {
 		runtimeChunk: "single"
-	},
+	}
 };
 
 /** @type {ConstructorParameters<typeof ModuleFederationPlugin>[0]} */

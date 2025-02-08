@@ -16,7 +16,7 @@ module.exports = {
 						loader: "./my-loader.js"
 					}
 				]
-			},
+			}
 		]
 	},
 	plugins: [
@@ -37,8 +37,8 @@ module.exports = {
 							}
 						}
 						assert(hasModule);
-					})
-				})
+					});
+				});
 			}
 		}
 	]

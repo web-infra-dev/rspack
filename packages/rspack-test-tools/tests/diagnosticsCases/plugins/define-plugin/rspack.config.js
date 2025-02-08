@@ -1,4 +1,4 @@
-const { rspack } = require("@rspack/core")
+const { rspack } = require("@rspack/core");
 
 module.exports = {
 	optimization: {
@@ -9,4 +9,4 @@ module.exports = {
 			"process.env.NODE_ENV": JSON.stringify("production")
 		})
 	]
-}
+};

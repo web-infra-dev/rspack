@@ -6,11 +6,9 @@ module.exports = {
 	target: "web",
 	optimization: {
 		minimize: true,
-		minimizer: [
-			new rspack.LightningCssMinimizerRspackPlugin(),
-		]
+		minimizer: [new rspack.LightningCssMinimizerRspackPlugin()]
 	},
 	experiments: {
-		css: true,
+		css: true
 	}
 };

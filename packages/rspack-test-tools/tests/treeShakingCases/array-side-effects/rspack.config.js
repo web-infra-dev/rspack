@@ -2,7 +2,7 @@
 module.exports = {
 	optimization: {
 		sideEffects: true,
-		usedExports: true,
+		usedExports: true
 	},
 	builtins: {
 		define: {

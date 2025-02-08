@@ -4,6 +4,6 @@ module.exports = {
 	stats: {
 		all: false,
 		modules: true,
-		reasons: true,
+		reasons: true
 	}
 };

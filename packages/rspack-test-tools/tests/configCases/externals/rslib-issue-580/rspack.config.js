@@ -3,7 +3,7 @@ const { rspack } = require("@rspack/core");
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => {
 	return {
-	  externals: [/.*foo.*/],
+		externals: [/.*foo.*/],
 		externalsType: "module",
 		output: {
 			module: true,
@@ -15,13 +15,12 @@ module.exports = (env, { testPath }) => {
 		},
 		optimization: {
 			minimize: true,
-			concatenateModules: true,
+			concatenateModules: true
 		},
-			plugins: [
-				new rspack.CopyRspackPlugin({
-					patterns: ["./a/**/*", "./_a/**/*"],
-				}),
-			]
+		plugins: [
+			new rspack.CopyRspackPlugin({
+				patterns: ["./a/**/*", "./_a/**/*"]
+			})
+		]
 	};
-}
-
+};

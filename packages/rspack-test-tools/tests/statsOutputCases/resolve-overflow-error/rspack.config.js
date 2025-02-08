@@ -2,4 +2,4 @@
 module.exports = {
 	entry: "./index",
 	target: ["web"]
-}
+};

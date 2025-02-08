@@ -14,8 +14,8 @@ module.exports = {
 			cacheGroups: {
 				splitLib2: {
 					test() {
-						throw new Error("TEST_FUNCTION_WITH_ERROR")
-					},
+						throw new Error("TEST_FUNCTION_WITH_ERROR");
+					}
 				}
 			}
 		}

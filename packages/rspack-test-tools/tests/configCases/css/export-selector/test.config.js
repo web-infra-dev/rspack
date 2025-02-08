@@ -1,5 +1,5 @@
 module.exports = {
-	documentType: 'fake',
+	documentType: "fake",
 	moduleScope(scope) {
 		const link1 = scope.window.document.createElement("link");
 		link1.rel = "stylesheet";
@@ -16,4 +16,4 @@ module.exports = {
 		link3.href = "style_module_css.bundle0.css";
 		scope.window.document.head.appendChild(link3);
 	}
-}
+};

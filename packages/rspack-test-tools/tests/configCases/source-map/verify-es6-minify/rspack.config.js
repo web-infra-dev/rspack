@@ -3,7 +3,7 @@ module.exports = {
 	devtool: "source-map",
 	optimization: {
 		minimize: true,
-		concatenateModules: false,
+		concatenateModules: false
 	},
 	externals: ["source-map"],
 	externalsType: "commonjs"

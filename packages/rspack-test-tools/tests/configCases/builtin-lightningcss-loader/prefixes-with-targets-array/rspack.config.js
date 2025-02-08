@@ -1,11 +1,11 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		generator: {
 			"css/auto": {
-				exportsOnly: false,
+				exportsOnly: false
 			}
 		},
 		rules: [
@@ -16,11 +16,7 @@ module.exports = {
 						loader: "builtin:lightningcss-loader",
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
-							targets: [
-								'Edge >= 12',
-								'iOS >= 8',
-								'Android >= 4.0'
-							]
+							targets: ["Edge >= 12", "iOS >= 8", "Android >= 4.0"]
 						}
 					}
 				],

@@ -10,7 +10,10 @@ module.exports = (env, { testPath }) => {
 		},
 		resolve: {
 			alias: {
-				library: path.resolve(testPath, "../0-concatenation-tree-shaking/main.mjs")
+				library: path.resolve(
+					testPath,
+					"../0-concatenation-tree-shaking/main.mjs"
+				)
 			}
 		},
 		output: {
@@ -23,7 +26,7 @@ module.exports = (env, { testPath }) => {
 		},
 		optimization: {
 			minimize: true,
-			concatenateModules: true,
+			concatenateModules: true
 		},
 		plugins: [
 			new rspack.SwcJsMinimizerRspackPlugin({
@@ -33,6 +36,5 @@ module.exports = (env, { testPath }) => {
 				}
 			})
 		]
+	};
 };
-}
-

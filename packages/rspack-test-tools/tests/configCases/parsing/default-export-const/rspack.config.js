@@ -4,7 +4,7 @@ module.exports = [
 		entry: "./not-supports-const.js",
 		output: {
 			environment: {
-				const: false,
+				const: false
 			}
 		}
 	},
@@ -12,7 +12,7 @@ module.exports = [
 		entry: "./supports-const.js",
 		output: {
 			environment: {
-				const: true,
+				const: true
 			}
 		}
 	}

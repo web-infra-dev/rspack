@@ -7,7 +7,7 @@ module.exports = {
 	},
 	output: {
 		chunkFilename: "[id].[contenthash].js",
-		filename: '[name].js'
+		filename: "[name].js"
 	},
 	optimization: {
 		splitChunks: {
@@ -27,6 +27,6 @@ module.exports = {
 			}
 		},
 		runtimeChunk: "single",
-		chunkIds: 'named'
+		chunkIds: "named"
 	}
 };

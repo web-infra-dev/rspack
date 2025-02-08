@@ -1,7 +1,7 @@
 /** @type {import("webpack").Configuration} */
 module.exports = {
 	output: {
-		filename: "[name].js",
+		filename: "[name].js"
 	},
 	optimization: {
 		splitChunks: {
@@ -10,12 +10,12 @@ module.exports = {
 			cacheGroups: {
 				lib1: {
 					name: "lib1",
-					test: /lib1/,
+					test: /lib1/
 				},
 				lib2: {
 					name: "lib2",
-					test: /lib2/,
-				},
+					test: /lib2/
+				}
 			}
 		}
 	}

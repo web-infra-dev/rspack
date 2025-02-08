@@ -1,4 +1,4 @@
-const { SwcJsMinimizerRspackPlugin } = require("@rspack/core")
+const { SwcJsMinimizerRspackPlugin } = require("@rspack/core");
 
 /**
  * @type {import("@rspack/core").Configuration}
@@ -14,7 +14,7 @@ module.exports = {
 						comments: "all"
 					}
 				}
-			}),
+			})
 		]
 	}
-}
+};

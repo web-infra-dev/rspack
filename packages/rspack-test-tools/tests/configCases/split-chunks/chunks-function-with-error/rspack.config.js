@@ -14,9 +14,9 @@ module.exports = {
 			cacheGroups: {
 				splitLib2: {
 					chunks(chunk) {
-						throw new Error("CHUNKS_FUNCTION_WITH_ERROR")
+						throw new Error("CHUNKS_FUNCTION_WITH_ERROR");
 					},
-					test: /\.js/,
+					test: /\.js/
 				}
 			}
 		}

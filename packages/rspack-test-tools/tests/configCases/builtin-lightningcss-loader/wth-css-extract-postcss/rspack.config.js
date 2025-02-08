@@ -2,7 +2,7 @@ const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		rules: [
@@ -15,18 +15,14 @@ module.exports = {
 						loader: "builtin:lightningcss-loader",
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
-							targets: [
-								'Edge >= 12'
-							]
+							targets: ["Edge >= 12"]
 						}
 					},
 					{
 						loader: "postcss-loader",
 						options: {
 							postcssOptions: {
-								plugins: [
-									"postcss-pxtorem"
-								]
+								plugins: ["postcss-pxtorem"]
 							}
 						}
 					}
@@ -37,7 +33,7 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.CssExtractRspackPlugin({
-			filename: 'bundle0.css'
+			filename: "bundle0.css"
 		})
 	],
 	experiments: {

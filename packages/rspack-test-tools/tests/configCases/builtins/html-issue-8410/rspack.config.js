@@ -21,7 +21,7 @@ module.exports = {
 		foorBar: "./index.js"
 	},
 	output: {
-	    filename: "[name].js",
+		filename: "[name].js"
 	},
 	plugins: [new rspack.HtmlRspackPlugin({}), new Plugin()]
 };

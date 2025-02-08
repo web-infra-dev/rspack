@@ -5,7 +5,7 @@ module.exports = {
 	optimization: {
 		chunkIds: "named",
 		moduleIds: "named",
-		concatenateModules: false,
+		concatenateModules: false
 	},
 	output: {
 		uniqueName: "2-transitive-overriding"

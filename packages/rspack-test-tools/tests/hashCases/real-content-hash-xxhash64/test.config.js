@@ -7,6 +7,6 @@ module.exports = {
 		assets.sort();
 
 		// `c30068f3cc748ce3` = xxhash64 of src/file.svg
-		expect(assets).toEqual(['c30068f3cc748ce3.svg', 'main.js']);
+		expect(assets).toEqual(["c30068f3cc748ce3.svg", "main.js"]);
 	}
 };

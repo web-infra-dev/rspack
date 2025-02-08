@@ -12,5 +12,5 @@ module.exports = {
 		removeAvailableModules: true,
 		providedExports: true,
 		usedExports: "global"
-	},
+	}
 };

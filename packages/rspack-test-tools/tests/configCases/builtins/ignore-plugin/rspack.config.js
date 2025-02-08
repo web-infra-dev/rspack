@@ -4,7 +4,7 @@ const { rspack } = require("@rspack/core");
 module.exports = {
 	plugins: [
 		new rspack.IgnorePlugin({
-			resourceRegExp: /^\.\/b$/,
+			resourceRegExp: /^\.\/b$/
 		}),
 		new rspack.IgnorePlugin({
 			resourceRegExp: /^\.\/c$/,
@@ -13,6 +13,6 @@ module.exports = {
 		new rspack.IgnorePlugin({
 			resourceRegExp: /^\.\/d$/,
 			contextRegExp: /test-ignore$/
-		}),
+		})
 	]
 };

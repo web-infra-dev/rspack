@@ -9,18 +9,18 @@ module.exports = {
 		chunkFormat: "module",
 		filename: "[name].mjs",
 		library: {
-			type: "modern-module",
+			type: "modern-module"
 		}
 	},
 	optimization: {
-		avoidEntryIife: true,
+		avoidEntryIife: true
 	},
 	experiments: {
 		outputModule: true
 	},
 	plugins: [
 		new rspack.CopyRspackPlugin({
-      patterns: ["./externals/**/*"],
-    }),
+			patterns: ["./externals/**/*"]
+		})
 	]
 };

@@ -4,7 +4,7 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 module.exports = {
 	optimization: {
 		// concatenateModules: false,
-		moduleIds: 'named'
+		moduleIds: "named"
 	},
 	plugins: [
 		new ModuleFederationPlugin({

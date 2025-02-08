@@ -2,6 +2,6 @@
 module.exports = {
 	mode: "development",
 	optimization: {
-		nodeEnv: "development",
+		nodeEnv: "development"
 	}
 };

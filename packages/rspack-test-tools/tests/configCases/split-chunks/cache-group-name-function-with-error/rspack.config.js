@@ -15,7 +15,7 @@ module.exports = {
 				foo: {
 					test: /\.js/,
 					name(module, chunks) {
-						throw new Error("CACHE_GROUP_NAME_FUNCTION_WITH_ERROR")
+						throw new Error("CACHE_GROUP_NAME_FUNCTION_WITH_ERROR");
 					}
 				}
 			}

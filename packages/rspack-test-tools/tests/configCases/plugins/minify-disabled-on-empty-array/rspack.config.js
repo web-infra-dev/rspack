@@ -1,11 +1,11 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		generator: {
 			"css/auto": {
-				exportsOnly: false,
+				exportsOnly: false
 			}
 		}
 	},

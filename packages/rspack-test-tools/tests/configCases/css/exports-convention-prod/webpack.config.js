@@ -6,9 +6,9 @@ const common = {
 	},
 	module: {
 		generator: {
-			'css/module': {
+			"css/module": {
 				exportsOnly: true,
-				esModule: false,
+				esModule: false
 			}
 		},
 		rules: [

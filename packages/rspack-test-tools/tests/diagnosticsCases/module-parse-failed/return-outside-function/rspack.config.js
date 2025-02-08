@@ -2,7 +2,7 @@ module.exports = {
 	entry: {
 		a: "./a",
 		b: "./b",
-		c: "./c",
+		c: "./c"
 	},
 	module: {
 		rules: [
@@ -20,5 +20,4 @@ module.exports = {
 			}
 		]
 	}
-}
-
+};

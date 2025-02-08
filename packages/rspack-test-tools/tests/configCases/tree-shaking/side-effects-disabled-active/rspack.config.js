@@ -4,11 +4,11 @@ module.exports = {
 		rules: [
 			{
 				test: /side-effect\.js/,
-				sideEffects: false,
+				sideEffects: false
 			}
 		]
 	},
 	optimization: {
-		sideEffects: false,
-	},
+		sideEffects: false
+	}
 };

@@ -5,7 +5,7 @@ const common = {
 	entry: {
 		main: "./index.js"
 	},
-	target: 'async-node',
+	target: "async-node",
 	optimization: {
 		runtimeChunk: "single"
 	}
@@ -33,10 +33,10 @@ module.exports = [
 			new ModuleFederationPlugin({
 				name: "container",
 				library: { type: "commonjs-module" },
-				runtimePlugins: [require.resolve('./runtimePlugin.js')],
+				runtimePlugins: [require.resolve("./runtimePlugin.js")],
 				filename: "container.js",
 				remotes: {
-					containerA: "../0-container-full/container.js",
+					containerA: "../0-container-full/container.js"
 				},
 				...commonMF
 			})

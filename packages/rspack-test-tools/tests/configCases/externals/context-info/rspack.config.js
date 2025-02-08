@@ -5,7 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /other-layer\.js$/,
-				layer: "other-layer",
+				layer: "other-layer"
 			}
 		]
 	},
@@ -17,10 +17,10 @@ module.exports = {
 				}
 				return callback(null, "var 1");
 			}
-			return callback()
+			return callback();
 		}
 	],
 	experiments: {
-		layers: true,
+		layers: true
 	}
 };

@@ -1,7 +1,7 @@
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	experiments: {
-		css: true,
+		css: true
 	},
 	optimization: {
 		minimize: false,
@@ -13,10 +13,10 @@ module.exports = {
 				test: /\.module\.css$/,
 				type: "css/module",
 				generator: {
-					exportsOnly: true,
+					exportsOnly: true
 				},
 				parser: {
-					namedExports: false,
+					namedExports: false
 				}
 			}
 		]

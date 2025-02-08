@@ -1,4 +1,4 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	amd: { jQuery: true },
+	amd: { jQuery: true }
 };

@@ -41,5 +41,5 @@ module.exports = {
 		timings: false,
 		version: false
 	},
-	plugins: [new StatsPrinterTestPlugin()],
+	plugins: [new StatsPrinterTestPlugin()]
 };

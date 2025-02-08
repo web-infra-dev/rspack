@@ -2,8 +2,8 @@
 module.exports = {
 	module: {
 		parser: {
-			'css/auto': {
-				namedExports: false,
+			"css/auto": {
+				namedExports: false
 			}
 		},
 		rules: [
