@@ -27,20 +27,22 @@ impl Cutout {
     artifact: &mut MakeArtifact,
     params: Vec<MakeParam>,
   ) -> HashSet<BuildDependency> {
-    let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
+    let mut next_entry_dependencies = HashSet::default();
+    let mut clean_entry_dependencies = false;
+    let mut useless_entry_dependencies = UkeySet::default();
     let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
-    let mut removed_deps = UkeySet::default();
 
     let module_graph = artifact.get_module_graph();
 
     for item in params {
       match item {
-        // TODO: BuildEntry will always have one at most, remove it from params
         MakeParam::BuildEntry(deps) => {
-          force_build_deps.extend(deps.difference(&entry_dependencies).map(|d| (*d, None)));
-          removed_deps.extend(entry_dependencies.difference(&deps));
-          entry_dependencies = deps;
+          next_entry_dependencies = deps;
+        }
+        MakeParam::BuildEntryAndClean(deps) => {
+          next_entry_dependencies = deps;
+          clean_entry_dependencies = true;
         }
         MakeParam::CheckNeedBuild => {
           force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
@@ -52,30 +54,28 @@ impl Cutout {
           }));
         }
         MakeParam::ModifiedFiles(files) => {
-          force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
+          for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
-              Some(module.identifier())
-            } else {
-              None
+              // add module id
+              force_build_modules.insert(module.identifier());
             }
-          }))
+          }
         }
         MakeParam::RemovedFiles(files) => {
           for module in module_graph.modules().values() {
             // check has dependencies modified
             if module.depends_on(&files) {
-              // add parent module id
-              force_build_modules.extend(
-                module_graph
-                  .get_incoming_connections(&module.identifier())
-                  .filter_map(|connect| connect.original_module_identifier),
-              );
-              removed_deps.extend(
-                module_graph
-                  .get_incoming_connections(&module.identifier())
-                  .map(|connect| connect.dependency_id),
-              );
+              // add module id
+              force_build_modules.insert(module.identifier());
+              // process parent module id
+              for connect in module_graph.get_incoming_connections(&module.identifier()) {
+                if let Some(original_module_identifier) = connect.original_module_identifier {
+                  force_build_modules.insert(original_module_identifier);
+                } else {
+                  useless_entry_dependencies.insert(connect.dependency_id);
+                }
+              }
             }
           }
         }
@@ -110,28 +110,60 @@ impl Cutout {
         .analyze_force_build_module(artifact, module_identifier);
     }
 
+    // do revoke module and collect deps
+    for id in force_build_modules {
+      force_build_deps.extend(artifact.revoke_module(&id));
+    }
+
+    let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
     let mut module_graph = artifact.get_module_graph_mut();
-    for dep_id in removed_deps {
+    // remove useless entry dependencies
+    let mut remove_entry_dependencies = HashSet::default();
+    for dep_id in useless_entry_dependencies {
+      if !next_entry_dependencies.contains(&dep_id) {
+        remove_entry_dependencies.insert(dep_id);
+      }
+    }
+    if clean_entry_dependencies {
+      remove_entry_dependencies.extend(entry_dependencies.difference(&next_entry_dependencies));
+    }
+    for dep_id in remove_entry_dependencies {
       // connection may have been deleted by revoke module
       if let Some(con) = module_graph.connection_by_dependency_id(&dep_id) {
         // need clean_isolated_module to check whether the module is still used by other deps
         self
           .clean_isolated_module
           .add_need_check_module(*con.module_identifier());
-        module_graph.revoke_connection(&dep_id, true);
       }
+      module_graph.revoke_dependency(&dep_id, true);
+      entry_dependencies.remove(&dep_id);
     }
 
-    // do revoke module and collect deps
-    for id in force_build_modules {
-      force_build_deps.extend(artifact.revoke_module(&id));
+    // add entry dependencies
+    for dep in next_entry_dependencies
+      .difference(&entry_dependencies)
+      .copied()
+      .collect::<Vec<_>>()
+    {
+      force_build_deps.insert((dep, None));
+      entry_dependencies.insert(dep);
     }
 
     artifact.entry_dependencies = entry_dependencies;
 
     self.has_module_graph_change.analyze_artifact(artifact);
 
+    // only return available force_build_deps
+    let module_graph = artifact.get_module_graph();
     force_build_deps
+      .into_iter()
+      .filter(|(dep_id, _)| {
+        let Some(dep) = module_graph.dependency_by_id(dep_id) else {
+          return false;
+        };
+        dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
+      })
+      .collect()
   }
 
   pub fn fix_artifact(self, artifact: &mut MakeArtifact) {

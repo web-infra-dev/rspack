@@ -821,7 +821,6 @@ impl Compilation {
   #[instrument("Compilation:make", skip_all)]
   pub async fn make(&mut self) -> Result<()> {
     self.make_artifact.reset_dependencies_incremental_info();
-    //        self.module_executor.
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
