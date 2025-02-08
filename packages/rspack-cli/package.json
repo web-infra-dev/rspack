@@ -54,7 +54,7 @@
     "cross-env": "^7.0.3",
     "execa": "^5.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   },
   "peerDependencies": {
     "@rspack/core": "^1.0.0-alpha || ^1.x",

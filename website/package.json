@@ -43,6 +43,6 @@
     "rspress": "1.41.1",
     "rspress-plugin-font-open-sans": "1.0.0",
     "rspress-plugin-sitemap": "^1.1.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   }
 }

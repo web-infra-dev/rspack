@@ -113,7 +113,7 @@
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
     "terser": "5.36.0",
-    "typescript": "^5.7.2",
+    "typescript": "^5.7.3",
     "wast-loader": "^1.12.1",
     "worker-rspack-loader": "^3.1.2"
   },
