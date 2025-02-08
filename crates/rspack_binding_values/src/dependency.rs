@@ -111,7 +111,7 @@ impl JsDependency {
         if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
           let ids = dependency
             .get_ids(&module_graph)
-            .into_iter()
+            .iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
           Either::A(ids)
@@ -120,14 +120,14 @@ impl JsDependency {
         {
           let ids = dependency
             .get_ids(&module_graph)
-            .into_iter()
+            .iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
           Either::A(ids)
         } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
           let ids = dependency
             .get_ids(&module_graph)
-            .into_iter()
+            .iter()
             .map(|atom| env.create_string(atom.as_str()))
             .collect::<napi::Result<Vec<_>>>()?;
           Either::A(ids)
