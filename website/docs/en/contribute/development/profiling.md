@@ -83,7 +83,7 @@ will print the options passed to Rspack as well as each individual tracing event
 - Run the following command to start performance analysis:
 
 ```sh
-samply record -- node --perf-prof --perf-basic-prof {your_rspack_folder}/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
+samply record -- node --perf-prof --perf-basic-prof --interpreted-frames-native-stack {your_rspack_folder}/rspack-cli/bin/rspack.js -c {your project}/rspack.config.js
 ```
 
 - After the command execution, the analysis results will automatically open in the [Firefox Profiler](https://profiler.firefox.com/). The screenshot below is from a [Samply profiler](https://profiler.firefox.com/public/5fkasm1wcddddas3amgys3eg6sbp70n82q6gn1g/calltree/?globalTrackOrder=0&symbolServer=http%3A%2F%2F127.0.0.1%3A3000%2F2fjyrylqc9ifil3s7ppsmbwm6lfd3p9gddnqgx1&thread=2&v=10).
