@@ -201,7 +201,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .to_string(),
         )
       } else {
-        Cow::from(filename)
+        filename
       }
     };
 
