@@ -86,6 +86,7 @@ export declare class JsChunkGroup {
   get index(): number | undefined
   get name(): string | undefined
   get origins(): Array<JsChunkGroupOrigin>
+  get childrenIterable(): JsChunkGroup[]
   isInitial(): boolean
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
@@ -199,6 +200,7 @@ export declare class JsDependency {
   get request(): string | undefined
   get critical(): boolean
   set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
@@ -259,6 +261,8 @@ export declare class JsModuleGraph {
 export declare class JsModuleGraphConnection {
   get dependency(): JsDependency
   get module(): JsModule | null
+  get resolvedModule(): JsModule | null
+  get originModule(): JsModule | null
 }
 
 export declare class JsResolver {
@@ -1574,6 +1578,7 @@ export interface RawEnvironment {
   module?: boolean
   optionalChaining?: boolean
   templateLiteral?: boolean
+  dynamicImportInWorker?: boolean
 }
 
 export interface RawEvalDevToolModulePluginOptions {

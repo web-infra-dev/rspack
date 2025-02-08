@@ -556,6 +556,8 @@ export class ChunkGroup {
     // (undocumented)
     static __from_binding(binding: JsChunkGroup): ChunkGroup;
     // (undocumented)
+    readonly childrenIterable: Set<ChunkGroup>;
+    // (undocumented)
     readonly chunks: ReadonlyArray<Chunk>;
     // (undocumented)
     getFiles(): ReadonlyArray<string>;
@@ -1412,6 +1414,8 @@ class Dependency {
     readonly category: string;
     // (undocumented)
     critical: boolean;
+    // (undocumented)
+    get ids(): string[] | undefined;
     // (undocumented)
     readonly request: string | undefined;
     // (undocumented)
@@ -3880,6 +3884,10 @@ class ModuleGraphConnection {
     readonly dependency: Dependency;
     // (undocumented)
     readonly module: Module | null;
+    // (undocumented)
+    readonly originModule: Module | null;
+    // (undocumented)
+    readonly resolvedModule: Module | null;
 }
 
 // @public (undocumented)

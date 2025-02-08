@@ -1,9 +1,13 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::{bindgen_prelude::ToNapiValue, Either};
+use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
 use rspack_napi::OneShotRef;
+use rspack_plugin_javascript::dependency::{
+  CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
+  ESMImportSpecifierDependency,
+};
 use rustc_hash::FxHashMap as HashMap;
 
 // JsDependency allows JS-side access to a Dependency instance that has already
@@ -16,7 +20,7 @@ pub struct JsDependency {
 }
 
 impl JsDependency {
-  fn as_ref(&mut self) -> napi::Result<&dyn Dependency> {
+  fn as_ref(&mut self) -> napi::Result<(&dyn Dependency, Option<&Compilation>)> {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
@@ -25,7 +29,7 @@ impl JsDependency {
           #[allow(clippy::unwrap_used)]
           NonNull::new(dependency.as_ref() as *const dyn Dependency as *mut dyn Dependency).unwrap()
         };
-        Ok(unsafe { self.dependency.as_ref() })
+        Ok((unsafe { self.dependency.as_ref() }, Some(compilation)))
       } else {
         Err(napi::Error::from_reason(format!(
           "Unable to access dependency with id = {:?} now. The dependency have been removed on the Rust side.",
@@ -36,7 +40,7 @@ impl JsDependency {
       // SAFETY:
       // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
       // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-      Ok(unsafe { self.dependency.as_ref() })
+      Ok((unsafe { self.dependency.as_ref() }, None))
     }
   }
 
@@ -52,21 +56,21 @@ impl JsDependency {
 impl JsDependency {
   #[napi(getter)]
   pub fn get_type(&mut self) -> napi::Result<&str> {
-    let dependency = self.as_ref()?;
+    let (dependency, _) = self.as_ref()?;
 
     Ok(dependency.dependency_type().as_str())
   }
 
   #[napi(getter)]
   pub fn category(&mut self) -> napi::Result<&str> {
-    let dependency = self.as_ref()?;
+    let (dependency, _) = self.as_ref()?;
 
     Ok(dependency.category().as_str())
   }
 
   #[napi(getter)]
   pub fn request(&mut self) -> napi::Result<napi::Either<&str, ()>> {
-    let dependency = self.as_ref()?;
+    let (dependency, _) = self.as_ref()?;
 
     Ok(match dependency.as_module_dependency() {
       Some(dep) => napi::Either::A(dep.request()),
@@ -76,7 +80,7 @@ impl JsDependency {
 
   #[napi(getter)]
   pub fn critical(&mut self) -> napi::Result<bool> {
-    let dependency = self.as_ref()?;
+    let (dependency, _) = self.as_ref()?;
 
     Ok(match dependency.as_context_dependency() {
       Some(dep) => dep.critical().is_some(),
@@ -95,6 +99,44 @@ impl JsDependency {
       }
     }
     Ok(())
+  }
+
+  #[napi(getter)]
+  pub fn ids(&mut self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
+    let (dependency, compilation) = self.as_ref()?;
+
+    Ok(match compilation {
+      Some(compilation) => {
+        let module_graph = compilation.get_module_graph();
+        if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
+        } else if let Some(dependency) =
+          dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+        {
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
+        } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
+          let ids = dependency
+            .get_ids(&module_graph)
+            .iter()
+            .map(|atom| env.create_string(atom.as_str()))
+            .collect::<napi::Result<Vec<_>>>()?;
+          Either::A(ids)
+        } else {
+          Either::B(())
+        }
+      }
+      None => Either::B(()),
+    })
   }
 }
 

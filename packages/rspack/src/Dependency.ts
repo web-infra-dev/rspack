@@ -49,4 +49,8 @@ export class Dependency {
 			}
 		});
 	}
+
+	get ids(): string[] | undefined {
+		return this.#inner.ids;
+	}
 }

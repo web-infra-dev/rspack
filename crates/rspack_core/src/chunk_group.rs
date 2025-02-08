@@ -87,6 +87,10 @@ impl ChunkGroup {
       .copied()
   }
 
+  pub fn children_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.children.iter()
+  }
+
   pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
