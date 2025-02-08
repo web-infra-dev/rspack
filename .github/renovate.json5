@@ -7,13 +7,7 @@
 	lockFileMaintenance: {
 		enabled: true
 	},
-	ignorePaths: [
-		"**/fixtures/**",
-		"**/tests/**",
-		"npm/**",
-		"tests/webpack-examples/**",
-		"tests/webpack-test/**"
-	],
+	ignorePaths: ["**/fixtures/**", "npm/**"],
 	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
