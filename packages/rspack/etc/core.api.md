@@ -3884,6 +3884,10 @@ class ModuleGraphConnection {
     readonly dependency: Dependency;
     // (undocumented)
     readonly module: Module | null;
+    // (undocumented)
+    readonly originModule: Module | null;
+    // (undocumented)
+    readonly resolvedModule: Module | null;
 }
 
 // @public (undocumented)

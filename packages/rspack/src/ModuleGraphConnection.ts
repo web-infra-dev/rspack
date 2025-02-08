@@ -10,6 +10,8 @@ const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 export class ModuleGraphConnection {
 	declare readonly module: Module | null;
 	declare readonly dependency: Dependency;
+	declare readonly resolvedModule: Module | null;
+	declare readonly originModule: Module | null;
 
 	#inner: JsModuleGraphConnection;
 
