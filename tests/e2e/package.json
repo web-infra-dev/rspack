@@ -23,7 +23,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-refresh": "^0.16.0",
-    "typescript": "^5.7.2",
+    "typescript": "^5.7.3",
     "tailwindcss": "^3.3.0",
     "vue": "^3.4.21",
     "vue-loader": "^17.3.1",
