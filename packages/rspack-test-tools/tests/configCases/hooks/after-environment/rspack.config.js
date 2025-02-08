@@ -1,4 +1,4 @@
-/** @type {import("../../../..").THookCaseConfig} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		{
