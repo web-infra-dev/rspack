@@ -32,8 +32,8 @@ The default configuration was chosen to fit web performance best practices, but 
 
 This configuration object represents the default behavior of the `SplitChunksPlugin`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -75,8 +75,8 @@ Passing an entry name to `{cacheGroup}.test` and using a name of an existing chu
 
 Cache groups can inherit and/or override any options from `splitChunks.{cacheGroup}.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -103,8 +103,8 @@ Alternatively, you may provide a function for more control. The return value wil
 
 You can also pass a regular expression, which is a short for `(chunk) => regex.test(chunk.name)`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -283,8 +283,8 @@ Sets the size types which are used when a number is used for sizes.
 
 Cache groups can inherit and/or override any options from `splitChunks.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {
@@ -329,8 +329,8 @@ Sets the hint for chunk id. It will be added to chunk's filename.
 
 Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     splitChunks: {

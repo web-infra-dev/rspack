@@ -18,8 +18,10 @@ new rspack.javascript.EnableChunkLoadingPlugin('import');
 
 使用 `EnableChunkLoadingPlugin.setEnabled` 实现一个自定义插件：
 
-```js
-class CustomChunkLoadingPlugin {
+```js title="CustomChunkLoadingPlugin.mjs"
+import { rspack } from '@rspack/core';
+
+export class CustomChunkLoadingPlugin {
   apply(compiler) {
     rspack.javascript.EnableChunkLoadingPlugin.setEnabled(
       compiler,
@@ -29,9 +31,11 @@ class CustomChunkLoadingPlugin {
 }
 ```
 
-然后在 `rspack.config.js` 中使用 `output.chunkLoading: 'custom-chunk-loading'`：
+然后在 Rspack 配置中使用 `output.chunkLoading: 'custom-chunk-loading'`：
 
-```js
+```js title="rspack.config.mjs"
+import { CustomChunkLoadingPlugin } from './CustomChunkLoadingPlugin.mjs';
+
 export default {
   output: {
     chunkLoading: 'custom-chunk-loading',

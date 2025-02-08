@@ -426,8 +426,8 @@ addRuntimeModule(
 
 The following code will add a runtime module which define `__webpack_require__.mock` to the `"main"` chunk:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   entry: './index.js',
   plugins: [
     {

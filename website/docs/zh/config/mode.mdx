@@ -14,20 +14,20 @@ import PropertyType from '@components/PropertyType';
 
 ## 用法
 
-你可以在 `rspack.config.js` 中直接设置 mode:
+你可以在 Rspack 配置中直接设置 mode:
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   mode: 'production',
 };
 ```
 
 在实际场景中，你可以根据 `process.env.NODE_ENV` 来动态设置 mode:
 
-```ts title="rspack.config.js"
+```js title="rspack.config.mjs"
 const isProduction = process.env.NODE_ENV === 'production';
 
-module.exports = {
+export default {
   mode: isProduction ? 'production' : 'development',
 };
 ```

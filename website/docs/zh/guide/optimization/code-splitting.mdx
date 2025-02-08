@@ -116,8 +116,8 @@ module.exports = config;
 
 我们可以通过 `optimization.splitChunks.cacheGroups.{cacheGroup}.name` 强制将指定模块分到一个 Chunk 中去，例如如下配置：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     splitChunks: {
       cacheGroups: {

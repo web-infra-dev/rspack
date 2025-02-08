@@ -13,8 +13,8 @@ import PropertyType from '@components/PropertyType';
 
 设置 `require.amd` 或 `define.amd` 的值。设置 `amd` 为 `false` 会禁用 Rspack 的 AMD 支持。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   amd: {
     jQuery: true,
   },
@@ -27,8 +27,8 @@ module.exports = {
 
 遇到第一个错误时退出。Rspack 在默认情况下会在命令行以及在 HMR 时的浏览器 console 中打印这些错误，并且继续编译。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   bail: true,
 };
 ```
@@ -75,8 +75,8 @@ module.exports = [
 
 告知 Rspack 忽略特定的警告。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   ignoreWarnings: [/warning from compiler/, warning => true],
 };
@@ -91,8 +91,8 @@ module.exports = {
 
 配置的名称。当加载多个配置时被使用。
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   name: 'admin-app',
 };
@@ -109,8 +109,8 @@ module.exports = {
 
 如下示例在 Loader 上下问中定义了一个新变量 `answer`：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   loader: {
     answer: 42,

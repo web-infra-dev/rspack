@@ -2262,6 +2262,9 @@ type GetChildLogger = (name: string | (() => string)) => Logger;
 export const getNormalizedRspackOptions: (config: RspackOptions) => RspackOptionsNormalized;
 
 // @public (undocumented)
+export const getPnpDefault: () => boolean;
+
+// @public (undocumented)
 export const getRawOptions: (options: RspackOptionsNormalized, compiler: Compiler) => RawOptions;
 
 // @public (undocumented)
@@ -5366,6 +5369,7 @@ declare namespace rspackExports {
         getRawOptions,
         applyRspackOptionsDefaults,
         applyRspackOptionsBaseDefaults,
+        getPnpDefault,
         getNormalizedRspackOptions,
         EntryDynamicNormalized,
         EntryNormalized,

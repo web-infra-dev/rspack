@@ -25,8 +25,8 @@ For example, to include [jQuery](https://jquery.com/) from a CDN instead of bund
 ></script>
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'jquery',
@@ -52,8 +52,8 @@ Depending on the [externalsType](#externalstype), this could be the name of the 
 
 You can also use the shortcut syntax if you're defining only 1 external:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: 'jquery',
 };
@@ -61,8 +61,8 @@ module.exports = {
 
 equals to
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'jquery',
@@ -74,8 +74,8 @@ You can specify the [external library type](#externalstype) to the external with
 
 For example, if the external library is a [CommonJS module](#externalstypecommonjs), you can specify
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     jquery: 'commonjs jquery',
@@ -85,8 +85,8 @@ module.exports = {
 
 ### string[]\{#string-array}
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     subtract: ['./math', 'subtract'],
@@ -100,8 +100,8 @@ When the `externalsType` is `commonjs`, this example would translate to `require
 
 Similar to the [string syntax](#string), you can specify the external library type with the `${externalsType} ${libraryName}` syntax, in the first item of the array, for example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: {
     subtract: ['commonjs ./math', 'subtract'],
@@ -115,8 +115,8 @@ module.exports = {
 An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`libraryTarget: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: {
     // When `libraryTarget: 'umd'` and `externalsType: 'umd'`, the following format must be strictly followed:
     lodash: {
@@ -156,8 +156,8 @@ The callback function takes three arguments:
 
 As an example, to externalize all imports where the import path matches a regular expression you could do the following:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: [
     function ({ context, request }, callback) {
@@ -175,8 +175,8 @@ module.exports = {
 
 Other examples using different module formats:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // The external is a `commonjs2` module located in `@scope/library`
@@ -186,8 +186,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // The external is a global variable called `nameOfGlobal`.
@@ -197,8 +197,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // The external is a named export in the `@scope/library` module.
@@ -208,8 +208,8 @@ module.exports = {
 };
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: [
     function (ctx, callback) {
       // The external is a UMD module
@@ -228,8 +228,8 @@ module.exports = {
 
 Every dependency that matches the given regular expression will be excluded from the output bundles.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: /^(jquery|\$)$/i,
 };
@@ -241,8 +241,8 @@ In this case, any dependency named `jQuery`, capitalized or not, or `$` would be
 
 Sometimes you may want to use a combination of the above syntaxes. This can be done in the following manner:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externals: [
     {
@@ -305,8 +305,8 @@ Supported types:
 - [`'var'`](#externalstypevar)
 - [`'window'`](#externalstypewindow)
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   externalsType: 'promise',
 };
@@ -322,8 +322,8 @@ Specify the default type of externals as `'commonjs'`. Rspack will generate code
 import fs from 'fs-extra';
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'commonjs',
   externals: {
@@ -351,8 +351,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'global',
   externals: {
@@ -384,8 +384,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     outputModule: true,
   },
@@ -420,8 +420,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'import',
   externals: {
     jquery: 'jquery',
@@ -467,8 +467,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'module-import',
   externals: {
     lodash: 'lodash',
@@ -503,8 +503,8 @@ Note that there will be an `import` or `import()` statement in the output bundle
 
 When a module is not imported via `import` or `import()`, Rspack will use `"module"` externals type as fallback. If you want to use a different type of externals as fallback, you can specify it with a function in the `externals` option. For example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: "module-import",
   externals: [
     function (
@@ -540,8 +540,8 @@ async function foo() {
 }
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'commonjs-import',
   externals: {
     lodash: 'lodash',
@@ -621,8 +621,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'promise',
   externals: {
@@ -649,8 +649,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'self',
   externals: {
@@ -672,8 +672,8 @@ Specify the default type of externals as `'script'`. Rspack will load the extern
 
 **Syntax**
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'script',
   externals: {
     packageName: [
@@ -688,8 +688,8 @@ module.exports = {
 
 You can also use the shortcut syntax if you're not going to specify any properties:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'script',
   externals: {
     packageName: 'global@http://example.com/script.js', // no properties here
@@ -703,8 +703,8 @@ Note that [`output.publicPath`](/config/output#outputpublicpath) won't be added 
 
 Let's load a `lodash` from CDN:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'script',
   externals: {
@@ -722,8 +722,8 @@ console.log(_.head([1, 2, 3]));
 
 Here's how we specify properties for the above example:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'script',
   externals: {
@@ -761,8 +761,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'this',
   externals: {
@@ -789,8 +789,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'var',
   externals: {
@@ -817,8 +817,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsType: 'window',
   externals: {
@@ -894,8 +894,8 @@ Note that if you're going to output ES modules with those node.js-related preset
 
 Using `node` preset will not bundle built-in modules and treats them as external and loads them via `require()` when used.
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   externalsPresets: {
     node: true,

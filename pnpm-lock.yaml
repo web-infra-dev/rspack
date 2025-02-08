@@ -123,8 +123,8 @@ importers:
         specifier: 2.18.4
         version: 2.18.4
       memfs:
-        specifier: 4.14.0
-        version: 4.14.0
+        specifier: 4.17.0
+        version: 4.17.0
 
   npm/darwin-arm64: {}
 
@@ -332,8 +332,8 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       enhanced-resolve:
-        specifier: 5.17.1
-        version: 5.17.1
+        specifier: 5.18.1
+        version: 5.18.1
       graceful-fs:
         specifier: 4.2.11
         version: 4.2.11
@@ -483,8 +483,8 @@ importers:
         specifier: ^26.0.0
         version: 26.0.0
       memfs:
-        specifier: 4.14.0
-        version: 4.14.0
+        specifier: 4.17.0
+        version: 4.17.0
       path-serializer:
         specifier: 0.3.4
         version: 0.3.4
@@ -553,8 +553,8 @@ importers:
         specifier: 3.2.3
         version: 3.2.3
       acorn:
-        specifier: ^8.11.3
-        version: 8.11.3
+        specifier: ^8.14.0
+        version: 8.14.0
       babel-loader:
         specifier: ^9.1.3
         version: 9.1.3(@babel/core@7.24.4)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
@@ -5664,12 +5664,12 @@ packages:
     resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
     engines: {node: '>=10.13.0'}
 
-  enhanced-resolve@5.17.1:
-    resolution: {integrity: sha512-LMHl3dXhTcfv8gM4kEzIUeTQ+7fpdA0l2tUf34BddXPkz2A5xJ5L/Pchd5BL6rdccM9QGvu0sWZzK1Z1t4wwyg==}
-    engines: {node: '>=10.13.0'}
-
   enhanced-resolve@5.18.0:
     resolution: {integrity: sha512-0/r0MySGYG8YqlayBZ6MuCfECmHFdJ5qyPh8s8wa5Hnm6SaFLSK1VYCbj+NKp090Nm1caZhD+QTnmxO7esYGyQ==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.18.1:
+    resolution: {integrity: sha512-ZSW3ma5GkcQBIpwZTSRAI8N71Uuwgs93IezB7mf7R60tC8ZbJideoDNKjHn2O9KIlx6rkGTTEk1xUCK2E1Y2Yg==}
     engines: {node: '>=10.13.0'}
 
   entities@2.2.0:
@@ -11188,17 +11188,17 @@ snapshots:
   '@emnapi/core@1.3.1':
     dependencies:
       '@emnapi/wasi-threads': 1.0.1
-      tslib: 2.8.0
+      tslib: 2.8.1
     optional: true
 
   '@emnapi/runtime@1.3.1':
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
     optional: true
 
   '@emnapi/wasi-threads@1.0.1':
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
     optional: true
 
   '@emotion/hash@0.8.0': {}
@@ -13375,7 +13375,7 @@ snapshots:
 
   '@tybys/wasm-util@0.9.0':
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
     optional: true
 
   '@types/acorn@4.0.6':
@@ -13977,12 +13977,8 @@ snapshots:
 
   acorn-globals@7.0.1:
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.14.0
       acorn-walk: 8.3.2
-
-  acorn-import-attributes@1.9.5(acorn@8.11.3):
-    dependencies:
-      acorn: 8.11.3
 
   acorn-import-attributes@1.9.5(acorn@8.14.0):
     dependencies:
@@ -14467,7 +14463,7 @@ snapshots:
   camel-case@4.1.2:
     dependencies:
       pascal-case: 3.1.2
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   camelcase-css@2.0.1: {}
 
@@ -15466,7 +15462,7 @@ snapshots:
   dot-case@3.0.4:
     dependencies:
       no-case: 3.0.4
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   dunder-proto@1.0.1:
     dependencies:
@@ -15522,12 +15518,12 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.2.1
 
-  enhanced-resolve@5.17.1:
+  enhanced-resolve@5.18.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.2.1
 
-  enhanced-resolve@5.18.0:
+  enhanced-resolve@5.18.1:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.2.1
@@ -15945,7 +15941,7 @@ snapshots:
 
   focus-lock@1.3.5:
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   follow-redirects@1.15.6: {}
 
@@ -15974,7 +15970,7 @@ snapshots:
     dependencies:
       motion-dom: 12.0.0
       motion-utils: 12.0.0
-      tslib: 2.8.0
+      tslib: 2.8.1
     optionalDependencies:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
@@ -16488,8 +16484,8 @@ snapshots:
 
   import-in-the-middle@1.11.2:
     dependencies:
-      acorn: 8.11.3
-      acorn-import-attributes: 1.9.5(acorn@8.11.3)
+      acorn: 8.14.0
+      acorn-import-attributes: 1.9.5(acorn@8.14.0)
       cjs-module-lexer: 1.2.3
       module-details-from-path: 1.0.3
 
@@ -17170,7 +17166,7 @@ snapshots:
   jsdom@20.0.3:
     dependencies:
       abab: 2.0.6
-      acorn: 8.11.3
+      acorn: 8.14.0
       acorn-globals: 7.0.1
       cssom: 0.5.0
       cssstyle: 2.3.0
@@ -17491,7 +17487,7 @@ snapshots:
 
   lower-case@2.0.2:
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   lowlight@1.20.0:
     dependencies:
@@ -18182,7 +18178,7 @@ snapshots:
   no-case@3.0.4:
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   node-forge@1.3.1: {}
 
@@ -18317,7 +18313,7 @@ snapshots:
   param-case@3.0.4:
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   parent-module@1.0.1:
     dependencies:
@@ -18378,7 +18374,7 @@ snapshots:
   pascal-case@3.1.2:
     dependencies:
       no-case: 3.0.4
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   path-absolute@1.0.1: {}
 
@@ -19571,7 +19567,7 @@ snapshots:
 
   rxjs@7.8.1:
     dependencies:
-      tslib: 2.8.0
+      tslib: 2.8.1
 
   sade@1.8.1:
     dependencies:
@@ -20268,7 +20264,7 @@ snapshots:
 
   terser@4.8.1:
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.14.0
       commander: 2.20.3
       source-map: 0.6.1
       source-map-support: 0.5.21
@@ -20276,14 +20272,14 @@ snapshots:
   terser@5.27.2:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.11.3
+      acorn: 8.14.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
   terser@5.36.0:
     dependencies:
       '@jridgewell/source-map': 0.3.6
-      acorn: 8.11.3
+      acorn: 8.14.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
@@ -20714,7 +20710,7 @@ snapshots:
   use-callback-ref@1.3.2(@types/react@19.0.8)(react@19.0.0):
     dependencies:
       react: 19.0.0
-      tslib: 2.8.0
+      tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.0.8
 
@@ -20722,7 +20718,7 @@ snapshots:
     dependencies:
       detect-node-es: 1.1.0
       react: 19.0.0
-      tslib: 2.8.0
+      tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.0.8
 
@@ -20982,7 +20978,7 @@ snapshots:
   webpack-dev-middleware@7.4.2(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(esbuild@0.23.1)(webpack-cli@5.1.4(webpack@5.95.0))):
     dependencies:
       colorette: 2.0.19
-      memfs: 4.14.0
+      memfs: 4.17.0
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
@@ -20993,7 +20989,7 @@ snapshots:
   webpack-dev-middleware@7.4.2(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0))):
     dependencies:
       colorette: 2.0.19
-      memfs: 4.14.0
+      memfs: 4.17.0
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
@@ -21105,7 +21101,7 @@ snapshots:
       acorn-import-attributes: 1.9.5(acorn@8.14.0)
       browserslist: 4.24.0
       chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.17.1
+      enhanced-resolve: 5.18.1
       es-module-lexer: 1.5.4
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -21138,7 +21134,7 @@ snapshots:
       acorn-import-attributes: 1.9.5(acorn@8.14.0)
       browserslist: 4.24.0
       chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.17.1
+      enhanced-resolve: 5.18.1
       es-module-lexer: 1.5.4
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -21170,7 +21166,7 @@ snapshots:
       acorn-import-attributes: 1.9.5(acorn@8.14.0)
       browserslist: 4.24.0
       chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.17.1
+      enhanced-resolve: 5.18.1
       es-module-lexer: 1.5.4
       eslint-scope: 5.1.1
       events: 3.3.0

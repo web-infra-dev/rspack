@@ -16,8 +16,8 @@ Rspack 使用 SWC 转译器支持 JSX 和 TSX。
 
 你可以添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 以支持 `.jsx` 和 `.tsx` 文件：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -68,11 +68,13 @@ module.exports = {
 - 代码注入会注入 `react-refresh` 包中的一些代码，以及一些自定义的运行时代码，都已集成在 [@rspack/plugin-react-refresh](https://github.com/rspack-contrib/rspack-plugin-react-refresh) 插件中，可通过该插件注入。
 - 代码转换可通过 loader 来完成，比如 `swc-loader` 的 [jsc.transform.react.refresh](https://swc.rs/docs/configuration/compilation#jsctransformreactrefresh) 或 `babel-loader` 的 [react-refresh/babel 插件](https://github.com/facebook/react/tree/main/packages/react-refresh)。
 
-```js title=rspack.config.js
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   // ...
   mode: isDev ? 'development' : 'production',
   module: {
@@ -135,8 +137,8 @@ React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
 
 3. 在你的 Rspack 配置文件中注册 `babel-loader`：
 
-```ts title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -205,8 +207,8 @@ const ReactCompilerConfig = {
 
 在 Rspack 中使用 SVGR 的方式与 webpack 中完全一致：
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

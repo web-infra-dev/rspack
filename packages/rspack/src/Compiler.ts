@@ -41,7 +41,7 @@ import { rspack } from "./index";
 import { unsupported } from "./util";
 
 import { canInherentFromParent } from "./builtin-plugin/base";
-import { applyRspackOptionsDefaults } from "./config/defaults";
+import { applyRspackOptionsDefaults, getPnpDefault } from "./config/defaults";
 import { Logger } from "./logging/Logger";
 import { assertNotNill } from "./util/assertNotNil";
 import { checkVersion } from "./util/bindingVersionCheck";
@@ -245,7 +245,11 @@ class Compiler {
 		this.idle = false;
 
 		this.watchMode = false;
-
+		// this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
+		// we need to call pnp defaultValue early here
+		this.resolverFactory = new ResolverFactory(
+			options.resolve.pnp ?? getPnpDefault()
+		);
 		new JsLoaderRspackPlugin(this).apply(this);
 		new ExecuteModulePlugin().apply(this);
 
@@ -819,11 +823,7 @@ class Compiler {
 			this.intermediateFileSystem
 				? ThreadsafeIntermediateNodeFS.__to_binding(this.intermediateFileSystem)
 				: undefined,
-			ResolverFactory.__to_binding(
-				(this.resolverFactory = new ResolverFactory(
-					rawOptions.resolve.pnp ?? false
-				))
-			)
+			ResolverFactory.__to_binding(this.resolverFactory)
 		);
 
 		callback(null, this.#instance);
