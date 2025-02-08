@@ -1,4 +1,5 @@
 import { PackageManagerTabs } from '@theme';
+import { Tabs, Tab } from '@theme';
 
 # 配置 Rspack
 
@@ -10,42 +11,110 @@ Rspack 提供了与 webpack 相似的配置项，通过本章节，你可以了�
 
 一个基础的 Rspack 配置文件如下所示：
 
+<Tabs>
+  <Tab label="ESM">
+
 ```js title="rspack.config.mjs"
-export default {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   entry: {
     main: './src/index.js',
   },
-};
+});
 ```
 
-### 配置文件格式
+  </Tab>
+  <Tab label="CJS">
 
-Rspack 支持四种配置文件，支持`.js`，`.ts`，`.cjs` 和 `.mjs` 格式:
+```js title="rspack.config.js"
+const { defineConfig } = require('@rspack/cli');
 
-- `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 module 则变成 `ES modules` 格式。
+module.exports = defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+```
+
+  </Tab>
+  <Tab label="TypeScript">
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+```
+
+  </Tab>
+</Tabs>
+
+## 配置文件格式
+
+Rspack 支持以下配置文件格式：
+
+- `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 "module" 则变成 `ES modules` 格式。
 - `rspack.config.ts`: `TypeScript` 格式，参考 [TypeScript 配置文件](#typescript-配置文件) 了解更多。
 - `rspack.config.cjs`: 强制为 `CommonJS` 格式。
 - `rspack.config.mjs`: 强制为 `ES modules` 格式。
 
+注意，Rspack 将首先搜索 JS 配置文件，然后才是 TS 配置文件。
+
 > `CommonJS` 和 `ES modules`的区别请参考 [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)。
 
-### TypeScript 配置文件
+## TypeScript 配置文件
 
-在使用 `rspack.config.ts` 时，你需要安装额外的依赖来解析 TypeScript 文件，你可以选择以下任意一种：
+在使用 `rspack.config.ts` 时，你需要使用支持 TypeScript 的运行时，或者安装额外的依赖来解析 TypeScript 文件，你可以选择以下任意一种：
 
-#### 使用 esbuild
+### 原生支持
+
+如果你使用的 JavaScript 运行时已经原生支持 TypeScript，你可以使用内置的 TS 转换来加载配置文件，而无需安装额外的依赖。
+
+例如，Node.js 已经原生支持 TypeScript，你可以使用以下命令来使用 Node.js 原生加载器来加载配置文件：
+
+- 对于 Node.js v22.7.0 到 v23.5.0，你需要启用 `--experimental-transform-types` 选项：
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "NODE_OPTIONS='--experimental-transform-types' rspack build"
+  }
+}
+```
+
+- 对于 Node.js v23.6.0+，不再需要 `--experimental-transform-types` 选项：
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build"
+  }
+}
+```
+
+详见 [Node.js - Running TypeScript Natively](https://nodejs.org/en/learn/typescript/run-natively#running-typescript-natively)。
+
+### 使用 esbuild
+
+对于低于 Node.js v22.7.0 的版本，你可以使用 `esbuild-register` 来加载配置文件。
 
 安装 [esbuild](https://npmjs.com/package/esbuild) 和 [esbuild-register](https://npmjs.com/package/esbuild-register) 即可，不需要任何配置。
 
 <PackageManagerTabs command="add esbuild esbuild-register -D" />
 
-#### 使用 ts-node
+### 使用 ts-node
 
-安装 [ts-node](https://npmjs.com/package/ts-node)：
+你也可以使用 [ts-node](https://npmjs.com/package/ts-node) 来加载配置文件。
+
+1. 安装 `ts-node`：
 
 <PackageManagerTabs command="add ts-node -D" />
 
-然后在 `tsconfig.json` 中配置 `ts-node` 使用 `CommonJS` 模块：
+2. 然后在 `tsconfig.json` 中配置 `ts-node` 使用 `CommonJS` 模块：
 
 ```json title="tsconfig.json"
 {
@@ -59,66 +128,50 @@ Rspack 支持四种配置文件，支持`.js`，`.ts`，`.cjs` 和 `.mjs` 格式
 
 ### 配置类型检查
 
-`rspack.config.js` 是一个 JavaScript 文件，你可以通过 JSDoc 来启用 IDE 的智能补全和 TypeScript 类型检查。
+使用 `defineConfig` 工具函数来启用智能补全。对于 JavaScript 配置文件，你可以使用 `// @ts-check` 注释来启用类型检查。
 
-```js title="rspack.config.js"
+<Tabs>
+  <Tab label="TypeScript">
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+```
+
+  </Tab>
+  <Tab label="JavaScript">
+
+```js title="rspack.config.mjs"
 // @ts-check
+import { defineConfig } from '@rspack/cli';
 
+export default defineConfig({
+  entry: {
+    main: './src/index.js',
+  },
+});
+```
+
+  </Tab>
+</Tabs>
+
+你也可以使用 [JSDoc](https://jsdoc.app/) 来启用类型检查。
+
+```js title="rspack.config.mjs"
+// @ts-check
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
   entry: {
     main: './src/index.js',
   },
 };
-module.exports = config;
+export default config;
 ```
-
-你也可以使用 `defineConfig` 工具函数，它提供了针对配置的自动补全：
-
-```js title="rspack.config.js"
-// @ts-check
-
-const { defineConfig } = require('@rspack/cli');
-
-const config = defineConfig({
-  entry: {
-    main: './src/index.js',
-  },
-});
-module.exports = config;
-```
-
-另外，你也可以使用 TypeScript 作为配置文件。默认的 TypeScript 配置文件名称是 `rspack.config.ts`。
-
-```ts title="rspack.config.ts"
-import { Configuration } from '@rspack/cli';
-const config: Configuration = {
-  entry: {
-    main: './src/index.js',
-  },
-};
-export = config;
-```
-
-你需要把 `ts-node` 安装为 `devDependencies`，这样 Rspack 才能解析 `ts` 扩展。
-
-```json title="package.json"
-{
-  "devDependencies": {
-    "ts-node": "^10.9.2"
-  }
-}
-```
-
-如果你使用的 Node.js 版本支持 [--experimental-transform-types](https://nodejs.org/api/cli.html#--experimental-transform-types) 功能，那么可以使用 Node.js 内置的 TS 解析功能,而不需要安装 `ts-node`
-
-```json title="package.json"
-{
-  "build": "NODE_OPTIONS=--experimental-transform-types rspack build"
-}
-```
-
-注意，如果 JS 文件不存在，Rspack 将首先搜索 JavaScript，然后才是 TypeScript。
 
 ## 指定配置文件
 
@@ -135,7 +188,7 @@ Rspack 命令行支持通过 `--config` 选项来指定配置文件的名称。
 }
 ```
 
-你也可以将 `--config` 选项缩写为 `-c`：
+也可以将 `--config` 选项缩写为 `-c`：
 
 ```bash
 $ rspack build -c rspack.prod.config.js
@@ -173,7 +226,7 @@ module.exports = function (env, argv) {
 
 ## 合并配置
 
-你可以使用 `webpack-merge` 导出的 `merge` 函数来合并多个配置。
+使用 `webpack-merge` 导出的 `merge` 函数来合并多个配置。
 
 ```js title="rspack.config.js"
 const { merge } = require('webpack-merge');
