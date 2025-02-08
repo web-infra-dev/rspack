@@ -51,9 +51,6 @@ export class Dependency {
 	}
 
 	get ids(): string[] | undefined {
-		const binding = bindingDependencyFactory.getBinding(this);
-		if (binding) {
-			return binding.ids;
-		}
+		return this.#inner.ids;
 	}
 }
