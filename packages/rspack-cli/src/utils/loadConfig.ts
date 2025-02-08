@@ -61,7 +61,7 @@ export async function loadRspackConfig(
 		if (!fs.existsSync(configPath)) {
 			throw new Error(`config file "${configPath}" not found.`);
 		}
-		if (isTsFile(configPath)) {
+		if (isTsFile(configPath) && !options["disable-interpret"]) {
 			await registerLoader(configPath);
 		}
 		return crossImport(configPath, cwd);
@@ -69,7 +69,7 @@ export async function loadRspackConfig(
 
 	const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
 	if (defaultConfig) {
-		if (isTsFile(defaultConfig)) {
+		if (isTsFile(defaultConfig) && !options["disable-interpret"]) {
 			await registerLoader(defaultConfig);
 		}
 		return crossImport(defaultConfig, cwd);

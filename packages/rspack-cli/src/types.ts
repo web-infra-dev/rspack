@@ -24,6 +24,7 @@ export interface RspackCLIOptions {
 	config?: string;
 	argv?: Record<string, any>;
 	configName?: string[];
+	"disable-interpret"?: boolean;
 }
 
 export interface RspackBuildCLIOptions extends RspackCLIOptions {
