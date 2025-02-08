@@ -505,8 +505,8 @@ importers:
         version: 3.2.3
     devDependencies:
       '@arco-design/web-react':
-        specifier: ^2.56.1
-        version: 2.61.2(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: ^2.65.0
+        version: 2.65.0(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@monaco-editor/react':
         specifier: ^4.6.0
         version: 4.6.0(monaco-editor@0.52.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -1208,8 +1208,8 @@ packages:
   '@arco-design/color@0.4.0':
     resolution: {integrity: sha512-s7p9MSwJgHeL8DwcATaXvWT3m2SigKpxx4JA1BGPHL4gfvaQsmQfrLBDpjOJFJuJ2jG2dMt3R3P8Pm9E65q18g==}
 
-  '@arco-design/web-react@2.61.2':
-    resolution: {integrity: sha512-YroNHRESaffGwkJ5jCgVCAsLeKhIB+Nky4tmHr1/FruTdGEjERNaxagvj8yCgBTpunwJdbxU6OXlzYwW1IfBeQ==}
+  '@arco-design/web-react@2.65.0':
+    resolution: {integrity: sha512-IzSHoKZ+2hYwf7gGYaISrw4RMzEzw9DoOeA8fggxikrwKs8BrzwwfpxTpJ4MGekerhbFDmereCrYNJnVnNrigA==}
     peerDependencies:
       react: '>=16'
       react-dom: '>=16'
@@ -5968,8 +5968,8 @@ packages:
   flush-write-stream@1.1.1:
     resolution: {integrity: sha512-3Z4XhFZ3992uIq0XOqb9AreonueSYphE6oYbpt5+3u06JWklbsPkNv3ZKkP9Bz/r+1MWCaMoSQ28P85+1Yc77w==}
 
-  focus-lock@1.3.5:
-    resolution: {integrity: sha512-QFaHbhv9WPUeLYBDe/PAuLKJ4Dd9OPvKs9xZBr3yLXnUrDNaVXKu2baDBXe3naPY30hgHYSsf2JW4jzas2mDEQ==}
+  focus-lock@1.3.6:
+    resolution: {integrity: sha512-Ik/6OCk9RQQ0T5Xw+hKNLWrjSMtv51dD4GRmJjbD5a58TIEpI5a5iXagKVl3Z5UuyslMCA8Xwnu76jQob62Yhg==}
     engines: {node: '>=10'}
 
   follow-redirects@1.15.6:
@@ -8473,10 +8473,10 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  react-clientside-effect@1.2.6:
-    resolution: {integrity: sha512-XGGGRQAKY+q25Lz9a/4EPqom7WRjz3z9R2k4jhVKA/puQFH/5Nt27vFZYql4m4NVNdUvX8PS3O7r/Zzm7cjUlg==}
+  react-clientside-effect@1.2.7:
+    resolution: {integrity: sha512-gce9m0Pk/xYYMEojRI9bgvqQAkl6hm7ozQvqWPyQx+kULiatdHgkNM1QG4DQRx5N9BAzWSCJmt9mMV8/KsdgVg==}
     peerDependencies:
-      react: ^15.3.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   react-dom@18.3.1:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
@@ -8491,11 +8491,11 @@ packages:
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
-  react-focus-lock@2.11.2:
-    resolution: {integrity: sha512-DDTbEiov0+RthESPVSTIdAWPPKic+op3sCcP+icbMRobvQNt7LuAlJ3KoarqQv5sCgKArru3kXmlmFTa27/CdQ==}
+  react-focus-lock@2.13.6:
+    resolution: {integrity: sha512-ehylFFWyYtBKXjAO9+3v8d0i+cnc1trGS0vlTGhzFW1vbFXVUTmR8s2tt/ZQG8x5hElg6rhENlLG1H3EZK0Llg==}
     peerDependencies:
-      '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      '@types/react': '*'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -9898,22 +9898,22 @@ packages:
   url-parse@1.5.10:
     resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
 
-  use-callback-ref@1.3.2:
-    resolution: {integrity: sha512-elOQwe6Q8gqZgDA8mrh44qRTQqpIHDcZ3hXTLjBe1i4ph8XpNJnO+aQf3NaG+lriLopI4HMx9VjQLfPQ6vhnoA==}
+  use-callback-ref@1.3.3:
+    resolution: {integrity: sha512-jQL3lRnocaFtu3V00JToYz/4QkNWswxijDaCVNZRiRTO3HQDLsdu1ZtmIUvV4yPp+rvWm5j0y0TG/S61cuijTg==}
     engines: {node: '>=10'}
     peerDependencies:
-      '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      '@types/react': '*'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
 
-  use-sidecar@1.1.2:
-    resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
+  use-sidecar@1.1.3:
+    resolution: {integrity: sha512-Fedw0aZvkhynoPYlA5WXrMCAMm+nSWdZt6lzJQ7Ok8S6Q+VsHmHpRWndVRJ8Be0ZbkfPc5LRYH+5XrzXcEeLRQ==}
     engines: {node: '>=10'}
     peerDependencies:
-      '@types/react': ^16.9.0 || ^17.0.0 || ^18.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      '@types/react': '*'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -10506,7 +10506,7 @@ snapshots:
     dependencies:
       color: 3.2.1
 
-  '@arco-design/web-react@2.61.2(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@arco-design/web-react@2.65.0(@types/react@19.0.8)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       '@arco-design/color': 0.4.0
       '@babel/runtime': 7.25.7
@@ -10518,7 +10518,7 @@ snapshots:
       number-precision: 1.6.0
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
-      react-focus-lock: 2.11.2(@types/react@19.0.8)(react@19.0.0)
+      react-focus-lock: 2.13.6(@types/react@19.0.8)(react@19.0.0)
       react-is: 18.2.0
       react-transition-group: 4.4.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       resize-observer-polyfill: 1.5.1
@@ -15839,7 +15839,7 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 2.3.8
 
-  focus-lock@1.3.5:
+  focus-lock@1.3.6:
     dependencies:
       tslib: 2.8.1
 
@@ -19033,7 +19033,7 @@ snapshots:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
 
-  react-clientside-effect@1.2.6(react@19.0.0):
+  react-clientside-effect@1.2.7(react@19.0.0):
     dependencies:
       '@babel/runtime': 7.25.7
       react: 19.0.0
@@ -19051,15 +19051,15 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-focus-lock@2.11.2(@types/react@19.0.8)(react@19.0.0):
+  react-focus-lock@2.13.6(@types/react@19.0.8)(react@19.0.0):
     dependencies:
       '@babel/runtime': 7.25.7
-      focus-lock: 1.3.5
+      focus-lock: 1.3.6
       prop-types: 15.8.1
       react: 19.0.0
-      react-clientside-effect: 1.2.6(react@19.0.0)
-      use-callback-ref: 1.3.2(@types/react@19.0.8)(react@19.0.0)
-      use-sidecar: 1.1.2(@types/react@19.0.8)(react@19.0.0)
+      react-clientside-effect: 1.2.7(react@19.0.0)
+      use-callback-ref: 1.3.3(@types/react@19.0.8)(react@19.0.0)
+      use-sidecar: 1.1.3(@types/react@19.0.8)(react@19.0.0)
     optionalDependencies:
       '@types/react': 19.0.8
 
@@ -20603,14 +20603,14 @@ snapshots:
       querystringify: 2.2.0
       requires-port: 1.0.0
 
-  use-callback-ref@1.3.2(@types/react@19.0.8)(react@19.0.0):
+  use-callback-ref@1.3.3(@types/react@19.0.8)(react@19.0.0):
     dependencies:
       react: 19.0.0
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.0.8
 
-  use-sidecar@1.1.2(@types/react@19.0.8)(react@19.0.0):
+  use-sidecar@1.1.3(@types/react@19.0.8)(react@19.0.0):
     dependencies:
       detect-node-es: 1.1.0
       react: 19.0.0
