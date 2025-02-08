@@ -72,6 +72,7 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
+import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import type { SecureContextOptions } from 'node:tls';
 import type { Server } from 'node:net';
@@ -4115,7 +4116,9 @@ type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {
 
 // @public (undocumented)
 export class NormalModuleFactory {
-    constructor();
+    constructor(resolverFactory: ResolverFactory);
+    // (undocumented)
+    getResolver(type: string, resolveOptions: Parameters<ResolverFactory["get"]>[1]): Resolver_2;
     // (undocumented)
     hooks: {
         resolveForScheme: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>>;
@@ -4128,6 +4131,8 @@ export class NormalModuleFactory {
             {}
         ], void>;
     };
+    // (undocumented)
+    resolverFactory: ResolverFactory;
 }
 
 // @public (undocumented)

@@ -141,7 +141,7 @@ class Compiler {
 
 	running: boolean;
 	idle: boolean;
-	resolverFactory!: ResolverFactory;
+	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
 
@@ -777,7 +777,7 @@ class Compiler {
 	}
 
 	#newCompilationParams(): CompilationParams {
-		const normalModuleFactory = new NormalModuleFactory();
+		const normalModuleFactory = new NormalModuleFactory(this.resolverFactory);
 		this.hooks.normalModuleFactory.call(normalModuleFactory);
 		const contextModuleFactory = new ContextModuleFactory();
 		this.hooks.contextModuleFactory.call(contextModuleFactory);
