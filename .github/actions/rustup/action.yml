@@ -85,7 +85,7 @@ runs:
       run: rustup show
 
     - name: Cache on ${{ github.ref_name }}
-      uses: Swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2
       if: ${{ startsWith(runner.name, 'GitHub Actions') }}
       with:
         shared-key: ${{ inputs.shared-key }}
