@@ -111,27 +111,7 @@ export default {
 type LazyCompilationOptions =
   | boolean
   | {
-      backend?: {
-        /**
-         * A custom client script path.
-         */
-        client?: string;
-        /**
-         * Specifies where to listen to from the server.
-         */
-        listen?: number | ListenOptions | ((server: Server) => void);
-        /**
-         * Specifies the protocol the client should use to connect to the server.
-         */
-        protocol?: 'http' | 'https';
-        /**
-         * Specifies how to create the server handling the EventSource requests.
-         */
-        server?:
-          | ServerOptionsImport<typeof IncomingMessage>
-          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-          | (() => Server);
-      };
+      backend?: LazyCompilationBackendOptions;
       /**
        * Enable lazy compilation for entries.
        */
@@ -200,9 +180,14 @@ Enabling lazy compilation will start a separate server to handle requests from c
 
 ### lazyCompilation.backend.server
 
-- **Type:** `ServerOptionsImport<typeof IncomingMessage>
-      | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-      | (() => Server)`
+- **Type:**
+
+```ts
+type ServerOptions =
+  | ServerOptionsImport<typeof IncomingMessage>
+  | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+  | (() => Server);
+```
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -251,10 +236,10 @@ interface Server {
 
 ### lazyCompilation.backend.listen
 
-- **Type:** `number|ListenOption`
+- **Type:** `number | ListenOptions | ((server: Server) => void)`
 
 ```ts
-type ListenOption = {
+type ListenOptions = {
   port?: number | undefined;
   host?: string | undefined;
   backlog?: number | undefined;
@@ -266,9 +251,9 @@ type ListenOption = {
 };
 ```
 
-Specify how the sever listens ,you can pass in object form listening configuration,such as specifying listening ports,you can also pass in functions control how listen is done .
+Specify how the sever listens ,you can pass in object form listening configuration,such as specifying listening ports,you can also pass in functions control how listen is done.
 
-If you provide your own service instance,the service's listen is called by provider unless explicitly configured with functional forms of listening.
+When providing a custom server instance, you are responsible for calling the server's `listen` method to start the service, unless you explicitly configure a function forms` listen` option.
 
 ### Exclude HMR client
 

@@ -103,7 +103,7 @@ const getBackend =
 					? // if user offers custom server, no need to listen
 						() => {}
 					: (server: Server) => {
-							let listen = options.listen;
+							let { listen } = options;
 							if (typeof listen === "object" && !("port" in listen))
 								listen = { ...listen, port: undefined };
 							server.listen(listen as ListenOptions);
