@@ -666,6 +666,7 @@ function getRawGeneratorOptions(
 
 	if (
 		[
+			"asset/source",
 			"javascript",
 			"javascript/auto",
 			"javascript/dynamic",
