@@ -55,7 +55,7 @@ mod test_storage_build {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     rx.await.expect("should save")?;
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())
@@ -75,7 +75,7 @@ mod test_storage_build {
       format!("new_{:0>3}", 222).as_bytes().to_vec(),
     );
     storage.remove("test_scope", format!("key_{:0>3}", 333).as_bytes().as_ref());
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     rx.await.expect("should save")?;
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     Ok(())

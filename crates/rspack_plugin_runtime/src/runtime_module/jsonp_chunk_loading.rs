@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
+use async_trait::async_trait;
 use cow_utils::CowUtils;
-use pollster::block_on;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -44,12 +44,13 @@ impl JsonpChunkLoadingRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached"));
@@ -73,10 +74,15 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       compilation
         .chunk_graph
         .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
-    let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
 
-    let js_matcher = has_js_matcher.render("chunkId");
+    let (js_matcher, is_matcher_false, is_matcher_true) = {
+      let has_js_matcher = compile_boolean_matcher(&condition_map);
+      let js_matcher = has_js_matcher.render("chunkId");
+      let is_matcher_false = matches!(has_js_matcher, BooleanMatcher::Condition(false));
+      let is_matcher_true = matches!(has_js_matcher, BooleanMatcher::Condition(true));
+      (js_matcher, is_matcher_false, is_matcher_true)
+    };
 
     let mut source = ConcatSource::default();
 
@@ -102,14 +108,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     )));
 
     if with_loading {
-      let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+      let body = if is_matcher_false {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         include_str!("runtime/jsonp_chunk_loading.js")
           .cow_replace("$JS_MATCHER$", &js_matcher)
           .cow_replace(
             "$MATCH_FALLBACK$",
-            if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+            if is_matcher_true {
               ""
             } else {
               "else installedChunks[chunkId] = 0;\n"
@@ -141,7 +147,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       )));
     }
 
-    if with_prefetch && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+    if with_prefetch && !is_matcher_false {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
         CrossOriginLoading::Enable(_) => {
@@ -162,19 +168,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(async {
-        hooks
-          .link_prefetch
-          .call(LinkPrefetchData {
-            code: link_prefetch_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
-            },
-          })
-          .await
-      })?;
+      let res = hooks
+        .link_prefetch
+        .call(LinkPrefetchData {
+          code: link_prefetch_code,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
 
       source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
@@ -184,7 +188,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       ));
     }
 
-    if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
+    if with_preload && !is_matcher_false {
       let cross_origin = match cross_origin_loading {
         CrossOriginLoading::Disable => "".to_string(),
         CrossOriginLoading::Enable(cross_origin_value) => {
@@ -236,19 +240,17 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(async {
-        hooks
-          .link_preload
-          .call(LinkPreloadData {
-            code: link_preload_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
-            },
-          })
-          .await
-      })?;
+      let res = hooks
+        .link_preload
+        .call(LinkPreloadData {
+          code: link_preload_code,
+          chunk: RuntimeModuleChunkWrapper {
+            chunk_ukey,
+            compilation_id: compilation.id(),
+            compilation: NonNull::from(compilation),
+          },
+        })
+        .await?;
 
       source.add(RawStringSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_preload.js")

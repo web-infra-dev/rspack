@@ -97,6 +97,7 @@ pub use resolver::*;
 pub mod concatenated_module;
 pub mod reserved_names;
 
+pub use futures::executor::block_on;
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   get_scheme, parse_resource, AdditionalData, ResourceData, ResourceParsedData, Scheme,

@@ -628,7 +628,7 @@ impl JsPlugin {
       .chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
-      sources.add(render_runtime_modules(compilation, chunk_ukey)?);
+      sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
       sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));

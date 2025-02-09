@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
   get_js_chunk_filename_template, impl_runtime_module,
@@ -21,6 +22,7 @@ impl Default for AutoPublicPathRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for AutoPublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -34,7 +36,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = self.chunk.expect("The chunk should be attached");
     let chunk = compilation.chunk_by_ukey.expect_get(&chunk);
     let filename = get_js_chunk_filename_template(

@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_runtime_module,
@@ -29,6 +30,7 @@ impl RemoteRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -38,7 +40,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");

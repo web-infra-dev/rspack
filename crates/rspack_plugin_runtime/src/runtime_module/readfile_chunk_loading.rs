@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
@@ -60,11 +61,12 @@ impl ReadFileChunkLoadingRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));

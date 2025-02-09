@@ -117,7 +117,7 @@ impl Cache for PersistentCache {
       .add(modified_paths.iter().map(|item| item.as_ref()))
       .await;
 
-    let rx = self.storage.trigger_save()?;
+    let rx = self.storage.trigger_save().await?;
     if self.async_mode {
       tokio::spawn(async {
         if let Err(err) = rx.await.expect("should receive message") {

@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -21,12 +22,13 @@ impl StartupEntrypointRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for StartupEntrypointRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let source = if self.async_chunk_loading {
       include_str!("runtime/startup_entrypoint_with_async.js")
     } else {

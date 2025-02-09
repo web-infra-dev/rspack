@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -17,12 +18,13 @@ impl Default for NodeModuleDecoratorRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(RawStringSource::from_static(include_str!("runtime/node_module_decorator.js")).boxed())
   }
 }

@@ -77,9 +77,8 @@ impl Storage for PackStorage {
     let scope_update = updates.entry(scope).or_default();
     scope_update.insert(key.to_vec(), None);
   }
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
-    self.manager.save(std::mem::take(
-      &mut *self.updates.lock().expect("should get lock"),
-    ))
+  async fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+    let updates = std::mem::take(&mut *self.updates.lock().expect("should get lock"));
+    self.manager.save(updates).await
   }
 }

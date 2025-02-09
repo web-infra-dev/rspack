@@ -1,5 +1,6 @@
 use std::{cmp::Ordering, fmt};
 
+use async_trait::async_trait;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
@@ -73,6 +74,7 @@ impl GetChunkFilenameRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -82,7 +84,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))

@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -24,12 +25,13 @@ impl Default for CssLoadingRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for CssLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
       let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);

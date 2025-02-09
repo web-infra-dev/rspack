@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -17,8 +18,9 @@ impl Default for BaseUriRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let base_uri = self
       .chunk
       .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))

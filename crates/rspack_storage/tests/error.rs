@@ -55,7 +55,7 @@ mod test_storage_error {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     assert_eq!(storage.load("test_scope").await?.len(), 1000);
 
     rx.await.expect("should save")?;

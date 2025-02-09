@@ -1425,7 +1425,9 @@ impl Compilation {
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self.create_module_hashes(create_module_hashes_modules)?;
+    self
+      .create_module_hashes(create_module_hashes_modules)
+      .await?;
 
     let start = logger.time("optimize code generation");
     tracing::info_span!("Compilation::optimize_code_generation")
@@ -2146,31 +2148,42 @@ impl Compilation {
   }
 
   #[instrument("Compilation:create_module_hashes", skip_all)]
-  pub fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
+  pub async fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
     let mg = self.get_module_graph();
-    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = modules
-      .into_par_iter()
-      .map(|module| {
-        (
-          module,
-          self
-            .chunk_graph
-            .get_module_runtimes(module, &self.chunk_by_ukey),
-        )
-      })
-      .map(|(module_identifier, runtimes)| {
-        let mut hashes = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
-          let mut hasher = RspackHash::from(&self.options.output);
-          let module = mg
-            .module_by_identifier(&module_identifier)
-            .expect("should have module");
-          module.update_hash(&mut hasher, self, Some(&runtime))?;
-          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
-        }
-        Ok((module_identifier, hashes))
-      })
-      .collect::<Result<_>>()?;
+    let results: Vec<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> = join_all(
+      modules
+        .into_iter()
+        .map(|module| {
+          (
+            module,
+            self
+              .chunk_graph
+              .get_module_runtimes(module, &self.chunk_by_ukey),
+          )
+        })
+        .map(|(module_identifier, runtimes)| {
+          let compilation = &*self;
+          let mg = &mg;
+          async move {
+            let mut hashes = RuntimeSpecMap::new();
+            for runtime in runtimes.into_values() {
+              let mut hasher = RspackHash::from(&compilation.options.output);
+              let module = mg
+                .module_by_identifier(&module_identifier)
+                .expect("should have module");
+              module.update_hash(&mut hasher, compilation, Some(&runtime))?;
+              hashes.set(
+                runtime,
+                hasher.digest(&compilation.options.output.hash_digest),
+              );
+            }
+            Ok((module_identifier, hashes))
+          }
+        }),
+    )
+    .await
+    .into_iter()
+    .collect::<Result<_>>()?;
     for (module, hashes) in results {
       ChunkGraph::set_module_hashes(self, module, hashes);
     }

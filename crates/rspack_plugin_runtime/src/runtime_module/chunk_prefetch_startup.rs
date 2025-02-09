@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -24,6 +25,7 @@ impl ChunkPrefetchStartupRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -33,7 +35,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     self.chunk = Some(chunk);
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self.chunk.expect("chunk do not attached");
     Ok(
       RawStringSource::from(

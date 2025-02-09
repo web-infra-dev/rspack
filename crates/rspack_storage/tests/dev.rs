@@ -55,7 +55,7 @@ mod test_storage_dev {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(storage.load("test_scope").await?.len(), 300);
     for i in 300..700 {
@@ -65,7 +65,7 @@ mod test_storage_dev {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?;
+    storage.trigger_save().await?;
 
     assert_eq!(storage.load("test_scope").await?.len(), 700);
     for i in 700..1000 {
@@ -75,7 +75,7 @@ mod test_storage_dev {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
 
     assert_eq!(storage.load("test_scope").await?.len(), 1000);
     rx.await.expect("should save")?;
@@ -98,7 +98,7 @@ mod test_storage_dev {
       format!("new_{:0>3}", 100).as_bytes().to_vec(),
     );
     storage.remove("test_scope", format!("key_{:0>3}", 200).as_bytes().as_ref());
-    storage.trigger_save()?;
+    storage.trigger_save().await?;
     assert_eq!(storage.load("test_scope").await?.len(), 999);
 
     storage.set(
@@ -107,7 +107,7 @@ mod test_storage_dev {
       format!("new_{:0>3}", 300).as_bytes().to_vec(),
     );
     storage.remove("test_scope", format!("key_{:0>3}", 400).as_bytes().as_ref());
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     assert_eq!(storage.load("test_scope").await?.len(), 998);
 
     rx.await.expect("should save")?;

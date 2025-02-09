@@ -62,7 +62,7 @@ mod test_storage_multi {
         format!("scope_2_val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     rx.await.expect("should save")?;
     assert!(fs.exists(&root.join("scope_1/scope_meta")).await?);
     assert!(fs.exists(&root.join("scope_2/scope_meta")).await?);
@@ -98,7 +98,7 @@ mod test_storage_multi {
       "scope_2",
       format!("scope_2_key_{:0>3}", 444).as_bytes().as_ref(),
     );
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     rx.await.expect("should save")?;
     assert!(fs.exists(&root.join("scope_1/scope_meta")).await?);
     assert!(fs.exists(&root.join("scope_2/scope_meta")).await?);

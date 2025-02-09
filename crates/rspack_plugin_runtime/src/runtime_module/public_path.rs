@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -19,12 +20,13 @@ impl PublicPathRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/public_path.js")

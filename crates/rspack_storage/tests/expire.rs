@@ -47,7 +47,7 @@ mod test_storage_expire {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     assert_eq!(storage.load("test_scope").await?.len(), 100);
 
     rx.await.expect("should save")?;
@@ -110,7 +110,7 @@ mod test_storage_expire {
       format!("key_{:0>3}", 0).as_bytes().to_vec(),
       format!("val_{:0>3}", 0).as_bytes().to_vec(),
     );
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
 
     rx.await.expect("should save")?;
     assert!(

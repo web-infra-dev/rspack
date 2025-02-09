@@ -3,7 +3,6 @@ mod queue;
 use std::sync::Arc;
 
 use futures::future::join_all;
-use pollster::block_on;
 use queue::TaskQueue;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::oneshot::Receiver;
@@ -43,35 +42,30 @@ impl ScopeManager {
     }
   }
 
-  pub fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
+  pub async fn save(&self, updates: ScopeUpdates) -> Result<Receiver<Result<()>>> {
     let pack_options = self.pack_options.clone();
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
     let root_meta = self.root_meta.clone();
-    block_on(async move {
+
+    {
       let mut scopes_guard = scopes.lock().await;
-      match update_scopes(
+      update_scopes(
         &mut scopes_guard,
         updates,
         pack_options.clone(),
         strategy.as_ref(),
       )
-      .await
-      {
-        Ok(_) => {
-          *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
-            scopes_guard
-              .iter()
-              .filter(|(_, scope)| scope.loaded())
-              .map(|(name, _)| name.clone())
-              .collect::<HashSet<_>>(),
-            self.root_options.expire,
-          )));
-          Ok(())
-        }
-        Err(e) => Err(e),
-      }
-    })?;
+      .await?;
+      *root_meta.lock().await = RootMetaState::Value(Some(RootMeta::new(
+        scopes_guard
+          .iter()
+          .filter(|(_, scope)| scope.loaded())
+          .map(|(name, _)| name.clone())
+          .collect::<HashSet<_>>(),
+        self.root_options.expire,
+      )));
+    }
 
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
@@ -369,7 +363,7 @@ mod tests {
         .map(|i| (mock_key(i), mock_insert_value(i)))
         .collect::<HashMap<_, _>>(),
     );
-    let rx = manager.save(scope_updates)?;
+    let rx = manager.save(scope_updates).await?;
 
     assert_eq!(manager.load("scope1").await?.len(), 100);
     assert_eq!(manager.load("scope2").await?.len(), 100);
@@ -427,7 +421,7 @@ mod tests {
         .map(|i| (mock_key(i), None))
         .collect::<HashMap<_, _>>(),
     );
-    let rx = manager.save(scope_updates)?;
+    let rx = manager.save(scope_updates).await?;
     let (update_items, insert_items): (Vec<_>, Vec<_>) = manager
       .load("scope1")
       .await?
@@ -508,7 +502,7 @@ mod tests {
         .map(|i| (mock_key(i), mock_update_value(i)))
         .collect::<HashMap<_, _>>(),
     );
-    let rx = manager.save(scope_updates)?;
+    let rx = manager.save(scope_updates).await?;
     // assert_eq!(manager.load("scope1").await?.len(), 100);
     rx.await
       .unwrap_or_else(|e| panic!("save failed: {:?}", e))?;

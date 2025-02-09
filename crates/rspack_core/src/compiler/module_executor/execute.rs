@@ -153,7 +153,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     // replace code_generation_results is the same reason
     compilation.chunk_graph = chunk_graph;
 
-    compilation.create_module_hashes(modules.clone())?;
+    compilation.create_module_hashes(modules.clone()).await?;
 
     compilation
       .code_generation_modules(&mut None, modules.clone())
@@ -186,7 +186,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation)?;
+      let runtime_module_source = runtime_module.generate(&compilation).await?;
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,

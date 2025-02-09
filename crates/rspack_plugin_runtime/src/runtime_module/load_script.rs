@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
+use async_trait::async_trait;
 use cow_utils::CowUtils;
-use pollster::block_on;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -33,12 +33,13 @@ impl LoadScriptRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -137,19 +138,17 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let chunk_ukey = self.chunk_ukey;
-    let res = block_on(async {
-      hooks
-        .create_script
-        .call(CreateScriptData {
-          code: create_script_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
-          },
-        })
-        .await
-    })?;
+    let res = hooks
+      .create_script
+      .call(CreateScriptData {
+        code: create_script_code,
+        chunk: RuntimeModuleChunkWrapper {
+          chunk_ukey,
+          compilation_id: compilation.id(),
+          compilation: NonNull::from(compilation),
+        },
+      })
+      .await?;
 
     Ok(
       RawStringSource::from(

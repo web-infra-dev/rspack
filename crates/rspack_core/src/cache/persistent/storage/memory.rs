@@ -37,7 +37,7 @@ impl Storage for MemoryStorage {
     let mut map = self.inner.lock().expect("should get lock");
     map.get_mut(scope).map(|map| map.remove(key));
   }
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+  async fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
     let (rs, rx) = channel::<Result<()>>();
     let _ = rs.send(Ok(()));
     Ok(rx)

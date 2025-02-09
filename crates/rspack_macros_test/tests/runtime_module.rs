@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{rspack_sources::Source, Compilation, RuntimeModule};
 use rspack_macros::impl_runtime_module;
@@ -13,12 +14,13 @@ fn with_generic() {
     marker: PhantomData<T>,
   }
 
+  #[async_trait]
   impl<T: std::fmt::Debug + Send + Sync + Eq + 'static> RuntimeModule for Foo<T> {
     fn name(&self) -> Identifier {
       todo!()
     }
 
-    fn generate(
+    async fn generate(
       &self,
       _: &Compilation,
     ) -> rspack_error::Result<rspack_core::rspack_sources::BoxSource> {

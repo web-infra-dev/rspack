@@ -85,7 +85,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     return Ok(());
   }
 
-  let (now_all_modules, now_runtime_modules) = collect_changed_modules(compilation)?;
+  let (now_all_modules, now_runtime_modules) = collect_changed_modules(compilation).await?;
 
   let mut updated_modules: IdentifierSet = Default::default();
   let mut updated_runtime_modules: IdentifierSet = Default::default();

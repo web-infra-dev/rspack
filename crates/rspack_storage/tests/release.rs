@@ -84,7 +84,7 @@ mod test_storage_release {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -99,7 +99,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -114,7 +114,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -129,7 +129,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -144,7 +144,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -159,7 +159,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert_eq!(
       get_scope_generations(&storage, scope_name).await?,
@@ -174,7 +174,7 @@ mod test_storage_release {
         format!("new_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    storage.trigger_save()?.await.expect("should save")?;
+    storage.trigger_save().await?.await.expect("should save")?;
 
     assert!(fs.exists(&root.join("test_scope/scope_meta")).await?);
     assert_eq!(

@@ -1,5 +1,6 @@
 use std::hash::BuildHasherDefault;
 
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use indexmap::IndexMap;
 use rspack_cacheable::with::AsMap;
@@ -29,12 +30,13 @@ impl ChunkPrefetchTriggerRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/chunk_prefetch_trigger.js")

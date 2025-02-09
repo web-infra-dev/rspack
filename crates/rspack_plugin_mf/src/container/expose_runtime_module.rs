@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -48,6 +49,7 @@ impl ExposeRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -57,7 +59,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk_ukey = self
       .chunk
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");

@@ -1,7 +1,8 @@
 use std::path::Path;
 
+use futures::future::join_all;
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
@@ -27,7 +28,7 @@ impl Compiler {
     let old = self.compilation.get_stats();
     let old_hash = self.compilation.hash.clone();
 
-    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
+    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation).await?;
     // TODO: should use `records`
 
     let all_old_runtime = old
@@ -224,7 +225,7 @@ pub type ChangedModules = (
   IdentifierMap<(RspackHashDigest, ModuleId)>,
   IdentifierMap<String>,
 );
-pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
+pub async fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
   let modules_map = compilation
     .chunk_graph
     .chunk_graph_module_by_module_identifier
@@ -245,19 +246,21 @@ pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModul
     })
     .collect::<IdentifierMap<_>>();
 
-  let old_runtime_modules = compilation
-    .runtime_modules
-    .iter()
-    .map(|(identifier, module)| -> Result<(Identifier, String)> {
+  let old_runtime_modules = join_all(compilation.runtime_modules.iter().map(
+    |(identifier, module)| async {
       Ok((
         *identifier,
         module
-          .generate_with_custom(compilation)?
+          .generate_with_custom(compilation)
+          .await?
           .source()
           .to_string(),
       ))
-    })
-    .collect::<Result<IdentifierMap<String>>>()?;
+    },
+  ))
+  .await
+  .into_iter()
+  .collect::<Result<IdentifierMap<String>>>()?;
 
   Ok((modules_map, old_runtime_modules))
 }

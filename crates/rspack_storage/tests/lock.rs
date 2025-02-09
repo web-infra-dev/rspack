@@ -110,7 +110,7 @@ mod test_storage_lock {
         format!("val_{:0>3}", i).as_bytes().to_vec(),
       );
     }
-    let rx = storage.trigger_save()?;
+    let rx = storage.trigger_save().await?;
     assert_eq!(storage.load("test_scope").await?.len(), 100);
 
     assert!(rx

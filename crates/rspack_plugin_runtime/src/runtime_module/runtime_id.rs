@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -19,6 +20,7 @@ impl Default for RuntimeIdRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for RuntimeIdRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
@@ -28,7 +30,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
 

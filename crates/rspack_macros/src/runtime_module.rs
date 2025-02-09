@@ -59,7 +59,7 @@ pub fn impl_runtime_module(
     impl #impl_generics #name #ty_generics #where_clause {
       #with_default
 
-      fn get_generated_code(
+      async fn get_generated_code(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
@@ -69,8 +69,8 @@ pub fn impl_runtime_module(
             return Ok(cached_generated_code.clone());
           }
         }
+        let source = self.generate_with_custom(compilation).await?;
         let mut cached_generated_code = self.cached_generated_code.write().expect("Failed to acquire write lock on cached_generated_code");
-        let source = self.generate_with_custom(compilation)?;
         *cached_generated_code = Some(source.clone());
         Ok(source)
       }
@@ -128,10 +128,12 @@ pub fn impl_runtime_module(
       }
 
       fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
-        match compilation {
-          Some(compilation) => self.get_generated_code(compilation).ok().map(|source| source.size() as f64).unwrap_or(0f64),
-          None => 0f64
-        }
+        ::rspack_core::block_on(async {
+          match compilation {
+            Some(compilation) => self.get_generated_code(compilation).await.ok().map(|source| source.size() as f64).unwrap_or(0f64),
+            None => 0f64
+          }
+        })
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
@@ -171,7 +173,7 @@ pub fn impl_runtime_module(
         _: Option<::rspack_core::ConcatenationScope>,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation)?);
+        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(compilation).await?);
         Ok(result)
       }
 
@@ -184,11 +186,13 @@ pub fn impl_runtime_module(
         use rspack_util::ext::DynHash;
         self.name().dyn_hash(hasher);
         self.stage().dyn_hash(hasher);
-        if self.full_hash() || self.dependent_hash() {
-          self.generate_with_custom(compilation)?.dyn_hash(hasher);
-        } else {
-          self.get_generated_code(compilation)?.dyn_hash(hasher);
-        }
+        ::rspack_core::block_on(async {
+          if self.full_hash() || self.dependent_hash() {
+            self.generate_with_custom(compilation).await.unwrap().dyn_hash(hasher);
+          } else {
+            self.get_generated_code(compilation).await.unwrap().dyn_hash(hasher);
+          }
+        });
         Ok(())
       }
     }

@@ -1,5 +1,6 @@
 use std::iter;
 
+use async_trait::async_trait;
 use itertools::Itertools;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -26,12 +27,13 @@ impl StartupChunkDependenciesRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
         .chunk_graph

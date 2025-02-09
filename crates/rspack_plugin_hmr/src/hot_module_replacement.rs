@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -18,13 +19,13 @@ impl Default for HotModuleReplacementRuntimeModule {
     Self::with_default(Identifier::from("webpack/runtime/hot_module_replacement"))
   }
 }
-
+#[async_trait]
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/hot_module_replacement.js")

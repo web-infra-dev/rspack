@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use derive_more::Debug;
 use rspack_cacheable::with::Unsupported;
 use rspack_collections::Identifier;
@@ -24,12 +25,13 @@ pub struct RuntimeModuleFromJs {
   pub stage: RuntimeModuleStage,
 }
 
+#[async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
   fn name(&self) -> Identifier {
     Identifier::from(format!("webpack/runtime/{}", self.name))
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     let res = (self.generator)()?;
     Ok(RawStringSource::from(res).boxed())
   }

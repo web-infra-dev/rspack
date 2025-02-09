@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
@@ -19,12 +20,13 @@ impl RspackVersionRuntimeModule {
   }
 }
 
+#[async_trait]
 impl RuntimeModule for RspackVersionRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
     Ok(
       RawStringSource::from(
         include_str!("runtime/get_version.js")

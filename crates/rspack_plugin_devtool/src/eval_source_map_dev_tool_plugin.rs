@@ -17,6 +17,8 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
 use rspack_util::identifier::make_paths_absolute;
+use rustc_hash::FxHashMap;
+use tokio::sync::RwLock;
 
 use crate::{
   module_filename_helpers::ModuleFilenameHelpers, ModuleFilenameTemplate, ModuleOrSource,
@@ -34,7 +36,7 @@ pub struct EvalSourceMapDevToolPlugin {
   module_filename_template: ModuleFilenameTemplate,
   namespace: String,
   source_root: Option<String>,
-  cache: DashMap<BoxSource, BoxSource>,
+  cache: RwLock<FxHashMap<BoxSource, BoxSource>>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -91,8 +93,8 @@ async fn eval_source_map_devtool_plugin_render_module_content(
   let output_options = &compilation.options.output;
 
   let origin_source = render_source.source.clone();
-  if let Some(cached_source) = self.cache.get(&origin_source) {
-    render_source.source = cached_source.value().clone();
+  if let Some(cached_source) = self.cache.read().await.get(&origin_source) {
+    render_source.source = cached_source.clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.map(&MapOptions::new(self.columns)) {
     let source = {
@@ -137,7 +139,8 @@ async fn eval_source_map_devtool_plugin_render_module_content(
                 &self.namespace,
               )
             });
-            futures::executor::block_on(join_all(features))
+            join_all(features)
+              .await
               .into_iter()
               .collect::<Result<Vec<_>>>()?
           }
@@ -175,7 +178,11 @@ async fn eval_source_map_devtool_plugin_render_module_content(
       ))
       .boxed()
     };
-    self.cache.insert(origin_source, source.clone());
+    self
+      .cache
+      .write()
+      .await
+      .insert(origin_source, source.clone());
     render_source.source = source;
     return Ok(());
   }
