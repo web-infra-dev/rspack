@@ -1160,12 +1160,15 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
     codegen_results: &CodeGenerationResults,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
-    self.function.blocking_call_with_sync(JsExecuteModuleArg {
-      entry: entry.to_string(),
-      runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
-      codegen_results: codegen_results.clone().into(),
-      id: *id,
-    })
+    self
+      .function
+      .call_with_sync(JsExecuteModuleArg {
+        entry: entry.to_string(),
+        runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
+        codegen_results: codegen_results.clone().into(),
+        id: *id,
+      })
+      .await
   }
 
   fn stage(&self) -> i32 {
