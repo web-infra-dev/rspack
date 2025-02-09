@@ -213,22 +213,27 @@ impl<'a> ModuleGraph<'a> {
     map
   }
 
-  /// Remove a connection and return connection origin module identifier and dependency
+  /// Remove dependency in mgm and target connection, return dependency_id and origin module identifier
   ///
   /// force will completely remove dependency, and you will not regenerate it from dependency_id
-  pub fn revoke_connection(
+  pub fn revoke_dependency(
     &mut self,
     dep_id: &DependencyId,
     force: bool,
   ) -> Option<BuildDependency> {
-    let connection = self.connection_by_dependency_id(dep_id)?;
-    let module_identifier = *connection.module_identifier();
-    let original_module_identifier = connection.original_module_identifier;
+    let connection_info = self.connection_by_dependency_id(dep_id).map(|connection| {
+      (
+        connection.original_module_identifier,
+        *connection.module_identifier(),
+      )
+    });
 
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
-    active_partial.connections.insert(*dep_id, None);
+    if connection_info.is_some() {
+      active_partial.connections.insert(*dep_id, None);
+    }
     if force {
       active_partial.dependencies.insert(*dep_id, None);
       active_partial
@@ -236,12 +241,13 @@ impl<'a> ModuleGraph<'a> {
         .insert(*dep_id, None);
     }
 
+    let (original_module_identifier, module_identifier) = connection_info?;
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
       if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
         mgm.remove_outgoing_connection(dep_id);
-        // Because of mgm.dependencies is set when original module build success
-        // it does not need to remove dependency in mgm.dependencies.
+        // Because of mgm.all_dependencies is set when original module build success
+        // it does not need to remove dependency in mgm.all_dependencies.
       }
     }
     // remove incoming from module graph module
@@ -258,12 +264,12 @@ impl<'a> ModuleGraph<'a> {
       .map(|m| Vec::from(m.get_blocks()))
       .unwrap_or_default();
 
-    let (outgoing_connections, incoming_connections) = self
+    let (incoming_connections, all_dependencies) = self
       .module_graph_module_by_identifier(module_id)
       .map(|mgm| {
         (
-          mgm.outgoing_connections().clone(),
           mgm.incoming_connections().clone(),
+          mgm.all_dependencies.clone(),
         )
       })
       .unwrap_or_default();
@@ -279,13 +285,13 @@ impl<'a> ModuleGraph<'a> {
       active_partial.blocks.insert(block, None);
     }
 
-    for cid in outgoing_connections {
-      self.revoke_connection(&cid, true);
+    for dep_id in all_dependencies {
+      self.revoke_dependency(&dep_id, true);
     }
 
     incoming_connections
       .iter()
-      .filter_map(|cid| self.revoke_connection(cid, false))
+      .filter_map(|dep_id| self.revoke_dependency(dep_id, false))
       .collect()
   }
 

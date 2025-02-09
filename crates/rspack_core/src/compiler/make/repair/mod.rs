@@ -102,22 +102,13 @@ pub async fn repair(
   let module_graph = artifact.get_module_graph_mut();
   let init_tasks = build_dependencies
     .into_iter()
-    .filter_map::<Box<dyn Task<MakeTaskContext>>, _>(|(id, parent_module_identifier)| {
+    .map::<Box<dyn Task<MakeTaskContext>>, _>(|(id, parent_module_identifier)| {
       let dependency = module_graph
         .dependency_by_id(&id)
         .expect("dependency not found");
-      // filter module_dependency and context_dependency
-      if dependency.as_module_dependency().is_none() && dependency.as_context_dependency().is_none()
-      {
-        return None;
-      }
 
-      // filter parent module existed dependency
       let parent_module =
         parent_module_identifier.and_then(|id| module_graph.module_by_identifier(&id));
-      if parent_module_identifier.is_some() && parent_module.is_none() {
-        return None;
-      }
 
       let current_profile = compilation
         .options
@@ -134,7 +125,7 @@ pub async fn repair(
             None
           }
         });
-      Some(Box::new(factorize::FactorizeTask {
+      Box::new(factorize::FactorizeTask {
         compilation_id: compilation.id(),
         module_factory: compilation.get_dependency_factory(dependency),
         original_module_identifier: parent_module_identifier,
@@ -149,7 +140,7 @@ pub async fn repair(
         options: compilation.options.clone(),
         current_profile,
         resolver_factory: compilation.resolver_factory.clone(),
-      }))
+      })
     })
     .collect::<Vec<_>>();
 

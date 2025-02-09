@@ -187,7 +187,7 @@ pub async fn recovery_module_graph(
       if module_exist {
         None
       } else {
-        mg.revoke_connection(dep_id, false)
+        mg.revoke_dependency(dep_id, false)
       }
     })
     .collect::<HashSet<_>>();
