@@ -17,7 +17,7 @@
     "@swc/helpers": "0.5.15",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^9.2.1",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.0",
     "postcss": "^8.4.21",
     "postcss-loader": "^8.0.0",
     "react": "^19.0.0",
