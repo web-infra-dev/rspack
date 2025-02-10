@@ -268,7 +268,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       extensions,
       second.extensions.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     prefer_relative: merge!(
       prefer_relative,
@@ -292,25 +292,25 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       main_files,
       second.main_files.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     main_fields: merge!(
       main_fields,
       second.main_fields.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     condition_names: merge!(
       condition_names,
       second.condition_names.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     modules: merge!(
       modules,
       second.modules.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     fully_specified: merge!(
       fully_specified,
@@ -326,7 +326,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       description_files,
       second.description_files.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     enforce_extension: merge!(
       enforce_extension,
@@ -446,7 +446,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   b.into_iter().fold(vec![], |mut acc, item| {
     if item.eq("...") {
-      acc.append(&mut a.to_vec());
+      acc.append(&mut a.clone());
     } else {
       acc.push(item);
     }
@@ -642,8 +642,8 @@ mod test {
     assert_eq!(
       options.alias.expect("should be Ok"),
       vec![
-        ("c2".to_string(), vec![AliasMap::Ignore]),
-        ("c".to_string(), vec![AliasMap::Ignore])
+        ("c".to_string(), vec![AliasMap::Ignore]),
+        ("c2".to_string(), vec![AliasMap::Ignore])
       ]
     );
     assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
