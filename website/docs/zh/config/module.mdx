@@ -543,6 +543,55 @@ export default {
 };
 ```
 
+### module.parser.json
+
+<ApiMeta addedVersion="1.2.0" />
+
+`json` 模块的解析器选项
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json.exportsDepth
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `number`
+- **Default:** production 模式为 `Number.MAX_SAFE_INTEGER`, development 模式为 `1`
+
+设置 Rspack 对于 `json` 模块导出的分析程度。development 模式下此项默认值为 `1`，可大幅提升构建效率。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // 例如，对于以下 json
+        // {
+        //   "depth_1": {
+        //     "depth_2": {
+        //       "depth_3": "foo"
+        //     }
+        //   },
+        //   "_depth_1": "bar"
+        // }
+        // 当设置 exportsDepth: 1 时, `depth_2` and `depth_3` 将不会被分析。
+        exportsDepth: 1,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/auto"]
 
 `css/auto` 模块的解析器选项。

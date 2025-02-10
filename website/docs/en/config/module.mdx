@@ -543,6 +543,55 @@ export default {
 };
 ```
 
+### module.parser.json
+
+<ApiMeta addedVersion="1.2.0" />
+
+Parser options for `json` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.json.exportsDepth
+
+<ApiMeta addedVersion="1.2.0" />
+
+- **Type:** `number`
+- **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`
+
+The depth of json dependency flagged as `exportInfo`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        // For example, for the following json
+        // {
+        //   "depth_1": {
+        //     "depth_2": {
+        //       "depth_3": "foo"
+        //     }
+        //   },
+        //   "_depth_1": "bar"
+        // }
+        // when `exportsDepth: 1`, `depth_2` and `depth_3` will not be flagged as `exportInfo`.
+        exportsDepth: 1,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/auto"]
 
 Parser options for `css/auto` modules.
