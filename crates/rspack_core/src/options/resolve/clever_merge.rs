@@ -158,10 +158,10 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
 
 fn overwrite<T, F>(a: Option<T>, b: Option<T>, f: F) -> Option<T>
 where
-  F: FnOnce(&T, T) -> T,
+  F: FnOnce(T, T) -> T,
 {
   match (a, b) {
-    (Some(a), Some(b)) => Some(f(&a, b)),
+    (Some(a), Some(b)) => Some(f(a, b)),
     (Some(a), None) => Some(a),
     (None, Some(b)) => Some(b),
     (None, None) => None,
@@ -268,7 +268,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       extensions,
       second.extensions.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     prefer_relative: merge!(
       prefer_relative,
@@ -292,25 +292,25 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       main_files,
       second.main_files.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     main_fields: merge!(
       main_fields,
       second.main_fields.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     condition_names: merge!(
       condition_names,
       second.condition_names.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     modules: merge!(
       modules,
       second.modules.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     fully_specified: merge!(
       fully_specified,
@@ -326,7 +326,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       description_files,
       second.description_files.base.get_value_type(),
       need_merge_base,
-      |a, b| normalize_string_array(a, b)
+      normalize_string_array
     ),
     enforce_extension: merge!(
       enforce_extension,
@@ -443,10 +443,10 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   }
 }
 
-fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
+fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   b.into_iter().fold(vec![], |mut acc, item| {
     if item.eq("...") {
-      acc.append(&mut a.to_vec());
+      acc.append(&mut a.clone());
     } else {
       acc.push(item);
     }
@@ -454,20 +454,26 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
   })
 }
 
-fn extend_alias(a: &Alias, b: Alias) -> Alias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+fn extend_alias(mut a: Alias, b: Alias) -> Alias {
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
+  a
 }
 
-fn extend_extension_alias(a: &ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
-  let mut b = b;
-  // FIXME: I think this clone can be removed
-  b.extend(a.clone());
-  b.dedup();
-  b
+fn extend_extension_alias(mut a: ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
+  a
 }
 
 #[cfg(test)]
@@ -636,8 +642,8 @@ mod test {
     assert_eq!(
       options.alias.expect("should be Ok"),
       vec![
-        ("c2".to_string(), vec![AliasMap::Ignore]),
-        ("c".to_string(), vec![AliasMap::Ignore])
+        ("c".to_string(), vec![AliasMap::Ignore]),
+        ("c2".to_string(), vec![AliasMap::Ignore])
       ]
     );
     assert_eq!(options.condition_names.expect("should be Ok").len(), 3);

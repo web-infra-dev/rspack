@@ -116,7 +116,7 @@ export declare class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
-  get entrypoints(): Record<string, JsChunkGroup>
+  get entrypoints(): JsChunkGroup[]
   get chunkGroups(): JsChunkGroup[]
   get hash(): string | null
   dependencies(): JsDependencies
