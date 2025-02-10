@@ -3,8 +3,9 @@ use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerOptions, DependencyType, EntryDependency, Module, ModuleFactory, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
+  CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleFactory,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -156,6 +157,10 @@ async fn normal_module_factory_module(
 
   let mut backend = self.backend.lock().await;
   let module_identifier = module.identifier();
+
+  let lib_ident = module.lib_ident(LibIdentOptions {
+    context: module_factory_create_data.options.context.as_str(),
+  });
   let info = backend
     .module(
       module_identifier,
@@ -165,6 +170,7 @@ async fn normal_module_factory_module(
 
   *module = Box::new(LazyCompilationProxyModule::new(
     module_identifier,
+    lib_ident.map(|ident| ident.into_owned()),
     module_factory_create_data.clone(),
     create_data.resource_resolve_data.resource.clone(),
     self.cacheable,

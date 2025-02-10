@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{borrow::Cow, path::Path, sync::Arc};
 
 use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
@@ -9,8 +9,8 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
-  Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, TemplateContext,
+  LibIdentOptions, Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
 use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
@@ -35,6 +35,7 @@ pub(crate) struct LazyCompilationProxyModule {
 
   readable_identifier: String,
   identifier: ModuleIdentifier,
+  lib_ident: Option<String>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -61,8 +62,10 @@ impl ModuleSourceMapConfig for LazyCompilationProxyModule {
 }
 
 impl LazyCompilationProxyModule {
+  #[allow(clippy::too_many_arguments)]
   pub(crate) fn new(
     original_module: ModuleIdentifier,
+    lib_ident: Option<String>,
     create_data: ModuleFactoryCreateData,
     resource: String,
     cacheable: bool,
@@ -76,12 +79,15 @@ impl LazyCompilationProxyModule {
     );
     let identifier = format!("lazy-compilation-proxy|{original_module}").into();
 
+    let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
+
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
       cacheable,
       create_data,
       readable_identifier,
+      lib_ident,
       resource,
       identifier,
       source_map_kind: SourceMapKind::empty(),
@@ -131,6 +137,10 @@ impl Module for LazyCompilationProxyModule {
 
   fn readable_identifier(&self, _context: &Context) -> std::borrow::Cow<str> {
     std::borrow::Cow::Borrowed(&self.readable_identifier)
+  }
+
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+    self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
