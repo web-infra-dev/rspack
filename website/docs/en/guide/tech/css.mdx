@@ -251,48 +251,9 @@ The above configuration runs all `*.less` files through the [less-loader](https:
 
 ## Tailwind CSS
 
-[Tailwind CSS](https://tailwindcss.com/) is a utility-first CSS framework packed with classes that can be composed to build any design, directly in your markup.
+[Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
 
-Installing Tailwind CSS as a PostCSS plugin is the most seamless way to integrate it with Rspack.
+Tailwind CSS documentation provides integration guides for Rspack, please refer to:
 
-### Install Tailwind CSS
-
-Please install [tailwindcss](https://tailwindcss.com/),[autoprefixer](https://github.com/postcss/autoprefixer),[postcss](https://postcss.org/) and [postcss-loader](https://www.npmjs.com/package/) in your project.
-
-<PackageManagerTabs command="add tailwindcss autoprefixer postcss postcss-loader -D" />
-
-### Configure Tailwind CSS
-
-Once installed, you need to configure `postcss-loader` in `rspack.config.js` to handle CSS files, and then add `tailwindcss` to `postcssOptions.plugins`.
-
-Here is an example configuration for handling `.css` files, if you need to handle `.scss` or `.less` files, you can refer to this example for modifications.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        use: [
-          {
-            loader: 'postcss-loader',
-            options: {
-              postcssOptions: {
-                plugins: {
-                  tailwindcss: {},
-                  autoprefixer: {},
-                },
-              },
-            },
-          },
-        ],
-        type: 'css',
-      },
-    ],
-  },
-};
-```
-
-At this point, you have completed the build configuration required to use Tailwind CSS in Rspack.
-
-Next you can follow the steps in the [Tailwind CSS Documentation](https://tailwindcss.com/docs/installation/using-postcss) to add the required configuration and code for Tailwind CSS and start using it.
+- [Install Tailwind CSS v4 with Rspack](https://tailwindcss.com/docs/installation/framework-guides/rspack/react)
+- [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)
