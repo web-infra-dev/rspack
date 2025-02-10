@@ -158,10 +158,10 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
 
 fn overwrite<T, F>(a: Option<T>, b: Option<T>, f: F) -> Option<T>
 where
-  F: FnOnce(&T, T) -> T,
+  F: FnOnce(T, T) -> T,
 {
   match (a, b) {
-    (Some(a), Some(b)) => Some(f(&a, b)),
+    (Some(a), Some(b)) => Some(f(a, b)),
     (Some(a), None) => Some(a),
     (None, Some(b)) => Some(b),
     (None, None) => None,
@@ -443,7 +443,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   }
 }
 
-fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
+fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   b.into_iter().fold(vec![], |mut acc, item| {
     if item.eq("...") {
       acc.append(&mut a.to_vec());
@@ -454,17 +454,13 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
   })
 }
 
-fn extend_alias(a: &Alias, b: Alias) -> Alias {
-  // FIXME: I think this to_vec can be removed
-  let mut a = a.to_vec();
+fn extend_alias(mut a: Alias, b: Alias) -> Alias {
   a.extend(b);
   a.dedup();
   a
 }
 
-fn extend_extension_alias(a: &ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
-  // FIXME: I think this to_vec can be removed
-  let mut a = a.to_vec();
+fn extend_extension_alias(mut a: ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
   a.extend(b);
   a.dedup();
   a
