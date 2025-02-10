@@ -1,4 +1,4 @@
-const {RawSource} = require('webpack-sources')
+const { RawSource } = require("webpack-sources");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -18,20 +18,23 @@ module.exports = {
 		}
 	},
 	experiments: {
-		outputModule: true,
+		outputModule: true
 	},
 	plugins: [
 		{
 			apply(compiler) {
-				compiler.hooks.thisCompilation.tap('test', (compilation) => {
-					compilation.hooks.processAssets.tap('test', (assets) => {
-							compilation.updateAsset('m.mjs', new RawSource(`import { a, b } from './main.mjs';
+				compiler.hooks.thisCompilation.tap("test", compilation => {
+					compilation.hooks.processAssets.tap("test", assets => {
+						compilation.updateAsset(
+							"m.mjs",
+							new RawSource(`import { a, b } from './main.mjs';
 it('should get correctly exports', () => {
 	expect(a).toBe('a')
 	expect(b).toBe('b')
-})`))
-					})
-				})
+})`)
+						);
+					});
+				});
 			}
 		}
 	]

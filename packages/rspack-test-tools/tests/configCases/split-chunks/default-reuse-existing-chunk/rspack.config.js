@@ -5,13 +5,13 @@ module.exports = {
 		filename: "[name].js"
 	},
 	optimization: {
-		chunkIds: 'named',
+		chunkIds: "named",
 		splitChunks: {
 			minSize: 1,
-      chunks: "all",
+			chunks: "all",
 			cacheGroups: {
 				foo: {
-					minSize: 0,
+					minSize: 0
 				}
 			}
 		}

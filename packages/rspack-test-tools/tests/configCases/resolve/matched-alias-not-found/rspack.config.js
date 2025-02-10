@@ -4,7 +4,7 @@ const path = require("path");
 module.exports = {
 	resolve: {
 		alias: {
-			"m1": path.resolve(__dirname, "node_modules", "m2", "mod.js"),
+			m1: path.resolve(__dirname, "node_modules", "m2", "mod.js")
 		}
-	},
+	}
 };

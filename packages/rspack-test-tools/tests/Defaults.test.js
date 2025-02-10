@@ -18,7 +18,11 @@ function getWebpackDefaultConfig(cwd, config) {
 function getObjectPaths(obj, parentPaths = []) {
 	return Object.keys(obj).reduce((paths, key) => {
 		const fullPath = [...parentPaths, key];
-		if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
+		if (
+			typeof obj[key] === "object" &&
+			obj[key] !== null &&
+			!Array.isArray(obj[key])
+		) {
 			return [...paths, fullPath, ...getObjectPaths(obj[key], fullPath)];
 		} else {
 			return [...paths, fullPath];
@@ -33,33 +37,54 @@ function deleteObjectPaths(obj, predicate, parentPaths = []) {
 			delete obj[key];
 			continue;
 		}
-		if (typeof obj[key] === "object" && obj[key] !== null && !Array.isArray(obj[key])) {
+		if (
+			typeof obj[key] === "object" &&
+			obj[key] !== null &&
+			!Array.isArray(obj[key])
+		) {
 			deleteObjectPaths(obj[key], predicate, fullPath);
 		}
 	}
 }
 
 function filterObjectPaths(obj, paths) {
-	return deleteObjectPaths(obj, fullPath => !paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])));
+	return deleteObjectPaths(
+		obj,
+		fullPath =>
+			!paths.some(
+				p =>
+					p.length === fullPath.length && p.every((e, i) => e === fullPath[i])
+			)
+	);
 }
 
 function trimObjectPaths(obj, paths) {
-	return deleteObjectPaths(obj, fullPath => paths.some(p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])));
+	return deleteObjectPaths(obj, fullPath =>
+		paths.some(
+			p => p.length === fullPath.length && p.every((e, i) => e === fullPath[i])
+		)
+	);
 }
 
 const cwd = path.resolve(__dirname, "..");
 
 function assertWebpackConfig(config) {
-	const rspackBaseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, config);
+	const rspackBaseConfig = DefaultsConfigProcessor.getDefaultConfig(
+		cwd,
+		config
+	);
 	const webpackBaseConfig = getWebpackDefaultConfig(cwd, config);
 	const rspackSupportedConfig = getObjectPaths(rspackBaseConfig);
-	const defaultsPath = path.resolve(__dirname, "../../rspack/src/config/defaults.ts");
+	const defaultsPath = path.resolve(
+		__dirname,
+		"../../rspack/src/config/defaults.ts"
+	);
 	const defaultsContent = fs.readFileSync(defaultsPath, "utf-8");
 	const regex = /\/\/\sIGNORE\((.+?)\):\s/g;
 	const ignoredPaths = [];
 	let matches;
-	while (matches = regex.exec(defaultsContent)) {
-		ignoredPaths.push(matches[1].split('.'));
+	while ((matches = regex.exec(defaultsContent))) {
+		ignoredPaths.push(matches[1].split("."));
 	}
 	trimObjectPaths(rspackBaseConfig, ignoredPaths);
 	trimObjectPaths(webpackBaseConfig, ignoredPaths);
@@ -68,7 +93,9 @@ function assertWebpackConfig(config) {
 }
 
 describe("Base Defaults Snapshot", () => {
-	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, { mode: "none" });
+	const baseConfig = DefaultsConfigProcessor.getDefaultConfig(cwd, {
+		mode: "none"
+	});
 
 	it("should have the correct base config", () => {
 		expect(baseConfig).toMatchSnapshot();
@@ -88,15 +115,20 @@ describe("Base Defaults Snapshot", () => {
 
 	it("should be align to webpack base config for experiments.futureDefaults: true", () => {
 		assertWebpackConfig({
-			mode: "production", experiments: {
+			mode: "production",
+			experiments: {
 				futureDefaults: true
 			}
 		});
 	});
 });
 
-describeByWalk(__filename, (name, src, dist) => {
-	createDefaultsCase(name, src);
-}, {
-	type: "file",
-});
+describeByWalk(
+	__filename,
+	(name, src, dist) => {
+		createDefaultsCase(name, src);
+	},
+	{
+		type: "file"
+	}
+);

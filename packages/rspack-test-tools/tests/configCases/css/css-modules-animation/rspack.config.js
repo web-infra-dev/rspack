@@ -2,7 +2,7 @@ const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: {
 		__dirname: false,
 		__filename: false
@@ -16,11 +16,9 @@ module.exports = {
 	},
 	optimization: {
 		minimize: true,
-		minimizer: [
-			new rspack.LightningCssMinimizerRspackPlugin(),
-		],
+		minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
 		providedExports: true,
-		usedExports: true,
+		usedExports: true
 	},
 	experiments: {
 		css: true

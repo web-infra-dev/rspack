@@ -1,10 +1,10 @@
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
 	entry: "./src/index",
-	target: 'web',
+	target: "web",
 	node: false,
 	output: {
-		publicPath: '/'
+		publicPath: "/"
 	},
 	module: {
 		rules: [

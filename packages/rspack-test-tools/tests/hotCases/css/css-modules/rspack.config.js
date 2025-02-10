@@ -1,22 +1,22 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  entry: {
-    main: './index.js',
-  },
-  module: {
+	entry: {
+		main: "./index.js"
+	},
+	module: {
 		parser: {
-			'css/module': {
-				namedExports: false,
+			"css/module": {
+				namedExports: false
 			}
 		},
-    rules: [
-      {
-        test: /\.module\.css$/,
-        type: 'css/module',
-        generator: {
+		rules: [
+			{
+				test: /\.module\.css$/,
+				type: "css/module",
+				generator: {
 					exportsOnly: true
-        }
-      }
-    ]
-  }
-}
+				}
+			}
+		]
+	}
+};

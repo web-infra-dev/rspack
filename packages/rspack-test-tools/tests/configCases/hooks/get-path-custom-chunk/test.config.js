@@ -1,4 +1,4 @@
 /** @type {import("../../../../dist").TConfigCaseConfig} */
 module.exports = {
-  noTests: true,
-}
+	noTests: true
+};

@@ -1,5 +1,5 @@
 module.exports = {
 	findBundle() {
-		return ['css/main.css', 'bundle0.js']
-	},
-}
+		return ["css/main.css", "bundle0.js"];
+	}
+};

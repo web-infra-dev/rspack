@@ -2,7 +2,7 @@
 module.exports = {
 	module: {
 		parser: {
-			'css/auto': {
+			"css/auto": {
 				namedExports: true
 			}
 		},
@@ -14,8 +14,8 @@ module.exports = {
 						loader: "builtin:lightningcss-loader",
 						/** @type {import("@rspack/core").LightningcssLoaderOptions} */
 						options: {
-							unusedSymbols: ['unused'],
-							targets: '> 0.2%'
+							unusedSymbols: ["unused"],
+							targets: "> 0.2%"
 						}
 					}
 				],

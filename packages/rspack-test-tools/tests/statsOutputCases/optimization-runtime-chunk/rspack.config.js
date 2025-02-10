@@ -18,11 +18,11 @@ module.exports = {
 		chunks: true,
 		entrypoints: true,
 		chunkGroups: true,
-		errors: true,
+		errors: true
 	},
 	optimization: {
 		runtimeChunk: {
-			name: (entrypoint) => `${entrypoint.name}~runtime`
+			name: entrypoint => `${entrypoint.name}~runtime`
 		}
 	}
 };

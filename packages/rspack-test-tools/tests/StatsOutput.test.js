@@ -1,8 +1,11 @@
 const { createStatsOutputCase, describeByWalk } = require("..");
 
-describeByWalk(__filename, (name, src, dist) => {
-	createStatsOutputCase(name, src, dist);
-}, {
-	level: 1,
-});
-
+describeByWalk(
+	__filename,
+	(name, src, dist) => {
+		createStatsOutputCase(name, src, dist);
+	},
+	{
+		level: 1
+	}
+);

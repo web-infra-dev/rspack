@@ -8,8 +8,8 @@ module.exports = {
 		rules: [
 			{
 				test: /\.js/,
-				loader: './loader.js'
+				loader: "./loader.js"
 			}
 		]
-	},
+	}
 };

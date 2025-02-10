@@ -2,11 +2,11 @@ const { RawSource, ConcatSource } = require("webpack-sources");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
-node: {
-  __dirname: false,
-  __filename: false
-},
+	target: "web",
+	node: {
+		__dirname: false,
+		__filename: false
+	},
 	entry: {
 		main: "./index.js"
 	},
@@ -22,7 +22,7 @@ node: {
 	module: {
 		generator: {
 			"css/auto": {
-				exportsOnly: false,
+				exportsOnly: false
 			}
 		},
 		rules: [

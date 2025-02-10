@@ -69,7 +69,7 @@ describe.skip("Pressure test", function () {
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js"
 					},
-					() => { }
+					() => {}
 				);
 			}
 

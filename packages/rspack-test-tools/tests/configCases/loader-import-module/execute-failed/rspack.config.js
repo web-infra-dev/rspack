@@ -5,8 +5,8 @@ module.exports = {
 		rules: [
 			{
 				test: /index\.js/,
-				use: ['./import-loader.js', './import-loader-2.js'],
-			},
+				use: ["./import-loader.js", "./import-loader-2.js"]
+			}
 		]
-	},
+	}
 };

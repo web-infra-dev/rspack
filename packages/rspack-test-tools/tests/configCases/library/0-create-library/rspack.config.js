@@ -4,22 +4,22 @@ const path = require("path");
 module.exports = (env, { testPath }) => [
 	{
 		entry: {
-			main: './modern-module-non-entry-module-export/index.js',
+			main: "./modern-module-non-entry-module-export/index.js"
 		},
 		output: {
 			module: true,
 			chunkFormat: "module",
 			filename: "modern-module-non-entry-module-export/[name].js",
 			library: {
-				type: 'modern-module',
-			},
+				type: "modern-module"
+			}
 		},
 		optimization: {
 			concatenateModules: true,
-			avoidEntryIife: true,
+			avoidEntryIife: true
 		},
 		experiments: {
-			outputModule: true,
-		},
+			outputModule: true
+		}
 	}
 ];

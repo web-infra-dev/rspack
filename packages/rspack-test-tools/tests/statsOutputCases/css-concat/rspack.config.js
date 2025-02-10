@@ -6,6 +6,6 @@ module.exports = {
 		minimize: false
 	},
 	experiments: {
-		css: true,
+		css: true
 	}
 };

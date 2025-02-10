@@ -11,11 +11,11 @@ module.exports = {
 		generator: {
 			"css/auto": {
 				exportsConvention: "camel-case",
-				exportsOnly: true,
+				exportsOnly: true
 			}
 		}
 	},
 	experiments: {
 		css: true
-	},
+	}
 };

@@ -7,7 +7,7 @@ module.exports = {
 	},
 	plugins: [
 		new rspack.ProvidePlugin({
-			foo: "not-exist",
+			foo: "not-exist"
 		})
-	],
+	]
 };

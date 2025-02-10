@@ -9,7 +9,7 @@ module.exports = {
 		}
 	},
 	output: {
-		filename: '[name].js'
+		filename: "[name].js"
 	},
 	optimization: {
 		runtimeChunk: "single",

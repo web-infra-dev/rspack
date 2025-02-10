@@ -3,7 +3,7 @@
  */
 module.exports = {
 	mode: "development",
-	devtool: "source-map", 
+	devtool: "source-map",
 	externals: ["source-map"],
-	entry: "./index.js",
+	entry: "./index.js"
 };

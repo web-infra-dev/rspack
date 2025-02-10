@@ -4,18 +4,18 @@ const assert = require("assert");
 module.exports = {
 	context: __dirname,
 	entry: {
-		index: './img.png'
+		index: "./img.png"
 	},
 	output: {
 		filename: `[name].js`,
-    chunkFilename: `async.js`,
+		chunkFilename: `async.js`,
 		module: true,
 		library: {
-			type: "modern-module",
+			type: "modern-module"
 		},
 		iife: false,
 		chunkFormat: "module",
-		chunkLoading: 'import',
+		chunkLoading: "import"
 	},
 	module: {
 		rules: [
@@ -23,7 +23,7 @@ module.exports = {
 				test: /\.png$/,
 				type: "asset/resource",
 				generator: {
-					filename: 'static/img/[name].png',
+					filename: "static/img/[name].png",
 					importMode: "preserve"
 				}
 			}
@@ -37,7 +37,7 @@ module.exports = {
 		avoidEntryIife: true,
 		minimize: false
 	},
-	plugins:[
+	plugins: [
 		new (class {
 			apply(compiler) {
 				compiler.hooks.compilation.tap("MyPlugin", compilation => {
@@ -46,11 +46,15 @@ module.exports = {
 						const js = list.find(item => item.endsWith("js"));
 						const jsContent = assets[js].source().toString();
 
-						const preseveImport = /import\simg_namespaceObject\sfrom ['"]\.\/static\/img\/img\.png['"]/.test(jsContent);
+						const preseveImport =
+							/import\simg_namespaceObject\sfrom ['"]\.\/static\/img\/img\.png['"]/.test(
+								jsContent
+							);
 						assert(preseveImport);
-						const hasExports = /export\s{\simg_namespaceObject\sas\sdefault\s}/.test(jsContent);
+						const hasExports =
+							/export\s{\simg_namespaceObject\sas\sdefault\s}/.test(jsContent);
 						assert(hasExports);
-					})
+					});
 				});
 			}
 		})()

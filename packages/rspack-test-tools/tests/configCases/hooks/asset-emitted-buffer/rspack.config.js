@@ -10,16 +10,17 @@ class Plugin {
 				const buffer = Buffer.from("i am content of emit asset");
 				contentLength = buffer.length;
 				const source = new RawSource(buffer, false);
-				compilation.emitAsset('emit-asset.js', source);
+				compilation.emitAsset("emit-asset.js", source);
 			});
 		});
-
 
 		compiler.hooks.assetEmitted.tap(pluginName, (filename, info) => {
 			if (filename === "emit-asset.js") {
 				expect(info.targetPath.includes("emit-asset.js")).toBeTruthy();
 				expect(info.content.length).toBe(contentLength);
-				expect(info.content.toString('utf-8').includes("i am content of emit asset")).toBeTruthy();
+				expect(
+					info.content.toString("utf-8").includes("i am content of emit asset")
+				).toBeTruthy();
 				hasEmittedAsset = true;
 			}
 		});

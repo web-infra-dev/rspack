@@ -2,11 +2,11 @@
 module.exports = [
 	{
 		entry: {
-			"case1": "./case1.js",
-			"case2": "./case2.js",
-			"case3": "./case3/index.js",
-			"case4": "./case4.js",
-			"index": "./index.js",
+			case1: "./case1.js",
+			case2: "./case2.js",
+			case3: "./case3/index.js",
+			case4: "./case4.js",
+			index: "./index.js"
 		},
 		output: {
 			module: true,
@@ -14,17 +14,17 @@ module.exports = [
 			chunkFormat: "module",
 			library: {
 				type: "modern-module"
-			},
+			}
 		},
 		externals: {
 			external1: "module external1-alias",
-			external2: "module-import external2-alias",
+			external2: "module-import external2-alias"
 		},
 		experiments: {
 			outputModule: true
 		},
 		optimization: {
-			avoidEntryIife: true,
-		},
-	},
+			avoidEntryIife: true
+		}
+	}
 ];

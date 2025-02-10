@@ -1,9 +1,11 @@
 const { createTreeShakingCase, describeByWalk } = require("..");
 
-describeByWalk(__filename, (name, src, dist) => {
-	createTreeShakingCase(name, src, dist);
-}, {
-	level: 1,
-});
-
-
+describeByWalk(
+	__filename,
+	(name, src, dist) => {
+		createTreeShakingCase(name, src, dist);
+	},
+	{
+		level: 1
+	}
+);

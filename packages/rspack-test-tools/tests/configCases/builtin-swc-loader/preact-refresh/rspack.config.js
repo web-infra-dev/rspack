@@ -1,6 +1,6 @@
-const { rspack } = require("@rspack/core")
+const { rspack } = require("@rspack/core");
 const PreactRefreshPlugin = require("@rspack/plugin-preact-refresh");
-const { ConcatSource, RawSource } = require("webpack-sources")
+const { ConcatSource, RawSource } = require("webpack-sources");
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index.jsx",
@@ -19,7 +19,7 @@ module.exports = {
 						parser: {
 							syntax: "ecmascript",
 							jsx: true,
-							sourceMap: true,
+							sourceMap: true
 						},
 						transform: {
 							react: {
@@ -43,14 +43,17 @@ module.exports = {
 		}),
 		{
 			apply(compiler) {
-				compiler.hooks.compilation.tap("_", (compilation) => {
-					compilation.hooks.processAssets.tap("_", (assets) => {
-						compilation.updateAsset("bundle0.js",new ConcatSource(
-							new RawSource("const self = globalThis;"), // mock self to NodeJs specific global object
-							assets["bundle0.js"]
-						))
-					})
-				})
+				compiler.hooks.compilation.tap("_", compilation => {
+					compilation.hooks.processAssets.tap("_", assets => {
+						compilation.updateAsset(
+							"bundle0.js",
+							new ConcatSource(
+								new RawSource("const self = globalThis;"), // mock self to NodeJs specific global object
+								assets["bundle0.js"]
+							)
+						);
+					});
+				});
 			}
 		}
 	]

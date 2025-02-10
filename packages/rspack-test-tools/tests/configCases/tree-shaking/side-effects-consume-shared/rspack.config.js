@@ -1,16 +1,16 @@
-const { rspack } = require("@rspack/core")
+const { rspack } = require("@rspack/core");
 
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
 	optimization: {
-		sideEffects: true,
+		sideEffects: true
 	},
 	plugins: [
 		new rspack.sharing.ConsumeSharedPlugin({
 			consumes: {
 				"./lib/c.js": {
 					singleton: true,
-					eager: true,
+					eager: true
 				}
 			}
 		})

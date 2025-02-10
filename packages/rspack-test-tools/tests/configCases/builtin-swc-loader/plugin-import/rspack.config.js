@@ -71,8 +71,9 @@ module.exports = {
 								style: true
 							},
 							{
-								libraryName: './src/legacy-babel-plugin-import',
-								customName: './src/legacy-babel-plugin-import/lib/{{ legacyKebabCase member }}/{{ legacySnakeCase member }}',
+								libraryName: "./src/legacy-babel-plugin-import",
+								customName:
+									"./src/legacy-babel-plugin-import/lib/{{ legacyKebabCase member }}/{{ legacySnakeCase member }}",
 								style: false
 							}
 						]

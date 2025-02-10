@@ -5,7 +5,7 @@ module.exports = {
 	context: __dirname,
 	output: {
 		publicPath: "/",
-		filename: 'main.js'
+		filename: "main.js"
 	},
 	module: {
 		rules: [
@@ -15,7 +15,7 @@ module.exports = {
 				generator: {
 					filename: "custom/lib.js"
 				}
-			},
+			}
 		]
 	}
 };

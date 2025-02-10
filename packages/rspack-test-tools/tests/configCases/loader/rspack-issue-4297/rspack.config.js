@@ -5,7 +5,7 @@ module.exports = {
 		rules: [
 			{
 				test: /lib\.js$/,
-				resourceQuery: /source/,
+				resourceQuery: /source/
 			},
 			{
 				test: /lib\.js$/,
@@ -14,13 +14,13 @@ module.exports = {
 			},
 			{
 				test: /lib\.js$/,
-				resourceFragment: /source/,
+				resourceFragment: /source/
 			},
 			{
 				test: /lib\.js$/,
 				resourceFragment: { not: [/source/] },
 				loader: "./fragmentloader.js"
-			},
+			}
 		]
 	}
 };

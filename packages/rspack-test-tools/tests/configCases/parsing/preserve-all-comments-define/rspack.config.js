@@ -1,4 +1,4 @@
-const { DefinePlugin } = require("@rspack/core")
+const { DefinePlugin } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -8,13 +8,15 @@ module.exports = {
 		}),
 		{
 			apply(compiler) {
-				compiler.hooks.compilation.tap("Test", (compilation) => {
-					compilation.hooks.processAssets.tap("Test", (assets) => {
+				compiler.hooks.compilation.tap("Test", compilation => {
+					compilation.hooks.processAssets.tap("Test", assets => {
 						let source = assets["bundle0.js"].source();
-						expect(source.match(/\/\* @__PURE__ \*\/ jsx/g) || []).toHaveLength(1);
-					})
-				})
+						expect(source.match(/\/\* @__PURE__ \*\/ jsx/g) || []).toHaveLength(
+							1
+						);
+					});
+				});
 			}
 		}
 	]
-}
+};

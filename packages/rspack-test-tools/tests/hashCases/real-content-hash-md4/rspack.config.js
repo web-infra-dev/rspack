@@ -6,7 +6,7 @@ module.exports = {
 	output: {
 		filename: "main.js",
 		hashFunction: "md4",
-    hashDigestLength: 20,
+		hashDigestLength: 20,
 		assetModuleFilename: "[contenthash][ext]"
 	},
 	module: {

@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
+	target: "web",
 	node: false,
 	module: {
 		rules: [
@@ -9,7 +9,7 @@ module.exports = {
 				use: [{ loader: "sass-loader" }],
 				type: "css",
 				generator: {
-					exportsOnly: false,
+					exportsOnly: false
 				}
 			}
 		]

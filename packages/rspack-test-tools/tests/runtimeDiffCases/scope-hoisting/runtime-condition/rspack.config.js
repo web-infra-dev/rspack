@@ -1,12 +1,12 @@
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
-	mode: 'production',
+	mode: "production",
 	entry: {
-		a: './a.mjs',
-		b: './b.mjs',
+		a: "./a.mjs",
+		b: "./b.mjs"
 	},
 	output: {
-		filename: '[name].js'
+		filename: "[name].js"
 	},
 	module: {
 		rules: [
@@ -26,15 +26,15 @@ module.exports = {
 		usedExports: true,
 		innerGraph: true,
 		splitChunks: {
-			chunks: 'all',
+			chunks: "all",
 			minSize: 0,
 			cacheGroups: {
 				shared: {
 					test: /(shared|utils|value)/,
-					name: 'shared',
+					name: "shared",
 					enforce: true
 				}
 			}
 		}
 	}
-}
+};

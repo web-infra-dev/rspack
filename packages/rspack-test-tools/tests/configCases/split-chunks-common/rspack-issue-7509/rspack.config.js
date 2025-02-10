@@ -1,20 +1,20 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
-		chunkIds: 'named',
+		chunkIds: "named",
 		splitChunks: {
 			maxInitialRequests: 10,
 			cacheGroups: {
 				vendors: {
-					chunks: 'all',
+					chunks: "all",
 					test: /node_modules/,
 					minSize: 0,
-					filename: 'split-[name].js',
+					filename: "split-[name].js",
 
 					// should override the splitChunks.maxInitialRequests
-					maxInitialRequests: 1,
+					maxInitialRequests: 1
 				}
 			}
 		}
 	}
-}
+};

@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: 'web',
-node: {
-  __dirname: false,
-  __filename: false
-},
+	target: "web",
+	node: {
+		__dirname: false,
+		__filename: false
+	},
 	output: {
 		cssFilename: "css/[name].css"
 	},
@@ -12,7 +12,7 @@ node: {
 	module: {
 		generator: {
 			"css/auto": {
-				exportsOnly: false,
+				exportsOnly: false
 			}
 		},
 		rules: [

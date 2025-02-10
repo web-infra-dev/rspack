@@ -4,7 +4,7 @@ const assert = require("assert");
 module.exports = {
 	context: __dirname,
 	entry: {
-		index: './img.png'
+		index: "./img.png"
 	},
 	module: {
 		rules: [
@@ -25,8 +25,8 @@ module.exports = {
 						let list = Object.keys(assets);
 						const js = list.find(item => item.endsWith("js"));
 						const jsContent = assets[js].source().toString();
-						assert(/require\(['"]\.\/(\w*)\.png['"]\)/.test(jsContent))
-					})
+						assert(/require\(['"]\.\/(\w*)\.png['"]\)/.test(jsContent));
+					});
 				});
 			}
 		})()

@@ -6,7 +6,10 @@ module.exports = (env, { testPath }) => [
 		entry: "./default-test.js",
 		resolve: {
 			alias: {
-				library: path.resolve(testPath, "../0-create-library/modern-module-non-entry-module-export/main.js")
+				library: path.resolve(
+					testPath,
+					"../0-create-library/modern-module-non-entry-module-export/main.js"
+				)
 			}
 		},
 		plugins: [
@@ -14,5 +17,5 @@ module.exports = (env, { testPath }) => [
 				NAME: JSON.stringify("modern-module export from non-entry module")
 			})
 		]
-	},
+	}
 ];

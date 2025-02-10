@@ -4,7 +4,7 @@ module.exports = {
 		rules: [
 			{
 				test: /a\.js/,
-				sideEffects: false,
+				sideEffects: false
 			}
 		]
 	}

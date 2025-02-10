@@ -18,13 +18,13 @@ module.exports = {
 									[
 										"@swc/plugin-remove-console",
 										{
-											"exclude": ["error"]
+											exclude: ["error"]
 										}
 									]
-								],
-							},
-						},
-					},
+								]
+							}
+						}
+					}
 				},
 				type: "javascript/auto"
 			}

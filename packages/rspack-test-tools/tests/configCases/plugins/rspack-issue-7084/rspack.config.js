@@ -8,4 +8,4 @@ module.exports = {
 			"typeof window": JSON.stringify("undefined")
 		})
 	]
-}
+};

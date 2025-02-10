@@ -5,7 +5,7 @@ module.exports = [
 			case1: "./case1/index.js"
 		},
 		output: {
-			filename: "case1.js",
+			filename: "case1.js"
 		}
 	},
 	{
@@ -13,7 +13,7 @@ module.exports = [
 			case2: "./case2/index.js"
 		},
 		output: {
-			filename: "case2.js",
+			filename: "case2.js"
 		}
 	},
 	{
@@ -21,7 +21,7 @@ module.exports = [
 			case3: "./case3/index.js"
 		},
 		output: {
-			filename: "case3.js",
+			filename: "case3.js"
 		}
 	}
 ];

@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
-	target: 'web',
+	target: "web",
 	module: {
 		generator: {
-			'css/auto': {
+			"css/auto": {
 				exportsOnly: false
 			}
 		}

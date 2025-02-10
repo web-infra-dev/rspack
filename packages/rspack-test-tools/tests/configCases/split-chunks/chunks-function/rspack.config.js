@@ -12,7 +12,7 @@ module.exports = {
 		lib2: {
 			import: "./lib2",
 			library: {
-				type: "commonjs2",
+				type: "commonjs2"
 			}
 		}
 	},

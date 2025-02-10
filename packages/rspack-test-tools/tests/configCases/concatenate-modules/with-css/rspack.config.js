@@ -14,7 +14,7 @@ module.exports = {
 				test: /\.css$/,
 				type: "css/module",
 				parser: {
-					namedExports: false,
+					namedExports: false
 				},
 				generator: {
 					exportsOnly: true,
@@ -24,6 +24,6 @@ module.exports = {
 		]
 	},
 	experiments: {
-		css: true,
+		css: true
 	}
 };
