@@ -9,10 +9,18 @@ impl NodePath for Utf8Path {
   // In Rust, when the join method is passed an absolute path, the result is the absolute path itself, similar to using cd with an absolute path in the command line
   // In Node.js, when the join method is passed an absolute path, it simply concatenates the paths and then normalizes the resulting path
   fn node_join(&self, path: impl AsRef<Utf8Path>) -> Utf8PathBuf {
-    let path = path.as_ref();
-    let path = if self.parent().is_some() && path.is_absolute() {
+    let path = path.as_ref().as_str();
+
+    if self.as_str().is_empty() {
+      return self.join(path);
+    }
+
+    let path = if path.starts_with("/") {
       #[allow(clippy::unwrap_used)]
       path.strip_prefix("/").unwrap()
+    } else if path.starts_with("\\") {
+      #[allow(clippy::unwrap_used)]
+      path.strip_prefix("\\").unwrap()
     } else {
       path
     };
