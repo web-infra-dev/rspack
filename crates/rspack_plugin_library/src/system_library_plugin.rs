@@ -71,7 +71,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render.tap(render::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())

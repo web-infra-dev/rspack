@@ -171,9 +171,9 @@ impl RuntimePlugin {
   }
 
   pub fn get_compilation_hooks_mut(
-    compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<RuntimePluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
+    id: CompilationId,
+  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RuntimePluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default()
   }
 }
 
@@ -183,7 +183,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())
 }

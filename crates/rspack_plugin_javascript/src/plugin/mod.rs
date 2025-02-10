@@ -105,9 +105,8 @@ pub struct JsPlugin {
 
 impl JsPlugin {
   pub fn get_compilation_hooks(
-    compilation: &Compilation,
-  ) -> dashmap::mapref::one::Ref<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
-    let id = compilation.id();
+    id: CompilationId,
+  ) -> dashmap::mapref::one::Ref<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
     if !COMPILATION_HOOKS_MAP.contains_key(&id) {
       COMPILATION_HOOKS_MAP.insert(id, Default::default());
     }
@@ -117,9 +116,9 @@ impl JsPlugin {
   }
 
   pub fn get_compilation_hooks_mut(
-    compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<JavascriptModulesPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
+    id: CompilationId,
+  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<JavascriptModulesPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default()
   }
 
   pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> Vec<Cow<str>> {
@@ -353,7 +352,7 @@ impl JsPlugin {
             buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
             allow_inline_startup = false;
           }
-          let hooks = JsPlugin::get_compilation_hooks(compilation);
+          let hooks = JsPlugin::get_compilation_hooks(compilation.id());
           let bailout = hooks.inline_in_runtime_bailout.call(compilation)?;
           if allow_inline_startup && let Some(bailout) = bailout {
             buf2.push(format!("// This entry module can't be inlined because {bailout}").into());
@@ -515,7 +514,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let hooks = Self::get_compilation_hooks(compilation);
+    let hooks = Self::get_compilation_hooks(compilation.id());
     let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
     let supports_arrow_function = compilation
       .options
@@ -1107,7 +1106,7 @@ impl JsPlugin {
     chunk_ukey: &ChunkUkey,
     output_path: &str,
   ) -> Result<BoxSource> {
-    let hooks = Self::get_compilation_hooks(compilation);
+    let hooks = Self::get_compilation_hooks(compilation.id());
     let module_graph = &compilation.get_module_graph();
     let is_module = compilation.options.output.module;
     let mut all_strict = compilation.options.output.module;
@@ -1166,7 +1165,7 @@ impl JsPlugin {
     compilation: &Compilation,
     hasher: &mut RspackHash,
   ) -> Result<()> {
-    let hooks = Self::get_compilation_hooks(compilation);
+    let hooks = Self::get_compilation_hooks(compilation.id());
     hooks.chunk_hash.call(compilation, chunk_ukey, hasher).await
   }
 
