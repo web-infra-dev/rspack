@@ -455,14 +455,24 @@ fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
 }
 
 fn extend_alias(mut a: Alias, b: Alias) -> Alias {
-  a.extend(b);
-  a.dedup();
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
   a
 }
 
 fn extend_extension_alias(mut a: ExtensionAlias, b: ExtensionAlias) -> ExtensionAlias {
-  a.extend(b);
-  a.dedup();
+  for (key, value) in b {
+    if let Some((_, v)) = a.iter_mut().find(|(k, _)| *k == key) {
+      *v = value;
+    } else {
+      a.push((key, value));
+    }
+  }
   a
 }
 
