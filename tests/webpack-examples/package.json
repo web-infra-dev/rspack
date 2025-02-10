@@ -4,7 +4,7 @@
   "devDependencies": {
     "core-js": "3.36.1",
     "neo-async": "2.6.2",
-    "acorn": "^8.11.3",
+    "acorn": "^8.14.0",
     "date-fns": "^2.29.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

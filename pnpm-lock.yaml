@@ -869,8 +869,8 @@ importers:
         specifier: ^7.22.15
         version: 7.25.9(@babel/core@7.24.4)
       acorn:
-        specifier: ^8.11.3
-        version: 8.11.3
+        specifier: ^8.14.0
+        version: 8.14.0
       babel-loader:
         specifier: ^9.2.1
         version: 9.2.1(@babel/core@7.24.4)(webpack@5.95.0)
