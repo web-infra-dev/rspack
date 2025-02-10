@@ -101,7 +101,7 @@ When a string is provided, valid values are `all`, `async`, and `initial`. Provi
 
 Alternatively, you may provide a function for more control. The return value will indicate whether to include each chunk.
 
-You can also pass a regular expression, which is a short for `(chunk) => regex.test(chunk.name)`.
+You can also pass a regular expression, which is a short for `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)`.
 
 ```js title="rspack.config.mjs"
 export default {

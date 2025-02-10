@@ -97,7 +97,7 @@ export default {
 
 或者，也可以提供一个函数来进行更多控制。返回值将显示是否包含该 Chunk。
 
-还可以传递正则表达式，它是 `(chunk) => regex.test(chunk.name)` 的缩写。
+还可以传递正则表达式，它是 `(chunk) => typeof chunk.name === "string" && regex.test(chunk.name)` 的缩写。
 
 ```js title="rspack.config.mjs"
 export default {
