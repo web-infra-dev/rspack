@@ -622,25 +622,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__emit_asset_from_loader(
-		filename: string,
-		source: Source,
-		assetInfo: AssetInfo,
-		module: string
-	) {
-		this.#inner.emitAssetFromLoader(
-			filename,
-			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo),
-			module
-		);
-	}
-
 	deleteAsset(filename: string) {
 		this.#inner.deleteAsset(filename);
 	}

@@ -14,7 +14,6 @@ use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
 use rspack_core::BoxDependency;
 use rspack_core::Compilation;
-use rspack_core::CompilationAsset;
 use rspack_core::CompilationId;
 use rspack_core::EntryDependency;
 use rspack_core::EntryOptions;
@@ -321,29 +320,6 @@ impl JsCompilation {
     let compilation = self.as_ref()?;
 
     Ok(compilation.assets().contains_key(&name))
-  }
-
-  #[napi]
-  pub fn emit_asset_from_loader(
-    &mut self,
-    filename: String,
-    source: JsCompatSource,
-    asset_info: JsAssetInfo,
-    module: String,
-  ) -> Result<()> {
-    let compilation = self.as_mut()?;
-
-    compilation.emit_asset(
-      filename.clone(),
-      CompilationAsset::new(Some(source.into()), asset_info.into()),
-    );
-
-    compilation
-      .module_assets
-      .entry(ModuleIdentifier::from(module))
-      .or_default()
-      .insert(filename);
-    Ok(())
   }
 
   #[napi]
@@ -676,7 +652,6 @@ impl JsCompilation {
           .into_iter()
           .map(|d| d.to_string_lossy().to_string())
           .collect(),
-        assets: res.assets.into_iter().collect(),
         id: res.id,
         error: res.error,
       };
@@ -884,7 +859,6 @@ pub struct JsExecuteModuleResult {
   pub build_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub cacheable: bool,
-  pub assets: Vec<String>,
   pub id: u32,
   pub error: Option<String>,
 }

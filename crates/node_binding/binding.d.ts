@@ -112,7 +112,6 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAssetFromLoader(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo, module: string): void
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
@@ -242,6 +241,7 @@ export declare class JsModule {
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
+  emitFile(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
 }
 
 export declare class JsModuleGraph {
@@ -672,7 +672,6 @@ export interface JsExecuteModuleResult {
   buildDependencies: Array<string>
   missingDependencies: Array<string>
   cacheable: boolean
-  assets: Array<string>
   id: number
   error?: string
 }
