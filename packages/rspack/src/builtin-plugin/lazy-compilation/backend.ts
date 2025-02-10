@@ -2,16 +2,33 @@
  * MIT License http://www.opensource.org/licenses/mit-license.php
  * Author Tobias Koppers @sokra
  */
-
 import type {
 	IncomingMessage,
 	ServerOptions as ServerOptionsImport,
 	ServerResponse
 } from "node:http";
-import type { AddressInfo, ListenOptions, Server, Socket } from "node:net";
+import type { AddressInfo, ListenOptions, Socket } from "node:net";
 import type { SecureContextOptions, TlsOptions } from "node:tls";
 
 import type { Compiler } from "../..";
+
+interface Server {
+	on(
+		event: "request",
+		callback: (req: IncomingMessage, res: ServerResponse) => void
+	): void;
+	on(event: "connection", callback: (socket: Socket) => void): void;
+	on(event: "listening", callback: (err?: Error) => void): void;
+
+	off(
+		event: "request",
+		callback: (req: IncomingMessage, res: ServerResponse) => void
+	): void;
+
+	address(): AddressInfo;
+	close(callback: (err?: any) => void): void;
+	listen(listenOptions?: number | ListenOptions): void;
+}
 
 export interface LazyCompilationDefaultBackendOptions {
 	/**
@@ -82,16 +99,22 @@ const getBackend =
 		const listen =
 			typeof options.listen === "function"
 				? options.listen
-				: (server: Server) => {
-						let listen = options.listen;
-						if (typeof listen === "object" && !("port" in listen))
-							listen = { ...listen, port: undefined };
-						server.listen(listen);
-					};
+				: typeof options.server === "function" && !options.listen
+					? // if user offers custom server, no need to listen
+						() => {}
+					: (server: Server) => {
+							let { listen } = options;
+							if (typeof listen === "object" && !("port" in listen))
+								listen = { ...listen, port: undefined };
+							server.listen(listen as ListenOptions);
+						};
 
 		const protocol = options.protocol || (isHttps ? "https" : "http");
 
-		const requestListener = (req: any, res: ServerResponse) => {
+		const requestListener = (req: IncomingMessage, res: ServerResponse) => {
+			if (!req.url?.startsWith(prefix)) {
+				return;
+			}
 			const keys = req.url.slice(prefix.length).split("@");
 			req.socket.on("close", () => {
 				setTimeout(() => {
@@ -142,9 +165,6 @@ const getBackend =
 				sockets.delete(socket);
 			});
 			if (isClosing) socket.destroy();
-		});
-		server.on("clientError", e => {
-			if (e.message !== "Server is disposing") logger.warn(e);
 		});
 		server.on("listening", (err: any) => {
 			if (err) return callback(err);

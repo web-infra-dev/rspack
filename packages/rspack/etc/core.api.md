@@ -7,6 +7,7 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
+import type { AddressInfo } from 'node:net';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -75,9 +76,9 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import type { SecureContextOptions } from 'node:tls';
-import type { Server } from 'node:net';
 import type { ServerOptions } from 'node:http';
 import type { ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
@@ -10095,6 +10096,24 @@ type SafeParseSuccess<Output> = {
 
 // @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
+
+// @public (undocumented)
+interface Server {
+    // (undocumented)
+    address(): AddressInfo;
+    // (undocumented)
+    close(callback: (err?: any) => void): void;
+    // (undocumented)
+    listen(listenOptions?: number | ListenOptions): void;
+    // (undocumented)
+    off(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
+    // (undocumented)
+    on(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
+    // (undocumented)
+    on(event: "connection", callback: (socket: Socket) => void): void;
+    // (undocumented)
+    on(event: "listening", callback: (err?: Error) => void): void;
+}
 
 // @public (undocumented)
 type ServerOptionsHttps<Request extends typeof IncomingMessage = typeof IncomingMessage, Response extends typeof ServerResponse = typeof ServerResponse> = SecureContextOptions & TlsOptions & ServerOptions<Request, Response>;

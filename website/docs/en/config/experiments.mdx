@@ -111,27 +111,7 @@ export default {
 type LazyCompilationOptions =
   | boolean
   | {
-      backend?: {
-        /**
-         * A custom client script path.
-         */
-        client?: string;
-        /**
-         * Specifies where to listen to from the server.
-         */
-        listen?: number | ListenOptions | ((server: Server) => void);
-        /**
-         * Specifies the protocol the client should use to connect to the server.
-         */
-        protocol?: 'http' | 'https';
-        /**
-         * Specifies how to create the server handling the EventSource requests.
-         */
-        server?:
-          | ServerOptionsImport<typeof IncomingMessage>
-          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-          | (() => Server);
-      };
+      backend?: LazyCompilationBackendOptions;
       /**
        * Enable lazy compilation for entries.
        */
@@ -168,9 +148,95 @@ In addition, you can also configure a `test` parameter for more fine-grained con
 The current lazy compilation aligns with the webpack implementation, **and is still in the experimental stage**. In some scenarios, lazy compilation might not work as expected, or the performance improvement may be insignificant.
 :::
 
+## experiments.lazyCompilation.backend
+
+- **Type:** `LazyCompilationBackendOptions`
+
+```ts
+type LazyCompilationBackendOptions = {
+  /**
+   * Custom client script path.
+   */
+  client?: string;
+  /**
+   * Specify the port or options to listen from the server.
+   */
+  listen?: number | ListenOptions | ((server: Server) => void);
+  /**
+   * Specify the protocol used by the client.
+   */
+  protocol?: 'http' | 'https';
+  /**
+   * Specify how to create a server that handles EventSource requests.
+   */
+  server?:
+    | ServerOptionsImport<typeof IncomingMessage>
+    | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+    | (() => Server);
+};
+```
+
+Enabling lazy compilation will start a separate server to handle requests from clients. You can customize the behavior of the server by configuring `lazyCompilation.backend`, and you can also provide your own server instance.
+
+### lazyCompilation.backend.server
+
+- **Type:**
+
+```ts
+type ServerOptions =
+  | ServerOptionsImport<typeof IncomingMessage>
+  | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+  | (() => Server);
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    lazyCompilation: {
+      backend: {
+        server() {
+          return yourServer;
+        },
+      },
+    },
+  },
+};
+```
+
+You can provide a custom server instance to handle requests from clients for `lazy-compilation`. The provided server must meet the following interface requirements.
+
+```ts
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { AddressInfo, ListenOptions, Socket } from 'node:net';
+
+interface Server {
+  // Register callback function to handle requests
+  on(
+    event: 'request',
+    callback: (req: IncomingMessage, res: ServerResponse) => void,
+  ): void;
+
+  // Register callback function for new client connections
+  on(event: 'connection', callback: (socket: Socket) => void): void;
+
+  // Register callback function for new client connections
+  on(event: 'listening', callback: (err?: Error) => void): void;
+
+  // Unregister registered callbacks
+  off(event: string, callback: () => void): void;
+
+  // Show address information of the server
+  address(): AddressInfo;
+
+  close(callback: (err?: any) => void): void;
+
+  listen(listenOption: number | ListenOption): void;
+}
+```
+
 ### lazyCompilation.backend.listen
 
-- **Type:** `number | ListenOptions`
+- **Type:** `number | ListenOptions | ((server: Server) => void)`
 
 ```ts
 type ListenOptions = {
@@ -179,14 +245,15 @@ type ListenOptions = {
   backlog?: number | undefined;
   path?: string | undefined;
   exclusive?: boolean | undefined;
-  readableAll?: boolean | undefined;
-  writableAll?: boolean | undefined;
-  /**
-   * @default false
-   */
-  ipv6Only?: boolean | undefined;
+  readableAll?: boolean | null;
+  writableAll?: boolean | null;
+  ip6Only?: boolean | null;
 };
 ```
+
+Specify how the sever listens ,you can pass in object form listening configuration,such as specifying listening ports,you can also pass in functions control how listen is done.
+
+When providing a custom server instance, you are responsible for calling the server's `listen` method to start the service, unless you explicitly configure a function forms` listen` option.
 
 ### Exclude HMR client
 

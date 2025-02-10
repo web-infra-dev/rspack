@@ -111,27 +111,7 @@ export default {
 type LazyCompilationOptions =
   | boolean
   | {
-      backend?: {
-        /**
-         * 自定义客户端脚本路径。
-         */
-        client?: string;
-        /**
-         * 指定从服务器监听的端口或选项。
-         */
-        listen?: number | ListenOptions | ((server: Server) => void);
-        /**
-         * 指定客户端使用的协议。
-         */
-        protocol?: 'http' | 'https';
-        /**
-         * 指定如何创建处理 EventSource 请求的服务器。
-         */
-        server?:
-          | ServerOptionsImport<typeof IncomingMessage>
-          | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
-          | (() => Server);
-      };
+      backend?: LazyCompilationBackendOptions;
       /**
        * 为 entries 启用 lazy compilation
        */
@@ -168,9 +148,97 @@ export default {
 当前 lazy compilation 是对齐 webpack 实现的，**并且仍处于实验性阶段**。在部分场景下，lazy compilation 可能无法按照预期工作，或是性能提升不明显。
 :::
 
+## experiments.lazyCompilation.backend
+
+- **类型：** `LazyCompilationBackendOptions`
+
+```ts
+type LazyCompilationBackendOptions = {
+  /**
+   * 自定义客户端脚本路径。
+   */
+  client?: string;
+  /**
+   * 指定从服务器监听的端口或选项。
+   */
+  listen?: number | ListenOptions | ((server: Server) => void);
+  /**
+   * 指定客户端使用的协议。
+   */
+  protocol?: 'http' | 'https';
+  /**
+   * 指定如何创建处理 EventSource 请求的服务器。
+   */
+  server?:
+    | ServerOptionsImport<typeof IncomingMessage>
+    | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+    | (() => Server);
+};
+```
+
+开启 lazy compilation 默认会启动一个独立的 server 来处理客户端发来的请求，你可以通过配置 `lazyCompilation.backend` 来自定义 server 的行为，你还可以提供你自己的 server 实例。
+
+### lazyCompilation.backend.server
+
+- **类型：**
+
+```ts
+type ServerOptions =
+  | ServerOptionsImport<typeof IncomingMessage>
+  | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse>
+  | (() => Server);
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  experiments: {
+    lazyCompilation: {
+      backend: {
+        server() {
+          return yourServer;
+        },
+      },
+    },
+  },
+};
+```
+
+你可以提供自定义的 server 实例，用于处理客户端发来的 `lazy-compilation` 请求，该 server 需要能够满足如下接口：
+
+```ts
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { AddressInfo, ListenOptions, Socket } from 'node:net';
+
+interface Server {
+  // 注册回调函数处理请求
+  on(
+    event: 'request',
+    callback: (req: IncomingMessage, res: ServerResponse) => void,
+  ): void;
+
+  // 注册回调函数处理新的 client 连接
+  on(event: 'connection', callback: (socket: Socket) => void): void;
+
+  // 注册回调函数处理新的 client 连接
+  on(event: 'listening', callback: (err?: Error) => void): void;
+
+  // 销毁注册的回调函数
+  off(event: string, callback: () => void): void;
+
+  // 展示 server 的地址信息
+  address(): AddressInfo;
+
+  // 关闭 server
+  close(callback: (err?: any) => void): void;
+
+  // server 开始监听请求
+  listen(listenOptions?: number | ListenOptions): void;
+}
+```
+
 ### lazyCompilation.backend.listen
 
-- **类型：** `number | ListenOptions`
+- **类型：** `number | ListenOptions | ((server: Server) => void)`
 
 ```ts
 type ListenOptions = {
@@ -187,6 +255,10 @@ type ListenOptions = {
   ipv6Only?: boolean | undefined;
 };
 ```
+
+指定 server 如何监听，可以传入对象形式的监听配置，例如指定监听端口，也可以传入函数控制如何进行 listen。
+
+当你提供自定义的 server 实例时，除非明确配置了函数形式的 `listen` 选项，否则需要自行负责调用 server 的 `listen` 方法来启动服务。
 
 ### 排除 HMR client
 
