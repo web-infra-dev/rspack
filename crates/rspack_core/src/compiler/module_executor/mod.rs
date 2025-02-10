@@ -38,7 +38,7 @@ struct DepStatus {
 #[derive(Debug, Default)]
 pub struct ModuleExecutor {
   cutout: Cutout,
-  request_dep_map: DashMap<(String, Option<String>, Option<Identifier>), DepStatus>,
+  request_dep_map: DashMap<(String, Option<String>), DepStatus>,
   pub make_artifact: MakeArtifact,
 
   event_sender: Option<UnboundedSender<Event>>,
@@ -204,40 +204,35 @@ impl ModuleExecutor {
       .event_sender
       .as_ref()
       .expect("should have event sender");
-    let (param, dep_id) =
-      match self
-        .request_dep_map
-        .entry((request.clone(), layer.clone(), original_module_identifier))
-      {
-        Entry::Vacant(v) => {
-          let dep = LoaderImportDependency::new(
+    let (param, dep_id) = match self.request_dep_map.entry((request.clone(), layer.clone())) {
+      Entry::Vacant(v) => {
+        let dep = LoaderImportDependency::new(
+          request.clone(),
+          original_module_context.unwrap_or(Context::from("")),
+        );
+        let dep_id = *dep.id();
+        v.insert(DepStatus {
+          id: dep_id,
+          should_update: false,
+        });
+        (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
+      }
+      Entry::Occupied(mut v) => {
+        let dep_status = v.get_mut();
+        let dep_id = dep_status.id;
+        if dep_status.should_update {
+          let dep = LoaderImportDependency::new_with_id(
+            dep_id,
             request.clone(),
             original_module_context.unwrap_or(Context::from("")),
           );
-          let dep_id = *dep.id();
-          v.insert(DepStatus {
-            id: dep_id,
-            should_update: false,
-          });
+          dep_status.should_update = false;
           (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
+        } else {
+          (ExecuteParam::DependencyId(dep_id), dep_id)
         }
-        Entry::Occupied(mut v) => {
-          let dep_status = v.get_mut();
-          let dep_id = dep_status.id;
-          let mg = self.make_artifact.get_module_graph();
-          if dep_status.should_update || mg.get_module_by_dependency_id(&dep_id).is_none() {
-            let dep = LoaderImportDependency::new_with_id(
-              dep_id,
-              request.clone(),
-              original_module_context.unwrap_or(Context::from("")),
-            );
-            dep_status.should_update = false;
-            (ExecuteParam::Entry(Box::new(dep), layer.clone()), dep_id)
-          } else {
-            (ExecuteParam::DependencyId(dep_id), dep_id)
-          }
-        }
-      };
+      }
+    };
 
     let (tx, rx) = oneshot::channel();
     sender

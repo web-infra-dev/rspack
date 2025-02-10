@@ -91,6 +91,7 @@ impl MakeArtifact {
 #[derive(Debug, Clone)]
 pub enum MakeParam {
   BuildEntry(HashSet<DependencyId>),
+  BuildEntryAndClean(HashSet<DependencyId>),
   CheckNeedBuild,
   ModifiedFiles(HashSet<ArcPath>),
   RemovedFiles(HashSet<ArcPath>),
