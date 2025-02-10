@@ -45,11 +45,10 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "Name of the configuration to use."
 			},
-			'disable-interpret': {
-				type: "boolean",
-				default: false,
-				describe: "Disable interpret for loading the config file.",
-				alias: "d"
+			'config-loader': {
+				type: "string",
+				default: "native",
+				describe: "Specify the loader to load the config file, can be `none` or `native`.",
 			},
 		})
 		.alias({ v: "version", h: "help" });
