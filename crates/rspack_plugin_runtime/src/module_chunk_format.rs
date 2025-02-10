@@ -34,7 +34,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation);
+  let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks.render_chunk.tap(render_chunk::new(self));
   hooks.chunk_hash.tap(js_chunk_hash::new(self));
   Ok(())
@@ -99,7 +99,7 @@ fn render_chunk(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
-  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {

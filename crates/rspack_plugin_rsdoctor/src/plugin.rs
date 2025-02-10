@@ -161,9 +161,9 @@ impl RsdoctorPlugin {
   }
 
   pub fn get_compilation_hooks_mut(
-    compilation: &Compilation,
-  ) -> dashmap::mapref::one::RefMut<'_, CompilationId, Box<RsdoctorPluginHooks>> {
-    COMPILATION_HOOKS_MAP.entry(compilation.id()).or_default()
+    id: CompilationId,
+  ) -> dashmap::mapref::one::RefMut<'static, CompilationId, Box<RsdoctorPluginHooks>> {
+    COMPILATION_HOOKS_MAP.entry(id).or_default()
   }
 }
 

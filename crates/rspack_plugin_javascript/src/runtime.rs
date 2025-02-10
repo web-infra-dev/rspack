@@ -89,7 +89,7 @@ pub fn render_module(
     return Ok(None);
   };
 
-  let hooks = JsPlugin::get_compilation_hooks(compilation);
+  let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
     Some(fragments) => fragments.clone(),
     None => ChunkInitFragments::default(),
