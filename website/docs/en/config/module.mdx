@@ -1715,8 +1715,8 @@ import('./data', { with: { type: 'url' } });
 
 It should be noted that in order for Rspack to properly match the `with` syntax, when you use [builtin:swc-loader](/guide/features/builtin-swc-loader), you need to manually enable the `keepImportAttributes` configuration to preserve import attributes:
 
-```diff title=rspack.config.js
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

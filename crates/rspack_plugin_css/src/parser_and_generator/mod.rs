@@ -15,9 +15,9 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
   CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
-  GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  DependencyType, GenerateContext, LocalIdentName, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  RuntimeSpec, SourceType, TemplateContext, UsageState,
 };
 use rspack_core::{ModuleInitFragments, RuntimeGlobals};
 use rspack_error::{
@@ -27,14 +27,6 @@ use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  dependency::CssSelfReferenceLocalIdentDependency,
-  utils::{css_modules_exports_to_string, LocalIdentOptions},
-};
-use crate::{
-  dependency::CssSelfReferenceLocalIdentReplacement,
-  utils::{export_locals_convention, unescape},
-};
-use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
     CssUrlDependency,
@@ -43,6 +35,14 @@ use crate::{
     css_modules_exports_to_concatenate_module_string, css_parsing_traceable_error, normalize_url,
     replace_module_request_prefix,
   },
+};
+use crate::{
+  dependency::{CssLayer, CssSelfReferenceLocalIdentReplacement, CssSupports},
+  utils::{export_locals_convention, unescape},
+};
+use crate::{
+  dependency::{CssMedia, CssSelfReferenceLocalIdentDependency},
+  utils::{css_modules_exports_to_string, LocalIdentOptions},
 };
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
@@ -184,7 +184,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
           dependencies.push(dep.clone());
           code_generation_dependencies.push(dep);
         }
-        css_module_lexer::Dependency::Import { request, range, .. } => {
+        css_module_lexer::Dependency::Import {
+          request,
+          range,
+          media,
+          supports,
+          layer,
+        } => {
           if request.is_empty() {
             presentational_dependencies.push(Box::new(ConstDependency::new(
               range.start,
@@ -204,6 +210,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
           dependencies.push(Box::new(CssImportDependency::new(
             request.to_string(),
             DependencyRange::new(range.start, range.end),
+            media.map(|s| s.to_string()),
+            supports.map(|s| s.to_string()),
+            layer.map(|s| {
+              if s.is_empty() {
+                CssLayer::Anonymous
+              } else {
+                CssLayer::Named(s.to_string())
+              }
+            }),
           )));
         }
         css_module_lexer::Dependency::Replace { content, range } => presentational_dependencies
@@ -476,16 +491,43 @@ impl ParserAndGenerator for CssParserAndGenerator {
           data: generate_context.data,
         };
 
+        let module_graph = compilation.get_module_graph();
         module.get_dependencies().iter().for_each(|id| {
-          if let Some(dependency) = compilation
-            .get_module_graph()
+          let dep = module_graph
             .dependency_by_id(id)
-            .expect("should have dependency")
-            .as_dependency_template()
-          {
+            .expect("should have dependency");
+          if let Some(dependency) = dep.as_dependency_template() {
             dependency.apply(&mut source, &mut context)
           }
         });
+
+        for conn in module_graph.get_incoming_connections(&module.identifier()) {
+          let Some(dep) = module_graph.dependency_by_id(&conn.dependency_id) else {
+            continue;
+          };
+
+          if matches!(dep.dependency_type(), DependencyType::CssImport) {
+            let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
+              panic!(
+                "dependency with type DependencyType::CssImport should only be CssImportDependency"
+              );
+            };
+
+            if let Some(media) = css_import_dep.media() {
+              let media = CssMedia(media.to_string());
+              context.data.insert(media);
+            }
+
+            if let Some(supports) = css_import_dep.supports() {
+              let supports = CssSupports(supports.to_string());
+              context.data.insert(supports);
+            }
+
+            if let Some(layer) = css_import_dep.layer() {
+              context.data.insert(layer.clone());
+            }
+          }
+        }
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies

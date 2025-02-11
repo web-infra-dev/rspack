@@ -57,7 +57,7 @@ export default {
 
 关于配置项的更多信息请参考 [内置 swc-loader](guide/features/builtin-swc-loader)。
 
-完整示例可参考：[examples/preact](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact/rspack.config.js)
+完整示例可参考：[examples/preact](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact)
 
 ## Preact Refresh
 
@@ -87,11 +87,12 @@ export default {
 请使用 `builtin:swc-loader` 并在配置中添加 `rspackExperiments.preact: {}` 以开启 preact 特有转换。
 :::
 
-```js title=rspack.config.js
-const PreactRefreshPlugin = require('@rspack/plugin-preact-refresh');
+```js title="rspack.config.mjs"
+import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
+
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   // ...
   mode: isDev ? 'development' : 'production',
   module: {
@@ -131,8 +132,8 @@ module.exports = {
   plugins: [
     isDev && new PreactRefreshPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
-  ].filter(Boolean),
+  ],
 };
 ```
 
-完整示例可参考：[examples/preact-refresh](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact-refresh/rspack.config.js)
+完整示例可参考：[examples/preact-refresh](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact-refresh)

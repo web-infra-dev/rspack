@@ -79,7 +79,7 @@ The writing of the case is the same as a regular rspack project, but it does not
 
 This test case is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js` and control various behaviors during testing by adding a `test.config.js`. The structure of the `test.config.js` file is as follows:
 
-```typescript {16-20} title="test.config.js"
+```ts {16-20} title="test.config.js"
 type TConfigCaseConfig = {
   noTest?: boolean; // Do not run the test output and end the test
   beforeExecute?: () => void; // Callback before running the output
@@ -254,7 +254,7 @@ This test case is similar to a typical rspack project and can specify build conf
 
 This test case is similar to a typical rspack project, but it will add a `test.config.js` file in the case directory and specify a `validate()` method to check the hash information in the `stats` object after the build is complete:
 
-```javascript {5-8} title="test.config.js"
+```js {5-8} title="test.config.js"
 type THashCaseConfig = {
   validate?: (stats: TCompilerStats<T>) => void,
 };
@@ -276,7 +276,7 @@ module.exports = {
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```javascript {9-12} title="{case.js}"
+```js {9-12} title="{case.js}"
 interface TCompilerCaseConfig {
   description: string; // Description of the test case
   options?: (context: ITestContext) => TCompilerOptions<T>; // Test case build configuration
@@ -308,7 +308,7 @@ This test does not execute real builds; it only generates build configurations a
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```javascript {8-11} title="{case}.js"
+```js {8-11} title="{case}.js"
 interface TDefaultsCaseConfig {
   description: string; // Description of the test case
   cwd?: string; // process.cwd for generating the build configuration of the test case, default is the `rspack-test-tools` directory
@@ -338,7 +338,7 @@ The details for the Error test are as follows:
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```javascript {8-11} title="{case}.js"
+```js {8-11} title="{case}.js"
 interface TErrorCaseConfig {
   description: string; // Description of the test case
   options?: (
@@ -368,7 +368,7 @@ This test records the input and output of the hook and stores it in the snapshot
 
 This test uses `rspack-test-tools/tests/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
-```javascript {8-11} title="{case}/test.js"
+```js {8-11} title="{case}/test.js"
 interface THookCaseConfig {
   description: string; // Description of the test case
   options?: (

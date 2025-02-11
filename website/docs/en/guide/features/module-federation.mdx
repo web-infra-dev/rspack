@@ -37,12 +37,10 @@ Here are the characteristics of several versions:
 
 You need to install the additional `@module-federation/enhanced` plugin to use Module Federation v2.0.
 
-```js title="rspack.config.js"
-const {
-  ModuleFederationPlugin,
-} = require('@module-federation/enhanced/rspack');
+```js title="rspack.config.mjs"
+import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
 
-module.exports = {
+export default {
   plugins: [
     new ModuleFederationPlugin({
       // options

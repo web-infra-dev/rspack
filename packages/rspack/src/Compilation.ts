@@ -469,7 +469,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const binding = this.#inner.getNamedChunk(property);
-					return Chunk.__from_binding(binding);
+					return binding ? Chunk.__from_binding(binding) : undefined;
 				}
 			}
 		});
@@ -619,25 +619,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			filename,
 			JsSource.__to_binding(source),
 			JsAssetInfo.__to_binding(assetInfo)
-		);
-	}
-
-	/**
-	 * Note: This is not a webpack public API, maybe removed in future.
-	 *
-	 * @internal
-	 */
-	__internal__emit_asset_from_loader(
-		filename: string,
-		source: Source,
-		assetInfo: AssetInfo,
-		module: string
-	) {
-		this.#inner.emitAssetFromLoader(
-			filename,
-			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo),
-			module
 		);
 	}
 

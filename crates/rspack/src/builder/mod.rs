@@ -3550,6 +3550,7 @@ impl OptimizationOptionsBuilder {
       mangle_exports,
       concatenate_modules,
       avoid_entry_iife,
+      real_content_hash,
     }
   }
 }

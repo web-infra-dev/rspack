@@ -18,10 +18,10 @@ new rspack.CopyRspackPlugin(options);
 
 - 拷贝一个文件。如果文件不存在，则插件会抛出错误。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -34,10 +34,10 @@ module.exports = {
 
 - `patterns` 配置可以是一个字符串，或是一个包含多个对象的数组。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -50,10 +50,10 @@ module.exports = {
 
 - 拷贝一个目录。如果目录中没有文件，则插件会抛出错误。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -67,11 +67,14 @@ module.exports = {
 
 - 使用 glob pattern 来匹配并拷贝文件。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
-const path = require('node:path');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -90,10 +93,10 @@ module.exports = {
 
 - 使用 `to` 指定目标路径。
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -114,10 +117,13 @@ module.exports = {
 
 拷贝的源路径，可以是绝对路径、相对路径、glob pattern，可以是文件或目录。若传入相对路径，则是相对于 [context](#context) 选项。
 
-```js title="rspack.config.js"
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -187,10 +193,14 @@ export default {
 
 `context` 是一个路径，它会被添加到 `from` 路径的前面，并从结果路径中移除。
 
-```js
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       // `./src/*.json` -> `./dist/*.json`
@@ -284,6 +294,11 @@ export default {
 当没有找到对应的文件或目录时，是否忽略错误。
 
 ```js title="rspack.config.mjs"
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 export default {
   plugins: [
     new rspack.CopyRspackPlugin({

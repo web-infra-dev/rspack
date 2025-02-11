@@ -35,6 +35,8 @@ pub struct HtmlPluginAssets {
   pub css: Vec<String>,
   pub favicon: Option<String>,
   // manifest: Option<String>,
+  pub js_integrity: Option<Vec<Option<String>>>,
+  pub css_integrity: Option<Vec<Option<String>>>,
 }
 
 impl HtmlPluginAssets {
@@ -45,7 +47,7 @@ impl HtmlPluginAssets {
     output_path: &Utf8PathBuf,
     html_file_name: &Filename<NoFilenameFn>,
   ) -> (HtmlPluginAssets, HashMap<String, &'a CompilationAsset>) {
-    let mut assets = HtmlPluginAssets::default();
+    let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
     let mut asset_map = HashMap::new();
     assets.public_path = public_path.to_string();
 

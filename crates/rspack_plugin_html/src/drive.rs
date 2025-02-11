@@ -1,3 +1,4 @@
+use rspack_core::CompilationId;
 use rspack_hook::define_hook;
 
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
 pub struct BeforeAssetTagGenerationData {
   pub assets: HtmlPluginAssets,
   pub output_name: String,
+  pub compilation_id: CompilationId,
 }
 
 #[derive(Clone, Debug)]
@@ -16,6 +18,7 @@ pub struct AlterAssetTagsData {
   pub asset_tags: HtmlPluginAssetTags,
   pub output_name: String,
   pub public_path: String,
+  pub compilation_id: CompilationId,
 }
 
 #[derive(Clone, Debug)]
@@ -24,6 +27,7 @@ pub struct AlterAssetTagGroupsData {
   pub body_tags: Vec<HtmlPluginTag>,
   pub public_path: String,
   pub output_name: String,
+  pub compilation_id: CompilationId,
 }
 
 #[derive(Clone, Debug)]
@@ -32,17 +36,20 @@ pub struct AfterTemplateExecutionData {
   pub head_tags: Vec<HtmlPluginTag>,
   pub body_tags: Vec<HtmlPluginTag>,
   pub output_name: String,
+  pub compilation_id: CompilationId,
 }
 
 #[derive(Clone, Debug)]
 pub struct BeforeEmitData {
   pub html: String,
   pub output_name: String,
+  pub compilation_id: CompilationId,
 }
 
 #[derive(Clone, Debug)]
 pub struct AfterEmitData {
   pub output_name: String,
+  pub compilation_id: CompilationId,
 }
 
 define_hook!(HtmlPluginBeforeAssetTagGeneration: AsyncSeriesWaterfall(data: BeforeAssetTagGenerationData) -> BeforeAssetTagGenerationData);

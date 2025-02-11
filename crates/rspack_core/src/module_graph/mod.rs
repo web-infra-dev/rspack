@@ -767,7 +767,7 @@ impl<'a> ModuleGraph<'a> {
     if let Some(res) = active_partial.modules.get_mut(identifier) {
       res.as_mut()
     } else {
-      panic!("can not find module in active_partial")
+      None
     }
   }
 

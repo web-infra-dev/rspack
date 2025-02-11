@@ -12,6 +12,7 @@ pub mod identifier;
 pub mod infallible;
 pub mod itoa;
 pub mod location;
+pub mod node_path;
 pub mod number_hash;
 pub mod queue;
 pub mod size;

@@ -37,8 +37,8 @@ import { PackageManagerTabs } from '@theme';
 
 转译 `.jsx` 文件：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -61,8 +61,8 @@ module.exports = {
 
 转译 `.tsx` 文件：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -85,8 +85,8 @@ module.exports = {
 
 转译 `.ts` 文件：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -110,8 +110,8 @@ module.exports = {
 
 Rspack 将 [target](/config/target) 与 webpack 对齐。Rspack 不再转换任意用户代码，而是让 loader 来控制用户代码的转换。要将用户代码转换为目标环境所需的代码，请将 `env` 添加到 `builtin:swc-loader` 中：
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -140,8 +140,8 @@ module.exports = {
 
 为了获得与原来相同的行为，请将 `resolve.extensions` 更改为以下内容：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     extensions: ['...', '.tsx', '.ts', '.jsx'], // "..." 代表着默认的文件扩展名。
   },

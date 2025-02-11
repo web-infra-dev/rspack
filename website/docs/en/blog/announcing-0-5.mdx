@@ -37,8 +37,8 @@ In order to achieve old behavior, please remove `rule.type` or change it to `"ja
 
 To transform a `.jsx` file:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -61,8 +61,8 @@ module.exports = {
 
 To transform a `.tsx` file:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -85,8 +85,8 @@ module.exports = {
 
 To transform a `.ts` file:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -110,8 +110,8 @@ module.exports = {
 
 Rspack aligns [target](/config/target) with webpack. Instead of transforming arbitrary user code, Rspack now lets loaders control the transformation of user land code. To transform user land code to which your target environment(s) needed, add `env` to `builtin:swc-loader`:
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -140,8 +140,8 @@ module.exports = {
 
 In order to get the same behavior, change `resolve.extensions` to this:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   resolve: {
     extensions: ['...', '.tsx', '.ts', '.jsx'], // "..." means to extend from the default extensions
   },

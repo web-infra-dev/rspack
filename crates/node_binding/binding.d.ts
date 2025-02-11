@@ -123,14 +123,13 @@ export declare class JsCompilation {
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
   getChunks(): JsChunk[]
   getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk
+  getNamedChunk(name: string): JsChunk | null
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): JsChunkGroup
   setAssetSource(name: string, source: JsCompatSource): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAssetFromLoader(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo, module: string): void
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
@@ -249,6 +248,7 @@ export declare class JsModule {
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
+  emitFile(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
 }
 
 export declare class JsModuleGraph {
@@ -417,6 +417,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 
 export interface JsAfterEmitData {
   outputName: string
+  compilationId: number
 }
 
 export interface JsAfterResolveData {
@@ -434,6 +435,7 @@ export interface JsAfterTemplateExecutionData {
   headTags: Array<JsHtmlPluginTag>
   bodyTags: Array<JsHtmlPluginTag>
   outputName: string
+  compilationId: number
 }
 
 export interface JsAlterAssetTagGroupsData {
@@ -441,12 +443,14 @@ export interface JsAlterAssetTagGroupsData {
   bodyTags: Array<JsHtmlPluginTag>
   publicPath: string
   outputName: string
+  compilationId: number
 }
 
 export interface JsAlterAssetTagsData {
   assetTags: JsHtmlPluginAssetTags
   outputName: string
   publicPath: string
+  compilationId: number
 }
 
 export interface JsAsset {
@@ -514,11 +518,13 @@ export interface JsBannerContentFnCtx {
 export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
+  compilationId: number
 }
 
 export interface JsBeforeEmitData {
   html: string
   outputName: string
+  compilationId: number
 }
 
 export interface JsBeforeResolveArgs {
@@ -677,7 +683,6 @@ export interface JsExecuteModuleResult {
   buildDependencies: Array<string>
   missingDependencies: Array<string>
   cacheable: boolean
-  assets: Array<string>
   id: number
   error?: string
 }
@@ -697,6 +702,8 @@ export interface JsHtmlPluginAssets {
   js: Array<string>
   css: Array<string>
   favicon?: string
+  jsIntegrity?: Array<string | undefined | null>
+  cssIntegrity?: Array<string | undefined | null>
 }
 
 export interface JsHtmlPluginAssetTags {
@@ -1962,6 +1969,7 @@ export interface RawOptimizationOptions {
   usedExports: boolean | string
   providedExports: boolean
   innerGraph: boolean
+  realContentHash: boolean
   mangleExports: boolean | string
   concatenateModules: boolean
   avoidEntryIife: boolean

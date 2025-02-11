@@ -220,6 +220,33 @@ exports[`new-code-splitting config cases new-code-splitting config cases/chunk-i
 }
 `;
 
+exports[`new-code-splitting config cases new-code-splitting config cases/css/at-import exported tests at-import-in-the-top 1`] = `
+@import url("https://fonts.googleapis.com/css2?family=Inter");
+@media  (prefers-color-scheme: dark){
+
+
+.b {
+	color: red;
+}
+
+}
+@supports (display: grid) {
+@layer {
+.c {
+	color: pink;
+}
+
+}
+}
+
+
+
+
+.a {
+	color: blue;
+}
+`;
+
 exports[`new-code-splitting config cases new-code-splitting config cases/css/at-import-in-the-top exported tests at-import-in-the-top 1`] = `
 @import url("https://fonts.googleapis.com/css2?family=Roboto");
 @import url("https://fonts.googleapis.com/css2?family=Inter");

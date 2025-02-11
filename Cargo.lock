@@ -4405,9 +4405,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_dojang"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88a1172695eaa000f610a46c6632d70ebbc7d812202ba64e83157e4a9e0b7269"
+checksum = "9803670afdceac77551ca44c99b9a63c78e77848bc1d5db11d5a9975a290486e"
 dependencies = [
  "html-escape",
  "serde_json",
@@ -4825,6 +4825,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_paths",
  "rspack_plugin_externals",
  "rspack_util",
  "rustc-hash 2.1.0",
@@ -5149,6 +5150,7 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.2.0"
 dependencies = [
+ "dashmap 6.1.0",
  "derive_more 1.0.0",
  "indexmap 2.7.0",
  "once_cell",
@@ -5158,6 +5160,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_util",
  "rustc-hash 2.1.0",
  "tracing",
 ]
@@ -5405,9 +5408,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "848838c969651b669c92a9eb7744856690039c2f5b5831033598aae97af9131f"
+checksum = "add676fe1705a3383fb97ae89553f1a22bb4f913121dd35372a23780cc8dab55"
 dependencies = [
  "dashmap 6.1.0",
  "dyn-clone",
@@ -5476,6 +5479,7 @@ dependencies = [
  "regex",
  "ropey",
  "rspack_cacheable",
+ "rspack_paths",
  "rspack_regex",
  "rustc-hash 2.1.0",
  "serde",

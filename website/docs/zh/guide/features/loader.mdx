@@ -128,13 +128,13 @@ Loader 的第一个入参为文件的内容，我们可以在这里对文件内�
 
 上述示例中，我们会在所有匹配的文件的头部添加一个 banner 注释，如果我们希望将这个行为匹配所有以 `js` 结尾的文件，我们可以这样配置：
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         test: /\.js$/,
-        loader: require.resolve('./banner-loader.js'),
+        loader: './banner-loader.js',
       },
     ],
   },

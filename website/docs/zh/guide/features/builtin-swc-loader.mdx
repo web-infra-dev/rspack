@@ -12,8 +12,8 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 比如对 `.ts` 文件进行转译：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -38,8 +38,8 @@ module.exports = {
 
 对 React 的 `.jsx` 文件进行转译：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -79,8 +79,8 @@ SWC 提供了 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarg
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) 用于指定 ECMA 版本，例如 `es5`，`es2015`，`es2016` 等。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -104,8 +104,8 @@ module.exports = {
 
 [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) 使用 [browserslist](https://github.com/browserslist/browserslist) 的语法来指定浏览器范围，例如：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -140,8 +140,8 @@ module.exports = {
 
 SWC 支持注入 [core-js](https://github.com/zloirock/core-js) 作为 API polyfill，可以通过 [env.mode](https://swc.rs/docs/configuration/compilation#envmode) 和 [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs) 来配置：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -179,10 +179,8 @@ module.exports = {
 
 你可以使用 `@rspack/core` 导出的 `SwcLoaderOptions` 类型来开启类型提示：
 
-- `rspack.config.js`:
-
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -273,10 +271,13 @@ Rspack 支持在 `builtin:swc-loader` 里加载 SWC 的 Wasm 插件, 你可以�
 
 当你使用 SWC 的 Wasm 插件时，SWC 默认会生成缓存文件在当前项目的 `.swc` 目录下，如果你希望调整该目录，可以修改 `cacheRoot` 配置，如：
 
-```js
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   module: {
     rules: [
       {

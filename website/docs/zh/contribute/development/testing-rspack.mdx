@@ -77,7 +77,7 @@ Rspack 的测试用例包括如下：
 
 此测试用例与常规的 rspack 项目相同，可通过添加 `rspack.config.js` 来指定构建配置，并可通过添加 `test.config.js` 来控制测试运行时的各种行为，其结构如下：
 
-```typescript {16-20} title="test.config.js"
+```ts {16-20} title="test.config.js"
 type TConfigCaseConfig = {
   noTest?: boolean; // 不运行测试产物并结束测试
   beforeExecute?: () => void; // 运行产物前回调

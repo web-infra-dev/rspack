@@ -15,7 +15,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsBeforeAssetTagGenerationData) {
-					return await queried.promise({
+					const compilationId = data.compilationId;
+					const res = await queried.promise({
 						...data,
 						plugin: {
 							options:
@@ -24,6 +25,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 								) || {}
 						}
 					});
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		),
@@ -36,7 +39,10 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAlterAssetTagsData) {
-					return await queried.promise(data);
+					const compilationId = data.compilationId;
+					const res = await queried.promise(data);
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		),
@@ -49,7 +55,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAlterAssetTagGroupsData) {
-					return await queried.promise({
+					const compilationId = data.compilationId;
+					const res = await queried.promise({
 						...data,
 						plugin: {
 							options:
@@ -58,6 +65,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 								) || {}
 						}
 					});
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		),
@@ -70,7 +79,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAfterTemplateExecutionData) {
-					return await queried.promise({
+					const compilationId = data.compilationId;
+					const res = await queried.promise({
 						...data,
 						plugin: {
 							options:
@@ -79,6 +89,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 								) || {}
 						}
 					});
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		),
@@ -91,7 +103,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsBeforeEmitData) {
-					return await queried.promise({
+					const compilationId = data.compilationId;
+					const res = await queried.promise({
 						...data,
 						plugin: {
 							options:
@@ -100,6 +113,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 								) || {}
 						}
 					});
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		),
@@ -112,7 +127,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 			},
 			function (queried) {
 				return async function (data: binding.JsAfterEmitData) {
-					return await queried.promise({
+					const compilationId = data.compilationId;
+					const res = await queried.promise({
 						...data,
 						plugin: {
 							options:
@@ -121,6 +137,8 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
 								) || {}
 						}
 					});
+					res.compilationId = compilationId;
+					return res;
 				};
 			}
 		)

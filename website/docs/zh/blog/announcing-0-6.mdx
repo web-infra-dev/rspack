@@ -19,9 +19,10 @@ import { PackageManagerTabs } from '@theme';
 
 详细配置见 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin)。
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
@@ -113,8 +114,8 @@ WARNING in ⚠ chunk src_a_css-src_b_-5c8c53 [css-extract-rspack-plugin]
 
 如果你确定他们的顺序不一致没有关系，可以通过配置 `ignoreWarnings` 来忽略这种错误。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   ignoreWarnings: [/Conflicting order/],
 };
 ```
@@ -125,11 +126,12 @@ module.exports = {
 
 如果你曾经使用 webpack 和 `mini-css-extract-plugin`，只需要将 `mini-css-extract-plugin` 换成 `rspack.CssExtractPlugin` 即可。
 
-```diff
-+ const CssExtract = require('@rspack/core').CssExtractRspackPlugin;
-- const CssExtract = require('mini-css-extract-plugin');
-module.exports = {
-  plugins: [new CssExtract()],
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+- import CssExtract from 'mini-css-extract-plugin';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
       {
@@ -152,8 +154,8 @@ module.exports = {
 
 添加以下配置将保持原有 `builtins.css` 默认行为，可根据以下配置根据需要进行修改：
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
    // ...
 +  module: {
 +    generator: {

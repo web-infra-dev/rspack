@@ -12,7 +12,10 @@ use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
@@ -130,7 +133,7 @@ pub struct CompilationHooks {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-pub struct CompilationId(u32);
+pub struct CompilationId(pub u32);
 
 impl CompilationId {
   pub fn new() -> Self {
@@ -173,7 +176,6 @@ pub struct Compilation {
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
-  pub module_assets: IdentifierMap<HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -296,7 +298,6 @@ impl Compilation {
       entrypoints: Default::default(),
       async_entrypoints: Default::default(),
       assets: Default::default(),
-      module_assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       logging: Default::default(),
@@ -618,7 +619,6 @@ impl Compilation {
     filename: &str,
     updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
   ) -> Result<()> {
-    // Safety: we don't move anything from compilation
     let assets = &mut self.assets;
 
     let (new_source, new_info) = match assets.remove(filename) {
@@ -996,29 +996,39 @@ impl Compilation {
 
   #[instrument("Compilation:create_module_assets", skip_all)]
   async fn create_module_assets(&mut self, _plugin_driver: SharedPluginDriver) {
-    let mut temp = vec![];
-    for (module_identifier, assets) in self.module_assets.iter() {
+    let mut chunk_asset_map = vec![];
+    let mut module_assets = vec![];
+    let mg = self.get_module_graph();
+    for (identifier, module) in mg.modules() {
+      let assets = &module.build_info().assets;
+      if assets.is_empty() {
+        continue;
+      }
+
+      for (name, asset) in assets {
+        module_assets.push((name.clone(), asset.clone()));
+      }
       // assets of executed modules are not in this compilation
       if self
         .chunk_graph
         .chunk_graph_module_by_module_identifier
-        .contains_key(module_identifier)
+        .contains_key(&identifier)
       {
-        for chunk in self
-          .chunk_graph
-          .get_module_chunks(*module_identifier)
-          .iter()
-        {
-          for asset in assets {
-            temp.push((*chunk, asset.clone()))
+        for chunk in self.chunk_graph.get_module_chunks(identifier).iter() {
+          for name in assets.keys() {
+            chunk_asset_map.push((*chunk, name.clone()))
           }
         }
       }
     }
 
-    for (chunk, asset) in temp {
+    for (name, asset) in module_assets {
+      self.emit_asset(name, asset);
+    }
+
+    for (chunk, asset_name) in chunk_asset_map {
       let chunk = self.chunk_by_ukey.expect_get_mut(&chunk);
-      chunk.add_auxiliary_file(asset);
+      chunk.add_auxiliary_file(asset_name);
     }
   }
 
@@ -2260,8 +2270,10 @@ impl Compilation {
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
+  #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: AssetInfo,
 }
@@ -2302,6 +2314,7 @@ impl CompilationAsset {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -2339,6 +2352,7 @@ pub struct AssetInfo {
   /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
   /// in the rust struct and have the Js side to reshape and align with webpack.
   /// Related: packages/rspack/src/Compilation.ts
+  #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
@@ -2437,6 +2451,7 @@ impl AssetInfo {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,

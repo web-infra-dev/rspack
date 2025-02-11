@@ -10,8 +10,10 @@ This plugin is used to minify JavaScript files using [SWC](https://swc.rs/).
 
 Use this plugin via [optimization.minimizer](/config/optimization#optimizationminimizer):
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   // ...
   optimization: {
     minimizer: [
