@@ -213,6 +213,33 @@ export default {
 
 :::
 
+### splitChunks.filename
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.filename
+
+- **类型：** `string | function`
+
+仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          filename: 'vendors-[name].js',
+          // or
+          filename: (pathData, assetInfo) => {
+            return `${pathData.chunk.name}-bundle.js`;
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.usedExports
 
 <ApiMeta addedVersion="1.0.0" />
@@ -312,31 +339,6 @@ export default {
 - **类型：** `string`
 
 设置 chunk id 的提示。 它将被添加到 chunk 的文件名中。
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.filename
-
-- **类型：** `string | function`
-
-仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        defaultVendors: {
-          filename: 'vendors-[name].js',
-          // or
-          filename: (pathData, assetInfo) => {
-            return `${pathData.chunk.name}-bundle.js`;
-          },
-        },
-      },
-    },
-  },
-};
-```
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
 
