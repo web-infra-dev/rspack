@@ -475,6 +475,9 @@ impl NodePath for Utf8PathBuf {
 
 #[cfg(test)]
 mod test {
+
+  use cow_utils::CowUtils;
+
   use super::*;
 
   // Test cases from https://github.com/nodejs/node/blob/1b2d2f7e682268228b1352cba7389db01614812a/test/parallel/test-path-normalize.js
@@ -925,7 +928,11 @@ mod test {
       // replacing the slashes since the non-Windows specific tests" `expected`
       // use forward slashes
       assert_eq!(
-        path.node_normalize_win32().as_str().replace("\\", "/"),
+        path
+          .node_normalize_win32()
+          .as_str()
+          .cow_replace("\\", "/")
+          .as_ref(),
         *expected
       );
     });
