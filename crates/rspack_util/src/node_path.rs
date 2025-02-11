@@ -118,7 +118,7 @@ pub trait NodePath {
 impl NodePath for Utf8Path {
   #[inline]
   fn node_join(&self, path: impl AsRef<Utf8Path>) -> Utf8PathBuf {
-    self.to_path_buf().join(path.as_ref())
+    self.to_path_buf().node_join(path.as_ref())
   }
 
   #[inline]
@@ -132,17 +132,17 @@ impl NodePath for Utf8Path {
 
   #[inline]
   fn node_push(&mut self, path: impl AsRef<Utf8Path>) {
-    self.to_path_buf().push(path.as_ref());
+    self.to_path_buf().node_push(path.as_ref());
   }
 
   #[inline]
   fn node_push_posix(&mut self, path: impl AsRef<Utf8Path>) {
-    self.to_path_buf().push(path.as_ref());
+    self.to_path_buf().node_push_posix(path.as_ref());
   }
 
   #[inline]
   fn node_push_win32(&mut self, path: impl AsRef<Utf8Path>) {
-    self.to_path_buf().push(path.as_ref());
+    self.to_path_buf().node_push_win32(path.as_ref());
   }
 
   #[inline]
