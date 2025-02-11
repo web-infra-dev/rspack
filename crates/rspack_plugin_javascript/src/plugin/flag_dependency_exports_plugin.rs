@@ -13,7 +13,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::queue::Queue;
 use swc_core::ecma::atoms::Atom;
 
-struct FlagDependencyExportsState<'a> {
+pub struct FlagDependencyExportsState<'a> {
   mg: &'a mut ModuleGraph<'a>,
   changed: bool,
   current_module_id: ModuleIdentifier,
