@@ -1,3 +1,5 @@
+import { Tabs, Tab } from '@theme';
+
 # 插件
 
 如果说 [loader](/guide/features/loader) 是文件转换（预处理）的核心，那么插件（plugin）则是 Rspack 整体构建流程的核心组成部分，Rspack 大部分的原生实现都依赖于 Rust 侧的插件系统。
@@ -8,9 +10,27 @@
 
 Rspack 提供了 [plugins](/config/plugins) 配置项，用于注册一组 Rspack 或 webpack 插件来自定义构建过程。
 
-下面是一个例子，在 `rspack.config.js` 中使用 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) 插件：
+下面是一个例子，在 Rspack 配置中使用 [webpack-bundle-analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer) 插件：
 
-```js title="rspack.config.js"
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+
+export default {
+  plugins: [
+    new BundleAnalyzerPlugin({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 module.exports = {
@@ -21,6 +41,9 @@ module.exports = {
   ],
 };
 ```
+
+  </Tab>
+</Tabs>
 
 如果你正在寻找更多的 Rspack 插件，请查看 [插件](/plugins/index) 列表。
 
@@ -34,7 +57,25 @@ module.exports = {
 
 下面是使用 [unplugin-vue-components](https://www.npmjs.com/package/unplugin-vue-components) 的示例：
 
-```js title=rspack.config.js
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import Components from 'unplugin-vue-components/rspack';
+
+export default {
+  plugins: [
+    Components({
+      // options
+    }),
+  ],
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
 const Components = require('unplugin-vue-components/rspack');
 
 module.exports = {
@@ -45,6 +86,9 @@ module.exports = {
   ],
 };
 ```
+
+  </Tab>
+</Tabs>
 
 ### SWC 插件
 
@@ -71,7 +115,25 @@ module.exports = {
 
 作为插件的作者，插件的结构非常简单：只需要实现一个 `apply` 方法，这个方法接受一个 `Compiler` 实例，并会在 Rspack 插件初始化时被调用。详细的 API 可以参考 [Plugin API](/api/plugin-api/index)。
 
-```js
+<Tabs>
+  <Tab label="ESM">
+
+```js title="MyPlugin.mjs"
+const PLUGIN_NAME = 'MyPlugin';
+
+export class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+      console.log('The Rspack build process is starting!');
+    });
+  }
+}
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="MyPlugin.cjs"
 const PLUGIN_NAME = 'MyPlugin';
 
 class MyPlugin {
@@ -85,18 +147,19 @@ class MyPlugin {
 module.exports = MyPlugin;
 ```
 
-我们使用 CommonJS 风格的模块导出，这样在 `rspack.config.js` 中就可以直接使用 `require` 导入。
+  </Tab>
+</Tabs>
 
 ### 使用 TypeScript 编写
 
 如果你使用 TypeScript 来编写 Rspack 插件，可以引入 `Compiler` 和 `RspackPluginInstance` 来声明插件的类型：
 
-```ts
+```ts title="MyPlugin.ts"
 import type { Compiler, RspackPluginInstance } from '@rspack/core';
 
 const PLUGIN_NAME = 'MyPlugin';
 
-class MyPlugin implements RspackPluginInstance {
+export class MyPlugin implements RspackPluginInstance {
   apply(compiler: Compiler) {
     compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
       console.log('The Rspack build process is starting!');

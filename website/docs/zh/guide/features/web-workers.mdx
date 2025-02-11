@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.docschina.org/guides/web-workers/" />
 
@@ -64,7 +65,26 @@ Rspack 也支持了 worker-loader，不过由于 [worker-loader](https://github.
 
 使用 [resolveLoader](/config/resolve-loader) 替换 worker-loader 为 worker-rspack-loader：
 
-```js
+<Tabs>
+  <Tab label="ESM">
+```js title="rspack.config.mjs"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  resolveLoader: {
+    alias: {
+      'worker-loader': require.resolve('worker-rspack-loader'),
+    },
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
 module.exports = {
   resolveLoader: {
     alias: {
@@ -73,3 +93,6 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>

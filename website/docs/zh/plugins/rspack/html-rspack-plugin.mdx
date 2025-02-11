@@ -516,7 +516,7 @@ export default {
 
 可以通过如下配置生成 `<base>` 标签：
 
-```js title="rspack.config.js"
+```js
 new HtmlWebpackPlugin({
   // 将会生成: <base href="http://example.com/some/page.html">
   base: 'http://example.com/some/page.html',
@@ -540,10 +540,10 @@ new HtmlWebpackPlugin({
 
 比如以下配置，会生成 foo.html 和 bar.html，其中 foo.html 仅会包含 foo.js 生成的 JS 产物。
 
-```js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: {
     foo: './foo.js',
     bar: './bar.js',
@@ -565,9 +565,9 @@ module.exports = {
 
 HtmlRspackPlugin 提供了一些 hooks，可以让你在构建过程中修改标签或 HTML 产物代码。可通过 `rspack.HtmlRspackPlugin.getCompilationHooks` 来获取 hooks 对象：
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const HtmlModifyPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       // hooks.beforeAssetTagGeneration.tapPromise()
@@ -580,7 +580,7 @@ const HtmlModifyPlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [new HtmlRspackPlugin(), HtmlModifyPlugin],
 };
@@ -615,9 +615,9 @@ module.exports = {
 
 如下代码将添加了一个额外的 `extra-script.js` 并在最终产物中生成对应的 `<script defer src="extra-script.js"></script>` 标签
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const AddScriptPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
@@ -628,7 +628,7 @@ const AddScriptPlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [new HtmlRspackPlugin(), AddScriptPlugin],
 };
@@ -673,9 +673,9 @@ module.exports = {
 
 如下代码将给所有 `script` 类型的标签添加 `specialAttribute` 属性:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const AddAttributePlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
@@ -691,7 +691,7 @@ const AddAttributePlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
 };
@@ -720,9 +720,9 @@ module.exports = {
 
 如下代码将把 `async` 的 `script` 标签从 `body` 调整到 `head` 中:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const MoveTagsPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
@@ -736,7 +736,7 @@ const MoveTagsPlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [
     new HtmlRspackPlugin({
@@ -773,9 +773,9 @@ module.exports = {
 
 如下代码将在 body 结尾添加 `Injected by plugin`，之后标签才会注入并添加到该文本之后，因此产物中为 ，产物中为 `Injected by plugin<script defer src="main.js"></script></body>`：
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const InjectContentPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
@@ -792,7 +792,7 @@ const InjectContentPlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [
     new HtmlRspackPlugin({
@@ -825,9 +825,9 @@ module.exports = {
 
 如下代码将在 body 结尾添加 `Injected by plugin`，产物中为 `<script defer src="main.js"></script>Injected by plugin</body>`：
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const InjectContentPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapPromise(
         'InjectContentPlugin',
@@ -842,7 +842,7 @@ const InjectContentPlugin = {
   },
 };
 
-module.exports = {
+export default {
   // ...
   plugins: [
     new HtmlRspackPlugin({

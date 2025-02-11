@@ -1713,8 +1713,8 @@ import('./data', { with: { type: 'url' } });
 
 需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
 
-```diff title=rspack.config.js
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

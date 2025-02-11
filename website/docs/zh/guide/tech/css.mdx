@@ -131,7 +131,7 @@ import { red } from './index.module.css';
 document.getElementById('element').className = red;
 ```
 
-要在 Rspack 中启用默认导入方式，你需要在 `rspack.config.js` 文件中将 `namedExports` 配置为 `false`。这允许你在用到 CSS Modules 时，除了命名空间导入和具名导入，也能通过默认导入整个样式模块：
+要在 Rspack 中启用默认导入方式，你需要在 Rspack 配置中将 `namedExports` 配置为 `false`。这允许你在用到 CSS Modules 时，除了命名空间导入和具名导入，也能通过默认导入整个样式模块：
 
 ```js title="rspack.config.mjs"
 export default {

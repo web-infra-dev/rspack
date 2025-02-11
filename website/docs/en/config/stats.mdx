@@ -573,8 +573,8 @@ If you want to use the preset output behavior but want to output more or less of
 
 For example, only the error and the reason why the module was introduced are output.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // ...
   stats: {
     preset: 'errors-only',

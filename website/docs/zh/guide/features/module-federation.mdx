@@ -39,12 +39,10 @@ Module Federation（MF） 目前有多个主要版本，你可以根据你的需
 
 你需要安装额外的 `@module-federation/enhanced` 插件，才能使用 Module Federation v2.0。
 
-```js title="rspack.config.js"
-const {
-  ModuleFederationPlugin,
-} = require('@module-federation/enhanced/rspack');
+```js title="rspack.config.mjs"
+import { ModuleFederationPlugin } from '@module-federation/enhanced/rspack';
 
-module.exports = {
+export default {
   plugins: [
     new ModuleFederationPlugin({
       // options

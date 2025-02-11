@@ -75,7 +75,7 @@ The default value of [optimization.chunkIds](/config/optimization#optimizationch
 Please use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead.
 
 ```diff
-module.exports = {
+export default {
   resolve: {
 -   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
 +   tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -209,7 +209,9 @@ Now, we have removed it and replaced it with [rspack.LightningCssMinimizerRspack
 If you previously manually registered and configured `rspack.SwcCssMinimizerRspackPlugin`, you should to switch to `rspack.LightningCssMinimizerRspackPlugin`:
 
 ```diff
-module.exports = {
+import { rspack } from '@rspack/core';
+
+export default {
   optimization: {
     minimizer: [
 -     new rspack.SwcCssMinimizerRspackPlugin({

@@ -10,8 +10,10 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 通过 [optimization.minimizer](/config/optimization#optimizationminimizer) 使用此插件：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   // ...
   optimization: {
     minimizer: [

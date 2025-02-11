@@ -32,8 +32,8 @@ This feature primarily addresses three categories of problems: [builtins](https:
 - [builtins.decorator](https://v0.rspack.dev/config/builtins#builtinsdecorator): moved to `jsc.parser.decorators`
 - [builtins.presetEnv](https://v0.rspack.dev/config/builtins#builtinspresetenv): moved to `jsc.env`
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -69,8 +69,8 @@ module.exports = {
 
 2. [target](/config/target) will not downgrade user-side code(including `node_modules`)
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   target: ["web", "es5"],
   module: {
     rules: [
@@ -118,11 +118,12 @@ Check out our previous discussion [here](https://github.com/web-infra-dev/rspack
 
 With `experiments.rspackFuture.disableTransformByDefault` is enabled by default in v0.4.0, `builtin.react.refresh` has also been deprecated. Now we recommend using `@rspack/plugin-react-refresh` to enable react fast refresh.
 
-```diff
-+ const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+```diff title="rspack.config.mjs"
++ import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   // ...
   mode: isDev ? 'development' : 'production',
   module: {
@@ -156,7 +157,7 @@ module.exports = {
 -  },
   plugins: [
 +    isDev && new ReactRefreshPlugin()
-  ].filter(Boolean),
+  ],
 };
 ```
 
@@ -246,9 +247,10 @@ Currently, Rspack's internal plugins are divided into two categories:
 
 The original `builtins.define` can be migrated as follows:
 
-```diff
-+ const { rspack } = require("@rspack/core")
-module.exports = {
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+
+export default {
 -  builtins: {
 -    define: { process.env.NODE_ENV: JSON.stringify(process.env.NODE_ENV) }
 -  },
@@ -260,9 +262,10 @@ module.exports = {
 
 For `builtins.html`, it can be directly migrated to [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin):
 
-```diff
-+ const { rspack } = require("@rspack/core")
-module.exports = {
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+
+export default {
 -  builtins: {
 -    html: [{ template: "./index.html" }]
 -  },
@@ -274,9 +277,10 @@ module.exports = {
 
 When there are multiple configurations in `builtins.html`, multiple plugin instances can be created:
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
     new rspack.HtmlRspackPlugin({ template: './foo.html' }),
@@ -288,9 +292,10 @@ For `builtins.copy`, it can be directly migrated to [CopyRspackPlugin](/plugins/
 
 For the original `builtins.minifyOptions`, we provide [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin):
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   optimization: {
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({

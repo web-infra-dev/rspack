@@ -10,10 +10,10 @@ The `builtin:lightningcss-loader` uses the builtin [lightningcss](https://github
 
 To use `builtin:lightningcss-loader` in your project, you need to configure it as follows.
 
-```js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -37,10 +37,8 @@ module.exports = {
 
 You can use the `LightningcssLoaderOptions` type exported by `@rspack/core` to enable type hints:
 
-- `rspack.config.js`:
-
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

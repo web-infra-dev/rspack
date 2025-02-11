@@ -10,10 +10,10 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 如果需要在项目中使用 `builtin:lightningcss-loader`，需进行如下配置。
 
-```js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   module: {
     rules: [
       {
@@ -37,10 +37,8 @@ module.exports = {
 
 你可以使用 `@rspack/core` 导出的 `LightningcssLoaderOptions` 类型来开启类型提示：
 
-- `rspack.config.js`:
-
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

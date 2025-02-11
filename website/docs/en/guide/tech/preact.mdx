@@ -57,7 +57,7 @@ export default {
 
 Refer to [Builtin swc-loader](guide/features/builtin-swc-loader) for detailed configurations.
 
-Refer to [examples/preact](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact/rspack.config.js) for the full example.
+Refer to [examples/preact](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact) for the full example.
 
 ## Preact Refresh
 
@@ -87,11 +87,12 @@ In versions below 1.0.0, Rspack did not support preact refresh with `swc-loader`
 Please use `builtin:swc-loader` and enable preact specific transformation with `rspackExperiments.preact: {}`
 :::
 
-```js title=rspack.config.js
-const PreactRefreshPlugin = require('@rspack/plugin-preact-refresh');
+```js title="rspack.config.mjs"
+import PreactRefreshPlugin from '@rspack/plugin-preact-refresh';
+
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   // ...
   mode: isDev ? 'development' : 'production',
   module: {
@@ -131,8 +132,8 @@ module.exports = {
   plugins: [
     isDev && new PreactRefreshPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
-  ].filter(Boolean),
+  ],
 };
 ```
 
-Refer to [examples/preact-refresh](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact-refresh/rspack.config.js) for the full example.
+Refer to [examples/preact-refresh](https://github.com/rspack-contrib/rspack-examples/blob/main/rspack/preact-refresh) for the full example.

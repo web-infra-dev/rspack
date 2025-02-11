@@ -12,8 +12,8 @@ If you need to use `builtin:swc-loader` in your project, configure it as follows
 
 To transpile `.ts` files:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -38,8 +38,8 @@ module.exports = {
 
 To transpile React's `.jsx` files:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -79,8 +79,8 @@ SWC provides [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarge
 
 [jsc.target](https://swc.rs/docs/configuration/compilation#jsctarget) is used to specify the ECMA version, such as `es5`, `es2015`, `es2016`, etc.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -104,8 +104,8 @@ module.exports = {
 
 [env.targets](https://swc.rs/docs/configuration/compilation#envtargets) uses the [browserslist](https://github.com/browserslist/browserslist) syntax to specify browser range, for example:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -140,8 +140,8 @@ When using higher versions of JavaScript syntax and APIs in your project, to ens
 
 SWC supports injecting [core-js](https://github.com/zloirock/core-js) as an API polyfill, which can be configured using [env.mode](https://swc.rs/docs/configuration/compilation#envmode) and [env.coreJs](https://swc.rs/docs/configuration/compilation#envcorejs):
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -179,10 +179,8 @@ Note:
 
 You can enable type hints using the `SwcLoaderOptions` type exported by `@rspack/core`:
 
-- `rspack.config.js`:
-
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -238,8 +236,8 @@ See [FAQ - SWC Plugin Version Unmatched](/errors/swc-plugin-version) for more de
 
 Rspack supports load Wasm plugin in `builtin:swc-loader`, you can specify the plugin name like
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -273,10 +271,13 @@ this is an [example](https://github.com/rspack-contrib/rspack-examples/blob/d4b8
 
 When you use SWC's Wasm plugin, SWC will generate cache files in the `.swc` directory of the current project by default. If you want to adjust this directory, you can modify the `cacheRoot` configuration, such as:
 
-```js
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   module: {
     rules: [
       {
