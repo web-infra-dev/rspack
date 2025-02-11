@@ -542,7 +542,10 @@ impl Module for ExternalModule {
     match resolved_external_type {
       "this" => self.build_info.strict = false,
       "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => {
+        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        self.build_meta.has_top_level_await = true;
+      }
       "script" | "promise" => self.build_meta.has_top_level_await = true,
       "import" => {
         self.build_meta.has_top_level_await = true;
