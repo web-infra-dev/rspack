@@ -21,7 +21,7 @@
     "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
-    "format:js": "pnpm run format-ci:js --write",
+    "format:js": "node ./node_modules/prettier/bin/prettier.cjs --write",
     "format-ci:js": "node ./node_modules/prettier/bin/prettier.cjs \"packages/**/src/**/*.{ts,tsx,js}\" \"crates/rspack_plugin_runtime/**/*.{ts,js}\" \"scripts/**/*.{cjs,mjs,js}\"  \"x.mjs\" \"x\" --check",
     "format-ci:toml": "npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
@@ -43,7 +43,8 @@
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
     "api-extractor:ci": "pnpm --filter \"@rspack/*\" api-extractor:ci",
-    "bench:ci": "cargo codspeed run && pnpm --filter bench run bench"
+    "bench:ci": "cargo codspeed run && pnpm --filter bench run bench",
+    "x:ae:ci": "pnpm run x ae ci && true"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -95,7 +96,7 @@
     "*.toml": "npx @taplo/cli format",
     "*.{ts,tsx,js,cts,cjs,mts,mjs}": [
       "pnpm run lint:js",
-      "node ./x ae ci"
+      "pnpm run x:ae:ci"
     ],
     "package.json": "pnpm run check-dependency-version"
   }
