@@ -36,7 +36,7 @@ export default {
 
 这样就剥离了那些不需要改动的依赖模块，换句话，下面展示的代码还可以正常运行：
 
-```javascript
+```js
 import $ from 'jquery';
 
 $('.my-element').animate(/* ... */);
@@ -319,7 +319,7 @@ export default {
 
 **示例**
 
-```javascript
+```js
 import fs from 'fs-extra';
 ```
 
@@ -335,7 +335,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const fs = require('fs-extra');
 ```
 
@@ -347,7 +347,7 @@ const fs = require('fs-extra');
 
 **示例**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -367,7 +367,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const jq = global['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -414,7 +414,7 @@ jq('.my-element').animate(/* ... */);
 
 **示例**
 
-```javascript
+```js
 async function foo() {
   const jq = await import('jquery');
   jq('.my-element').animate(/* ... */);
@@ -432,7 +432,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 var __webpack_modules__ = {
   jquery: module => {
     module.exports = import('jquery');
@@ -457,7 +457,7 @@ async function foo() {
 
 **示例**
 
-```javascript
+```js
 import { attempt } from 'lodash';
 
 async function foo() {
@@ -477,7 +477,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
 const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
 
@@ -529,7 +529,7 @@ export default {
 
 **示例**
 
-```javascript
+```js
 import { attempt } from 'lodash';
 
 async function foo() {
@@ -550,7 +550,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 var __webpack_modules__ = {
   lodash: function (module) {
     module.exports = require('lodash');
@@ -580,7 +580,7 @@ async function foo() {
 
 **示例**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -596,7 +596,7 @@ module.exports = {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 import { createRequire } from 'module';
 
 const jq = createRequire(import.meta.url)('jquery');
@@ -637,7 +637,7 @@ jq('.my-element').animate(/* ... */);
 
 将外部的默认类型指定为 `'self'`。 Rspack 会将 external 作为 `self` 对象上的全局变量读取。
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -654,7 +654,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const jq = self['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -747,7 +747,7 @@ console.log(window._.head(['a', 'b'])); // logs a here
 
 **示例**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -764,7 +764,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const jq = this['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -775,7 +775,7 @@ jq('.my-element').animate(/* ... */);
 
 **示例**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -792,7 +792,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const jq = $;
 jq('.my-element').animate(/* ... */);
 ```
@@ -803,7 +803,7 @@ jq('.my-element').animate(/* ... */);
 
 **示例**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -820,7 +820,7 @@ export default {
 
 将会转换为类似下面的代码：
 
-```javascript
+```js
 const jq = window['$'];
 jq('.my-element').animate(/* ... */);
 ```

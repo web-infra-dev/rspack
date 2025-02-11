@@ -902,7 +902,7 @@ export default {
 
 让你的库加载之后，**入口起点的返回值** 将会被赋值给一个变量：
 
-```javascript
+```js
 var MyLibrary = _entry_return_;
 
 // 在加载了 `MyLibrary` 的单独脚本中
@@ -925,7 +925,7 @@ module.exports = {
 
 这将生成一个隐含的全局变量，它有可能重新分配一个现有的值（请谨慎使用）：
 
-```javascript
+```js
 MyLibrary = _entry_return_;
 ```
 
@@ -983,7 +983,7 @@ module.exports = {
 
 **入口起点的返回值** 将会被赋值给 this 对象下的 `output.library.name` 属性。`this` 的含义取决于你：
 
-```javascript
+```js
 this['MyLibrary'] = _entry_return_;
 
 // 在一个单独的脚本中
@@ -1007,7 +1007,7 @@ module.exports = {
 
 **入口起点的返回值** 将会被赋值给 `window` 对象下的 `output.library.name`。
 
-```javascript
+```js
 window['MyLibrary'] = _entry_return_;
 
 window.MyLibrary.doSomething();
@@ -1029,7 +1029,7 @@ module.exports = {
 
 **入口起点的返回值** 将会被复制给全局对象下的 `output.library.name`。取决于 [`target`](/config/target) 值，全局对象可以分别改变,例如，`self`、`global` 或者 `globalThis`。
 
-```javascript
+```js
 global['MyLibrary'] = _entry_return_;
 
 global.MyLibrary.doSomething();
@@ -1051,7 +1051,7 @@ module.exports = {
 
 **入口起点的返回值** 将使用 `output.library.name` 赋值给 `exports` 对象。顾名思义，这是在 CommonJS 环境中使用。
 
-```javascript
+```js
 exports['MyLibrary'] = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1102,7 +1102,7 @@ module.exports = {
 
 **入口起点的返回值** 将会被赋值给 `module.exports`。顾名思义，这是在 Node.js（CommonJS）环境中使用的：
 
-```javascript
+```js
 module.exports = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1132,13 +1132,13 @@ module.exports = {
 
 输入：
 
-```javascript
+```js
 export function doSomething() {}
 ```
 
 输出：
 
-```javascript
+```js
 function doSomething() {}
 
 // …
@@ -1148,13 +1148,13 @@ exports.doSomething = __webpack_exports__.doSomething;
 
 消费（CommonJS）:
 
-```javascript
+```js
 const { doSomething } = require('./output.cjs'); // doSomething => [Function: doSomething]
 ```
 
 消费（ESM）:
 
-```javascript
+```js
 import { doSomething } from './output.cjs'; // doSomething => [Function: doSomething]
 ```
 
@@ -1234,7 +1234,7 @@ export default {
 
 在这种情况下，你需要使用 `library.name` 属性命名你的模块：
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1248,7 +1248,7 @@ module.exports = {
 
 最终的输出为：
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1262,7 +1262,7 @@ module.exports = {
 
 请注意，根据[对象赋值部分](#expose-via-object-assignment)，省略 `library.name` 将导致入口起点返回的所有属性直接赋值给根对象。示例：
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1273,7 +1273,7 @@ module.exports = {
 
 输出将会是：
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1289,7 +1289,7 @@ module.exports = {
 
 你可以为 `library.name` 指定一个对象，每个目标的名称不同：
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1311,7 +1311,7 @@ module.exports = {
 
 System 模块要求当 bundle 执行时，全局变量 `System` 出现在浏览器中。编译的 `System.register` 格式允许你在没有额外配置的情况下使用 `System.import('/bundle.js')`，并将你的 bundle 加载到系统模块注册表中。
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1324,7 +1324,7 @@ module.exports = {
 
 输出：
 
-```javascript
+```js
 System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
   return {
     execute: function () {
@@ -1336,7 +1336,7 @@ System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
 
 除了设置 `output.library.type` 为 `system`，还要将 `output.library.name` 添加到配置中，输出的 bundle 将以库名作为 `System.register` 的参数：
 
-```javascript
+```js
 System.register(
   'MyLibrary',
   [],
@@ -1491,7 +1491,7 @@ module.exports = {
 
 当使用 `output.library.type: "umd"` 时，将 `output.library.umdNamedDefine` 设置为 `true` 将会把 AMD 模块命名为 UMD 构建。否则使用匿名 `define`。
 
-```javascript
+```js
 module.exports = {
   //...
   output: {

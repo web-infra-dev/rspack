@@ -180,7 +180,7 @@ module.hot.accept('./dep', () => {
 
 A module can self-accept itself, but can invalidate itself when the change is not handleable:
 
-```javascript
+```js
 const VALUE = 'constant';
 
 export default VALUE;
@@ -201,7 +201,7 @@ if (
 
 **Triggering custom HMR updates**
 
-```javascript
+```js
 const moduleId = chooseAModule();
 const code = __webpack_modules__[moduleId].toString();
 __webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);

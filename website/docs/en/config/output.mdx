@@ -910,7 +910,7 @@ export default {
 
 When your library is loaded, the **return value of your entry point** will be assigned to a variable:
 
-```javascript
+```js
 var MyLibrary = _entry_return_;
 
 // In a separate script with `MyLibrary` loaded…
@@ -933,7 +933,7 @@ module.exports = {
 
 This will generate an implied global which has the potential to reassign an existing value (use with caution):
 
-```javascript
+```js
 MyLibrary = _entry_return_;
 ```
 
@@ -991,7 +991,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to `this` under the property named by `output.library.name`. The meaning of `this` is up to you:
 
-```javascript
+```js
 this['MyLibrary'] = _entry_return_;
 
 // In a separate script
@@ -1015,7 +1015,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `window` object using the `output.library.name` value.
 
-```javascript
+```js
 window['MyLibrary'] = _entry_return_;
 
 window.MyLibrary.doSomething();
@@ -1037,7 +1037,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the global object using the `output.library.name` value. Depending on the [`target`](/config/target) value, the global object could change respectively, e.g., `self`, `global` or `globalThis`.
 
-```javascript
+```js
 global['MyLibrary'] = _entry_return_;
 
 global.MyLibrary.doSomething();
@@ -1059,7 +1059,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `exports` object using the `output.library.name` value. As the name implies, this is used in CommonJS environments.
 
-```javascript
+```js
 exports['MyLibrary'] = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1110,7 +1110,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `module.exports`. As the name implies, this is used in Node.js (CommonJS) environments:
 
-```javascript
+```js
 module.exports = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1140,13 +1140,13 @@ Individual exports will be set as properties on `module.exports`. The "static" i
 
 Input:
 
-```javascript
+```js
 export function doSomething() {}
 ```
 
 Output:
 
-```javascript
+```js
 function doSomething() {}
 
 // …
@@ -1156,13 +1156,13 @@ exports.doSomething = __webpack_exports__.doSomething;
 
 Consumption (CommonJS):
 
-```javascript
+```js
 const { doSomething } = require('./output.cjs'); // doSomething => [Function: doSomething]
 ```
 
 Consumption (ESM):
 
-```javascript
+```js
 import { doSomething } from './output.cjs'; // doSomething => [Function: doSomething]
 ```
 
@@ -1242,7 +1242,7 @@ This exposes your library under all the module definitions, allowing it to work 
 
 In this case, you need the `library.name` property to name your module:
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1256,7 +1256,7 @@ module.exports = {
 
 And finally the output is:
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1270,7 +1270,7 @@ And finally the output is:
 
 Note that omitting `library.name` will result in the assignment of all properties returned by the entry point be assigned directly to the root object, as documented under the [object assignment section](#expose-via-object-assignment). Example:
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1281,7 +1281,7 @@ module.exports = {
 
 The output will be:
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1297,7 +1297,7 @@ The output will be:
 
 You may specify an object for `library.name` for differing names per targets:
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1319,7 +1319,7 @@ This will expose your library as a [`System.register`](https://github.com/system
 
 System modules require that a global variable `System` is present in the browser when the Rspack bundle is executed. Compiling to `System.register` format allows you to `System.import('/bundle.js')` without additional configuration and has your Rspack bundle loaded into the System module registry.
 
-```javascript
+```js
 module.exports = {
   //...
   output: {
@@ -1332,7 +1332,7 @@ module.exports = {
 
 Output:
 
-```javascript
+```js
 System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
   return {
     execute: function () {
@@ -1344,7 +1344,7 @@ System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
 
 By adding `output.library.name` to configuration in addition to having `output.library.type` set to `system`, the output bundle will have the library name as an argument to `System.register`:
 
-```javascript
+```js
 System.register(
   'MyLibrary',
   [],
@@ -1499,7 +1499,7 @@ module.exports = {
 
 When using `output.library.type: "umd"`, setting `output.library.umdNamedDefine` to `true` will name the AMD module of the UMD build. Otherwise, an anonymous `define` is used.
 
-```javascript
+```js
 module.exports = {
   //...
   output: {

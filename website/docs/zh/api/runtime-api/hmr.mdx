@@ -180,7 +180,7 @@ module.hot.accept('./dep', () => {
 
 模块可以自我接受，但是当更改无法处理时可以使自身失效：
 
-```javascript
+```js
 const VALUE = 'constant';
 
 export default VALUE;
@@ -201,7 +201,7 @@ if (
 
 **Triggering custom HMR updates**
 
-```javascript
+```js
 const moduleId = chooseAModule();
 const code = __webpack_modules__[moduleId].toString();
 __webpack_modules__[moduleId] = eval(`(${makeChanges(code)})`);

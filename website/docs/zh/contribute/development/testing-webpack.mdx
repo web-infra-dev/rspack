@@ -14,7 +14,7 @@
 
 例如：
 
-```javascript title="test.filter.js"
+```js title="test.filter.js"
 module.exports = () => {
   return false; // false 表示当前测试用例暂时被跳过，但也许我们将来会支持它；-1 表示我们不希望兼容这个测试用例，这与 `willNotSupportTest` 相关。
 };
@@ -22,7 +22,7 @@ module.exports = () => {
 
 如果你发现测试用例已可以通过，那么将 `test.filter.js` 更改为：
 
-```javascript title="test.filter.js"
+```js title="test.filter.js"
 module.exports = () => {
   return true;
 };

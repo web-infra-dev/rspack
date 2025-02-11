@@ -60,10 +60,10 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 在 Rspack v1.1 中，你可以在 `dev` 模式下通过以下方式启用此功能：
 
-```js title=rspack.config.js
+```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   mode: isDev ? 'development' : 'production',
   experiments: {
     incremental: isDev,
@@ -83,7 +83,7 @@ module.exports = {
 
 因此，我们大幅重构了 `HtmlRspackPlugin`，在对齐了更多 `HtmlWebpackPlugin` 配置项的同时，也完成了 `hooks` 对齐。现在你可以通过 `HtmlRspackPlugin.getCompilationHooks` 来获取它们，并使用其修改 HTML 产物的内容：
 
-```js
+```js title="rspack.config.mjs"
 const AddAttributePlugin = {
   apply: function (compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
@@ -101,7 +101,7 @@ const AddAttributePlugin = {
   },
 };
 
-module.exports = {
+export default {
   plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
 };
 ```

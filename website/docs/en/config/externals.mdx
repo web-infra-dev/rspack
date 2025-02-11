@@ -36,7 +36,7 @@ export default {
 
 This leaves any dependent modules unchanged, i.e. the code shown below will still work:
 
-```javascript
+```js
 import $ from 'jquery';
 
 $('.my-element').animate(/* ... */);
@@ -318,7 +318,7 @@ Specify the default type of externals as `'commonjs'`. Rspack will generate code
 
 **Example**
 
-```javascript
+```js
 import fs from 'fs-extra';
 ```
 
@@ -334,7 +334,7 @@ export default {
 
 Will generate into something like:
 
-```javascript
+```js
 const fs = require('fs-extra');
 ```
 
@@ -346,7 +346,7 @@ Specify the default type of externals as `'global'`. Rspack will read the extern
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -366,7 +366,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = global['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -379,7 +379,7 @@ Make sure to enable [`experiments.outputModule`](/config/experiments#experiments
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -398,7 +398,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 import * as __WEBPACK_EXTERNAL_MODULE_jquery__ from 'jquery';
 
 const jq = __WEBPACK_EXTERNAL_MODULE_jquery__['default'];
@@ -413,7 +413,7 @@ Specify the default type of externals as `'import'`. Rspack will generate code l
 
 **Example**
 
-```javascript
+```js
 async function foo() {
   const jq = await import('jquery');
   jq('.my-element').animate(/* ... */);
@@ -431,7 +431,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 var __webpack_modules__ = {
   jquery: module => {
     module.exports = import('jquery');
@@ -458,7 +458,7 @@ Make sure to enable [`experiments.outputModule`](/config/#experimentsoutputmodul
 
 **Example**
 
-```javascript
+```js
 import { attempt } from 'lodash';
 
 async function foo() {
@@ -479,7 +479,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 import * as __WEBPACK_EXTERNAL_MODULE_lodash__ from 'lodash';
 const lodash = __WEBPACK_EXTERNAL_MODULE_jquery__;
 
@@ -531,7 +531,7 @@ This is useful when building a Node.js application that target Node.js version h
 
 **Example**
 
-```javascript
+```js
 import { attempt } from 'lodash';
 
 async function foo() {
@@ -552,7 +552,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 var __webpack_modules__ = {
   lodash: function (module) {
     module.exports = require('lodash');
@@ -582,7 +582,7 @@ Specify the default type of externals as `'node-commonjs'`. Rspack will import [
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -601,7 +601,7 @@ module.exports = {
 
 Will generate into something like
 
-```javascript
+```js
 import { createRequire } from 'module';
 
 const jq = createRequire(import.meta.url)('jquery');
@@ -616,7 +616,7 @@ Specify the default type of externals as `'promise'`. Rspack will read the exter
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -633,7 +633,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = await $;
 jq('.my-element').animate(/* ... */);
 ```
@@ -644,7 +644,7 @@ Specify the default type of externals as `'self'`. Rspack will read the external
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -661,7 +661,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = self['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -756,7 +756,7 @@ Specify the default type of externals as `'this'`. Rspack will read the external
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -773,7 +773,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = this['$'];
 jq('.my-element').animate(/* ... */);
 ```
@@ -784,7 +784,7 @@ Specify the default type of externals as `'var'`. Rspack will read the external 
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -801,7 +801,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = $;
 jq('.my-element').animate(/* ... */);
 ```
@@ -812,7 +812,7 @@ Specify the default type of externals as `'window'`. Rspack will read the extern
 
 **Example**
 
-```javascript
+```js
 import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
@@ -829,7 +829,7 @@ export default {
 
 Will generate into something like
 
-```javascript
+```js
 const jq = window['$'];
 jq('.my-element').animate(/* ... */);
 ```
