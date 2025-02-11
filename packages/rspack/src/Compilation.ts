@@ -469,7 +469,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 			get: (property: unknown) => {
 				if (typeof property === "string") {
 					const binding = this.#inner.getNamedChunk(property);
-					return Chunk.__from_binding(binding);
+					return binding ? Chunk.__from_binding(binding) : undefined;
 				}
 			}
 		});

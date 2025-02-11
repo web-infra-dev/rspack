@@ -1,15 +1,11 @@
-use std::collections::HashSet;
-use std::sync::Arc;
-
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  rspack_sources::{BoxSource, RawStringSource},
-  ApplyContext, ChunkGraph, Compilation, CompilationAssets, CompilerEmit, CompilerOptions, Context,
-  EntryDependency, Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports,
-  SourceType,
+  ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
+  Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -56,11 +52,9 @@ impl Plugin for LibManifestPlugin {
 
 #[plugin_hook(CompilerEmit for LibManifestPlugin)]
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let mut use_paths: HashSet<String> = HashSet::new();
-
   let chunk_graph = &compilation.chunk_graph;
 
-  let mut manifests: CompilationAssets = HashMap::default();
+  let mut manifests: HashMap<String, String> = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
 
@@ -84,11 +78,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         .chunk_name_optional(chunk.name_for_filename_template(&compilation.chunk_ids_artifact)),
     )?;
 
-    if use_paths.contains(&target_path) {
+    if manifests.contains_key(&target_path) {
       return Err(Error::msg("each chunk must have a unique path"));
     }
-
-    use_paths.insert(target_path.clone());
 
     let name = self.options.name.as_ref().and_then(|name| {
       compilation
@@ -175,13 +167,16 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       serde_json::to_string(&manifest).map_err(|e| Error::msg(format!("{e}")))?
     };
 
-    let asset = Arc::new(RawStringSource::from(manifest_json)) as BoxSource;
-
-    manifests.insert(target_path, asset.into());
+    manifests.insert(target_path, manifest_json);
   }
 
-  for (filename, asset) in manifests {
-    compilation.emit_asset(filename, asset);
+  let intermediate_filesystem = compilation.intermediate_filesystem.as_ref();
+  for (filename, json) in manifests {
+    let path = Utf8Path::new(&filename);
+    if let Some(dir) = path.parent() {
+      intermediate_filesystem.create_dir_all(dir).await?;
+    }
+    intermediate_filesystem.write(path, json.as_bytes()).await?;
   }
 
   Ok(())

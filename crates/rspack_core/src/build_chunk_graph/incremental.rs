@@ -476,6 +476,16 @@ impl CodeSplitter {
       self.chunk_caches.remove(&block);
     }
 
+    if compilation.entries.len() > compilation.entrypoints.len() {
+      edges.extend(
+        compilation
+          .entries
+          .keys()
+          .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
+          .map(|entry| ChunkReCreation::Entry(entry.to_owned())),
+      );
+    }
+
     for edge in edges {
       edge.rebuild(self, compilation)?;
     }
