@@ -533,8 +533,8 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext,
-    _: Option<&Compilation>,
+    build_context: BuildContext,
+    options: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolved_external_type = self.resolve_external_type();
 
@@ -544,7 +544,10 @@ impl Module for ExternalModule {
       "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "module" => {
         self.build_meta.exports_type = BuildMetaExportsType::Namespace;
-        self.build_meta.has_top_level_await = true;
+
+        if !build_context.compiler_options.output.module {
+          self.build_meta.has_top_level_await = true;
+        }
       }
       "script" | "promise" => self.build_meta.has_top_level_await = true,
       "import" => {
