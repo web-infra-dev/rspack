@@ -87,6 +87,7 @@ async fn generate_html(
     .call(BeforeAssetTagGenerationData {
       assets: assets_info.0,
       output_name: html_file_name.as_str().to_string(),
+      compilation_id: compilation.id(),
     })
     .await?;
 
@@ -99,6 +100,7 @@ async fn generate_html(
       asset_tags,
       public_path: public_path.clone(),
       output_name: html_file_name.as_str().to_string(),
+      compilation_id: compilation.id(),
     })
     .await?;
 
@@ -112,6 +114,7 @@ async fn generate_html(
       body_tags,
       public_path: public_path.clone(),
       output_name: html_file_name.as_str().to_string(),
+      compilation_id: compilation.id(),
     })
     .await?;
 
@@ -135,6 +138,7 @@ async fn generate_html(
       head_tags: alter_asset_tag_groups_data.head_tags,
       body_tags: alter_asset_tag_groups_data.body_tags,
       output_name: html_file_name.as_str().to_string(),
+      compilation_id: compilation.id(),
     })
     .await?;
 
@@ -234,6 +238,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .call(BeforeEmitData {
         html,
         output_name: output_file_name.as_str().to_string(),
+        compilation_id: compilation.id(),
       })
       .await?;
 
@@ -261,6 +266,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .after_emit
       .call(AfterEmitData {
         output_name: html_asset.0.to_string(),
+        compilation_id: compilation.id(),
       })
       .await?;
   }
