@@ -1,7 +1,7 @@
 {
   "private": true,
   "engines": {
-    "node": ">=10.13.0"
+    "node": ">=22.14.0"
   },
   "dependencies": {
     "react": "*"
