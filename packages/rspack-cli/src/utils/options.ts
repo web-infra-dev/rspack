@@ -47,8 +47,8 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			},
 			'config-loader': {
 				type: "string",
-				default: "native",
-				describe: "Specify the loader to load the config file, can be `none` or `native`.",
+				default: "register",
+				describe: "Specify the loader to load the config file, can be `native` or `register`.",
 			},
 		})
 		.alias({ v: "version", h: "help" });
