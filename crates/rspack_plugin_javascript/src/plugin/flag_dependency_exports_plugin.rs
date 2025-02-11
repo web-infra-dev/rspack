@@ -4,9 +4,9 @@ use indexmap::IndexMap;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
-  CompilationFinishModules, CompilerOptions, DependenciesBlock, DependencyId, ExportInfoProvided,
-  ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
+  CompilationFinishModules, CompilationLogger, CompilerOptions, DependenciesBlock, DependencyId,
+  ExportInfoProvided, ExportNameOrSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec, Logger,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -18,19 +18,23 @@ struct FlagDependencyExportsState<'a> {
   changed: bool,
   current_module_id: ModuleIdentifier,
   dependencies: IdentifierMap<IdentifierSet>,
+  logger: CompilationLogger,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(mg: &'a mut ModuleGraph<'a>) -> Self {
+  pub fn new(mg: &'a mut ModuleGraph<'a>, logger: CompilationLogger) -> Self {
     Self {
       mg,
       changed: false,
       current_module_id: ModuleIdentifier::default(),
       dependencies: IdentifierMap::default(),
+      logger,
     }
   }
 
   pub fn apply(&mut self, modules: IdentifierSet) {
+    let start = self.logger.time("traverse modules");
+
     let mut q = Queue::new();
 
     for module_id in modules {
@@ -70,6 +74,10 @@ impl<'a> FlagDependencyExportsState<'a> {
       q.enqueue(module_id);
     }
 
+    self.logger.time_end(start);
+
+    let start = self.logger.time("process dependencies block and exports");
+
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
@@ -84,6 +92,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         self.notify_dependencies(&mut q);
       }
     }
+
+    self.logger.time_end(start);
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
@@ -346,14 +356,15 @@ pub struct FlagDependencyExportsPlugin;
 
 #[plugin_hook(CompilationFinishModules for FlagDependencyExportsPlugin)]
 async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+  let logger = compilation.get_logger("rspack.FlagDependencyExportsPlugin");
+
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
     let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
-    let logger = compilation.get_logger("rspack.incremental.providedExports");
     logger.log(format!(
-      "{} modules are affected, {} in total",
+      "incremental {} modules are affected, {} in total",
       modules.len(),
       compilation.get_module_graph().modules().len()
     ));
@@ -366,13 +377,14 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .copied()
       .collect()
   };
-  FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut()).apply(modules);
+  FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut(), logger).apply(modules);
+
   Ok(())
 }
 
 impl Plugin for FlagDependencyExportsPlugin {
   fn name(&self) -> &'static str {
-    "FlagDependencyExportsPlugin"
+    "rspack.FlagDependencyExportsPlugin"
   }
 
   fn apply(&self, ctx: PluginContext<&mut ApplyContext>, _options: &CompilerOptions) -> Result<()> {
