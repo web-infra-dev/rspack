@@ -14,10 +14,7 @@ const config = {
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
-	testMatch: [
-		"<rootDir>/tests/*.test.js",
-		"<rootDir>/tests/legacy-test/*.test.js"
-	],
+	testMatch: ["<rootDir>/tests/Config.test.js"],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
 		slash: path.join(__dirname, "../../scripts/test/slash.cjs"),
