@@ -33,7 +33,7 @@
     "less": "4.2.2",
     "less-loader": "^11.1.0",
     "loader-utils": "^2.0.4",
-    "memfs": "^4.9.2",
+    "memfs": "^4.17.0",
     "mime-types": "^2.1.27",
     "mini-svg-data-uri": "^1.2.3",
     "postcss-loader": "^7.3.4",
