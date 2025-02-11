@@ -24,6 +24,11 @@ declare interface JsModule {
   	matchResource: string | undefined
 }
 
+declare interface JsModuleGraphConnection {
+	dependency: JsDependency
+  	resolvedModule: JsModule | null
+}
+
 /* -- napi-rs generated below -- */
 
 export declare class ExternalObject<T> {
@@ -261,9 +266,7 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): JsDependency
   get module(): JsModule | null
-  get resolvedModule(): JsModule | null
   get originModule(): JsModule | null
 }
 

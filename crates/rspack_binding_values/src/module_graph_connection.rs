@@ -1,9 +1,12 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::bindgen_prelude::ToNapiValue;
+use napi::{
+  bindgen_prelude::{JavaScriptClassExt, ToNapiValue},
+  Env,
+};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph};
-use rspack_napi::OneShotRef;
+use rspack_napi::OneShotInstanceRef;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{JsDependencyWrapper, JsModuleWrapper};
@@ -25,42 +28,11 @@ impl JsModuleGraphConnection {
 
 #[napi]
 impl JsModuleGraphConnection {
-  #[napi(getter, ts_return_type = "JsDependency")]
-  pub fn dependency(&self) -> napi::Result<JsDependencyWrapper> {
-    let (compilation, module_graph) = self.as_ref()?;
-    if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
-      Ok(JsDependencyWrapper::new(
-        dependency.as_ref(),
-        compilation.id(),
-        Some(compilation),
-      ))
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access Dependency with id = {:#?} now. The Dependency have been removed on the Rust side.",
-        self.dependency_id
-      )))
-    }
-  }
-
   #[napi(getter, ts_return_type = "JsModule | null")]
   pub fn module(&self) -> napi::Result<Option<JsModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
       let module = module_graph.module_by_identifier(connection.module_identifier());
-      Ok(module.map(|m| JsModuleWrapper::new(m.as_ref(), compilation.id(), Some(compilation))))
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
-        self.dependency_id
-      )))
-    }
-  }
-
-  #[napi(getter, ts_return_type = "JsModule | null")]
-  pub fn resolved_module(&self) -> napi::Result<Option<JsModuleWrapper>> {
-    let (compilation, module_graph) = self.as_ref()?;
-    if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-      let module = module_graph.module_by_identifier(&connection.resolved_module);
       Ok(module.map(|m| JsModuleWrapper::new(m.as_ref(), compilation.id(), Some(compilation))))
     } else {
       Err(napi::Error::from_reason(format!(
@@ -89,7 +61,7 @@ impl JsModuleGraphConnection {
   }
 }
 
-type ModuleGraphConnectionRefs = HashMap<DependencyId, OneShotRef<JsModuleGraphConnection>>;
+type ModuleGraphConnectionRefs = HashMap<DependencyId, OneShotInstanceRef<JsModuleGraphConnection>>;
 
 type ModuleGraphConnectionRefsByCompilationId =
   RefCell<HashMap<CompilationId, ModuleGraphConnectionRefs>>;
@@ -148,7 +120,41 @@ impl ToNapiValue for JsModuleGraphConnectionWrapper {
             compilation: val.compilation,
             dependency_id: val.dependency_id,
           };
-          let r = vacant_entry.insert(OneShotRef::new(env, js_dependency)?);
+          let env_wrapper = Env::from_raw(env);
+          let instance = js_dependency.into_instance(&env_wrapper)?;
+
+          // Construct immutable JavaScript fields for the dependency
+          let mut this = instance.as_object(&env_wrapper);
+          let compilation = unsafe { val.compilation.as_ref() };
+          let module_graph = compilation.get_module_graph();
+
+          if let Some(connection) = module_graph.connection_by_dependency_id(&val.dependency_id) {
+            if let Some(module) = module_graph.module_by_identifier(&connection.resolved_module) {
+              let js_module = JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
+              this.set_named_property("resolvedModule", js_module)?;
+            }
+          } else {
+            return Err(napi::Error::from_reason(format!(
+              "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
+              val.dependency_id
+            )));
+          }
+
+          if let Some(dependency) = module_graph.dependency_by_id(&val.dependency_id) {
+            let js_dependency = JsDependencyWrapper::new(
+              dependency.as_ref(),
+              compilation.id(),
+              Some(compilation),
+            );
+            this.set_named_property("dependency", js_dependency)?;
+          } else {
+            return Err(napi::Error::from_reason(format!(
+              "Unable to construct ModuleGraphConnection with id = {:#?} now. The Dependency have been removed on the Rust side.",
+              val.dependency_id
+            )));
+          }
+
+          let r = vacant_entry.insert(OneShotInstanceRef::try_from_instrance(env, instance)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }

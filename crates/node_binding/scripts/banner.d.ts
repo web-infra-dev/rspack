@@ -24,4 +24,9 @@ declare interface JsModule {
   	matchResource: string | undefined
 }
 
+declare interface JsModuleGraphConnection {
+	dependency: JsDependency
+  	resolvedModule: JsModule | null
+}
+
 /* -- napi-rs generated below -- */
