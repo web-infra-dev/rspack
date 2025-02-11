@@ -78,6 +78,7 @@ export declare class JsChunkGraph {
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
   getModuleId(jsModule: JsModule): string | null
+  getModuleHash(module: JsModule, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
 
