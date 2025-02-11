@@ -590,7 +590,6 @@ impl JsCompilation {
         )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
-
       modules
         .iter_mut()
         .for_each(|module| module.attach(compilation));
