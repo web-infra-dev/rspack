@@ -59,31 +59,18 @@ Rspack was initially created to solve performance problems encountered at ByteDa
 
 As of August 2024, we have released [Rspack 1.0](/blog/announcing-1-0), which is now what we consider production-ready as it covers most of webpack's APIs and features.
 
-Rspack is currently compatible with almost all loaders in the community. For the 50 most downloaded [webpack plugins](/guide/compatibility/plugin), more than 80% can be used in Rspack or have an alternative.
+Rspack is currently compatible with almost all loaders in the community. For the 50 most downloaded [webpack plugins](/guide/compatibility/plugin), more than 85% can be used in Rspack or have an alternative.
 
-Please refer to the [Rspack blog](/blog/index) for the latest updates on Rspack.
+:::tip Learn more
 
-## The future of Rspack
+- See [Rspack blogs](/blog/index) for the latest updates on Rspack.
+- See [Roadmap](/misc/planning/roadmap) for the future plans of Rspack.
 
-Although Rspack already meets the needs of many projects, there are still some gaps to reach the full capabilities of webpack. Prioritization will be based on community feedback, so please tell us about your needs!
+:::
 
-### Collaboration with community partners
+## Comparisons with other tools
 
-We are very willing to provide support to framework teams and toolchains within the community to unleash the true performance advantages of Rspack. If your framework or toolchain has a demand for high-performance build engines, let us know!
-
-### Enhancing plugin capabilities
-
-Rspack already implements the full `Loader` interface and most of the webpack plugin APIs. Although our goal is not to achieve 100% compatibility for plugin APIs, we will try our best to implement the mainstream requirements based on community feedback. At the same time, we are also exploring higher-performance plugin communication solutions to reduce the cost of plugin communication, thereby ensuring more plugin APIs can be implemented.
-
-### Continuously improving performance
-
-Performance is the core selling point and focus of Rspack development. In the future we'll explore higher-performance concurrent/multi-core-friendly algorithms, higher-performance caching solutions, higher-performance plugin communication solutions, etc.
-
-### Expanding the test suite
-
-Today Rspack is primarily tested using a subset of webpack's test cases. In the future, we'll cover more of these tests, while also expanding the test suite and including community projects to ensure compatibility across Rspack releases.
-
-## Compared with webpack
+### Compared with webpack
 
 [webpack](https://webpack.js.org/) is perhaps the most mature modern bundler, with an active ecosystem, flexible configuration, and rich features.
 
@@ -95,23 +82,23 @@ Today Rspack is primarily tested using a subset of webpack's test cases. In the 
 
 - **Optimized hot module replacement (HMR):** No matter how large your project is, ensuring a great experience for HMR places even steeper demands for build times than ordinary bundling. Rspack incorporates a specialized incremental compilation strategy to address this requirement.
 
-## Compared with Vite
+### Compared with Vite
 
 [Vite](https://vitejs.dev/) offers a great developer experience, but its reliance on [Rollup](https://rollupjs.org/) for production builds faces similar performance costs as other JavaScript-based algorithms. The same tradeoffs of webpack versus Rollup also apply, for example missing flexibility of the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) feature.
 
-## Compared with esbuild
+### Compared with esbuild
 
 [esbuild](https://esbuild.github.io/) achieves very good performance by implementing nearly all operations in Golang except for some JavaScript plugins. However, esbuild's feature set is not as complete as webpack, for example missing HMR and [optimization.splitChunks](/config/optimization#optimizationsplitchunks) features.
 
-## Compared with Turbopack
+### Compared with Turbopack
 
 [Turbopack](https://turbo.build/) is implemented in Rust like Rspack, but Turbopack started over with a redesigned architecture and configuration. This brings some benefits, but presents a steeper migration cost for projects that rely on webpack and its extensive ecosystem.
 
-## Compared with Rollup
+### Compared with Rollup
 
 Rspack and Rollup are both bundling tools, but they focus on different areas. Rollup is more suitable for bundling libraries, while Rspack is more suitable for bundling applications. Therefore, Rspack has optimized many features for bundling applications, such as HMR and Bundle splitting. Rollup produces ESM outputs that are more friendly to libraries than Rspack. There are also many tools in the community that encapsulate Rollup to some extent and provide more friendly support for bundling applications, such as vite and wmr. Currently, Rspack has better production build performance than rollup.
 
-## Compared with Parcel
+### Compared with Parcel
 
 The overall architecture of Rspack shares many similarities with [Parcel](https://parceljs.org/). For example, both treat CSS assets as first-class citizens and both support filter-based transformers. However, Parcel focuses more on out-of-the-box usability, while Rspack focuses more on providing flexible configuration for higher-level frameworks and tools. Parcel innovatively designed features like the Unified Graph and making HTML a first-class citizen. Rspack also plans to support these features in the future.
 

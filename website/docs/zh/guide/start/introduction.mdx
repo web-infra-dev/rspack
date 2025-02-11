@@ -66,29 +66,14 @@ import rspackAudio from '../../../public/rspack.mp3';
 
 我们在 2024 年 8 月发布了 [Rspack 1.0 版本](/blog/announcing-1-0)，覆盖了 webpack 绝大多数的 API 和功能，并达到生产稳定。
 
-目前，Rspack 已经兼容了社区几乎所有的 webpack loader。在下载量最高的 50 个 [webpack 插件](/guide/compatibility/plugin) 中，80% 以上都可以在 Rspack 中使用，或是找到替代方案。
+目前，Rspack 已经兼容了社区几乎所有的 webpack loader。在下载量最高的 50 个 [webpack 插件](/guide/compatibility/plugin) 中，85% 以上都可以在 Rspack 中使用，或是找到替代方案。
 
-请参考 [Rspack 博客](/blog/index) 来了解 Rspack 的最新动态。
+:::tip 了解更多
 
-## Rspack 的未来
+- 请参考 [Rspack 博客](/blog/index) 来了解 Rspack 的最新动态。
+- 请参考 [功能规划](/misc/planning/roadmap) 来了解 Rspack 的未来规划。
 
-虽然 Rspack 目前提供的能力已经能够满足大多数项目的使用，但是相比于 webpack 提供的完整能力，Rspack 仍然存在一些差距。因此，我们会根据社区的反馈，持续丰富 Rspack 的能力，从而满足更多构建场景的需求。
-
-### 和社区的伙伴合作
-
-Rspack 作为一个底层依赖，解决了我们在工作中遇到的很多问题，相信它也可以帮助社区解决一些问题。我们非常期待能与社区内的框架团队深入合作，让大家发挥出 Rspack 真正的性能优势。如果你的框架或者工具链对高性能构建引擎有需求，欢迎联系我们来获得更好的支持。
-
-### 提升插件化能力
-
-目前 Rspack 已经支持了完整的 Loader API 和大部分的 webpack plugin API。webpack 有着海量的 plugin API，虽然我们的目标**不是**实现 plugin API 的 100% 兼容，但是我们会尽可能地实现社区主流需要的 plugin API，以满足社区的需求。同时我们也在探索更高性能的插件通信方案，减小插件通信成本，以保证可以实现更多的插件 API。
-
-### 持续提升性能
-
-性能是 Rspack 的核心卖点，所以在未来我们会持续地对 Rspack 进行性能优化，提升 Rspack 的性能。如探索更高性能的并发/多核友好的算法，探索更高性能的缓存方案，探索更高性能的插件通信方案等等。
-
-### 建设完善的质量保障体系
-
-Rspack 复用了 webpack 的测试用例，未来我们会覆盖更多的 webpack 的测试用例，同时建设完善的 CI 体系，持续提升测试覆盖率，与社区项目共建 Ecosystem CI，避免 Rspack 的升级对上游项目造成 break，保障项目长期健康发展。
+:::
 
 ## 和其他构建工具的对比
 

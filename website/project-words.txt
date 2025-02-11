@@ -24,9 +24,9 @@ chakra
 chapple
 chenjiahan
 codeva
+Colum
 commmonjs
 cpuprofile
-Colum
 CRACO
 cssextractrspackplugin
 dail
@@ -152,6 +152,7 @@ rspackplugin
 rspress
 Rspress
 rstack
+Rstest
 ruid
 ruleoneof
 ruleparserdataurlcondition
