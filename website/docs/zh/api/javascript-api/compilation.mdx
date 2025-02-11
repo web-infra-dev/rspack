@@ -477,7 +477,7 @@ export default {
 重新构建指定模块。
 
 ```ts
-rebuildModule(m: Module, f: (err: Error, m: Module) => void): void;
+rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void;
 ```
 
 以下示例将重新构建结尾为 `a.js` 模块：

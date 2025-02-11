@@ -838,7 +838,7 @@ export class Compilation {
     // (undocumented)
     static PROCESS_ASSETS_STAGE_SUMMARIZE: number;
     // (undocumented)
-    rebuildModule(m: Module, f: (err: Error, m: Module) => void): void;
+    rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void;
     // (undocumented)
     renameAsset(filename: string, newFilename: string): void;
     // (undocumented)
