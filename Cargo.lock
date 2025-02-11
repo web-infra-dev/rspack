@@ -5149,6 +5149,7 @@ dependencies = [
 name = "rspack_plugin_real_content_hash"
 version = "0.2.0"
 dependencies = [
+ "dashmap 6.1.0",
  "derive_more 1.0.0",
  "indexmap 2.7.0",
  "once_cell",
@@ -5158,6 +5159,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_util",
  "rustc-hash 2.1.0",
  "tracing",
 ]

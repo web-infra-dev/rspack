@@ -13,6 +13,7 @@ pub struct RawOptimizationOptions {
   pub used_exports: WithBool<String>,
   pub provided_exports: bool,
   pub inner_graph: bool,
+  pub real_content_hash: bool,
   #[napi(ts_type = "boolean | string")]
   pub mangle_exports: WithBool<String>,
   pub concatenate_modules: bool,
@@ -50,6 +51,7 @@ impl TryFrom<RawOptimizationOptions> for Optimization {
       mangle_exports: value.mangle_exports.into(),
       concatenate_modules: value.concatenate_modules,
       avoid_entry_iife: value.avoid_entry_iife,
+      real_content_hash: value.real_content_hash,
     })
   }
 }

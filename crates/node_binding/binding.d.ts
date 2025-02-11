@@ -1957,6 +1957,7 @@ export interface RawOptimizationOptions {
   usedExports: boolean | string
   providedExports: boolean
   innerGraph: boolean
+  realContentHash: boolean
   mangleExports: boolean | string
   concatenateModules: boolean
   avoidEntryIife: boolean
