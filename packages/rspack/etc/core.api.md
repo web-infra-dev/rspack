@@ -547,6 +547,8 @@ class ChunkGraph {
     // (undocumented)
     getModuleChunksIterable(module: Module): Iterable<Chunk>;
     // (undocumented)
+    getModuleHash(module: Module, runtime: RuntimeSpec): string | null;
+    // (undocumented)
     getModuleId(module: Module): string | null;
     // (undocumented)
     getNumberOfEntryModules(chunk: Chunk): number;
@@ -10075,7 +10077,7 @@ const RuntimePluginImpl: {
 type RuntimePlugins = string[];
 
 // @public (undocumented)
-type RuntimeSpec = string | string[] | undefined;
+type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
 type SafeParseError<Input> = {
