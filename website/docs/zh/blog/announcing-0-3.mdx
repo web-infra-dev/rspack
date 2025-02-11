@@ -15,10 +15,10 @@ Rspack 在 0.3 版本将 `experiments.css = true` 的情况下的 CSS 默认处�
 
 在 Rspack 完全支持 `postcss-loader` 之前，Rspack fork 实现了 `@rspack/postcss-loader` 和内置实现了 `builtins.postcss` 以满足功能，目前 Rspack 已经完全支持了 `postcss-loader`，因此我们决定废弃掉 `@rspack/postcss-loader` 和 `builtins.postcss`，使用 `@rspack/postcss-loader` 的用户可以无缝迁移到 `postcss-loader` 上，而之前 Rspack 的 `builtins.postcss` 只实现了 `px2rem` 的转换功能，使用该功能的用户可以迁移到 `postcss-loader` 和 `postcss-plugin-px2rem` 上，如下是迁移方式。
 
-- before
+- before:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   builtins: {
     postcss: {
       pxtorem: {
@@ -29,10 +29,10 @@ module.exports = {
 };
 ```
 
-- after
+- after:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -64,8 +64,8 @@ module.exports = {
 
 为了更好的对齐 webpack 的 CSS 处理， Rspack 从 0.3 移除了内置的 autoprefixer 功能，你可以使用 postcss-loader 来实现 autoprefixer。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {

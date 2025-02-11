@@ -43,11 +43,8 @@ Though `shared.js` exist in 2 chunks, but it is executed only once, you don't ha
 
 This is the simplest and most intuitive way to split the code. However, this approach requires us to manually configure the Rspack. Let's start by looking at how to split multiple Chunks from multiple entry points.
 
-```js title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```js title="rspack.config.mjs"
+export default {
   mode: 'development',
   entry: {
     index: './src/index.js',
@@ -55,8 +52,6 @@ const config = {
   },
   stats: 'normal',
 };
-
-module.exports = config;
 ```
 
 ```js title=index.js
@@ -92,11 +87,8 @@ Rspack defaults to splitting files in the `node_modules` directory and duplicate
 
 We can configure the minimum split size to 0 to allow `shared.js` to be extracted on its own.
 
-```diff title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```diff title="rspack.config.mjs"
+export default {
   entry: {
     index: './src/index.js',
   },
@@ -106,8 +98,6 @@ const config = {
 +    }
 +  }
 };
-
-module.exports = config;
 ```
 
 When rebuild, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the product that contains `shared.js`.

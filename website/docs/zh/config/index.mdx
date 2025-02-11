@@ -27,7 +27,7 @@ export default defineConfig({
   </Tab>
   <Tab label="CJS">
 
-```js title="rspack.config.js"
+```js title="rspack.config.cjs"
 const { defineConfig } = require('@rspack/cli');
 
 module.exports = defineConfig({
@@ -196,14 +196,14 @@ $ rspack build -c rspack.prod.config.js
 
 ## 导出配置函数
 
-Rspack 支持在 `rspack.config.js` 中导出一个函数，你可以在函数中动态计算配置，并返回给 Rspack。
+Rspack 支持在 Rspack 配置文件中导出一个函数，你可以在函数中动态计算配置，并返回给 Rspack。
 
-```js title="rspack.config.js"
-module.exports = function (env, argv) {
+```js title="rspack.config.mjs"
+export default function (env, argv) {
   return {
     devtool: env.production ? 'source-map' : 'eval',
   };
-};
+}
 ```
 
 从上述示例中可以看到，该函数接受两个入参：
@@ -215,21 +215,21 @@ module.exports = function (env, argv) {
 
 除了通过 `env` 参数，通过 `process.env.NODE_ENV` 来判断当前环境是更常见的方式：
 
-```js title="rspack.config.js"
-module.exports = function (env, argv) {
+```js title="rspack.config.mjs"
+export default function (env, argv) {
   const isProduction = process.env.NODE_ENV === 'production';
   return {
     devtool: isProduction ? 'source-map' : 'eval',
   };
-};
+}
 ```
 
 ## 合并配置
 
 使用 `webpack-merge` 导出的 `merge` 函数来合并多个配置。
 
-```js title="rspack.config.js"
-const { merge } = require('webpack-merge');
+```js title="rspack.config.mjs"
+import { merge } from 'webpack-merge';
 
 const base = {};
 
@@ -237,8 +237,7 @@ const dev = {
   plugins: [new DevelopmentSpecifiedPlugin()],
 };
 
-module.exports =
-  process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
+export default process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
 ```
 
 关于 `merge` 的更多信息请查看 [webpack-merge 文档](https://npmjs.com/package/webpack-merge)。

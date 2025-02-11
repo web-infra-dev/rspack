@@ -75,7 +75,7 @@ export default {
 请使用 [resolve.tsConfig](/config/resolve#resolvetsconfig) 代替。
 
 ```diff
-module.exports = {
+export default {
   resolve: {
 -   tsConfigPath: path.resolve(__dirname, './tsconfig.json'),
 +   tsConfig: path.resolve(__dirname, './tsconfig.json'),
@@ -208,7 +208,9 @@ export default {
 如果你之前手动注册并配置 `rspack.SwcCssMinimizerRspackPlugin`，现在需要使用 `rspack.LightningCssMinimizerRspackPlugin`：
 
 ```diff
-module.exports = {
+import { rspack } from '@rspack/core';
+
+export default {
   optimization: {
     minimizer: [
 -     new rspack.SwcCssMinimizerRspackPlugin({

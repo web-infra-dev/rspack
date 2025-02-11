@@ -43,11 +43,8 @@ console.log('bar.js');
 
 这是最简单直观分离代码的方式。但这种方式需要我们手动对 Rspack 进行配置。我们来看看如何从通过多个入口起点分割出多个 Chunk 。
 
-```js title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```js title="rspack.config.mjs"
+export default {
   mode: 'development',
   entry: {
     index: './src/index.js',
@@ -55,8 +52,6 @@ const config = {
   },
   stats: 'normal',
 };
-
-module.exports = config;
 ```
 
 ```js title=index.js
@@ -92,11 +87,8 @@ Rspack 默认会对 `node_modules` 目录下的文件以及重复模块进行拆
 
 我们可以配置最小拆分体积为 0 ，来让 `shared.js` 被单独抽离。
 
-```diff title=rspack.config.js
-/**
- * @type {import('@rspack/core').Configuration}
- */
-const config = {
+```diff title="rspack.config.mjs"
+export default {
   entry: {
     index: './src/index.js',
   },
@@ -106,8 +98,6 @@ const config = {
 +    }
 +  }
 };
-
-module.exports = config;
 ```
 
 重新打包会发现 `shared.js` 被单独抽离出去，产物中多了一个包含有 `shared.js` 的 Chunk。

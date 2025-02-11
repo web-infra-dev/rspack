@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
 
@@ -214,10 +215,10 @@ export default {
 
 比如将 `output.publicPath` 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
 
-```js title="rspack.config.js"
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   output: {
     publicPath: 'https://example.com/',
     crossOriginLoading: 'anonymous',
@@ -1540,8 +1541,27 @@ export default {
 
 输出文件目录的绝对路径。
 
-```js title="rspack.config.js"
-const path = require('path');
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  output: {
+    path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
+const path = require('node:path');
 
 module.exports = {
   output: {
@@ -1549,6 +1569,9 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 注意 `[fullhash]` 将会被替换为构建过程中的 hash 值。
 

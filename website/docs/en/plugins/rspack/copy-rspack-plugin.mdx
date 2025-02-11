@@ -18,10 +18,10 @@ new rspack.CopyRspackPlugin(options);
 
 - Copy a single file. If the file does not exist, the plugin will throw an error.
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -34,10 +34,10 @@ module.exports = {
 
 - `patterns` can be a string, or an array of objects.
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -50,10 +50,10 @@ module.exports = {
 
 - Copy a directory. If there are no files in the directory, the plugin will throw an error.
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -67,11 +67,14 @@ module.exports = {
 
 - Use glob pattern to match and copy files.
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
-const path = require('node:path');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -90,10 +93,10 @@ module.exports = {
 
 - Use `to` to specify the destination path.
 
-```ts title="rspack.config.js"
-const { rspack } = require('@rspack/core');
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   entry: './src/index.js',
   plugins: [
     new rspack.CopyRspackPlugin({
@@ -114,10 +117,14 @@ module.exports = {
 
 The source path of the copy operation, which can be an absolute path, a relative path, or a glob pattern. It can refer to a file or a directory. If a relative path is passed, it is relative to the [context](#context) option.
 
-```js title="rspack.config.js"
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       patterns: [
@@ -187,10 +194,14 @@ export default {
 
 `context` is a path to be prepended to `from` and removed from the start of the result paths.
 
-```js
-const path = require('node:path');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
   plugins: [
     new rspack.CopyRspackPlugin({
       // `./src/*.json` -> `./dist/*.json`

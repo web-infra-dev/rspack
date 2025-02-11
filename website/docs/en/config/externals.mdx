@@ -42,7 +42,7 @@ import $ from 'jquery';
 $('.my-element').animate(/* ... */);
 ```
 
-The property name `jquery` specified under `externals` in the above `rspack.config.js` indicates that the module `jquery` in `import $ from 'jquery'` should be excluded from bundling. In order to replace this module, the value `jQuery` will be used to retrieve a global `jQuery` variable, as the default external library type is `var`, see [externalsType](#externalstype).
+The property name `jquery` specified under `externals` in the above Rspack configuration indicates that the module `jquery` in `import $ from 'jquery'` should be excluded from bundling. In order to replace this module, the value `jQuery` will be used to retrieve a global `jQuery` variable, as the default external library type is `var`, see [externalsType](#externalstype).
 
 While we showed an example consuming external global variable above, the external can actually be available in any of these forms: global variable, CommonJS, AMD, ES2015 Module, see more in [externalsType](#externalstype).
 
@@ -587,8 +587,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     outputModule: true,
   },

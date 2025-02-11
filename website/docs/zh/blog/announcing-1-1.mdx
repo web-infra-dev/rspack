@@ -85,7 +85,7 @@ export default {
 
 ```js title="rspack.config.mjs"
 const AddAttributePlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,

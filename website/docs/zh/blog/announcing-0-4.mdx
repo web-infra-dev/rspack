@@ -32,8 +32,8 @@ Rspack 不再支持 Node.js 14，现在需要 Node.js 16+。
 - [builtins.decorator](https://v0.rspack.dev/config/builtins#builtinsdecorator)：移动到 `jsc.parser.decorators`
 - [builtins.presetEnv](https://v0.rspack.dev/config/builtins#builtinspresetenv)：移动到 `jsc.env`
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -69,8 +69,8 @@ module.exports = {
 
 2. [target](/config/target) 不再降级用户端代码（包含 node_modules）
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
   target: ["web", "es5"],
   module: {
     rules: [
@@ -102,11 +102,12 @@ module.exports = {
 
 由于在 v0.4.0 中默认启用了 `experiments.rspackFuture.disableTransformByDefault`，`builtin.react.refresh` 也已被废弃。现在我们建议使用 `@rspack/plugin-react-refresh` 来启用 React Fast Refresh。你需要手动安装 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 和 [react-refresh](https://www.npmjs.com/package/react-refresh)。
 
-```diff
-+ const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+```diff title="rspack.config.mjs"
++ import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+
 const isDev = process.env.NODE_ENV === 'development';
 
-module.exports = {
+export default {
   // ...
   mode: isDev ? 'development' : 'production',
   module: {
@@ -140,7 +141,7 @@ module.exports = {
 -  },
   plugins: [
 +    isDev && new ReactRefreshPlugin()
-  ].filter(Boolean),
+  ],
 };
 ```
 
@@ -230,9 +231,10 @@ Rspack 在 v0.4.0 中废弃了部分 builtin options 并迁移至 Rspack [内部
 
 原有的 `builtins.define` 可以这样迁移：
 
-```diff
-+ const { rspack } = require("@rspack/core")
-module.exports = {
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+
+export default {
 -  builtins: {
 -    define: { process.env.NODE_ENV: JSON.stringify(process.env.NODE_ENV) }
 -  },
@@ -244,9 +246,10 @@ module.exports = {
 
 对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
 
-```diff
-+ const { rspack } = require("@rspack/core")
-module.exports = {
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+
+export default {
 -  builtins: {
 -    html: [{ template: "./index.html" }]
 -  },
@@ -258,9 +261,10 @@ module.exports = {
 
 当 `builtins.html` 中存在多个配置，可以创建多个插件实例：
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
     new rspack.HtmlRspackPlugin({ template: './foo.html' }),
@@ -272,9 +276,10 @@ module.exports = {
 
 原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   optimization: {
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin({

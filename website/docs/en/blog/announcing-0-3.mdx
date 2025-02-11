@@ -17,8 +17,8 @@ Before Rspack fully supported `postcss-loader`, Rspack implemented `@rspack/post
 
 • Before:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   builtins: {
     postcss: {
       pxtorem: {
@@ -31,8 +31,8 @@ module.exports = {
 
 • After:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -64,8 +64,8 @@ module.exports = {
 
 To align better with webpack's CSS handling, Rspack removes the built-in autoprefixer functionality in 0.3. You can use `postcss-loader` to achieve `autoprefixer`.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
@@ -87,7 +87,7 @@ module.exports = {
 };
 ```
 
-You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/postcss-loader/rspack.config.js) for a complete example.
+You can refer to the [examples/postcss-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/postcss-loader) for a complete example.
 
 ### Access to internal modules restricted
 

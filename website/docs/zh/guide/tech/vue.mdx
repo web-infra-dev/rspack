@@ -38,8 +38,8 @@ export default defineConfig({
 
 由于 Rspack 原生支持了 CSS 模块的编译，因此你无需配置与 CSS 相关的 loader。另外，当你尝试使用 CSS 预处理器（如：less）时，你只需要添加如下配置即可：
 
-```diff
-const config = {
+```diff title="rspack.config.mjs"
+export default {
   module: {
     rules: [
 +      {
@@ -50,7 +50,6 @@ const config = {
     ]
   }
 }
-module.exports = config;
 ```
 
 此时，Rspack 将会使用内置的 CSS 处理器进行后处理。

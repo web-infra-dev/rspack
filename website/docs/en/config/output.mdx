@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/output/" />
 
@@ -218,10 +219,10 @@ If `target` is `'web'`, Rspack will dynamically create `<script>` and `<link>` t
 
 For example, set `output.publicPath` to `https://example.com/` and `output.crossOriginLoading` to `'anonymous'`:
 
-```js title="rspack.config.js"
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   output: {
     publicPath: 'https://example.com/',
     crossOriginLoading: 'anonymous',
@@ -1548,8 +1549,27 @@ export default {
 
 The output directory as an **absolute** path.
 
-```js title="rspack.config.js"
-const path = require('path');
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  output: {
+    path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
+const path = require('node:path');
 
 module.exports = {
   output: {
@@ -1557,6 +1577,9 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 Note that `[fullhash]` in this parameter will be replaced with a hash of the compilation.
 

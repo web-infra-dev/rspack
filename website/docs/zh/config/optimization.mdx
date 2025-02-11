@@ -117,10 +117,10 @@ export default {
 
 当设置了 `optimization.minimizer` 时，默认的压缩器会被禁用。
 
-```js title=rspack.config.js
-const TerserPlugin = require('terser-webpack-plugin');
+```js title="rspack.config.mjs"
+import TerserPlugin from 'terser-webpack-plugin';
 
-module.exports = {
+export default {
   optimization: {
     minimizer: [new TerserPlugin()],
   },
@@ -129,10 +129,10 @@ module.exports = {
 
 使用 Rspack 内置的压缩器，并自定义压缩选项：
 
-```js title=rspack.config.js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   optimization: {
     // 当声明了 `optimization.minimizer`，默认压缩器会被禁用
     // 但你可以配合使用 '...'，它代表默认压缩器

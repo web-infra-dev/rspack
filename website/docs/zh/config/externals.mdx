@@ -42,7 +42,7 @@ import $ from 'jquery';
 $('.my-element').animate(/* ... */);
 ```
 
-上面 `rspack.config.js` 中 `externals` 下指定的属性名称 `jquery` 表示 `import $ from 'jquery'` 中的模块 `jquery` 应该从打包产物中排除。为了替换这个模块，`jQuery` 值将用于检索全局 `jQuery` 变量，因为默认的外部库类型是 `var`，请参阅 [externalsType](#externalstype)。
+在上面 Rspack 配置中，`externals` 下指定的属性名称 `jquery` 表示 `import $ from 'jquery'` 中的模块 `jquery` 应该从打包产物中排除。为了替换这个模块，`jQuery` 值将用于检索全局 `jQuery` 变量，因为默认的外部库类型是 `var`，请参阅 [externalsType](#externalstype)。
 
 虽然我们在上面展示了一个使用外部全局变量的示例，但实际上可以以以下任何形式使用外部变量：全局变量、CommonJS、AMD、ES2015 模块，在 [externalsType](#externalstype) 中查看更多信息。
 
@@ -585,8 +585,8 @@ import jq from 'jquery';
 jq('.my-element').animate(/* ... */);
 ```
 
-```js title=rspack.config.js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externalsType: 'node-commonjs',
   externals: {
     jquery: 'jquery',
