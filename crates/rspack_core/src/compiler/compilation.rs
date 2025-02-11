@@ -133,7 +133,7 @@ pub struct CompilationHooks {
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
-pub struct CompilationId(u32);
+pub struct CompilationId(pub u32);
 
 impl CompilationId {
   pub fn new() -> Self {

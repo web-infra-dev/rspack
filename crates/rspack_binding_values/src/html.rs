@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use cow_utils::CowUtils;
 use napi::Either;
 use napi_derive::napi;
+use rspack_core::CompilationId;
 use rspack_plugin_html::{
   asset::{HtmlPluginAssetTags, HtmlPluginAssets},
   tag::{HtmlPluginAttribute, HtmlPluginTag},
@@ -85,6 +86,8 @@ pub struct JsHtmlPluginAssets {
   pub css: Vec<String>,
   pub favicon: Option<String>,
   // manifest: Option<String>,
+  pub js_integrity: Option<Vec<Option<String>>>,
+  pub css_integrity: Option<Vec<Option<String>>>,
 }
 
 impl From<HtmlPluginAssets> for JsHtmlPluginAssets {
@@ -94,6 +97,8 @@ impl From<HtmlPluginAssets> for JsHtmlPluginAssets {
       js: value.js,
       css: value.css,
       favicon: value.favicon,
+      js_integrity: value.js_integrity,
+      css_integrity: value.css_integrity,
     }
   }
 }
@@ -105,6 +110,8 @@ impl From<JsHtmlPluginAssets> for HtmlPluginAssets {
       js: value.js,
       css: value.css,
       favicon: value.favicon,
+      js_integrity: value.js_integrity,
+      css_integrity: value.css_integrity,
     }
   }
 }
@@ -113,6 +120,7 @@ impl From<JsHtmlPluginAssets> for HtmlPluginAssets {
 pub struct JsBeforeAssetTagGenerationData {
   pub assets: JsHtmlPluginAssets,
   pub output_name: String,
+  pub compilation_id: u32,
 }
 
 impl From<JsBeforeAssetTagGenerationData> for BeforeAssetTagGenerationData {
@@ -120,6 +128,7 @@ impl From<JsBeforeAssetTagGenerationData> for BeforeAssetTagGenerationData {
     Self {
       assets: value.assets.into(),
       output_name: value.output_name,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }
@@ -129,6 +138,7 @@ impl From<BeforeAssetTagGenerationData> for JsBeforeAssetTagGenerationData {
     Self {
       assets: value.assets.into(),
       output_name: value.output_name,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -189,6 +199,7 @@ pub struct JsAlterAssetTagsData {
   pub asset_tags: JsHtmlPluginAssetTags,
   pub output_name: String,
   pub public_path: String,
+  pub compilation_id: u32,
 }
 
 impl From<AlterAssetTagsData> for JsAlterAssetTagsData {
@@ -197,6 +208,7 @@ impl From<AlterAssetTagsData> for JsAlterAssetTagsData {
       asset_tags: value.asset_tags.into(),
       output_name: value.output_name,
       public_path: value.public_path,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -207,6 +219,7 @@ impl From<JsAlterAssetTagsData> for AlterAssetTagsData {
       asset_tags: value.asset_tags.into(),
       output_name: value.output_name,
       public_path: value.public_path,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }
@@ -217,6 +230,7 @@ pub struct JsAlterAssetTagGroupsData {
   pub body_tags: Vec<JsHtmlPluginTag>,
   pub public_path: String,
   pub output_name: String,
+  pub compilation_id: u32,
 }
 
 impl From<AlterAssetTagGroupsData> for JsAlterAssetTagGroupsData {
@@ -234,6 +248,7 @@ impl From<AlterAssetTagGroupsData> for JsAlterAssetTagGroupsData {
         .collect::<Vec<_>>(),
       public_path: value.public_path,
       output_name: value.output_name,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -253,6 +268,7 @@ impl From<JsAlterAssetTagGroupsData> for AlterAssetTagGroupsData {
         .collect::<Vec<_>>(),
       public_path: value.public_path,
       output_name: value.output_name,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }
@@ -263,6 +279,7 @@ pub struct JsAfterTemplateExecutionData {
   pub head_tags: Vec<JsHtmlPluginTag>,
   pub body_tags: Vec<JsHtmlPluginTag>,
   pub output_name: String,
+  pub compilation_id: u32,
 }
 
 impl From<AfterTemplateExecutionData> for JsAfterTemplateExecutionData {
@@ -280,6 +297,7 @@ impl From<AfterTemplateExecutionData> for JsAfterTemplateExecutionData {
         .map(JsHtmlPluginTag::from)
         .collect::<Vec<_>>(),
       output_name: value.output_name,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -299,6 +317,7 @@ impl From<JsAfterTemplateExecutionData> for AfterTemplateExecutionData {
         .map(HtmlPluginTag::from)
         .collect::<Vec<_>>(),
       output_name: value.output_name,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }
@@ -307,6 +326,7 @@ impl From<JsAfterTemplateExecutionData> for AfterTemplateExecutionData {
 pub struct JsBeforeEmitData {
   pub html: String,
   pub output_name: String,
+  pub compilation_id: u32,
 }
 
 impl From<BeforeEmitData> for JsBeforeEmitData {
@@ -314,6 +334,7 @@ impl From<BeforeEmitData> for JsBeforeEmitData {
     Self {
       html: value.html,
       output_name: value.output_name,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -323,6 +344,7 @@ impl From<JsBeforeEmitData> for BeforeEmitData {
     Self {
       html: value.html,
       output_name: value.output_name,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }
@@ -330,12 +352,14 @@ impl From<JsBeforeEmitData> for BeforeEmitData {
 #[napi(object)]
 pub struct JsAfterEmitData {
   pub output_name: String,
+  pub compilation_id: u32,
 }
 
 impl From<AfterEmitData> for JsAfterEmitData {
   fn from(value: AfterEmitData) -> Self {
     Self {
       output_name: value.output_name,
+      compilation_id: value.compilation_id.0,
     }
   }
 }
@@ -344,6 +368,7 @@ impl From<JsAfterEmitData> for AfterEmitData {
   fn from(value: JsAfterEmitData) -> Self {
     Self {
       output_name: value.output_name,
+      compilation_id: CompilationId(value.compilation_id),
     }
   }
 }

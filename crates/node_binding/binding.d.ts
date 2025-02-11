@@ -412,6 +412,7 @@ export interface JsAdditionalTreeRuntimeRequirementsResult {
 
 export interface JsAfterEmitData {
   outputName: string
+  compilationId: number
 }
 
 export interface JsAfterResolveData {
@@ -429,6 +430,7 @@ export interface JsAfterTemplateExecutionData {
   headTags: Array<JsHtmlPluginTag>
   bodyTags: Array<JsHtmlPluginTag>
   outputName: string
+  compilationId: number
 }
 
 export interface JsAlterAssetTagGroupsData {
@@ -436,12 +438,14 @@ export interface JsAlterAssetTagGroupsData {
   bodyTags: Array<JsHtmlPluginTag>
   publicPath: string
   outputName: string
+  compilationId: number
 }
 
 export interface JsAlterAssetTagsData {
   assetTags: JsHtmlPluginAssetTags
   outputName: string
   publicPath: string
+  compilationId: number
 }
 
 export interface JsAsset {
@@ -509,11 +513,13 @@ export interface JsBannerContentFnCtx {
 export interface JsBeforeAssetTagGenerationData {
   assets: JsHtmlPluginAssets
   outputName: string
+  compilationId: number
 }
 
 export interface JsBeforeEmitData {
   html: string
   outputName: string
+  compilationId: number
 }
 
 export interface JsBeforeResolveArgs {
@@ -691,6 +697,8 @@ export interface JsHtmlPluginAssets {
   js: Array<string>
   css: Array<string>
   favicon?: string
+  jsIntegrity?: Array<string | undefined | null>
+  cssIntegrity?: Array<string | undefined | null>
 }
 
 export interface JsHtmlPluginAssetTags {
