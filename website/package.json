@@ -37,7 +37,7 @@
     "case-police": "0.7.0",
     "cspell": "^8.17.3",
     "cspell-ban-words": "0.0.4",
-    "prettier": "3.4.2",
+    "prettier": "3.5.0",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.0.2",
     "rspress": "1.41.1",
