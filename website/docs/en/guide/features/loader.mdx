@@ -126,13 +126,13 @@ The first input to this loader is the content of the file, allowing us to proces
 
 For example, to add a banner to all `*.js` files, the configuration might look like this:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   module: {
     rules: [
       {
         test: /\.js$/,
-        loader: require.resolve('./banner-loader.js'),
+        loader: './banner-loader.js',
       },
     ],
   },

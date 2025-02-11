@@ -27,7 +27,7 @@ export default defineConfig({
   </Tab>
   <Tab label="CJS">
 
-```js title="rspack.config.js"
+```js title="rspack.config.cjs"
 const { defineConfig } = require('@rspack/cli');
 
 module.exports = defineConfig({
@@ -196,14 +196,14 @@ $ rspack build -c rspack.prod.config.js
 
 ## Exporting a configuration function
 
-Rspack supports exporting a function in `rspack.config.js`, you can dynamically compute the configuration in the function and return it to Rspack.
+Rspack supports exporting a function in Rspack configuration file, you can dynamically compute the configuration in the function and return it to Rspack.
 
-```js title="rspack.config.js"
-module.exports = function (env, argv) {
+```js title="rspack.config.mjs"
+export default function (env, argv) {
   return {
     devtool: env.production ? 'source-map' : 'eval',
   };
-};
+}
 ```
 
 As you can see from the example above, the function takes two input parameters:
@@ -215,21 +215,21 @@ As you can see from the example above, the function takes two input parameters:
 
 In addition to passing the `env` parameter, it is more common to use `process.env.NODE_ENV` to determine the current environment:
 
-```js title="rspack.config.js"
-module.exports = function (env, argv) {
+```js title="rspack.config.mjs"
+export default function (env, argv) {
   const isProduction = process.env.NODE_ENV === 'production';
   return {
     devtool: isProduction ? 'source-map' : 'eval',
   };
-};
+}
 ```
 
 ## Merge configurations
 
 Use the `merge` function exported by `webpack-merge` to merge multiple configurations.
 
-```js title="rspack.config.js"
-const { merge } = require('webpack-merge');
+```js title="rspack.config.mjs"
+import { merge } from 'webpack-merge';
 
 const base = {};
 
@@ -237,8 +237,7 @@ const dev = {
   plugins: [new DevelopmentSpecifiedPlugin()],
 };
 
-module.exports =
-  process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
+export default process.env.NODE_ENV === 'development' ? merge(base, dev) : base;
 ```
 
 For more information of `merge`, please refer to [webpack-merge documentation](https://npmjs.com/package/webpack-merge).

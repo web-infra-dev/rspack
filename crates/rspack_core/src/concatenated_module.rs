@@ -608,6 +608,12 @@ impl Module for ConcatenatedModule {
       } else {
         self.build_info.top_level_declarations = None;
       }
+
+      // populate assets
+      self
+        .build_info
+        .assets
+        .extend(module_build_info.assets.clone());
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult::default())

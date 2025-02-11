@@ -104,14 +104,14 @@ export default {
   plugins: [
     isDev && new ReactRefreshPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
-  ].filter(Boolean),
+  ],
 };
 ```
 
 这种实现方式将代码注入逻辑和转换逻辑解耦，代码注入逻辑统一通过 `@rspack/plugin-react-refresh` 插件完成，代码转换通过 loader 完成。这意味着该插件可以配合 `builtin:swc-loader`、`swc-loader` 或 `babel-loader` 使用：
 
-- 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh/rspack.config.js)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
-- 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader/rspack.config.js)
+- 配合 `builtin:swc-loader` 使用方式可参考：[examples/react-refresh](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh)，使用 `swc-loader` 只需将 `builtin:swc-loader` 换为 `swc-loader` 即可。
+- 配合 `babel-loader` 的使用方式可参考：[examples/react-refresh-babel-loader](https://github.com/rspack-contrib/rspack-examples/tree/main/rspack/react-refresh-babel-loader)
 
 ## React Compiler
 
@@ -135,7 +135,7 @@ React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
 - [babel-plugin-react-compiler](https://www.npmjs.com/package/babel-plugin-react-compiler)
 - [@babel/plugin-syntax-jsx](https://www.npmjs.com/package/@babel/plugin-syntax-jsx)
 
-3. 在你的 Rspack 配置文件中注册 `babel-loader`：
+3. 在你的 Rspack 配置中注册 `babel-loader`：
 
 ```js title="rspack.config.mjs"
 export default {

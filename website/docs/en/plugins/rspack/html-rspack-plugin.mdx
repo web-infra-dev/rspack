@@ -518,7 +518,7 @@ If `base` is set, HtmlRspackPlugin will inject the `<base>` tag.
 
 The `<base>` tag can be generated through the following configuration:
 
-```js title="rspack.config.js"
+```js
 new HtmlWebpackPlugin({
   // Will generate: <base href="http://example.com/some/page.html">
   base: 'http://example.com/some/page.html',
@@ -567,9 +567,9 @@ export default {
 
 HtmlRspackPlugin provides some hooks that allow you to modify tags or generated HTML code. The hooks object can be obtained through `rspack.HtmlRspackPlugin.getCompilationHooks`:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const HtmlModifyPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('HtmlModifyPlugin', compilation => {
       const hooks = HtmlRspackPlugin.getCompilationHooks(compilation);
       // hooks.beforeAssetTagGeneration.tapPromise()
@@ -582,7 +582,7 @@ const HtmlModifyPlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [new HtmlRspackPlugin(), HtmlModifyPlugin],
 };
@@ -617,9 +617,9 @@ Only `assets.js`, `assets.css`, and `assets.favicon` can be modified. Modificati
 
 The following code adds an additional `extra-script.js` and generates a `<script defer src="extra-script.js"></script>` tag in the final html content.
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const AddScriptPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddScriptPlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
@@ -630,7 +630,7 @@ const AddScriptPlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [new HtmlRspackPlugin(), AddScriptPlugin],
 };
@@ -677,9 +677,9 @@ Only `assetTags` can be modified. Modifications to other items will not take eff
 
 The following code adds the `specialAttribute` property to all `script` type tags:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const AddAttributePlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('AddAttributePlugin', compilation => {
       HtmlRspackPlugin.getCompilationHooks(
         compilation,
@@ -695,7 +695,7 @@ const AddAttributePlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [new HtmlRspackPlugin(), AddAttributePlugin],
 };
@@ -726,9 +726,9 @@ Only `headTags` and `bodyTags` can be modified. Modifications to other items wil
 
 The following code moves the `async` `script` tags from `body` to `head`:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const MoveTagsPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('MoveTagsPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
@@ -740,7 +740,7 @@ const MoveTagsPlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [
     new HtmlRspackPlugin({
@@ -779,9 +779,9 @@ The HTML content and the tags to be injected can be modified here.
 
 The following code adds `Injected by plugin` at the end of the body. Then the tags will be injected after this text. Therefore, it will be `<Injected by plugin<script defer src="main.js"></script></body>` in the final HTML content:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const InjectContentPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(
         compilation,
@@ -792,7 +792,7 @@ const InjectContentPlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [
     new HtmlRspackPlugin({
@@ -825,9 +825,9 @@ Only `html` can be modified. Modifications to other items will not take effect.
 
 The following code adds `Injected by plugin` at the end of the body. It will be `<script defer src="main.js"></script>Injected by plugin</body>` in the final HTML content:
 
-```js title="rspack.config.js"
+```js title="rspack.config.mjs"
 const InjectContentPlugin = {
-  apply: function (compiler) {
+  apply(compiler) {
     compiler.hooks.compilation.tap('InjectContentPlugin', compilation => {
       HtmlWebpackPlugin.getCompilationHooks(compilation).beforeEmit.tapPromise(
         'InjectContentPlugin',
@@ -839,7 +839,7 @@ const InjectContentPlugin = {
   },
 };
 
-module.exports = {
+export default {
   //...
   plugins: [
     new HtmlRspackPlugin({

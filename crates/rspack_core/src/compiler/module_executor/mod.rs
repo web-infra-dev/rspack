@@ -5,10 +5,10 @@ mod overwrite;
 
 use std::sync::Arc;
 
-use dashmap::{mapref::entry::Entry, DashMap, DashSet};
+use dashmap::{mapref::entry::Entry, DashMap};
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
   oneshot,
@@ -43,8 +43,7 @@ pub struct ModuleExecutor {
 
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<MakeArtifact>>,
-  assets: DashMap<String, CompilationAsset>,
-  module_assets: IdentifierDashMap<DashSet<String>>,
+  module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
   module_code_generated_modules: IdentifierDashMap<IdentifierDashSet>,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
@@ -134,34 +133,16 @@ impl ModuleExecutor {
     let cutout = std::mem::take(&mut self.cutout);
     cutout.fix_artifact(&mut self.make_artifact);
 
+    let mut mg = compilation.make_artifact.get_module_graph_mut();
     let module_assets = std::mem::take(&mut self.module_assets);
-    for (original_module_identifier, files) in module_assets {
-      let assets = compilation
-        .module_assets
-        .entry(original_module_identifier)
-        .or_default();
-      for file in files {
-        assets.insert(file);
+    for (original_module_identifier, assets) in module_assets {
+      // recursive import module may not exist the module, just skip it
+      if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
+        module.build_info_mut().assets.extend(assets);
       }
     }
 
-    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
-    for (original_module_identifier, code_generation_modules) in module_code_generation_modules {
-      for module_identifier in code_generation_modules {
-        if let Some(module_assets) = compilation.module_assets.remove(&module_identifier) {
-          compilation
-            .module_assets
-            .entry(original_module_identifier)
-            .or_default()
-            .extend(module_assets);
-        }
-      }
-    }
-
-    let assets = std::mem::take(&mut self.assets);
-    for (filename, asset) in assets {
-      compilation.emit_asset(filename, asset);
-    }
+    //    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
 
     let diagnostics = self.make_artifact.take_diagnostics();
     compilation.extend_diagnostics(diagnostics);
@@ -257,11 +238,7 @@ impl ModuleExecutor {
         .module_assets
         .entry(original_module_identifier)
         .or_default()
-        .extend(execute_result.assets.clone());
-    }
-
-    for (key, value) in assets {
-      self.assets.insert(key.clone(), value);
+        .extend(assets);
     }
 
     for id in code_generated_modules {

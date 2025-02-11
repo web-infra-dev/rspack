@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import { Tabs, Tab } from '@theme';
 
 <WebpackLicense from="https://webpack.js.org/configuration/output/" />
 
@@ -218,10 +219,10 @@ If `target` is `'web'`, Rspack will dynamically create `<script>` and `<link>` t
 
 For example, set `output.publicPath` to `https://example.com/` and `output.crossOriginLoading` to `'anonymous'`:
 
-```js title="rspack.config.js"
-const path = require('path');
+```js title="rspack.config.mjs"
+import path from 'node:path';
 
-module.exports = {
+export default {
   output: {
     publicPath: 'https://example.com/',
     crossOriginLoading: 'anonymous',
@@ -798,8 +799,8 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
 1. If you provide an `array` as the `entry` point, only the last one in the array will be exposed.
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
      output: {
@@ -810,8 +811,8 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
 2. If an `object` is provided as the `entry` point, all entries can be exposed using the `array` syntax of `library`:
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: {
        a: './src/a.js',
@@ -869,8 +870,8 @@ Specify a name for the library.
 
 - **Type:** `string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}`
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -910,7 +911,7 @@ export default {
 
 When your library is loaded, the **return value of your entry point** will be assigned to a variable:
 
-```javascript
+```js
 var MyLibrary = _entry_return_;
 
 // In a separate script with `MyLibrary` loaded…
@@ -919,8 +920,8 @@ MyLibrary.doSomething();
 
 ##### type: 'assign'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -933,7 +934,7 @@ module.exports = {
 
 This will generate an implied global which has the potential to reassign an existing value (use with caution):
 
-```javascript
+```js
 MyLibrary = _entry_return_;
 ```
 
@@ -941,8 +942,8 @@ Be aware that if `MyLibrary` isn't defined earlier your library will be set in g
 
 ##### type: 'assign-properties'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -977,8 +978,8 @@ These options assign the return value of the entry point (e.g. whatever the entr
 
 ##### type: 'this'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -991,7 +992,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to `this` under the property named by `output.library.name`. The meaning of `this` is up to you:
 
-```javascript
+```js
 this['MyLibrary'] = _entry_return_;
 
 // In a separate script
@@ -1001,8 +1002,8 @@ MyLibrary.doSomething(); // if `this` is window
 
 ##### type: 'window'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1015,7 +1016,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `window` object using the `output.library.name` value.
 
-```javascript
+```js
 window['MyLibrary'] = _entry_return_;
 
 window.MyLibrary.doSomething();
@@ -1023,8 +1024,8 @@ window.MyLibrary.doSomething();
 
 ##### type: 'global'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1037,7 +1038,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the global object using the `output.library.name` value. Depending on the [`target`](/config/target) value, the global object could change respectively, e.g., `self`, `global` or `globalThis`.
 
-```javascript
+```js
 global['MyLibrary'] = _entry_return_;
 
 global.MyLibrary.doSomething();
@@ -1045,8 +1046,8 @@ global.MyLibrary.doSomething();
 
 ##### type: 'commonjs'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1059,7 +1060,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `exports` object using the `output.library.name` value. As the name implies, this is used in CommonJS environments.
 
-```javascript
+```js
 exports['MyLibrary'] = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1096,8 +1097,8 @@ However this feature is still experimental and not fully supported yet, so make 
 
 ##### type: 'commonjs2'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1110,7 +1111,7 @@ module.exports = {
 
 The **return value of your entry point** will be assigned to the `module.exports`. As the name implies, this is used in Node.js (CommonJS) environments:
 
-```javascript
+```js
 module.exports = _entry_return_;
 
 require('MyLibrary').doSomething();
@@ -1124,8 +1125,8 @@ Wondering the difference between CommonJS and CommonJS2 is? While they are simil
 
 ##### type: 'commonjs-static'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1140,13 +1141,13 @@ Individual exports will be set as properties on `module.exports`. The "static" i
 
 Input:
 
-```javascript
+```js
 export function doSomething() {}
 ```
 
 Output:
 
-```javascript
+```js
 function doSomething() {}
 
 // …
@@ -1156,13 +1157,13 @@ exports.doSomething = __webpack_exports__.doSomething;
 
 Consumption (CommonJS):
 
-```javascript
+```js
 const { doSomething } = require('./output.cjs'); // doSomething => [Function: doSomething]
 ```
 
 Consumption (ESM):
 
-```javascript
+```js
 import { doSomething } from './output.cjs'; // doSomething => [Function: doSomething]
 ```
 
@@ -1242,8 +1243,8 @@ This exposes your library under all the module definitions, allowing it to work 
 
 In this case, you need the `library.name` property to name your module:
 
-```javascript
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1256,7 +1257,7 @@ module.exports = {
 
 And finally the output is:
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1270,8 +1271,8 @@ And finally the output is:
 
 Note that omitting `library.name` will result in the assignment of all properties returned by the entry point be assigned directly to the root object, as documented under the [object assignment section](#expose-via-object-assignment). Example:
 
-```javascript
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     libraryTarget: 'umd',
@@ -1281,7 +1282,7 @@ module.exports = {
 
 The output will be:
 
-```javascript
+```js
 (function webpackUniversalModuleDefinition(root, factory) {
   if (typeof exports === 'object' && typeof module === 'object')
     module.exports = factory();
@@ -1297,8 +1298,8 @@ The output will be:
 
 You may specify an object for `library.name` for differing names per targets:
 
-```javascript
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1319,8 +1320,8 @@ This will expose your library as a [`System.register`](https://github.com/system
 
 System modules require that a global variable `System` is present in the browser when the Rspack bundle is executed. Compiling to `System.register` format allows you to `System.import('/bundle.js')` without additional configuration and has your Rspack bundle loaded into the System module registry.
 
-```javascript
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1332,7 +1333,7 @@ module.exports = {
 
 Output:
 
-```javascript
+```js
 System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
   return {
     execute: function () {
@@ -1344,7 +1345,7 @@ System.register([], function (__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
 
 By adding `output.library.name` to configuration in addition to having `output.library.type` set to `system`, the output bundle will have the library name as an argument to `System.register`:
 
-```javascript
+```js
 System.register(
   'MyLibrary',
   [],
@@ -1439,8 +1440,8 @@ Add a comment in the UMD wrapper.
 
 To insert the same comment for each `umd` type, set `auxiliaryComment` to a string:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {
@@ -1473,8 +1474,8 @@ which will yield the following:
 
 For fine-grained control, pass an object:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {
@@ -1499,8 +1500,8 @@ module.exports = {
 
 When using `output.library.type: "umd"`, setting `output.library.umdNamedDefine` to `true` will name the AMD module of the UMD build. Otherwise, an anonymous `define` is used.
 
-```javascript
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1548,8 +1549,27 @@ export default {
 
 The output directory as an **absolute** path.
 
-```js title="rspack.config.js"
-const path = require('path');
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  output: {
+    path: path.resolve(__dirname, 'dist/assets'),
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
+const path = require('node:path');
 
 module.exports = {
   output: {
@@ -1557,6 +1577,9 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 Note that `[fullhash]` in this parameter will be replaced with a hash of the compilation.
 

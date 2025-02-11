@@ -1,3 +1,5 @@
+import { Tabs, Tab } from '@theme';
+
 # ResolveLoader
 
 该配置项和 [`resolve`](/config/resolve) 的类型保持一致，但这个配置仅会对 [loader](/guide/features/loader) 的解析生效。
@@ -19,7 +21,27 @@
 
 比如，你在进行 loader 的开发，但又希望能在 loader 的使用示例中以用户视角展示使用方式，你可以这样写：
 
-```js title="rspack.config.js"
+<Tabs>
+  <Tab label="ESM">
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  resolveLoader: {
+    alias: {
+      'amazing-loader': require.resolve('path-to-your-amazing-loader'),
+    },
+  },
+};
+```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="rspack.config.cjs"
 module.exports = {
   resolveLoader: {
     alias: {
@@ -28,6 +50,9 @@ module.exports = {
   },
 };
 ```
+
+  </Tab>
+</Tabs>
 
 然后，在 example 的代码中这么写：
 

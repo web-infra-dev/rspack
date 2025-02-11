@@ -189,8 +189,8 @@ type ServerOptions =
   | (() => Server);
 ```
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     lazyCompilation: {
       backend: {
@@ -712,7 +712,7 @@ export default {
 
 Sample migration code:
 
-```javascript
+```js
 function transform(webpackConfig, rspackConfig) {
   rspackConfig.experiments = rspackConfig.experiments || {};
   if (webpackConfig.cache === undefined) {

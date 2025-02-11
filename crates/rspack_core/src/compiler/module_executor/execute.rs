@@ -37,7 +37,6 @@ pub struct ExecuteModuleResult {
   pub missing_dependencies: HashSet<ArcPath>,
   pub build_dependencies: HashSet<ArcPath>,
   pub code_generated_modules: IdentifierSet,
-  pub assets: HashSet<String>,
   pub id: ExecuteModuleId,
 }
 
@@ -82,14 +81,19 @@ impl Task<MakeTaskContext> for ExecuteTask {
       .expect("should have module")
       .identifier();
     let mut queue = vec![entry_module_identifier];
+    let mut assets = CompilationAssets::default();
     let mut modules = IdentifierSet::default();
 
     while let Some(m) = queue.pop() {
       modules.insert(m);
-      for m in mg.get_outgoing_connections(&m) {
+      let module = mg.module_by_identifier(&m).expect("should have module");
+      for (name, asset) in &module.build_info().assets {
+        assets.insert(name.clone(), asset.clone());
+      }
+      for c in mg.get_outgoing_connections(&m) {
         // TODO: handle circle
-        if !modules.contains(m.module_identifier()) {
-          queue.push(*m.module_identifier());
+        if !modules.contains(c.module_identifier()) {
+          queue.push(*c.module_identifier());
         }
       }
     }
@@ -263,18 +267,8 @@ impl Task<MakeTaskContext> for ExecuteTask {
       }
     };
 
-    let assets = std::mem::take(compilation.assets_mut());
+    assets.extend(std::mem::take(compilation.assets_mut()));
     let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
-    let module_assets = std::mem::take(&mut compilation.module_assets);
-    if execute_result.error.is_none() {
-      execute_result.assets = assets.keys().cloned().collect::<HashSet<_>>();
-      execute_result.assets.extend(
-        module_assets
-          .values()
-          .flat_map(|m| m.iter().map(|i| i.to_owned()).collect_vec())
-          .collect::<HashSet<String>>(),
-      );
-    }
     let executed_runtime_modules = runtime_modules
       .iter()
       .map(|runtime_id| {

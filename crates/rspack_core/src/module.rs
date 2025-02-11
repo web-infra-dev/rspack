@@ -19,17 +19,17 @@ use rspack_sources::Source;
 use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::concatenated_module::ConcatenatedModule;
 use crate::dependencies_block::dependencies_block_update_hash;
 use crate::{
   AsyncDependenciesBlock, BoxDependency, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation,
-  CompilationId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided, ExternalModule,
-  ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule, Resolve,
-  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
+  CompilationAsset, CompilationId, CompilerOptions, ConcatenationScope, ConnectionState, Context,
+  ContextModule, DependenciesBlock, DependencyId, DependencyTemplate, ExportInfoProvided,
+  ExternalModule, ModuleDependency, ModuleGraph, ModuleLayer, ModuleType, NormalModule, RawModule,
+  Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext {
@@ -67,6 +67,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
+  pub assets: HashMap<String, CompilationAsset>,
 }
 
 impl Default for BuildInfo {
@@ -85,6 +86,7 @@ impl Default for BuildInfo {
       json_data: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
+      assets: Default::default(),
     }
   }
 }

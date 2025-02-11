@@ -195,7 +195,7 @@ impl From<&str> for WasmLoadingType {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),

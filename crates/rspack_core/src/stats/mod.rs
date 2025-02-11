@@ -891,12 +891,11 @@ impl Stats<'_> {
       stats.assets = if executed {
         None
       } else {
-        let mut assets = self
-          .compilation
-          .module_assets
-          .get(&identifier)
-          .map(|files| files.iter().map(|i| i.to_string()).collect_vec())
-          .unwrap_or_default();
+        let mg = self.compilation.get_module_graph();
+        let module = mg
+          .module_by_identifier(&identifier)
+          .expect("should have module");
+        let mut assets = module.build_info().assets.keys().cloned().collect_vec();
         assets.sort();
         Some(assets)
       };

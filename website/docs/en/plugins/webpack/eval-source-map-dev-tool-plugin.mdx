@@ -36,8 +36,10 @@ Indicates whether column mappings should be used (defaults to `true`).
 
 You can use the following code to replace the configuration option `devtool: eval-source-map` with an equivalent custom plugin configuration:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   // ...
   devtool: false,
   plugins: [new rspack.EvalSourceMapDevToolPlugin({})],

@@ -730,12 +730,7 @@ export async function runLoaders(
 				content
 			);
 		}
-		compiler._lastCompilation!.__internal__emit_asset_from_loader(
-			name,
-			source!,
-			assetInfo!,
-			context._moduleIdentifier
-		);
+		loaderContext._module.emitFile(name, source!, assetInfo!);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 	loaderContext.experiments = {

@@ -54,12 +54,12 @@ import { PackageManagerTabs } from '@theme';
 
 :::
 
-在 `rspack.config.js` 的 [plugins](/config/plugins.html#plugins) 中初始化 RsdoctorRspackPlugin 插件，参考：
+在 Rspack 配置的 [plugins](/config/plugins.html#plugins) 中初始化 RsdoctorRspackPlugin 插件，参考：
 
-```ts title="rspack.config.js"
-const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
+```ts title="rspack.config.mjs"
+import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
-module.exports = {
+export default {
   // ...
   plugins: [
     // 仅在 RSDOCTOR 为 true 时注册插件，因为插件会增加构建耗时
@@ -67,7 +67,7 @@ module.exports = {
       new RsdoctorRspackPlugin({
         // 插件选项
       }),
-  ].filter(Boolean),
+  ],
 };
 ```
 

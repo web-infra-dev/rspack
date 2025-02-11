@@ -6,10 +6,10 @@ This plugin implements [Module Federation 1.5](https://github.com/module-federat
 
 ## Example
 
-```js
-const { rspack } = require('@rspack/core');
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default {
   output: {
     // set uniqueName explicitly to make HMR works
     uniqueName: 'app',
@@ -160,8 +160,8 @@ The SharedConfig can include the following sub-options:
 
   If you need to be compatible with legacy browsers, please add [builtin:swc-loader](/guide/features/builtin-swc-loader) for syntax downgrade, and make sure it matches `@module-federation/runtime` and `@module-federation/sdk`. Here is an example:
 
-  ```js
-  module.exports = {
+  ```js title="rspack.config.mjs"
+  export default {
     module: {
       rules: [
         {

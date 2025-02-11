@@ -4,9 +4,9 @@ use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
-  ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier, RuntimeModuleStage,
-  SourceType,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
+  CompilationId, ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier,
+  RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -15,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
+  JsAssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
   JsDependencyWrapper, JsResourceData, ToJsCompatSource,
 };
 
@@ -324,6 +324,22 @@ impl JsModule {
       },
       None => Either::B(()),
     })
+  }
+
+  #[napi]
+  pub fn emit_file(
+    &mut self,
+    filename: String,
+    source: JsCompatSource,
+    asset_info: JsAssetInfo,
+  ) -> napi::Result<()> {
+    let module = self.as_mut()?;
+
+    module.build_info_mut().assets.insert(
+      filename,
+      CompilationAsset::new(Some(source.into()), asset_info.into()),
+    );
+    Ok(())
   }
 }
 

@@ -6,11 +6,11 @@ Rspack 支持通过以下插件来生成 HTML 文件，并自动将生成的 CSS
 
 Rspack 完全支持 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
 
-```js title="rspack.config.js"
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const path = require('path');
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import path from 'node:path';
 
-module.exports = {
+export default {
   entry: 'index.js',
   output: {
     path: path.resolve(__dirname, './dist'),
