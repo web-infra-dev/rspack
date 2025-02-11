@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
@@ -11,15 +13,46 @@ pub struct CssImportDependency {
   id: DependencyId,
   request: String,
   range: DependencyRange,
+  media: Option<String>,
+  supports: Option<String>,
+  layer: Option<CssLayer>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum CssLayer {
+  Anonymous,
+  Named(String),
 }
 
 impl CssImportDependency {
-  pub fn new(request: String, range: DependencyRange) -> Self {
+  pub fn new(
+    request: String,
+    range: DependencyRange,
+    media: Option<String>,
+    supports: Option<String>,
+    layer: Option<CssLayer>,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       request,
       range,
+      media,
+      supports,
+      layer,
     }
+  }
+
+  pub fn media(&self) -> Option<&str> {
+    self.media.as_deref()
+  }
+
+  pub fn supports(&self) -> Option<&str> {
+    self.supports.as_deref()
+  }
+
+  pub fn layer(&self) -> Option<&CssLayer> {
+    self.layer.as_ref()
   }
 }
 
@@ -58,6 +91,24 @@ impl ModuleDependency for CssImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+}
+
+#[derive(Clone)]
+pub struct CssMedia(pub String);
+
+#[derive(Clone)]
+pub struct CssSupports(pub String);
+
+impl Display for CssMedia {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.0.fmt(f)
+  }
+}
+
+impl Display for CssSupports {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.0.fmt(f)
   }
 }
 

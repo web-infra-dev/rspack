@@ -1,0 +1,7 @@
+@import url("./b.css") (prefers-color-scheme: dark);
+
+@import url("./c.css") layer supports(display: grid);
+
+.a {
+	color: blue;
+}
