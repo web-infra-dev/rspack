@@ -745,8 +745,10 @@ impl Debug for RawModuleOptions {
 pub struct RawFuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
-  pub resource_query: Option<String>,
-  pub issuer: Option<String>,
+  pub resource_query: String,
+  pub resource_fragment: String,
+  pub issuer: String,
+  pub issuer_layer: String,
 }
 
 impl From<FuncUseCtx> for RawFuncUseCtx {
@@ -754,8 +756,10 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
     Self {
       resource: value.resource,
       real_resource: value.real_resource,
-      resource_query: value.resource_query,
-      issuer: value.issuer.map(|s| s.to_string()),
+      resource_query: value.resource_query.unwrap_or_default(),
+      resource_fragment: value.resource_fragment.unwrap_or_default(),
+      issuer: value.issuer.map(|s| s.to_string()).unwrap_or_default(),
+      issuer_layer: value.issuer_layer.unwrap_or_default(),
     }
   }
 }

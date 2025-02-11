@@ -908,7 +908,9 @@ pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
+  pub resource_fragment: Option<String>,
   pub issuer: Option<Box<str>>,
+  pub issuer_layer: Option<String>,
 }
 
 #[derive(Debug, Clone)]

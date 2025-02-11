@@ -1662,8 +1662,10 @@ export interface RawFlagAllModulesAsUsedPluginOptions {
 export interface RawFuncUseCtx {
   resource?: string
   realResource?: string
-  resourceQuery?: string
-  issuer?: string
+  resourceQuery: string
+  resourceFragment: string
+  issuer: string
+  issuerLayer: string
 }
 
 export interface RawGeneratorOptions {
