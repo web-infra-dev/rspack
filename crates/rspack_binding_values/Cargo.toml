@@ -5,7 +5,8 @@ license     = "MIT"
 name        = "rspack_binding_values"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
-
+[lib]
+crate-type = ["cdylib", "rlib"]
 [features]
 plugin = ["rspack_loader_swc/plugin"]
 
@@ -87,3 +88,6 @@ rspack_plugin_wasm                     = { workspace = true }
 rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 rspack_tracing                         = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }

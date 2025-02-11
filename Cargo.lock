@@ -4224,6 +4224,7 @@ dependencies = [
  "glob",
  "heck 0.5.0",
  "napi",
+ "napi-build",
  "napi-derive",
  "pollster",
  "rspack_cacheable",
