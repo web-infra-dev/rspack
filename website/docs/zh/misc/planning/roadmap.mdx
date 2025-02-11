@@ -2,23 +2,37 @@
 
 当前文档列出了 Rspack 正在支持的一些重要功能，其中一部分功能已经在实现过程中，一部分将在 Rspack 未来的版本中实现。
 
-> 更新时间：2024-10
+> 更新时间：2025-02
 
 ## Rspack 1.x 迭代
 
-Rspack 将每隔 2～3 个月发布一个 minor 版本，minor 版本将包含一些重要的新功能和改进。
+Rspack 将每隔 2～3 个月发布一个 minor 版本，minor 版本将包含一些重要的新功能和性能改进。
 
-## 更快的 HMR
+查看 [Rspack 博客](/blog/index) 来了解 Rspack 最新发布的 minor 版本。
 
-我们正在开发新版的 incremental build 实现，它将显著提升 Rspack 的 HMR 性能。
+## Wasm 产物
 
-Rspack v1.1 版本将支持实验性启用该功能，并将在未来的版本中持续优化，直到默认启用。
+我们正在将 Rspack 的 Rust 代码编译为 WebAssembly 格式，从而允许 Rspack 在浏览器中运行。
+
+你可以在这个 PR 中看到当前的进展：[#9134](https://github.com/web-infra-dev/rspack/pull/9134)。
+
+## 发布 Rstest
+
+我们正在实现 [Rstest](https://github.com/rspack/rstest)，一个基于 Rspack 的测试框架。它能够与 Rspack 生态中的工具和框架无缝集成，提供开箱即用的测试能力。
+
+我们计划于 2025 年下半年发布 Rstest 的首个版本。
+
+## 增量构建
+
+Rspack v1.1 引入了开发实验性的 [incremental build](/config/experiments#experimentsincremental) 实现，它可以显著提升 Rspack 的 HMR 性能。
+
+我们将在未来的版本中持续优化这项特性，直到默认启用它。
 
 ## 持久化缓存
 
-Persistent Cache 能够在多次构建中缓存构建的中间产物，显著减少二次构建的耗时，尤其是能够为大型项目带来很大的性能提升。
+持久化缓存能够在多次构建中缓存构建的中间产物，显著减少二次构建的耗时，尤其是能够为大型项目带来很大的性能提升。
 
-我们正在实现 Rspack 的 Persistent Cache 功能，并计划在 Rspack v1.2 版本中发布实验性支持。
+Rspack v1.2 引入了实验性的 [persistent cache](/config/experiments#experimentscache) 功能，未来我们将持续优化，进一步提升缓存的性能和覆盖范围。
 
 ## 可移植的缓存
 
@@ -28,15 +42,15 @@ Rspack 缓存能力的演进路线，是依次实现 memory cache、persistent c
 
 ## webpack API 对齐
 
-由于 webpack 包含了大量的 API，我们需要逐步地进行支持。我们将根据社区的反馈，优先支持一些高频使用的 loaders 和 plugins。
+由于 webpack 包含了丰富的 API，我们采取渐进式的方式进行支持。我们会密切关注社区反馈，优先支持一些高频使用的 loaders 和 plugins。
 
 ## 稳定的 Rust API
 
-目前，上层工具可以使用 JS API 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 [SWC Wasm plugin](/guide/features/builtin-swc-loader#jscexperimentalplugins) 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
+目前，上层工具可以使用 [JS API](/api/javascript-api/index) 来集成 Rspack，这提供了良好的扩展性。但是 Rust 和 JavaScript 存在通信开销，这在一定程度上限制了 Rspack 的性能。我们也提供了 [SWC Wasm plugin](/guide/features/builtin-swc-loader#jscexperimentalplugins) 以支持扩展，但是 Wasm 的性能相比 native 语言仍然有一定差距，为了给上层工具提供更灵活的接入方式和更好的性能，我们计划开放 Rspack 的 Rust API 用于集成。
 
 ## 改进 ESM 产物
 
-ESM 是 JavaScript 模块的标准，目前，我们正在改进 Rspack 和 webpack 对 ESM 产物的支持，并实现基于 Rspack 的 library 构建工具—— Rslib。这将帮助开发者更好地使用 Rspack 来构建 npm 包，并享受 ESM 带来的静态分析能力和 tree shaking 支持。
+ESM 是 JavaScript 模块的标准，目前，我们正在改进 Rspack 和 webpack 对 ESM 产物的支持，并实现基于 Rspack 的 library 构建工具—— [Rslib](https://github.com/web-infra-dev/rslib)。这将帮助开发者更好地使用 Rspack 来构建 npm 包，并享受 ESM 带来的静态分析能力和 tree shaking 支持。
 
 ## RSC 支持
 
@@ -45,3 +59,15 @@ ESM 是 JavaScript 模块的标准，目前，我们正在改进 Rspack 和 webp
 ## 基于 TypeScript 的优化
 
 目前 Rspack 在处理 TypeScript 模块时，会先通过 loader 将其转换为 JavaScript 再处理。这虽然提供了充足的灵活性，但是也阻碍了进一步的产物优化。 例如，开发者需要使用 `enum` 替代 `const enum`，但是 `enum` 本身难以进行常量优化，未来我们考虑重新将 TypeScript 作为 Rspack 的一等公民，充分利用 TypeScript 的静态信息，提供更高级的编译产物优化（如 [基于 type 的 property renaming](https://github.com/google/closure-compiler/wiki/Type-Based-Property-Renaming)）。
+
+### 持续提升性能
+
+性能是 Rspack 的核心卖点，所以在未来我们会持续地对 Rspack 进行性能优化，提升 Rspack 的性能。如探索更高性能的并发/多核友好的算法，探索更高性能的缓存方案，探索更高性能的插件通信方案等等。
+
+### 建设完善的质量保障体系
+
+Rspack 复用了 webpack 的测试用例，未来我们会覆盖更多的 webpack 的测试用例，同时建设完善的 CI 体系，持续提升测试覆盖率，与社区项目共建 Ecosystem CI，避免 Rspack 的升级对上游项目造成 break，保障项目长期健康发展。
+
+### 和社区的伙伴合作
+
+Rspack 作为一个底层依赖，解决了我们在工作中遇到的很多问题，相信它也可以帮助社区解决一些问题。我们非常期待能与社区内的框架团队深入合作，让大家发挥出 Rspack 真正的性能优势。如果你的框架或者工具链对高性能构建引擎有需求，欢迎联系我们来获得更好的支持。

@@ -2,23 +2,37 @@
 
 The current document lists some important features that Rspack will support, some of which are already in progress, while others will be implemented in future versions of Rspack.
 
-> Last updated: 2024-10
+> Last updated: February 2025
 
 ## Rspack 1.x iteration
 
-Rspack will release a minor version every 2-3 months, each containing significant new features and improvements.
+Rspack will release a minor version every 2-3 months, each containing significant new features and performance improvements.
 
-## Faster HMR
+See [Rspack blogs](/blog/index) to learn about the latest minor versions of Rspack.
 
-We are developing a new incremental build implementation that will significantly enhance Rspack's HMR performance.
+## Wasm build
 
-Rspack v1.1 will support this feature experimentally, and will continue to optimize it in future versions until it is enabled by default.
+We plan to compile Rspack's Rust code into WebAssembly format, allowing Rspack to run in the browser.
+
+You can see the current progress in this PR: [#9134](https://github.com/web-infra-dev/rspack/pull/9134).
+
+## Introduce Rstest
+
+We are implementing [Rstest](https://github.com/rspack/rstest), a testing framework based on Rspack. It can seamlessly integrate with Rspack's ecosystem and provide out-of-the-box testing capabilities.
+
+We plan to release the first version of Rstest in the second half of 2025.
+
+## Incremental build
+
+Rspack v1.1 introduces experimental support for [incremental build](/config/experiments#experimentsincremental), which significantly enhances Rspack's HMR performance.
+
+We will continue to optimize this feature in future versions until it is enabled by default.
 
 ## Persistent cache
 
-Persistent Cache can cache the build artifacts during multiple builds, significantly reducing the time for subsequent builds, especially providing a substantial performance boost for large projects.
+Persistent cache can cache the build artifacts during multiple builds, significantly reducing the time for subsequent builds, especially providing a substantial performance boost for large projects.
 
-We are implementing the Persistent Cache feature for Rspack and plan to release experimental support in Rspack v1.2.
+Rspack v1.2 introduces experimental support for [persistent cache](/config/experiments#experimentscache). We will continue to optimize it in the future to further improve cache performance and coverage.
 
 ## Portable cache
 
@@ -28,15 +42,15 @@ After that, we plan to continue implementing portable cache. This means that Rsp
 
 ## Webpack API alignment
 
-As webpack contains a large number of APIs, we will be working to support the most frequently used loaders and plugins based on feedback from the community first.
+As webpack has a rich API interface, we are taking a progressive approach to support them. We will closely follow community feedback and prioritize support for commonly used loaders and plugins.
 
-## Stable Rust API
+## Stabilize Rust API
 
-Currently, higher-level tools can use the JS API to integrate Rspack, which provides good extensibility. However, the communication overhead between Rust and JavaScript that limits the performance of Rspack. We also provide the [SWC Wasm plugin](/guide/features/builtin-swc-loader#jscexperimentalplugins) to support extensions, but its performance is still slower than native languages.To provide higher-level tools with more flexible integration options and better performance, we plan to expose Rspack's Rust API for integration.
+Currently, higher-level tools can use the [JS API](/api/javascript-api/index) to integrate Rspack, which provides good extensibility. However, the communication overhead between Rust and JavaScript that limits the performance of Rspack. We also provide the [SWC Wasm plugin](/guide/features/builtin-swc-loader#jscexperimentalplugins) to support extensions, but its performance is still slower than native languages.To provide higher-level tools with more flexible integration options and better performance, we plan to expose Rspack's Rust API for integration.
 
 ## Improved ESM output
 
-ESM is the standard for JavaScript modules. We are currently improving Rspack and webpack's support for ESM output and creating a library build tool based on Rspack called Rslib. This will allow developers to make better use of ESM's static analysis and tree-shaking when building npm packages.
+ESM is the standard for JavaScript modules. We are currently improving Rspack and webpack's support for ESM output and creating a library build tool based on Rspack called [Rslib](https://github.com/web-infra-dev/rslib). This will allow developers to make better use of ESM's static analysis and tree-shaking when building npm packages.
 
 ## React Server Components support
 
@@ -45,3 +59,15 @@ At ByteDance, we have experimentally supported RSC ([React Server Components](ht
 ## TypeScript-based optimization
 
 Currently, when Rspack processes TypeScript modules, it first converts them to JavaScript through a loader before further processing. This provides flexibility but also hinders further optimization of the build output. For example, developers need to use `enum` instead of `const enum`, but `enum` is difficult to optimize as a constant. In the future, we plan to treat TypeScript as a first-class citizen in Rspack, leveraging TypeScript's static information to provide more advanced compile-time optimization of the build output (such as [type-based property renaming](https://github.com/google/closure-compiler/wiki/Type-Based-Property-Renaming)).
+
+### Continuously improving performance
+
+Performance is the core selling point and focus of Rspack development. In the future we'll explore higher-performance concurrent/multi-core-friendly algorithms, higher-performance caching solutions, higher-performance plugin communication solutions, etc.
+
+### Expanding the test suite
+
+Today Rspack is primarily tested using a subset of webpack's test cases. In the future, we'll cover more of these tests, while also expanding the test suite and including community projects to ensure compatibility across Rspack releases.
+
+### Collaboration with community partners
+
+We are very willing to provide support to framework teams and toolchains within the community to unleash the true performance advantages of Rspack. If your framework or toolchain has a demand for high-performance build engines, let us know!

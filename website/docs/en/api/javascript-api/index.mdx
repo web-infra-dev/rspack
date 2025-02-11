@@ -1,6 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import { Collapse, CollapsePanel } from '@components/Collapse';
-import { PackageManagerTabs } from '@theme';
+import { Tab, Tabs, PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta';
 import CompilerType from '../../types/compiler.mdx';
 import WatchingType from '../../types/watching.mdx';
@@ -24,11 +24,24 @@ To start using the Rspack JavaScript API, first install `@rspack/core` if you ha
 
 <PackageManagerTabs command="add @rspack/core -D" />
 
-Then require the `@rspack/core` module in your JavaScript file:
+Then introduce the `@rspack/core` module in your JavaScript file:
 
-```js title="build.js"
+<Tabs>
+  <Tab label="ESM">
+
+```js title="build.mjs"
 import { rspack } from '@rspack/core';
 ```
+
+  </Tab>
+  <Tab label="CJS">
+
+```js title="build.cjs"
+const { rspack } = require('@rspack/core');
+```
+
+  </Tab>
+</Tabs>
 
 ## rspack()
 
