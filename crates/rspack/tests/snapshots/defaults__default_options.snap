@@ -1359,6 +1359,7 @@ CompilerOptions {
         mangle_exports: False,
         concatenate_modules: false,
         avoid_entry_iife: false,
+        real_content_hash: false,
     },
     profile: false,
     amd: None,
