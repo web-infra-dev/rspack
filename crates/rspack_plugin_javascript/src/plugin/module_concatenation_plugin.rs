@@ -613,17 +613,6 @@ impl ModuleConcatenationPlugin {
       config.runtime.clone(),
       compilation,
     );
-    let new_module_assets: HashSet<String> =
-      modules_set.iter().fold(HashSet::default(), |mut acc, id| {
-        acc.extend(
-          compilation
-            .module_assets
-            .get(id)
-            .cloned()
-            .unwrap_or_default(),
-        );
-        acc
-      });
     new_module
       .build(
         rspack_core::BuildContext {
@@ -716,11 +705,8 @@ impl ModuleConcatenationPlugin {
         };
       !inner_connection
     });
-    let id = new_module.id();
     module_graph.add_module(new_module.boxed());
     compilation.chunk_graph = chunk_graph;
-    compilation.module_assets.insert(id, new_module_assets);
-
     Ok(())
   }
 
