@@ -193,13 +193,16 @@ const MODULE_MAPPINGS = new WeakMap<JsModule, Module>();
 export class Module {
 	#inner: JsModule;
 
-	declare readonly context?: string;
-	declare readonly resource?: string;
-	declare readonly request?: string;
-	declare userRequest?: string;
-	declare readonly rawRequest?: string;
-	declare readonly type: string;
-	declare readonly layer: null | string;
+	readonly context?: string;
+	readonly resource?: string;
+	readonly request?: string;
+	readonly userRequest?: string;
+	readonly rawRequest?: string;
+	readonly type: string;
+	readonly layer: null | string;
+	readonly resourceResolveData: Record<string, any> | undefined;
+	readonly matchResource: string | undefined;
+
 	declare readonly factoryMeta?: JsFactoryMeta;
 	/**
 	 * Records the dynamically added fields for Module on the JavaScript side.
@@ -216,8 +219,6 @@ export class Module {
 	declare readonly blocks: DependenciesBlock[];
 	declare readonly dependencies: Dependency[];
 	declare readonly useSourceMap: boolean;
-	declare readonly resourceResolveData: Record<string, any> | undefined;
-	declare readonly matchResource: string | undefined;
 
 	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
@@ -238,54 +239,17 @@ export class Module {
 		this.buildInfo = {};
 		this.buildMeta = {};
 
+		this.context = module.context;
+		this.resource = module.resource;
+		this.request = module.request;
+		this.userRequest = module.userRequest;
+		this.rawRequest = module.rawRequest;
+		this.type = module.type;
+		this.layer = module.layer || null;
+		this.resourceResolveData = module.resourceResolveData;
+		this.matchResource = module.matchResource;
+
 		Object.defineProperties(this, {
-			type: {
-				enumerable: true,
-				get(): string | null {
-					return module.type || null;
-				}
-			},
-			layer: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.layer;
-				}
-			},
-			context: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.context;
-				}
-			},
-			resource: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.resource;
-				}
-			},
-			request: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.request;
-				}
-			},
-			userRequest: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.userRequest;
-				},
-				set(val: string | undefined) {
-					if (val) {
-						module.userRequest = val;
-					}
-				}
-			},
-			rawRequest: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.rawRequest;
-				}
-			},
 			factoryMeta: {
 				enumerable: true,
 				get(): JsFactoryMeta | undefined | undefined {
@@ -316,18 +280,6 @@ export class Module {
 				enumerable: true,
 				get(): boolean {
 					return module.useSourceMap;
-				}
-			},
-			resourceResolveData: {
-				enumerable: true,
-				get(): Record<string, any> | undefined {
-					return module.resourceResolveData;
-				}
-			},
-			matchResource: {
-				enumerable: true,
-				get(): string | undefined {
-					return module.matchResource;
 				}
 			}
 		});

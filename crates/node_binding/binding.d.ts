@@ -11,6 +11,19 @@ export type LocalJsFilename = JsFilename;
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
+declare interface JsModule {
+	moduleIdentifier: string
+	context: string | undefined
+	resource: string | undefined
+	request: string | undefined
+  	userRequest: string | undefined
+	rawRequest: string | undefined
+	type: string
+	layer: string | undefined
+	resourceResolveData: JsResourceData | undefined
+  	matchResource: string | undefined
+}
+
 /* -- napi-rs generated below -- */
 
 export declare class ExternalObject<T> {
@@ -222,26 +235,15 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsModule {
-  get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
-  get moduleIdentifier(): string
   get nameForCondition(): string | undefined
-  get request(): string | undefined
-  get userRequest(): string | undefined
-  set userRequest(val: string | undefined)
-  get rawRequest(): string | undefined
   get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
   get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
-  get resourceResolveData(): JsResourceData | undefined
-  get matchResource(): string | undefined
 }
 
 export declare class JsModuleGraph {

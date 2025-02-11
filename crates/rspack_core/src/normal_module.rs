@@ -262,10 +262,6 @@ impl NormalModule {
     &self.user_request
   }
 
-  pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
-  }
-
   pub fn raw_request(&self) -> &str {
     &self.raw_request
   }

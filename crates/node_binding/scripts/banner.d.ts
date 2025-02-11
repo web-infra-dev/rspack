@@ -11,4 +11,17 @@ export type LocalJsFilename = JsFilename;
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
 /* -- banner.d.ts end -- */
 
+declare interface JsModule {
+	moduleIdentifier: string
+	context: string | undefined
+	resource: string | undefined
+	request: string | undefined
+  	userRequest: string | undefined
+	rawRequest: string | undefined
+	type: string
+	layer: string | undefined
+	resourceResolveData: JsResourceData | undefined
+  	matchResource: string | undefined
+}
+
 /* -- napi-rs generated below -- */
