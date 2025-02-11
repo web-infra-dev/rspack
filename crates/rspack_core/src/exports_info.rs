@@ -3,7 +3,6 @@ use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::hash::Hash;
-use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -123,9 +122,17 @@ impl ExportsInfo {
   // ExportProvideInfo is created by FlagDependencyExportsPlugin, and should not mutate after create
   // ExportUsedInfo is created by FlagDependencyUsagePlugin or Plugin::finish_modules, and should not mutate after create
   pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
-    let exports: Vec<_> = self.exports(mg).collect();
-    for export_info in exports {
-      export_info.reset_provide_info(mg);
+    let mg_raw_ptr = mg as *mut ModuleGraph;
+    for export_info in self.exports(mg) {
+      export_info.reset_provide_info(unsafe {
+        // Safety: self.exports(mg) only relies on the exports_info_map data in ModuleGraph
+        // export_info.reset_provide_info only relies on the export_info_map data in ModuleGraph
+        // Therefore, there is no conflict between the immutable borrow and the mutable borrow
+        //
+        // Without using unsafe, you would have to use self.exports(mg).collect::<Vec<_>>()
+        // to avoid borrow checker issues, which would degrade performance
+        &mut *mg_raw_ptr
+      });
     }
     self.side_effects_only_info(mg).reset_provide_info(mg);
     if let Some(redirect_to) = self.redirect_to(mg) {
@@ -137,12 +144,24 @@ impl ExportsInfo {
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
+    let mg_raw_ptr = mg as *mut ModuleGraph;
+
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+    let export_id_list = exports_info.exports.values();
+
     for export_info_id in export_id_list {
-      let export_info = mg.get_export_info_mut_by_id(&export_info_id);
+      let export_info = unsafe {
+        // Safety: mg.get_exports_info_by_id(self) only relies on the exports_info_map data in ModuleGraph
+        // mg.get_export_info_mut_by_id only relies on the export_info_map data in ModuleGraph
+        // Therefore, there is no conflict between the immutable borrow and the mutable borrow
+        //
+        // Without using unsafe, you would have to use exports_info.exports.values().copied().collect::<Vec<_>>()
+        // to avoid borrow checker issues, which would degrade performance
+        &mut *mg_raw_ptr
+      }
+      .get_export_info_mut_by_id(export_info_id);
       if export_info.provided.is_none() {
         export_info.provided = Some(ExportInfoProvided::False);
       }
@@ -1207,13 +1226,13 @@ impl ExportInfo {
   }
 
   pub fn get_target(&self, mg: &ModuleGraph) -> Option<ResolvedExportInfoTarget> {
-    self.get_target_with_filter(mg, Rc::new(|_, _| true))
+    self.get_target_with_filter(mg, &|_, _| true)
   }
 
   pub fn get_target_with_filter(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
@@ -1225,7 +1244,7 @@ impl ExportInfo {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let data = self.as_export_info(mg);
@@ -1710,7 +1729,7 @@ impl ExportInfoData {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let max_target = self.get_max_target();
@@ -1721,12 +1740,7 @@ impl ExportInfoData {
         export: item.export.clone(),
       })
       .collect::<VecDeque<_>>();
-    let target = resolve_target(
-      values.pop_front(),
-      already_visited,
-      resolve_filter.clone(),
-      mg,
-    );
+    let target = resolve_target(values.pop_front(), already_visited, resolve_filter, mg);
 
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1735,8 +1749,7 @@ impl ExportInfoData {
       None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
         for val in values {
-          let resolved_target =
-            resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+          let resolved_target = resolve_target(Some(val), already_visited, resolve_filter, mg);
           match resolved_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
               return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -1837,7 +1850,7 @@ impl MaybeDynamicTargetExportInfo {
   pub fn get_target_with_filter(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
@@ -1849,7 +1862,7 @@ impl MaybeDynamicTargetExportInfo {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     match self {
@@ -1885,7 +1898,7 @@ impl MaybeDynamicTargetExportInfo {
   pub fn can_move_target(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     let target = self.get_target_with_filter(mg, resolve_filter)?;
     let max_target = self.get_max_target(mg);
@@ -1923,12 +1936,12 @@ impl ExportInfo {
   }
 }
 
-pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a>;
+pub type ResolveFilterFn<'a> = dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a;
 
 fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
   already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFn,
   mg: &ModuleGraph,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
   if let Some(input_target) = input_target {
@@ -1960,7 +1973,7 @@ fn resolve_target(
       if already_visited.contains(&export_info_hash_key) {
         return Some(ResolvedExportInfoTargetWithCircular::Circular);
       }
-      let new_target = export_info.get_target_impl(mg, resolve_filter.clone(), already_visited);
+      let new_target = export_info.get_target_impl(mg, resolve_filter, already_visited);
 
       match new_target {
         Some(ResolvedExportInfoTargetWithCircular::Circular) => {

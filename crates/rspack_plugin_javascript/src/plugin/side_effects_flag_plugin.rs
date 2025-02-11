@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::rc::Rc;
 use std::sync::LazyLock;
 
 use rayon::prelude::*;
@@ -857,12 +856,10 @@ fn can_optimize_connection(
     let exports_info = module_graph.get_exports_info(&original_module);
     let export_info = exports_info.get_export_info_without_mut_module_graph(module_graph, name);
 
-    let target = export_info.can_move_target(
-      module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+    let target =
+      export_info.can_move_target(module_graph, &|target: &ResolvedExportInfoTarget, _| {
         side_effects_state_map[&target.module] == ConnectionState::Bool(false)
-      }),
-    )?;
+      })?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
@@ -902,9 +899,9 @@ fn can_optimize_connection(
 
     let target = export_info.get_target_with_filter(
       module_graph,
-      Rc::new(|target: &ResolvedExportInfoTarget, _| {
+      &|target: &ResolvedExportInfoTarget, _| {
         side_effects_state_map[&target.module] == ConnectionState::Bool(false)
-      }),
+      },
     )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;

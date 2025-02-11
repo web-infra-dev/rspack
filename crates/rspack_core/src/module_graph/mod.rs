@@ -1,9 +1,12 @@
-use std::collections::hash_map::Entry;
+use std::{
+  collections::{hash_map::Entry, HashMap},
+  hash::BuildHasherDefault,
+};
 
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierHasher, IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -22,7 +25,7 @@ use crate::{
 
 // TODO Here request can be used Atom
 pub type ImportVarMap =
-  HashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
+  FxHashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
 #[derive(Debug)]
@@ -44,16 +47,20 @@ pub struct ModuleGraphPartial {
   pub(crate) modules: IdentifierMap<Option<BoxModule>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, Option<BoxDependency>>,
+  dependencies: UkeyMap<DependencyId, Option<BoxDependency>>,
 
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Option<Box<AsyncDependenciesBlock>>>,
+  blocks: HashMap<
+    AsyncDependenciesBlockIdentifier,
+    Option<Box<AsyncDependenciesBlock>>,
+    BuildHasherDefault<IdentifierHasher>,
+  >,
 
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
   module_graph_modules: IdentifierMap<Option<ModuleGraphModule>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
-  connections: HashMap<DependencyId, Option<ModuleGraphConnection>>,
+  connections: UkeyMap<DependencyId, Option<ModuleGraphConnection>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -73,13 +80,13 @@ pub struct ModuleGraphPartial {
   ///     assert_eq!(parents_info, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, Option<DependencyParents>>,
+  dependency_id_to_parents: UkeyMap<DependencyId, Option<DependencyParents>>,
 
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  connection_to_condition: UkeyMap<DependencyId, DependencyCondition>,
+  dep_meta_map: UkeyMap<DependencyId, DependencyExtraMeta>,
 }
 
 #[derive(Debug, Default)]
@@ -190,13 +197,14 @@ impl<'a> ModuleGraph<'a> {
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
+  ) -> FxHashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> = HashMap::default();
+    let mut map: FxHashMap<Option<ModuleIdentifier>, Vec<ModuleGraphConnection>> =
+      FxHashMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -600,8 +608,8 @@ impl<'a> ModuleGraph<'a> {
       .expect("block has been removed to None")
   }
 
-  pub fn dependencies(&self) -> HashMap<DependencyId, &BoxDependency> {
-    let mut res = HashMap::default();
+  pub fn dependencies(&self) -> UkeyMap<DependencyId, &BoxDependency> {
+    let mut res = UkeyMap::default();
     for item in self.partials.iter() {
       for (k, v) in &item.dependencies {
         if let Some(v) = v {
@@ -987,6 +995,7 @@ impl<'a> ModuleGraph<'a> {
       .id()
   }
 
+  #[inline(always)]
   pub fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .try_get_exports_info_by_id(id)
@@ -1017,13 +1026,9 @@ impl<'a> ModuleGraph<'a> {
     active_partial.exports_info_map.insert(id, info);
   }
 
-  pub fn try_get_export_info_by_id(&self, id: &ExportInfo) -> Option<&ExportInfoData> {
-    self.loop_partials(|p| p.export_info_map.get(id))
-  }
-
   pub fn get_export_info_by_id(&self, id: &ExportInfo) -> &ExportInfoData {
     self
-      .try_get_export_info_by_id(id)
+      .loop_partials(|p| p.export_info_map.get(id))
       .expect("should have export info")
   }
 

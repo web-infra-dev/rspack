@@ -1,7 +1,6 @@
 use std::collections::hash_map::Entry;
 
-use indexmap::IndexMap;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet, UkeyIndexMap};
 use rspack_core::{
   incremental::IncrementalPasses, ApplyContext, BuildMetaExportsType, Compilation,
   CompilationFinishModules, CompilationLogger, CompilerOptions, DependenciesBlock, DependencyId,
@@ -10,7 +9,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::queue::Queue;
+use rspack_util::queue::IdentifierQueue;
 use swc_core::ecma::atoms::Atom;
 
 pub struct FlagDependencyExportsState<'a> {
@@ -35,7 +34,7 @@ impl<'a> FlagDependencyExportsState<'a> {
   pub fn apply(&mut self, modules: IdentifierSet) {
     let start = self.logger.time("traverse modules");
 
-    let mut q = Queue::new();
+    let mut q = IdentifierQueue::with_capacity(modules.len());
 
     for module_id in modules {
       let mgm = self
@@ -50,6 +49,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         .mg
         .module_by_identifier(&module_id)
         .expect("should have module");
+      // If the module doesn't have an exportsType, it's a module
+      // without declared exports.
       let is_module_without_exports =
         module.build_meta().exports_type == BuildMetaExportsType::Unset;
       if is_module_without_exports {
@@ -64,6 +65,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         }
       }
 
+      // If the module has no hash, it's uncacheable
       if module.build_info().hash.is_none() {
         exports_info.set_has_provide_info(self.mg);
         q.enqueue(module_id);
@@ -76,16 +78,17 @@ impl<'a> FlagDependencyExportsState<'a> {
 
     self.logger.time_end(start);
 
-    let start = self.logger.time("process dependencies block and exports");
+    let start = self.logger.time("figure out provided exports");
+
+    let mut exports_specs_from_dependencies: UkeyIndexMap<DependencyId, ExportsSpec> =
+      UkeyIndexMap::default();
 
     while let Some(module_id) = q.dequeue() {
       self.changed = false;
       self.current_module_id = module_id;
-      let mut exports_specs_from_dependencies: IndexMap<DependencyId, ExportsSpec> =
-        IndexMap::default();
       self.process_dependencies_block(&module_id, &mut exports_specs_from_dependencies);
       let exports_info = self.mg.get_exports_info(&module_id);
-      for (dep_id, exports_spec) in exports_specs_from_dependencies.into_iter() {
+      for (dep_id, exports_spec) in exports_specs_from_dependencies.drain(..) {
         self.process_exports_spec(dep_id, exports_spec, exports_info);
       }
       if self.changed {
@@ -96,19 +99,20 @@ impl<'a> FlagDependencyExportsState<'a> {
     self.logger.time_end(start);
   }
 
-  // #[tracing::instrument(skip_all, fields(module = ?self.current_module_id))]
-  pub fn notify_dependencies(&mut self, q: &mut Queue<ModuleIdentifier>) {
+  #[inline(always)]
+  fn notify_dependencies(&mut self, q: &mut IdentifierQueue) {
     if let Some(set) = self.dependencies.get(&self.current_module_id) {
-      for mi in set.iter() {
+      for mi in set {
         q.enqueue(*mi);
       }
     }
   }
 
-  pub fn process_dependencies_block(
+  #[inline(always)]
+  fn process_dependencies_block(
     &self,
     module_identifier: &ModuleIdentifier,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut UkeyIndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     let block = &**self.mg.module_by_identifier(module_identifier)?;
     self.process_dependencies_block_inner(block, exports_specs_from_dependencies)
@@ -117,9 +121,9 @@ impl<'a> FlagDependencyExportsState<'a> {
   fn process_dependencies_block_inner<B: DependenciesBlock + ?Sized>(
     &self,
     block: &B,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut UkeyIndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
-    for dep_id in block.get_dependencies().iter() {
+    for dep_id in block.get_dependencies() {
       let dep = self
         .mg
         .dependency_by_id(dep_id)
@@ -137,11 +141,12 @@ impl<'a> FlagDependencyExportsState<'a> {
     None
   }
 
-  pub fn process_dependency(
+  #[inline(always)]
+  fn process_dependency(
     &self,
     dep_id: DependencyId,
     exports_specs: Option<ExportsSpec>,
-    exports_specs_from_dependencies: &mut IndexMap<DependencyId, ExportsSpec>,
+    exports_specs_from_dependencies: &mut UkeyIndexMap<DependencyId, ExportsSpec>,
   ) -> Option<()> {
     // this is why we can bubble here. https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/FlagDependencyExportsPlugin.js#L140
     let exports_specs = exports_specs?;
@@ -162,7 +167,7 @@ impl<'a> FlagDependencyExportsState<'a> {
     let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
     let export_dependencies = &export_desc.dependencies;
     if let Some(hide_export) = export_desc.hide_export {
-      for name in hide_export.iter() {
+      for name in &hide_export {
         let from_exports_info = exports_info.get_export_info(self.mg, name);
         from_exports_info.unset_target(self.mg, &dep_id);
       }

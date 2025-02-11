@@ -1,10 +1,14 @@
-use std::{collections::VecDeque, hash::Hash};
+use std::{
+  collections::{HashSet, VecDeque},
+  hash::{BuildHasher, BuildHasherDefault, Hash},
+};
 
-use rustc_hash::FxHashSet as HashSet;
+use rspack_collections::{Identifier, IdentifierHasher};
+use rustc_hash::FxBuildHasher;
 
-pub struct Queue<T: Hash + PartialEq + Eq + Clone> {
+pub struct Queue<T: Hash + PartialEq + Eq + Clone, S = FxBuildHasher> {
   q: VecDeque<T>,
-  set: HashSet<T>,
+  set: HashSet<T, S>,
 }
 
 impl<T: Hash + PartialEq + Eq + Clone> Default for Queue<T> {
@@ -13,11 +17,18 @@ impl<T: Hash + PartialEq + Eq + Clone> Default for Queue<T> {
   }
 }
 
-impl<T: Hash + PartialEq + Eq + Clone> Queue<T> {
+impl<T: Hash + PartialEq + Eq + Clone, S: BuildHasher + Default> Queue<T, S> {
   pub fn new() -> Self {
     Self {
       q: VecDeque::default(),
-      set: HashSet::default(),
+      set: HashSet::<T, S>::default(),
+    }
+  }
+
+  pub fn with_capacity(capacity: usize) -> Self {
+    Self {
+      q: VecDeque::with_capacity(capacity),
+      set: HashSet::<T, S>::with_capacity_and_hasher(capacity, S::default()),
     }
   }
 
@@ -36,3 +47,5 @@ impl<T: Hash + PartialEq + Eq + Clone> Queue<T> {
     None
   }
 }
+
+pub type IdentifierQueue = Queue<Identifier, BuildHasherDefault<IdentifierHasher>>;
