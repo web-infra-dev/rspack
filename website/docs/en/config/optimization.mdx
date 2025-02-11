@@ -349,8 +349,8 @@ export default {
 
 To opt-out from used exports analysis per runtime:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     usedExports: 'global',

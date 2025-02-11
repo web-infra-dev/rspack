@@ -791,8 +791,8 @@ export function hello(name) {
 
 1. 如果你将 `entry` 设置为一个 `array`，那么只有数组中的最后一个会被暴露。
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
      output: {
@@ -803,8 +803,8 @@ export function hello(name) {
 
 2. 如果你将 `entry` 设置为一个 `object`，所以入口都可以通过 `library` 的 `array` 语法暴露：
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: {
        a: './src/a.js',
@@ -862,8 +862,8 @@ window['clientContainer'].define(/*define args*/); // or 'amd-require' window['c
 
 - **类型：**`string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}`
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -912,8 +912,8 @@ MyLibrary.doSomething();
 
 ##### type: 'assign'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -934,8 +934,8 @@ MyLibrary = _entry_return_;
 
 ##### type: 'assign-properties'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -970,8 +970,8 @@ MyLibrary.hello('World');
 
 ##### type: 'this'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -994,8 +994,8 @@ MyLibrary.doSomething(); // 如果 `this` 为 window 对象
 
 ##### type: 'window'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1016,8 +1016,8 @@ window.MyLibrary.doSomething();
 
 ##### type: 'global'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1038,8 +1038,8 @@ global.MyLibrary.doSomething();
 
 ##### type: 'commonjs'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1089,8 +1089,8 @@ export default {
 
 ##### type: 'commonjs2'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1117,8 +1117,8 @@ require('MyLibrary').doSomething();
 
 ##### type: 'commonjs-static'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1235,8 +1235,8 @@ export default {
 
 在这种情况下，你需要使用 `library.name` 属性命名你的模块：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1263,8 +1263,8 @@ module.exports = {
 
 请注意，根据[对象赋值部分](#expose-via-object-assignment)，省略 `library.name` 将导致入口起点返回的所有属性直接赋值给根对象。示例：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     libraryTarget: 'umd',
@@ -1290,8 +1290,8 @@ module.exports = {
 
 你可以为 `library.name` 指定一个对象，每个目标的名称不同：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1312,8 +1312,8 @@ module.exports = {
 
 System 模块要求当 bundle 执行时，全局变量 `System` 出现在浏览器中。编译的 `System.register` 格式允许你在没有额外配置的情况下使用 `System.import('/bundle.js')`，并将你的 bundle 加载到系统模块注册表中。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1432,8 +1432,8 @@ var MyLibrary = _entry_return_.default.subModule;
 
 为每个 `umd` 类型插入相同的注释，将 `auxiliaryComment` 设置为 string。
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {
@@ -1466,8 +1466,8 @@ module.exports = {
 
 对于细粒度控制，可以传递一个对象：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {

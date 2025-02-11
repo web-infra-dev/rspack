@@ -342,8 +342,8 @@ export default {
 
 如果需要在运行时取消使用的导出分析：
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   optimization: {
     usedExports: 'global',

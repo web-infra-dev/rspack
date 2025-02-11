@@ -353,8 +353,8 @@ export default {
 
 提供选项给 [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware)，它用于处理 Rspack 的静态资源。
 
-```ts
-module.exports = {
+```ts title="rspack.config.mjs"
+export default {
   devServer: {
     devMiddleware: {
       index: true,

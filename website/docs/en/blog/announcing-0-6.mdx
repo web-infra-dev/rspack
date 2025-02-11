@@ -19,9 +19,10 @@ This is very useful in some scenarios, for example when the built-in CSS parser 
 
 For more details, please see [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin#cssextractrspackplugin).
 
-```js
-const { rspack } = require('@rspack/core');
-module.exports = {
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
@@ -114,8 +115,8 @@ WARNING in ⚠ chunk src_a_css-src_b_-5c8c53 [css-extract-rspack-plugin]
 
 If you are sure that their order inconsistency does not matter, you can ignore this error by configuring `ignoreWarnings`.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   ignoreWarnings: [/Conflicting order/],
 };
 ```
@@ -126,11 +127,12 @@ module.exports = {
 
 If you have used `mini-css-extract-plugin` and webpack before, you can simply replace `mini-css-extract-plugin` by `rspack.CssExtractPlugin`.
 
-```diff
-+ const CssExtract = require('@rspack/core').CssExtractRspackPlugin;
-- const CssExtract = require('mini-css-extract-plugin');
-module.exports = {
-  plugins: [new CssExtract()],
+```diff title="rspack.config.mjs"
++ import { rspack } from '@rspack/core';
+- import CssExtract from 'mini-css-extract-plugin';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin()],
   module: {
     rules: [
       {
@@ -153,8 +155,8 @@ The above occurrences of `"css/auto"` are the default module type for CSS, which
 
 Add the following configuration to maintain the original default behavior of `builtins.css`, which can be modified as needed based on the following setup:
 
-```diff
-module.exports = {
+```diff title="rspack.config.mjs"
+export default {
    // ...
 +  module: {
 +    generator: {

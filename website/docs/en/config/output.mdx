@@ -799,8 +799,8 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
 1. If you provide an `array` as the `entry` point, only the last one in the array will be exposed.
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
      output: {
@@ -811,8 +811,8 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
 2. If an `object` is provided as the `entry` point, all entries can be exposed using the `array` syntax of `library`:
 
-   ```js
-   module.exports = {
+   ```js title="rspack.config.mjs"
+   export default {
      // …
      entry: {
        a: './src/a.js',
@@ -870,8 +870,8 @@ Specify a name for the library.
 
 - **Type:** `string | string[] | {amd?: string, commonjs?: string, root?: string | string[]}`
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -920,8 +920,8 @@ MyLibrary.doSomething();
 
 ##### type: 'assign'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -942,8 +942,8 @@ Be aware that if `MyLibrary` isn't defined earlier your library will be set in g
 
 ##### type: 'assign-properties'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -978,8 +978,8 @@ These options assign the return value of the entry point (e.g. whatever the entr
 
 ##### type: 'this'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1002,8 +1002,8 @@ MyLibrary.doSomething(); // if `this` is window
 
 ##### type: 'window'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1024,8 +1024,8 @@ window.MyLibrary.doSomething();
 
 ##### type: 'global'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1046,8 +1046,8 @@ global.MyLibrary.doSomething();
 
 ##### type: 'commonjs'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1097,8 +1097,8 @@ However this feature is still experimental and not fully supported yet, so make 
 
 ##### type: 'commonjs2'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1125,8 +1125,8 @@ Wondering the difference between CommonJS and CommonJS2 is? While they are simil
 
 ##### type: 'commonjs-static'
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   output: {
     library: {
@@ -1243,8 +1243,8 @@ This exposes your library under all the module definitions, allowing it to work 
 
 In this case, you need the `library.name` property to name your module:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1271,8 +1271,8 @@ And finally the output is:
 
 Note that omitting `library.name` will result in the assignment of all properties returned by the entry point be assigned directly to the root object, as documented under the [object assignment section](#expose-via-object-assignment). Example:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     libraryTarget: 'umd',
@@ -1298,8 +1298,8 @@ The output will be:
 
 You may specify an object for `library.name` for differing names per targets:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1320,8 +1320,8 @@ This will expose your library as a [`System.register`](https://github.com/system
 
 System modules require that a global variable `System` is present in the browser when the Rspack bundle is executed. Compiling to `System.register` format allows you to `System.import('/bundle.js')` without additional configuration and has your Rspack bundle loaded into the System module registry.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
@@ -1440,8 +1440,8 @@ Add a comment in the UMD wrapper.
 
 To insert the same comment for each `umd` type, set `auxiliaryComment` to a string:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {
@@ -1474,8 +1474,8 @@ which will yield the following:
 
 For fine-grained control, pass an object:
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   // …
   mode: 'development',
   output: {
@@ -1500,8 +1500,8 @@ module.exports = {
 
 When using `output.library.type: "umd"`, setting `output.library.umdNamedDefine` to `true` will name the AMD module of the UMD build. Otherwise, an anonymous `define` is used.
 
-```js
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   //...
   output: {
     library: {
