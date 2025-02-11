@@ -45,11 +45,12 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "Name of the configuration to use."
 			},
-			'config-loader': {
+			"config-loader": {
 				type: "string",
 				default: "register",
-				describe: "Specify the loader to load the config file, can be `native` or `register`.",
-			},
+				describe:
+					"Specify the loader to load the config file, can be `native` or `register`."
+			}
 		})
 		.alias({ v: "version", h: "help" });
 };
