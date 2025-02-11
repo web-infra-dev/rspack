@@ -11,8 +11,8 @@ import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
-import { JsSource } from "./util/source";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
+import { JsSource } from "./util/source";
 
 export type ResourceData = {
 	resource: string;

@@ -1015,7 +1015,7 @@ impl Compilation {
         .contains_key(&identifier)
       {
         for chunk in self.chunk_graph.get_module_chunks(identifier).iter() {
-          for (name, _) in assets {
+          for name in assets.keys() {
             chunk_asset_map.push((*chunk, name.clone()))
           }
         }
