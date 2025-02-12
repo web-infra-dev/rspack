@@ -19,6 +19,9 @@ use rspack_loader_runner::{Identifiable, Identifier};
 use tokio::sync::Mutex;
 
 pub mod config;
+mod plugin;
+
+pub use plugin::LightningcssLoaderPlugin;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 

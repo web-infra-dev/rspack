@@ -431,6 +431,7 @@ impl CompilerBuilder {
   }
 
   /// Build [`Compiler`] from options and plugins.
+  #[must_use]
   pub fn build(&mut self) -> Compiler {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context);
@@ -452,6 +453,44 @@ impl CompilerBuilder {
       None,
       None,
     )
+  }
+}
+
+#[cfg(feature = "loader_lightningcss")]
+impl CompilerBuilder {
+  /// Enable support for builtin:lightningcss-loader.
+  pub fn enable_loader_lightningcss(&mut self) -> &mut Self {
+    self.plugin(Box::new(
+      rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
+    ))
+  }
+}
+
+#[cfg(feature = "loader_swc")]
+impl CompilerBuilder {
+  /// Enable support for builtin:swc-loader.
+  pub fn enable_loader_swc(&mut self) -> &mut Self {
+    self.plugin(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()))
+  }
+}
+
+#[cfg(feature = "loader_react_refresh")]
+impl CompilerBuilder {
+  /// Enable support for builtin:react-refresh-loader.
+  pub fn enable_loader_react_refresh(&mut self) -> &mut Self {
+    self.plugin(Box::new(
+      rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
+    ))
+  }
+}
+
+#[cfg(feature = "loader_preact_refresh")]
+impl CompilerBuilder {
+  /// Enable support for builtin:preact-refresh-loader.
+  pub fn enable_loader_preact_refresh(&mut self) -> &mut Self {
+    self.plugin(Box::new(
+      rspack_loader_preact_refresh::PreactRefreshLoaderPlugin::new(),
+    ))
   }
 }
 
@@ -838,6 +877,7 @@ impl CompilerOptionsBuilder {
   ///
   /// [`BuilderContext`]: crate::builder::BuilderContext
   /// [`CompilerOptions`]: rspack_core::options::CompilerOptions
+  #[must_use]
   pub fn build(&mut self, builder_context: &mut BuilderContext) -> CompilerOptions {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
@@ -1480,6 +1520,7 @@ impl NodeOptionBuilder {
   /// Build [`NodeOption`] from options.
   ///
   /// [`NodeOption`]: rspack_core::options::NodeOption
+  #[must_use]
   fn build(
     &mut self,
     target_properties: &TargetProperties,
@@ -1606,6 +1647,7 @@ impl ModuleOptionsBuilder {
   /// Normally, you don't need to call this function, it's used internally by [`CompilerBuilder::build`].
   ///
   /// [`ModuleOptions`]: rspack_core::options::ModuleOptions
+  #[must_use]
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
@@ -2566,6 +2608,7 @@ impl OutputOptionsBuilder {
   ///
   /// [`OutputOptions`]: rspack_core::options::OutputOptions
   #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
+  #[must_use]
   fn build(
     &mut self,
     builder_context: &mut BuilderContext,
@@ -3322,6 +3365,7 @@ impl OptimizationOptionsBuilder {
   /// Build [`Optimization`] from options.
   ///
   /// [`Optimization`]: rspack_core::options::Optimization
+  #[must_use]
   fn build(
     &mut self,
     builder_context: &mut BuilderContext,
@@ -3668,6 +3712,7 @@ impl ExperimentsBuilder {
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
+  #[must_use]
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
@@ -3758,7 +3803,7 @@ mod test {
 
   #[test]
   fn mutable_builder_into_owned_builder() {
-    CompilerOptions::builder()
+    let _ = CompilerOptions::builder()
       .optimization(OptimizationOptionsBuilder::default().node_env("development".to_string()))
       .output(OutputOptionsBuilder::default().charset(true))
       .experiments(ExperimentsBuilder::default().future_defaults(true))
