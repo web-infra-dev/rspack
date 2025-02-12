@@ -4,8 +4,8 @@ use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_core::{
-  to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, PublicPath, RuntimeGlobals, SourceType,
+  get_undo_path, to_normal_comment, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationPublicPathAutoReplace, Compilation, RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
 use rspack_util::diff_mode::is_diff_mode;
@@ -109,10 +109,11 @@ pub fn render_module(
     if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(origin_source.clone());
       for (start, end) in auto_public_path_matches {
-        let mut relative = PublicPath::render_auto_public_path(compilation, output_path);
-        if relative.is_empty() {
-          relative = String::from("./");
-        }
+        let relative = get_undo_path(
+          output_path,
+          compilation.options.output.path.to_string(),
+          true,
+        );
         replace.replace(start as u32, end as u32, &relative, None);
       }
       RenderSource {
