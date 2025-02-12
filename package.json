@@ -88,15 +88,5 @@
       "graceful-fs@4.2.10": "patches/graceful-fs@4.2.10.patch",
       "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
     }
-  },
-  "lint-staged": {
-    "*.rs": "rustfmt --edition 2021",
-    "*.{ts,tsx,js}": "pnpm run format:js",
-    "*.toml": "npx @taplo/cli format",
-    "*.{ts,tsx,js,cts,cjs,mts,mjs}": [
-      "pnpm run lint:js",
-      "node ./scripts/utils/no-args.cjs 'pnpm run x ae ci'"
-    ],
-    "package.json": "pnpm run check-dependency-version"
   }
 }
