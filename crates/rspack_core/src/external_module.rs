@@ -534,7 +534,7 @@ impl Module for ExternalModule {
   async fn build(
     &mut self,
     build_context: BuildContext,
-    options: Option<&Compilation>,
+    _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let resolved_external_type = self.resolve_external_type();
 
