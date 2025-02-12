@@ -44,6 +44,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       profile: ${{inputs.profile}}
+      native: true
       test: false
 
   release:
