@@ -94,6 +94,7 @@
     "core-js": "3.38.1",
     "css-loader": "^7.1.2",
     "file-loader": "^6.2.0",
+    "graceful-fs": "4.2.11",
     "html-loader": "^5.0.0",
     "html-webpack-plugin": "^5.5.0",
     "less-loader": "^12.2.0",
