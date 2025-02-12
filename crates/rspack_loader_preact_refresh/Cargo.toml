@@ -14,4 +14,3 @@ rspack_core          = { workspace = true }
 rspack_error         = { workspace = true }
 rspack_hook          = { workspace = true }
 rspack_loader_runner = { workspace = true }
-rspack_macros        = { workspace = true }

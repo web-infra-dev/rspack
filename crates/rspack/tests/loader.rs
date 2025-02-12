@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use rspack::builder::Builder as _;
 use rspack_core::{
   Compiler, Experiments, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
@@ -7,6 +9,7 @@ use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 use serde_json::json;
 
+#[cfg(feature = "loader_lightningcss")]
 #[tokio::test(flavor = "multi_thread")]
 async fn lightningcss() {
   let mut compiler = Compiler::builder()
@@ -37,6 +40,7 @@ async fn lightningcss() {
   assert!(errors.is_empty());
 }
 
+#[cfg(feature = "loader_swc")]
 #[tokio::test(flavor = "multi_thread")]
 async fn swc() {
   let mut compiler = Compiler::builder()
@@ -81,6 +85,7 @@ async fn swc() {
   assert!(errors.is_empty());
 }
 
+#[cfg(feature = "loader_react_refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn react_refresh() {
   let mut compiler = Compiler::builder()
@@ -131,6 +136,7 @@ async fn react_refresh() {
   assert!(errors.is_empty());
 }
 
+#[cfg(feature = "loader_preact_refresh")]
 #[tokio::test(flavor = "multi_thread")]
 async fn preact_refresh() {
   let mut compiler = Compiler::builder()

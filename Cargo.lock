@@ -4522,7 +4522,6 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
- "rspack_macros",
  "serde",
  "serde_json",
  "tokio",
@@ -4538,7 +4537,6 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
- "rspack_macros",
 ]
 
 [[package]]
@@ -4551,7 +4549,6 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
- "rspack_macros",
 ]
 
 [[package]]
@@ -4593,7 +4590,6 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_loader_runner",
- "rspack_macros",
  "rspack_plugin_javascript",
  "rspack_swc_plugin_import",
  "rspack_util",

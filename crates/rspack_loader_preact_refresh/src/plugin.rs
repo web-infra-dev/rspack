@@ -19,6 +19,12 @@ impl PreactRefreshLoaderPlugin {
   }
 }
 
+impl Default for PreactRefreshLoaderPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Plugin for PreactRefreshLoaderPlugin {
   fn name(&self) -> &'static str {
     "PreactRefreshLoaderPlugin"
@@ -49,5 +55,5 @@ pub(crate) async fn resolve_loader(
     )));
   }
 
-  return Ok(None);
+  Ok(None)
 }

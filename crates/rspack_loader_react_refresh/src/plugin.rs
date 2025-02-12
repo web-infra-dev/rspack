@@ -19,6 +19,12 @@ impl ReactRefreshLoaderPlugin {
   }
 }
 
+impl Default for ReactRefreshLoaderPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Plugin for ReactRefreshLoaderPlugin {
   fn name(&self) -> &'static str {
     "ReactRefreshLoaderPlugin"
@@ -49,5 +55,5 @@ pub(crate) async fn resolve_loader(
     )));
   }
 
-  return Ok(None);
+  Ok(None)
 }

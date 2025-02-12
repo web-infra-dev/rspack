@@ -27,6 +27,12 @@ impl SwcLoaderPlugin {
   }
 }
 
+impl Default for SwcLoaderPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Plugin for SwcLoaderPlugin {
   fn name(&self) -> &'static str {
     "SwcLoaderPlugin"
@@ -65,7 +71,7 @@ pub(crate) async fn resolve_loader(
     }
 
     let loader = Arc::new(
-      SwcLoader::new(options.as_ref())
+      SwcLoader::new(options)
         .map_err(|e| {
           serde_error_to_miette(e, options, "failed to parse builtin:swc-loader options")
         })?
@@ -82,7 +88,7 @@ pub(crate) async fn resolve_loader(
     return Ok(Some(loader));
   }
 
-  return Ok(None);
+  Ok(None)
 }
 
 // convert serde_error to miette report for pretty error

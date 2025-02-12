@@ -22,6 +22,12 @@ impl LightningcssLoaderPlugin {
   }
 }
 
+impl Default for LightningcssLoaderPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Plugin for LightningcssLoaderPlugin {
   fn name(&self) -> &'static str {
     "LightningcssLoaderPlugin"
@@ -48,7 +54,7 @@ pub(crate) async fn resolve_loader(
   let options = l.options.as_deref().unwrap_or("{}");
 
   if loader_request.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
-    let config: crate::config::RawConfig = serde_json::from_str(options.as_ref()).map_err(|e| {
+    let config: crate::config::RawConfig = serde_json::from_str(options).map_err(|e| {
       serde_error_to_miette(
         e,
         options,
@@ -63,7 +69,7 @@ pub(crate) async fn resolve_loader(
     ))));
   }
 
-  return Ok(None);
+  Ok(None)
 }
 
 // convert serde_error to miette report for pretty error
