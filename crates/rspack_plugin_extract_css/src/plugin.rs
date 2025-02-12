@@ -1,11 +1,12 @@
 use std::sync::LazyLock;
-use std::{borrow::Cow, cmp::max, hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
+use rspack_core::{get_undo_path, AssetInfo, ChunkGraph};
 use rspack_core::{
   rspack_sources::{
     ConcatSource, RawStringSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
@@ -16,7 +17,6 @@ use rspack_core::{
   ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
-use rspack_core::{AssetInfo, ChunkGraph};
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -433,7 +433,7 @@ despite it was not able to fulfill desired ordering with these modules:
         // different from webpack, add `enforce_relative` to preserve './'
         let undo_path = get_undo_path(
           filename,
-          compilation.options.output.path.as_str(),
+          compilation.options.output.path.to_string(),
           self.options.enforce_relative,
         );
 
@@ -719,56 +719,5 @@ impl Plugin for PluginCssExtract {
       .tap(nmf_parser::new(self));
 
     Ok(())
-  }
-}
-
-#[allow(clippy::unwrap_used)]
-fn get_undo_path(filename: &str, output_path: &str, enforce_relative: bool) -> String {
-  let mut depth: isize = -1;
-  let mut append = "".into();
-
-  let output_path = output_path.strip_suffix('\\').unwrap_or(output_path);
-  let mut output_path = output_path
-    .strip_suffix('/')
-    .unwrap_or(output_path)
-    .to_string();
-
-  static PATH_SEP: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"[\\/]+"#).expect("should compile"));
-
-  for part in PATH_SEP.split(filename) {
-    if part == ".." {
-      if depth > -1 {
-        depth -= 1;
-      } else {
-        let i = output_path.find('/');
-        let j = output_path.find('\\');
-        let pos = if i.is_none() {
-          j
-        } else if j.is_none() {
-          i
-        } else {
-          max(i, j)
-        };
-
-        if pos.is_none() {
-          return format!("{output_path}/");
-        }
-
-        append = format!("{}/{append}", &output_path[pos.unwrap() + 1..]);
-
-        output_path = output_path[0..pos.unwrap()].to_string();
-      }
-    } else if part != "." {
-      depth += 1;
-    }
-  }
-
-  if depth > 0 {
-    format!("{}{append}", "../".repeat(depth as usize))
-  } else if enforce_relative {
-    format!("./{append}")
-  } else {
-    append
   }
 }

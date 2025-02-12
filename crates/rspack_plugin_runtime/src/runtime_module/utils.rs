@@ -2,8 +2,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
-  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey,
-  Compilation, PathData, SourceType,
+  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path, Chunk, ChunkLoading,
+  ChunkUkey, Compilation, PathData, SourceType,
 };
 use rspack_util::test::{
   HOT_TEST_ACCEPT, HOT_TEST_DISPOSE, HOT_TEST_OUTDATED, HOT_TEST_RUNTIME, HOT_TEST_UPDATED,
@@ -77,44 +77,6 @@ pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
     .chunk_graph
     .get_chunk_modules_by_source_type(chunk, SourceType::Css, &compilation.get_module_graph())
     .is_empty()
-}
-
-pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> String {
-  let mut depth: i32 = -1;
-  let mut append = String::new();
-  let mut p = p;
-  if p.ends_with('/') || p.ends_with('\\') {
-    p.pop();
-  }
-  for part in filename.split(&['/', '\\']) {
-    if part == ".." {
-      if depth > -1 {
-        depth -= 1
-      } else {
-        let pos = match (p.rfind('/'), p.rfind('\\')) {
-          (None, None) => {
-            p.push('/');
-            return p;
-          }
-          (None, Some(j)) => j,
-          (Some(i), None) => i,
-          (Some(i), Some(j)) => usize::max(i, j),
-        };
-        append = format!("{}/{append}", &p[pos + 1..]);
-        p = p[0..pos].to_string();
-      }
-    } else if part != "." {
-      depth += 1;
-    }
-  }
-
-  if depth > 0 {
-    format!("{}{append}", "../".repeat(depth as usize))
-  } else if enforce_relative {
-    format!("./{append}")
-  } else {
-    append
-  }
 }
 
 pub fn get_output_dir(
@@ -275,15 +237,6 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
           .as_str()
       })
   )
-}
-
-#[test]
-fn test_get_undo_path() {
-  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
-  assert_eq!(
-    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
-    "../../"
-  );
 }
 
 pub fn generate_javascript_hmr_runtime(method: &str) -> String {

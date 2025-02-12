@@ -6,8 +6,7 @@ use rspack_cacheable::cacheable;
 use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use sugar_path::SugarPath;
+use rspack_paths::Utf8PathBuf;
 
 use super::CleanOptions;
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, Filename, FilenameTemplate};
@@ -315,6 +314,54 @@ pub enum PublicPath {
   Auto,
 }
 
+//https://github.com/webpack/webpack/blob/001cab14692eb9a833c6b56709edbab547e291a1/lib/util/identifier.js#L378
+pub fn get_undo_path(filename: &str, output_path: String, enforce_relative: bool) -> String {
+  let mut depth: i32 = -1;
+  let mut append = String::new();
+  let mut p = output_path;
+  if p.ends_with('/') || p.ends_with('\\') {
+    p.pop();
+  }
+  for part in filename.split(&['/', '\\']) {
+    if part == ".." {
+      if depth > -1 {
+        depth -= 1
+      } else {
+        let pos = match (p.rfind('/'), p.rfind('\\')) {
+          (None, None) => {
+            p.push('/');
+            return p;
+          }
+          (None, Some(j)) => j,
+          (Some(i), None) => i,
+          (Some(i), Some(j)) => usize::max(i, j),
+        };
+        append = format!("{}/{append}", &p[pos + 1..]);
+        p = p[0..pos].to_string();
+      }
+    } else if part != "." {
+      depth += 1;
+    }
+  }
+
+  if depth > 0 {
+    format!("{}{append}", "../".repeat(depth as usize))
+  } else if enforce_relative {
+    format!("./{append}")
+  } else {
+    append
+  }
+}
+
+#[test]
+fn test_get_undo_path() {
+  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
+  assert_eq!(
+    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
+    "../../"
+  );
+}
+
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
     match self {
@@ -342,26 +389,7 @@ impl PublicPath {
   }
 
   pub fn render_auto_public_path(compilation: &Compilation, filename: &str) -> String {
-    let public_path = match Utf8Path::new(filename).parent() {
-      None => String::new(),
-      Some(dirname) => compilation
-        .options
-        .output
-        .path
-        .as_std_path()
-        .relative(
-          compilation
-            .options
-            .output
-            .path
-            .join(dirname)
-            .into_std_path_buf()
-            .absolutize(),
-        )
-        .assert_utf8()
-        .as_str()
-        .to_owned(),
-    };
+    let public_path = get_undo_path(filename, compilation.options.output.path.to_string(), false);
     Self::ensure_ends_with_slash(public_path)
   }
 }
