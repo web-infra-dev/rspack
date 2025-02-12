@@ -493,9 +493,8 @@ impl Chunk {
     // as a async chunk, but has_async_chunks is used to check whether need to add the chunk loading runtime, which
     // is about loading the async chunks, so even the chunk is inside Entrypoint but loading it indeed need the
     // chunk loading runtime.
-    // For a real case checkout the test: 
+    // For a real case checkout the test:
     let mut queue = UkeyIndexSet::default();
-    let mut chunks = UkeyIndexSet::default();
 
     let initial_chunks = self
       .groups
@@ -523,7 +522,6 @@ impl Chunk {
 
     fn check_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunks: &mut UkeyIndexSet<ChunkUkey>,
       initial_chunks: &UkeySet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
       visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
@@ -541,7 +539,6 @@ impl Chunk {
           visit_chunk_groups.insert(*group_ukey);
           if check_chunks(
             chunk_group_by_ukey,
-            chunks,
             initial_chunks,
             group_ukey,
             visit_chunk_groups,
@@ -556,7 +553,6 @@ impl Chunk {
     for group_ukey in queue.iter() {
       if check_chunks(
         chunk_group_by_ukey,
-        &mut chunks,
         &initial_chunks,
         group_ukey,
         &mut visit_chunk_groups,
