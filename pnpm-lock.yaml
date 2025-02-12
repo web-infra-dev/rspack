@@ -1095,8 +1095,8 @@ importers:
   website:
     dependencies:
       '@rstack-dev/doc-ui':
-        specifier: 1.6.0
-        version: 1.6.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+        specifier: 1.7.1
+        version: 1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       antd:
         specifier: 5.23.4
         version: 5.23.4(date-fns@2.30.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -3726,8 +3726,8 @@ packages:
     resolution: {integrity: sha512-jPdwHOm2d5wSkIadCos4EEQ8Mw+KQCb/zkEPQcTF4uX5crIFQrLyq2D9ROj3C1ZwAtdfjd/A6ueJZCZE6c8KWw==}
     engines: {node: '>=14.17.6'}
 
-  '@rstack-dev/doc-ui@1.6.0':
-    resolution: {integrity: sha512-rFWEqKjHSrbIgBHv0DGiX7jMJssvRA1mXPgZx1aF90feoGdk0Ud+fzcK5+Cze9zpmKnqX3wbpttxBZ3uQ9u9iw==}
+  '@rstack-dev/doc-ui@1.7.1':
+    resolution: {integrity: sha512-hQf7JYXpSxBeegnDylbRMxk8vse3nMQsdbZQE04aiMC8u/hT/3Ol4pdIewJ2/cIVLomOvYGj+ZLnIcXCAkETsw==}
 
   '@rushstack/node-core-library@5.11.0':
     resolution: {integrity: sha512-I8+VzG9A0F3nH2rLpPd7hF8F7l5Xb7D+ldrWVZYegXM6CsKkvWc670RlgK3WX8/AseZfXA/vVrh0bpXe2Y2UDQ==}
@@ -13196,7 +13196,7 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/tracing'
 
-  '@rstack-dev/doc-ui@1.6.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@rstack-dev/doc-ui@1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
       framer-motion: 12.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
     transitivePeerDependencies:
