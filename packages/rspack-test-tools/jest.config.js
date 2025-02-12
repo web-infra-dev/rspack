@@ -9,8 +9,9 @@ const config = {
 		"@rspack/test-tools/setup-env"
 	],
 	reporters: [
-		["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
-		"../../scripts/test/ignore-snapshot-summary-reporter.cjs"
+		'default',
+		// ["../../scripts/test/ignore-snapshot-default-reporter.cjs", null],
+		// "../../scripts/test/ignore-snapshot-summary-reporter.cjs"
 	],
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
