@@ -78,6 +78,7 @@ export declare class JsChunkGraph {
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): JsModule[]
   getModuleChunks(module: JsModule): JsChunk[]
   getModuleId(jsModule: JsModule): string | null
+  getModuleHash(module: JsModule, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
 
@@ -1669,8 +1670,10 @@ export interface RawFlagAllModulesAsUsedPluginOptions {
 export interface RawFuncUseCtx {
   resource?: string
   realResource?: string
-  resourceQuery?: string
-  issuer?: string
+  resourceQuery: string
+  resourceFragment: string
+  issuer: string
+  issuerLayer: string
 }
 
 export interface RawGeneratorOptions {
@@ -2211,6 +2214,7 @@ export interface RawSplitChunkSizes {
 export interface RawSplitChunksOptions {
   fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string | false | Function
+  filename?: JsFilename
   cacheGroups?: Array<RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all' | Function

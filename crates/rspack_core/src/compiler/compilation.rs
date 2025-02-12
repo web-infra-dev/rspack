@@ -1201,13 +1201,6 @@ impl Compilation {
 
     self.in_finish_make.store(false, Ordering::Release);
 
-    // sync assets to compilation from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_after_finish_modules(self).await;
-      self.module_executor = Some(module_executor);
-    }
-
     // take built_modules
     if let Some(mutations) = self.incremental.mutations_write() {
       mutations.extend(
@@ -1239,6 +1232,14 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
+
+    // sync assets to compilation from module_executor
+    if let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.hook_after_finish_modules(self).await;
+      self.module_executor = Some(module_executor);
+    }
+
     logger.time_end(start);
     // Collect dependencies diagnostics at here to make sure:
     // 1. after finish_modules: has provide exports info

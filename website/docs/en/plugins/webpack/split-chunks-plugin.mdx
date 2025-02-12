@@ -223,6 +223,33 @@ If the `splitChunks.name` matches an [entry point](/config/entry) name, the entr
 
 :::
 
+### splitChunks.filename
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.filename
+
+- **Type:** `string | function`
+
+Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          filename: 'vendors-[name].js',
+          // or
+          filename: (pathData, assetInfo) => {
+            return `${pathData.chunk.name}-bundle.js`;
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.usedExports
 
 <ApiMeta addedVersion="1.0.0" />
@@ -322,31 +349,6 @@ Tells Rspack to ignore `splitChunks.minSize`, splitChunks`.minChunks`, `splitChu
 - **Type:** `string`
 
 Sets the hint for chunk id. It will be added to chunk's filename.
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.filename
-
-- **Type:** `string | function`
-
-Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
-
-```js title="rspack.config.mjs"
-export default {
-  //...
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        defaultVendors: {
-          filename: 'vendors-[name].js',
-          // or
-          filename: (pathData, assetInfo) => {
-            return `${pathData.chunk.name}-bundle.js`;
-          },
-        },
-      },
-    },
-  },
-};
-```
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
 

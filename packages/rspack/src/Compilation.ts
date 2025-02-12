@@ -12,7 +12,6 @@ import {
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
-	type JsModule,
 	type JsPathData,
 	JsRspackSeverity,
 	type JsRuntimeModule
@@ -53,7 +52,7 @@ import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
-import MergeCaller from "./util/MergeCaller";
+import { AsyncTask } from "./util/AsyncTask";
 import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
@@ -1075,27 +1074,31 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		);
 	}
 
-	#rebuildModuleCaller = ((compilation: Compilation) =>
-		new MergeCaller(
-			(args: Array<[string, (err: Error, m: Module) => void]>) => {
-				compilation.#inner.rebuildModule(
-					args.map(item => item[0]),
-					(err: Error, modules: JsModule[]) => {
-						for (const [id, callback] of args) {
-							const m = modules.find(item => item.moduleIdentifier === id);
-							if (m) {
-								callback(err, Module.__from_binding(m));
-							} else {
-								callback(err || new Error("module no found"), null as any);
-							}
-						}
+	#rebuildModuleTask = new AsyncTask<string, Module>(
+		(moduleIdentifiers, doneWork) => {
+			this.#inner.rebuildModule(
+				moduleIdentifiers,
+				(err: Error | null, modules: binding.JsModule[]) => {
+					/*
+					 * 	TODO:
+					 *	batch all call parameters, once a module is failed, we cannot know which module
+					 * 	is failed to rebuild, we have to make all modules failed, this should be improved
+					 *	in the future
+					 */
+					if (err) {
+						doneWork(new Array(moduleIdentifiers.length).fill([err, null]));
+					} else {
+						doneWork(
+							modules.map(jsModule => [null, Module.__from_binding(jsModule)])
+						);
 					}
-				);
-			}
-		))(this);
+				}
+			);
+		}
+	);
 
-	rebuildModule(m: Module, f: (err: Error, m: Module) => void) {
-		this.#rebuildModuleCaller.push([m.identifier(), f]);
+	rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void) {
+		this.#rebuildModuleTask.exec(m.identifier(), f);
 	}
 
 	addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
@@ -1248,7 +1251,7 @@ class AddIncludeDispatcher {
 		this.#cbs = [];
 		this.#inner(args, (wholeErr, results) => {
 			if (this.#args.length !== 0) {
-				queueMicrotask(this.#execute);
+				queueMicrotask(this.#execute.bind(this));
 			}
 
 			if (wholeErr) {
@@ -1281,7 +1284,7 @@ class AddIncludeDispatcher {
 		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
 		if (this.#args.length === 0) {
-			queueMicrotask(this.#execute);
+			queueMicrotask(this.#execute.bind(this));
 		}
 
 		this.#args.push([context, dependency, options as any]);

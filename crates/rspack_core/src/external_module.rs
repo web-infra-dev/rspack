@@ -533,16 +533,23 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
 
     // TODO add exports_type for request
     match resolved_external_type {
       "this" => self.build_info.strict = false,
       "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
-      "module" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => {
+        self.build_meta.exports_type = BuildMetaExportsType::Namespace;
+        // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/ExternalModule.js#L597
+        if !self.build_info.module {
+          self.build_meta.has_top_level_await = true;
+        }
+      }
       "script" | "promise" => self.build_meta.has_top_level_await = true,
       "import" => {
         self.build_meta.has_top_level_await = true;

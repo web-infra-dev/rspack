@@ -57,6 +57,7 @@ async function build() {
 			args.push("--no-default-features");
 			args.push("--features plugin");
 		}
+		args.push("--no-dts-cache");
 
 		console.log(`Run command: napi ${args.join(' ')}`);
 

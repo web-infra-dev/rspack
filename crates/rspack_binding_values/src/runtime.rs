@@ -2,6 +2,7 @@ use std::sync::LazyLock;
 
 use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
+use napi::Either;
 use napi_derive::napi;
 use rspack_core::RuntimeGlobals;
 use rspack_plugin_runtime::{
@@ -235,3 +236,5 @@ impl From<RuntimeModuleChunkWrapper> for JsChunkWrapper {
     }
   }
 }
+
+pub type JsRuntimeSpec = Option<Either<String, Vec<String>>>;

@@ -479,7 +479,7 @@ Triggers a re-build of the module.
 ```ts
 rebuildModule(
   m: Module, // module to be rebuilt
-  f: (err: Error, m: Module) => void //  function to be invoked when the module finishes rebuilding
+  f: (err: Error | null, m: Module | null) => void //  function to be invoked when the module finishes rebuilding
 ): void;
 ```
 
