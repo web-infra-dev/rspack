@@ -1,4 +1,4 @@
-use std::{fmt, ops::Deref, sync::Arc};
+use std::{borrow::Cow, fmt, ops::Deref, sync::Arc};
 
 use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
@@ -257,16 +257,17 @@ impl Diagnostic {
 }
 
 pub trait Diagnosable {
-  fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
-    unimplemented!("`<T as Diagnosable>::add_diagnostic` is not implemented")
-  }
-  fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>) {
-    unimplemented!("`<T as Diagnosable>::add_diagnostics` is not implemented")
-  }
-  /// Clone diagnostics from current [Diagnosable].
-  /// This does not drain the diagnostics from the current one.
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
+  fn add_diagnostic(&mut self, _diagnostic: Diagnostic);
+
+  fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>);
+
+  fn diagnostics(&self) -> Cow<[Diagnostic]>;
+
+  fn has_error(&self) -> bool {
+    self
+      .diagnostics()
+      .iter()
+      .any(|d| d.severity() == Severity::Error)
   }
 }
 
@@ -285,6 +286,9 @@ macro_rules! impl_empty_diagnosable_trait {
           "`<{ty} as Diagnosable>::add_diagnostics` is not implemented",
           ty = stringify!($ty)
         )
+      }
+      fn diagnostics(&self) -> std::borrow::Cow<[$crate::Diagnostic]> {
+        std::borrow::Cow::Owned(vec![])
       }
     }
   };

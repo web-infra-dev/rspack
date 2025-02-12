@@ -490,10 +490,6 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.clone()
-  }
-
   fn factory_meta(&self) -> Option<&FactoryMeta> {
     self.root_module_ctxt.factory_meta.as_ref()
   }
@@ -589,7 +585,7 @@ impl Module for ConcatenatedModule {
         self.blocks.push(*b);
       }
       // populate diagnostic
-      self.diagnostics.extend(module.get_diagnostics());
+      self.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
@@ -1411,8 +1407,8 @@ impl Diagnosable for ConcatenatedModule {
     self.diagnostics.append(&mut diagnostics);
   }
 
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.clone()
+  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+    Cow::Borrowed(&self.diagnostics)
   }
 }
 

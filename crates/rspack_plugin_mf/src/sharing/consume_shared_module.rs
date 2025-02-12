@@ -11,7 +11,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_core::{module_update_hash, ConcatenationScope, FactoryMeta};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::ext::DynHash;
 use rspack_util::source_map::SourceMapKind;
 
@@ -120,10 +120,6 @@ impl Module for ConsumeSharedModule {
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn module_type(&self) -> &ModuleType {

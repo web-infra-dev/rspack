@@ -2,7 +2,7 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{error, impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{error, impl_empty_diagnosable_trait, Result};
 use rspack_hash::RspackHash;
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
@@ -488,10 +488,6 @@ impl Module for ExternalModule {
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn source_types(&self) -> &[SourceType] {

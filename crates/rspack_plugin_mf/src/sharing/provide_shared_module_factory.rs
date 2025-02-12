@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use rspack_core::{ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::{Diagnosable, Diagnostic, Result};
@@ -41,7 +43,7 @@ impl Diagnosable for ProvideSharedModuleFactory {
     self.diagnostics.append(&mut diagnostics);
   }
 
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.clone()
+  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+    Cow::Borrowed(&self.diagnostics)
   }
 }

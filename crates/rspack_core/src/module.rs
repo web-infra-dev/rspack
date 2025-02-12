@@ -11,7 +11,7 @@ use rspack_cacheable::{
   with::{AsOption, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
@@ -215,7 +215,7 @@ pub trait Module:
 
   /// Defines what kind of code generation results this module can generate.
   fn source_types(&self) -> &[SourceType];
-  fn get_diagnostics(&self) -> Vec<Diagnostic>;
+
   /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
   fn original_source(&self) -> Option<&dyn Source>;
@@ -603,7 +603,7 @@ mod test {
 
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
-  use rspack_error::{Diagnosable, Diagnostic, Result};
+  use rspack_error::{impl_empty_diagnosable_trait, Result};
   use rspack_sources::Source;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
@@ -630,7 +630,7 @@ mod test {
         }
       }
 
-      impl Diagnosable for $ident {}
+      impl_empty_diagnosable_trait!($ident);
 
       impl DependenciesBlock for $ident {
         fn add_block_id(&mut self, _: AsyncDependenciesBlockIdentifier) {
@@ -687,10 +687,6 @@ mod test {
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {
           unreachable!()
-        }
-
-        fn get_diagnostics(&self) -> Vec<Diagnostic> {
-          vec![]
         }
 
         fn update_hash(

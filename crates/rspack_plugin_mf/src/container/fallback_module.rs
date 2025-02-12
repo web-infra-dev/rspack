@@ -11,7 +11,7 @@ use rspack_core::{
   DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier,
   ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::{itoa, source_map::SourceMapKind};
 
 use super::fallback_item_dependency::FallbackItemDependency;
@@ -99,10 +99,6 @@ impl Module for FallbackModule {
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Fallback
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn source_types(&self) -> &[SourceType] {

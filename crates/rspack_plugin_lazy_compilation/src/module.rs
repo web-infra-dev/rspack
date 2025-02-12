@@ -12,7 +12,7 @@ use rspack_core::{
   LibIdentOptions, Module, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleType,
   RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
 };
-use rspack_error::{Diagnosable, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   ext::DynHash,
@@ -101,14 +101,7 @@ impl LazyCompilationProxyModule {
   }
 }
 
-impl Diagnosable for LazyCompilationProxyModule {
-  fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
-    unimplemented!()
-  }
-  fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>) {
-    unimplemented!()
-  }
-}
+impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
@@ -141,10 +134,6 @@ impl Module for LazyCompilationProxyModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   async fn build(

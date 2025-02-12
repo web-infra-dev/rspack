@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::Identifiable;
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
@@ -91,10 +91,6 @@ impl DependenciesBlock for RawModule {
 #[async_trait::async_trait]
 impl Module for RawModule {
   impl_module_meta_info!();
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::JsAuto

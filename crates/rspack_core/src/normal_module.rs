@@ -371,10 +371,6 @@ impl Module for NormalModule {
     &self.module_type
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.clone()
-  }
-
   fn source_types(&self) -> &[SourceType] {
     self.parser_and_generator.source_types()
   }
@@ -542,7 +538,7 @@ impl Module for NormalModule {
     if no_parse {
       self.parsed = false;
       self.original_source = Some(original_source.clone());
-      self.source = NormalModuleSource::new_built(original_source, self.clone_diagnostics());
+      self.source = NormalModuleSource::new_built(original_source, self.diagnostics.clone());
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
@@ -604,7 +600,7 @@ impl Module for NormalModule {
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
-    self.source = NormalModuleSource::new_built(source, self.clone_diagnostics());
+    self.source = NormalModuleSource::new_built(source, self.diagnostics.clone());
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -803,8 +799,8 @@ impl Diagnosable for NormalModule {
     self.diagnostics.append(&mut diagnostics);
   }
 
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self.diagnostics.clone()
+  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+    Cow::Borrowed(&self.diagnostics)
   }
 }
 

@@ -10,7 +10,7 @@ use rspack_cacheable::{
   with::{AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -845,10 +845,6 @@ impl Module for ContextModule {
 
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn original_source(&self) -> Option<&dyn rspack_sources::Source> {

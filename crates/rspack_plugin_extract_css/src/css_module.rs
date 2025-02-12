@@ -10,8 +10,8 @@ use rspack_core::{
   DependencyId, FactoryMeta, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   RuntimeSpec, SourceType,
 };
+use rspack_error::impl_empty_diagnosable_trait;
 use rspack_error::Result;
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::ext::DynHash;
 use rspack_util::itoa;
@@ -177,10 +177,6 @@ impl Module for CssModule {
     _concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
     Ok(CodeGenerationResult::default())
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn update_hash(
