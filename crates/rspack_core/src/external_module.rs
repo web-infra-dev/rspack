@@ -536,6 +536,7 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
 
     // TODO add exports_type for request
@@ -544,8 +545,8 @@ impl Module for ExternalModule {
       "system" => self.build_meta.exports_type = BuildMetaExportsType::Namespace,
       "module" => {
         self.build_meta.exports_type = BuildMetaExportsType::Namespace;
-
-        if !build_context.compiler_options.output.module {
+        // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/ExternalModule.js#L597
+        if !self.build_info.module {
           self.build_meta.has_top_level_await = true;
         }
       }

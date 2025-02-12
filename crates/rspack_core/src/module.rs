@@ -68,6 +68,7 @@ pub struct BuildInfo {
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: HashMap<String, CompilationAsset>,
+  pub module: bool,
 }
 
 impl Default for BuildInfo {
@@ -87,6 +88,7 @@ impl Default for BuildInfo {
       top_level_declarations: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
+      module: false,
     }
   }
 }
