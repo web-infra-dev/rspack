@@ -57,7 +57,7 @@ impl JsDependenciesBlock {
   }
 }
 
-type BlockInstanceRefs = HashMap<AsyncDependenciesBlockIdentifier, OneShotRef<JsDependenciesBlock>>;
+type BlockInstanceRefs = HashMap<AsyncDependenciesBlockIdentifier, OneShotRef>;
 
 type BlockInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, BlockInstanceRefs>>;
 

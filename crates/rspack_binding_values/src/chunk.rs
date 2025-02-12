@@ -247,7 +247,7 @@ impl JsChunk {
 }
 
 thread_local! {
-  static CHUNK_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkUkey, OneShotRef<JsChunk>>>> = Default::default();
+  static CHUNK_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct JsChunkWrapper {
