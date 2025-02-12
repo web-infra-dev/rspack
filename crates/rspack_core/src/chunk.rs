@@ -493,7 +493,7 @@ impl Chunk {
     // as a async chunk, but has_async_chunks is used to check whether need to add the chunk loading runtime, which
     // is about loading the async chunks, so even the chunk is inside Entrypoint but loading it indeed need the
     // chunk loading runtime.
-    // For a real case checkout the test:
+    // For a real case checkout the test: `rspack-test-tools/configCases/chunk-loading/depend-on-with-chunk-load`
     let mut queue = UkeyIndexSet::default();
 
     let initial_chunks = self
