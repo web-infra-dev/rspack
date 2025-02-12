@@ -6,6 +6,15 @@ name        = "rspack"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
 
+[features]
+full = ["loaders"]
+
+loader_lightningcss   = ["rspack_loader_lightningcss"]
+loader_preact_refresh = ["rspack_loader_preact_refresh"]
+loader_react_refresh  = ["rspack_loader_react_refresh"]
+loader_swc            = ["rspack_loader_swc"]
+loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
+
 [dependencies]
 bitflags     = { workspace = true }
 enum-tag     = { workspace = true }
@@ -20,6 +29,7 @@ rspack_regex = { workspace = true }
 rustc-hash   = { workspace = true }
 serde_json   = { workspace = true }
 
+# Plugins
 rspack_plugin_asset                   = { workspace = true }
 rspack_plugin_css                     = { workspace = true }
 rspack_plugin_devtool                 = { workspace = true }
@@ -39,6 +49,12 @@ rspack_plugin_schemes                 = { workspace = true }
 rspack_plugin_swc_js_minimizer        = { workspace = true }
 rspack_plugin_wasm                    = { workspace = true }
 rspack_plugin_worker                  = { workspace = true }
+
+# Loaders
+rspack_loader_lightningcss   = { workspace = true, optional = true }
+rspack_loader_preact_refresh = { workspace = true, optional = true }
+rspack_loader_react_refresh  = { workspace = true, optional = true }
+rspack_loader_swc            = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["filters"] }

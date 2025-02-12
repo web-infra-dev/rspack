@@ -4150,6 +4150,10 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_ids",
+ "rspack_loader_lightningcss",
+ "rspack_loader_preact_refresh",
+ "rspack_loader_react_refresh",
+ "rspack_loader_swc",
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_css",
@@ -4517,8 +4521,10 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_loader_runner",
  "serde",
+ "serde_json",
  "tokio",
 ]
 
@@ -4530,6 +4536,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_loader_runner",
 ]
 
@@ -4541,6 +4548,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_loader_runner",
 ]
 
@@ -4581,6 +4589,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hook",
  "rspack_loader_runner",
  "rspack_plugin_javascript",
  "rspack_swc_plugin_import",
@@ -4592,6 +4601,7 @@ dependencies = [
  "swc",
  "swc_config",
  "swc_core",
+ "tokio",
  "tracing",
  "url",
 ]

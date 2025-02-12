@@ -15,6 +15,8 @@ parcel_sourcemap     = { workspace = true }
 rspack_cacheable     = { workspace = true }
 rspack_core          = { workspace = true }
 rspack_error         = { workspace = true }
+rspack_hook          = { workspace = true }
 rspack_loader_runner = { workspace = true }
 serde                = { workspace = true, features = ["derive"] }
+serde_json           = { workspace = true }
 tokio                = { workspace = true }

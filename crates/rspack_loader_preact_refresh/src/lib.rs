@@ -1,3 +1,6 @@
+mod plugin;
+
+pub use plugin::PreactRefreshLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::RunnerContext;
 use rspack_error::Result;

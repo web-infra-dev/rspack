@@ -2,6 +2,7 @@
 
 mod compiler;
 mod options;
+mod plugin;
 mod transformer;
 
 use std::default::Default;
@@ -9,6 +10,7 @@ use std::default::Default;
 use compiler::{IntoJsAst, SwcCompiler};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
+pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{Mode, RunnerContext};
 use rspack_error::{error, AnyhowError, Diagnostic, Result};
