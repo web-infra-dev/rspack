@@ -122,17 +122,9 @@ impl ExportsInfo {
   // ExportProvideInfo is created by FlagDependencyExportsPlugin, and should not mutate after create
   // ExportUsedInfo is created by FlagDependencyUsagePlugin or Plugin::finish_modules, and should not mutate after create
   pub fn reset_provide_info(&self, mg: &mut ModuleGraph) {
-    let mg_raw_ptr = mg as *mut ModuleGraph;
-    for export_info in self.exports(mg) {
-      export_info.reset_provide_info(unsafe {
-        // Safety: self.exports(mg) only relies on the exports_info_map data in ModuleGraph
-        // export_info.reset_provide_info only relies on the export_info_map data in ModuleGraph
-        // Therefore, there is no conflict between the immutable borrow and the mutable borrow
-        //
-        // Without using unsafe, you would have to use self.exports(mg).collect::<Vec<_>>()
-        // to avoid borrow checker issues, which would degrade performance
-        &mut *mg_raw_ptr
-      });
+    let exports: Vec<_> = self.exports(mg).collect();
+    for export_info in exports {
+      export_info.reset_provide_info(mg);
     }
     self.side_effects_only_info(mg).reset_provide_info(mg);
     if let Some(redirect_to) = self.redirect_to(mg) {
@@ -144,24 +136,13 @@ impl ExportsInfo {
   /// # Panic
   /// it will panic if you provide a export info that does not exists in the module graph  
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
-    let mg_raw_ptr = mg as *mut ModuleGraph;
-
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
-    let export_id_list = exports_info.exports.values();
+    let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
 
     for export_info_id in export_id_list {
-      let export_info = unsafe {
-        // Safety: mg.get_exports_info_by_id(self) only relies on the exports_info_map data in ModuleGraph
-        // mg.get_export_info_mut_by_id only relies on the export_info_map data in ModuleGraph
-        // Therefore, there is no conflict between the immutable borrow and the mutable borrow
-        //
-        // Without using unsafe, you would have to use exports_info.exports.values().copied().collect::<Vec<_>>()
-        // to avoid borrow checker issues, which would degrade performance
-        &mut *mg_raw_ptr
-      }
-      .get_export_info_mut_by_id(export_info_id);
+      let export_info = mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.provided.is_none() {
         export_info.provided = Some(ExportInfoProvided::False);
       }

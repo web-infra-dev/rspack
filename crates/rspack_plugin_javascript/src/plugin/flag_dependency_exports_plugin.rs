@@ -230,7 +230,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             global_export_info.can_mangle,
             global_export_info.terminal_binding,
             None::<&Vec<ExportNameOrSpec>>,
-            global_export_info.from.cloned(),
+            global_export_info.from,
             None::<&rspack_core::Nullable<Vec<Atom>>>,
             global_export_info.priority,
             false,
@@ -246,9 +246,9 @@ impl<'a> FlagDependencyExportsState<'a> {
               .unwrap_or(global_export_info.terminal_binding),
             spec.exports.as_ref(),
             if spec.from.is_some() {
-              spec.from.clone()
+              spec.from.as_ref()
             } else {
-              global_export_info.from.cloned()
+              global_export_info.from
             },
             spec.export.as_ref(),
             match spec.priority {
@@ -367,13 +367,7 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     .incremental
     .mutations_read(IncrementalPasses::PROVIDED_EXPORTS)
   {
-    let modules = mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph());
-    logger.log(format!(
-      "incremental {} modules are affected, {} in total",
-      modules.len(),
-      compilation.get_module_graph().modules().len()
-    ));
-    modules
+    mutations.get_affected_modules_with_module_graph(&compilation.get_module_graph())
   } else {
     compilation
       .get_module_graph()
@@ -382,6 +376,13 @@ async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
       .copied()
       .collect()
   };
+
+  logger.log(format!(
+    "{} modules are affected, {} in total",
+    modules.len(),
+    compilation.get_module_graph().modules().len()
+  ));
+
   FlagDependencyExportsState::new(&mut compilation.get_module_graph_mut(), logger).apply(modules);
 
   Ok(())
