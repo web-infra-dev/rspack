@@ -202,7 +202,7 @@ incremental   = true
 panic         = "abort"
 
 [profile.release]
-codegen-units = 1
+codegen-units = 64
 debug         = false
 # Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
 lto       = "thin"
