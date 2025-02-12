@@ -488,7 +488,80 @@ impl Chunk {
   }
 
   pub fn has_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
-    !self.get_all_async_chunks(chunk_group_by_ukey).is_empty()
+    // The reason why we don't just return !self.get_all_async_chunks(chunk_group_by_ukey).is_empty() here is
+    // get_all_async_chunks will check the whether the chunk is inside Entrypoint, which cause the chunk not return
+    // as a async chunk, but has_async_chunks is used to check whether need to add the chunk loading runtime, which
+    // is about loading the async chunks, so even the chunk is inside Entrypoint but loading it indeed need the
+    // chunk loading runtime.
+    // For a real case checkout the test: `rspack-test-tools/configCases/chunk-loading/depend-on-with-chunk-load`
+    let mut queue = UkeyIndexSet::default();
+
+    let initial_chunks = self
+      .groups
+      .iter()
+      .map(|chunk_group| chunk_group_by_ukey.expect_get(chunk_group))
+      .map(|group| group.chunks.iter().copied().collect::<UkeySet<_>>())
+      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<UkeySet<_>>())
+      .unwrap_or_default();
+
+    let mut visit_chunk_groups = UkeySet::default();
+
+    for chunk_group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
+      if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
+        for child_ukey in chunk_group
+          .children
+          .iter()
+          .sorted_by(|a, b| sort_group_by_index(a, b, chunk_group_by_ukey))
+        {
+          if let Some(chunk_group) = chunk_group_by_ukey.get(child_ukey) {
+            queue.insert(chunk_group.ukey);
+          }
+        }
+      }
+    }
+
+    fn check_chunks(
+      chunk_group_by_ukey: &ChunkGroupByUkey,
+      initial_chunks: &UkeySet<ChunkUkey>,
+      chunk_group_ukey: &ChunkGroupUkey,
+      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+    ) -> bool {
+      let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) else {
+        return false;
+      };
+      for chunk_ukey in chunk_group.chunks.iter() {
+        if !initial_chunks.contains(chunk_ukey) {
+          return true;
+        }
+      }
+      for group_ukey in chunk_group.children.iter() {
+        if !visit_chunk_groups.contains(group_ukey) {
+          visit_chunk_groups.insert(*group_ukey);
+          if check_chunks(
+            chunk_group_by_ukey,
+            initial_chunks,
+            group_ukey,
+            visit_chunk_groups,
+          ) {
+            return true;
+          }
+        }
+      }
+      false
+    }
+
+    for group_ukey in queue.iter() {
+      if check_chunks(
+        chunk_group_by_ukey,
+        &initial_chunks,
+        group_ukey,
+        &mut visit_chunk_groups,
+      ) {
+        return true;
+      }
+    }
+
+    false
   }
 
   pub fn get_all_async_chunks(
