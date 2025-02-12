@@ -12,7 +12,7 @@ use rspack_core::{
   ModuleId, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
   StaticExportsSpec,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
@@ -88,10 +88,6 @@ impl Module for DelegatedModule {
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   async fn build(

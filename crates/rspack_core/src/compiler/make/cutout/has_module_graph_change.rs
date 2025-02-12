@@ -145,7 +145,7 @@ mod t {
 
   use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
   use rspack_collections::Identifiable;
-  use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+  use rspack_error::{impl_empty_diagnosable_trait, Result};
   use rspack_macros::impl_source_map_config;
   use rspack_sources::Source;
   use rspack_util::{atom::Atom, source_map::SourceMapKind};
@@ -282,10 +282,6 @@ mod t {
     }
 
     fn source_types(&self) -> &[SourceType] {
-      todo!()
-    }
-
-    fn get_diagnostics(&self) -> Vec<Diagnostic> {
       todo!()
     }
 

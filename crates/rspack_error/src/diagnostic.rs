@@ -1,4 +1,4 @@
-use std::{fmt, ops::Deref, sync::Arc};
+use std::{borrow::Cow, fmt, ops::Deref, sync::Arc};
 
 use cow_utils::CowUtils;
 use miette::{GraphicalTheme, IntoDiagnostic, MietteDiagnostic};
@@ -257,26 +257,17 @@ impl Diagnostic {
 }
 
 pub trait Diagnosable {
-  fn add_diagnostic(&self, _diagnostic: Diagnostic) {
-    unimplemented!("`<T as Diagnosable>::add_diagnostic` is not implemented")
-  }
-  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
-    unimplemented!("`<T as Diagnosable>::add_diagnostics` is not implemented")
-  }
-  /// Clone diagnostics from current [Diagnosable].
-  /// This does not drain the diagnostics from the current one.
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-  /// Take diagnostics from current [Diagnosable].
-  /// This drains every diagnostic from the current one.
-  fn take_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
-  /// Pipe diagnostics from the current [Diagnosable] to the target one.
-  /// This drains every diagnostic from current, and pipe into the target one.
-  fn pipe_diagnostics(&self, target: &dyn Diagnosable) {
-    target.add_diagnostics(self.take_diagnostics())
+  fn add_diagnostic(&mut self, _diagnostic: Diagnostic);
+
+  fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>);
+
+  fn diagnostics(&self) -> Cow<[Diagnostic]>;
+
+  fn has_error(&self) -> bool {
+    self
+      .diagnostics()
+      .iter()
+      .any(|d| d.severity() == Severity::Error)
   }
 }
 
@@ -284,17 +275,20 @@ pub trait Diagnosable {
 macro_rules! impl_empty_diagnosable_trait {
   ($ty:ty) => {
     impl $crate::Diagnosable for $ty {
-      fn add_diagnostic(&self, _diagnostic: $crate::Diagnostic) {
+      fn add_diagnostic(&mut self, _diagnostic: $crate::Diagnostic) {
         unimplemented!(
           "`<{ty} as Diagnosable>::add_diagnostic` is not implemented",
           ty = stringify!($ty)
         )
       }
-      fn add_diagnostics(&self, _diagnostics: Vec<$crate::Diagnostic>) {
+      fn add_diagnostics(&mut self, _diagnostics: Vec<$crate::Diagnostic>) {
         unimplemented!(
           "`<{ty} as Diagnosable>::add_diagnostics` is not implemented",
           ty = stringify!($ty)
         )
+      }
+      fn diagnostics(&self) -> std::borrow::Cow<[$crate::Diagnostic]> {
+        std::borrow::Cow::Owned(vec![])
       }
     }
   };

@@ -163,10 +163,6 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn get_diagnostics(&self) -> Vec<::rspack_error::Diagnostic> {
-        vec![]
-      }
-
       fn code_generation(
         &self,
         compilation: &::rspack_core::Compilation,
@@ -196,7 +192,17 @@ pub fn impl_runtime_module(
       }
     }
 
-    impl #impl_generics rspack_error::Diagnosable for #name  #ty_generics #where_clause {}
+    impl #impl_generics rspack_error::Diagnosable for #name  #ty_generics #where_clause {
+      fn add_diagnostic(&mut self, _diagnostic: rspack_error::Diagnostic) {
+        unreachable!()
+      }
+      fn add_diagnostics(&mut self, _diagnostics: Vec<rspack_error::Diagnostic>) {
+        unreachable!()
+      }
+      fn diagnostics(&self) -> std::borrow::Cow<[rspack_error::Diagnostic]> {
+        std::borrow::Cow::Owned(vec![])
+      }
+    }
 
     impl #impl_generics ::rspack_util::source_map::ModuleSourceMapConfig for #name #ty_generics #where_clause {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {

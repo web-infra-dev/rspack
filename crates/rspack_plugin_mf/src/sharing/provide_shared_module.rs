@@ -11,7 +11,7 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec,
   SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -121,10 +121,6 @@ impl Module for ProvideSharedModule {
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn module_type(&self) -> &ModuleType {

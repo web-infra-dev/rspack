@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::Source;
 use rspack_util::source_map::SourceMapKind;
@@ -78,10 +78,6 @@ impl DependenciesBlock for SelfModule {
 #[async_trait]
 impl Module for SelfModule {
   impl_module_meta_info!();
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     self.identifier.len() as f64

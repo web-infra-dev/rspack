@@ -61,8 +61,9 @@ impl Task<MakeTaskContext> for BuildTask {
 
     let build_result = result.map(|t| {
       let diagnostics = module
-        .clone_diagnostics()
-        .into_iter()
+        .diagnostics()
+        .iter()
+        .cloned()
         .map(|d| d.with_module_identifier(Some(module.identifier())))
         .collect();
       t.with_diagnostic(diagnostics)

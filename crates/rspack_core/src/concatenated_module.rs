@@ -3,7 +3,7 @@ use std::{
   collections::hash_map::Entry,
   fmt::Debug,
   hash::{BuildHasherDefault, Hasher},
-  sync::{Arc, LazyLock, Mutex},
+  sync::{Arc, LazyLock},
 };
 
 use dashmap::DashMap;
@@ -372,7 +372,7 @@ pub struct ConcatenatedModule {
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
   #[cacheable(with=Skip)]
-  diagnostics: Mutex<Vec<Diagnostic>>,
+  diagnostics: Vec<Diagnostic>,
   build_info: BuildInfo,
 }
 
@@ -394,7 +394,7 @@ impl ConcatenatedModule {
       dependencies: vec![],
       blocks: vec![],
       cached_source_sizes: DashMap::default(),
-      diagnostics: Mutex::new(vec![]),
+      diagnostics: vec![],
       build_info: BuildInfo {
         cacheable: true,
         hash: None,
@@ -490,11 +490,6 @@ impl Module for ConcatenatedModule {
     &ModuleType::JsEsm
   }
 
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    let guard = self.diagnostics.lock().expect("should have diagnostics");
-    guard.clone()
-  }
-
   fn factory_meta(&self) -> Option<&FactoryMeta> {
     self.root_module_ctxt.factory_meta.as_ref()
   }
@@ -556,9 +551,6 @@ impl Module for ConcatenatedModule {
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let compilation = compilation.expect("should pass compilation");
-    // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L774-L784
-    // Some fields does not exists in rspack
-    self.clear_diagnostics();
 
     let module_graph = compilation.get_module_graph();
     let modules = self
@@ -592,12 +584,8 @@ impl Module for ConcatenatedModule {
       for b in module.get_blocks() {
         self.blocks.push(*b);
       }
-      let mut diagnostics_guard = self.diagnostics.lock().expect("should have diagnostics");
       // populate diagnostic
-      diagnostics_guard.extend(module.get_diagnostics());
-
-      // release guard ASAP
-      drop(diagnostics_guard);
+      self.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
@@ -1411,42 +1399,20 @@ impl Module for ConcatenatedModule {
 }
 
 impl Diagnosable for ConcatenatedModule {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
+  fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.diagnostics.push(diagnostic);
   }
 
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
+  fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.append(&mut diagnostics);
   }
 
-  fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
+  fn diagnostics(&self) -> Cow<[Diagnostic]> {
+    Cow::Borrowed(&self.diagnostics)
   }
 }
 
 impl ConcatenatedModule {
-  fn clear_diagnostics(&mut self) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .clear()
-  }
-
   // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,

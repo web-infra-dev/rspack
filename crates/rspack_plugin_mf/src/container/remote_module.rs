@@ -11,7 +11,7 @@ use rspack_core::{
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleIdentifier, ModuleType, RuntimeSpec,
   SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 
 use super::{
@@ -117,10 +117,6 @@ impl Module for RemoteModule {
 
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Remote
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn source_types(&self) -> &[SourceType] {

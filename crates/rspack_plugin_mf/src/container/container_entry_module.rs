@@ -14,7 +14,7 @@ use rspack_core::{
   ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashSet;
 
@@ -130,9 +130,7 @@ impl Module for ContainerEntryModule {
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
     Some(self.lib_ident.as_str().into())
   }
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
-  }
+
   async fn build(
     &mut self,
     _build_context: BuildContext,

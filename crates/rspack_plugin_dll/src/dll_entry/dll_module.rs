@@ -10,7 +10,7 @@ use rspack_core::{
   ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId, EntryDependency,
   FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use rspack_error::{impl_empty_diagnosable_trait, Diagnostic, Result};
+use rspack_error::{impl_empty_diagnosable_trait, Result};
 
 use super::dll_entry_dependency::DllEntryDependency;
 
@@ -65,10 +65,6 @@ impl Module for DllModule {
 
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
-  }
-
-  fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    vec![]
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
