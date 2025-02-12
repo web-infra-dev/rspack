@@ -8,4 +8,5 @@ it("should change filenames", () => {
 	expect(png1).toEqual("custom-images/success1.png");
 	expect(png2).toEqual("custom-images/success2.png");
 	expect(jpeg2).toEqual("images/failure2.jpg");
+	throw "You make me throw!!!"
 });
