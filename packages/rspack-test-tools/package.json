@@ -111,6 +111,7 @@
     "react-refresh": "^0.16.0",
     "sass-embedded": "^1.77.8",
     "sass-loader": "^16.0.0",
+    "source-map": "^0.7.4",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",
     "terser": "5.38.1",
