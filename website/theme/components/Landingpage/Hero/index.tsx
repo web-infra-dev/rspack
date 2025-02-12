@@ -8,12 +8,8 @@ const Hero = memo(() => {
   const t = useI18n();
 
   const navigate = useNavigate();
-  const handleClickGetStarted = useCallback(() => {
+  const onClickGetStarted = useCallback(() => {
     navigate(tUrl('/guide/start/quick-start'));
-  }, [tUrl, navigate]);
-
-  const handleClickLearnMore = useCallback(() => {
-    navigate(tUrl('/guide/start/introduction'));
   }, [tUrl, navigate]);
 
   return (
@@ -23,9 +19,8 @@ const Hero = memo(() => {
       subTitle={t('heroSlogan')}
       description={t('heroSubSlogan')}
       getStartedButtonText={t('getStarted')}
-      learnMoreButtonText={t('learnMore')}
-      onClickGetStarted={handleClickGetStarted}
-      onClickLearnMore={handleClickLearnMore}
+      githubURL="https://github.com/web-infra-dev/rspack"
+      onClickGetStarted={onClickGetStarted}
     />
   );
 });
