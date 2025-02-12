@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use async_trait::async_trait;
 use rspack_core::{ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult};
 use rspack_error::{Diagnosable, Diagnostic, Result};
@@ -10,7 +8,7 @@ use super::{
 
 #[derive(Debug, Default)]
 pub struct ProvideSharedModuleFactory {
-  diagnostics: Mutex<Vec<Diagnostic>>,
+  diagnostics: Vec<Diagnostic>,
 }
 
 #[async_trait]
@@ -35,29 +33,15 @@ impl ModuleFactory for ProvideSharedModuleFactory {
 }
 
 impl Diagnosable for ProvideSharedModuleFactory {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
+  fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.diagnostics.push(diagnostic);
   }
 
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
+  fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.append(&mut diagnostics);
   }
 
   fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
+    self.diagnostics.clone()
   }
 }

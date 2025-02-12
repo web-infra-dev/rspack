@@ -4,7 +4,7 @@ use std::{
   ptr::NonNull,
   sync::{
     atomic::{AtomicUsize, Ordering},
-    Arc, Mutex,
+    Arc,
   },
 };
 
@@ -143,7 +143,7 @@ pub struct NormalModule {
   #[cacheable(with=AsMap)]
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
   #[cacheable(with=Skip)]
-  diagnostics: Mutex<Vec<Diagnostic>>,
+  diagnostics: Vec<Diagnostic>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn DependencyTemplate>>>,
@@ -231,7 +231,7 @@ impl NormalModule {
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       cached_source_sizes: DashMap::default(),
-      diagnostics: Mutex::new(Default::default()),
+      diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
       factory_meta: None,
@@ -372,8 +372,7 @@ impl Module for NormalModule {
   }
 
   fn get_diagnostics(&self) -> Vec<Diagnostic> {
-    let guard = self.diagnostics.lock().expect("should have diagnostics");
-    guard.clone()
+    self.diagnostics.clone()
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -408,8 +407,6 @@ impl Module for NormalModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.clear_diagnostics();
-
     // so does webpack
     self.parsed = true;
 
@@ -798,30 +795,16 @@ impl Module for NormalModule {
 }
 
 impl Diagnosable for NormalModule {
-  fn add_diagnostic(&self, diagnostic: Diagnostic) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .push(diagnostic);
+  fn add_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.diagnostics.push(diagnostic);
   }
 
-  fn add_diagnostics(&self, mut diagnostics: Vec<Diagnostic>) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .append(&mut diagnostics);
+  fn add_diagnostics(&mut self, mut diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.append(&mut diagnostics);
   }
 
   fn clone_diagnostics(&self) -> Vec<Diagnostic> {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .iter()
-      .cloned()
-      .collect()
+    self.diagnostics.clone()
   }
 }
 
@@ -850,13 +833,5 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
-  }
-
-  fn clear_diagnostics(&mut self) {
-    self
-      .diagnostics
-      .lock()
-      .expect("should be able to lock diagnostics")
-      .clear()
   }
 }

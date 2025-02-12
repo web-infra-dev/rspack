@@ -102,10 +102,10 @@ impl LazyCompilationProxyModule {
 }
 
 impl Diagnosable for LazyCompilationProxyModule {
-  fn add_diagnostic(&self, _diagnostic: Diagnostic) {
+  fn add_diagnostic(&mut self, _diagnostic: Diagnostic) {
     unimplemented!()
   }
-  fn add_diagnostics(&self, _diagnostics: Vec<Diagnostic>) {
+  fn add_diagnostics(&mut self, _diagnostics: Vec<Diagnostic>) {
     unimplemented!()
   }
 }
