@@ -60,14 +60,14 @@ At ByteDance, we have experimentally supported RSC ([React Server Components](ht
 
 Currently, when Rspack processes TypeScript modules, it first converts them to JavaScript through a loader before further processing. This provides flexibility but also hinders further optimization of the build output. For example, developers need to use `enum` instead of `const enum`, but `enum` is difficult to optimize as a constant. In the future, we plan to treat TypeScript as a first-class citizen in Rspack, leveraging TypeScript's static information to provide more advanced compile-time optimization of the build output (such as [type-based property renaming](https://github.com/google/closure-compiler/wiki/Type-Based-Property-Renaming)).
 
-### Continuously improving performance
+## Continuously improving performance
 
 Performance is the core selling point and focus of Rspack development. In the future we'll explore higher-performance concurrent/multi-core-friendly algorithms, higher-performance caching solutions, higher-performance plugin communication solutions, etc.
 
-### Expanding the test suite
+## Expanding the test suite
 
 Today Rspack is primarily tested using a subset of webpack's test cases. In the future, we'll cover more of these tests, while also expanding the test suite and including community projects to ensure compatibility across Rspack releases.
 
-### Collaboration with community partners
+## Collaboration with community partners
 
 We are very willing to provide support to framework teams and toolchains within the community to unleash the true performance advantages of Rspack. If your framework or toolchain has a demand for high-performance build engines, let us know!

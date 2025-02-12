@@ -60,14 +60,14 @@ ESM 是 JavaScript 模块的标准，目前，我们正在改进 Rspack 和 webp
 
 目前 Rspack 在处理 TypeScript 模块时，会先通过 loader 将其转换为 JavaScript 再处理。这虽然提供了充足的灵活性，但是也阻碍了进一步的产物优化。 例如，开发者需要使用 `enum` 替代 `const enum`，但是 `enum` 本身难以进行常量优化，未来我们考虑重新将 TypeScript 作为 Rspack 的一等公民，充分利用 TypeScript 的静态信息，提供更高级的编译产物优化（如 [基于 type 的 property renaming](https://github.com/google/closure-compiler/wiki/Type-Based-Property-Renaming)）。
 
-### 持续提升性能
+## 持续提升性能
 
 性能是 Rspack 的核心卖点，所以在未来我们会持续地对 Rspack 进行性能优化，提升 Rspack 的性能。如探索更高性能的并发/多核友好的算法，探索更高性能的缓存方案，探索更高性能的插件通信方案等等。
 
-### 建设完善的质量保障体系
+## 建设完善的质量保障体系
 
 Rspack 复用了 webpack 的测试用例，未来我们会覆盖更多的 webpack 的测试用例，同时建设完善的 CI 体系，持续提升测试覆盖率，与社区项目共建 Ecosystem CI，避免 Rspack 的升级对上游项目造成 break，保障项目长期健康发展。
 
-### 和社区的伙伴合作
+## 和社区的伙伴合作
 
 Rspack 作为一个底层依赖，解决了我们在工作中遇到的很多问题，相信它也可以帮助社区解决一些问题。我们非常期待能与社区内的框架团队深入合作，让大家发挥出 Rspack 真正的性能优势。如果你的框架或者工具链对高性能构建引擎有需求，欢迎联系我们来获得更好的支持。
