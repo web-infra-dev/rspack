@@ -535,8 +535,6 @@ export interface JsBuildMeta {
   esm: boolean
   exportsType: 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
   defaultObject: 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
-  moduleArgument: 'module' | 'webpackModule'
-  exportsArgument: 'exports' | 'webpackExports'
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
 }

@@ -5,8 +5,7 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilationId, ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier,
-  RuntimeModuleStage, SourceType,
+  CompilationId, LibIdentOptions, Module, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -514,10 +513,6 @@ pub struct JsBuildMeta {
   pub exports_type: String,
   #[napi(ts_type = "'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn")]
   pub default_object: JsBuildMetaDefaultObject,
-  #[napi(ts_type = "'module' | 'webpackModule'")]
-  pub module_argument: String,
-  #[napi(ts_type = "'exports' | 'webpackExports'")]
-  pub exports_argument: String,
   pub side_effect_free: Option<bool>,
   #[napi(ts_type = "Array<[string, string]> | undefined")]
   pub exports_final_name: Option<Vec<Vec<String>>>,
@@ -529,9 +524,7 @@ impl From<JsBuildMeta> for BuildMeta {
       strict_esm_module,
       has_top_level_await,
       esm,
-      exports_argument: raw_exports_argument,
       default_object: raw_default_object,
-      module_argument: raw_module_argument,
       exports_final_name: raw_exports_final_name,
       side_effect_free,
       exports_type: raw_exports_type,
@@ -554,18 +547,6 @@ impl From<JsBuildMeta> for BuildMeta {
       "namespace" => BuildMetaExportsType::Namespace,
       "flagged" => BuildMetaExportsType::Flagged,
       "dynamic" => BuildMetaExportsType::Dynamic,
-      _ => unreachable!(),
-    };
-
-    let module_argument = match raw_module_argument.as_str() {
-      "module" => ModuleArgument::Module,
-      "webpackModule" => ModuleArgument::WebpackModule,
-      _ => unreachable!(),
-    };
-
-    let exports_argument = match raw_exports_argument.as_str() {
-      "exports" => ExportsArgument::Exports,
-      "webpackExports" => ExportsArgument::WebpackExports,
       _ => unreachable!(),
     };
 
@@ -592,8 +573,6 @@ impl From<JsBuildMeta> for BuildMeta {
       esm,
       exports_type,
       default_object,
-      module_argument,
-      exports_argument,
       side_effect_free,
       exports_final_name,
     }
