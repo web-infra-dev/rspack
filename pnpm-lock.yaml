@@ -5,9 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  graceful-fs@4.2.10:
+  graceful-fs:
     hash: ivtm2a2cfr5pomcfbedhmr5v2q
-    path: patches/graceful-fs@4.2.10.patch
+    path: patches/graceful-fs.patch
   rollup-plugin-dts:
     hash: ae3wyaqpjyjp5gck7zzwzn3cfq
     path: patches/rollup-plugin-dts.patch
@@ -335,8 +335,8 @@ importers:
         specifier: 5.18.1
         version: 5.18.1
       graceful-fs:
-        specifier: 4.2.11
-        version: 4.2.11
+        specifier: ^4.2.11
+        version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       json-parse-even-better-errors:
         specifier: ^3.0.0
         version: 3.0.1
@@ -473,6 +473,9 @@ importers:
       glob:
         specifier: ^11.0.0
         version: 11.0.0
+      graceful-fs:
+        specifier: ^4.2.11
+        version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-diff:
         specifier: ^29.7.0
         version: 29.7.0
@@ -482,6 +485,9 @@ importers:
       jsdom:
         specifier: ^26.0.0
         version: 26.0.0
+      loader-utils:
+        specifier: ^2.0.4
+        version: 2.0.4
       memfs:
         specifier: 4.17.0
         version: 4.17.0
@@ -494,6 +500,12 @@ importers:
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
+      source-map:
+        specifier: ^0.7.4
+        version: 0.7.4
+      terser-webpack-plugin:
+        specifier: ^5.3.10
+        version: 5.3.10(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
       webpack:
         specifier: 5.95.0
         version: 5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0))
@@ -522,6 +534,9 @@ importers:
       '@rspack/plugin-react-refresh':
         specifier: ^1.0.1
         version: 1.0.1(react-refresh@0.16.0)
+      '@rspack/test-tools':
+        specifier: workspace:*
+        version: 'link:'
       '@swc/helpers':
         specifier: 0.5.15
         version: 0.5.15
@@ -938,8 +953,8 @@ importers:
         specifier: 5.12.0
         version: 5.12.0
       graceful-fs:
-        specifier: 4.2.10
-        version: 4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
+        specifier: 4.2.11
+        version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       neo-async:
         specifier: 2.6.2
         version: 2.6.2
@@ -11470,7 +11485,7 @@ snapshots:
       chalk: 4.1.2
       ci-info: 3.9.0
       exit: 0.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-changed-files: 29.7.0
       jest-config: 29.7.0(@types/node@20.17.10)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.17.10)(typescript@5.7.3))
       jest-haste-map: 29.7.0
@@ -11546,7 +11561,7 @@ snapshots:
       collect-v8-coverage: 1.0.2
       exit: 0.1.2
       glob: 7.2.3
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-instrument: 6.0.2
       istanbul-lib-report: 3.0.1
@@ -11570,7 +11585,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       callsites: 3.1.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   '@jest/test-result@29.7.0':
     dependencies:
@@ -11582,7 +11597,7 @@ snapshots:
   '@jest/test-sequencer@29.7.0':
     dependencies:
       '@jest/test-result': 29.7.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       slash: 3.0.0
 
@@ -11595,7 +11610,7 @@ snapshots:
       chalk: 4.1.2
       convert-source-map: 2.0.0
       fast-json-stable-stringify: 2.1.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-regex-util: 29.6.3
       jest-util: 29.7.0
@@ -12438,7 +12453,7 @@ snapshots:
 
   '@pnpm/graceful-fs@3.0.0':
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   '@pnpm/hooks.types@1.0.1':
     dependencies:
@@ -14173,7 +14188,7 @@ snapshots:
       babel-plugin-istanbul: 6.1.1
       babel-preset-jest: 29.6.3(@babel/core@7.24.4)
       chalk: 4.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       slash: 3.0.0
     transitivePeerDependencies:
       - supports-color
@@ -14368,7 +14383,7 @@ snapshots:
       chownr: 1.1.4
       figgy-pudding: 3.5.2
       glob: 7.2.3
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       infer-owner: 1.0.4
       lru-cache: 5.1.1
       mississippi: 3.0.0
@@ -14819,7 +14834,7 @@ snapshots:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-config: 29.7.0(@types/node@20.17.10)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.17.10)(typescript@5.7.3))
       jest-util: 29.7.0
       prompts: 2.4.2
@@ -15275,7 +15290,7 @@ snapshots:
   del@6.1.1:
     dependencies:
       globby: 11.1.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       is-glob: 4.0.3
       is-path-cwd: 2.2.0
       is-path-inside: 3.0.3
@@ -15440,17 +15455,17 @@ snapshots:
 
   enhanced-resolve@5.12.0:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   enhanced-resolve@5.18.0:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   enhanced-resolve@5.18.1:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       tapable: 2.2.1
 
   entities@2.2.0: {}
@@ -15909,13 +15924,13 @@ snapshots:
 
   fs-extra@11.3.0:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jsonfile: 6.1.0
       universalify: 2.0.1
 
   fs-write-stream-atomic@1.0.10:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       iferr: 0.1.5
       imurmurhash: 0.1.4
       readable-stream: 2.3.8
@@ -16068,7 +16083,7 @@ snapshots:
 
   graceful-fs@4.2.10(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q): {}
 
-  graceful-fs@4.2.11: {}
+  graceful-fs@4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q): {}
 
   gray-matter@4.0.3:
     dependencies:
@@ -16725,7 +16740,7 @@ snapshots:
       ci-info: 3.9.0
       deepmerge: 4.3.1
       glob: 7.2.3
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-circus: 29.7.0
       jest-environment-node: 29.7.0
       jest-get-type: 29.6.3
@@ -16798,7 +16813,7 @@ snapshots:
       '@types/node': 20.17.10
       anymatch: 3.1.3
       fb-watchman: 2.0.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-regex-util: 29.6.3
       jest-util: 29.7.0
       jest-worker: 29.7.0
@@ -16825,7 +16840,7 @@ snapshots:
       '@jest/types': 29.6.3
       '@types/stack-utils': 2.0.3
       chalk: 4.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       micromatch: 4.0.8
       pretty-format: 29.7.0
       slash: 3.0.0
@@ -16853,7 +16868,7 @@ snapshots:
   jest-resolve@29.7.0:
     dependencies:
       chalk: 4.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-pnp-resolver: 1.2.3(jest-resolve@29.7.0)
       jest-util: 29.7.0
@@ -16872,7 +16887,7 @@ snapshots:
       '@types/node': 20.17.10
       chalk: 4.1.2
       emittery: 0.13.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-docblock: 29.7.0
       jest-environment-node: 29.7.0
       jest-haste-map: 29.7.0
@@ -16902,7 +16917,7 @@ snapshots:
       cjs-module-lexer: 1.2.3
       collect-v8-coverage: 1.0.2
       glob: 7.2.3
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
@@ -16928,7 +16943,7 @@ snapshots:
       babel-preset-current-node-syntax: 1.0.1(@babel/core@7.24.4)
       chalk: 4.1.2
       expect: 29.7.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       jest-diff: 29.7.0
       jest-get-type: 29.6.3
       jest-matcher-utils: 29.7.0
@@ -16946,7 +16961,7 @@ snapshots:
       '@types/node': 20.17.10
       chalk: 4.1.2
       ci-info: 3.9.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       picomatch: 2.3.1
 
   jest-validate@29.7.0:
@@ -17143,7 +17158,7 @@ snapshots:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   jstransformer@1.0.0:
     dependencies:
@@ -17212,7 +17227,7 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       errno: 0.1.8
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
@@ -17255,7 +17270,7 @@ snapshots:
 
   load-json-file@6.2.0:
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       parse-json: 5.2.0
       strip-bom: 4.0.0
       type-fest: 0.6.0
@@ -20735,7 +20750,7 @@ snapshots:
   watchpack@2.4.1:
     dependencies:
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
 
   wbuf@1.7.3:
     dependencies:
@@ -20820,7 +20835,7 @@ snapshots:
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
       express: 4.19.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.6(@types/express@4.17.21)
       ipaddr.js: 2.1.0
@@ -20861,7 +20876,7 @@ snapshots:
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
       express: 4.19.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.6(@types/express@4.17.21)
       ipaddr.js: 2.1.0
@@ -20912,7 +20927,7 @@ snapshots:
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       json-parse-even-better-errors: 2.3.1
       loader-runner: 4.3.0
       mime-types: 2.1.35
@@ -20945,7 +20960,7 @@ snapshots:
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       json-parse-even-better-errors: 2.3.1
       loader-runner: 4.3.0
       mime-types: 2.1.35
@@ -20977,7 +20992,7 @@ snapshots:
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
       json-parse-even-better-errors: 2.3.1
       loader-runner: 4.3.0
       mime-types: 2.1.35

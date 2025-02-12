@@ -59,7 +59,7 @@
     "@swc/helpers": "0.5.15",
     "browserslist": "^4.21.3",
     "enhanced-resolve": "5.12.0",
-    "graceful-fs": "4.2.10",
+    "graceful-fs": "4.2.11",
     "neo-async": "2.6.2",
     "react-refresh": "^0.16.0",
     "tapable": "2.2.1",
