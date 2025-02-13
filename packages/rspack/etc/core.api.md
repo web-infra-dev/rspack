@@ -10639,7 +10639,10 @@ class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
 
 // @public (undocumented)
 export type SubresourceIntegrityPluginOptions = {
-    hashFuncNames?: [SubresourceIntegrityHashFunction, ...SubresourceIntegrityHashFunction[]];
+    hashFuncNames?: [
+    SubresourceIntegrityHashFunction,
+    ...SubresourceIntegrityHashFunction[]
+    ];
     htmlPlugin?: string | false;
     enabled?: "auto" | boolean;
 };
