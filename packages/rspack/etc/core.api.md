@@ -73,6 +73,7 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
+import { RawSRIPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import type { SecureContextOptions } from 'node:tls';
@@ -2048,6 +2049,8 @@ interface Experiments_2 {
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
+    // (undocumented)
+    SubresourceIntegrityPlugin: typeof SRIPlugin;
 }
 
 // @public (undocumented)
@@ -4018,6 +4021,22 @@ class MultiWatching {
 export type Name = string;
 
 // @public (undocumented)
+const NativeSRIPlugin: {
+    new (options: NativeSRIPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [options: NativeSRIPluginOptions];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+
+// @public (undocumented)
+type NativeSRIPluginOptions = Omit<RawSRIPluginOptions, "htmlPlugin"> & {
+    htmlPlugin: string | false;
+};
+
+// @public (undocumented)
 export const node: Node_3;
 
 // @public
@@ -5376,6 +5395,7 @@ declare namespace rspackExports {
         SwcLoaderTsParserConfig,
         LightningcssLoaderOptions,
         LightningcssFeatureOptions,
+        SubresourceIntegrityPluginOptions,
         experiments,
         getRawResolve,
         LoaderContext,
@@ -10291,6 +10311,16 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
     raw(compiler: Compiler): BuiltinPlugin;
 }
 
+// @public (undocumented)
+type SRIHashFunction = "sha256" | "sha384" | "sha512";
+
+// @public (undocumented)
+class SRIPlugin extends NativeSRIPlugin {
+    constructor(options: SubresourceIntegrityPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
 // @public
 type StandardSchemaV1<Input = unknown, Output = Input> = {
     readonly "~standard": StandardSchemaV1.Props<Input, Output>;
@@ -10606,6 +10636,13 @@ type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" 
 
 // @public (undocumented)
 type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
+
+// @public (undocumented)
+export type SubresourceIntegrityPluginOptions = {
+    hashFuncNames?: [SRIHashFunction, ...SRIHashFunction[]];
+    htmlPlugin?: string | false;
+    enabled?: "auto" | boolean;
+};
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {

@@ -180,6 +180,7 @@ rspack_plugin_runtime_chunk            = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_schemes                  = { version = "0.2.0", path = "crates/rspack_plugin_schemes" }
 rspack_plugin_size_limits              = { version = "0.2.0", path = "crates/rspack_plugin_size_limits" }
 rspack_plugin_split_chunks             = { version = "0.2.0", path = "crates/rspack_plugin_split_chunks" }
+rspack_plugin_sri                      = { version = "0.2.0", path = "crates/rspack_plugin_sri" }
 rspack_plugin_swc_js_minimizer         = { version = "0.2.0", path = "crates/rspack_plugin_swc_js_minimizer" }
 rspack_plugin_warn_sensitive_module    = { version = "0.2.0", path = "crates/rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                     = { version = "0.2.0", path = "crates/rspack_plugin_wasm" }
