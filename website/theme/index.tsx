@@ -1,6 +1,6 @@
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
+import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
-import ConfigProvider from 'antd/es/config-provider';
 import { NoSSR, useLang, usePageData } from 'rspress/runtime';
 import Theme from 'rspress/theme';
 import { HomeLayout } from './pages';
