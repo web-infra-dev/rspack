@@ -351,7 +351,7 @@ jobs:
   bench-rust:
     name: Bench Rust
     if: ${{ inputs.bench && !inputs.skipable }}
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -384,8 +384,8 @@ jobs:
           run: pnpm run bench:ci:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
 
-  bench-js:
-    name: Bench
+  bench-javascript:
+    name: Bench JavaScript
     needs: build
     if: ${{ inputs.bench && !inputs.skipable }}
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
