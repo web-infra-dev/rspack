@@ -15,5 +15,6 @@ packages:
   - "tests/plugin-test"
   - "tests/webpack-cli-test"
   - "tests/bench"
+  - "tasks/benchmark/benches/**"
   # this following is used to test resolve in monorepo
   - "packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/*"

@@ -715,6 +715,15 @@ importers:
         specifier: 8.3.0
         version: 8.3.0
 
+  tasks/benchmark/benches/modules_10000:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.0.0(react@19.0.0)
+
   tests/bench:
     dependencies:
       react:
