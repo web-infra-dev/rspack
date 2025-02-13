@@ -12,9 +12,10 @@ on:
         type: choice
         default: release
         options:
-          - release
-          - release-debug
-        description: "release-debug means release with debug info for profile"
+          - production
+          - profiling
+          - ci
+        description: "profiling means release with debug info for profile"
 
 permissions:
   # To publish packages with provenance

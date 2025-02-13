@@ -195,30 +195,43 @@ rspack_util                            = { version = "0.2.0", path = "crates/rsp
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }
-[profile.dev]
-codegen-units = 16
-debug         = 2       # debug build will cause runtime panic if codegen-unints is default
-incremental   = true
-panic         = "abort"
 
+# Follow servo's style https://github.com/servo/servo/blob/c95bd9d052d7eae378d31c5be0f92669cadb2c85/Cargo.toml#L175
+
+# This is for local development
+[profile.dev]
+debug       = 2       # debug build will cause runtime panic if codegen-unints is default
+incremental = true
+panic       = "abort"
+
+# This is used for inheritance by other release related profile
 [profile.release]
+opt-level = 3
+
+# This is for CI build
+[profile.ci]
+codegen-units = 16
+inherits      = "release"
+
+# This is for production build
+[profile.production]
 codegen-units = 1
 debug         = false
-# Performs “thin” LTO. This is similar to “fat”, but takes substantially less time to run while still achieving performance gains similar to “fat”.
-lto       = "thin"
-opt-level = 3
+inherits      = "release"
+
+# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
+lto       = "fat"
+opt-level = "s"
 panic     = "abort"
 strip     = true
 
-[profile.release-prod]
-inherits = "release"
-# Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
-lto = "fat"
-
-[profile.release-debug]
-debug    = true
-inherits = "release"
-strip    = false
+# This is for production for profiling production build
+[profile.profiling]
+codegen-units = 1
+debug         = true
+inherits      = "release"
+lto           = "thin"
+strip         = false
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]
