@@ -8,6 +8,7 @@ it("basic", () => {
 			source
 		)[1];
 	const map = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
+	expect(source.includes('//# sourceURL=webpack-internal:///./index.js'))
 	expect(map.sources[0]).toMatch(/webpack:\/\/\/\.\/index.js?[a-zA-Z0-9]+/);
 	expect(map.file).toBe(path.join(CONTEXT, "index.js"));
 });

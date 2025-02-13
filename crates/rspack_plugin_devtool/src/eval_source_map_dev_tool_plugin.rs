@@ -5,7 +5,7 @@ use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
+  ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
@@ -153,16 +153,25 @@ fn eval_source_map_devtool_plugin_render_module_content(
       if self.no_sources {
         map.set_sources_content([]);
       }
+
       map.set_source_root(self.source_root.clone());
       map.set_file(Some(module.identifier().to_string()));
 
       let mut map_buffer = Vec::new();
+      let module_ids = &compilation.module_ids_artifact;
+      // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
+      let module_id =
+        if let Some(module_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
+          module_id.to_string()
+        } else {
+          "unknown".to_string()
+        };
       map
         .to_writer(&mut map_buffer)
         .unwrap_or_else(|e| panic!("{}", e.to_string()));
       let base64 = rspack_base64::encode_to_string(&map_buffer);
       let footer =
-        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+        format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}\n//# sourceURL=webpack-internal:///{module_id}\n");
       let module_content =
         simd_json::to_string(&format!("{source}{footer}")).expect("should convert to string");
       RawStringSource::from(format!(
