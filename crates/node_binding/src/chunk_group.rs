@@ -166,7 +166,7 @@ impl JsChunkGroup {
 }
 
 thread_local! {
-  static CHUNK_GROUP_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkGroupUkey, OneShotRef<JsChunkGroup>>>> = Default::default();
+  static CHUNK_GROUP_INSTANCE_REFS: RefCell<HashMap<CompilationId, HashMap<ChunkGroupUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct JsChunkGroupWrapper {

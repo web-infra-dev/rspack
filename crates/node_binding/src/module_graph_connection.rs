@@ -110,7 +110,7 @@ impl JsModuleGraphConnection {
   }
 }
 
-type ModuleGraphConnectionRefs = HashMap<DependencyId, OneShotRef<JsModuleGraphConnection>>;
+type ModuleGraphConnectionRefs = HashMap<DependencyId, OneShotRef>;
 
 type ModuleGraphConnectionRefsByCompilationId =
   RefCell<HashMap<CompilationId, ModuleGraphConnectionRefs>>;

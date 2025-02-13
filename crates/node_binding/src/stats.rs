@@ -19,8 +19,8 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
-  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef<JsModuleDescriptor>>> = Default::default();
-  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, OneShotRef<JsStatsModuleCommonAttributes>>> = Default::default();
+  static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
+  static MODULE_COMMON_ATTRIBUTES_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
 }
 
 #[napi(object, object_from_js = false)]
