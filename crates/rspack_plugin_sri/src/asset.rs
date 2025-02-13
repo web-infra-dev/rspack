@@ -41,7 +41,7 @@ fn process_chunks(
     CrossOriginLoading::Disable
   ) {
     compilation.push_diagnostic(Diagnostic::warn(
-      "SubResourceIntegrity".to_string(),
+      "SubresourceIntegrity".to_string(),
       r#"SRI requires a cross-origin policy, defaulting to "anonymous". 
 Set rspack option output.crossOriginLoading to a value other than false 
 to make this warning go away. 
@@ -103,7 +103,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     for result in results {
       for warning in result.warnings {
         compilation.push_diagnostic(Diagnostic::warn(
-          "SubResourceIntegrity".to_string(),
+          "SubresourceIntegrity".to_string(),
           warning,
         ));
       }
@@ -133,7 +133,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
           .err()
         {
           compilation.push_diagnostic(Diagnostic::error(
-            "SubResourceIntegrity".to_string(),
+            "SubresourceIntegrity".to_string(),
             format!("Failed to update asset '{}': {}", result.file, error),
           ));
         }
@@ -141,7 +141,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     }
     if should_warn_content_hash {
       compilation.push_diagnostic(Diagnostic::warn(
-        "SubResourceIntegrity".to_string(),
+        "SubresourceIntegrity".to_string(),
         r#"Using [hash], [fullhash], [modulehash], or [chunkhash] is dangerous 
 with SRI. The same is true for [contenthash] when realContentHash is disabled. 
 Use [contenthash] and ensure realContentHash is enabled. See the README for 
@@ -167,7 +167,7 @@ fn process_chunk_source(
   let mut warnings = vec![];
   let source_content = source.source();
   if source_content.contains("webpackHotUpdate") {
-    warnings.push("SubResourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
+    warnings.push("SubresourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
   }
 
   // replace placeholders with integrity hash
@@ -293,7 +293,7 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
 
   for file in contain_unresolved_files {
     compilation.push_diagnostic(Diagnostic::error(
-      "SubResourceIntegrity".to_string(),
+      "SubresourceIntegrity".to_string(),
       format!("Asset {} contains unresolved integrity placeholders", file),
     ));
   }

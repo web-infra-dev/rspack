@@ -82,7 +82,7 @@ async fn warn_non_web(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.push_diagnostic(Diagnostic::warn(
-    "SubResourceIntegrity".to_string(),
+    "SubresourceIntegrity".to_string(),
     "This plugin is not useful for non-web targets.".to_string(),
   ));
   Ok(())
@@ -112,7 +112,7 @@ async fn handle_compilation(
     CrossOriginLoading::Disable
   ) {
     compilation.push_diagnostic(Diagnostic::error(
-      "SubResourceIntegrity".to_string(),
+      "SubresourceIntegrity".to_string(),
       "rspack option output.crossOriginLoading not set, code splitting will not work!".to_string(),
     ));
   }
