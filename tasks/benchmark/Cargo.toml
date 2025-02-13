@@ -9,7 +9,6 @@ version     = "0.2.0"
 
 [features]
 codspeed = ["criterion2/codspeed"]
-default  = []
 
 [dependencies]
 criterion2   = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
