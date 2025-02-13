@@ -16,7 +16,6 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
-import { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -270,18 +269,18 @@ export class RspackOptionsApply {
 		if (options.experiments.lazyCompilation) {
 			const lazyOptions = options.experiments.lazyCompilation;
 
+			const test = lazyOptions.test;
+
 			new LazyCompilationPlugin(
 				// this is only for test
 				// @ts-expect-error cacheable is hide
 				lazyOptions.cacheable ?? true,
 				lazyOptions.entries ?? true,
 				lazyOptions.imports ?? true,
-				typeof lazyOptions.test === "function"
-					? jsModule =>
-							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
-								lazyOptions,
-								new Module(jsModule)
-							)
+				typeof test === "function"
+					? module => {
+							return test.call(lazyOptions, module);
+						}
 					: lazyOptions.test,
 				lazyOptions.backend
 			).apply(compiler);
