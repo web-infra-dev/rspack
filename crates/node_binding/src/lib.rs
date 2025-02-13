@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
+use napi::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunctionCallMode};
 use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilerId, PluginExt};
 use rspack_error::Diagnostic;
@@ -178,11 +179,6 @@ impl Rspack {
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(reference.compiler.id(), reference.downgrade());
-    });
-
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -214,15 +210,34 @@ impl Rspack {
   ) -> Result<()> {
     use std::collections::HashSet;
 
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(reference.compiler.id(), reference.downgrade());
-    });
+    let compiler_id = reference.compiler.id();
+
+    let tsfn = f
+      .build_threadsafe_function()
+      .weak::<true>()
+      .callee_handled::<false>()
+      .build_callback(move |ctx: ThreadsafeCallContext<Result<()>>| {
+        COMPILER_REFERENCES.with(|ref_cell| {
+          if let Some(weak_reference) = ref_cell.borrow().get(&compiler_id) {
+            if let Some(this) = weak_reference.get() {
+              let module_identifiers = this
+                .compiler
+                .compilation
+                .make_artifact
+                .revoked_modules
+                .iter();
+              JsModuleWrapper::cleanup_by_module_identifiers(module_identifiers);
+            }
+          }
+        });
+
+        ctx.value
+      })?;
 
     unsafe {
       self.run(env, reference, |compiler, _guard| {
-        callbackify(env, f, async move {
-          compiler
+        napi::bindgen_prelude::spawn(async move {
+          let res = compiler
             .rebuild(
               HashSet::from_iter(changed_files.into_iter()),
               HashSet::from_iter(removed_files.into_iter()),
@@ -233,11 +248,12 @@ impl Rspack {
                 napi::Status::GenericFailure,
                 print_error_diagnostic(e, compiler.options.stats.colors),
               )
-            })?;
+            });
           tracing::info!("rebuild ok");
+          tsfn.call(res, ThreadsafeFunctionCallMode::NonBlocking);
           drop(_guard);
-          Ok(())
-        })
+        });
+        Ok(())
       })
     }
   }

@@ -378,6 +378,17 @@ impl JsModuleWrapper {
       refs_by_compiler_id.remove(compiler_id)
     });
   }
+
+  pub fn cleanup_by_module_identifiers<'a, T: Iterator<Item = &'a ModuleIdentifier>>(iter: T) {
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compiler_id = refs.borrow_mut();
+      for module_identifier in iter {
+        for (_, refs) in refs_by_compiler_id.iter_mut() {
+          refs.remove(module_identifier);
+        }
+      }
+    });
+  }
 }
 
 impl ToNapiValue for JsModuleWrapper {
