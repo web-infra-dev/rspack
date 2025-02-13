@@ -5,6 +5,8 @@ use indexmap::{IndexMap, IndexSet};
 use rustc_hash::FxHasher;
 
 pub type BuildFxHasher = BuildHasherDefault<FxHasher>;
+pub use rustc_hash::FxHashMap;
+pub use rustc_hash::FxHashSet;
 pub type FxDashMap<K, V> = DashMap<K, V, BuildHasherDefault<FxHasher>>;
 pub type FxDashSet<V> = DashSet<V, BuildHasherDefault<FxHasher>>;
 pub type FxIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<FxHasher>>;
