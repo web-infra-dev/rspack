@@ -129,7 +129,8 @@ pub struct NormalModule {
   #[cacheable(with=AsOption<AsPreset>)]
   original_source: Option<BoxSource>,
   /// Built source of this module (passed with loaders)
-  source: NormalModuleSource,
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
@@ -152,27 +153,6 @@ pub struct NormalModule {
   build_info: BuildInfo,
   build_meta: BuildMeta,
   parsed: bool,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub enum NormalModuleSource {
-  Unbuild,
-  BuiltSucceed(#[cacheable(with=AsPreset)] BoxSource),
-  BuiltFailed(Diagnostic),
-}
-
-impl NormalModuleSource {
-  pub fn new_built(source: BoxSource, mut diagnostics: Vec<Diagnostic>) -> Self {
-    diagnostics.retain(|d| d.severity() == Severity::Error);
-    // Use the first error as diagnostic
-    // See: https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModule.js#L878
-    if let Some(d) = diagnostics.into_iter().next() {
-      NormalModuleSource::BuiltFailed(d)
-    } else {
-      NormalModuleSource::BuiltSucceed(source)
-    }
-  }
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
@@ -227,7 +207,7 @@ impl NormalModule {
       resolve_options,
       loaders,
       original_source: None,
-      source: NormalModuleSource::Unbuild,
+      source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       cached_source_sizes: DashMap::default(),
@@ -270,12 +250,8 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn source(&self) -> &NormalModuleSource {
+  pub fn source(&self) -> &Option<BoxSource> {
     &self.source
-  }
-
-  pub fn source_mut(&mut self) -> &mut NormalModuleSource {
-    &mut self.source
   }
 
   pub fn loaders(&self) -> &[BoxLoader] {
@@ -319,9 +295,12 @@ impl NormalModule {
     let mut hasher = RspackHash::from(output_options);
     "source".hash(&mut hasher);
     match &self.source {
-      NormalModuleSource::Unbuild => panic!("NormalModule should already build"),
-      NormalModuleSource::BuiltSucceed(s) => s.hash(&mut hasher),
-      NormalModuleSource::BuiltFailed(e) => e.message().hash(&mut hasher),
+      Some(s) => s.hash(&mut hasher),
+      None => self
+        .first_error()
+        .expect("should have error")
+        .message()
+        .hash(&mut hasher),
     }
     "meta".hash(&mut hasher);
     build_meta.hash(&mut hasher);
@@ -486,7 +465,7 @@ impl Module for NormalModule {
             .with_hide_stack(hide_stack)
         };
 
-        self.source = NormalModuleSource::BuiltFailed(diagnostic.clone());
+        self.source = None;
         self.add_diagnostic(diagnostic);
 
         self.build_info.hash =
@@ -538,7 +517,9 @@ impl Module for NormalModule {
     if no_parse {
       self.parsed = false;
       self.original_source = Some(original_source.clone());
-      self.source = NormalModuleSource::new_built(original_source, self.diagnostics.clone());
+      if self.first_error().is_none() {
+        self.source = Some(original_source);
+      }
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
@@ -600,7 +581,11 @@ impl Module for NormalModule {
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
     self.original_source = Some(source.clone());
-    self.source = NormalModuleSource::new_built(source, self.diagnostics.clone());
+    if self.first_error().is_some() {
+      self.source = None; // NormalModuleSource::BuiltFailed
+    } else {
+      self.source = Some(source);
+    };
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
@@ -621,56 +606,57 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
     mut concatenation_scope: Option<ConcatenationScope>,
   ) -> Result<CodeGenerationResult> {
-    if let NormalModuleSource::BuiltSucceed(source) = &self.source {
-      let mut code_generation_result = CodeGenerationResult::default();
-      if !self.parsed {
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::MODULE);
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::EXPORTS);
-        code_generation_result
-          .runtime_requirements
-          .insert(RuntimeGlobals::THIS_AS_EXPORTS);
-      }
-      for source_type in self.source_types() {
-        let generation_result = self.parser_and_generator.generate(
-          source,
-          self,
-          &mut GenerateContext {
-            compilation,
-            runtime_requirements: &mut code_generation_result.runtime_requirements,
-            data: &mut code_generation_result.data,
-            requested_source_type: *source_type,
-            runtime,
-            concatenation_scope: concatenation_scope.as_mut(),
-          },
-        )?;
-        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
-      }
-      code_generation_result.concatenation_scope = concatenation_scope;
-      Ok(code_generation_result)
-    } else if let NormalModuleSource::BuiltFailed(error_message) = &self.source {
+    if let Some(error) = self.first_error() {
       let mut code_generation_result = CodeGenerationResult::default();
 
       // If the module build failed and the module is able to emit JavaScript source,
       // we should emit an error message to the runtime, otherwise we do nothing.
       if self.source_types().contains(&SourceType::JavaScript) {
-        let error = error_message.render_report(compilation.options.stats.colors)?;
+        let error = error.render_report(compilation.options.stats.colors)?;
         code_generation_result.add(
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
         code_generation_result.concatenation_scope = concatenation_scope;
       }
-      Ok(code_generation_result)
-    } else {
-      Err(error!(
+      return Ok(code_generation_result);
+    }
+    let Some(source) = &self.source else {
+      return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
-      ))
+      ));
+    };
+
+    let mut code_generation_result = CodeGenerationResult::default();
+    if !self.parsed {
+      code_generation_result
+        .runtime_requirements
+        .insert(RuntimeGlobals::MODULE);
+      code_generation_result
+        .runtime_requirements
+        .insert(RuntimeGlobals::EXPORTS);
+      code_generation_result
+        .runtime_requirements
+        .insert(RuntimeGlobals::THIS_AS_EXPORTS);
     }
+    for source_type in self.source_types() {
+      let generation_result = self.parser_and_generator.generate(
+        source,
+        self,
+        &mut GenerateContext {
+          compilation,
+          runtime_requirements: &mut code_generation_result.runtime_requirements,
+          data: &mut code_generation_result.data,
+          requested_source_type: *source_type,
+          runtime,
+          concatenation_scope: concatenation_scope.as_mut(),
+        },
+      )?;
+      code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+    }
+    code_generation_result.concatenation_scope = concatenation_scope;
+    Ok(code_generation_result)
   }
 
   fn update_hash(
@@ -681,7 +667,7 @@ impl Module for NormalModule {
   ) -> Result<()> {
     self.build_info.hash.dyn_hash(hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
-    if matches!(&self.source, NormalModuleSource::BuiltSucceed(_)) {
+    if self.source.is_some() {
       self
         .parser_and_generator
         .update_hash(self, hasher, compilation, runtime)?;
