@@ -13,8 +13,8 @@ on:
       runner: # Runner labels
         required: true
         type: string
-      profile: # Rust profile, "debug" or "release"
-        default: "production"
+      profile: # Rust profile, "ci" or "production" or "profiling"
+        default: "ci"
         required: false
         type: string
       test: # Run tests?
