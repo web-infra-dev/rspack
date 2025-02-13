@@ -1,34 +1,5 @@
 name: Reusable Release
 
-# Example job:
-#jobs
-#  build:
-#    strategy:
-#      matrix:
-#        array:
-#          - target: x86_64-unknown-linux-gnu
-#            runner: ubuntu-latest
-#          - target: aarch64-unknown-linux-gnu
-#            runner: ubuntu-latest
-#          - target: x86_64-unknown-linux-musl
-#            runner: ubuntu-latest
-#          - target: aarch64-unknown-linux-musl
-#            runner: ubuntu-latest
-#          - target: i686-pc-windows-msvc
-#            runner: windows-latest
-#          - target: x86_64-pc-windows-msvc
-#            runner: windows-latest
-#          - target: aarch64-pc-windows-msvc
-#            runner: windows-latest
-#          - target: x86_64-apple-darwin
-#            runner: macos-latest
-#          - target: aarch64-apple-darwin
-#            runner: macos-latest
-#    uses: ./.github/workflows/reusable-build.yml
-#    with:
-#      target: ${{ matrix.array.target }}
-#      runner: ${{ matrix.array.runner }}
-
 on:
   workflow_call:
     inputs:
@@ -85,10 +56,6 @@ jobs:
         with:
           target: ${{ inputs.target }}
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled && !inputs.skipable }}
-
       - name: Pnpm Cache
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
@@ -101,16 +68,6 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
-
-      # Compile dependencies with optimization to make tests run faster
-      - name: Add optimization to debug profile
-        if: ${{ inputs.profile == 'debug' && !inputs.skipable }}
-        shell: bash
-        run: |
-          echo '[profile.release.package."*"]' >> Cargo.toml
-          echo 'opt-level = 3' >> Cargo.toml
-          echo 'codegen-units = 64' >> Cargo.toml
-          echo 'incremental = false' >> Cargo.toml
 
       - name: Trim paths
         if: ${{ !inputs.skipable }}
@@ -391,7 +348,43 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
         run: pnpm doc-coverage
 
-  bench:
+  bench-rust:
+    name: Bench Rust
+    if: ${{ inputs.bench && !inputs.skipable }}
+    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+      - name: Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
+        with:
+          tool: cargo-codspeed
+      - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+      - name: Run benchmark
+        uses: CodSpeedHQ/action@513a19673a831f139e8717bf45ead67e47f00044 # v3
+        timeout-minutes: 30
+        with:
+          run: pnpm run bench:ci:rust
+          token: ${{ secrets.CODSPEED_TOKEN }}
+
+  bench-js:
     name: Bench
     needs: build
     if: ${{ inputs.bench && !inputs.skipable }}
@@ -421,31 +414,15 @@ jobs:
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
-
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
-        with:
-          tool: cargo-codspeed
-
-      - name: Build Benchmark
-        env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
-
       - name: Run benchmark
         uses: CodSpeedHQ/action@513a19673a831f139e8717bf45ead67e47f00044 # v3
         timeout-minutes: 30
         with:
-          run: pnpm run bench:ci
+          run: pnpm run bench:ci:js
           token: ${{ secrets.CODSPEED_TOKEN }}
