@@ -11,10 +11,9 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::bindgen_prelude::*;
-use napi::threadsafe_function::{ThreadsafeCallContext, ThreadsafeFunctionCallMode};
+use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
-use rspack_core::{Compilation, CompilerId, PluginExt};
+use rspack_core::{Compilation, CompilerId, ModuleIdentifier, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
@@ -89,6 +88,7 @@ use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 pub use source::*;
 pub use stats::*;
+use swc_core::common::util::take::Take;
 use tracing::Level;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -99,9 +99,17 @@ thread_local! {
   pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<Rspack>>> = Default::default();
 }
 
+#[js_function(1)]
+fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
+  let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
+  let revoked_modules = external.take();
+  JsModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  Ok(())
+}
+
 #[napi(custom_finalize)]
 pub struct Rspack {
-  js_plugin: JsHooksAdapterPlugin,
+  js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
 }
@@ -123,8 +131,19 @@ impl Rspack {
     tracing::info!("raw_options: {:#?}", &options);
 
     let mut plugins = Vec::new();
-    let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
-    plugins.push(js_plugin.clone().boxed());
+    let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+    plugins.push(js_hooks_plugin.clone().boxed());
+
+    let tsfn = env
+      .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
+      .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
+      .weak::<true>()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .build()?;
+    let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
+    plugins.push(js_cleanup_plugin.boxed());
+
     for bp in builtin_plugins {
       bp.append_to(env, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
@@ -167,13 +186,13 @@ impl Rspack {
     Ok(Self {
       compiler: Box::pin(Compiler::from(rspack)),
       state: CompilerState::init(),
-      js_plugin,
+      js_hooks_plugin,
     })
   }
 
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    self.js_plugin.set_non_skippable_registers(kinds)
+    self.js_hooks_plugin.set_non_skippable_registers(kinds)
   }
 
   /// Build with the given option passed to the constructor
@@ -210,38 +229,10 @@ impl Rspack {
   ) -> Result<()> {
     use std::collections::HashSet;
 
-    let compiler_id = reference.compiler.id();
-
-    let tsfn = f
-      .build_threadsafe_function()
-      .weak::<true>()
-      .callee_handled::<false>()
-      .build_callback(move |ctx: ThreadsafeCallContext<Result<()>>| {
-        COMPILER_REFERENCES.with(|ref_cell| {
-          if let Some(weak_reference) = ref_cell.borrow().get(&compiler_id) {
-            if let Some(this) = weak_reference.get() {
-              let module_graph = this.compiler.compilation.get_module_graph();
-              let modules = module_graph.modules();
-              let removed_modules = this
-                .compiler
-                .compilation
-                .make_artifact
-                .revoked_modules
-                .iter()
-                .filter(|module| !modules.contains_key(*module))
-                .collect::<Vec<_>>();
-              JsModuleWrapper::cleanup_by_module_identifiers(removed_modules.into_iter());
-            }
-          }
-        });
-
-        ctx.value
-      })?;
-
     unsafe {
       self.run(env, reference, |compiler, _guard| {
-        napi::bindgen_prelude::spawn(async move {
-          let res = compiler
+        callbackify(env, f, async move {
+          compiler
             .rebuild(
               HashSet::from_iter(changed_files.into_iter()),
               HashSet::from_iter(removed_files.into_iter()),
@@ -252,12 +243,11 @@ impl Rspack {
                 napi::Status::GenericFailure,
                 print_error_diagnostic(e, compiler.options.stats.colors),
               )
-            });
+            })?;
           tracing::info!("rebuild ok");
-          tsfn.call(res, ThreadsafeFunctionCallMode::NonBlocking);
           drop(_guard);
-        });
-        Ok(())
+          Ok(())
+        })
       })
     }
   }

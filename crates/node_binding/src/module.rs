@@ -379,10 +379,10 @@ impl JsModuleWrapper {
     });
   }
 
-  pub fn cleanup_by_module_identifiers<'a, T: Iterator<Item = &'a ModuleIdentifier>>(iter: T) {
+  pub fn cleanup_by_module_identifiers(revoked_modules: &[ModuleIdentifier]) {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
-      for module_identifier in iter {
+      for module_identifier in revoked_modules {
         for (_, refs) in refs_by_compiler_id.iter_mut() {
           refs.remove(module_identifier);
         }

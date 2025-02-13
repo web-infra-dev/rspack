@@ -66,6 +66,8 @@ pub type BuildDependency = (
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+// NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
+define_hook!(CompilationRevokedModules: AsyncSeries(revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
@@ -101,6 +103,7 @@ define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
+  pub revoked_modules: CompilationRevokedModulesHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
