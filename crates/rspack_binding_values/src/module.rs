@@ -8,7 +8,9 @@ use rspack_core::{
   CompilationId, ExportsArgument, LibIdentOptions, Module, ModuleArgument, ModuleIdentifier,
   RuntimeModuleStage, SourceType,
 };
-use rspack_napi::{napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotRef};
+use rspack_napi::{
+  napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
+};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap as HashMap;
@@ -57,27 +59,10 @@ impl JsModule {
       Ok(unsafe { self.module.as_ref() })
     }
   }
-
-  fn as_mut(&mut self) -> napi::Result<&'static mut dyn Module> {
-    // SAFETY:
-    // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-    // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-    Ok(unsafe { self.module.as_mut() })
-  }
 }
 
 #[napi]
 impl JsModule {
-  #[napi(getter)]
-  pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.get_context() {
-      Some(ctx) => Either::A(ctx.to_string()),
-      None => Either::B(()),
-    })
-  }
-
   #[napi(getter)]
   pub fn original_source<'a>(
     &mut self,
@@ -95,73 +80,12 @@ impl JsModule {
   }
 
   #[napi(getter)]
-  pub fn resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(&normal_module.resource_resolved_data().resource),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn module_identifier(&mut self) -> napi::Result<&str> {
-    let module = self.as_ref()?;
-
-    Ok(module.identifier().as_str())
-  }
-
-  #[napi(getter)]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     let module = self.as_ref()?;
 
     Ok(match module.name_for_condition() {
       Some(s) => Either::A(s.to_string()),
       None => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.request()),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.user_request()),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(setter)]
-  pub fn set_user_request(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    match val {
-      Either::A(val) => {
-        let module: &mut dyn Module = self.as_mut()?;
-        if let Ok(normal_module) = module.try_as_normal_module_mut() {
-          *normal_module.user_request_mut() = val;
-        }
-      }
-      Either::B(_) => {}
-    }
-    Ok(())
-  }
-
-  #[napi(getter)]
-  pub fn raw_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.raw_request()),
-      Err(_) => Either::B(()),
     })
   }
 
@@ -177,23 +101,6 @@ impl JsModule {
         None => Either::B(()),
       },
       Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn get_type(&mut self) -> napi::Result<&str> {
-    let module = self.as_ref()?;
-
-    Ok(module.module_type().as_str())
-  }
-
-  #[napi(getter)]
-  pub fn layer(&mut self) -> napi::Result<Either<&String, ()>> {
-    let module = self.as_ref()?;
-
-    Ok(match module.get_layer() {
-      Some(layer) => Either::A(layer),
-      None => Either::B(()),
     })
   }
 
@@ -305,27 +212,6 @@ impl JsModule {
     )
   }
 
-  #[napi(getter)]
-  pub fn resource_resolve_data(&mut self) -> napi::Result<Either<JsResourceData, ()>> {
-    let module = self.as_ref()?;
-    Ok(match module.as_normal_module() {
-      Some(module) => Either::A(module.resource_resolved_data().into()),
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let module = self.as_ref()?;
-    Ok(match module.as_normal_module() {
-      Some(module) => match &module.match_resource() {
-        Some(match_resource) => Either::A(&match_resource.resource),
-        None => Either::B(()),
-      },
-      None => Either::B(()),
-    })
-  }
-
   #[napi]
   pub fn emit_file(
     &mut self,
@@ -343,7 +229,7 @@ impl JsModule {
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotRef<JsModule>>;
+type ModuleInstanceRefs = IdentifierMap<OneShotInstanceRef<JsModule>>;
 
 type ModuleInstanceRefsByCompilationId = RefCell<HashMap<CompilationId, ModuleInstanceRefs>>;
 
@@ -416,9 +302,9 @@ impl ToNapiValue for JsModuleWrapper {
       };
 
       match refs.entry(module.identifier()) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          let instance = r.from_napi_mut_ref()?;
+        std::collections::hash_map::Entry::Occupied(mut entry) => {
+          let r = entry.get_mut();
+          let instance = &mut **r;
           instance.compilation = val.compilation;
           instance.module = val.module;
           ToNapiValue::to_napi_value(env, r)
@@ -430,7 +316,33 @@ impl ToNapiValue for JsModuleWrapper {
             compilation_id: val.compilation_id,
             compilation: val.compilation,
           };
-          let r = entry.insert(OneShotRef::new(env, js_module)?);
+          let env_wrapper = Env::from_raw(env);
+          let instance = js_module.into_instance(&env_wrapper)?;
+
+          // Construct immutable JavaScript fields for the module
+          let module = unsafe { val.module.as_ref() };
+          let mut this = instance.as_object(&env_wrapper);
+          this.set_named_property("moduleIdentifier", val.identifier.as_str())?;
+          this.set_named_property("type", module.module_type().as_str())?;
+          if let Some(layer) = module.get_layer() {
+            this.set_named_property("layer", layer)?;
+          }
+          if let Some(ctx) = module.get_context() {
+            this.set_named_property("context", ctx.as_str())?;
+          }
+          if let Ok(normal_module) = module.try_as_normal_module() {
+            this
+              .set_named_property("resource", &normal_module.resource_resolved_data().resource)?;
+            this.set_named_property("request", normal_module.request())?;
+            this.set_named_property("rawRequest", normal_module.raw_request())?;
+            this.set_named_property("userRequest", normal_module.user_request())?;
+            this.set_named_property(
+              "resourceResolveData",
+              JsResourceData::from(normal_module.resource_resolved_data()),
+            )?;
+          }
+
+          let r = entry.insert(OneShotInstanceRef::try_from_instrance(env, instance)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }

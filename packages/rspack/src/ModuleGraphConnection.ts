@@ -8,9 +8,10 @@ const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 >();
 
 export class ModuleGraphConnection {
+	readonly dependency: Dependency;
+	readonly resolvedModule: Module | null;
+
 	declare readonly module: Module | null;
-	declare readonly dependency: Dependency;
-	declare readonly resolvedModule: Module | null;
 	declare readonly originModule: Module | null;
 
 	#inner: JsModuleGraphConnection;
@@ -32,25 +33,16 @@ export class ModuleGraphConnection {
 	private constructor(binding: JsModuleGraphConnection) {
 		this.#inner = binding;
 
+		this.dependency = Dependency.__from_binding(binding.dependency);
+		this.resolvedModule = binding.resolvedModule
+			? Module.__from_binding(binding.resolvedModule)
+			: null;
+
 		Object.defineProperties(this, {
 			module: {
 				enumerable: true,
 				get(): Module | null {
 					return binding.module ? Module.__from_binding(binding.module) : null;
-				}
-			},
-			dependency: {
-				enumerable: true,
-				get(): Dependency {
-					return Dependency.__from_binding(binding.dependency);
-				}
-			},
-			resolvedModule: {
-				enumerable: true,
-				get(): Module | null {
-					return binding.resolvedModule
-						? Module.__from_binding(binding.resolvedModule)
-						: null;
 				}
 			},
 			originModule: {

@@ -3,7 +3,7 @@ use std::{cell::RefCell, ptr::NonNull};
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
-use rspack_napi::OneShotRef;
+use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
   ESMImportSpecifierDependency,
@@ -140,7 +140,7 @@ impl JsDependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotRef<JsDependency>>;
+type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<JsDependency>>;
 
 type DependencyInstanceRefsByCompilationId =
   RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
@@ -199,9 +199,9 @@ impl ToNapiValue for JsDependencyWrapper {
       };
 
       match refs.entry(val.dependency_id) {
-        std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-          let r = occupied_entry.get();
-          let instance = r.from_napi_mut_ref()?;
+        std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+          let r = occupied_entry.get_mut();
+          let instance = &mut **r;
           instance.compilation = val.compilation;
           instance.dependency = val.dependency;
 
@@ -213,7 +213,7 @@ impl ToNapiValue for JsDependencyWrapper {
             dependency_id: val.dependency_id,
             dependency: val.dependency,
           };
-          let r = vacant_entry.insert(OneShotRef::new(env, js_dependency)?);
+          let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
           ToNapiValue::to_napi_value(env, r)
         }
       }
