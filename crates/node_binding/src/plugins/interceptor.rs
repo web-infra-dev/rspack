@@ -1,5 +1,6 @@
 use std::{
   hash::Hash,
+  ptr::NonNull,
   sync::{Arc, RwLock},
 };
 
@@ -32,7 +33,7 @@ use rspack_core::{
   CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
   CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
-  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, ModuleFactoryCreateData,
+  ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
   ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
   NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
@@ -76,9 +77,11 @@ use crate::{
   JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
   JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
   JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput, JsModuleWrapper,
-  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
-  JsResolveForSchemeOutput, JsResolveOutput, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
+  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
+  JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
+  JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
+  JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
+  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
   JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 
@@ -460,17 +463,18 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_asset_emitted_taps: RegisterFunction<JsAssetEmittedArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_still_valid_module_taps:
+    RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, ()>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -725,7 +729,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<JsModuleWrapper, ()> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -733,7 +737,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<JsModuleWrapper, ()> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -741,7 +745,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<JsModuleWrapper, ()> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
@@ -1189,18 +1193,19 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
   async fn run(
     &self,
     compiler_id: CompilerId,
-    compilation_id: CompilationId,
+    _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    self
+    #[allow(clippy::unwrap_used)]
+    let _ = self
       .function
       .call_with_sync(JsModuleWrapper::new(
-        module.as_ref(),
-        compilation_id,
+        module.identifier(),
+        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
         compiler_id,
-        None,
       ))
-      .await
+      .await?;
+    Ok(())
   }
 
   fn stage(&self) -> i32 {
@@ -1213,18 +1218,19 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
   async fn run(
     &self,
     compiler_id: CompilerId,
-    compilation_id: CompilationId,
+    _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    self
+    #[allow(clippy::unwrap_used)]
+    let _ = self
       .function
       .call_with_sync(JsModuleWrapper::new(
-        module.as_ref(),
-        compilation_id,
+        module.identifier(),
+        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
         compiler_id,
-        None,
       ))
-      .await
+      .await?;
+    Ok(())
   }
 
   fn stage(&self) -> i32 {
@@ -1236,18 +1242,20 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
 impl CompilationSucceedModule for CompilationSucceedModuleTap {
   async fn run(
     &self,
-    compilation_id: CompilationId,
+    compiler_id: CompilerId,
+    _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    self
+    #[allow(clippy::unwrap_used)]
+    let _ = self
       .function
       .call_with_sync(JsModuleWrapper::new(
-        module.as_ref(),
-        compilation_id,
-        compilation.compiler_id(),
-        None,
+        module.identifier(),
+        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+        compiler_id,
       ))
-      .await
+      .await?;
+    Ok(())
   }
 
   fn stage(&self) -> i32 {

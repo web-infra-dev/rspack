@@ -128,7 +128,7 @@ pub async fn repair(
             None
           }
         });
-      Some(Box::new(factorize::FactorizeTask {
+      Box::new(factorize::FactorizeTask {
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         module_factory: compilation.get_dependency_factory(dependency),

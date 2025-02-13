@@ -5,12 +5,15 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
+use std::cell::RefCell;
+use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use std::{pin::Pin, str::FromStr as _};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::bindgen_prelude::*;
-use rspack_core::{Compilation, PluginExt};
+use rspack_collections::UkeyMap;
+use rspack_core::{Compilation, CompilerId, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
@@ -46,6 +49,7 @@ mod raw_options;
 mod resolver;
 mod resolver_factory;
 mod resource_data;
+mod rsdoctor;
 mod runtime;
 mod source;
 mod stats;
@@ -79,13 +83,22 @@ pub use raw_options::*;
 pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
-use rspack_tracing::chrome::FlushGuard;
+pub use rsdoctor::*;
+use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 pub use source::*;
 pub use stats::*;
+use tracing::Level;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
 pub use utils::*;
 
-#[napi]
+thread_local! {
+  pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<Rspack>>> = Default::default();
+}
+
+#[napi(custom_finalize)]
 pub struct Rspack {
   js_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
@@ -165,6 +178,11 @@ impl Rspack {
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(reference.compiler.id(), reference.downgrade());
+    });
+
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -195,6 +213,11 @@ impl Rspack {
     f: Function,
   ) -> Result<()> {
     use std::collections::HashSet;
+
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(reference.compiler.id(), reference.downgrade());
+    });
 
     unsafe {
       self.run(env, reference, |compiler, _guard| {
@@ -233,6 +256,11 @@ impl Rspack {
     reference: Reference<Rspack>,
     f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(reference.compiler.id(), reference.downgrade());
+    });
+
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
@@ -257,11 +285,24 @@ impl Rspack {
     let compilation_id = compilation.id();
 
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
-    JsModuleWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     JsDependencyWrapper::cleanup_last_compilation(compilation_id);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+  }
+}
+
+impl ObjectFinalize for Rspack {
+  fn finalize(self, _env: Env) -> Result<()> {
+    let compiler_id = self.compiler.id();
+
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.remove(&compiler_id);
+    });
+
+    JsModuleWrapper::cleanup(&compiler_id);
+    Ok(())
   }
 }
 

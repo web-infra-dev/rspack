@@ -428,6 +428,7 @@ impl Module for NormalModule {
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
+        compiler_id: build_context.compiler_id,
         compilation_id: build_context.compilation_id,
         options: build_context.compiler_options.clone(),
         resolver_factory: build_context.resolver_factory.clone(),

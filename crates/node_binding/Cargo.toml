@@ -6,8 +6,12 @@ name        = "rspack_node"
 publish     = false
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
+
 [lib]
 crate-type = ["cdylib"]
+
+[features]
+plugin = ["rspack_loader_swc/plugin"]
 
 [dependencies]
 anyhow                   = { workspace = true }
@@ -88,7 +92,6 @@ rspack_plugin_progress                 = { workspace = true }
 rspack_plugin_real_content_hash        = { workspace = true }
 rspack_plugin_remove_duplicate_modules = { workspace = true }
 rspack_plugin_remove_empty_chunks      = { workspace = true }
-rspack_plugin_runtime                  = { workspace = true }
 rspack_plugin_runtime_chunk            = { workspace = true }
 rspack_plugin_schemes                  = { workspace = true }
 rspack_plugin_size_limits              = { workspace = true }

@@ -3,9 +3,9 @@ use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
   ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerId, CompilerOptions, DependencyType, EntryDependency, Module, ModuleFactory,
-  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
-  PluginContext,
+  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
+  ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

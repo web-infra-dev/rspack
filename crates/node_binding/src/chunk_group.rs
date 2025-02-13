@@ -11,7 +11,6 @@ use crate::{JsChunkWrapper, JsModule, JsModuleWrapper};
 #[napi]
 pub struct JsChunkGroup {
   chunk_group_ukey: ChunkGroupUkey,
-  compilation_id: CompilationId,
   compilation: NonNull<Compilation>,
 }
 
@@ -71,12 +70,7 @@ impl JsChunkGroup {
       js_origins.push(JsChunkGroupOrigin {
         module: origin.module.and_then(|module_id| {
           compilation.module_by_identifier(&module_id).map(|module| {
-            JsModuleWrapper::new(
-              module.as_ref(),
-              self.compilation_id,
-              compilation.compiler_id(),
-              Some(compilation),
-            )
+            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
           })
         }),
         request: match &origin.request {
@@ -217,7 +211,6 @@ impl ToNapiValue for JsChunkGroupWrapper {
         std::collections::hash_map::Entry::Vacant(entry) => {
           let js_module = JsChunkGroup {
             chunk_group_ukey: val.chunk_group_ukey,
-            compilation_id: val.compilation_id,
             compilation: val.compilation,
           };
           let r = entry.insert(OneShotRef::new(env, js_module)?);

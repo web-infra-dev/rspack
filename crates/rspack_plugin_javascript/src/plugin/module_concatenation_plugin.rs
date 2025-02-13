@@ -616,6 +616,7 @@ impl ModuleConcatenationPlugin {
     new_module
       .build(
         rspack_core::BuildContext {
+          compiler_id: compilation.compiler_id(),
           compilation_id: compilation.id(),
           resolver_factory: compilation.resolver_factory.clone(),
           plugin_driver: compilation.plugin_driver.clone(),
