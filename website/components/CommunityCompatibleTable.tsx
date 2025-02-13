@@ -93,6 +93,12 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['copy-plugin-desc'],
     },
     {
+      name: 'pnp-webpack-plugin',
+      url: 'https://github.com/arcanis/pnp-webpack-plugin',
+      status: CompatibleStatus.Included,
+      description: i18n[lang]['pnp-webpack-plugin-desc'],
+    },
+    {
       name: 'compression-webpack-plugin',
       url: 'https://github.com/webpack-contrib/compression-webpack-plugin',
       status: CompatibleStatus.Compatible,
@@ -195,16 +201,16 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       description: i18n[lang]['@nx/webpack-desc'],
     },
     {
-      name: 'webpack-filter-warnings-plugin',
-      url: 'https://github.com/mattlewis92/webpack-filter-warnings-plugin',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['webpack-filter-warnings-plugin-desc'],
-    },
-    {
       name: 'speed-measure-webpack-plugin',
       url: 'https://www.npmjs.com/package/speed-measure-webpack-plugin',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['speed-measure-webpack-plugin-desc'],
+    },
+    {
+      name: 'webpack-filter-warnings-plugin',
+      url: 'https://github.com/mattlewis92/webpack-filter-warnings-plugin',
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['webpack-filter-warnings-plugin-desc'],
     },
     {
       name: 'circular-dependency-plugin',
@@ -241,7 +247,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'progress-bar-webpack-plugin',
       url: 'https://www.npmjs.com/package/progress-bar-webpack-plugin',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
       description: i18n[lang]['progress-plugin-desc'],
     },
     {
@@ -260,12 +266,6 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
       status: CompatibleStatus.NotCompatible,
-    },
-    {
-      name: 'pnp-webpack-plugin',
-      url: 'https://github.com/arcanis/pnp-webpack-plugin',
-      status: CompatibleStatus.NotCompatible,
-      description: i18n[lang]['resolve-plugin-un-support-desc'],
     },
     {
       name: '@ngtools/webpack',
