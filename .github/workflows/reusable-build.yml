@@ -251,7 +251,7 @@ jobs:
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      PUPPETEER_SKIP_DOWNLOAD: false
+      # PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
