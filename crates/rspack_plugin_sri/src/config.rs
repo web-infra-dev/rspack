@@ -7,7 +7,7 @@ use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::integrity::SRIHashFunction;
+use crate::integrity::SubresourceIntegrityHashFunction;
 
 pub type IntegrityCallbackFn = Arc<dyn Fn(IntegrityCallbackData) -> Result<()> + Send + Sync>;
 
@@ -31,7 +31,7 @@ impl From<String> for IntegrityHtmlPlugin {
 
 #[derive(Debug)]
 pub struct SubresourceIntegrityPluginOptions {
-  pub hash_func_names: Vec<SRIHashFunction>,
+  pub hash_func_names: Vec<SubresourceIntegrityHashFunction>,
   pub html_plugin: IntegrityHtmlPlugin,
   #[debug(skip)]
   pub integrity_callback: Option<IntegrityCallbackFn>,

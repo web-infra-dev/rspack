@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use indexmap::IndexSet;
 use rspack_core::{AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation};
 
-use crate::{integrity::compute_integrity, SRIHashFunction};
+use crate::{integrity::compute_integrity, SubresourceIntegrityHashFunction};
 
 pub static SRI_HASH_VARIABLE_REFERENCE: LazyLock<String> =
   LazyLock::new(|| "__webpack_require__.sriHashes".to_string());
@@ -67,7 +67,7 @@ fn recurse_chunk(
   }
 }
 
-pub fn make_placeholder(hash_funcs: &Vec<SRIHashFunction>, id: &str) -> String {
+pub fn make_placeholder(hash_funcs: &Vec<SubresourceIntegrityHashFunction>, id: &str) -> String {
   let placeholder_source = format!("{}{}", PLACEHOLDER_PREFIX.as_str(), id);
   let filler = compute_integrity(hash_funcs, &placeholder_source);
   format!(

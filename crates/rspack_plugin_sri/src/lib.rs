@@ -14,7 +14,7 @@ pub use config::{
   SubresourceIntegrityPluginOptions,
 };
 use html::{alter_asset_tag_groups, before_asset_tag_generation};
-pub use integrity::SRIHashFunction;
+pub use integrity::SubresourceIntegrityHashFunction;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
   CompilerThisCompilation, CrossOriginLoading, Plugin, PluginContext,

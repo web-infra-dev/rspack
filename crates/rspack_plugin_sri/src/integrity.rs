@@ -4,13 +4,13 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 // https://www.w3.org/TR/2016/REC-SRI-20160623/#cryptographic-hash-functions
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy)]
-pub enum SRIHashFunction {
+pub enum SubresourceIntegrityHashFunction {
   Sha256,
   Sha384,
   Sha512,
 }
 
-impl From<String> for SRIHashFunction {
+impl From<String> for SubresourceIntegrityHashFunction {
   fn from(s: String) -> Self {
     match s.as_str() {
       "sha256" => Self::Sha256,
@@ -21,7 +21,10 @@ impl From<String> for SRIHashFunction {
   }
 }
 
-pub fn compute_integrity(hash_func_names: &Vec<SRIHashFunction>, source: &str) -> String {
+pub fn compute_integrity(
+  hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
+  source: &str,
+) -> String {
   hash_func_names
     .par_iter()
     .map(|hash_func| create_hash(hash_func, source))
@@ -29,21 +32,21 @@ pub fn compute_integrity(hash_func_names: &Vec<SRIHashFunction>, source: &str) -
     .collect()
 }
 
-fn create_hash(hash_func: &SRIHashFunction, source: &str) -> String {
+fn create_hash(hash_func: &SubresourceIntegrityHashFunction, source: &str) -> String {
   match hash_func {
-    SRIHashFunction::Sha256 => {
+    SubresourceIntegrityHashFunction::Sha256 => {
       let mut hasher = Sha256::new();
       hasher.update(source);
       let digest = &hasher.finalize()[..];
       format!("sha256-{}", rspack_base64::encode_to_string(digest))
     }
-    SRIHashFunction::Sha384 => {
+    SubresourceIntegrityHashFunction::Sha384 => {
       let mut hasher = Sha384::new();
       hasher.update(source);
       let digest = &hasher.finalize()[..];
       format!("sha384-{}", rspack_base64::encode_to_string(digest))
     }
-    SRIHashFunction::Sha512 => {
+    SubresourceIntegrityHashFunction::Sha512 => {
       let mut hasher = Sha512::new();
       hasher.update(source);
       let digest = &hasher.finalize()[..];

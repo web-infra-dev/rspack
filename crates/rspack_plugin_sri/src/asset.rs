@@ -14,7 +14,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   config::IntegrityHtmlPlugin,
-  integrity::{compute_integrity, SRIHashFunction},
+  integrity::{compute_integrity, SubresourceIntegrityHashFunction},
   util::{make_placeholder, use_any_hash, PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX},
   IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
 };
@@ -29,7 +29,7 @@ struct ProcessChunkResult {
 }
 
 fn process_chunks(
-  hash_funcs: &Vec<SRIHashFunction>,
+  hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   compilation: &mut Compilation,
 ) -> HashMap<String, String> {
   let mut hash_by_placeholders = HashMap::default();
@@ -158,7 +158,7 @@ fn process_chunk_source(
   file: &str,
   source: Arc<dyn Source>,
   chunk_id: Option<&ChunkId>,
-  hash_funcs: &Vec<SRIHashFunction>,
+  hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   hash_by_placeholders: &HashMap<String, String>,
 ) -> ProcessChunkResult {
   // generate new source
@@ -227,7 +227,7 @@ fn digest_chunks(compilation: &Compilation) -> Vec<HashSet<ChunkUkey>> {
 fn add_minssing_integrities(
   assets: &CompilationAssets,
   integrities: &mut HashMap<String, String>,
-  hash_func_names: &Vec<SRIHashFunction>,
+  hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
 ) {
   let new_integrities = assets
     .par_iter()

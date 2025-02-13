@@ -15,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   util::{find_chunks, make_placeholder, SRI_HASH_VARIABLE_REFERENCE},
-  SRIHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
 };
 
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
@@ -32,11 +32,11 @@ fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoadin
 struct SRIHashVariableRuntimeModule {
   id: Identifier,
   chunk: ChunkUkey,
-  hash_funcs: Vec<SRIHashFunction>,
+  hash_funcs: Vec<SubresourceIntegrityHashFunction>,
 }
 
 impl SRIHashVariableRuntimeModule {
-  pub fn new(chunk: ChunkUkey, hash_funcs: Vec<SRIHashFunction>) -> Self {
+  pub fn new(chunk: ChunkUkey, hash_funcs: Vec<SubresourceIntegrityHashFunction>) -> Self {
     Self::with_default(
       Identifier::from("rspack/runtime/sri_hash_variable"),
       chunk,
@@ -98,7 +98,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
 fn generate_sri_hash_placeholders(
   chunks: Vec<&ChunkId>,
-  hash_funcs: &Vec<SRIHashFunction>,
+  hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
   _compilation: &Compilation,
 ) -> String {
   format!(
