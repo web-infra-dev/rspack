@@ -30,7 +30,7 @@ impl From<String> for IntegrityHtmlPlugin {
 }
 
 #[derive(Debug)]
-pub struct SRIPluginOptions {
+pub struct SubresourceIntegrityPluginOptions {
   pub hash_func_names: Vec<SRIHashFunction>,
   pub html_plugin: IntegrityHtmlPlugin,
   #[debug(skip)]

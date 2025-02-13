@@ -10,7 +10,8 @@ use std::sync::LazyLock;
 use asset::{detect_unresolved_integrity, handle_assets, update_hash};
 use config::SRICompilationContext;
 pub use config::{
-  IntegrityCallbackData, IntegrityCallbackFn, IntegrityHtmlPlugin, SRIPluginOptions,
+  IntegrityCallbackData, IntegrityCallbackFn, IntegrityHtmlPlugin,
+  SubresourceIntegrityPluginOptions,
 };
 use html::{alter_asset_tag_groups, before_asset_tag_generation};
 pub use integrity::SRIHashFunction;
@@ -35,12 +36,12 @@ static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, SRICompilation
 
 #[plugin]
 #[derive(Debug)]
-pub struct SRIPlugin {
-  pub options: SRIPluginOptions,
+pub struct SubresourceIntegrityPlugin {
+  pub options: SubresourceIntegrityPluginOptions,
 }
 
-impl SRIPlugin {
-  pub fn new(options: SRIPluginOptions) -> Self {
+impl SubresourceIntegrityPlugin {
+  pub fn new(options: SubresourceIntegrityPluginOptions) -> Self {
     Self::new_inner(options)
   }
 
@@ -74,7 +75,7 @@ impl SRIPlugin {
   }
 }
 
-#[plugin_hook(CompilerThisCompilation for SRIPlugin, stage = -10000)]
+#[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
 async fn warn_non_web(
   &self,
   compilation: &mut Compilation,
@@ -87,7 +88,7 @@ async fn warn_non_web(
   Ok(())
 }
 
-#[plugin_hook(CompilerThisCompilation for SRIPlugin, stage = -10000)]
+#[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
 async fn handle_compilation(
   &self,
   compilation: &mut Compilation,
@@ -98,7 +99,7 @@ async fn handle_compilation(
     output_path: compilation.options.output.path.clone(),
     cross_origin_loading: compilation.options.output.cross_origin_loading.clone(),
   };
-  SRIPlugin::set_compilation_sri_context(compilation.id(), ctx);
+  SubresourceIntegrityPlugin::set_compilation_sri_context(compilation.id(), ctx);
 
   let mut real_content_hash_plugin_hooks =
     RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
@@ -137,7 +138,7 @@ async fn handle_compilation(
   Ok(())
 }
 
-impl Plugin for SRIPlugin {
+impl Plugin for SubresourceIntegrityPlugin {
   fn name(&self) -> &'static str {
     "rspack.SubresourceIntegrityPlugin"
   }

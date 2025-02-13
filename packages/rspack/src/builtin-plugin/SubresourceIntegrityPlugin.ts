@@ -5,7 +5,7 @@ import {
 	BuiltinPluginName,
 	type JsRspackError,
 	type RawIntegrityData,
-	type RawSRIPluginOptions
+	type RawSubresourceIntegrityPluginOptions
 } from "@rspack/binding";
 import type { AsyncSeriesWaterfallHook } from "@rspack/lite-tapable";
 import { z } from "zod";
@@ -67,18 +67,18 @@ export type SubresourceIntegrityPluginOptions = {
 	enabled?: "auto" | boolean;
 };
 
-const sriHashFunctionSchema = z.enum(["sha256", "sha384", "sha512"]);
-const sriPluginOptionsSchema = z.object({
+const hashFunctionSchema = z.enum(["sha256", "sha384", "sha512"]);
+const pluginOptionsSchema = z.object({
 	hashFuncNames: z
-		.tuple([sriHashFunctionSchema])
-		.rest(sriHashFunctionSchema)
+		.tuple([hashFunctionSchema])
+		.rest(hashFunctionSchema)
 		.optional(),
 	htmlPlugin: z.string().or(z.literal(false)).optional(),
 	enabled: z.literal("auto").or(z.boolean()).optional()
 }) satisfies z.ZodType<SubresourceIntegrityPluginOptions>;
 
 export type NativeSubresourceIntegrityPluginOptions = Omit<
-	RawSRIPluginOptions,
+	RawSubresourceIntegrityPluginOptions,
 	"htmlPlugin"
 > & {
 	htmlPlugin: string | false;
@@ -89,12 +89,13 @@ export type NativeSubresourceIntegrityPluginOptions = Omit<
  * @internal
  */
 const NativeSubresourceIntegrityPlugin = create(
-	BuiltinPluginName.SRIPlugin,
+	BuiltinPluginName.SubresourceIntegrityPlugin,
 	function (
 		this: Compiler,
 		options: NativeSubresourceIntegrityPluginOptions
-	): RawSRIPluginOptions {
-		let htmlPlugin: RawSRIPluginOptions["htmlPlugin"] = "Disabled";
+	): RawSubresourceIntegrityPluginOptions {
+		let htmlPlugin: RawSubresourceIntegrityPluginOptions["htmlPlugin"] =
+			"Disabled";
 		if (options.htmlPlugin === NATIVE_HTML_PLUGIN) {
 			htmlPlugin = "Native";
 		} else if (typeof options.htmlPlugin === "string") {
@@ -321,7 +322,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
 function validateSubresourceIntegrityPluginOptions(
 	options: SubresourceIntegrityPluginOptions
 ) {
-	validate(options, sriPluginOptionsSchema);
+	validate(options, pluginOptionsSchema);
 }
 
 function isErrorWithCode<T extends Error>(obj: T): boolean {

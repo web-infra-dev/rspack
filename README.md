@@ -87,6 +87,7 @@ Thanks to:
 - The [prefresh](https://github.com/preactjs/prefresh) created by [@Jovi De Croock](https://github.com/JoviDeCroock), which inspires implement [preact refresh rspack plugin](https://github.com/rspack-contrib/rspack-plugin-preact-refresh).
 - The [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) project created by [@sokra](https://github.com/sokra) which inspired implement css extract plugin.
 - The [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) project created by [@kevlened](https://github.com/kevlened) which inspired implement copy rspack plugin.
+- The [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) project created by [@jscheid](https://github.com/jscheid), which inspires implement subresource integrity rspack plugin.
 
 ## License
 

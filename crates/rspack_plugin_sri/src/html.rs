@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   config::ArcFs, integrity::compute_integrity, util::normalize_path, SRICompilationContext,
-  SRIHashFunction, SRIPlugin, SRIPluginInner,
+  SRIHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
 };
 
 async fn handle_html_plugin_assets(
@@ -198,23 +198,25 @@ async fn compute_file_integrity(
   Ok(integrity)
 }
 
-#[plugin_hook(HtmlPluginBeforeAssetTagGeneration for SRIPlugin)]
+#[plugin_hook(HtmlPluginBeforeAssetTagGeneration for SubresourceIntegrityPlugin)]
 pub async fn before_asset_tag_generation(
   &self,
   mut data: BeforeAssetTagGenerationData,
 ) -> Result<BeforeAssetTagGenerationData> {
-  let mut compilation_integrities = SRIPlugin::get_compilation_integrities_mut(data.compilation_id);
+  let mut compilation_integrities =
+    SubresourceIntegrityPlugin::get_compilation_integrities_mut(data.compilation_id);
   handle_html_plugin_assets(&mut data, &mut compilation_integrities).await?;
   Ok(data)
 }
 
-#[plugin_hook(HtmlPluginAlterAssetTagGroups for SRIPlugin, stage = 10000)]
+#[plugin_hook(HtmlPluginAlterAssetTagGroups for SubresourceIntegrityPlugin, stage = 10000)]
 pub async fn alter_asset_tag_groups(
   &self,
   mut data: AlterAssetTagGroupsData,
 ) -> Result<AlterAssetTagGroupsData> {
-  let compilation_integrities = SRIPlugin::get_compilation_integrities(data.compilation_id);
-  let ctx = SRIPlugin::get_compilation_sri_context(data.compilation_id);
+  let compilation_integrities =
+    SubresourceIntegrityPlugin::get_compilation_integrities(data.compilation_id);
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.compilation_id);
   handle_html_plugin_tags(
     &mut data,
     &self.options.hash_func_names,

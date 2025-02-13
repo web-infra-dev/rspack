@@ -382,7 +382,7 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  SRIPlugin = 'SRIPlugin'
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -2241,12 +2241,6 @@ export interface RawSplitChunksOptions {
   maxInitialSize?: number | RawSplitChunkSizes
 }
 
-export interface RawSRIPluginOptions {
-  integrityCallback?: (data: RawIntegrityData) => void
-  hashFuncNames: Array<string>
-  htmlPlugin: "JavaScript" | "Native" | "Disabled"
-}
-
 export interface RawStatsOptions {
   colors: boolean
 }
@@ -2254,6 +2248,12 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+}
+
+export interface RawSubresourceIntegrityPluginOptions {
+  integrityCallback?: (data: RawIntegrityData) => void
+  hashFuncNames: Array<string>
+  htmlPlugin: "JavaScript" | "Native" | "Disabled"
 }
 
 export interface RawSwcJsMinimizerOptions {

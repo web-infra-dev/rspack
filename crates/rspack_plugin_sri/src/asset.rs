@@ -16,7 +16,7 @@ use crate::{
   config::IntegrityHtmlPlugin,
   integrity::{compute_integrity, SRIHashFunction},
   util::{make_placeholder, use_any_hash, PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX},
-  IntegrityCallbackData, SRIPlugin, SRIPluginInner,
+  IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
 };
 
 #[derive(Debug, Clone)]
@@ -246,10 +246,11 @@ fn add_minssing_integrities(
   integrities.extend(new_integrities);
 }
 
-#[plugin_hook(CompilationProcessAssets for SRIPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
+#[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let integrities = process_chunks(&self.options.hash_func_names, compilation);
-  let mut compilation_integrities = SRIPlugin::get_compilation_integrities_mut(compilation.id());
+  let mut compilation_integrities =
+    SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   compilation_integrities.extend(integrities);
 
   if matches!(
@@ -277,7 +278,7 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-#[plugin_hook(CompilationAfterProcessAssets for SRIPlugin)]
+#[plugin_hook(CompilationAfterProcessAssets for SubresourceIntegrityPlugin)]
 pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -> Result<()> {
   let mut contain_unresolved_files = vec![];
   for chunk in compilation.chunk_by_ukey.values() {
@@ -299,14 +300,15 @@ pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -
   Ok(())
 }
 
-#[plugin_hook(RealContentHashPluginUpdateHash for SRIPlugin)]
+#[plugin_hook(RealContentHashPluginUpdateHash for SubresourceIntegrityPlugin)]
 pub async fn update_hash(
   &self,
   compilation: &Compilation,
   assets: &[Arc<dyn Source>],
   old_hash: &str,
 ) -> Result<Option<String>> {
-  let mut compilation_integrities = SRIPlugin::get_compilation_integrities_mut(compilation.id());
+  let mut compilation_integrities =
+    SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   let key = compilation_integrities
     .iter()
     .filter_map(|(k, v)| {

@@ -3,11 +3,17 @@ use std::sync::Arc;
 use derive_more::Debug;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_sri::{IntegrityCallbackData, SRIHashFunction, SRIPluginOptions};
+use rspack_plugin_sri::{
+  IntegrityCallbackData, SRIHashFunction, SubresourceIntegrityPluginOptions,
+};
 
 #[derive(Debug)]
-#[napi(object, object_to_js = false, js_name = "RawSRIPluginOptions")]
-pub struct RawSRIPluginOptions {
+#[napi(
+  object,
+  object_to_js = false,
+  js_name = "RawSubresourceIntegrityPluginOptions"
+)]
+pub struct RawSubresourceIntegrityPluginOptions {
   #[debug(skip)]
   #[napi(ts_type = "(data: RawIntegrityData) => void")]
   pub integrity_callback: Option<ThreadsafeFunction<RawIntegrityData, ()>>,
@@ -16,8 +22,8 @@ pub struct RawSRIPluginOptions {
   pub html_plugin: String,
 }
 
-impl From<RawSRIPluginOptions> for SRIPluginOptions {
-  fn from(options: RawSRIPluginOptions) -> Self {
+impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOptions {
+  fn from(options: RawSubresourceIntegrityPluginOptions) -> Self {
     Self {
       integrity_callback: if let Some(func) = options.integrity_callback {
         Some(Arc::new(move |data| {

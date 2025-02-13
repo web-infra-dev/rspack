@@ -15,7 +15,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   util::{find_chunks, make_placeholder, SRI_HASH_VARIABLE_REFERENCE},
-  SRIHashFunction, SRIPlugin, SRIPluginInner,
+  SRIHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
 };
 
 fn add_attribute(tag: &str, code: &str, cross_origin_loading: &CrossOriginLoading) -> String {
@@ -115,21 +115,21 @@ fn generate_sri_hash_placeholders(
   )
 }
 
-#[plugin_hook(RuntimePluginCreateScript for SRIPlugin)]
+#[plugin_hook(RuntimePluginCreateScript for SubresourceIntegrityPlugin)]
 pub async fn create_script(&self, mut data: CreateScriptData) -> Result<CreateScriptData> {
-  let ctx = SRIPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
   data.code = add_attribute("script", &data.code, &ctx.cross_origin_loading);
   Ok(data)
 }
 
-#[plugin_hook(RuntimePluginLinkPreload for SRIPlugin)]
+#[plugin_hook(RuntimePluginLinkPreload for SubresourceIntegrityPlugin)]
 pub async fn link_preload(&self, mut data: LinkPreloadData) -> Result<LinkPreloadData> {
-  let ctx = SRIPlugin::get_compilation_sri_context(data.chunk.compilation_id);
+  let ctx = SubresourceIntegrityPlugin::get_compilation_sri_context(data.chunk.compilation_id);
   data.code = add_attribute("link", &data.code, &ctx.cross_origin_loading);
   Ok(data)
 }
 
-#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for SRIPlugin)]
+#[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for SubresourceIntegrityPlugin)]
 pub async fn handle_runtime(
   &self,
   compilation: &mut Compilation,
