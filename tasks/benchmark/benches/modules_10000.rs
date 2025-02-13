@@ -17,13 +17,19 @@ use serde_json::json;
 use tokio::runtime::Builder;
 
 async fn basic_compile(production: bool) {
-  let dir =
-    PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("benches/modules_10000");
+  let dir = std::env::var("CARGO_MANIFEST_DIR")
+    .map(PathBuf::from)
+    .or(
+      // This is a workaround for the issue where the CARGO_MANIFEST_DIR is not set in the test environment
+      std::env::var("CODSPEED_CARGO_WORKSPACE_ROOT")
+        .map(|workspace_root| PathBuf::from(workspace_root).join("tasks/benchmark")),
+    )
+    .unwrap()
+    .join("benches/modules_10000");
 
   let mut builder = Compiler::builder();
   builder
     .context(dir.to_string_lossy().to_string())
-    .devtool(Devtool::False)
     .entry("main", "./index.jsx")
     .module(ModuleOptions::builder().rule(ModuleRule {
       test: Some(RuleSetCondition::Regexp(
