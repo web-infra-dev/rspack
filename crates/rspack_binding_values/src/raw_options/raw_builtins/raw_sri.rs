@@ -4,7 +4,7 @@ use derive_more::Debug;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_sri::{
-  IntegrityCallbackData, SRIHashFunction, SubresourceIntegrityPluginOptions,
+  IntegrityCallbackData, SubresourceIntegrityHashFunction, SubresourceIntegrityPluginOptions,
 };
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ impl From<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOp
       hash_func_names: options
         .hash_func_names
         .into_iter()
-        .map(SRIHashFunction::from)
+        .map(SubresourceIntegrityHashFunction::from)
         .collect::<Vec<_>>(),
       html_plugin: options.html_plugin.into(),
     }
