@@ -162,9 +162,9 @@ fn eval_source_map_devtool_plugin_render_module_content(
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
       let module_id =
         if let Some(module_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
-          module_id.to_string()
+          module_id.as_str()
         } else {
-          "unknown".to_string()
+          "unknown"
         };
       map
         .to_writer(&mut map_buffer)
