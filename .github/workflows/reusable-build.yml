@@ -39,10 +39,6 @@ on:
       target:
         required: true
         type: string
-      native:
-        required: false
-        type: boolean
-        default: false
       runner: # Runner labels
         required: true
         type: string
@@ -143,17 +139,7 @@ jobs:
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
-
-      # Linux
-      - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable && !inputs.native }}
-        uses: ./.github/actions/docker-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
-          profile: ${{ inputs.profile }}
-          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
-
+      # runner these build in docker since we don't have github runner machine for it
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         uses: ./.github/actions/docker-build
@@ -193,17 +179,17 @@ jobs:
             # clang19-static is used to install libclang.a
             apk add llvm19-dev clang19-static
 
-      # setup rust target for windows and macos
+      # setup rust target for native runner
       - name: Setup Rust Target
-        if: ${{ (!contains(inputs.target, 'linux') || inputs.native) && !inputs.skipable }}
+        if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
-
-      - name: Build ${{ inputs.target }}
-        if: ${{ inputs.native && contains(inputs.target, 'linux') && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
+      # runner the following in github runner directly without docker since we have related machine
+      # Linux
+      - name: Build x86_64-unknown-linux-gnu
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Windows
-
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: RUST_TARGET=${{ inputs.target }} DISABLE_PLUGIN=1 pnpm build:binding:${{ inputs.profile }}
