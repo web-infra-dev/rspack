@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::fmt::Debug;
 
 use rspack_paths::Utf8PathBuf;
-use rspack_sources::Source;
+use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -156,7 +156,7 @@ pub struct StatsModule<'s> {
   pub reasons: Option<Vec<StatsModuleReason<'s>>>,
   pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule<'s>>>,
-  pub source: Option<&'s dyn Source>,
+  pub source: Option<&'s BoxSource>,
   pub profile: Option<StatsModuleProfile>,
   pub orphan: Option<bool>,
   pub provided_exports: Option<Vec<Atom>>,

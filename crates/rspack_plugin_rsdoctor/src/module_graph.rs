@@ -4,7 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   rspack_sources::MapOptions, BoxModule, ChunkGraph, Compilation, Context, DependencyId,
-  DependencyType, Module, ModuleGraph, ModuleIdsArtifact,
+  DependencyType, ModuleGraph, ModuleIdsArtifact,
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxDashMap;
@@ -137,7 +137,8 @@ pub fn collect_module_original_sources(
       let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource.clone();
       let source = module
-        .original_source()
+        .source()
+        .as_ref()
         .and_then(|s| s.map(&MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;

@@ -21,8 +21,8 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{run_loaders, AdditionalData, Content, LoaderContext, ResourceData};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{
-  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, Source, SourceExt,
-  SourceMap, SourceMapSource, WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
+  SourceMapSource, WithoutOriginalOptions,
 };
 use rspack_util::{
   ext::DynHash,
@@ -354,8 +354,8 @@ impl Module for NormalModule {
     self.parser_and_generator.source_types()
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
-    self.original_source.as_deref()
+  fn source(&self) -> Option<&BoxSource> {
+    self.source.as_ref()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {

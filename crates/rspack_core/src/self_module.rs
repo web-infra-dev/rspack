@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 use rspack_macros::impl_source_map_config;
-use rspack_sources::Source;
+use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
@@ -91,7 +91,7 @@ impl Module for SelfModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 

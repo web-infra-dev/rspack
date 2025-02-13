@@ -86,7 +86,7 @@ impl JsModule {
   ) -> napi::Result<Either<JsCompatSource<'a>, ()>> {
     let module = self.as_ref()?;
 
-    Ok(match module.original_source() {
+    Ok(match module.source() {
       Some(source) => match source.to_js_compat_source(env).ok() {
         Some(s) => Either::A(s),
         None => Either::B(()),

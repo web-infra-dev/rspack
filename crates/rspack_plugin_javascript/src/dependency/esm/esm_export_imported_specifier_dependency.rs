@@ -874,11 +874,11 @@ impl ESMExportImportedSpecifierDependency {
         .expect("should have parent module for dependency");
       let mut diagnostic = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-        && let Some(source) = parent_module.original_source().map(|s| s.source())
+        && let Some(source) = parent_module.source()
       {
         Diagnostic::from(
           TraceableError::from_file(
-            source.into_owned(),
+            source.source().into_owned(),
             span.start as usize,
             span.end as usize,
             title.to_string(),
