@@ -372,7 +372,7 @@ impl JsModuleWrapper {
     }
   }
 
-  pub fn cleanup(compiler_id: &CompilerId) {
+  pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       refs_by_compiler_id.remove(compiler_id)

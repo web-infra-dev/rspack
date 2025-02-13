@@ -220,13 +220,17 @@ impl Rspack {
         COMPILER_REFERENCES.with(|ref_cell| {
           if let Some(weak_reference) = ref_cell.borrow().get(&compiler_id) {
             if let Some(this) = weak_reference.get() {
-              let module_identifiers = this
+              let module_graph = this.compiler.compilation.get_module_graph();
+              let modules = module_graph.modules();
+              let removed_modules = this
                 .compiler
                 .compilation
                 .make_artifact
                 .revoked_modules
-                .iter();
-              JsModuleWrapper::cleanup_by_module_identifiers(module_identifiers);
+                .iter()
+                .filter(|module| !modules.contains_key(*module))
+                .collect::<Vec<_>>();
+              JsModuleWrapper::cleanup_by_module_identifiers(removed_modules.into_iter());
             }
           }
         });
@@ -317,7 +321,7 @@ impl ObjectFinalize for Rspack {
       references.remove(&compiler_id);
     });
 
-    JsModuleWrapper::cleanup(&compiler_id);
+    JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }
