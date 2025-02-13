@@ -125,9 +125,6 @@ pub struct NormalModule {
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
 
-  /// Original content of this module, will be available after module build
-  #[cacheable(with=AsOption<AsPreset>)]
-  original_source: Option<BoxSource>,
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
@@ -206,7 +203,6 @@ impl NormalModule {
       resource_data,
       resolve_options,
       loaders,
-      original_source: None,
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
@@ -250,10 +246,6 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn source(&self) -> &Option<BoxSource> {
-    &self.source
-  }
-
   pub fn loaders(&self) -> &[BoxLoader] {
     &self.loaders
   }
@@ -294,13 +286,10 @@ impl NormalModule {
   ) -> RspackHashDigest {
     let mut hasher = RspackHash::from(output_options);
     "source".hash(&mut hasher);
-    match &self.source {
-      Some(s) => s.hash(&mut hasher),
-      None => self
-        .first_error()
-        .expect("should have error")
-        .message()
-        .hash(&mut hasher),
+    if let Some(error) = self.first_error() {
+      error.message().hash(&mut hasher);
+    } else if let Some(s) = &self.source {
+      s.hash(&mut hasher);
     }
     "meta".hash(&mut hasher);
     build_meta.hash(&mut hasher);
@@ -490,7 +479,7 @@ impl Module for NormalModule {
     } else {
       Content::String(loader_result.content.into_string_lossy())
     };
-    let original_source = self.create_source(content, loader_result.source_map)?;
+    let source = self.create_source(content, loader_result.source_map)?;
 
     self.build_info.cacheable = loader_result.cacheable;
     self.build_info.file_dependencies = loader_result
@@ -516,10 +505,7 @@ impl Module for NormalModule {
 
     if no_parse {
       self.parsed = false;
-      self.original_source = Some(original_source.clone());
-      if self.first_error().is_none() {
-        self.source = Some(original_source);
-      }
+      self.source = Some(source);
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
@@ -546,7 +532,7 @@ impl Module for NormalModule {
     ) = self
       .parser_and_generator
       .parse(ParseContext {
-        source: original_source.clone(),
+        source: source.clone(),
         module_context: &self.context,
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
@@ -580,12 +566,7 @@ impl Module for NormalModule {
     };
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.original_source = Some(source.clone());
-    if self.first_error().is_some() {
-      self.source = None; // NormalModuleSource::BuiltFailed
-    } else {
-      self.source = Some(source);
-    };
+    self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
