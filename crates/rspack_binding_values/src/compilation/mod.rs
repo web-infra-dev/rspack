@@ -796,7 +796,7 @@ impl ToNapiValue for JsAddIncludeCallbackArgs {
 }
 
 thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef<JsCompilation>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
