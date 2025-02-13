@@ -2050,7 +2050,7 @@ interface Experiments_2 {
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
     // (undocumented)
-    SubresourceIntegrityPlugin: typeof SRIPlugin;
+    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 }
 
 // @public (undocumented)
@@ -4020,11 +4020,11 @@ class MultiWatching {
 // @public
 export type Name = string;
 
-// @public (undocumented)
-const NativeSRIPlugin: {
-    new (options: NativeSRIPluginOptions): {
+// @internal
+const NativeSubresourceIntegrityPlugin: {
+    new (options: NativeSubresourceIntegrityPluginOptions): {
         name: BuiltinPluginName;
-        _args: [options: NativeSRIPluginOptions];
+        _args: [options: NativeSubresourceIntegrityPluginOptions];
         affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
@@ -4032,7 +4032,7 @@ const NativeSRIPlugin: {
 };
 
 // @public (undocumented)
-type NativeSRIPluginOptions = Omit<RawSRIPluginOptions, "htmlPlugin"> & {
+type NativeSubresourceIntegrityPluginOptions = Omit<RawSRIPluginOptions, "htmlPlugin"> & {
     htmlPlugin: string | false;
 };
 
@@ -10311,16 +10311,6 @@ class SplitChunksPlugin extends RspackBuiltinPlugin {
     raw(compiler: Compiler): BuiltinPlugin;
 }
 
-// @public (undocumented)
-type SRIHashFunction = "sha256" | "sha384" | "sha512";
-
-// @public (undocumented)
-class SRIPlugin extends NativeSRIPlugin {
-    constructor(options: SubresourceIntegrityPluginOptions);
-    // (undocumented)
-    apply(compiler: Compiler): void;
-}
-
 // @public
 type StandardSchemaV1<Input = unknown, Output = Input> = {
     readonly "~standard": StandardSchemaV1.Props<Input, Output>;
@@ -10638,8 +10628,18 @@ type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" 
 type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
 
 // @public (undocumented)
+type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
+
+// @public (undocumented)
+class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+    constructor(options: SubresourceIntegrityPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
 export type SubresourceIntegrityPluginOptions = {
-    hashFuncNames?: [SRIHashFunction, ...SRIHashFunction[]];
+    hashFuncNames?: [SubresourceIntegrityHashFunction, ...SubresourceIntegrityHashFunction[]];
     htmlPlugin?: string | false;
     enabled?: "auto" | boolean;
 };

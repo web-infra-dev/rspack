@@ -120,7 +120,7 @@ export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlug
 
 import {
 	FetchCompileAsyncWasmPlugin,
-	SRIPlugin as SubresourceIntegrityPlugin
+	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
@@ -295,7 +295,7 @@ export type {
 	FeatureOptions as LightningcssFeatureOptions
 } from "./builtin-loader/lightningcss/index";
 
-export type { SRIPluginOptions as SubresourceIntegrityPluginOptions } from "./builtin-plugin";
+export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
 
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";

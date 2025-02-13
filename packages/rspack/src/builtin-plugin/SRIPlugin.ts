@@ -15,7 +15,7 @@ import type { CrossOriginLoading } from "../config/types";
 import { validate } from "../util/validate";
 import { create } from "./base";
 
-const PLUGIN_NAME = "SRIPlugin";
+const PLUGIN_NAME = "SubresourceIntegrityPlugin";
 const NATIVE_HTML_PLUGIN = "HtmlRspackPlugin";
 
 type HtmlTagObject = {
@@ -57,9 +57,12 @@ type HtmlPluginHooks = {
 	alterAssetTagGroups: AsyncSeriesWaterfallHook<AlterAssetTagGroupsData>;
 };
 
-export type SRIHashFunction = "sha256" | "sha384" | "sha512";
-export type SRIPluginOptions = {
-	hashFuncNames?: [SRIHashFunction, ...SRIHashFunction[]];
+export type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
+export type SubresourceIntegrityPluginOptions = {
+	hashFuncNames?: [
+		SubresourceIntegrityHashFunction,
+		...SubresourceIntegrityHashFunction[]
+	];
 	htmlPlugin?: string | false;
 	enabled?: "auto" | boolean;
 };
@@ -72,17 +75,24 @@ const sriPluginOptionsSchema = z.object({
 		.optional(),
 	htmlPlugin: z.string().or(z.literal(false)).optional(),
 	enabled: z.literal("auto").or(z.boolean()).optional()
-}) satisfies z.ZodType<SRIPluginOptions>;
+}) satisfies z.ZodType<SubresourceIntegrityPluginOptions>;
 
-export type NativeSRIPluginOptions = Omit<RawSRIPluginOptions, "htmlPlugin"> & {
+export type NativeSubresourceIntegrityPluginOptions = Omit<
+	RawSRIPluginOptions,
+	"htmlPlugin"
+> & {
 	htmlPlugin: string | false;
 };
 
-const NativeSRIPlugin = create(
+/**
+ * Note: This is not a webpack public API, maybe removed in future.
+ * @internal
+ */
+const NativeSubresourceIntegrityPlugin = create(
 	BuiltinPluginName.SRIPlugin,
 	function (
 		this: Compiler,
-		options: NativeSRIPluginOptions
+		options: NativeSubresourceIntegrityPluginOptions
 	): RawSRIPluginOptions {
 		let htmlPlugin: RawSRIPluginOptions["htmlPlugin"] = "Disabled";
 		if (options.htmlPlugin === NATIVE_HTML_PLUGIN) {
@@ -98,17 +108,17 @@ const NativeSRIPlugin = create(
 	}
 );
 
-export class SRIPlugin extends NativeSRIPlugin {
+export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
 	private integrities: Map<string, string> = new Map();
-	private options: SRIPluginOptions;
+	private options: SubresourceIntegrityPluginOptions;
 	private validateError: Error | null = null;
-	constructor(options: SRIPluginOptions) {
+	constructor(options: SubresourceIntegrityPluginOptions) {
 		let validateError: Error | null = null;
 		if (typeof options !== "object") {
 			throw new Error("SubResourceIntegrity: argument must be an object");
 		}
 		try {
-			validateSRIPluginOptions(options);
+			validateSubresourceIntegrityPluginOptions(options);
 		} catch (e) {
 			validateError = e as Error;
 		}
@@ -133,7 +143,7 @@ export class SRIPlugin extends NativeSRIPlugin {
 			}
 		});
 		this.validateError = validateError;
-		this.options = finalOptions as SRIPluginOptions;
+		this.options = finalOptions as SubresourceIntegrityPluginOptions;
 	}
 
 	private isEnabled(compiler: Compiler) {
@@ -308,7 +318,9 @@ export class SRIPlugin extends NativeSRIPlugin {
 	}
 }
 
-function validateSRIPluginOptions(options: SRIPluginOptions) {
+function validateSubresourceIntegrityPluginOptions(
+	options: SubresourceIntegrityPluginOptions
+) {
 	validate(options, sriPluginOptionsSchema);
 }
 
@@ -334,7 +346,7 @@ function getTagSrc(tag: HtmlTagObject): string | undefined {
 }
 
 function computeIntegrity(
-	hashFuncNames: SRIHashFunction[],
+	hashFuncNames: SubresourceIntegrityHashFunction[],
 	source: string | Buffer
 ): string {
 	const result = hashFuncNames
