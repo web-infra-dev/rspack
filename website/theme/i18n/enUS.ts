@@ -61,9 +61,9 @@ export const EN_US = {
     'Provides programmatic access to the build API to customize the build processes.',
 
   // Tool Stack
-  toolStackTitle: 'Tool Stack',
+  toolStackTitle: 'Rstack',
   toolStackDesc:
-    'High-performance tool stack built around Rspack to boost modern web development',
+    'High-performance toolchain built around Rspack to boost modern web development',
 
   // Who is using
   whoIsUsing: 'Trusted By Innovators',
