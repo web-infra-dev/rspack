@@ -210,8 +210,10 @@ opt-level = 3
 
 # This is for CI build
 [profile.ci]
-codegen-units = 16
+codegen-units = 64
 inherits      = "release"
+lto           = "thin"
+opt-level     = 2
 
 # This is for production build
 [profile.production]
