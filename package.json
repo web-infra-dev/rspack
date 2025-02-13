@@ -63,7 +63,7 @@
     "@taplo/cli": "^0.7.0",
     "@types/is-ci": "^3.0.4",
     "@types/jest": "29.5.14",
-    "@types/node": "^20.17.10",
+    "@types/node": "^20.17.17",
     "check-dependency-version-consistency": "^5.0.0",
     "commander": "13.1.0",
     "cross-env": "^7.0.3",
@@ -80,7 +80,7 @@
     "typescript": "^5.7.3",
     "webpack": "5.95.0",
     "webpack-cli": "5.1.4",
-    "zx": "8.3.0"
+    "zx": "8.3.2"
   },
   "packageManager": "pnpm@9.15.5",
   "pnpm": {
