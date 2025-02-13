@@ -29,7 +29,7 @@
     "csv-to-markdown-table": "^1.3.0",
     "es5-ext": "^0.10.53",
     "file-loader": "^6.2.0",
-    "is-ci": "3.0.1",
+    "is-ci": "4.1.0",
     "less": "4.2.2",
     "less-loader": "^11.1.0",
     "loader-utils": "^2.0.4",
