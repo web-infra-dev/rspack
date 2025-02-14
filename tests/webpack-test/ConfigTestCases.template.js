@@ -466,6 +466,9 @@ const describeCases = config => {
 												baseModuleScope.self = globalContext;
 												baseModuleScope.document = globalContext.document;
 												baseModuleScope.URL = URL;
+                        						if (typeof Blob !== "undefined") {
+												  baseModuleScope.Blob = Blob;
+											  	}
 												baseModuleScope.Worker =
 													require("./helpers/createFakeWorker")({
 														outputDirectory
