@@ -603,11 +603,11 @@ Rspack x.x.x compiled successfully in X.23
 assets by chunk 862 bytes (id hint: all)
   asset c-all-b_js-b683c5304b71900e.js 480 bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-2c876c6ecab93d9b.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-ff03a71e8e030f89.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-926ec89e89fc5463.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-1b0ba12f79ed8053.js 643 bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-ff03a71e8e030f89.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
-runtime modules 9.73 KiB 13 modules
+Entrypoint main 12.1 KiB = c-runtime~main-926ec89e89fc5463.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
+runtime modules 9.72 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
   ./b.js 17 bytes [built] [code generated]
@@ -1203,14 +1203,14 @@ Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for prefetch 1`] = `
-"asset main.js 14 KiB {909} [emitted] (name: main)
+"asset main.js 13.9 KiB {909} [emitted] (name: main)
 asset prefetched.js 552 bytes {674} [emitted] (name: prefetched)
 asset inner2.js 126 bytes {857} [emitted] (name: inner2)
 asset inner.js 100 bytes {481} [emitted] (name: inner)
 asset normal.js 100 bytes {615} [emitted] (name: normal)
 asset prefetched2.js 100 bytes {424} [emitted] (name: prefetched2)
 asset prefetched3.js 100 bytes {182} [emitted] (name: prefetched3)
-Entrypoint main 14 KiB = main.js
+Entrypoint main 13.9 KiB = main.js
   prefetch: prefetched.js {674} (name: prefetched), prefetched3.js {182} (name: prefetched3), prefetched2.js {424} (name: prefetched2)
 chunk {182} (runtime: main) prefetched3.js (prefetched3) 1 bytes <{909}> [rendered]
 chunk {424} (runtime: main) prefetched2.js (prefetched2) 1 bytes <{909}> [rendered]
@@ -1251,7 +1251,7 @@ chunk (runtime: main) preloaded3.js (preloaded3) 1 bytes [rendered]
 chunk (runtime: main) preloaded2.js (preloaded2) 1 bytes [rendered]
 chunk (runtime: main) normal.js (normal) 1 bytes [rendered]
 chunk (runtime: main) inner2.js (inner2) 2 bytes [rendered]
-chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.81 KiB (runtime) (preload: {154} {551} {577}) [entry] [rendered]"
+chunk (runtime: main) main.js (main) 424 bytes (javascript) 9.8 KiB (runtime) (preload: {154} {551} {577}) [entry] [rendered]"
 `;
 
 exports[`StatsTestCases should print correct stats for preset-errors-only 1`] = `""`;
