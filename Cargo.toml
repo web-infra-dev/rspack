@@ -208,7 +208,6 @@ panic       = "abort"
 [profile.release]
 codegen-units = 1
 debug         = false
-inherits      = "release"
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
 opt-level = "s"

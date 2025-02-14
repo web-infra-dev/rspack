@@ -17,7 +17,7 @@
     "build:dev": "node scripts/build.js",
     "build:ci": "node scripts/build.js --profile ci",
     "build:production": "node scripts/build.js --profile production",
-    "build:profiling": "node scripts/build.js --profile profiling",
+    "build:release": "node scripts/build.js --profile release",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
