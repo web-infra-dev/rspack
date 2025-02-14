@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, sync::Arc};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
@@ -57,7 +57,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
       .collect::<Vec<_>>();
 
     let results = chunks
-      .into_iter()
+      .into_par_iter()
       .flat_map(|c| {
         let mut files = c
           .files()
@@ -77,7 +77,6 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
         });
         files
       })
-      .par_bridge()
       .map(|(chunk_id, file)| {
         if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source()) {
           process_chunk_source(
