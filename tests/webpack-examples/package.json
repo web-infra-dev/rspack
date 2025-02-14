@@ -20,6 +20,6 @@
     "@babel/preset-react": "^7.22.15",
     "css-loader": "^7.1.2",
     "style-loader": "^4.0.0",
-    "wast-loader": "^1.12.1"
+    "wast-loader": "^1.14.1"
   }
 }
