@@ -436,7 +436,7 @@ jobs:
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
         with:
-          tool: cargo-codspeed
+          tool: cargo-codspeed@2.7.2
 
       - name: Build Benchmark
         env:
