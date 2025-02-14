@@ -86,6 +86,7 @@ impl Compiler {
     resolver_factory: Option<Arc<ResolverFactory>>,
     loader_resolver_factory: Option<Arc<ResolverFactory>>,
   ) -> Self {
+    println!("debug github cache");
     #[cfg(debug_assertions)]
     {
       if let Ok(mut debug_info) = crate::debug_info::DEBUG_INFO.lock() {
