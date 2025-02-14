@@ -5,7 +5,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use criterion::criterion_group;
-use rspack::builder::{Builder as _, Devtool};
+use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
