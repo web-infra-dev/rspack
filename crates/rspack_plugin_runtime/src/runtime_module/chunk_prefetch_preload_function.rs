@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::Identifier;
 use rspack_core::{
   impl_runtime_module,
@@ -36,15 +35,22 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(
-        include_str!("runtime/chunk_prefetch_preload_function.js")
-          .cow_replace("$RUNTIME_FUNCTION$", &self.runtime_function.to_string())
-          .cow_replace("$RUNTIME_HANDLERS$", &self.runtime_handlers.to_string())
-          .into_owned(),
-      )
-      .boxed(),
-    )
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/chunk_prefetch_preload_function.ejs").to_string(),
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "RUNTIME_HANDLERS":  &self.runtime_handlers.to_string(),
+        "RUNTIME_FUNCTION": &self.runtime_function.to_string(),
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }
