@@ -13,6 +13,7 @@ mod raw_mf;
 mod raw_progress;
 mod raw_runtime_chunk;
 mod raw_size_limits;
+mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
@@ -20,6 +21,7 @@ use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
+use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
@@ -76,6 +78,7 @@ use rspack_plugin_runtime::{
 use rspack_plugin_runtime_chunk::RuntimeChunkPlugin;
 use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
+use rspack_plugin_sri::SubresourceIntegrityPlugin;
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_warn_sensitive_module::WarnCaseSensitiveModulesPlugin;
 use rspack_plugin_wasm::{
@@ -199,6 +202,7 @@ pub enum BuiltinPluginName {
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
+  SubresourceIntegrityPlugin,
 }
 
 #[napi(object)]
@@ -564,6 +568,11 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(RsdoctorPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::SubresourceIntegrityPlugin => {
+        let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)?;
+        let options = raw_options.into();
+        plugins.push(SubresourceIntegrityPlugin::new(options).boxed());
       }
     }
     Ok(())

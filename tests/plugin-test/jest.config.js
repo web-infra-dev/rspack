@@ -1,22 +1,20 @@
 const path = require("path");
-
-
 const root = path.resolve(__dirname, "../");
 
 /** @type {import('jest').Config} */
 const config = {
+	preset: "ts-jest",
 	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
 		"<rootDir>/**/*.test.js",
 		"<rootDir>/**/*.test.ts"
 	],
 	transform: {
-    '^.+\\.ts?$': '@swc/jest',
-  },
+		"^.+\\.(ts)?$": ["ts-jest", { tsconfig: "<rootDir>/tsconfig.json" }]
+	},
 	testTimeout: process.env.CI ? 60000 : 30000,
 	prettierPath: require.resolve("prettier-2"),
 	cache: false,
-	transformIgnorePatterns: [root],
 	setupFilesAfterEnv: ["<rootDir>/setupTestEnv.js"],
 	snapshotFormat: {
 		escapeString: true,
@@ -26,6 +24,7 @@ const config = {
 		updateSnapshot:
 			process.argv.includes("-u") || process.argv.includes("--updateSnapshot")
 	},
+	extensionsToTreatAsEsm: [".mts"]
 };
 
 module.exports = config;
