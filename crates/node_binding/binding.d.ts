@@ -381,7 +381,8 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin'
+  LazyCompilationPlugin = 'LazyCompilationPlugin',
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -1756,6 +1757,15 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawIntegrityData {
+  integerities: Array<RawIntegrityItem>
+}
+
+export interface RawIntegrityItem {
+  asset: string
+  integrity: string
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2238,6 +2248,12 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+}
+
+export interface RawSubresourceIntegrityPluginOptions {
+  integrityCallback?: (data: RawIntegrityData) => void
+  hashFuncNames: Array<string>
+  htmlPlugin: "JavaScript" | "Native" | "Disabled"
 }
 
 export interface RawSwcJsMinimizerOptions {
