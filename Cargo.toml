@@ -206,21 +206,23 @@ panic       = "abort"
 
 # This is used for inheritance by other release related profile
 [profile.release]
+debug     = false
 opt-level = 3
 
 # This is for CI build
 [profile.ci]
 codegen-units = 64
 inherits      = "release"
-lto           = "thin"
-opt-level     = 2
+## reduce little optimization to reduce build time
+lto = "thin"
+## reduce little optimization to reduce build time
+opt-level = 2
 
 # This is for production build
 [profile.production]
 codegen-units = 1
 debug         = false
 inherits      = "release"
-
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
 opt-level = "s"
@@ -229,11 +231,10 @@ strip     = true
 
 # This is for production for profiling production build
 [profile.profiling]
-codegen-units = 1
-debug         = true
-inherits      = "release"
-lto           = "thin"
-strip         = false
+debug    = true
+inherits = "release"
+lto      = "thin"
+strip    = false
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]
