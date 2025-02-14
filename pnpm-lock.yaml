@@ -50,8 +50,8 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       husky:
-        specifier: ^9.0.0
-        version: 9.0.11
+        specifier: ^9.1.7
+        version: 9.1.7
       is-ci:
         specifier: 4.1.0
         version: 4.1.0
@@ -392,8 +392,8 @@ importers:
         specifier: 4.6.1
         version: 4.6.1
       yargs:
-        specifier: 17.6.2
-        version: 17.6.2
+        specifier: 17.7.2
+        version: 17.7.2
     devDependencies:
       '@rslib/core':
         specifier: 0.4.0
@@ -538,8 +538,8 @@ importers:
         specifier: 0.5.15
         version: 0.5.15
       '@swc/plugin-remove-console':
-        specifier: ^6.0.2
-        version: 6.0.2
+        specifier: ^6.2.0
+        version: 6.2.0
       '@types/babel__generator':
         specifier: 7.6.8
         version: 7.6.8
@@ -652,8 +652,8 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
       wast-loader:
-        specifier: ^1.12.1
-        version: 1.12.1
+        specifier: ^1.14.1
+        version: 1.14.1
       worker-rspack-loader:
         specifier: ^3.1.2
         version: 3.1.2(@rspack/core@packages+rspack)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
@@ -917,8 +917,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       wast-loader:
-        specifier: ^1.12.1
-        version: 1.12.1
+        specifier: ^1.14.1
+        version: 1.14.1
       webpack-cli:
         specifier: 5.1.4
         version: 5.1.4(webpack@5.95.0)
@@ -959,8 +959,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       wast-loader:
-        specifier: ^1.12.1
-        version: 1.12.1
+        specifier: ^1.14.1
+        version: 1.14.1
       watchpack:
         specifier: ^2.4.0
         version: 2.4.1
@@ -1014,8 +1014,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
       is-ci:
-        specifier: 3.0.1
-        version: 3.0.1
+        specifier: 4.1.0
+        version: 4.1.0
       less:
         specifier: 4.2.2
         version: 4.2.2
@@ -3167,8 +3167,8 @@ packages:
     peerDependencies:
       '@swc/core': '*'
 
-  '@swc/plugin-remove-console@6.0.2':
-    resolution: {integrity: sha512-T8x7f7HM4X8TsSe1LEHdQy2BAxFsyOyFIR+S0MeyyGFL03I2HpIBaoVWZW6+dhim2lPsWv/6nN5v1U3An1nMyQ==}
+  '@swc/plugin-remove-console@6.2.0':
+    resolution: {integrity: sha512-1r2WPnhlLBP0ronIF8XoAmHkNERfu4naqyzBi0n0mksGUWSE45G6W4xoEM/97I6/OOZwy6vBhxT7XX0km59vyw==}
 
   '@swc/types@0.1.17':
     resolution: {integrity: sha512-V5gRru+aD8YVyCOMAjMpWR1Ui577DD5KSJsHP8RAxopAH22jFz6GZd/qxqjO6MJHQhcsjvjOFXyDhyLQUnMveQ==}
@@ -5396,8 +5396,8 @@ packages:
     resolution: {integrity: sha512-AXcZb6vzzrFAUE61HnN4mpLqd/cSIwNQjtNWR0euPm6y0iqx3G4gOXaIDdtdDwZmhwe82LA6+zinmW4UBWVePQ==}
     engines: {node: '>=16.17.0'}
 
-  husky@9.0.11:
-    resolution: {integrity: sha512-AB6lFlbwwyIqMdHYhwPe+kjOC3Oc5P3nThEoW/AaO2BX3vJDjWPFxYLxokUZOo6RNX20He3AaT8sESs9NJcmEw==}
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -5522,10 +5522,6 @@ packages:
   is-buffer@2.0.5:
     resolution: {integrity: sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ==}
     engines: {node: '>=4'}
-
-  is-ci@3.0.1:
-    resolution: {integrity: sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==}
-    hasBin: true
 
   is-ci@4.1.0:
     resolution: {integrity: sha512-Ab9bQDQ11lWootZUI5qxgN2ZXwxNI5hTwnsvOc1wyxQ7zQ8OkEDw79mI0+9jI3x432NfwbVRru+3noJfXF6lSQ==}
@@ -8305,8 +8301,8 @@ packages:
   wasm-sjlj@1.0.5:
     resolution: {integrity: sha512-Z/MHJeOkAvJJVWnGX3/YZGYldGaawZbYHX4ldYG9kLhcdB8H31F5x66M7Zc4BP/7pg0aLsusQj1629m2B3Rilg==}
 
-  wast-loader@1.12.1:
-    resolution: {integrity: sha512-2w1mPE83C8hgnkxN3imXdiXoXr+CdZ8b0lwHq1zhg6F8C1N9V1VWLog2PFU2n2x3A35Wc86hR+TwaAxdtlrvnA==}
+  wast-loader@1.14.1:
+    resolution: {integrity: sha512-s35gffU7MzyA8nHZapVlYG6KlfSey4ZlZ1Xk//6wmXzogPAykqBMKWUWWBuzVSrrm8dWqNfzcPD0I3z167N72g==}
 
   watchpack@2.4.1:
     resolution: {integrity: sha512-8wrBCMtVhqcXP2Sup1ctSkga6uc2Bx0IIvKyT7yTFier5AXHooSI+QyQQAtTb7+E0IUCCKyTFmXqdqgum2XWGg==}
@@ -8548,10 +8544,6 @@ packages:
 
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
-    engines: {node: '>=12'}
-
-  yargs@17.6.2:
-    resolution: {integrity: sha512-1/9UrdHjDZc0eOU0HxOHoS78C69UD3JRMvzlJ7S79S2nTaWRA/whGCTV8o9e/N/1Va9YIV7Q4sOxD8VV4pCWOw==}
     engines: {node: '>=12'}
 
   yargs@17.7.2:
@@ -10726,7 +10718,7 @@ snapshots:
       '@swc/counter': 0.1.3
       jsonc-parser: 3.3.1
 
-  '@swc/plugin-remove-console@6.0.2':
+  '@swc/plugin-remove-console@6.2.0':
     dependencies:
       '@swc/counter': 0.1.3
 
@@ -13267,7 +13259,7 @@ snapshots:
 
   human-signals@5.0.0: {}
 
-  husky@9.0.11: {}
+  husky@9.1.7: {}
 
   hyperdyperid@1.2.0: {}
 
@@ -13366,10 +13358,6 @@ snapshots:
       binary-extensions: 2.3.0
 
   is-buffer@2.0.5: {}
-
-  is-ci@3.0.1:
-    dependencies:
-      ci-info: 3.9.0
 
   is-ci@4.1.0:
     dependencies:
@@ -13567,7 +13555,7 @@ snapshots:
       jest-config: 29.7.0(@types/node@20.17.10)(ts-node@10.9.2(@swc/core@1.10.1(@swc/helpers@0.5.15))(@types/node@20.17.10)(typescript@5.7.3))
       jest-util: 29.7.0
       jest-validate: 29.7.0
-      yargs: 17.6.2
+      yargs: 17.7.2
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -16733,7 +16721,7 @@ snapshots:
 
   wasm-sjlj@1.0.5: {}
 
-  wast-loader@1.12.1:
+  wast-loader@1.14.1:
     dependencies:
       wabt: 1.0.0-nightly.20180421
 
@@ -17127,16 +17115,6 @@ snapshots:
       glob: 7.2.3
 
   yargs-parser@21.1.1: {}
-
-  yargs@17.6.2:
-    dependencies:
-      cliui: 8.0.1
-      escalade: 3.2.0
-      get-caller-file: 2.0.5
-      require-directory: 2.1.1
-      string-width: 4.2.3
-      y18n: 5.0.8
-      yargs-parser: 21.1.1
 
   yargs@17.7.2:
     dependencies:

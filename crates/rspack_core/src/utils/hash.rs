@@ -36,19 +36,19 @@ pub fn include_hash(filename: &str, hashes: &HashSet<String>) -> bool {
 }
 
 pub trait Replacer {
-  fn get_replacer(&mut self, hash_len: Option<usize>) -> Cow<'_, str>;
+  fn get(&mut self, hash_len: Option<usize>) -> Cow<'_, str>;
 }
 
 impl Replacer for &str {
   #[inline]
-  fn get_replacer(&mut self, _: Option<usize>) -> Cow<'_, str> {
+  fn get(&mut self, _: Option<usize>) -> Cow<'_, str> {
     Cow::Borrowed(self)
   }
 }
 
 impl Replacer for &String {
   #[inline]
-  fn get_replacer(&mut self, _: Option<usize>) -> Cow<'_, str> {
+  fn get(&mut self, _: Option<usize>) -> Cow<'_, str> {
     Cow::Borrowed(self.as_str())
   }
 }
@@ -59,7 +59,7 @@ where
   S: AsRef<str>,
 {
   #[inline]
-  fn get_replacer(&mut self, hash_len: Option<usize>) -> Cow<'_, str> {
+  fn get(&mut self, hash_len: Option<usize>) -> Cow<'_, str> {
     Cow::Owned((*self)(hash_len).as_ref().to_string())
   }
 }
@@ -86,20 +86,33 @@ pub fn replace_all_placeholder<'a>(
     }
 
     let start_offset = start + offset;
-    if let Some(end) = pattern[start_offset..].find(']') {
-      let end = start_offset + end;
+    let pat_temp = &pattern[start_offset..];
 
-      let replacer = replacer.get_replacer(
-        pattern[start_offset..end]
-          .strip_prefix(':')
-          .and_then(|n| n.parse::<usize>().ok()),
-      );
+    let (end, len) = match pat_temp.as_bytes().first() {
+      Some(b']') => (start_offset, None),
+      Some(b':') => {
+        if let Some(end) = pat_temp.find(']') {
+          let end = start_offset + end;
+          let len = pattern[start_offset + 1..end].parse::<usize>().ok();
 
-      result.push_str(&pattern[ending..start]);
-      result.push_str(replacer.as_ref());
+          if len.is_none() {
+            continue;
+          }
 
-      ending = end + 1;
-    }
+          (end, len)
+        } else {
+          continue;
+        }
+      }
+      _ => continue,
+    };
+
+    let replacer = replacer.get(len);
+
+    result.push_str(&pattern[ending..start]);
+    result.push_str(replacer.as_ref());
+
+    ending = end + 1;
   }
 
   if ending < pattern.len() {
@@ -111,10 +124,17 @@ pub fn replace_all_placeholder<'a>(
 
 #[test]
 fn test_replace_all_placeholder() {
-  let result = replace_all_placeholder("hello-[hash].js", "[hash]", "abc");
-  assert_eq!(result, "hello-abc.js");
-  let result = replace_all_placeholder("hello-[hash]-[hash:5].js", "[hash]", |n: Option<usize>| {
-    &"abcdefgh"[..n.unwrap_or(8)]
-  });
-  assert_eq!(result, "hello-abcdefgh-abcde.js");
+  let result = replace_all_placeholder(
+    "hello-[hash]-[hash:-]-[hash_name]-[hash:1]-[hash:].js",
+    "[hash]",
+    "abc",
+  );
+  assert_eq!(result, "hello-abc-[hash:-]-[hash_name]-abc-[hash:].js");
+
+  let result = replace_all_placeholder(
+    "hello-[hash]-[hash:5]-[hash_name]-[hash:o].js",
+    "[hash]",
+    |n: Option<usize>| &"abcdefgh"[..n.unwrap_or(8)],
+  );
+  assert_eq!(result, "hello-abcdefgh-abcde-[hash_name]-[hash:o].js");
 }

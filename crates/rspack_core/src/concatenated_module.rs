@@ -48,8 +48,8 @@ use crate::{
   CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
   Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConnectionState, Context,
   DependenciesBlock, DependencyId, DependencyTemplate, DependencyType, ErrorSpan,
-  ExportInfoProvided, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
-  MaybeDynamicTargetExportInfoHashKey, Module, ModuleDependency, ModuleGraph,
+  ExportInfoProvided, ExportsArgument, ExportsType, FactoryMeta, IdentCollector, LibIdentOptions,
+  MaybeDynamicTargetExportInfoHashKey, Module, ModuleArgument, ModuleDependency, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleType, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SourceType, SpanExt, Template, UsageState, UsedName, DEFAULT_EXPORT,
   NAMESPACE_OBJECT_EXPORT,
@@ -78,6 +78,8 @@ pub struct RootModuleContext {
   pub side_effect_connection_state: ConnectionState,
   pub factory_meta: Option<FactoryMeta>,
   pub build_meta: BuildMeta,
+  pub exports_argument: ExportsArgument,
+  pub module_argument: ModuleArgument,
 }
 
 #[allow(unused)]
@@ -386,6 +388,11 @@ impl ConcatenatedModule {
   ) -> Self {
     // make the hash consistent
     modules.sort_by(|a, b| a.id.cmp(&b.id));
+    let RootModuleContext {
+      module_argument,
+      exports_argument,
+      ..
+    } = root_module_ctxt;
     Self {
       id,
       root_module_ctxt,
@@ -397,8 +404,9 @@ impl ConcatenatedModule {
       diagnostics: vec![],
       build_info: BuildInfo {
         cacheable: true,
-        hash: None,
         strict: true,
+        module_argument,
+        exports_argument,
         top_level_declarations: Some(Default::default()),
         ..Default::default()
       },
@@ -1005,7 +1013,7 @@ impl Module for ConcatenatedModule {
         ));
       }
 
-      let exports_argument = self.build_meta().exports_argument;
+      let exports_argument = self.get_exports_argument();
 
       let should_skip_render_definitions = compilation
         .plugin_driver
