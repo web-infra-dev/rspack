@@ -1712,8 +1712,8 @@ importers:
         specifier: ^4.21.3
         version: 4.24.0
       enhanced-resolve:
-        specifier: 5.12.0
-        version: 5.12.0
+        specifier: 5.18.1
+        version: 5.18.1
       graceful-fs:
         specifier: 4.2.11
         version: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
@@ -1759,7 +1759,7 @@ importers:
         version: 8.5.10
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.12.0)(prismjs@1.29.0)(pug@3.0.3)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
+        version: 2.11.1(enhanced-resolve@5.18.1)(prismjs@1.29.0)(pug@3.0.3)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
       babel-loader:
         specifier: ^9.2.1
         version: 9.2.1(@babel/core@7.24.4)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))
@@ -5724,10 +5724,6 @@ packages:
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
-
-  enhanced-resolve@5.12.0:
-    resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
-    engines: {node: '>=10.13.0'}
 
   enhanced-resolve@5.18.0:
     resolution: {integrity: sha512-0/r0MySGYG8YqlayBZ6MuCfECmHFdJ5qyPh8s8wa5Hnm6SaFLSK1VYCbj+NKp090Nm1caZhD+QTnmxO7esYGyQ==}
@@ -12895,17 +12891,6 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.12.0)(prismjs@1.29.0)(pug@3.0.3)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))':
-    dependencies:
-      ansis: 3.10.0
-      enhanced-resolve: 5.12.0
-      parse5: 7.2.1
-      pug: 3.0.3
-      webpack: 5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0))
-      webpack-merge: 6.0.1
-    optionalDependencies:
-      prismjs: 1.29.0
-
   '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.18.1)(prismjs@1.29.0)(pug@3.0.3)(webpack@5.95.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.95.0)))':
     dependencies:
       ansis: 3.10.0
@@ -14259,11 +14244,6 @@ snapshots:
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
-
-  enhanced-resolve@5.12.0:
-    dependencies:
-      graceful-fs: 4.2.11(patch_hash=ivtm2a2cfr5pomcfbedhmr5v2q)
-      tapable: 2.2.1
 
   enhanced-resolve@5.18.0:
     dependencies:
