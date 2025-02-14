@@ -538,8 +538,8 @@ importers:
         specifier: 0.5.15
         version: 0.5.15
       '@swc/plugin-remove-console':
-        specifier: ^6.0.2
-        version: 6.0.2
+        specifier: ^6.2.0
+        version: 6.2.0
       '@types/babel__generator':
         specifier: 7.6.8
         version: 7.6.8
@@ -3167,8 +3167,8 @@ packages:
     peerDependencies:
       '@swc/core': '*'
 
-  '@swc/plugin-remove-console@6.0.2':
-    resolution: {integrity: sha512-T8x7f7HM4X8TsSe1LEHdQy2BAxFsyOyFIR+S0MeyyGFL03I2HpIBaoVWZW6+dhim2lPsWv/6nN5v1U3An1nMyQ==}
+  '@swc/plugin-remove-console@6.2.0':
+    resolution: {integrity: sha512-1r2WPnhlLBP0ronIF8XoAmHkNERfu4naqyzBi0n0mksGUWSE45G6W4xoEM/97I6/OOZwy6vBhxT7XX0km59vyw==}
 
   '@swc/types@0.1.17':
     resolution: {integrity: sha512-V5gRru+aD8YVyCOMAjMpWR1Ui577DD5KSJsHP8RAxopAH22jFz6GZd/qxqjO6MJHQhcsjvjOFXyDhyLQUnMveQ==}
@@ -10726,7 +10726,7 @@ snapshots:
       '@swc/counter': 0.1.3
       jsonc-parser: 3.3.1
 
-  '@swc/plugin-remove-console@6.0.2':
+  '@swc/plugin-remove-console@6.2.0':
     dependencies:
       '@swc/counter': 0.1.3
 
