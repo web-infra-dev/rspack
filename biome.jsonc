@@ -20,6 +20,7 @@
 			"packages/rspack-test-tools/tests/**/*",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"tests/e2e/**/*",
+			"tasks/benchmark/benches/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
@@ -63,6 +64,7 @@
 			"packages/rspack-test-tools/template",
 			"packages/rspack-test-tools/src/helper/legacy/**/*",
 			"packages/rspack/module.d.ts",
+			"tasks/benchmark/benches/**/*",
 			// --- ignore runtime code in browser
 			"packages/rspack/hot",
 			"packages/rspack/src/runtime/moduleFederationDefaultRuntime.js"
