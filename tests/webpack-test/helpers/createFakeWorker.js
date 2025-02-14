@@ -34,15 +34,15 @@ self.location = new URL(${JSON.stringify(
 					: resource.toString()
 			)});
 const urlToPath = url => {
-  if (/^file:/i.test(url)) return fileURLToPath(url);
+    if (/^file:/i.test(url)) return fileURLToPath(url);
 	if (url.startsWith("https://test.cases/path/")) url = url.slice(24);
 	return path.resolve(${JSON.stringify(outputDirectory)}, \`./\${url}\`);
 };
 self.importScripts = url => {
 	${
 		options.type === "module"
-			? 'throw new Error("importScripts is not supported in module workers")'
-			: "require(urlToPath(url))"
+			? `throw new Error("importScripts is not supported in module workers")`
+			: `require(urlToPath(url))`
 	};
 };
 self.fetch = async url => {
