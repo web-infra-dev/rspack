@@ -22,7 +22,7 @@
     "html-loader": "2.1.1",
     "html-webpack-plugin": "5.6.3",
     "pug-loader": "2.4.0",
-    "sass-embedded": "^1.77.8",
+    "sass-embedded": "^1.85.0",
     "sass-loader": "^16.0.0",
     "jsdom": "^25.0.0",
     "del": "^6.0.0",
