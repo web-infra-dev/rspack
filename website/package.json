@@ -24,7 +24,7 @@
     "mermaid": "^11.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "semver": "^7.6.2",
+    "semver": "^7.7.1",
     "tailwindcss": "^3.3.0"
   },
   "devDependencies": {
