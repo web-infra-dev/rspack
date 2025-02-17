@@ -108,10 +108,12 @@ fn render_chunk(
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const ids = ['{}'];\n",
+    "export const __webpack_ids__ = ['{}'];\n",
     &chunk.expect_id(&compilation.chunk_ids_artifact)
   )));
-  sources.add(RawStringSource::from_static("export const modules = "));
+  sources.add(RawStringSource::from_static(
+    "export const __webpack_modules__ = ",
+  ));
   sources.add(render_source.source.clone());
   sources.add(RawStringSource::from_static(";\n"));
 
@@ -119,7 +121,9 @@ fn render_chunk(
     .chunk_graph
     .has_chunk_runtime_modules(chunk_ukey)
   {
-    sources.add(RawStringSource::from_static("export const runtime = "));
+    sources.add(RawStringSource::from_static(
+      "export const __webpack_runtime__ = ",
+    ));
     sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
     sources.add(RawStringSource::from_static(";\n"));
   }
