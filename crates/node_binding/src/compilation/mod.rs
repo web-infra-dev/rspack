@@ -180,7 +180,7 @@ impl JsCompilation {
         .keys()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
           })
         })
         .collect::<Vec<_>>(),
@@ -197,7 +197,7 @@ impl JsCompilation {
         .iter()
         .filter_map(|module_id| {
           compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation))
+            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
           })
         })
         .collect::<Vec<_>>(),
@@ -576,23 +576,20 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     callbackify(env, f, async {
-      let compilation_id = compilation.id();
+      let compiler_id = compilation.compiler_id();
 
-      let mut modules = compilation
+      let modules = compilation
         .rebuild_module(
           IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.as_ref(), compilation_id, None))
+              .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
               .collect::<Vec<_>>()
           },
         )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
-      modules
-        .iter_mut()
-        .for_each(|module| module.attach(compilation));
 
       Ok(modules)
     })
@@ -744,7 +741,7 @@ impl JsCompilation {
             Some(module) => match module_graph.module_by_identifier(&module.module_identifier) {
               Some(module) => {
                 let js_module =
-                  JsModuleWrapper::new(module.as_ref(), compilation.id(), Some(compilation));
+                  JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
                 (Either::B(()), Either::B(js_module))
               }
               None => (
