@@ -234,3 +234,6 @@ diff_output
 
 # xcode trace
 *.trace
+
+# Rsapck bench
+.bench
