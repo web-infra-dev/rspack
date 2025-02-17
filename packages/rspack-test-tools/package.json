@@ -67,7 +67,7 @@
     "rimraf": "^5.0.10",
     "source-map": "^0.7.4",
     "terser-webpack-plugin": "^5.3.10",
-    "webpack": "5.95.0",
+    "webpack": "5.97.1",
     "webpack-merge": "5.9.0",
     "webpack-sources": "3.2.3"
   },
