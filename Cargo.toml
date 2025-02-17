@@ -218,7 +218,7 @@ strip     = true
 
 # This is for CI build based on release but with faster build time
 [profile.ci]
-codegen-units = 64
+codegen-units = 256
 inherits      = "release"
 ## reduce little optimization to reduce build time
 lto = "thin"
