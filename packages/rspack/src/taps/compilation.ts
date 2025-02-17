@@ -87,8 +87,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (m: binding.JsModule) {
-					queried.call(Module.__from_binding(m));
-					return m;
+					return queried.call(Module.__from_binding(m));
 				};
 			}
 		),
@@ -102,8 +101,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (m: binding.JsModule) {
-					queried.call(Module.__from_binding(m));
-					return m;
+					return queried.call(Module.__from_binding(m));
 				};
 			}
 		),
@@ -116,8 +114,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
 			function (queried) {
 				return function (m: binding.JsModule) {
-					queried.call(Module.__from_binding(m));
-					return m;
+					return queried.call(Module.__from_binding(m));
 				};
 			}
 		),

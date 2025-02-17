@@ -463,18 +463,17 @@ pub struct RegisterJsTaps {
   )]
   pub register_compiler_asset_emitted_taps: RegisterFunction<JsAssetEmittedArgs, Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
+  pub register_compilation_build_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps:
-    RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
+  pub register_compilation_still_valid_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => JsModule); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsModule) => void); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, JsModuleWrapper>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<JsModuleWrapper, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -729,7 +728,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<JsModuleWrapper, ()> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -737,7 +736,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<JsModuleWrapper, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -745,7 +744,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<JsModuleWrapper, JsModuleWrapper> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<JsModuleWrapper, ()> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
