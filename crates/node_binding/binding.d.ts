@@ -149,6 +149,15 @@ export declare class JsCompilation {
   addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
+export declare class JsCompiler {
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
+  setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
+  /** Build with the given option passed to the constructor */
+  build(callback: (err: null | Error) => void): void
+  /** Rebuild with the given option passed to the constructor */
+  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+}
+
 export declare class JsContextModuleFactoryAfterResolveData {
   get resource(): string
   set resource(resource: string)
@@ -288,15 +297,6 @@ export declare class RawExternalItemFnCtx {
   getResolver(): JsResolver
 }
 
-export declare class Rspack {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory)
-  setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
-  /** Build with the given option passed to the constructor */
-  build(callback: (err: null | Error) => void): void
-  /** Rebuild with the given option passed to the constructor */
-  rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
-}
-
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -381,7 +381,8 @@ export declare enum BuiltinPluginName {
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
-  LazyCompilationPlugin = 'LazyCompilationPlugin'
+  LazyCompilationPlugin = 'LazyCompilationPlugin',
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -1756,6 +1757,15 @@ export interface RawInfo {
   version?: string
 }
 
+export interface RawIntegrityData {
+  integerities: Array<RawIntegrityItem>
+}
+
+export interface RawIntegrityItem {
+  asset: string
+  integrity: string
+}
+
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
   dynamicImportPreload?: string
@@ -2238,6 +2248,12 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+}
+
+export interface RawSubresourceIntegrityPluginOptions {
+  integrityCallback?: (data: RawIntegrityData) => void
+  hashFuncNames: Array<string>
+  htmlPlugin: "JavaScript" | "Native" | "Disabled"
 }
 
 export interface RawSwcJsMinimizerOptions {

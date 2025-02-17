@@ -4280,6 +4280,7 @@ dependencies = [
  "rspack_plugin_schemes",
  "rspack_plugin_size_limits",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_sri",
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_warn_sensitive_module",
  "rspack_plugin_wasm",
@@ -5308,6 +5309,37 @@ dependencies = [
  "rspack_util",
  "rustc-hash 2.1.0",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_sri"
+version = "0.2.0"
+dependencies = [
+ "cow-utils",
+ "dashmap 6.1.0",
+ "derive_more 1.0.0",
+ "futures",
+ "indexmap 2.7.0",
+ "pathdiff",
+ "rayon",
+ "regex",
+ "rspack_base64",
+ "rspack_cacheable",
+ "rspack_collections",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_hook",
+ "rspack_paths",
+ "rspack_plugin_html",
+ "rspack_plugin_real_content_hash",
+ "rspack_plugin_runtime",
+ "rspack_util",
+ "rustc-hash 2.1.0",
+ "serde_json",
+ "sha2",
+ "tracing",
+ "urlencoding",
 ]
 
 [[package]]

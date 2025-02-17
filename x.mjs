@@ -107,7 +107,7 @@ buildCommand
 	.command("binding")
 	.description("build rust binding")
 	.action(async () => {
-		await $`pnpm --filter @rspack/binding build:debug`;
+		await $`pnpm --filter @rspack/binding build:dev`;
 	});
 
 // x build js

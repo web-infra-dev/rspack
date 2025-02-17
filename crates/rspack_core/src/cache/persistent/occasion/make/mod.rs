@@ -90,6 +90,12 @@ impl MakeOccasion {
     artifact.build_dependencies = build_dep;
     artifact.reset_dependencies_incremental_info();
 
+    // TODO remove it after all of module are cacheable
+    let mut make_failed_module = std::mem::take(&mut artifact.make_failed_module);
+    let mg = artifact.get_module_graph_mut();
+    make_failed_module.retain(|module_id| mg.module_by_identifier(module_id).is_some());
+    artifact.make_failed_module = make_failed_module;
+
     Ok(artifact)
   }
 }

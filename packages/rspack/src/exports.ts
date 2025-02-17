@@ -118,7 +118,10 @@ export { LoaderOptionsPlugin } from "./lib/LoaderOptionsPlugin";
 export { LoaderTargetPlugin } from "./lib/LoaderTargetPlugin";
 export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlugin";
 
-import { FetchCompileAsyncWasmPlugin } from "./builtin-plugin";
+import {
+	FetchCompileAsyncWasmPlugin,
+	SubresourceIntegrityPlugin
+} from "./builtin-plugin";
 interface Web {
 	FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
 }
@@ -292,6 +295,8 @@ export type {
 	FeatureOptions as LightningcssFeatureOptions
 } from "./builtin-loader/lightningcss/index";
 
+export type { SubresourceIntegrityPluginOptions } from "./builtin-plugin";
+
 ///// Experiments Stuff /////
 import { cleanupGlobalTrace, registerGlobalTrace } from "@rspack/binding";
 interface Experiments {
@@ -305,6 +310,7 @@ interface Experiments {
 	};
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
+	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 }
 
 export const experiments: Experiments = {
@@ -339,5 +345,6 @@ export const experiments: Experiments = {
 	 *
 	 * @internal
 	 */
-	RsdoctorPlugin
+	RsdoctorPlugin,
+	SubresourceIntegrityPlugin
 };
