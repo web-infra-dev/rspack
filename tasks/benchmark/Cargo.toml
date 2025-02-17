@@ -12,12 +12,13 @@ codspeed = ["criterion2/codspeed"]
 default  = []
 
 [dependencies]
-criterion2  = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
-rspack      = { workspace = true }
-rspack_core = { workspace = true }
-rspack_fs   = { workspace = true }
-serde_json  = { workspace = true }
-tokio       = { workspace = true }
+criterion2   = { default-features = false, version = "2.0.0", features = ["async_tokio"] }
+rspack       = { workspace = true, features = ["full"] }
+rspack_core  = { workspace = true }
+rspack_fs    = { workspace = true }
+rspack_regex = { workspace = true }
+serde_json   = { workspace = true }
+tokio        = { workspace = true }
 
 [[bench]]
 harness = false

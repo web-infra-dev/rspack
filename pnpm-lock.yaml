@@ -615,6 +615,9 @@ importers:
       '@actions/core':
         specifier: 1.11.1
         version: 1.11.1
+      '@types/fs-extra':
+        specifier: 11.0.4
+        version: 11.0.4
       chalk:
         specifier: ^5.4.1
         version: 5.4.1
@@ -10306,7 +10309,7 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 20.17.55
+      '@types/node': 20.17.57
 
   '@types/geojson@7946.0.16': {}
 

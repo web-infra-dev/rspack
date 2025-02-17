@@ -4123,6 +4123,7 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_fs",
+ "rspack_regex",
  "serde_json",
  "tokio",
 ]
