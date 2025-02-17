@@ -1,8 +1,10 @@
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
+import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
+import type ModuleGraph from "../ModuleGraph";
 import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
 
@@ -2189,10 +2191,18 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	automaticNameDelimiter?: string;
 };
 
+export type OptimizationSplitChunksCacheGroupTestFn = (
+	module: Module,
+	ctx: {
+		chunkGraph: ChunkGraph;
+		moduleGraph: ModuleGraph;
+	}
+) => boolean;
+
 /** How to splitting chunks. */
 export type OptimizationSplitChunksCacheGroup = {
 	/** Controls which modules are selected by this cache group. */
-	test?: string | RegExp | ((module: Module) => unknown);
+	test?: string | RegExp | OptimizationSplitChunksCacheGroupTestFn;
 
 	/**
 	 * A module can belong to multiple cache groups.

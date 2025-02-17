@@ -13,7 +13,7 @@ Performance analysis should be conducted on a release version that includes debu
 1. Build a release version with debug information:
 
 ```sh
-just build release-debug
+pnpm build:binding:profiling
 ```
 
 2. Change `@rspack/core` and `@rspack/cli` to use `link` protocol to link to local build Rspack:
