@@ -322,11 +322,15 @@ export default {
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.test
 
-- **类型：** `RegExp | string | function`
+- **类型：** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
 > 其中函数类型的版本要求为 `>=0.4.1`
 
 控制此缓存组选择的模块。省略它会选择所有模块。它可以匹配绝对模块资源路径或 chunk 名称。匹配 chunk 名称时，将选择 chunk 中的所有模块。
+
+:::warning
+使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个 module 进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
+:::
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.enforce
 

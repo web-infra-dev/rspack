@@ -2,6 +2,7 @@ import assert from "node:assert";
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
+	type JsCacheGroupTestCtx,
 	type JsChunk,
 	type JsModule,
 	type RawCacheGroupOptions,
@@ -11,7 +12,10 @@ import {
 import { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
 import { Module } from "../Module";
-import type { OptimizationSplitChunksOptions } from "../config";
+import type {
+	OptimizationSplitChunksCacheGroup,
+	OptimizationSplitChunksOptions
+} from "../config";
 import { JsSplitChunkSizes } from "../util/SplitChunkSize";
 import { RspackBuiltinPlugin, createBuiltinPlugin } from "./base";
 
@@ -60,17 +64,15 @@ function toRawSplitChunksOptions(
 		return name;
 	}
 
-	function getTest(test: any) {
-		interface Context {
-			module: JsModule;
-		}
-
+	function getTest(test: OptimizationSplitChunksCacheGroup["test"]) {
 		if (typeof test === "function") {
-			return (ctx: Context) => {
-				if (typeof ctx.module === "undefined") {
-					return test(undefined);
-				}
-				return test(Module.__from_binding(ctx.module));
+			return (ctx: JsCacheGroupTestCtx) => {
+				// chunk graph and module graph should all exist in the optimizeChunks stage
+				const info = {
+					moduleGraph: compiler._lastCompilation!.moduleGraph,
+					chunkGraph: compiler._lastCompilation!.chunkGraph
+				};
+				return test(Module.__from_binding(ctx.module), info);
 			};
 		}
 		return test;

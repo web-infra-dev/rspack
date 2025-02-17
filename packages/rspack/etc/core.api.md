@@ -529,6 +529,7 @@ export type ChunkFormat = string | false;
 
 // @public (undocumented)
 class ChunkGraph {
+    constructor(binding: JsChunkGraph);
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
     // (undocumented)
@@ -3857,6 +3858,7 @@ type ModuleFilterTypes = boolean | ModuleFilterItemTypes | ModuleFilterItemTypes
 
 // @public (undocumented)
 class ModuleGraph {
+    constructor(binding: JsModuleGraph);
     // (undocumented)
     static __from_binding(binding: JsModuleGraph): ModuleGraph;
     // (undocumented)
@@ -4278,7 +4280,7 @@ export type OptimizationRuntimeChunkNormalized = false | {
 
 // @public
 export type OptimizationSplitChunksCacheGroup = {
-    test?: string | RegExp | ((module: Module) => unknown);
+    test?: string | RegExp | OptimizationSplitChunksCacheGroupTestFn;
     priority?: number;
     enforce?: boolean;
     reuseExistingChunk?: boolean;
@@ -4286,6 +4288,12 @@ export type OptimizationSplitChunksCacheGroup = {
     idHint?: string;
     layer?: string | ((layer?: string) => boolean) | RegExp;
 } & SharedOptimizationSplitChunksCacheGroup;
+
+// @public (undocumented)
+export type OptimizationSplitChunksCacheGroupTestFn = (module: Module, ctx: {
+    chunkGraph: ChunkGraph;
+    moduleGraph: ModuleGraph;
+}) => boolean;
 
 // @public (undocumented)
 type OptimizationSplitChunksChunks = "initial" | "async" | "all" | RegExp | ((chunk: Chunk) => boolean);
@@ -5568,6 +5576,7 @@ declare namespace rspackExports {
         Plugins,
         OptimizationRuntimeChunk,
         OptimizationSplitChunksNameFunction,
+        OptimizationSplitChunksCacheGroupTestFn,
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
         Optimization,
@@ -7190,7 +7199,16 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests: z.ZodOptional<z.ZodNumber>;
                 maxInitialRequests: z.ZodOptional<z.ZodNumber>;
                 automaticNameDelimiter: z.ZodOptional<z.ZodString>;
-                test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodUnknown>]>>;
+                test: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodType<RegExp, z.ZodTypeDef, RegExp>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>, z.ZodObject<{
+                    moduleGraph: z.ZodType<ModuleGraph, z.ZodTypeDef, ModuleGraph>;
+                    chunkGraph: z.ZodType<ChunkGraph, z.ZodTypeDef, ChunkGraph>;
+                }, "strip", z.ZodTypeAny, {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }>], z.ZodUnknown>, z.ZodBoolean>]>>;
                 priority: z.ZodOptional<z.ZodNumber>;
                 enforce: z.ZodOptional<z.ZodBoolean>;
                 reuseExistingChunk: z.ZodOptional<z.ZodBoolean>;
@@ -7207,6 +7225,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7214,7 +7236,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -7228,6 +7249,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7235,7 +7260,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -7279,6 +7303,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7286,7 +7314,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -7324,6 +7351,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7331,7 +7362,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -7408,6 +7438,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7415,7 +7449,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -7477,6 +7510,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -7484,7 +7521,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -9106,6 +9142,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -9113,7 +9153,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -9714,6 +9753,10 @@ export const rspackOptions: z.ZodObject<{
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
                 priority?: number | undefined;
+                test?: string | RegExp | ((args_0: Module, args_1: {
+                    moduleGraph: ModuleGraph;
+                    chunkGraph: ChunkGraph;
+                }, ...args: unknown[]) => boolean) | undefined;
                 minSize?: number | Record<string, number> | undefined;
                 maxAsyncSize?: number | Record<string, number> | undefined;
                 maxInitialSize?: number | Record<string, number> | undefined;
@@ -9721,7 +9764,6 @@ export const rspackOptions: z.ZodObject<{
                 maxAsyncRequests?: number | undefined;
                 maxInitialRequests?: number | undefined;
                 automaticNameDelimiter?: string | undefined;
-                test?: string | RegExp | ((args_0: Module, ...args: unknown[]) => unknown) | undefined;
                 enforce?: boolean | undefined;
                 reuseExistingChunk?: boolean | undefined;
                 idHint?: string | undefined;
@@ -10864,6 +10906,7 @@ declare namespace t {
         Plugins,
         OptimizationRuntimeChunk,
         OptimizationSplitChunksNameFunction,
+        OptimizationSplitChunksCacheGroupTestFn,
         OptimizationSplitChunksCacheGroup,
         OptimizationSplitChunksOptions,
         Optimization,
