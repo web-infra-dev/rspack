@@ -59,7 +59,7 @@ module.exports = {
 		    isOverSizeLimit: false,
 		    name: c560fa876f51d750.png,
 		    related: Array [],
-		    size: 26694,
+		    size: 14910,
 		    type: asset,
 		  },
 		  Object {
