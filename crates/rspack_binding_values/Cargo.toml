@@ -82,6 +82,7 @@ rspack_plugin_runtime_chunk            = { workspace = true }
 rspack_plugin_schemes                  = { workspace = true }
 rspack_plugin_size_limits              = { workspace = true }
 rspack_plugin_split_chunks             = { workspace = true }
+rspack_plugin_sri                      = { workspace = true }
 rspack_plugin_swc_js_minimizer         = { workspace = true }
 rspack_plugin_warn_sensitive_module    = { workspace = true }
 rspack_plugin_wasm                     = { workspace = true }

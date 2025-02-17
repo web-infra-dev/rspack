@@ -76,6 +76,7 @@ Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提�
 - [prefresh](https://github.com/preactjs/prefresh) 项目（由 [@Jovi De Croock](https://github.com/JoviDeCroock) 创建），它启发了 Rspack 内的 PreactRefreshPlugin 实现。
 - [mini-css-extract-plugin](https://github.com/webpack-contrib/mini-css-extract-plugin) 项目（由 [@sokra](https://github.com/sokra) 创建），它启发了 Rspack 内的 CssExtractPlugin 实现。
 - [copy-webpack-plugin](https://github.com/webpack-contrib/copy-webpack-plugin) 项目（由 [@kevlened](https://github.com/kevlened) 创建），它启发了 Rspack 内的 CopyPlugin 实现。
+- [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) 项目（由 [@jscheid](https://github.com/jscheid) 创建），它启发了 Rspack 内的 SubresourceIntegrityPlugin 实现。
 
 ## License
 

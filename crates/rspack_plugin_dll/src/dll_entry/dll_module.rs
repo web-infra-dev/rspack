@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
-  rspack_sources::RawStringSource, rspack_sources::Source, AsyncDependenciesBlockIdentifier,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConcatenationScope, Context, DependenciesBlock, Dependency, DependencyId, EntryDependency,
-  FactoryMeta, Module, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  rspack_sources::RawStringSource, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo,
+  BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, Dependency, DependencyId, EntryDependency, FactoryMeta, Module, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
 use rspack_error::{impl_empty_diagnosable_trait, Result};
 
@@ -67,7 +67,7 @@ impl Module for DllModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 

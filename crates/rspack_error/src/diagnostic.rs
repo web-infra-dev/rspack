@@ -263,11 +263,17 @@ pub trait Diagnosable {
 
   fn diagnostics(&self) -> Cow<[Diagnostic]>;
 
-  fn has_error(&self) -> bool {
-    self
-      .diagnostics()
-      .iter()
-      .any(|d| d.severity() == Severity::Error)
+  fn first_error(&self) -> Option<Cow<Diagnostic>> {
+    match self.diagnostics() {
+      Cow::Borrowed(diagnostics) => diagnostics
+        .iter()
+        .find(|d| d.severity() == Severity::Error)
+        .map(Cow::Borrowed),
+      Cow::Owned(diagnostics) => diagnostics
+        .into_iter()
+        .find(|d| d.severity() == Severity::Error)
+        .map(Cow::Owned),
+    }
   }
 }
 

@@ -14,7 +14,7 @@ export class ChunkGraph {
 		return new ChunkGraph(binding);
 	}
 
-	private constructor(binding: JsChunkGraph) {
+	constructor(binding: JsChunkGraph) {
 		this.#inner = binding;
 	}
 

@@ -147,7 +147,7 @@ mod t {
   use rspack_collections::Identifiable;
   use rspack_error::{impl_empty_diagnosable_trait, Result};
   use rspack_macros::impl_source_map_config;
-  use rspack_sources::Source;
+  use rspack_sources::BoxSource;
   use rspack_util::{atom::Atom, source_map::SourceMapKind};
 
   use crate::{
@@ -285,7 +285,7 @@ mod t {
       todo!()
     }
 
-    fn original_source(&self) -> Option<&dyn Source> {
+    fn source(&self) -> Option<&BoxSource> {
       todo!()
     }
 

@@ -1,0 +1,15 @@
+{
+  "name": "mini-css-extract-plugin-integration",
+  "description": "Integration with mini-css-extract-plugin",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.5.0",
+    "mini-css-extract-plugin": "^1.0.0",
+    "nyc": "*",
+    "webpack": "5.97.1",
+    "webpack-cli": "5.1.4"
+  }
+}

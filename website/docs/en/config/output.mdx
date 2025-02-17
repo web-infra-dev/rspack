@@ -802,7 +802,7 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
    ```js title="rspack.config.mjs"
    export default {
      // …
-     entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
+     entry: ['./src/a.js', './src/b.js'], // only exports in b.js will be exposed
      output: {
        library: 'MyLibrary',
      },

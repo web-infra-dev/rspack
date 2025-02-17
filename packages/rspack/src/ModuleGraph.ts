@@ -11,7 +11,7 @@ export default class ModuleGraph {
 
 	#inner: JsModuleGraph;
 
-	private constructor(binding: JsModuleGraph) {
+	constructor(binding: JsModuleGraph) {
 		this.#inner = binding;
 	}
 

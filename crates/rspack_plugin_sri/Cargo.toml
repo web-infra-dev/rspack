@@ -1,0 +1,38 @@
+[package]
+description = "rspack subresource integrity plugin"
+edition     = "2021"
+license     = "MIT"
+name        = "rspack_plugin_sri"
+repository  = "https://github.com/web-infra-dev/rspack"
+version     = "0.2.0"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cow-utils                       = { workspace = true }
+dashmap                         = { workspace = true }
+derive_more                     = { workspace = true, features = ["debug"] }
+futures                         = { workspace = true }
+indexmap                        = { workspace = true }
+pathdiff                        = { workspace = true }
+rayon                           = { workspace = true }
+regex                           = { workspace = true }
+rspack_base64                   = { workspace = true }
+rspack_cacheable                = { workspace = true }
+rspack_collections              = { workspace = true }
+rspack_core                     = { workspace = true }
+rspack_error                    = { workspace = true }
+rspack_fs                       = { workspace = true }
+rspack_hook                     = { workspace = true }
+rspack_paths                    = { workspace = true }
+rspack_plugin_html              = { workspace = true }
+rspack_plugin_real_content_hash = { workspace = true }
+rspack_plugin_runtime           = { workspace = true }
+rspack_util                     = { workspace = true }
+rustc-hash                      = { workspace = true }
+serde_json                      = { workspace = true }
+sha2                            = { workspace = true }
+tracing                         = { workspace = true }
+urlencoding                     = { workspace = true }
+
+[package.metadata.cargo-shear]
+ignored = ["tracing"]

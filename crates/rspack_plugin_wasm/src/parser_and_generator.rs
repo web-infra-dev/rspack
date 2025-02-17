@@ -116,7 +116,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             .get_presentational_dependencies()
             .map_or(0.0, |i| i.len() as f64 * 10.0)
       }
-      SourceType::Wasm => module.original_source().map_or(0, |source| source.size()) as f64,
+      SourceType::Wasm => module.source().map_or(0, |source| source.size()) as f64,
       _ => 0.0,
     }
   }
