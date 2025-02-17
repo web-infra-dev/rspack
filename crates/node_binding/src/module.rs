@@ -15,8 +15,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsAssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsDependenciesBlockWrapper,
-  JsDependencyWrapper, JsResourceData, Rspack, ToJsCompatSource, COMPILER_REFERENCES,
+  JsAssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
+  JsDependenciesBlockWrapper, JsDependencyWrapper, JsResourceData, ToJsCompatSource,
+  COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -36,7 +37,7 @@ pub struct JsModule {
   // TODO: Replace with Option<Box<dyn Module>> in the future for better ownership and safety
   module: Option<NonNull<dyn Module>>,
   compiler_id: CompilerId,
-  compiler_reference: WeakReference<Rspack>,
+  compiler_reference: WeakReference<JsCompiler>,
 }
 
 impl JsModule {

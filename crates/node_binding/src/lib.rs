@@ -96,7 +96,7 @@ use tracing_subscriber::{EnvFilter, Layer, Registry};
 pub use utils::*;
 
 thread_local! {
-  pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<Rspack>>> = Default::default();
+  pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
 #[js_function(1)]
@@ -108,14 +108,14 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 }
 
 #[napi(custom_finalize)]
-pub struct Rspack {
+pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
 }
 
 #[napi]
-impl Rspack {
+impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(constructor)]
   pub fn new(
@@ -197,7 +197,7 @@ impl Rspack {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
+  pub fn build(&mut self, env: Env, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -222,7 +222,7 @@ impl Rspack {
   pub fn rebuild(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function,
@@ -253,7 +253,7 @@ impl Rspack {
   }
 }
 
-impl Rspack {
+impl JsCompiler {
   /// Run the given function with the compiler.
   ///
   /// ## Safety
@@ -263,7 +263,7 @@ impl Rspack {
   unsafe fn run<R>(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
     COMPILER_REFERENCES.with(|ref_cell| {
@@ -302,7 +302,7 @@ impl Rspack {
   }
 }
 
-impl ObjectFinalize for Rspack {
+impl ObjectFinalize for JsCompiler {
   fn finalize(self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
 
