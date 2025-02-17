@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifiable;
 use rspack_core::{
   impl_module_meta_info, module_namespace_promise, module_update_hash,
-  rspack_sources::{RawStringSource, Source},
+  rspack_sources::{BoxSource, RawStringSource},
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
   BuildMeta, BuildResult, ChunkGraph, CodeGenerationData, CodeGenerationResult, Compilation,
   ConcatenationScope, Context, DependenciesBlock, DependencyId, DependencyRange, FactoryMeta,
@@ -124,7 +124,7 @@ impl Module for LazyCompilationProxyModule {
     200f64
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 

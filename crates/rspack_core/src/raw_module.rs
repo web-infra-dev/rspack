@@ -100,8 +100,8 @@ impl Module for RawModule {
     RAW_MODULE_SOURCE_TYPES
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
-    Some(self.source.as_ref())
+  fn source(&self) -> Option<&BoxSource> {
+    Some(&self.source)
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {

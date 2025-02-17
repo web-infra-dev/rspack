@@ -137,7 +137,7 @@ pub fn collect_module_original_sources(
       let module_ukey = module_ukeys.get(module_id)?;
       let resource = module.resource_resolved_data().resource.clone();
       let source = module
-        .original_source()
+        .source()
         .and_then(|s| s.map(&MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;

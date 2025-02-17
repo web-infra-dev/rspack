@@ -1040,7 +1040,7 @@ impl Stats<'_> {
     }
 
     if options.source {
-      stats.source = module.original_source();
+      stats.source = module.source();
     }
 
     Ok(stats)

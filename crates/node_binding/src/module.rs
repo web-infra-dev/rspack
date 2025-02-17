@@ -98,7 +98,7 @@ impl JsModule {
   pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource, ()>> {
     let (_, module) = self.as_ref()?;
 
-    Ok(match module.original_source() {
+    Ok(match module.source() {
       Some(source) => match source.to_js_compat_source(env).ok() {
         Some(s) => Either::A(s),
         None => Either::B(()),

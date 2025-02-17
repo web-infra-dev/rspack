@@ -16,7 +16,7 @@ use crate::{
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
   BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType, Module,
-  ModuleFactory, ModuleProfile, NormalModuleSource, ResolverFactory, SharedPluginDriver,
+  ModuleFactory, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
@@ -121,13 +121,7 @@ pub async fn repair(
       let original_module_source = parent_module_identifier
         .and_then(|i| module_graph.module_by_identifier(&i))
         .and_then(|m| m.as_normal_module())
-        .and_then(|m| {
-          if let NormalModuleSource::BuiltSucceed(s) = m.source() {
-            Some(s.clone())
-          } else {
-            None
-          }
-        });
+        .and_then(|m| m.source().cloned());
       Box::new(factorize::FactorizeTask {
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),

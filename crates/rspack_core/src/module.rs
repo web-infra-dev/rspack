@@ -15,7 +15,7 @@ use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
-use rspack_sources::Source;
+use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rspack_util::ext::{AsAny, DynHash};
 use rspack_util::source_map::ModuleSourceMapConfig;
@@ -223,9 +223,9 @@ pub trait Module:
   /// Defines what kind of code generation results this module can generate.
   fn source_types(&self) -> &[SourceType];
 
-  /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
-  /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
-  fn original_source(&self) -> Option<&dyn Source>;
+  /// The source of the module. This could be optional, modules like the `NormalModule` can have the corresponding source.
+  /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its source.
+  fn source(&self) -> Option<&BoxSource>;
 
   /// User readable identifier of the module.
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
@@ -611,7 +611,7 @@ mod test {
   use rspack_cacheable::cacheable;
   use rspack_collections::{Identifiable, Identifier};
   use rspack_error::{impl_empty_diagnosable_trait, Result};
-  use rspack_sources::Source;
+  use rspack_sources::BoxSource;
   use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
   use super::Module;
@@ -672,7 +672,7 @@ mod test {
           unreachable!()
         }
 
-        fn original_source(&self) -> Option<&dyn Source> {
+        fn source(&self) -> Option<&BoxSource> {
           unreachable!()
         }
 

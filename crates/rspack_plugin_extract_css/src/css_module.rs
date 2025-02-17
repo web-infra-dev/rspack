@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_core::rspack_sources::Source;
+use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildResult,
@@ -144,7 +144,7 @@ impl Module for CssModule {
     self.content.len() as f64
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
