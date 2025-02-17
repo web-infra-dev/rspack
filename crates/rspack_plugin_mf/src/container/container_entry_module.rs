@@ -6,7 +6,7 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   basic_function, block_promise, impl_module_meta_info, impl_source_map_config, module_raw,
   module_update_hash, returning_function,
-  rspack_sources::{RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
   throw_missing_module_error_block, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier,
   BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ConcatenationScope, Context,
@@ -119,7 +119,7 @@ impl Module for ContainerEntryModule {
     &[SourceType::JavaScript, SourceType::Expose]
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 
