@@ -438,6 +438,18 @@ impl ToNapiValue for JsModuleWrapper {
   }
 }
 
+impl FromNapiValue for JsModuleWrapper {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let mut instance: ClassInstance<JsModule> = FromNapiValue::from_napi_value(env, napi_val)?;
+
+    Ok(JsModuleWrapper {
+      identifier: instance.identifier,
+      module: instance.module.take(),
+      compiler_id: instance.compiler_id,
+    })
+  }
+}
+
 #[napi(object)]
 pub struct JsExecuteModuleArg {
   pub entry: String,
