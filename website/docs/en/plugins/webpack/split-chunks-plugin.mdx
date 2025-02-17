@@ -147,10 +147,37 @@ Prevents exposing path info when creating names for parts splitted by maxSize.
 
 ### splitChunks.minSize
 
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
+
 - **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
 
 Minimum size, in bytes, for a chunk to be generated.
+
+### splitChunks.minSizeReduction
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
+
+- **Type: ** `number | Record<string, number>`
+- **Default:** `0`
+
+When output contains multiple small modules that collectively exceed the minSize threshold, developers may still want to prevent these modules from being split into separate chunks. The `minSizeReduction` parameter specifies the minimum total size reduction required for module splitting.
+
+Assuming the following scenario, a module has a size of `40KB`, this module is owned by 2 chunks, with configuration `minSizeReduction: 100`, potential reduction in size for each parent chunk after splitting: `40KB`, total reduction amount `40KB × 2 = 80KB < 100KB`, therefore no split is triggered
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSizeReduction: {
+        javascript: 100 * 1000,
+        css: 100 * 1000,
+      },
+    },
+  },
+};
+```
 
 ### splitChunks.maxSize
 

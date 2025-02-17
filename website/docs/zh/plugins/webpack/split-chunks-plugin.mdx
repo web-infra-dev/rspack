@@ -127,10 +127,38 @@ export default {
 
 ### splitChunks.minSize
 
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
+
 - **类型：** `number | Record<string, number>`
 - **默认值：** 生产环境下为 `20000`, 其余为 `10000`
 
 生成 chunk 的最小体积（以 bytes 为单位）。
+
+### splitChunks.minSizeReduction
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** `0`
+
+当构建产物中存在多个小型模块时，即使其累计体积超过 minSize 阈值，开发者仍可能希望避免生成独立 chunk。此时可通过 `minSizeReduction` 参数设定模块拆分时必须达到的最小体积缩减阈值。
+该参数的计算逻辑为：当且仅当模块被拆分后，所有父 chunk 的体积缩减总和 ≥ 设定值时，才会拆分。
+
+假设存在以下场景，某 module 体积为 `40KB`，该模块被 2 个 chunk 同时引用，配置`minSizeReduction: 100`，潜在拆分后每个父 chunk 体积缩减：`40KB`，总缩减量 `40KB × 2 = 80KB < 100KB` 因此不触发拆分
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSizeReduction: {
+        javascript: 100 * 1000,
+        css: 100 * 1000,
+      },
+    },
+  },
+};
+```
 
 ### splitChunks.minChunks
 

@@ -47,6 +47,7 @@ pub struct RawSplitChunksOptions {
   pub min_chunks: Option<u32>,
   pub hide_path_info: Option<bool>,
   pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   pub enforce_size_threshold: Option<f64>,
   pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
@@ -84,6 +85,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
   pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
+  pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
@@ -134,6 +136,8 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
 
     let overall_min_size = create_sizes(raw_opts.min_size);
 
+    let overall_min_size_reduction = create_sizes(raw_opts.min_size_reduction);
+
     let overall_max_size = create_sizes(raw_opts.max_size);
 
     let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
@@ -156,6 +160,12 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             &empty_sizes
           } else {
             &overall_min_size
+          });
+
+          let min_size_reduction = create_sizes(v.min_size_reduction).merge(if enforce {
+            &empty_sizes
+          } else {
+            &overall_min_size_reduction
           });
 
           let max_size = create_sizes(v.max_size);
@@ -214,6 +224,7 @@ impl From<RawSplitChunksOptions> for rspack_plugin_split_chunks::PluginOptions {
             }),
             min_chunks,
             min_size,
+            min_size_reduction,
             automatic_name_delimiter: v
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),

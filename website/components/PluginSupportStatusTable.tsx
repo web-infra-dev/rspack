@@ -140,11 +140,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   {
     name: 'SplitChunksPlugin',
     url: '/plugins/webpack/split-chunks-plugin',
-    status: SupportStatus.PartiallySupported,
-    notes: {
-      en: '`minSizeReduction`, `usedExports` options not supported',
-      zh: '不支持 `minSizeReduction`、`usedExports` 选项',
-    },
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'WatchIgnorePlugin',

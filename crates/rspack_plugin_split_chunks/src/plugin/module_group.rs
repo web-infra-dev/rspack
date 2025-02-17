@@ -566,7 +566,8 @@ impl SplitChunksPlugin {
         }
 
         // Validate `min_size` again
-        if Self::remove_min_size_violating_modules(key, compilation, other_module_group, cache_group) {
+        if Self::remove_min_size_violating_modules(key, compilation, other_module_group, cache_group)
+          || !Self::check_min_size_reduction(&other_module_group.sizes, &cache_group.min_size_reduction, other_module_group.chunks.len()) {
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
