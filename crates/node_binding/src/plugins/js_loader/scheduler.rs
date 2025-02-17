@@ -59,6 +59,8 @@ pub(crate) fn merge_loader_context(
     );
   }
 
+  // TODO: Take module ownership for future use
+  let _ = from.module.take();
   to.cacheable = from.cacheable;
   to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
   to.context_dependencies = from

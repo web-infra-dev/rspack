@@ -389,6 +389,10 @@ impl JsModuleWrapper {
       }
     });
   }
+
+  pub fn take(&mut self) -> Option<NonNull<dyn Module>> {
+    self.module
+  }
 }
 
 impl ToNapiValue for JsModuleWrapper {
