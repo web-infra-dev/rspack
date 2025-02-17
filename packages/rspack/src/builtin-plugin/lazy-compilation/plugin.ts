@@ -1,6 +1,6 @@
-import { JsModule } from "@rspack/binding";
+import type { JsModule } from "@rspack/binding";
 
-import { type Compiler } from "../..";
+import type { Compiler } from "../..";
 import { Module } from "../../Module";
 import getBackend, {
 	dispose,
