@@ -332,11 +332,15 @@ A module can belong to multiple cache groups. The optimization will prefer the c
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.test
 
-- **Type:** `RegExp | string | function`
+- **Type:** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
 > where the version of the function type is `>=0.4.1`.
 
 Controls which modules are selected by this cache group. Omitting it selects all modules. It can match the absolute module resource path or chunk names. When a chunk name is matched, all modules in the chunk are selected.
+
+:::warning
+Using the function type of `test` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
+:::
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.enforce
 
