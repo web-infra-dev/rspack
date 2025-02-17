@@ -4,7 +4,7 @@ import rspackConfig from "./fixtures/ts-react/rspack.config";
 
 let theCompilation: Compilation;
 
-beforeEach(() => {
+beforeAll(() => {
 	return new Promise((resolve, reject) =>
 		rspack(
 			{
@@ -86,9 +86,9 @@ describe("TypeScript React project", () => {
 		}
 	});
 
-	bench("traverse compilation.modules (build)", () => {
+	bench("Traverse compilation.modules", () => {
 		for (const module of theCompilation.modules) {
-            module.identifier();
-        }
+			module.identifier();
+		}
 	});
 });
