@@ -152,6 +152,14 @@ pub async fn update_module_graph(
   artifact.initialized = true;
   let mut cutout = Cutout::default();
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
+
+  compilation
+    .plugin_driver
+    .compilation_hooks
+    .revoked_modules
+    .call(&artifact.revoked_modules)
+    .await?;
+
   artifact = repair(compilation, artifact, build_dependencies).await?;
   cutout.fix_artifact(&mut artifact);
   Ok(artifact)
