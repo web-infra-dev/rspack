@@ -84,7 +84,7 @@ export interface AssetEmittedInfo {
 const COMPILATION_WEAK_MAP = new WeakMap<binding.JsCompilation, Compilation>();
 
 class Compiler {
-	#instance?: binding.Rspack;
+	#instance?: binding.JsCompiler;
 	#initial: boolean;
 
 	#compilation?: Compilation;
@@ -793,7 +793,7 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	#getInstance(
-		callback: (error: Error | null, instance?: binding.Rspack) => void
+		callback: (error: Error | null, instance?: binding.JsCompiler) => void
 	): void {
 		const error = checkVersion();
 		if (error) {
@@ -814,7 +814,7 @@ class Compiler {
 
 		this.#registers = this.#createHooksRegisters();
 
-		this.#instance = new instanceBinding.Rspack(
+		this.#instance = new instanceBinding.JsCompiler(
 			this.compilerPath,
 			rawOptions,
 			this.#builtinPlugins,
