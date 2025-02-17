@@ -13,7 +13,7 @@ export const BuiltinLazyCompilationPlugin = create(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RegExp | ((m: JsModule) => [JsModule, boolean])
+		test?: RegExp | ((m: JsModule) => boolean)
 	) => ({ module, cacheable, imports, entries, test }),
 	"thisCompilation"
 );

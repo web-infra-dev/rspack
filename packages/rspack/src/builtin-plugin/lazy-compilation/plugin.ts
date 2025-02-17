@@ -1,7 +1,6 @@
 import type { JsModule } from "@rspack/binding";
 
 import type { Compiler } from "../..";
-import { Module } from "../../Module";
 import getBackend, {
 	dispose,
 	type LazyCompilationDefaultBackendOptions,
@@ -13,26 +12,20 @@ export default class LazyCompilationPlugin {
 	cacheable: boolean;
 	entries: boolean;
 	imports: boolean;
-	test?: RegExp | ((m: JsModule) => [JsModule, boolean]);
+	test?: RegExp | ((m: JsModule) => boolean);
 	backend?: LazyCompilationDefaultBackendOptions;
 
 	constructor(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RegExp | ((m: Module) => boolean),
+		test?: RegExp | ((m: JsModule) => boolean),
 		backend?: LazyCompilationDefaultBackendOptions
 	) {
 		this.cacheable = cacheable;
 		this.entries = entries;
 		this.imports = imports;
-		this.test =
-			typeof test === "function"
-				? jsModule => {
-						const result = test(Module.__from_binding(jsModule));
-						return [jsModule, result];
-					}
-				: test;
+		this.test = test;
 		this.backend = backend;
 	}
 
