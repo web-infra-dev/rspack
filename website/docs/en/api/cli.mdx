@@ -35,17 +35,20 @@ The complete flags are as follows:
 rspack build
 
 Options:
-      --entry        entry file                                          [array]
-  -o, --output-path  output path dir                                    [string]
-  -m, --mode         mode                                               [string]
-  -w, --watch        watch                            [boolean] [default: false]
-      --env          env passed to config function                       [array]
-      --node-env     sets process.env.NODE_ENV to be specified value    [string]
-  -d, --devtool      devtool                          [boolean] [default: false]
-      --configName   Name of the configuration to use.                   [array]
-      --analyze      analyze                          [boolean] [default: false]
-      --json         emit stats json
-      --profile      capture timing information for each module
+  -c, --config         config file                                      [string]
+      --entry          entry file                                        [array]
+  -o, --output-path    output path dir                                  [string]
+  -m, --mode           mode                                             [string]
+  -w, --watch          watch                          [boolean] [default: false]
+      --env            env passed to config function                     [array]
+      --node-env       sets process.env.NODE_ENV to be specified value  [string]
+  -d, --devtool        devtool                        [boolean] [default: false]
+      --configName     Name of the configuration to use.                 [array]
+      --config-loader  Specify the loader to load the config file, can be
+                       `native` or `register`.    [string] [default: "register"]
+      --analyze        analyze                        [boolean] [default: false]
+      --json           emit stats json
+      --profile        capture timing information for each module
                                                       [boolean] [default: false]
 ```
 
@@ -76,17 +79,22 @@ The complete flags are as follows:
 rspack dev
 
 Options:
-      --entry        entry file                                          [array]
-  -o, --output-path  output path dir                                    [string]
-  -m, --mode         mode                                               [string]
-  -w, --watch        watch                            [boolean] [default: false]
-      --env          env passed to config function                       [array]
-      --node-env     sets process.env.NODE_ENV to be specified value    [string]
-  -d, --devtool      devtool                          [boolean] [default: false]
-      --configName   Name of the configuration to use.                   [array]
-      --hot          enables hot module replacement
-      --port         allows to specify a port to use                    [number]
-      --host         allows to specify a hostname to use                [string]
+  -c, --config         config file                                      [string]
+      --entry          entry file                                        [array]
+  -o, --output-path    output path dir                                  [string]
+  -m, --mode           mode                                             [string]
+  -w, --watch          watch                          [boolean] [default: false]
+      --env            env passed to config function                     [array]
+      --node-env       sets process.env.NODE_ENV to be specified value  [string]
+  -d, --devtool        devtool                        [boolean] [default: false]
+      --configName     Name of the configuration to use.                 [array]
+      --config-loader  Specify the loader to load the config file, can be
+                       `native` or `register`.    [string] [default: "register"]
+      --hot            enables hot module replacement
+      --port           allows to specify a port to use                  [number]
+      --host           allows to specify a hostname to use              [string]
+  -v, --version        Show version number                             [boolean]
+  -h, --help           Show help                                       [boolean]
 ```
 
 ## rspack preview

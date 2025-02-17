@@ -8,7 +8,7 @@ import { ApiMeta } from '@components/ApiMeta';
 
 This section covers all variables available in code compiled with Rspack. Modules will be able to access specific data from the compilation process through `module` and other variables.
 
-## CommonJs
+## CommonJS
 
 ### module.loaded
 
@@ -688,11 +688,11 @@ __webpack_require__.rv = '0.7.4';
 ### \_\_rspack_unique_id\_\_
 
 <ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
-The ID of the current bundler, the value is `bundler={bundler}@{version}`: -
-`bundler`: Default to `"rspack"` and can be modified through
-`experiments.rspackFuture.bundlerInfo.bundler`. - `version`: Default to version
-in `@rspack/core/package.json` and can be modified through
-`experiments.rspackFuture.bundlerInfo.version`.{' '}
+
+The ID of the current bundler, the value is `bundler={bundler}@{version}`:
+
+- `bundler`: Default to `"rspack"` and can be modified through [experiments.rspackFuture.bundlerInfo.bundler](/config/experiments#rspackfuturebundlerinfo).
+- `version`: Default to version in `@rspack/core/package.json` and can be modified through [experiments.rspackFuture.bundlerInfo.version](/config/experiments#rspackfuturebundlerinfo).
 
 <Columns>
 ```js title=Source

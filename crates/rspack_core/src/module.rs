@@ -56,6 +56,8 @@ pub struct BuildInfo {
   pub cacheable: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
+  pub module_argument: ModuleArgument,
+  pub exports_argument: ExportsArgument,
   pub file_dependencies: HashSet<ArcPath>,
   pub context_dependencies: HashSet<ArcPath>,
   pub missing_dependencies: HashSet<ArcPath>,
@@ -79,6 +81,8 @@ impl Default for BuildInfo {
       cacheable: true,
       hash: None,
       strict: false,
+      module_argument: Default::default(),
+      exports_argument: Default::default(),
       file_dependencies: HashSet::default(),
       context_dependencies: HashSet::default(),
       missing_dependencies: HashSet::default(),
@@ -177,8 +181,6 @@ pub struct BuildMeta {
   pub esm: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
-  pub module_argument: ModuleArgument,
-  pub exports_argument: ExportsArgument,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -255,11 +257,11 @@ pub trait Module:
   fn build_meta_mut(&mut self) -> &mut BuildMeta;
 
   fn get_exports_argument(&self) -> ExportsArgument {
-    self.build_meta().exports_argument
+    self.build_info().exports_argument
   }
 
   fn get_module_argument(&self) -> ModuleArgument {
-    self.build_meta().module_argument
+    self.build_info().module_argument
   }
 
   fn get_exports_type(&self, module_graph: &ModuleGraph, strict: bool) -> ExportsType {

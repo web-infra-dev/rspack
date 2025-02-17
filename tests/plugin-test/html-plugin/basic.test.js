@@ -221,7 +221,7 @@ describe("HtmlWebpackPlugin", () => {
   //         new HtmlWebpackPlugin({
   //           inject: false,
   //           template:
-  //             "pug-loader!" + path.join(__dirname, "fixtures/template.pug"),
+  //             "@webdiscus/pug-loader!" + path.join(__dirname, "fixtures/template.pug"),
   //         }),
   //       ],
   //     },
@@ -268,7 +268,7 @@ describe("HtmlWebpackPlugin", () => {
   //         app: path.join(__dirname, "fixtures/index.js"),
   //       },
   //       module: {
-  //         rules: [{ test: /\.pug$/, loader: "pug-loader" }],
+  //         rules: [{ test: /\.pug$/, loader: "@webdiscus/pug-loader" }],
   //       },
   //       output: {
   //         path: OUTPUT_DIR,
@@ -2373,7 +2373,7 @@ describe("HtmlWebpackPlugin", () => {
   //         new HtmlWebpackPlugin({
   //           inject: false,
   //           template:
-  //             "pug-loader!" + path.join(__dirname, "fixtures/template.pug"),
+  //             "@webdiscus/pug-loader!" + path.join(__dirname, "fixtures/template.pug"),
   //         }),
   //         examplePlugin,
   //       ],

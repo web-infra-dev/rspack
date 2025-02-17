@@ -581,6 +581,8 @@ impl ModuleConcatenationPlugin {
         .get_side_effects_connection_state(&module_graph, &mut IdentifierSet::default()),
       factory_meta: box_module.factory_meta().cloned(),
       build_meta: box_module.build_meta().clone(),
+      module_argument: box_module.get_module_argument(),
+      exports_argument: box_module.get_exports_argument(),
     };
     let modules = modules_set
       .iter()

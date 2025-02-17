@@ -73,6 +73,7 @@ import { RawOptions } from '@rspack/binding';
 import { RawProgressPluginOptions } from '@rspack/binding';
 import { RawProvideOptions } from '@rspack/binding';
 import { RawRuntimeChunkOptions } from '@rspack/binding';
+import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
 import type { SecureContextOptions } from 'node:tls';
@@ -331,27 +332,27 @@ interface BaseModuleConfig {
 
 // @public (undocumented)
 interface BaseResolveRequest {
-    	// (undocumented)
+     // (undocumented)
     __innerRequest?: string;
-    	// (undocumented)
+     // (undocumented)
     __innerRequest_relativePath?: string;
-    	// (undocumented)
+     // (undocumented)
     __innerRequest_request?: string;
-    	// (undocumented)
+     // (undocumented)
     context?: object;
-    	// (undocumented)
+     // (undocumented)
     descriptionFileData?: JsonObject;
-    	// (undocumented)
+     // (undocumented)
     descriptionFilePath?: string;
-    	// (undocumented)
+     // (undocumented)
     descriptionFileRoot?: string;
-    	// (undocumented)
+     // (undocumented)
     fullySpecified?: boolean;
-    	// (undocumented)
+     // (undocumented)
     ignoreSymlinks?: boolean;
-    	// (undocumented)
+     // (undocumented)
     path: string | false;
-    	// (undocumented)
+     // (undocumented)
     relativePath?: string;
 }
 
@@ -2048,6 +2049,8 @@ interface Experiments_2 {
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
+    // (undocumented)
+    SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
 }
 
 // @public (undocumented)
@@ -2305,11 +2308,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-    	constructor();
+     constructor();
 
-    	digest(encoding?: string): string | Buffer;
+     digest(encoding?: string): string | Buffer;
 
-    	update(data: string | Buffer, inputEncoding?: string): Hash;
+     update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -2815,14 +2818,14 @@ type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
 type JsonObject = { [index: string]: JsonValue } & {
-    	[index: string]:
-    		| undefined
-    		| null
-    		| string
-    		| number
-    		| boolean
-    		| JsonObject
-    		| JsonValue[];
+     [index: string]:
+      | undefined
+      | null
+      | string
+      | number
+      | boolean
+      | JsonObject
+      | JsonValue[];
 };
 
 // @public (undocumented)
@@ -4017,6 +4020,22 @@ class MultiWatching {
 // @public
 export type Name = string;
 
+// @internal
+const NativeSubresourceIntegrityPlugin: {
+    new (options: NativeSubresourceIntegrityPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [options: NativeSubresourceIntegrityPluginOptions];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler): BuiltinPlugin;
+        apply(compiler: Compiler): void;
+    };
+};
+
+// @public (undocumented)
+type NativeSubresourceIntegrityPluginOptions = Omit<RawSubresourceIntegrityPluginOptions, "htmlPlugin"> & {
+    htmlPlugin: string | false;
+};
+
 // @public (undocumented)
 export const node: Node_3;
 
@@ -4539,19 +4558,19 @@ interface ParseContext {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-    	// (undocumented)
+     // (undocumented)
     directory: boolean;
-    	// (undocumented)
+     // (undocumented)
     file: boolean;
-    	// (undocumented)
+     // (undocumented)
     fragment: string;
-    	// (undocumented)
+     // (undocumented)
     internal: boolean;
-    	// (undocumented)
+     // (undocumented)
     module: boolean;
-    	// (undocumented)
+     // (undocumented)
     query: string;
-    	// (undocumented)
+     // (undocumented)
     request: string;
 }
 
@@ -4822,13 +4841,13 @@ type RawCreateParams = {
 
 // @public (undocumented)
 type RawSourceMap = {
-    	version: number;
-    	sources: string[];
-    	names: string[];
-    	sourceRoot?: string;
-    	sourcesContent?: string[];
-    	mappings: string;
-    	file: string;
+     version: number;
+     sources: string[];
+     names: string[];
+     sourceRoot?: string;
+     sourcesContent?: string[];
+     mappings: string;
+     file: string;
 };
 
 // @public (undocumented)
@@ -5376,6 +5395,7 @@ declare namespace rspackExports {
         SwcLoaderTsParserConfig,
         LightningcssLoaderOptions,
         LightningcssFeatureOptions,
+        SubresourceIntegrityPluginOptions,
         experiments,
         getRawResolve,
         LoaderContext,
@@ -10222,25 +10242,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-    	// (undocumented)
+     // (undocumented)
     buffer(): Buffer;
 
-    	// (undocumented)
+     // (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-    	// (undocumented)
+     // (undocumented)
     size(): number;
 
-    	// (undocumented)
+     // (undocumented)
     source(): string | Buffer;
 
-    	// (undocumented)
+     // (undocumented)
     sourceAndMap(options?: MapOptions): {
-        		source: string | Buffer;
-        		map: Object;
-        	};
+          source: string | Buffer;
+          map: Object;
+         };
 
-    	// (undocumented)
+     // (undocumented)
     updateHash(hash: Hash): void;
 }
 
@@ -10606,6 +10626,26 @@ type StringValidation = "email" | "url" | "emoji" | "uuid" | "nanoid" | "regex" 
 
 // @public (undocumented)
 type stripPath<T extends object> = T extends any ? util_2.OmitKeys<T, "path"> : never;
+
+// @public (undocumented)
+type SubresourceIntegrityHashFunction = "sha256" | "sha384" | "sha512";
+
+// @public (undocumented)
+class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin {
+    constructor(options: SubresourceIntegrityPluginOptions);
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
+export type SubresourceIntegrityPluginOptions = {
+    hashFuncNames?: [
+    SubresourceIntegrityHashFunction,
+    ...SubresourceIntegrityHashFunction[]
+    ];
+    htmlPlugin?: string | false;
+    enabled?: "auto" | boolean;
+};
 
 // @public (undocumented)
 export const SwcJsMinimizerRspackPlugin: {

@@ -387,7 +387,7 @@ export default {
       destructuring: true,
       // The environment supports 'document' variable.
       document: true,
-      // The environment supports an async import() function to import EcmaScript modules.
+      // The environment supports an async import() function to import ECMAScript modules.
       dynamicImport: false,
       // The environment supports an async import() when creating a worker, only for web targets at the moment.
       dynamicImportInWorker: false,
@@ -802,7 +802,7 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
    ```js title="rspack.config.mjs"
    export default {
      // …
-     entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
+     entry: ['./src/a.js', './src/b.js'], // only exports in b.js will be exposed
      output: {
        library: 'MyLibrary',
      },
@@ -1698,7 +1698,7 @@ The `[name]`, `[id]`, `[fullhash]` and `[chunkhash]` substitutions from [`output
 - **Type:** `boolean`
 - **Default:** `false`
 
-Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+Handle error in module loading as per ECMAScript Modules spec at a performance cost.
 
 ```js title="rspack.config.mjs"
 export default {
