@@ -4325,7 +4325,6 @@ dependencies = [
  "swc_node_comments",
  "tokio",
  "tracing",
- "url",
  "ustr-fxhash",
 ]
 
