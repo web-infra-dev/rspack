@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`StatsTestCases should print correct stats for asset 1`] = `
-"asset c560fa876f51d750.png 26.1 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
+"asset c560fa876f51d750.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js 13.1 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 runtime modules 1.61 KiB 2 modules
@@ -23,7 +23,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for asset-concat 1`] = `
-"asset c560fa876f51d750.png 26.1 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
+"asset c560fa876f51d750.png 14.6 KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js 12.3 KiB [emitted] (name: main)
 asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
 orphan modules 9.43 KiB [orphan] 8 modules
