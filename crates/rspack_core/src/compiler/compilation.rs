@@ -1258,7 +1258,7 @@ impl Compilation {
     self.collect_dependencies_diagnostics();
 
     // take make diagnostics
-    let diagnostics = self.make_artifact.take_diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     self.extend_diagnostics(diagnostics);
     Ok(())
   }

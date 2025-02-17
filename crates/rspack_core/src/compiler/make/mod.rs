@@ -27,9 +27,9 @@ pub struct MakeArtifact {
 
   // data
   pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
   // statistical data, which can be regenerated from module_graph_partial and used as index.
+  pub make_failed_module: IdentifierSet,
   pub entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
@@ -77,6 +77,7 @@ impl MakeArtifact {
       .remove_batch_file(&build_info.build_dependencies);
 
     self.revoked_modules.insert(*module_identifier);
+    self.make_failed_module.remove(module_identifier);
     module_graph.revoke_module(module_identifier)
   }
 
@@ -85,6 +86,21 @@ impl MakeArtifact {
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  pub fn diagnostics(&self) -> Vec<Diagnostic> {
+    let mg = self.get_module_graph();
+    self
+      .make_failed_module
+      .iter()
+      .flat_map(|module_identifier| {
+        let m = mg
+          .module_by_identifier(module_identifier)
+          .expect("should have module");
+        m.diagnostics().iter().cloned().collect::<Vec<_>>()
+      })
+      .chain(self.diagnostics.iter().cloned())
+      .collect()
   }
 }
 

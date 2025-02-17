@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 
 use super::{process_dependencies::ProcessDependenciesTask, MakeTaskContext};
@@ -62,27 +61,15 @@ impl Task<MakeTaskContext> for BuildTask {
       )
       .await;
 
-    let build_result = result.map(|t| {
-      let diagnostics = module
-        .diagnostics()
-        .iter()
-        .cloned()
-        .map(|d| d.with_module_identifier(Some(module.identifier())))
-        .collect();
-      t.with_diagnostic(diagnostics)
-    });
-
     if let Some(current_profile) = &current_profile {
       current_profile.mark_building_end();
     }
 
-    build_result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
-      let (build_result, diagnostics) = build_result.split_into_parts();
+    result.map::<Vec<Box<dyn Task<MakeTaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
         module,
         build_result: Box::new(build_result),
         plugin_driver,
-        diagnostics,
         current_profile,
       })]
     })
@@ -93,7 +80,6 @@ impl Task<MakeTaskContext> for BuildTask {
 struct BuildResultTask {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
-  pub diagnostics: Vec<Diagnostic>,
   pub plugin_driver: SharedPluginDriver,
   pub current_profile: Option<Box<ModuleProfile>>,
 }
@@ -106,7 +92,6 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let BuildResultTask {
       mut module,
       build_result,
-      diagnostics,
       current_profile,
       plugin_driver,
     } = *self;
@@ -123,12 +108,11 @@ impl Task<MakeTaskContext> for BuildResultTask {
     let module_graph =
       &mut MakeTaskContext::get_module_graph_mut(&mut artifact.module_graph_partial);
 
-    if !diagnostics.is_empty() {
+    if !module.diagnostics().is_empty() {
       artifact.make_failed_module.insert(module.identifier());
     }
 
     tracing::trace!("Module built: {}", module.identifier());
-    artifact.diagnostics.extend(diagnostics);
     module_graph
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
