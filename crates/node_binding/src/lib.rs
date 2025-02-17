@@ -32,14 +32,14 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt as _, Layer, Registry};
 
 #[napi]
-pub struct Rspack {
+pub struct JsCompiler {
   js_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
 }
 
 #[napi]
-impl Rspack {
+impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(constructor)]
   pub fn new(
@@ -110,7 +110,7 @@ impl Rspack {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
+  pub fn build(&mut self, env: Env, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -135,7 +135,7 @@ impl Rspack {
   pub fn rebuild(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function,
@@ -166,7 +166,7 @@ impl Rspack {
   }
 }
 
-impl Rspack {
+impl JsCompiler {
   /// Run the given function with the compiler.
   ///
   /// ## Safety
@@ -176,7 +176,7 @@ impl Rspack {
   unsafe fn run<R>(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
     if self.state.running() {
