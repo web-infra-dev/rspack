@@ -211,13 +211,13 @@ codegen-units = 1
 debug         = false
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
-opt-level = "s"
+opt-level = 3
 panic     = "abort"
 strip     = true
 
 # This is for CI build based on release but with faster build time
 [profile.ci]
-codegen-units = 64
+codegen-units = 256
 inherits      = "release"
 ## reduce little optimization to reduce build time
 lto = "thin"
