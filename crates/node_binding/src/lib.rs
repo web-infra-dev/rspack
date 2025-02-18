@@ -297,7 +297,6 @@ impl JsCompiler {
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
-    JsDependencyWrapper::cleanup_last_compilation(compilation_id);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
@@ -312,6 +311,7 @@ impl ObjectFinalize for JsCompiler {
     });
 
     JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    JsDependencyWrapper::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }

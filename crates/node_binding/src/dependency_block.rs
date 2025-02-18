@@ -29,7 +29,7 @@ impl JsDependenciesBlock {
         .filter_map(|dependency_id| {
           module_graph
             .dependency_by_id(dependency_id)
-            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+            .map(|dep| JsDependencyWrapper::from_id(*dep.id(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>()
     } else {
