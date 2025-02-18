@@ -187,7 +187,7 @@ impl From<&str> for WasmLoadingType {
     match value {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
-      _ => todo!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
+      _ => unreachable!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
     }
   }
 }
