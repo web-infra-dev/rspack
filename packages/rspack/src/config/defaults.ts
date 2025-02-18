@@ -708,8 +708,7 @@ const applyOutputDefaults = (
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
-			if (tp.nodeBuiltins)
-				return output.module ? "async-node-module" : "async-node";
+			if (tp.nodeBuiltins) return "async-node";
 			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
 				return "universal";
 			}

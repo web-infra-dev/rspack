@@ -6,6 +6,7 @@ module.exports = {
 	output: {
 		pathinfo: true
 	},
+	resolveLoader: { symlinks: false },
 	module: {
 		rules: [
 			{

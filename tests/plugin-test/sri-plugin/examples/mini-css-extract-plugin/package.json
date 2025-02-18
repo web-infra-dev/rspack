@@ -9,7 +9,7 @@
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^1.0.0",
     "nyc": "*",
-    "webpack": "^5.95.0",
+    "webpack": "5.97.1",
     "webpack-cli": "5.1.4"
   }
 }
