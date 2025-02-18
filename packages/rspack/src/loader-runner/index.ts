@@ -459,13 +459,12 @@ export async function runLoaders(
 	};
 
 	loaderContext.importModule = function importModule(
-		this: LoaderContext,
 		request,
 		userOptions,
 		callback
 	) {
 		const options = userOptions ? userOptions : {};
-		const context = this;
+		const context = loaderContext;
 		function finalCallback(
 			onError: (err: Error) => void,
 			onDone: (res: any) => void
@@ -674,7 +673,8 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		error = concatErrorMsgAndStack(error);
-		(error as RspackError).moduleIdentifier = this._module.identifier();
+		(error as RspackError).moduleIdentifier =
+			loaderContext._module.identifier();
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error,
 			severity: JsRspackSeverity.Error
@@ -690,7 +690,8 @@ export async function runLoaders(
 			loaderContext.loaders[loaderContext.loaderIndex]
 		)})`;
 		warning = concatErrorMsgAndStack(warning);
-		(warning as RspackError).moduleIdentifier = this._module.identifier();
+		(warning as RspackError).moduleIdentifier =
+			loaderContext._module.identifier();
 		compiler._lastCompilation!.__internal__pushRspackDiagnostic({
 			error: warning,
 			severity: JsRspackSeverity.Warn
@@ -716,7 +717,7 @@ export async function runLoaders(
 				);
 			}
 
-			if (this.sourceMap) {
+			if (loaderContext.sourceMap) {
 				source = new SourceMapSource(
 					// @ts-expect-error webpack-sources type declaration is wrong
 					content,
