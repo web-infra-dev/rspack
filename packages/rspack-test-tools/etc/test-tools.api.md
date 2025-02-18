@@ -1208,6 +1208,12 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
 }
 
 // @public (undocumented)
+export class LazyCompilationTestPlugin {
+    // (undocumented)
+    apply(compiler: Compiler): void;
+}
+
+// @public (undocumented)
 export class MultipleRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
     protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
