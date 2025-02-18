@@ -1,12 +1,13 @@
 import type { JsModule } from "@rspack/binding";
 
-import type { Compiler } from "../..";
+import type { Compiler, LazyCompilationOptions } from "../..";
 import getBackend, {
 	dispose,
-	type LazyCompilationDefaultBackendOptions,
-	moduleImpl
+	moduleImpl,
+	type LazyCompilationDefaultBackendOptions
 } from "./backend";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
+import { lazyCompilationMiddleware } from "./middleware";
 
 export default class LazyCompilationPlugin {
 	cacheable: boolean;
@@ -14,23 +15,26 @@ export default class LazyCompilationPlugin {
 	imports: boolean;
 	test?: RegExp | ((m: JsModule) => boolean);
 	backend?: LazyCompilationDefaultBackendOptions;
+	options: LazyCompilationOptions;
 
 	constructor(
+		userOptions: LazyCompilationOptions,
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RegExp | ((m: JsModule) => boolean),
-		backend?: LazyCompilationDefaultBackendOptions
+		test?: RegExp | ((m: JsModule) => boolean)
 	) {
+		const options = userOptions ?? {};
+		this.options = options;
+		this.backend = options?.backend;
 		this.cacheable = cacheable;
 		this.entries = entries;
 		this.imports = imports;
 		this.test = test;
-		this.backend = backend;
 	}
 
 	apply(compiler: Compiler) {
-		const backend = getBackend({
+		const backend = getBackend(this.options, {
 			client: require.resolve(
 				`../hot/lazy-compilation-${
 					compiler.options.externalsPresets.node ? "node" : "web"
@@ -89,4 +93,4 @@ export default class LazyCompilationPlugin {
 	}
 }
 
-export { LazyCompilationPlugin };
+export { LazyCompilationPlugin, lazyCompilationMiddleware };

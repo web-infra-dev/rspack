@@ -120,6 +120,7 @@ export { NormalModuleReplacementPlugin } from "./lib/NormalModuleReplacementPlug
 
 import {
 	FetchCompileAsyncWasmPlugin,
+	lazyCompilationMiddleware,
 	SubresourceIntegrityPlugin
 } from "./builtin-plugin";
 interface Web {
@@ -311,6 +312,7 @@ interface Experiments {
 	RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
 	RsdoctorPlugin: typeof RsdoctorPlugin;
 	SubresourceIntegrityPlugin: typeof SubresourceIntegrityPlugin;
+	lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
 }
 
 export const experiments: Experiments = {
@@ -346,5 +348,6 @@ export const experiments: Experiments = {
 	 * @internal
 	 */
 	RsdoctorPlugin,
-	SubresourceIntegrityPlugin
+	SubresourceIntegrityPlugin,
+	lazyCompilationMiddleware
 };
