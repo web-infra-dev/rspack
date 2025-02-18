@@ -2926,11 +2926,7 @@ impl OutputOptionsBuilder {
         if tp.fetch_wasm() {
           WasmLoading::Enable(WasmLoadingType::Fetch)
         } else if tp.node_builtins() {
-          if output_module {
-            WasmLoading::Enable(WasmLoadingType::AsyncNodeModule)
-          } else {
-            WasmLoading::Enable(WasmLoadingType::AsyncNode)
-          }
+          WasmLoading::Enable(WasmLoadingType::AsyncNode)
         } else {
           WasmLoading::Disable
         }

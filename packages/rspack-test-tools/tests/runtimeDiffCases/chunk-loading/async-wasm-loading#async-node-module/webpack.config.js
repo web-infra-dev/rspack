@@ -1,7 +1,12 @@
 /** @type {import("webpack").Configuration} */
 module.exports = {
 	output: {
-		wasmLoading: "async-node-module"
+		wasmLoading: "async-node",
+		module: true,
+		environment: {
+			dynamicImport: true,
+			module: true
+		}
 	},
 	module: {
 		rules: [
@@ -13,6 +18,7 @@ module.exports = {
 		]
 	},
 	experiments: {
-		asyncWebAssembly: true
+		asyncWebAssembly: true,
+		outputModule: true
 	}
 };

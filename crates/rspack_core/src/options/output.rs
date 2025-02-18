@@ -180,7 +180,6 @@ impl From<&str> for WasmLoading {
 pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
-  AsyncNodeModule,
 }
 
 impl From<&str> for WasmLoadingType {
@@ -188,8 +187,7 @@ impl From<&str> for WasmLoadingType {
     match value {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
-      "async-node-module" => Self::AsyncNodeModule,
-      _ => todo!(),
+      _ => unreachable!("invalid wasm loading type: {value}, expect one of [fetch, async-node]",),
     }
   }
 }

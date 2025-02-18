@@ -88,7 +88,7 @@ cd rspack-demo
 npm init -y
 ```
 
-Then installing `@rspack/core` and `@rspack/cli` as dev dependencies:
+Then installing [@rspack/core](https://www.npmjs.com/package/@rspack/core) and [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) as dev dependencies:
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 
@@ -97,13 +97,13 @@ Update your build scripts to use Rspack CLI:
 ```js title="package.json"
 {
   "scripts": {
-    "dev": "rspack serve",
+    "dev": "rspack dev",
     "build": "rspack build"
   }
 }
 ```
 
-See [Configure Rspack](/config/index) to learn about how to configure Rspack.
+Next, see [Configure Rspack](/config/index) to learn about how to configure Rspack.
 
 ## Migrating from existing projects
 
@@ -116,6 +116,35 @@ If you need to migrate from an existing project to Rspack stack, you can refer t
 - [Migrating from Vite to Rsbuild](https://rsbuild.dev/guide/migration/vite)
 - [Migrating from Tsup to Rslib](https://lib.rsbuild.dev/guide/migration/tsup)
 - [Migrating from Storybook](/guide/migration/storybook)
+
+## Install canary version
+
+When you need to test or verify the features of Rspack that are not yet released to the stable version, you may need to use the canary version.
+
+The canary version of Rspack has a `-canary` suffix in the package scope. For example, the canary package name of `@rspack/core` is `@rspack-canary/core`. To use these versions, you can configure the overrides of the package manager (npm/yarn/pnpm/bun).
+
+Here is an example of using pnpm overrides:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-canary/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+Rspack community also provides [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to easily install canary version:
+
+```shell
+npx install-rspack --version latest # Install the latest version
+npx install-rspack --version canary # Install the canary version
+npx install-rspack --version 1.0.0-canary-d614005-20250101082730 # Install the specified canary version
+```
 
 ## Ecosystem
 

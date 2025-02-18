@@ -869,16 +869,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let mut visited = IdentifierIndexSet::default();
 
+      let mut ctx = (0, 0, Default::default());
       for root in roots {
-        let mut ctx = (0, 0, Default::default());
         self.calculate_order_index(root, &runtime, &mut visited, &mut ctx, compilation);
 
         let chunk_group = compilation
           .chunk_group_by_ukey
           .expect_get_mut(&chunk_group_ukey);
-        for (id, (pre, post)) in ctx.2 {
-          chunk_group.module_pre_order_indices.insert(id, pre);
-          chunk_group.module_post_order_indices.insert(id, post);
+        for (id, (pre, post)) in &ctx.2 {
+          chunk_group.module_pre_order_indices.insert(*id, *pre);
+          chunk_group.module_post_order_indices.insert(*id, *post);
         }
       }
     }
