@@ -68,8 +68,8 @@ importers:
         specifier: ^15.0.0
         version: 15.4.3
       prettier:
-        specifier: 3.5.0
-        version: 3.5.0
+        specifier: 3.5.1
+        version: 3.5.1
       prettier-2:
         specifier: npm:prettier@2.8.8
         version: prettier@2.8.8
@@ -1897,8 +1897,8 @@ importers:
         specifier: 0.0.4
         version: 0.0.4
       prettier:
-        specifier: 3.5.0
-        version: 3.5.0
+        specifier: 3.5.1
+        version: 3.5.1
       rsbuild-plugin-google-analytics:
         specifier: 1.0.3
         version: 1.0.3(@rsbuild/core@1.2.3(@rspack/tracing@1.2.3))
@@ -8177,6 +8177,11 @@ packages:
 
   prettier@3.5.0:
     resolution: {integrity: sha512-quyMrVt6svPS7CjQ9gKb3GLEX/rl3BCL2oa/QkNcXv4YNVBC9olt3s+H7ukto06q7B1Qz46PbrKLO34PR6vXcA==}
+    engines: {node: '>=14'}
+    hasBin: true
+
+  prettier@3.5.1:
+    resolution: {integrity: sha512-hPpFQvHwL3Qv5AdRvBFMhnKo4tYxp0ReXiPn2bxkiohEX6mBeBwEpBSQTkD458RaaDKQMYSp4hX4UtfUTA5wDw==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -17491,6 +17496,8 @@ snapshots:
   prettier@2.8.8: {}
 
   prettier@3.5.0: {}
+
+  prettier@3.5.1: {}
 
   pretty-error@4.0.0:
     dependencies:
