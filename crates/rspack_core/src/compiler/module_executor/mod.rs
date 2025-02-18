@@ -8,6 +8,7 @@ use std::sync::Arc;
 use dashmap::{mapref::entry::Entry, DashMap};
 pub use execute::{ExecuteModuleId, ExecutedRuntimeModule};
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
+use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::{
   mpsc::{unbounded_channel, UnboundedSender},
@@ -50,7 +51,7 @@ pub struct ModuleExecutor {
 }
 
 impl ModuleExecutor {
-  pub async fn hook_before_make(&mut self, compilation: &Compilation) {
+  pub async fn hook_before_make(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = std::mem::take(&mut self.make_artifact);
     let mut params = Vec::with_capacity(5);
     params.push(MakeParam::CheckNeedBuild);
@@ -75,6 +76,14 @@ impl ModuleExecutor {
 
     // Modules imported by `importModule` are passively loaded.
     let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
+
+    compilation
+      .plugin_driver
+      .compilation_hooks
+      .revoked_modules
+      .call(&make_artifact.revoked_modules)
+      .await?;
+
     let mut build_dependencies_id = build_dependencies
       .iter()
       .map(|(id, _)| *id)
@@ -114,6 +123,8 @@ impl ModuleExecutor {
         .send(ctx.transform_to_make_artifact())
         .expect("should success");
     }));
+
+    Ok(())
   }
 
   pub async fn hook_after_finish_modules(&mut self, compilation: &mut Compilation) {

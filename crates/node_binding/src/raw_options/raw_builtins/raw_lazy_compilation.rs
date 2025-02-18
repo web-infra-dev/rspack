@@ -1,9 +1,11 @@
+use std::ptr::NonNull;
+
 use napi::{
   bindgen_prelude::{FromNapiValue, ToNapiValue, ValidateNapiValue},
   Either,
 };
 use napi_derive::napi;
-use rspack_core::{CompilationId, ModuleIdentifier};
+use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{
   backend::{Backend, ModuleInfo},
@@ -42,10 +44,20 @@ pub struct LazyCompilationTestFn {
 }
 
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
-  fn test(&self, compilation_id: CompilationId, m: &dyn rspack_core::Module) -> bool {
+  fn test(
+    &self,
+    compiler_id: CompilerId,
+    _compilation_id: CompilationId,
+    m: &dyn rspack_core::Module,
+  ) -> bool {
+    #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
-      .blocking_call_with_sync(JsModuleWrapper::new(m, compilation_id, None))
+      .blocking_call_with_sync(JsModuleWrapper::new(
+        m.identifier(),
+        Some(NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap()),
+        compiler_id,
+      ))
       .expect("failed to invoke lazyCompilation.test");
 
     res.unwrap_or(false)

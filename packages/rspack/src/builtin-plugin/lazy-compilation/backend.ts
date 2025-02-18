@@ -69,7 +69,7 @@ const getBackend =
 	(
 		compiler: Compiler,
 		callback: (
-			err: any,
+			err: Error | null,
 			obj?: {
 				dispose: (callback: (err: any) => void) => void;
 				module: (args: { module: string; path: string }) => {
@@ -166,7 +166,8 @@ const getBackend =
 			});
 			if (isClosing) socket.destroy();
 		});
-		server.on("listening", (err: any) => {
+
+		server.on("listening", err => {
 			if (err) return callback(err);
 			const addr = server.address() as AddressInfo;
 			if (typeof addr === "string")
@@ -216,6 +217,7 @@ const getBackend =
 			state.dispose = result.dispose;
 			callback(null, result);
 		});
+
 		listen(server);
 	};
 

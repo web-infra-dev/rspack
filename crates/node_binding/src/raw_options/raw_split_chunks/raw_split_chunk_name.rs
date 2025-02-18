@@ -29,9 +29,9 @@ impl<'a> From<ChunkNameGetterFnCtx<'a>> for JsChunkOptionNameCtx {
   fn from(value: ChunkNameGetterFnCtx<'a>) -> Self {
     JsChunkOptionNameCtx {
       module: JsModuleWrapper::new(
-        value.module,
-        value.compilation.id(),
-        Some(value.compilation),
+        value.module.identifier(),
+        None,
+        value.compilation.compiler_id(),
       ),
       chunks: value
         .chunks

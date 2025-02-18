@@ -15,11 +15,12 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilationId, CompilerOptions, DependencyType, Module,
+  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType, Module,
   ModuleFactory, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
 pub struct MakeTaskContext {
+  pub compiler_id: CompilerId,
   // compilation info
   pub compilation_id: CompilationId,
   pub plugin_driver: SharedPluginDriver,
@@ -40,6 +41,7 @@ pub struct MakeTaskContext {
 impl MakeTaskContext {
   pub fn new(compilation: &Compilation, artifact: MakeArtifact, cache: Arc<dyn Cache>) -> Self {
     Self {
+      compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
       plugin_driver: compilation.plugin_driver.clone(),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
@@ -69,6 +71,7 @@ impl MakeTaskContext {
   // TODO remove it after incremental rebuild cover all stage
   pub fn transform_to_temp_compilation(&mut self) -> Compilation {
     let mut compilation = Compilation::new(
+      self.compiler_id,
       self.compiler_options.clone(),
       self.plugin_driver.clone(),
       self.buildtime_plugin_driver.clone(),
@@ -120,6 +123,7 @@ pub async fn repair(
         .and_then(|m| m.as_normal_module())
         .and_then(|m| m.source().cloned());
       Box::new(factorize::FactorizeTask {
+        compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         module_factory: compilation.get_dependency_factory(dependency),
         original_module_identifier: parent_module_identifier,

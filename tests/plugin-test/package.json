@@ -37,7 +37,7 @@
     "@types/serve-static": "^1.13.10",
     "connect": "^3.7.0",
     "fastify": "^3.29.5",
-    "fastify-graceful-shutdown": "^3.4.0",
+    "fastify-graceful-shutdown": "^4.0.1",
     "fastify-static": "^4.7.0",
     "get-port": "^5.1.1",
     "http-shutdown": "^1.2.2",

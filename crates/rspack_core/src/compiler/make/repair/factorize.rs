@@ -9,13 +9,14 @@ use super::{add::AddTask, MakeTaskContext};
 use crate::{
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
-  BoxDependency, CompilationId, CompilerOptions, Context, ExportInfoData, ExportsInfoData,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  ModuleProfile, Resolve, ResolverFactory,
+  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportInfoData,
+  ExportsInfoData, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  ModuleLayer, ModuleProfile, Resolve, ResolverFactory,
 };
 
 #[derive(Debug)]
 pub struct FactorizeTask {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -82,6 +83,7 @@ impl Task<MakeTaskContext> for FactorizeTask {
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
+      compiler_id: self.compiler_id,
       compilation_id: self.compilation_id,
       resolve_options: self.resolve_options,
       options: self.options.clone(),

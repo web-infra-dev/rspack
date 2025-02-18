@@ -14,8 +14,8 @@ use rspack_core::{
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
-  CompilerFinishMake, CompilerMake, CompilerOptions, CompilerThisCompilation, ModuleIdentifier,
-  Plugin, PluginContext,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -320,7 +320,12 @@ async fn make(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationBuildModule for ProgressPlugin)]
-async fn build_module(&self, _compilation_id: CompilationId, module: &mut BoxModule) -> Result<()> {
+async fn build_module(
+  &self,
+  _compiler_id: CompilerId,
+  _compilation_id: CompilationId,
+  module: &mut BoxModule,
+) -> Result<()> {
   self
     .active_modules
     .write()
@@ -344,6 +349,7 @@ async fn build_module(&self, _compilation_id: CompilationId, module: &mut BoxMod
 #[plugin_hook(CompilationSucceedModule for ProgressPlugin)]
 async fn succeed_module(
   &self,
+  _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {
