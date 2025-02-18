@@ -5,7 +5,11 @@ import type { Compiler } from "./Compiler";
 
 export default class ExecuteModulePlugin {
 	apply(compiler: Compiler) {
-		compiler.hooks.compilation.tap("executeModule", compilation => {
+		compiler.hooks.thisCompilation.tap("executeModule", compilation => {
+			// remove execution results every new compilation
+			const map = compiler.__internal__get_module_execution_results_map();
+			map.clear();
+
 			compilation.hooks.executeModule.tap(
 				"executeModule",
 				(options, context) => {
