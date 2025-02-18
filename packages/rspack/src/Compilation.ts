@@ -1302,10 +1302,8 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
-		this.includeDependencies = binding.includeDependencies.map(
-			Dependency.__from_binding
-		);
+		this.dependencies = binding.dependencies;
+		this.includeDependencies = binding.includeDependencies;
 		this.options = binding.options;
 	}
 }

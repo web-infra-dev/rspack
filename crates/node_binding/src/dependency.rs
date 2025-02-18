@@ -22,7 +22,7 @@ use crate::{JsCompiler, COMPILER_REFERENCES};
 
 // JsDependency allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
-#[napi]
+#[napi(js_name = "Dependency")]
 pub struct JsDependency {
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: Option<Box<dyn Dependency>>,
@@ -32,7 +32,7 @@ pub struct JsDependency {
 
 impl JsDependency {
   fn as_ref<T>(
-    &mut self,
+    &self,
     f: impl FnOnce(&Compilation, &dyn Dependency) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.compiler_reference.get() {
@@ -76,17 +76,17 @@ impl JsDependency {
 #[napi]
 impl JsDependency {
   #[napi(getter)]
-  pub fn get_type(&mut self) -> napi::Result<&str> {
+  pub fn get_type(&self) -> napi::Result<&str> {
     self.as_ref(|_, dependency| Ok(dependency.dependency_type().as_str()))
   }
 
   #[napi(getter)]
-  pub fn category(&mut self) -> napi::Result<&str> {
+  pub fn category(&self) -> napi::Result<&str> {
     self.as_ref(|_, dependency| Ok(dependency.category().as_str()))
   }
 
   #[napi(getter)]
-  pub fn request(&mut self, env: Env) -> napi::Result<napi::Either<JsString, ()>> {
+  pub fn request(&self, env: Env) -> napi::Result<napi::Either<JsString, ()>> {
     self.as_ref(|_, dependency| {
       Ok(match dependency.as_module_dependency() {
         Some(dep) => napi::Either::A(env.create_string(dep.request())?),
@@ -96,7 +96,7 @@ impl JsDependency {
   }
 
   #[napi(getter)]
-  pub fn critical(&mut self) -> napi::Result<bool> {
+  pub fn critical(&self) -> napi::Result<bool> {
     self.as_ref(|_, dependency| {
       Ok(match dependency.as_context_dependency() {
         Some(dep) => dep.critical().is_some(),
@@ -119,7 +119,7 @@ impl JsDependency {
   }
 
   #[napi(getter)]
-  pub fn ids(&mut self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
+  pub fn ids(&self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
     self.as_ref(|compilation, dependency| {
       let module_graph = compilation.get_module_graph();
       Ok(

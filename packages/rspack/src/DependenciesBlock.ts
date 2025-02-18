@@ -22,7 +22,7 @@ export class DependenciesBlock {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies.map(d => Dependency.__from_binding(d));
+					return binding.dependencies;
 				}
 			},
 			blocks: {

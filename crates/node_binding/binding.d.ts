@@ -19,6 +19,11 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Dependency {
+
+}
+export type JsDependency = Dependency
+
 export declare class EntryDataDto {
   get dependencies(): JsDependency[]
   get includeDependencies(): JsDependency[]
@@ -203,15 +208,6 @@ export declare class JsDependenciesBlock {
   get blocks(): JsDependenciesBlock[]
 }
 
-export declare class JsDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-  set critical(val: boolean)
-  get ids(): Array<string> | undefined
-}
-
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -255,16 +251,16 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: JsDependency): JsModule | null
-  getResolvedModule(jsDependency: JsDependency): JsModule | null
+  getModule(jsDependency: Dependency): JsModule | null
+  getResolvedModule(jsDependency: Dependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
+  getConnection(dependency: Dependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: JsDependency): JsModule | null
-  getParentBlockIndex(jsDependency: JsDependency): number
+  getParentModule(jsDependency: Dependency): JsModule | null
+  getParentBlockIndex(jsDependency: Dependency): number
   isAsync(module: JsModule): boolean
 }
 

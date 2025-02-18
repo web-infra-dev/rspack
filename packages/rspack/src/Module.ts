@@ -176,9 +176,7 @@ export class ContextModuleFactoryAfterResolveData {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies.map(dep =>
-						Dependency.__from_binding(dep)
-					);
+					return binding.dependencies;
 				}
 			}
 		});
@@ -310,7 +308,7 @@ export class Module {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return module.dependencies.map(d => Dependency.__from_binding(d));
+					return module.dependencies;
 				}
 			},
 			useSourceMap: {
