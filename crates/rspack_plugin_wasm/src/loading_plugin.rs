@@ -128,7 +128,3 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
     Ok(())
   }
 }
-
-#[plugin]
-#[derive(Debug)]
-pub struct UniversalReadFileCompileAsyncWasmPlugin {}
