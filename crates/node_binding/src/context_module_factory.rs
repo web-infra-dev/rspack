@@ -1,7 +1,6 @@
 use napi::{
   bindgen_prelude::{
-    ClassInstance, Either, FromNapiMutRef, FromNapiValue, Object, ToNapiValue, TypeName,
-    ValidateNapiValue,
+    ClassInstance, Either, FromNapiValue, Object, ToNapiValue, TypeName, ValidateNapiValue,
   },
   Env,
 };
@@ -246,8 +245,10 @@ impl FromNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    let instance =
-      <JsContextModuleFactoryAfterResolveData as FromNapiMutRef>::from_napi_mut_ref(env, napi_val)?;
+    let mut instance =
+      <ClassInstance<JsContextModuleFactoryAfterResolveData> as FromNapiValue>::from_napi_value(
+        env, napi_val,
+      )?;
     let Some(mut data) = instance.data.take() else {
       return Err(napi::Error::from_reason(
         "Unable to take context module factory after resolve data now. The data has been taken on the Rust side."
