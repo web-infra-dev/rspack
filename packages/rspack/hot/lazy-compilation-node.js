@@ -39,7 +39,11 @@ exports.keepAlive = function (options) {
 	 */
 	function errorHandler(err) {
 		err.message =
-			"Problem communicating active modules to the server: " + err.message;
+			"Problem communicating active modules to the server" +
+			(err.message ? ": " + err.message : "") +
+			"\nRequest: " +
+			urlBase +
+			data;
 		onError(err);
 	}
 	request.on("error", errorHandler);

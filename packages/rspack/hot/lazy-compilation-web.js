@@ -28,16 +28,12 @@ var updateEventSource = function updateEventSource() {
 			errorHandlers.forEach(function (onError) {
 				onError(
 					new Error(
-						"Problem communicating active modules to the server: " +
-							event.message +
-							" " +
-							event.filename +
-							":" +
-							event.lineno +
-							":" +
-							event.colno +
-							" " +
-							event.error
+						"Problem communicating active modules to the server" +
+							(event.message ? `: ${event.message} ` : "") +
+							(event.filename ? `: ${event.filename} ` : "") +
+							(event.lineno ? `: ${event.lineno} ` : "") +
+							(event.colno ? `: ${event.colno} ` : "") +
+							(event.error ? `: ${event.error}` : "")
 					)
 				);
 			});

@@ -16,7 +16,10 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
+<<<<<<< HEAD
 import type { Module } from "./Module";
+=======
+>>>>>>> afa1671ee (refactor: introduce lazycompilation-middleware)
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,
@@ -45,7 +48,6 @@ import {
 	InferAsyncModulesPlugin,
 	JavascriptModulesPlugin,
 	JsonModulesPlugin,
-	LazyCompilationPlugin,
 	MangleExportsPlugin,
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
@@ -271,26 +273,6 @@ export class RspackOptionsApply {
 		if (options.optimization.mangleExports) {
 			new MangleExportsPlugin(
 				options.optimization.mangleExports !== "size"
-			).apply(compiler);
-		}
-
-		if (options.experiments.lazyCompilation) {
-			const lazyOptions = options.experiments.lazyCompilation;
-
-			new LazyCompilationPlugin(
-				// this is only for test
-				// @ts-expect-error cacheable is hide
-				lazyOptions.cacheable ?? true,
-				lazyOptions.entries ?? true,
-				lazyOptions.imports ?? true,
-				typeof lazyOptions.test === "function"
-					? module =>
-							(lazyOptions.test as (module: Module) => boolean)!.call(
-								lazyOptions,
-								module
-							)
-					: lazyOptions.test,
-				lazyOptions.backend
 			).apply(compiler);
 		}
 
