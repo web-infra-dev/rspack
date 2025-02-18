@@ -343,11 +343,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
-    let original_source_size = module.original_source().map_or(0, |source| source.size()) as f64;
+    let original_source_size = module.source().map_or(0, |source| source.size()) as f64;
     match source_type.unwrap_or(&SourceType::Asset) {
       SourceType::Asset => original_source_size,
       SourceType::JavaScript => {
-        if module.original_source().is_none() {
+        if module.source().is_none() {
           return 0.0;
         }
 

@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::{factorize::FactorizeTask, MakeTaskContext};
 use crate::{
   utils::task_loop::{Task, TaskResult, TaskType},
-  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile, NormalModuleSource,
+  ContextDependency, DependencyId, Module, ModuleIdentifier, ModuleProfile,
 };
 
 #[derive(Debug)]
@@ -74,13 +74,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
-        .and_then(|m| {
-          if let NormalModuleSource::BuiltSucceed(s) = m.source() {
-            Some(s.clone())
-          } else {
-            None
-          }
-        });
+        .and_then(|m| m.source().cloned());
       let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
@@ -96,6 +90,7 @@ impl Task<MakeTaskContext> for ProcessDependenciesTask {
         })
         .clone();
       res.push(Box::new(FactorizeTask {
+        compiler_id: context.compiler_id,
         compilation_id: context.compilation_id,
         module_factory,
         original_module_identifier: Some(module.identifier()),

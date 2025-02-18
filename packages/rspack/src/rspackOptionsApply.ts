@@ -280,7 +280,7 @@ export class RspackOptionsApply {
 					? jsModule =>
 							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
 								lazyOptions,
-								new Module(jsModule)
+								Module.__from_binding(jsModule)
 							)
 					: lazyOptions.test,
 				lazyOptions.backend

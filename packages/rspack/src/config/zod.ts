@@ -2,8 +2,10 @@ import nodePath from "node:path";
 import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
+import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
+import ModuleGraph from "../ModuleGraph";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
 
@@ -1222,7 +1224,14 @@ const optimizationSplitChunksCacheGroup = z.strictObject({
 		.or(
 			z
 				.function()
-				.args(z.instanceof(Module) /** FIXME: lack of CacheGroupContext */)
+				.args(
+					z.instanceof(Module) /** FIXME: lack of CacheGroupContext */,
+					z.object({
+						moduleGraph: z.instanceof(ModuleGraph),
+						chunkGraph: z.instanceof(ChunkGraph)
+					})
+				)
+				.returns(z.boolean())
 		)
 		.optional(),
 	priority: z.number().optional(),

@@ -95,7 +95,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
-    module.original_source().map_or(0, |source| source.size()) as f64
+    module.source().map_or(0, |source| source.size()) as f64
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all)]

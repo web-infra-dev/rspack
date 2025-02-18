@@ -847,7 +847,7 @@ impl Module for ContextModule {
     &[SourceType::JavaScript]
   }
 
-  fn original_source(&self) -> Option<&dyn rspack_sources::Source> {
+  fn source(&self) -> Option<&rspack_sources::BoxSource> {
     None
   }
 

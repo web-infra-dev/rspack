@@ -596,7 +596,7 @@ impl ModuleConcatenationPlugin {
             Some(&rspack_core::SourceType::JavaScript),
             Some(compilation),
           ),
-          original_source_hash: module.original_source().map(|source| {
+          original_source_hash: module.source().map(|source| {
             let mut hasher = DefaultHasher::default();
             source.dyn_hash(&mut hasher);
             hasher.finish()
@@ -618,6 +618,7 @@ impl ModuleConcatenationPlugin {
     new_module
       .build(
         rspack_core::BuildContext {
+          compiler_id: compilation.compiler_id(),
           compilation_id: compilation.id(),
           resolver_factory: compilation.resolver_factory.clone(),
           plugin_driver: compilation.plugin_driver.clone(),

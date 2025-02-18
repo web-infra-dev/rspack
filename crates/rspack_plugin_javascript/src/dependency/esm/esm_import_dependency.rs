@@ -252,11 +252,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut diagnostic = if let Some(span) = module_dependency.range()
-      && let Some(source) = parent_module.original_source().map(|s| s.source())
+      && let Some(source) = parent_module.source()
     {
       Diagnostic::from(
         TraceableError::from_file(
-          source.into_owned(),
+          source.source().into_owned(),
           span.start as usize,
           span.end as usize,
           title.to_string(),
