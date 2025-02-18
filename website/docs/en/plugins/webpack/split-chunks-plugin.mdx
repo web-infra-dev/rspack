@@ -161,9 +161,11 @@ Minimum size, in bytes, for a chunk to be generated.
 - **Type: ** `number | Record<string, number>`
 - **Default:** `0`
 
-When output contains multiple small modules that collectively exceed the minSize threshold, developers may still want to prevent these modules from being split into separate chunks. The `minSizeReduction` parameter specifies the minimum total size reduction required for module splitting.
+If there are several small modules in the build output, developers may not want to generate separate chunks for them even if their total size exceeds the `minSize` threshold. In this case, you can use the `minSizeReduction` parameter to set the minimum size reduction threshold required for module splitting.
 
-Assuming the following scenario, a module has a size of `40KB`, this module is owned by 2 chunks, with configuration `minSizeReduction: 100`, potential reduction in size for each parent chunk after splitting: `40KB`, total reduction amount `40KB × 2 = 80KB < 100KB`, therefore no split is triggered
+The calculation rule for this parameter is: splitting will only occur when the total size reduction across all parent chunks after splitting the module is not less than the specified value.
+
+Assuming the following scenario, suppose there is a 40KB module  that is referenced by 2 chunks, and we set `minSizeReduction: 100`. If we were to split this module, each parent chunk would be reduced by 40KB, resulting in a total reduction of `40KB × 2 = 80KB`. As this is less than 100KB, the split will not be triggered.
 
 ```js title="rspack.config.mjs"
 export default {
