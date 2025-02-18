@@ -1664,8 +1664,8 @@ importers:
         specifier: ^7.1.2
         version: 7.1.2(@rspack/core@1.2.3(@rspack/tracing@1.2.3)(@swc/helpers@0.5.15))(webpack@5.95.0)
       date-fns:
-        specifier: ^2.29.3
-        version: 2.30.0
+        specifier: ^4.1.0
+        version: 4.1.0
       mini-svg-data-uri:
         specifier: ^1.2.3
         version: 1.4.4
@@ -5468,9 +5468,8 @@ packages:
     resolution: {integrity: sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==}
     engines: {node: '>=18'}
 
-  date-fns@2.30.0:
-    resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
-    engines: {node: '>=0.11'}
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   dayjs@1.11.13:
     resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
@@ -14058,9 +14057,7 @@ snapshots:
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.1.0
 
-  date-fns@2.30.0:
-    dependencies:
-      '@babel/runtime': 7.26.7
+  date-fns@4.1.0: {}
 
   dayjs@1.11.13: {}
 
