@@ -1860,8 +1860,8 @@ importers:
         specifier: ^1.6.1
         version: 1.7.7
       markdown-to-jsx:
-        specifier: ^7.2.1
-        version: 7.5.0(react@19.0.0)
+        specifier: ^7.7.4
+        version: 7.7.4(react@19.0.0)
       mermaid:
         specifier: ^11.4.1
         version: 11.4.1
@@ -7323,8 +7323,8 @@ packages:
   markdown-table@3.0.3:
     resolution: {integrity: sha512-Z1NL3Tb1M9wH4XESsCDEksWoKTdlUafKc4pt0GRwjUyXaCFZ+dc3g2erqB6zm3szA2IUSi7VnPI+o/9jnxh9hw==}
 
-  markdown-to-jsx@7.5.0:
-    resolution: {integrity: sha512-RrBNcMHiFPcz/iqIj0n3wclzHXjwS7mzjBNWecKKVhNTIxQepIix6Il/wZCn2Cg5Y1ow2Qi84+eJrryFRWBEWw==}
+  markdown-to-jsx@7.7.4:
+    resolution: {integrity: sha512-1bSfXyBKi+EYS3YY+e0Csuxf8oZ3decdfhOav/Z7Wrk89tjudyL5FOmwZQUoy0/qVXGUl+6Q3s2SWtpDEWITfQ==}
     engines: {node: '>= 10'}
     peerDependencies:
       react: '>= 0.14.0'
@@ -16347,7 +16347,7 @@ snapshots:
 
   markdown-table@3.0.3: {}
 
-  markdown-to-jsx@7.5.0(react@19.0.0):
+  markdown-to-jsx@7.7.4(react@19.0.0):
     dependencies:
       react: 19.0.0
 
