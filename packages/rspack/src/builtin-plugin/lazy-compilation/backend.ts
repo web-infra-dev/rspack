@@ -10,7 +10,11 @@ import type {
 import type { AddressInfo, ListenOptions, Socket } from "node:net";
 import type { SecureContextOptions, TlsOptions } from "node:tls";
 
-import type { Compiler } from "../..";
+import type { Compiler, LazyCompilationOptions } from "../..";
+import {
+	LAZY_COMPILATION_PREFIX,
+	lazyCompilationMiddlewareInternal
+} from "./middleware";
 
 interface Server {
 	on(
@@ -61,11 +65,7 @@ export type ServerOptionsHttps<
 > = SecureContextOptions & TlsOptions & ServerOptionsImport<Request, Response>;
 
 const getBackend =
-	(
-		options: Omit<LazyCompilationDefaultBackendOptions, "client"> & {
-			client: NonNullable<LazyCompilationDefaultBackendOptions["client"]>;
-		}
-	) =>
+	(lazyCompilationOptions: LazyCompilationOptions) =>
 	(
 		compiler: Compiler,
 		callback: (
@@ -80,10 +80,10 @@ const getBackend =
 			}
 		) => void
 	) => {
+		const options = lazyCompilationOptions.backend ?? {};
 		const logger = compiler.getInfrastructureLogger("LazyCompilationBackend");
 		const activeModules = new Map();
 		const filesByKey: Map<string, string> = new Map();
-		const prefix = "/lazy-compilation-using-";
 		const isHttps =
 			options.protocol === "https" ||
 			(typeof options.server === "object" &&
@@ -110,48 +110,21 @@ const getBackend =
 						};
 
 		const protocol = options.protocol || (isHttps ? "https" : "http");
-
+		const middleware = lazyCompilationMiddlewareInternal(
+			compiler,
+			activeModules,
+			filesByKey
+		);
 		const requestListener = (req: IncomingMessage, res: ServerResponse) => {
-			if (!req.url?.startsWith(prefix)) {
+			if (!req.url?.startsWith(LAZY_COMPILATION_PREFIX)) {
+				// only handle requests that are come from lazyCompilation
 				return;
 			}
-			const keys = req.url.slice(prefix.length).split("@");
-			req.socket.on("close", () => {
-				setTimeout(() => {
-					for (const key of keys) {
-						const oldValue = activeModules.get(key) || 0;
-						activeModules.set(key, oldValue - 1);
-						if (oldValue === 1) {
-							logger.log(
-								`${key} is no longer in use. Next compilation will skip this module.`
-							);
-						}
-					}
-				}, 120000);
-			});
-			req.socket.setNoDelay(true);
-			res.writeHead(200, {
-				"content-type": "text/event-stream",
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "*",
-				"Access-Control-Allow-Headers": "*"
-			});
-			res.write("\n");
-			const moduleActivated = [];
-			for (const key of keys) {
-				const oldValue = activeModules.get(key) || 0;
-				activeModules.set(key, oldValue + 1);
-				if (oldValue === 0) {
-					logger.log(`${key} is now in use and will be compiled.`);
-					moduleActivated.push(key);
-				}
-			}
 
-			if (moduleActivated.length && compiler.watching) {
-				compiler.watching.lazyCompilationInvalidate(
-					new Set(moduleActivated.map(key => filesByKey.get(key)!))
-				);
-			}
+			res.setHeader("Access-Control-Allow-Origin", "*");
+			res.setHeader("Access-Control-Allow-Methods", "*");
+			res.setHeader("Access-Control-Allow-Headers", "*");
+			middleware(req, res, () => {});
 		};
 
 		const server = createServer() as Server;
@@ -206,8 +179,9 @@ const getBackend =
 					).replace(/%(2F|3A|24|26|2B|2C|3B|3D|3A)/g, decodeURIComponent)}`;
 					filesByKey.set(key, path);
 					const active = activeModules.get(key) > 0;
+
 					return {
-						client: `${options.client}?${encodeURIComponent(urlBase + prefix)}`,
+						client: `${options.client}?${encodeURIComponent(urlBase + LAZY_COMPILATION_PREFIX)}`,
 						data: key,
 						active
 					};
