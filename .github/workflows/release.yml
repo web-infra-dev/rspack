@@ -71,7 +71,7 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      test: ${{ matrix.array.test }}
+      test: ${{ inputs.test }}
       profile: "release"
 
   release:
