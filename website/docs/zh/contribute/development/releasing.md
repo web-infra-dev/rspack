@@ -1,19 +1,16 @@
 # Releasing
 
-所有发布都是通过 GitHub Action 自动进行的。
+Rspack 的版本发布通过 GitHub Actions 自动完成。
 
-所有 `@rspack/cli` 的发版可以在 [npm versions page](https://www.npmjs.com/package/@rspack/cli?activeTab=versions) 找到。它们被打上了 tag
+你可以在 [@rspack/core](https://www.npmjs.com/package/@rspack/core?activeTab=versions) 和 [@rspack/cli](https://www.npmjs.com/package/@rspack/cli?activeTab=versions) 的 npm 版本页面查看所有已发布的版本。
 
-- `latest` 和语义化版本 `x.y.z`
-- `nightly`
-- `canary`
+## Latest 发布
 
-## Latest 版本全量发布
+Latest 是最新的稳定版本，遵循 Semantic Versioning 语义化版本号规范（`x.y.z`）。
 
-[全量发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
-目前在每个周二被手动触发，配合全量发布的 release notes。
+[全量发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess) 会在每周二由 Rspack 维护者手动触发，并带有完整的 release notes。
 
-下面的 9 个目标产物会被构建
+在发布过程中，会构建以下目标平台的二进制产物：
 
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
@@ -25,39 +22,46 @@
 - x86_64-apple-darwin
 - aarch64-apple-darwin
 
-## Nightly
+### 发布步骤
 
-[nightly 发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release-nightly.yml?query=is%3Asuccess)
-在每天的 UTC 16:00:07 被触发，是 北京时间的凌晨 00:07 (偏移奇数分钟以避免 cron 作业同时触发)。
+1. 创建一个新分支，例如 `release/v1.0.0`。
+2. 在分支上使用 `pnpm x version` 命令更新版本号。
 
-nightly 构建完全复制了全量发布构建，以便尽早发现错误。
+```bash
+# 发布 patch 版本
+pnpm x version patch
 
-## Canary
+# 发布 minor 版本
+pnpm x version minor
 
-[canary 发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) 需要手动触发。
+# 发布 major 版本
+pnpm x version major
 
-## 使用 nightly/canary 版本
+# 发布 alpha 版本
+pnpm x version patch --pre alpha
 
-在发布 Rspack 的 nightly/canary 版本时，发布的包名会被添加 `-canary` 后缀，你需要配合包管理器 npm / yarn / pnpm 的 overrides 功能来使用这些版本。
+# 发布 beta 版本
+pnpm x version patch --pre beta
 
-以 pnpm 为例:
-
-```json title=package.json
-{
-  "pnpm": {
-    "overrides": {
-      "@rspack/core": "npm:@rspack-canary/core@latest"
-    },
-    "peerDependencyRules": {
-      "allowAny": ["@rspack/*"]
-    }
-  }
-}
+# 发布 rc 版本
+pnpm x version patch --pre rc
 ```
 
-Rspack 社区提供了 [install-rspack](https://github.com/rspack-contrib/install-rspack) 工具来快速修改 Rspack 版本:
+3. 提交代码并推送到远程分支。
 
-```shell
-npx install-rspack --version latest # Get latest canary npm tag version
-npx install-rspack --version 0.7.5-canary-d614005-20240625082730 # A specific canary version
+```bash
+git add .
+git commit -m "chore: release v1.0.0"
+git push origin release/vx.y.z
 ```
+
+4. 创建一个 PR，标题为 `chore: release v1.0.0`。
+5. 在 release 分支上执行全量发布工作流。
+6. 发布完成后，合并 PR 到 `main` 分支。
+7. 生成 GitHub [release note](https://github.com/web-infra-dev/rspack/releases)，补充 highlights 信息。
+
+## Canary 发布
+
+Canary 是 Rspack 的预发布版本，用于测试和验证新功能。
+
+发布 canary 版本不需要手动创建分支或更新版本号，只需要由 Rspack 维护者执行 [Canary 发布工作流](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) 即可。
