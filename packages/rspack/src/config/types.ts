@@ -5,7 +5,6 @@ import type { Compilation, PathData } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
-import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
 import type { ResolveCallback } from "./adapterRuleUse";
 
@@ -2462,10 +2461,6 @@ export type RspackFutureOptions = {
  */
 export type LazyCompilationOptions = {
 	/**
-	 * Backend configuration for lazy compilation.
-	 */
-	backend?: LazyCompilationDefaultBackendOptions;
-	/**
 	 * Enable lazy compilation for imports.
 	 */
 	imports?: boolean;
@@ -2477,6 +2472,17 @@ export type LazyCompilationOptions = {
 	 * Test function or regex to determine which modules to include.
 	 */
 	test?: RegExp | ((module: Module) => boolean);
+
+	backend?: {
+		/**
+		 * The runtime code path for client
+		 */
+		client?: string;
+		/**
+		 * The host url
+		 */
+		host?: string;
+	};
 };
 
 /**

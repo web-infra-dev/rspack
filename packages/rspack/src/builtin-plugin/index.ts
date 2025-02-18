@@ -37,7 +37,7 @@ export * from "./InferAsyncModulesPlugin";
 export * from "./JavascriptModulesPlugin";
 export * from "./JsLoaderRspackPlugin";
 export * from "./JsonModulesPlugin";
-export * from "./lazy-compilation/plugin";
+export * from "./lazy-compilation/middleware";
 export * from "./LimitChunkCountPlugin";
 export * from "./MangleExportsPlugin";
 export * from "./MergeDuplicateChunksPlugin";

@@ -2,6 +2,7 @@ import path from "node:path";
 import { rspack } from "@rspack/core";
 
 import { TestHotUpdatePlugin } from "../helper/plugins";
+import { LazyCompilationTestPlugin } from "../plugin";
 import {
 	ECompilerType,
 	type ITestContext,
@@ -164,6 +165,12 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 			options.infrastructureLogging = {
 				level: "error"
 			};
+		}
+
+		if (options.experiments?.lazyCompilation) {
+			(options as TCompilerOptions<ECompilerType.Rspack>).plugins!.push(
+				new LazyCompilationTestPlugin()
+			);
 		}
 	}
 }

@@ -7,7 +7,6 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
-import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
 import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
@@ -59,7 +58,6 @@ import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
-import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { Module } from '@rspack/binding';
@@ -75,16 +73,12 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import type { SecureContextOptions } from 'node:tls';
-import type { ServerOptions } from 'node:http';
 import type { ServerResponse } from 'node:http';
-import type { Socket } from 'node:net';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import type { TlsOptions } from 'node:tls';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -1958,6 +1952,8 @@ interface Experiments_2 {
         cleanup: () => Promise<void>;
     };
     // (undocumented)
+    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+    // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
@@ -3127,19 +3123,17 @@ type KnownStatsProfile = {
 export type Layer = string | null;
 
 // @public (undocumented)
-interface LazyCompilationDefaultBackendOptions {
-    client?: string;
-    listen?: number | ListenOptions | ((server: Server) => void);
-    protocol?: "http" | "https";
-    server?: ServerOptions<typeof IncomingMessage> | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse> | (() => Server);
-}
+const lazyCompilationMiddleware: (compiler: Compiler, options?: LazyCompilationOptions) => (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
 // @public
 export type LazyCompilationOptions = {
-    backend?: LazyCompilationDefaultBackendOptions;
     imports?: boolean;
     entries?: boolean;
     test?: RegExp | ((module: Module) => boolean);
+    backend?: {
+        client?: string;
+        host?: string;
+    };
 };
 
 // @public
@@ -5590,27 +5584,6 @@ type RuntimeSpec = string | Set<string> | undefined;
 
 // @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
-
-// @public (undocumented)
-interface Server {
-    // (undocumented)
-    address(): AddressInfo;
-    // (undocumented)
-    close(callback: (err?: any) => void): void;
-    // (undocumented)
-    listen(listenOptions?: number | ListenOptions): void;
-    // (undocumented)
-    off(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "connection", callback: (socket: Socket) => void): void;
-    // (undocumented)
-    on(event: "listening", callback: (err?: Error) => void): void;
-}
-
-// @public (undocumented)
-type ServerOptionsHttps<Request extends typeof IncomingMessage = typeof IncomingMessage, Response extends typeof ServerResponse = typeof ServerResponse> = SecureContextOptions & TlsOptions & ServerOptions<Request, Response>;
 
 // @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;

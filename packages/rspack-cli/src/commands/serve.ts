@@ -1,4 +1,4 @@
-import type { Compiler, DevServer } from "@rspack/core";
+import { type Compiler, type DevServer, rspack } from "@rspack/core";
 import type { RspackDevServer as RspackDevServerType } from "@rspack/dev-server";
 
 import type { RspackCLI } from "../cli";
@@ -104,6 +104,23 @@ export class ServeCommand implements RspackCommand {
 				}
 
 				const result = (compilerForDevServer.options.devServer ??= {});
+
+				if (compilerForDevServer.options.experiments.lazyCompilation) {
+					const setupMiddlewares = result.setupMiddlewares;
+					result.setupMiddlewares = (middlewares, server) => {
+						let finalMiddlewares = middlewares;
+						if (setupMiddlewares) {
+							finalMiddlewares = setupMiddlewares(finalMiddlewares, server);
+						}
+						return [
+							rspack.experiments.lazyCompilationMiddleware(
+								compilerForDevServer
+							),
+							...finalMiddlewares
+						];
+					};
+				}
+
 				/**
 				 * Enable this to tell Rspack that we need to enable React Refresh by default
 				 */
