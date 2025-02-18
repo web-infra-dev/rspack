@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   module_raw, AffectType, AsContextDependency, Compilation, Dependency, DependencyCategory,
-  DependencyId, DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyId, DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
@@ -14,6 +14,7 @@ pub struct AMDRequireItemDependency {
   request: Atom,
   range: Option<(u32, u32)>,
   optional: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl AMDRequireItemDependency {
@@ -23,6 +24,7 @@ impl AMDRequireItemDependency {
       request,
       range,
       optional: false,
+      factorize_info: Default::default(),
     }
   }
 
@@ -92,6 +94,14 @@ impl ModuleDependency for AMDRequireItemDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

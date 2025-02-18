@@ -7,7 +7,7 @@ use rspack_paths::Utf8Path;
 use rspack_util::json_stringify;
 use swc_core::ecma::atoms::Atom;
 
-use super::AffectType;
+use super::{AffectType, FactorizeInfo};
 use crate::{
   create_exports_object_referenced, AsContextDependency, AsDependencyTemplate, Context,
   ImportAttributes, ModuleLayer,
@@ -33,6 +33,7 @@ pub struct ContextElementDependency {
   pub referenced_exports: Option<Vec<Atom>>,
   pub dependency_type: DependencyType,
   pub attributes: Option<ImportAttributes>,
+  pub factorize_info: FactorizeInfo,
 }
 
 impl ContextElementDependency {
@@ -120,6 +121,14 @@ impl ModuleDependency for ContextElementDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 
