@@ -395,7 +395,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
+        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
         with:
           tool: cargo-codspeed@2.7.2
 
@@ -405,7 +405,7 @@ jobs:
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
-        uses: CodSpeedHQ/action@513a19673a831f139e8717bf45ead67e47f00044 # v3
+        uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci
