@@ -215,6 +215,16 @@ impl JsDependencyWrapper {
       refs_by_compiler_id.remove(compiler_id)
     });
   }
+
+  pub fn cleanup_last_compilation(compilation: &Compilation) {
+    let module_graph = compilation.get_module_graph();
+    DEPENDENCY_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compiler_id = refs.borrow_mut();
+      if let Some(refs) = refs_by_compiler_id.get_mut(&compilation.compiler_id()) {
+        refs.retain(|dependency_id, _| module_graph.dependency_by_id(dependency_id).is_some());
+      }
+    });
+  }
 }
 
 impl ToNapiValue for JsDependencyWrapper {

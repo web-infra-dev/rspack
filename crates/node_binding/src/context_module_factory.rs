@@ -223,7 +223,7 @@ impl JsContextModuleFactoryAfterResolveData {
         Ok(js_dependencies.iter().map(|dep| dep.as_object(&env)).collect())
       },
       None => Err(napi::Error::from_reason(
-        "Unable to access dependencies in context module factory after resolve data now. The data has been taken on the Rust side."
+        "Unable to take dependencies in context module factory after resolve data now. The data has been taken on the Rust side."
       )),
     }
   }

@@ -297,6 +297,7 @@ impl JsCompiler {
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
+    JsDependencyWrapper::cleanup_last_compilation(compilation);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }

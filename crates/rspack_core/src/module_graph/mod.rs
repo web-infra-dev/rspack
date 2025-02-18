@@ -221,8 +221,6 @@ impl<'a> ModuleGraph<'a> {
     dep_id: &DependencyId,
     force: bool,
   ) -> Option<BuildDependency> {
-    self.active.revoked_dependencies.insert(*dep_id);
-
     let connection_info = self.connection_by_dependency_id(dep_id).map(|connection| {
       (
         connection.original_module_identifier,
