@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@arco-design/web-react": "^2.65.0",
-    "@monaco-editor/react": "^4.6.0",
+    "@monaco-editor/react": "^4.7.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.0",
