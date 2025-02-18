@@ -150,7 +150,7 @@ module.exports = {
 		      main.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: 8aed47a5120d1613,
+		    hash: f284da740ad9a1cb,
 		    id: 909,
 		    idHints: Array [],
 		    initial: true,

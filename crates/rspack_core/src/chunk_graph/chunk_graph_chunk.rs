@@ -497,7 +497,7 @@ impl ChunkGraph {
       let runtime_module = runtime_modules
         .get(runtime_module)
         .expect("should have runtime_module");
-      if !runtime_module.full_hash() {
+      if runtime_module.full_hash() {
         return true;
       }
     }
