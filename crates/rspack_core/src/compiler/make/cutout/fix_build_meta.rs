@@ -1,7 +1,8 @@
 use rspack_collections::IdentifierMap;
+use rspack_error::Diagnosable;
 
 use super::super::MakeArtifact;
-use crate::{BuildMeta, Module, ModuleIdentifier, NormalModuleSource};
+use crate::{BuildMeta, Module, ModuleIdentifier};
 
 #[derive(Debug, Default)]
 pub struct FixBuildMeta {
@@ -28,7 +29,7 @@ impl FixBuildMeta {
     for (id, build_meta) in self.origin_module_build_meta {
       if let Some(module) = module_graph.module_by_identifier_mut(&id) {
         if let Some(module) = module.as_normal_module_mut() {
-          if matches!(module.source(), NormalModuleSource::BuiltFailed(_)) {
+          if module.first_error().is_some() {
             *module.build_meta_mut() = build_meta;
           }
         }

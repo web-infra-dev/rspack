@@ -67,7 +67,7 @@ rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
 rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.1" }
-rspack_sources     = { version = "0.4.5" }
+rspack_sources     = { version = "0.4.7" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
 serde_json         = { version = "1.0.134" }
@@ -116,7 +116,6 @@ rspack_allocator                       = { version = "0.2.0", path = "crates/rsp
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
 rspack_base64                          = { version = "0.2.0", path = "crates/rspack_base64" }
 rspack_binding                         = { version = "0.2.0", path = "crates/rspack_binding" }
-rspack_binding_values                  = { version = "0.2.0", path = "crates/rspack_binding_values" }
 rspack_builtin                         = { version = "0.2.0", path = "crates/rspack_builtin" }
 rspack_cacheable                       = { version = "0.2.0", path = "crates/rspack_cacheable" }
 rspack_collection                      = { version = "0.2.0", path = "crates/rspack_collection" }
@@ -180,6 +179,7 @@ rspack_plugin_runtime_chunk            = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_schemes                  = { version = "0.2.0", path = "crates/rspack_plugin_schemes" }
 rspack_plugin_size_limits              = { version = "0.2.0", path = "crates/rspack_plugin_size_limits" }
 rspack_plugin_split_chunks             = { version = "0.2.0", path = "crates/rspack_plugin_split_chunks" }
+rspack_plugin_sri                      = { version = "0.2.0", path = "crates/rspack_plugin_sri" }
 rspack_plugin_swc_js_minimizer         = { version = "0.2.0", path = "crates/rspack_plugin_swc_js_minimizer" }
 rspack_plugin_warn_sensitive_module    = { version = "0.2.0", path = "crates/rspack_plugin_warn_sensitive_module" }
 rspack_plugin_wasm                     = { version = "0.2.0", path = "crates/rspack_plugin_wasm" }
@@ -200,9 +200,10 @@ rate-limit = { existing-packages = 70, new-packages = 70 }
 
 # This is for local development
 [profile.dev]
-debug       = 2       # debug build will cause runtime panic if codegen-unints is default
-incremental = true
-panic       = "abort"
+codegen-units = 16
+debug         = 2       # debug build will cause runtime panic if codegen-unints is default
+incremental   = true
+panic         = "abort"
 
 # This is for release build for users
 [profile.release]
@@ -210,13 +211,13 @@ codegen-units = 1
 debug         = false
 # Performs “fat” LTO which attempts to perform optimizations across all crates within the dependency graph.
 lto       = "fat"
-opt-level = "s"
+opt-level = 3
 panic     = "abort"
 strip     = true
 
 # This is for CI build based on release but with faster build time
 [profile.ci]
-codegen-units = 64
+codegen-units = 256
 inherits      = "release"
 ## reduce little optimization to reduce build time
 lto = "thin"

@@ -37,6 +37,7 @@ use super::{
   hmr::CompilationRecords,
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
+  CompilerId,
 };
 use crate::{
   build_chunk_graph::{build_chunk_graph, build_chunk_graph_new},
@@ -64,9 +65,11 @@ pub type BuildDependency = (
 );
 
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
-define_hook!(CompilationBuildModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationStillValidModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: AsyncSeries(compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+// NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
+define_hook!(CompilationRevokedModules: AsyncSeries(revoked_modules: &IdentifierSet));
+define_hook!(CompilationStillValidModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
+define_hook!(CompilationSucceedModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
   SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
@@ -100,6 +103,7 @@ define_hook!(CompilationAfterSeal: AsyncSeries(compilation: &mut Compilation));
 pub struct CompilationHooks {
   pub add_entry: CompilationAddEntryHook,
   pub build_module: CompilationBuildModuleHook,
+  pub revoked_modules: CompilationRevokedModulesHook,
   pub still_valid_module: CompilationStillValidModuleHook,
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
@@ -155,6 +159,7 @@ static COMPILATION_ID: AtomicU32 = AtomicU32::new(0);
 pub struct Compilation {
   /// get_compilation_hooks(compilation.id)
   id: CompilationId,
+  compiler_id: CompilerId,
   // Mark compilation status, because the hash of `[hash].hot-update.js/json` is previous compilation hash.
   // Status A(hash: A) -> Status B(hash: B) will generate `A.hot-update.js`
   // Status A(hash: A) -> Status C(hash: C) will generate `A.hot-update.js`
@@ -263,6 +268,7 @@ impl Compilation {
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    compiler_id: CompilerId,
     options: Arc<CompilerOptions>,
     plugin_driver: SharedPluginDriver,
     buildtime_plugin_driver: SharedPluginDriver,
@@ -281,6 +287,7 @@ impl Compilation {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
       id: CompilationId::new(),
+      compiler_id,
       hot_index: 0,
       runtime_template: RuntimeTemplate::new(options.output.environment),
       records,
@@ -352,6 +359,10 @@ impl Compilation {
 
   pub fn id(&self) -> CompilationId {
     self.id
+  }
+
+  pub fn compiler_id(&self) -> CompilerId {
+    self.compiler_id
   }
 
   pub fn swap_make_artifact_with_compilation(&mut self, other: &mut Compilation) {
@@ -824,7 +835,7 @@ impl Compilation {
     // run module_executor
     if let Some(module_executor) = &mut self.module_executor {
       let mut module_executor = std::mem::take(module_executor);
-      module_executor.hook_before_make(self).await;
+      module_executor.hook_before_make(self).await?;
       self.module_executor = Some(module_executor);
     }
 

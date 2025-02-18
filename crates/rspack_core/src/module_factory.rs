@@ -9,13 +9,14 @@ use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  cache::persistent::FromContext, BoxDependency, BoxModule, CompilationId, CompilerOptions,
-  Context, ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
+  cache::persistent::FromContext, BoxDependency, BoxModule, CompilationId, CompilerId,
+  CompilerOptions, Context, ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
 };
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
+  pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub resolve_options: Option<Arc<Resolve>>,
   #[cacheable(with=As<FromContext>)]

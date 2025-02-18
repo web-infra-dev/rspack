@@ -21,11 +21,6 @@ on:
     tags-ignore:
       - "**"
 
-env:
-  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
-  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
-  CARGO_INCREMENTAL: 0
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
@@ -74,23 +69,6 @@ jobs:
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
       bench: true
 
-  test-release-linux:
-    name: Test Release Linux
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!linux')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-unknown-linux-gnu
-          - target: aarch64-unknown-linux-gnu
-          - target: x86_64-unknown-linux-musl
-          - target: aarch64-unknown-linux-musl
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-
   test-windows:
     name: Test Windows
     needs: [get-runner-labels, check-changed]
@@ -100,23 +78,6 @@ jobs:
       profile: "dev"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
-
-  test-release-windows:
-    name: Test Release Windows
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!windows')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: i686-pc-windows-msvc
-          - target: x86_64-pc-windows-msvc
-          - target: aarch64-pc-windows-msvc
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
-
   test-mac:
     name: Test Mac
     needs: [get-runner-labels, check-changed]
@@ -127,21 +88,6 @@ jobs:
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
-
-  test-release-mac:
-    name: Test Release Mac
-    needs: [get-runner-labels]
-    if: contains(github.event.pull_request.title, '!macos')
-    uses: ./.github/workflows/reusable-build.yml
-    strategy:
-      fail-fast: false # Build and test everything so we can look at all the errors
-      matrix:
-        array:
-          - target: x86_64-apple-darwin
-          - target: aarch64-apple-darwin
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
 
   cargo-deny:
     name: Check license of dependencies
@@ -298,7 +244,7 @@ jobs:
         with:
           shared-key: check
       - uses: cargo-bins/cargo-binstall@c175bb02c4d5486f22e1a9cb4186cb6097f01434 # v1.10.23
-      - run: cargo binstall --no-confirm cargo-shear
+      - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 
   rust_test:

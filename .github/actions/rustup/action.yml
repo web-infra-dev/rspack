@@ -89,4 +89,3 @@ runs:
       if: ${{ startsWith(runner.name, 'GitHub Actions') }}
       with:
         shared-key: ${{ inputs.shared-key }}
-        save-if: ${{ inputs.save-cache == 'true' }}

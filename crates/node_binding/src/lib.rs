@@ -5,41 +5,117 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
+use std::cell::RefCell;
+use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use std::{pin::Pin, str::FromStr as _};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::bindgen_prelude::*;
-use rspack_core::{Compilation, PluginExt};
+use napi::{bindgen_prelude::*, CallContext};
+use rspack_collections::UkeyMap;
+use rspack_core::{Compilation, CompilerId, ModuleIdentifier, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
 
+mod asset;
+mod asset_condition;
+mod chunk;
+mod chunk_graph;
+mod chunk_group;
+mod clean_options;
+mod codegen_result;
+mod compilation;
 mod compiler;
+mod context_module_factory;
+mod dependency;
+mod dependency_block;
 mod diagnostic;
+mod error;
+mod exports_info;
+mod filename;
+mod html;
+mod identifier;
+mod module;
+mod module_graph;
+mod module_graph_connection;
+mod normal_module_factory;
+mod options;
 mod panic;
+mod path_data;
 mod plugins;
+mod raw_options;
+mod resolver;
 mod resolver_factory;
+mod resource_data;
+mod rsdoctor;
+mod runtime;
+mod source;
+mod stats;
+mod utils;
 
+pub use asset::*;
+pub use asset_condition::*;
+pub use chunk::*;
+pub use chunk_graph::*;
+pub use chunk_group::*;
+pub use clean_options::*;
+pub use codegen_result::*;
+pub use compilation::*;
+pub use context_module_factory::*;
+pub use dependency::*;
+pub use dependency_block::*;
 pub use diagnostic::*;
+pub use error::*;
+pub use exports_info::*;
+pub use filename::*;
+pub use html::*;
+pub use module::*;
+pub use module_graph::*;
+pub use module_graph_connection::*;
+pub use normal_module_factory::*;
+pub use options::*;
+pub use path_data::*;
+pub use plugins::buildtime_plugins;
 use plugins::*;
+pub use raw_options::*;
+pub use resolver::*;
 use resolver_factory::*;
-use rspack_binding_values::*;
+pub use resource_data::*;
+pub use rsdoctor::*;
 use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
+pub use runtime::*;
+pub use source::*;
+pub use stats::*;
+use swc_core::common::util::take::Take;
 use tracing::Level;
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt as _, Layer, Registry};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
+pub use utils::*;
 
-#[napi]
-pub struct Rspack {
-  js_plugin: JsHooksAdapterPlugin,
+thread_local! {
+  pub static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+}
+
+#[js_function(1)]
+fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
+  let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
+  let revoked_modules = external.take();
+  JsModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  Ok(())
+}
+
+#[napi(custom_finalize)]
+pub struct JsCompiler {
+  js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
 }
 
 #[napi]
-impl Rspack {
+impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(constructor)]
   pub fn new(
@@ -55,8 +131,19 @@ impl Rspack {
     tracing::info!("raw_options: {:#?}", &options);
 
     let mut plugins = Vec::new();
-    let js_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
-    plugins.push(js_plugin.clone().boxed());
+    let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+    plugins.push(js_hooks_plugin.clone().boxed());
+
+    let tsfn = env
+      .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
+      .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
+      .weak::<true>()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .build()?;
+    let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
+    plugins.push(js_cleanup_plugin.boxed());
+
     for bp in builtin_plugins {
       bp.append_to(env, &mut plugins)
         .map_err(|e| Error::from_reason(format!("{e}")))?;
@@ -86,7 +173,7 @@ impl Rspack {
       compiler_path,
       compiler_options,
       plugins,
-      rspack_binding_values::buildtime_plugins::buildtime_plugins(),
+      buildtime_plugins::buildtime_plugins(),
       Some(Arc::new(NodeFileSystem::new(output_filesystem).map_err(
         |e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)),
       )?)),
@@ -99,18 +186,18 @@ impl Rspack {
     Ok(Self {
       compiler: Box::pin(Compiler::from(rspack)),
       state: CompilerState::init(),
-      js_plugin,
+      js_hooks_plugin,
     })
   }
 
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    self.js_plugin.set_non_skippable_registers(kinds)
+    self.js_hooks_plugin.set_non_skippable_registers(kinds)
   }
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<Rspack>, f: Function) -> Result<()> {
+  pub fn build(&mut self, env: Env, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
     unsafe {
       self.run(env, reference, |compiler, _guard| {
         callbackify(env, f, async move {
@@ -135,7 +222,7 @@ impl Rspack {
   pub fn rebuild(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function,
@@ -166,7 +253,7 @@ impl Rspack {
   }
 }
 
-impl Rspack {
+impl JsCompiler {
   /// Run the given function with the compiler.
   ///
   /// ## Safety
@@ -176,9 +263,14 @@ impl Rspack {
   unsafe fn run<R>(
     &mut self,
     env: Env,
-    reference: Reference<Rspack>,
+    reference: Reference<JsCompiler>,
     f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
   ) -> Result<R> {
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(reference.compiler.id(), reference.downgrade());
+    });
+
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
@@ -203,11 +295,24 @@ impl Rspack {
     let compilation_id = compilation.id();
 
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
-    JsModuleWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     JsDependencyWrapper::cleanup_last_compilation(compilation_id);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+  }
+}
+
+impl ObjectFinalize for JsCompiler {
+  fn finalize(self, _env: Env) -> Result<()> {
+    let compiler_id = self.compiler.id();
+
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.remove(&compiler_id);
+    });
+
+    JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    Ok(())
   }
 }
 

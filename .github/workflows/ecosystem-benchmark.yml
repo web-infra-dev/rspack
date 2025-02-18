@@ -38,6 +38,7 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
+      profile: "release"
       bench: false
 
   create-comment:

@@ -5,7 +5,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_raw, module_update_hash,
-  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source},
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource},
   throw_missing_module_error_block, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, ConcatenationScope,
   Context, DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleDependency,
@@ -74,7 +74,7 @@ impl Module for DelegatedModule {
     self.original_request.as_ref().map(|request| request.into())
   }
 
-  fn original_source(&self) -> Option<&dyn Source> {
+  fn source(&self) -> Option<&BoxSource> {
     None
   }
 

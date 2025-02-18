@@ -111,7 +111,7 @@ function checkPluginsDocumentationCoverage() {
 	const excludedPlugins = [
 		"OriginEntryPlugin",
 		"RuntimePlugin", // This plugin only provides hooks, should not be used separately
-		"RsdoctorPlugin", // This plugin is not stable yet
+		"RsdoctorPlugin" // This plugin is not stable yet
 	];
 
 	const undocumentedPlugins = Array.from(implementedPlugins).filter(

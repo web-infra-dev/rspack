@@ -9,8 +9,10 @@ module.exports = {
 		splitChunks: {
 			cacheGroups: {
 				common: {
-					test(module) {
+					test(module, { moduleGraph, chunkGraph }) {
 						expect(module.size()).toBe(5);
+						expect(moduleGraph.isAsync(module)).toBe(false);
+						expect(chunkGraph.getModuleChunks(module).length).toBe(1);
 						return true;
 					}
 				}

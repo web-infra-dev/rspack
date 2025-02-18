@@ -117,9 +117,12 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     .experiments(Experiments::builder().incremental(IncrementalPasses::empty()))
     .build();
 
+  let compiler_id = compiler.id();
+
   fast_set(
     &mut compiler.compilation,
     Compilation::new(
+      compiler_id,
       compiler.options.clone(),
       compiler.plugin_driver.clone(),
       compiler.buildtime_plugin_driver.clone(),

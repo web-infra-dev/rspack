@@ -2,10 +2,10 @@
   "name": "webpack-examples",
   "private": true,
   "devDependencies": {
-    "core-js": "3.36.1",
+    "core-js": "3.40.0",
     "neo-async": "2.6.2",
     "acorn": "^8.14.0",
-    "date-fns": "^2.29.3",
+    "date-fns": "^4.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "prop-types": "^15.8.1",
