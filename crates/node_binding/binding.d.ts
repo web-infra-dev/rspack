@@ -25,8 +25,8 @@ export declare class Dependency {
 export type JsDependency = Dependency
 
 export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
+  get dependencies(): Dependency[]
+  get includeDependencies(): Dependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -174,7 +174,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -204,7 +204,7 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   get blocks(): JsDependenciesBlock[]
 }
 
@@ -240,7 +240,7 @@ export declare class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -265,7 +265,7 @@ export declare class JsModuleGraph {
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): JsDependency
+  get dependency(): Dependency
   get module(): JsModule | null
   get resolvedModule(): JsModule | null
   get originModule(): JsModule | null

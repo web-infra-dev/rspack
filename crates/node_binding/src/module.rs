@@ -228,7 +228,7 @@ impl JsModule {
     )
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
     let (compilation, module) = self.as_ref()?;
 

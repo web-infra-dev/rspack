@@ -189,7 +189,7 @@ pub struct EntryDataDTO {
 
 #[napi]
 impl EntryDataDTO {
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
@@ -204,7 +204,7 @@ impl EntryDataDTO {
       .collect::<Vec<_>>()
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn include_dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
