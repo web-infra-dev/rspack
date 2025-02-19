@@ -199,6 +199,10 @@ resolver 设置完成之后触发。
 
 在开始执行一次构建之前调用。
 
+:::note
+这个钩子仅在调用 [compiler.run()](/api/javascript-api/index#compilerrun) 时触发（对应 `rspack build` 命令），在监听模式（watch mode）下不会执行。在监听模式下，你可以使用 [watchRun](#watchrun) 钩子。
+:::
+
 - **类型：** `AsyncSeriesHook<[Compiler]>`
 - **参数：**
   - `Compiler`: 当前 Compiler 实例
@@ -212,11 +216,44 @@ resolver 设置完成之后触发。
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **示例：**同步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build is about to start...');
+    });
+  }
+}
+```
+
+- **示例：**异步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build is about to start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
 
 ## `run`
 
 在开始执行一次构建时调用。
 
+:::note
+这个钩子仅在调用 [compiler.run()](/api/javascript-api/index#compilerrun) 时触发（对应 `rspack build` 命令），在监听模式（watch mode）下不会执行。在监听模式下，你可以使用 [watchRun](#watchrun) 钩子。
+:::
+
 - **类型：** `AsyncSeriesHook<[Compiler]>`
 - **参数：**
   - `Compiler`: 当前 Compiler 实例
@@ -230,11 +267,46 @@ resolver 设置完成之后触发。
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **示例：**同步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build start...');
+    });
+  }
+}
+```
+
+- **示例：**异步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
 
 ## `watchRun`
 
 在监听模式下，开始执行一次构建时调用。
 
+你可以通过 `compiler.modifiedFiles` 和 `compiler.removedFiles` 获取变更的文件路径和删除的文件路径。
+
+:::note
+这个钩子仅在调用 [compiler.watch()](/api/javascript-api/index#compilerwatch) 时触发，在非监听模式下不会执行。在非监听模式下，你可以使用 [run](#run) 或 [beforeRun](#beforerun) 钩子。
+:::
+
 - **类型：** `AsyncSeriesHook<[Compiler]>`
 - **参数：**
   - `Compiler`: 当前 Compiler 实例
@@ -248,6 +320,36 @@ resolver 设置完成之后触发。
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **示例：**同步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+      const { modifiedFiles, removedFiles } = compiler;
+      if (modifiedFiles) {
+        console.log('Changed files:', Array.from(modifiedFiles));
+      }
+      if (removedFiles) {
+        console.log('Removed files:', Array.from(removedFiles));
+      }
+    });
+  }
+}
+```
+
+- **示例：**异步操作
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+      await someAsyncOperation();
+    });
+  }
+}
+```
 
 ## `beforeCompile`
 

@@ -102,7 +102,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
+        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@11ca4583f2f3f74c7e7785c0ecb20fe2c99a4308 # v1.29.5
+      - uses: crate-ci/typos@51f257b946f503b768e522781f56e9b7b5570d48 # v1.29.7
         with:
           files: .
 
@@ -243,7 +243,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@c175bb02c4d5486f22e1a9cb4186cb6097f01434 # v1.10.23
+      - uses: cargo-bins/cargo-binstall@ac0e34cc778e82d0fda528e42de57e41afd2fb1f # v1.11.0
       - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 

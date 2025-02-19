@@ -46,11 +46,12 @@ const {
 为了确保 SRI 正常工作，需要配置 [output.crossOriginLoading](/config/output#outputcrossoriginloading) 选项：
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin } } from "@rspack/core";
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
   output: {
-    crossOriginLoading: "anonymous",
+    crossOriginLoading: 'anonymous',
   },
   plugins: [new SubresourceIntegrityPlugin()],
 };
@@ -63,29 +64,28 @@ export default {
 SubresourceIntegrityPlugin 默认会与 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) 交互：
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin }, HtmlRspackPlugin } from "@rspack/core";
+import { experiments, HtmlRspackPlugin } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
-  plugins: [
-    new SubresourceIntegrityPlugin(),
-    new HtmlRspackPlugin()
-  ],
+  plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
 };
 ```
 
 如果使用 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，需要在 `htmlPlugin` 选项中指定其路径：
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin } } from "@rspack/core";
-import HtmlWebpackPlugin from "html-webpack-plugin";
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
   plugins: [
     new SubresourceIntegrityPlugin({
       // html-webpack-plugin 的路径
-      htmlPlugin: import.meta.resolve("html-webpack-plugin"),
+      htmlPlugin: import.meta.resolve('html-webpack-plugin'),
     }),
-    new HtmlWebpackPlugin()
+    new HtmlWebpackPlugin(),
   ],
 };
 ```

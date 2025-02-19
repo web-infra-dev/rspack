@@ -7,6 +7,11 @@ on:
         required: true
         type: string
         description: "Commit SHA"
+      test:
+        required: false
+        type: boolean
+        default: false
+        description: "Run tests"
       profile:
         required: true
         type: choice
@@ -61,7 +66,7 @@ jobs:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       profile: ${{inputs.profile}}
-      test: false
+      test: ${{inputs.test}}
 
   release:
     name: Release Canary

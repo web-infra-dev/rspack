@@ -1,19 +1,16 @@
 # Releasing
 
-All releases are automated through GitHub actions.
+Rspack releases are automated through GitHub Actions.
 
-All published releases of `@rspack/cli` can be found on the [npm versions page](https://www.npmjs.com/package/@rspack/cli?activeTab=versions). They are tagged as
+You can view all released versions on the npm version pages of [@rspack/core](https://www.npmjs.com/package/@rspack/core?activeTab=versions) and [@rspack/cli](https://www.npmjs.com/package/@rspack/cli?activeTab=versions).
 
-- `latest` with semver version `x.y.z`
-- `nightly`
-- `canary`
+## Latest release
 
-## Latest full release
+The latest stable release follows the Semantic Versioning specification (x.y.z).
 
-The [full release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess)
-is currently triggered manually every Tuesday with full release notes.
+The [full release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess) is triggered manually by Rspack maintainers on Tuesday with the complete release notes.
 
-The following 9 targets are built
+During the release, the following binary artifacts for the target platforms are built:
 
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
@@ -25,39 +22,47 @@ The following 9 targets are built
 - x86_64-apple-darwin
 - aarch64-apple-darwin
 
-## Nightly
+### Release steps
 
-The [nightly release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-nightly.yml?query=is%3Asuccess)
-is triggered every day at UTC 16:00:07, which is 00:07 AM Beijing Time (offset with an odd minute to avoid cron jobs firing off at the same time).
+1. Create a new branch, for example `release/v1.0.0`.
+2. Update the version using the `pnpm x version` command on the branch.
 
-The nightly build fully replicates the full release build for catching errors early.
+```bash
+# Release a patch version
+pnpm x version patch
 
-## Canary
+# Release a minor version
+pnpm x version minor
 
-[canary release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml) requires manual triggering.
+# Release a major version
+pnpm x version major
 
-## Using nightly/canary version
+# Release an alpha version
+pnpm x version patch --pre alpha
 
-When releasing the nightly/canary versions of Rspack, the package name will be appended with the `-canary` suffix. You need to use the overrides feature of package managers like npm, yarn, or pnpm to use these versions.
+# Release a beta version
+pnpm x version patch --pre beta
 
-Take pnpm as an example:
-
-```json title=package.json
-{
-  "pnpm": {
-    "overrides": {
-      "@rspack/core": "npm:@rspack-canary/core@latest"
-    },
-    "peerDependencyRules": {
-      "allowAny": ["@rspack/*"]
-    }
-  }
-}
+# Release a rc version
+pnpm x version patch --pre rc
 ```
 
-The Rspack community provides the [install-rspack](https://github.com/rspack-contrib/install-rspack) tool to quickly modify the Rspack version:
+3. Commit the code and push to the remote branch.
 
-```shell
-npx install-rspack --version latest # Get latest canary npm tag version
-npx install-rspack --version 0.7.5-canary-d614005-20240625082730 # A specific canary version
+```bash
+git add .
+git commit -m "chore: release v1.0.0"
+git push origin release/vx.y.z
 ```
+
+4. Create a PR with the title `chore: release v1.0.0`.
+5. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
+6. Run the full release workflow on the release branch.
+7. After the release, merge the PR to the `main` branch.
+8. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
+
+## Canary release
+
+Canary is the pre-release version for testing and verifying new features.
+
+Releasing a canary version does not require manually creating a branch or updating the version, it only requires Rspack maintainers to trigger the [Canary release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release-canary.yml).
