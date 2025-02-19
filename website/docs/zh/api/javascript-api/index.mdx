@@ -96,7 +96,7 @@ function rspack(
   </CollapsePanel>
 </Collapse>
 
-## 执行
+## compiler.run
 
 使用 `run` 方法启动所有编译工作。完成之后，执行传入的的 `callback` 函数。最终记录下来的概括信息（stats）和错误（errors），都应在这个 callback 函数中获取。
 
@@ -120,7 +120,7 @@ compiler.run((err, stats) => {
 该 API 不支持并发编译。当你使用 `run` 或 `watch` 时，请先调用 `close` 并等待其完成，然后再调用 `run` 或 `watch`。并发编译会破坏输出文件。
 :::
 
-## 监听
+## compiler.watch
 
 调用 `watch` 方法会触发 Rspack 执行，但之后会监听变更（很像 CLI 命令： `rspack --watch`），一旦 Rspack 检测到文件变更，就会重新执行编译。该方法返回一个 `Watching` 实例。
 

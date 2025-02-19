@@ -56,9 +56,10 @@ git push origin release/vx.y.z
 ```
 
 4. Create a PR with the title `chore: release v1.0.0`.
-5. Run the full release workflow on the release branch.
-6. After the release, merge the PR to the `main` branch.
-7. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
+5. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
+6. Run the full release workflow on the release branch.
+7. After the release, merge the PR to the `main` branch.
+8. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
 
 ## Canary release
 
