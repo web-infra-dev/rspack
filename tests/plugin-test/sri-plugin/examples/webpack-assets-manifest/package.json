@@ -8,7 +8,7 @@
     "expect": "^26.6.2",
     "html-webpack-plugin": "^5.5.0",
     "nyc": "*",
-    "webpack": "5.97.1",
+    "webpack": "5.98.0",
     "webpack-assets-manifest": "3",
     "webpack-cli": "5.1.4"
   }
