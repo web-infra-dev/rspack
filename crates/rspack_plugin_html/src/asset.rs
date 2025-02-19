@@ -11,7 +11,6 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  parse_to_url,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
   AssetInfo, Compilation, CompilationAsset, Filename, NoFilenameFn, PathData,
 };
@@ -328,14 +327,13 @@ pub fn create_favicon_asset(
   config: &HtmlRspackPluginOptions,
   compilation: &Compilation,
 ) -> Result<(String, CompilationAsset), miette::Error> {
-  let url = parse_to_url(favicon);
   let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon))
     .file_name()
     .expect("Should have favicon file name")
     .to_string_lossy()
     .to_string();
 
-  let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
+  let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(favicon);
 
   fs::read(resolved_favicon)
     .context(format!(

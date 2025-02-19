@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 use itertools::Itertools;
-use rspack_core::{parse_to_url, Compilation, CrossOriginLoading, Mode};
+use rspack_core::{Compilation, CrossOriginLoading, Mode};
 use rspack_dojang::{dojang::DojangOptions, Dojang, Operand};
 use rspack_error::{miette, AnyhowError};
 use rspack_paths::AssertUtf8;
@@ -41,7 +41,7 @@ impl HtmlTemplate {
         } else {
           TemplateRender::Template(content.clone())
         },
-        url: parse_to_url("template_content.html").path().to_string(),
+        url: "template_content.html".to_string(),
         filename: "template_content.html".to_string(),
         file_dependencies: vec![],
         parameters: None,
@@ -97,7 +97,7 @@ impl HtmlTemplate {
       } else {
         Ok(Self {
           render: TemplateRender::Template(default_template().to_owned()),
-          url: parse_to_url("default.html").path().to_string(),
+          url: "default.html".to_string(),
           filename: "default.html".to_string(),
           file_dependencies: vec![],
           parameters: None,

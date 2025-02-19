@@ -50,21 +50,6 @@ pub use self::source::*;
 pub use self::template::*;
 pub use self::to_path::to_path;
 
-pub fn parse_to_url(url: &str) -> url::Url {
-  if !url.contains(':') {
-    let mut construct_string = String::with_capacity("specifier:".len() + url.len());
-    construct_string += "specifier:";
-    construct_string += url;
-    url::Url::parse(&construct_string).unwrap_or_else(|_| {
-      panic!("Invalid specifier: {url}, please use a valid specifier or a valid url")
-    })
-  } else {
-    url::Url::parse(url).unwrap_or_else(|_| {
-      panic!("Invalid specifier: {url}, please use a valid specifier or a valid url")
-    })
-  }
-}
-
 /// join string component in a more human readable way
 /// e.g.
 /// ```
