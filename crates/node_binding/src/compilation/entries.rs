@@ -189,32 +189,32 @@ pub struct EntryDataDTO {
 
 #[napi]
 impl EntryDataDTO {
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
       .dependencies
       .iter()
-      .map(|dependency_id| {
-        #[allow(clippy::unwrap_used)]
-        let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .map(|dep| JsDependencyWrapper::from_id(*dep.id(), self.compilation.compiler_id()))
       })
       .collect::<Vec<_>>()
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn include_dependencies(&'static self) -> Vec<JsDependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
       .include_dependencies
       .iter()
-      .map(|dependency_id| {
-        #[allow(clippy::unwrap_used)]
-        let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .map(|dep| JsDependencyWrapper::from_id(*dep.id(), self.compilation.compiler_id()))
       })
       .collect::<Vec<_>>()
   }

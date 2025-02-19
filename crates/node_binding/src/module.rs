@@ -228,7 +228,7 @@ impl JsModule {
     )
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
+  #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
@@ -240,7 +240,7 @@ impl JsModule {
         .filter_map(|dependency_id| {
           module_graph
             .dependency_by_id(dependency_id)
-            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+            .map(|dep| JsDependencyWrapper::from_id(*dep.id(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -445,7 +445,7 @@ impl ToNapiValue for JsModuleWrapper {
 
 impl FromNapiValue for JsModuleWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let mut instance: ClassInstance<JsModule> = FromNapiValue::from_napi_value(env, napi_val)?;
+    let instance = <JsModule as FromNapiMutRef>::from_napi_mut_ref(env, napi_val)?;
 
     Ok(JsModuleWrapper {
       identifier: instance.identifier,
