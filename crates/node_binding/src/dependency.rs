@@ -75,7 +75,9 @@ impl JsDependency {
 impl JsDependency {
   #[napi(constructor)]
   pub fn new() -> napi::Result<Self> {
-    unreachable!()
+    Err(napi::Error::from_reason(
+      "Rspack currently does not support constructing a Dependency directly from JavaScript.",
+    ))
   }
 
   #[napi(getter)]
