@@ -59,11 +59,6 @@ use crate::{
   Stats,
 };
 
-pub type BuildDependency = (
-  DependencyId,
-  Option<ModuleIdentifier>, /* parent module */
-);
-
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 // NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
@@ -1243,6 +1238,23 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
+
+    // finally clean up the entry deps
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {

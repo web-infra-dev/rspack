@@ -5,13 +5,15 @@ use rspack_error::Diagnostic;
 use rspack_paths::ArcPath;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::BoxDependency;
+use super::{BoxDependency, DependencyId};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum FactorizeInfo {
+  #[default]
   Success,
   Failed {
+    related_dep_ids: Vec<DependencyId>,
     file_dependencies: HashSet<ArcPath>,
     context_dependencies: HashSet<ArcPath>,
     missing_dependencies: HashSet<ArcPath>,
@@ -24,6 +26,7 @@ pub enum FactorizeInfo {
 impl FactorizeInfo {
   pub fn new(
     diagnostics: Vec<Diagnostic>,
+    related_dep_ids: Vec<DependencyId>,
     file_dependencies: HashSet<ArcPath>,
     context_dependencies: HashSet<ArcPath>,
     missing_dependencies: HashSet<ArcPath>,
@@ -32,6 +35,7 @@ impl FactorizeInfo {
       Self::Success
     } else {
       Self::Failed {
+        related_dep_ids,
         file_dependencies,
         context_dependencies,
         missing_dependencies,
@@ -50,20 +54,8 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn get_mut_from(dep: &mut BoxDependency) -> &mut FactorizeInfo {
-    //    if let Some(d) = dep.as_context_dependency_mut() {
-    //      return d.factorize_info_mut();
-    //    }
-    if let Some(d) = dep.as_module_dependency_mut() {
-      return d.factorize_info_mut();
-    }
-    panic!(
-      "FactorizeInfo::get_mut_from can only be used for context dependency and module dependency"
-    )
-  }
-
-  pub fn is_failed(&self) -> bool {
-    matches!(self, FactorizeInfo::Failed { .. })
+  pub fn is_success(&self) -> bool {
+    matches!(self, FactorizeInfo::Success)
   }
 
   pub fn depends_on(&self, modified_file: &HashSet<ArcPath>) -> bool {
@@ -87,16 +79,48 @@ impl FactorizeInfo {
     false
   }
 
+  pub fn related_dep_ids(&self) -> Cow<[DependencyId]> {
+    match &self {
+      Self::Success => Cow::Owned(vec![]),
+      Self::Failed {
+        related_dep_ids, ..
+      } => Cow::Borrowed(related_dep_ids),
+    }
+  }
+
+  pub fn file_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+    match &self {
+      Self::Success => Cow::Owned(Default::default()),
+      Self::Failed {
+        file_dependencies, ..
+      } => Cow::Borrowed(file_dependencies),
+    }
+  }
+
+  pub fn context_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+    match &self {
+      Self::Success => Cow::Owned(Default::default()),
+      Self::Failed {
+        context_dependencies,
+        ..
+      } => Cow::Borrowed(context_dependencies),
+    }
+  }
+
+  pub fn missing_dependencies(&self) -> Cow<HashSet<ArcPath>> {
+    match &self {
+      Self::Success => Cow::Owned(Default::default()),
+      Self::Failed {
+        missing_dependencies,
+        ..
+      } => Cow::Borrowed(missing_dependencies),
+    }
+  }
+
   pub fn diagnostics(&self) -> Cow<[Diagnostic]> {
     match &self {
       Self::Success => Cow::Owned(vec![]),
       Self::Failed { diagnostics, .. } => Cow::Borrowed(diagnostics),
     }
-  }
-}
-
-impl Default for FactorizeInfo {
-  fn default() -> Self {
-    FactorizeInfo::Success
   }
 }
