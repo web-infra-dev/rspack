@@ -64,6 +64,7 @@ const watchCreator = new BasicCaseCreator({
 	},
 	describe: false,
 	steps: ({ name, src, temp }) => {
+		const watchState = {};
 		const runs = fs
 			.readdirSync(src)
 			.sort()
@@ -74,25 +75,31 @@ const watchCreator = new BasicCaseCreator({
 
 		return runs.map((run, index) =>
 			index === 0
-				? new WatchProcessor({
-						name,
-						stepName: run.name,
-						tempDir: temp!,
-						runable: true,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"],
-						experiments: {
-							incremental: true
-						}
-					})
-				: new WatchStepProcessor({
-						name,
-						stepName: run.name,
-						tempDir: temp!,
-						runable: true,
-						compilerType: ECompilerType.Rspack,
-						configFiles: ["rspack.config.js", "webpack.config.js"]
-					})
+				? new WatchProcessor(
+						{
+							name,
+							stepName: run.name,
+							tempDir: temp!,
+							runable: true,
+							compilerType: ECompilerType.Rspack,
+							configFiles: ["rspack.config.js", "webpack.config.js"],
+							experiments: {
+								incremental: true
+							}
+						},
+						watchState
+					)
+				: new WatchStepProcessor(
+						{
+							name,
+							stepName: run.name,
+							tempDir: temp!,
+							runable: true,
+							compilerType: ECompilerType.Rspack,
+							configFiles: ["rspack.config.js", "webpack.config.js"]
+						},
+						watchState
+					)
 		);
 	}
 });

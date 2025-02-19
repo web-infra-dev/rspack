@@ -2,6 +2,7 @@ import { bar } from "./shared";
 
 it("should compile fine", () => {
 	expect(bar).toBe("bar");
+	console.log(STATE)
 	const hash = STATS_JSON.assetsByChunkName.async[0];
 	expect(hash).toBe(STATE.hash);
 });
