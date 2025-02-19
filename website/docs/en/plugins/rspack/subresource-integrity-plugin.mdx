@@ -75,9 +75,9 @@ export default {
 If [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) is used, the `htmlPlugin` option should be specified to the path of it:
 
 ```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { experiments } from '@rspack/core';
 const { SubresourceIntegrityPlugin } = experiments;
-import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
   plugins: [

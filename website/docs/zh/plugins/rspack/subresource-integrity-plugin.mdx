@@ -75,9 +75,9 @@ export default {
 如果使用 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，需要在 `htmlPlugin` 选项中指定其路径：
 
 ```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { experiments } from '@rspack/core';
 const { SubresourceIntegrityPlugin } = experiments;
-import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
   plugins: [
