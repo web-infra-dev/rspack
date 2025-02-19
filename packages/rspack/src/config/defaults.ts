@@ -731,7 +731,7 @@ const applyOutputDefaults = (
 	D(output, "workerPublicPath", "");
 	D(output, "sourceMapFilename", "[file].map[query]");
 	F(output, "scriptType", () => (output.module ? "module" : false));
-	D(output, "charset", true);
+	D(output, "charset", !futureDefaults);
 	D(output, "chunkLoadTimeout", 120000);
 
 	const { trustedTypes } = output;
