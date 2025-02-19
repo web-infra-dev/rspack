@@ -137,7 +137,15 @@ impl PluginCssExtract {
       .collect();
 
     let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
-    groups.sort_unstable();
+    groups.sort_by(|a, b| {
+      let a = compilation.chunk_group_by_ukey.expect_get(a);
+      let b = compilation.chunk_group_by_ukey.expect_get(b);
+      match a.index.cmp(&b.index) {
+        std::cmp::Ordering::Less => std::cmp::Ordering::Less,
+        std::cmp::Ordering::Equal => std::cmp::Ordering::Equal,
+        std::cmp::Ordering::Greater => a.ukey.cmp(&b.ukey),
+      }
+    });
 
     let mut modules_by_chunk_group = groups
       .iter()
