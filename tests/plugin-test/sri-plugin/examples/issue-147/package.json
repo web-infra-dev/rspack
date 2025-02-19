@@ -8,7 +8,7 @@
     "html-webpack-plugin": "^5.5.0",
     "nyc": "*",
     "script-ext-html-webpack-plugin": "^2.1.5",
-    "webpack": "^5.95.0",
+    "webpack": "5.97.1",
     "webpack-cli": "5.1.4"
   }
 }
