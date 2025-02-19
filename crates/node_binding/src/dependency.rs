@@ -26,8 +26,8 @@ use crate::{JsCompiler, COMPILER_REFERENCES};
 pub struct JsDependency {
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: Option<Box<dyn Dependency>>,
-  compiler_id: CompilerId,
-  compiler_reference: WeakReference<JsCompiler>,
+  pub(crate) compiler_id: CompilerId,
+  pub(crate) compiler_reference: WeakReference<JsCompiler>,
 }
 
 impl JsDependency {
@@ -302,8 +302,3 @@ impl TypeName for JsDependencyWrapper {
 }
 
 impl ValidateNapiValue for JsDependencyWrapper {}
-
-#[napi(object)]
-pub struct RawDependency {
-  pub request: String,
-}
