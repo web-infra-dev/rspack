@@ -198,6 +198,12 @@ Called when a compiler object is initialized.
 
 Adds a hook right before running the compiler.
 
+:::note
+
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+
+:::
+
 - **Type:** `AsyncSeriesHook<[Compiler]>`
 - **Arguments:**
   - `Compiler`: current compiler instance
@@ -211,10 +217,45 @@ Adds a hook right before running the compiler.
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build is about to start...');
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build is about to start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
 
 ## `run`
 
-Called ad the beginning of a build execution.
+Called at the beginning of a build execution.
+
+:::note
+
+This hook is only triggered when calling [compiler.run()](/api/javascript-api/index#compilerrun) (which is used by the `rspack build` command), and will not be executed in watch mode. You can use the [watchRun](#watchrun) hook in watch mode.
+
+:::
 
 - **Type:** `AsyncSeriesHook<[Compiler]>`
 - **Arguments:**
@@ -229,11 +270,48 @@ Called ad the beginning of a build execution.
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tap('ExamplePlugin', compiler => {
+      console.log('Build start...');
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.beforeRun.tapPromise(
+      'ExamplePlugin',
+      (compiler) => {
+        console.log('Build start...');
+
+        await someAsyncOperation();
+      },
+    );
+  }
+}
+```
 
 ## `watchRun`
 
 Executes a plugin during watch mode after a new compilation is triggered but before the compilation is actually started.
 
+You can use `compiler.modifiedFiles` and `compiler.removedFiles` to get the changed file paths and removed file paths.
+
+:::note
+
+This hook is only triggered when calling [compiler.watch()](/api/javascript-api/index#compilerwatch), and will not be called in non-watch mode. You can use the [run](#run) or [beforeRun](#beforerun) hook in non-watch mode.
+
+:::
+
 - **Type:** `AsyncSeriesHook<[Compiler]>`
 - **Arguments:**
   - `Compiler`: current compiler instance
@@ -247,6 +325,36 @@ Executes a plugin during watch mode after a new compilation is triggered but bef
     <CompilerType />
   </CollapsePanel>
 </Collapse>
+
+- **Example:** Sync operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tap('ExamplePlugin', compiler => {
+      const { modifiedFiles, removedFiles } = compiler;
+      if (modifiedFiles) {
+        console.log('Changed files:', Array.from(modifiedFiles));
+      }
+      if (removedFiles) {
+        console.log('Removed files:', Array.from(removedFiles));
+      }
+    });
+  }
+}
+```
+
+- **Example:** Async operation
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.watchRun.tapPromise('ExamplePlugin', compiler => {
+      await someAsyncOperation();
+    });
+  }
+}
+```
 
 ## `beforeCompile`
 
