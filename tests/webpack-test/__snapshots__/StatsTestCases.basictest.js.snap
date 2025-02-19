@@ -603,10 +603,10 @@ Rspack x.x.x compiled successfully in X.23
 assets by chunk 862 bytes (id hint: all)
   asset c-all-b_js-b683c5304b71900e.js 480 bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-2c876c6ecab93d9b.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-926ec89e89fc5463.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-908d04f24316d3ee.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-1b0ba12f79ed8053.js 643 bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-926ec89e89fc5463.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
+Entrypoint main 12.1 KiB = c-runtime~main-908d04f24316d3ee.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
 runtime modules 9.72 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
