@@ -265,7 +265,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Included,
+      description: i18n[lang]['webpack-subresource-integrity-desc'],
     },
     {
       name: '@ngtools/webpack',
