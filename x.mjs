@@ -75,7 +75,7 @@ buildCommand
 	.option("-r", "release")
 	.option("-f", "force")
 	.action(async ({ a, b = a, j = a, r, f }) => {
-		const mode = r ? "release" : "debug";
+		const mode = r ? "release" : "dev";
 		try {
 			if (b === undefined && j === undefined) {
 				b = j = true;
@@ -93,7 +93,7 @@ watchCommand
 	.option("-j", "watch js packages")
 	.option("-r", "release")
 	.action(async ({ a, b = a, j = a, r }) => {
-		const mode = r ? "release" : "debug";
+		const mode = r ? "release" : "dev";
 		try {
 			b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
 			j && (await $`pnpm --filter "@rspack/*" watch`);

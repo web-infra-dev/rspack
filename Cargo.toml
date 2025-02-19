@@ -96,14 +96,14 @@ inventory = { version = "0.3.17" }
 rkyv      = { version = "=0.8.8" }
 
 # Must be pinned with the same swc versions
-swc                 = { version = "=13.0.1" }
+swc                 = { version = "=14.0.0" }
 swc_config          = { version = "=2.0.0" }
-swc_core            = { version = "=13.0.3", default-features = false }
-swc_ecma_minifier   = { version = "=10.0.0", default-features = false }
-swc_error_reporters = { version = "=7.0.0" }
-swc_html            = { version = "=10.0.0" }
-swc_html_minifier   = { version = "=10.0.0", default-features = false }
-swc_node_comments   = { version = "=6.0.0" }
+swc_core            = { version = "=14.0.0", default-features = false }
+swc_ecma_minifier   = { version = "=11.0.0", default-features = false }
+swc_error_reporters = { version = "=8.0.0" }
+swc_html            = { version = "=11.0.0" }
+swc_html_minifier   = { version = "=11.0.0", default-features = false }
+swc_node_comments   = { version = "=7.0.0" }
 
 pnp = { version = "0.9.0" }
 
