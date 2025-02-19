@@ -32,7 +32,10 @@ impl JsModuleGraph {
 
 #[napi]
 impl JsModuleGraph {
-  #[napi(ts_return_type = "JsModule | null")]
+  #[napi(
+    ts_args_type = "dependency: JsDependency",
+    ts_return_type = "JsModule | null"
+  )]
   pub fn get_module(
     &self,
     js_dependency_id: JsDependencyId,
@@ -47,7 +50,10 @@ impl JsModuleGraph {
     Ok(js_module)
   }
 
-  #[napi(ts_return_type = "JsModule | null")]
+  #[napi(
+    ts_args_type = "dependency: JsDependency",
+    ts_return_type = "JsModule | null"
+  )]
   pub fn get_resolved_module(
     &self,
     js_dependency_id: JsDependencyId,
@@ -115,7 +121,10 @@ impl JsModuleGraph {
     Ok(JsExportsInfo::new(exports_info, compilation))
   }
 
-  #[napi(ts_return_type = "JsModuleGraphConnection | null")]
+  #[napi(
+    ts_args_type = "dependency: JsDependency",
+    ts_return_type = "JsModuleGraphConnection | null"
+  )]
   pub fn get_connection(
     &self,
     js_dependency_id: JsDependencyId,
@@ -165,7 +174,10 @@ impl JsModuleGraph {
     )
   }
 
-  #[napi(ts_return_type = "JsModule | null")]
+  #[napi(
+    ts_args_type = "dependency: JsDependency",
+    ts_return_type = "JsModule | null"
+  )]
   pub fn get_parent_module(
     &self,
     js_dependency_id: JsDependencyId,
@@ -182,7 +194,7 @@ impl JsModuleGraph {
     })
   }
 
-  #[napi]
+  #[napi(ts_args_type = "dependency: JsDependency")]
   pub fn get_parent_block_index(&self, js_dependency_id: JsDependencyId) -> napi::Result<i64> {
     let Some(dependency_id) = js_dependency_id.raw() else {
       return Ok(-1);

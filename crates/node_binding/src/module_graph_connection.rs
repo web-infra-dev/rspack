@@ -25,7 +25,7 @@ impl JsModuleGraphConnection {
 
 #[napi]
 impl JsModuleGraphConnection {
-  #[napi(getter, ts_return_type = "Dependency")]
+  #[napi(getter, ts_return_type = "JsDependency")]
   pub fn dependency(&self) -> napi::Result<JsDependencyWrapper> {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
