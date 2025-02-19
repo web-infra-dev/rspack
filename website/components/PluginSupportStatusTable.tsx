@@ -58,7 +58,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'EnvironmentPlugin',
@@ -319,7 +319,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DllReferencePlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'DynamicEntryPlugin',
