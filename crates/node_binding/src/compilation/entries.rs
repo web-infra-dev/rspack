@@ -169,12 +169,24 @@ impl From<JsEntryData> for EntryData {
       dependencies: value
         .dependencies
         .into_iter()
-        .map(|dep| dep.dependency_id)
+        .map(|dep| {
+          dep
+            .0
+            .as_ref()
+            .expect("Rspack currently does not support unresolved dependencies")
+            .dependency_id
+        })
         .collect::<Vec<_>>(),
       include_dependencies: value
         .include_dependencies
         .into_iter()
-        .map(|dep| dep.dependency_id)
+        .map(|dep| {
+          dep
+            .0
+            .as_ref()
+            .expect("Rspack does not support unresolved dependencies")
+            .dependency_id
+        })
         .collect::<Vec<_>>(),
       options: value.options.into(),
     }

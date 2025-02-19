@@ -209,7 +209,6 @@ export declare class JsDependency {
   get category(): string
   get request(): string | undefined
   get critical(): boolean
-  set critical(val: boolean)
   get ids(): Array<string> | undefined
 }
 
@@ -229,9 +228,6 @@ export declare class JsEntryDependency {
   get type(): string
   get category(): string
   get request(): string | undefined
-  get critical(): boolean
-  set critical(val: boolean)
-  get ids(): Array<string> | undefined
 }
 
 export declare class JsExportsInfo {

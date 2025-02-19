@@ -3,10 +3,7 @@
 use std::cell::RefCell;
 
 use napi::{
-  bindgen_prelude::{
-    ClassInstance, FromNapiMutRef, FromNapiValue, ToNapiValue, TypeName, ValidateNapiValue,
-    WeakReference,
-  },
+  bindgen_prelude::{ClassInstance, ToNapiValue, TypeName, ValidateNapiValue, WeakReference},
   Either, Env, JsString,
 };
 use napi_derive::napi;
@@ -20,52 +17,63 @@ use rspack_plugin_javascript::dependency::{
 
 use crate::{JsCompiler, COMPILER_REFERENCES};
 
-#[napi]
-pub struct JsDependency {
+pub(crate) struct JsDependencyBinding {
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: Option<Box<dyn Dependency>>,
   pub(crate) compiler_id: CompilerId,
   pub(crate) compiler_reference: WeakReference<JsCompiler>,
 }
 
+#[napi]
+pub struct JsDependency(pub(crate) Option<JsDependencyBinding>);
+
 impl JsDependency {
-  fn as_ref<T>(
+  fn with_ref<T>(
     &self,
-    f: impl FnOnce(&Compilation, &dyn Dependency) -> napi::Result<T>,
+    with_dependency: impl FnOnce(&Compilation, &dyn Dependency) -> napi::Result<T>,
+    fallback: impl FnOnce() -> napi::Result<T>,
   ) -> napi::Result<T> {
-    match self.compiler_reference.get() {
+    let Some(binding) = &self.0 else {
+      return fallback();
+    };
+
+    match binding.compiler_reference.get() {
       Some(this) => {
         let compilation = &this.compiler.compilation;
         let module_graph = compilation.get_module_graph();
-        if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
-          f(compilation, dependency.as_ref())
-        } else if let Some(dependency) = &self.dependency {
-          f(compilation, dependency.as_ref())
+        if let Some(dependency) = module_graph.dependency_by_id(&binding.dependency_id) {
+          with_dependency(compilation, dependency.as_ref())
+        } else if let Some(dependency) = &binding.dependency {
+          with_dependency(compilation, dependency.as_ref())
         } else {
           Err(napi::Error::from_reason(format!(
             "Unable to access dependency with id = {:?} now. The module have been removed on the Rust side.",
-            self.dependency_id
+            binding.dependency_id
           )))
         }
       }
       None => Err(napi::Error::from_reason(format!(
         "Unable to access dependency with id = {:?} now. The Compiler has been garbage collected by JavaScript.",
-        self.dependency_id
+        binding.dependency_id
       ))),
     }
   }
 
-  fn as_mut(
+  fn with_mut(
     &mut self,
-    mut f: impl FnMut(&mut dyn Dependency) -> napi::Result<()>,
+    mut with_dependency: impl FnMut(&mut dyn Dependency) -> napi::Result<()>,
   ) -> napi::Result<()> {
-    match &mut self.dependency {
+    let Some(binding) = &mut self.0 else {
+      return Ok(());
+    };
+
+    match &mut binding.dependency {
       Some(dependency) => {
-        f(dependency.as_mut())
+        with_dependency(dependency.as_mut())
       }
       None => Err(napi::Error::from_reason(format!(
         "Unable to modify dependency with id = {:?}. Currently, you can only modify the dependency in the module factory hooks in Rspack.",
-        self.dependency_id
+        binding.dependency_id
       ))),
     }
   }
@@ -82,37 +90,49 @@ impl JsDependency {
 
   #[napi(getter)]
   pub fn get_type(&self) -> napi::Result<&str> {
-    self.as_ref(|_, dependency| Ok(dependency.dependency_type().as_str()))
+    self.with_ref(
+      |_, dependency| Ok(dependency.dependency_type().as_str()),
+      || Ok("unknown"),
+    )
   }
 
   #[napi(getter)]
   pub fn category(&self) -> napi::Result<&str> {
-    self.as_ref(|_, dependency| Ok(dependency.category().as_str()))
+    self.with_ref(
+      |_, dependency| Ok(dependency.category().as_str()),
+      || Ok("unknown"),
+    )
   }
 
   #[napi(getter)]
   pub fn request(&self, env: Env) -> napi::Result<napi::Either<JsString, ()>> {
-    self.as_ref(|_, dependency| {
-      Ok(match dependency.as_module_dependency() {
-        Some(dep) => napi::Either::A(env.create_string(dep.request())?),
-        None => napi::Either::B(()),
-      })
-    })
+    self.with_ref(
+      |_, dependency| {
+        Ok(match dependency.as_module_dependency() {
+          Some(dep) => napi::Either::A(env.create_string(dep.request())?),
+          None => napi::Either::B(()),
+        })
+      },
+      || Ok(napi::Either::B(())),
+    )
   }
 
   #[napi(getter)]
   pub fn critical(&self) -> napi::Result<bool> {
-    self.as_ref(|_, dependency| {
-      Ok(match dependency.as_context_dependency() {
-        Some(dep) => dep.critical().is_some(),
-        None => false,
-      })
-    })
+    self.with_ref(
+      |_, dependency| {
+        Ok(match dependency.as_context_dependency() {
+          Some(dep) => dep.critical().is_some(),
+          None => false,
+        })
+      },
+      || Ok(false),
+    )
   }
 
   #[napi(setter)]
   pub fn set_critical(&mut self, val: bool) -> napi::Result<()> {
-    self.as_mut(|dependency| {
+    self.with_mut(|dependency| {
       if let Some(dep) = dependency.as_context_dependency_mut() {
         let critical = dep.critical_mut();
         if !val {
@@ -125,37 +145,41 @@ impl JsDependency {
 
   #[napi(getter)]
   pub fn ids(&self, env: Env) -> napi::Result<Either<Vec<JsString>, ()>> {
-    self.as_ref(|compilation, dependency| {
-      let module_graph = compilation.get_module_graph();
-      Ok(
-        if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
-        } else if let Some(dependency) =
-          dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
-        {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
-        } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
-          let ids = dependency
-            .get_ids(&module_graph)
-            .iter()
-            .map(|atom| env.create_string(atom.as_str()))
-            .collect::<napi::Result<Vec<_>>>()?;
-          Either::A(ids)
-        } else {
-          Either::B(())
-        },
-      )
-    })
+    self.with_ref(
+      |compilation, dependency| {
+        let module_graph = compilation.get_module_graph();
+        Ok(
+          if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
+            let ids = dependency
+              .get_ids(&module_graph)
+              .iter()
+              .map(|atom| env.create_string(atom.as_str()))
+              .collect::<napi::Result<Vec<_>>>()?;
+            Either::A(ids)
+          } else if let Some(dependency) =
+            dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+          {
+            let ids = dependency
+              .get_ids(&module_graph)
+              .iter()
+              .map(|atom| env.create_string(atom.as_str()))
+              .collect::<napi::Result<Vec<_>>>()?;
+            Either::A(ids)
+          } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>()
+          {
+            let ids = dependency
+              .get_ids(&module_graph)
+              .iter()
+              .map(|atom| env.create_string(atom.as_str()))
+              .collect::<napi::Result<Vec<_>>>()?;
+            Either::A(ids)
+          } else {
+            Either::B(())
+          },
+        )
+      },
+      || Ok(Either::B(())),
+    )
   }
 }
 
@@ -251,7 +275,9 @@ impl ToNapiValue for JsDependencyWrapper {
         std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
           let r = occupied_entry.get_mut();
           let instance = &mut **r;
-          instance.dependency = val.dependency;
+          if let Some(binding) = &mut instance.0 {
+            binding.dependency = val.dependency;
+          }
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
@@ -260,12 +286,12 @@ impl ToNapiValue for JsDependencyWrapper {
             references.get(&val.compiler_id).cloned()
           }) {
             Some(compiler_reference) => {
-              let js_module = JsDependency {
+              let js_module = JsDependency(Some(JsDependencyBinding {
                 dependency_id: val.dependency_id,
                 dependency: val.dependency,
                 compiler_id: val.compiler_id,
                 compiler_reference,
-            };
+            }));
               let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_module)?);
               ToNapiValue::to_napi_value(env, r)
             },
@@ -278,20 +304,6 @@ impl ToNapiValue for JsDependencyWrapper {
           }
         }
       }
-    })
-  }
-}
-
-impl FromNapiValue for JsDependencyWrapper {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    napi_val: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let instance = <JsDependency as FromNapiMutRef>::from_napi_mut_ref(env, napi_val)?;
-    Ok(Self {
-      dependency_id: instance.dependency_id,
-      dependency: instance.dependency.take(),
-      compiler_id: instance.compiler_id,
     })
   }
 }

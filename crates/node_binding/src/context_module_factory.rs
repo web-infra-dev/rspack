@@ -262,7 +262,10 @@ impl FromNapiValue for JsContextModuleFactoryAfterResolveDataWrapper {
 
     data.dependencies = js_dependencies
       .into_iter()
-      .filter_map(|mut dep| dep.dependency.take())
+      .filter_map(|mut dep| {
+        #[allow(clippy::unwrap_used)]
+        dep.0.as_mut().unwrap().dependency.take()
+      })
       .collect::<Vec<_>>();
 
     Ok(Self(data))
