@@ -215,7 +215,7 @@ impl JsContextModuleFactoryAfterResolveData {
     Ok(())
   }
 
-  #[napi(getter, ts_return_type = "Dependency[]")]
+  #[napi(getter, ts_return_type = "JsDependency[]")]
   pub fn dependencies(&self, env: Env) -> napi::Result<Vec<Object>> {
     match &self.js_dependencies {
       Some(js_dependencies) => {
