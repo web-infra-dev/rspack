@@ -25,7 +25,7 @@ const SUPPORT_STATUS_LOCALIZED = {
     zh: '部分兼容',
   },
   [CompatibleStatus.Alternative]: {
-    symbol: '🟡',
+    symbol: '🟢',
     en: 'Alternative',
     zh: '可替代',
   },
@@ -265,7 +265,8 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'webpack-subresource-integrity',
       url: 'https://github.com/waysact/webpack-subresource-integrity',
-      status: CompatibleStatus.NotCompatible,
+      status: CompatibleStatus.Alternative,
+      description: i18n[lang]['webpack-subresource-integrity-desc'],
     },
     {
       name: '@ngtools/webpack',
