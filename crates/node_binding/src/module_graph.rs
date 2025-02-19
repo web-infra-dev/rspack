@@ -6,7 +6,7 @@ use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
 use crate::{
-  JsDependency, JsExportsInfo, JsModule, JsModuleGraphConnectionWrapper, JsModuleWrapper,
+  JsDependencyId, JsExportsInfo, JsModule, JsModuleGraphConnectionWrapper, JsModuleWrapper,
 };
 
 #[napi]
@@ -33,9 +33,15 @@ impl JsModuleGraph {
 #[napi]
 impl JsModuleGraph {
   #[napi(ts_return_type = "JsModule | null")]
-  pub fn get_module(&self, js_dependency: &JsDependency) -> napi::Result<Option<JsModuleWrapper>> {
+  pub fn get_module(
+    &self,
+    js_dependency_id: JsDependencyId,
+  ) -> napi::Result<Option<JsModuleWrapper>> {
+    let Some(dependency_id) = js_dependency_id.raw() else {
+      return Ok(None);
+    };
     let (compilation, module_graph) = self.as_ref()?;
-    let module = module_graph.get_module_by_dependency_id(&js_dependency.dependency_id);
+    let module = module_graph.get_module_by_dependency_id(dependency_id);
     let js_module = module
       .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id()));
     Ok(js_module)
@@ -44,11 +50,14 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModule | null")]
   pub fn get_resolved_module(
     &self,
-    js_dependency: &JsDependency,
+    js_dependency_id: JsDependencyId,
   ) -> napi::Result<Option<JsModuleWrapper>> {
+    let Some(dependency_id) = js_dependency_id.raw() else {
+      return Ok(None);
+    };
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
-      match module_graph.connection_by_dependency_id(&js_dependency.dependency_id) {
+      match module_graph.connection_by_dependency_id(&dependency_id) {
         Some(connection) => module_graph
           .module_by_identifier(&connection.resolved_module)
           .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
@@ -109,12 +118,15 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModuleGraphConnection | null")]
   pub fn get_connection(
     &self,
-    dependency: &JsDependency,
+    js_dependency_id: JsDependencyId,
   ) -> napi::Result<Option<JsModuleGraphConnectionWrapper>> {
+    let Some(dependency_id) = js_dependency_id.raw() else {
+      return Ok(None);
+    };
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
       module_graph
-        .connection_by_dependency_id(&dependency.dependency_id)
+        .connection_by_dependency_id(dependency_id)
         .map(|connection| {
           JsModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
         }),
@@ -156,28 +168,30 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModule | null")]
   pub fn get_parent_module(
     &self,
-    js_dependency: &JsDependency,
+    js_dependency_id: JsDependencyId,
   ) -> napi::Result<Option<JsModuleWrapper>> {
+    let Some(dependency_id) = js_dependency_id.raw() else {
+      return Ok(None);
+    };
     let (compilation, module_graph) = self.as_ref()?;
-    Ok(
-      match module_graph.get_parent_module(&js_dependency.dependency_id) {
-        Some(identifier) => compilation
-          .module_by_identifier(identifier)
-          .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
-        None => None,
-      },
-    )
+    Ok(match module_graph.get_parent_module(dependency_id) {
+      Some(identifier) => compilation
+        .module_by_identifier(identifier)
+        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
+      None => None,
+    })
   }
 
   #[napi]
-  pub fn get_parent_block_index(&self, js_dependency: &JsDependency) -> napi::Result<i64> {
+  pub fn get_parent_block_index(&self, js_dependency_id: JsDependencyId) -> napi::Result<i64> {
+    let Some(dependency_id) = js_dependency_id.raw() else {
+      return Ok(-1);
+    };
     let (_, module_graph) = self.as_ref()?;
-    Ok(
-      match module_graph.get_parent_block_index(&js_dependency.dependency_id) {
-        Some(block_index) => block_index as i64,
-        None => -1,
-      },
-    )
+    Ok(match module_graph.get_parent_block_index(dependency_id) {
+      Some(block_index) => block_index as i64,
+      None => -1,
+    })
   }
 
   #[napi]
