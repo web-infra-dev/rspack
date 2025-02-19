@@ -2397,16 +2397,18 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-min-size-reduction 1`] = `
-"Entrypoint main 9.6 KiB = default/main.js
+"Entrypoint main 9.52 KiB = default/main.js
 chunk (runtime: main) default/async-c.js (async-c) 50 bytes <{909}> ={44}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/async-a.js (async-a) 50 bytes <{909}> ={728}= [rendered]
+chunk (runtime: main) default/async-a.js (async-a) 176 bytes <{909}> [rendered]
   > ./a ./index.js 1:0-47
   ./a.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/async-b.js (async-b) 50 bytes <{909}> ={728}= [rendered]
+  ./node_modules/shared.js?1 126 bytes [dependent] [built] [code generated]
+chunk (runtime: main) default/async-b.js (async-b) 176 bytes <{909}> [rendered]
   > ./b ./index.js 2:0-47
   ./b.js 50 bytes [built] [code generated]
+  ./node_modules/shared.js?1 126 bytes [dependent] [built] [code generated]
 chunk (runtime: main) default/async-e.js (async-e) 50 bytes <{909}> ={44}= [rendered]
   > ./e ./index.js 5:0-47
   ./e.js 50 bytes [built] [code generated]
@@ -2418,11 +2420,7 @@ chunk (runtime: main) default/44.js (id hint: vendors) 126 bytes <{909}> ={172}=
 chunk (runtime: main) default/async-d.js (async-d) 50 bytes <{909}> ={44}= [rendered]
   > ./d ./index.js 4:0-47
   ./d.js 50 bytes [built] [code generated]
-chunk (runtime: main) default/728.js (id hint: vendors) 126 bytes <{909}> ={250}= ={262}= [rendered] split chunk (cache group: defaultVendors)
-  > ./a ./index.js 1:0-47
-  > ./b ./index.js 2:0-47
-  ./node_modules/shared.js?1 126 bytes [built] [code generated]
-chunk (runtime: main) default/main.js (main) 245 bytes (javascript) 7.41 KiB (runtime) >{172}< >{250}< >{262}< >{407}< >{44}< >{602}< >{728}< [entry] [rendered]
+chunk (runtime: main) default/main.js (main) 245 bytes (javascript) 7.41 KiB (runtime) >{172}< >{250}< >{262}< >{407}< >{44}< >{602}< [entry] [rendered]
   > ./ main
   ./index.js 245 bytes [built] [code generated]
 Rspack x.x.x compiled successfully"
