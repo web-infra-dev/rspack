@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::SourceExt;
+use rspack_core::ExportInfoProvided;
 use rspack_core::{
   get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, CompilationAdditionalChunkRuntimeRequirements,
@@ -242,7 +243,7 @@ fn render_startup(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _module: &ModuleIdentifier,
+  module: &ModuleIdentifier,
   render_source: &mut RenderSource,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
@@ -258,6 +259,24 @@ fn render_startup(
     .unwrap_or_default();
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
+    let module_graph = compilation.get_module_graph();
+    let exports_info = module_graph.get_exports_info(module);
+    for export_info in exports_info.ordered_exports(&module_graph) {
+      if matches!(
+        export_info.provided(&module_graph),
+        Some(ExportInfoProvided::False)
+      ) {
+        continue;
+      }
+      let export_info_name = export_info
+        .name(&module_graph)
+        .expect("should have name")
+        .to_string();
+      let name_access = property_access([export_info_name], 0);
+      source.add(RawStringSource::from(format!(
+        "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n"
+      )));
+    }
     source.add(RawStringSource::from(format!(
       "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
     )));
