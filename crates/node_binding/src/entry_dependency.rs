@@ -1,14 +1,11 @@
-use napi::{
-  bindgen_prelude::{FromNapiValue, Function, Object, Result},
-  Either, Env, JsObject, JsString, JsUnknown,
-};
+use napi::{Either, Env, JsString};
 use napi_derive::napi;
 use rspack_core::{BoxDependency, CompilerId, Context, Dependency, EntryDependency};
 
 use crate::JsDependency;
 use crate::COMPILER_REFERENCES;
 
-#[napi(js_name = "EntryDependency")]
+#[napi]
 pub struct JsEntryDependency {
   pub(crate) request: String,
   pub(crate) parent: Option<JsDependency>,
@@ -36,6 +33,7 @@ impl JsEntryDependency {
           false,
         )) as BoxDependency;
         let dependency_id = *dependency.id();
+        println!("JsEntryDependency::resolve: dependency_id = {:?}", dependency_id);
 
         // JsEntryDependency only relies on JsDependency for method access and does not create an instance in JavaScript.
         // Therefore, we do not use JsDependencyWrapper here.
@@ -113,40 +111,4 @@ impl JsEntryDependency {
       None => Ok(Either::B(())),
     }
   }
-}
-
-fn get_class_constructor(env: Env, name: &'static str) -> Result<Object> {
-  #[allow(clippy::unwrap_used)]
-  let ctor_ref = napi::bindgen_prelude::get_class_constructor(name).unwrap();
-  let mut ctor_napi_val = std::ptr::null_mut();
-  unsafe {
-    napi::check_status!(
-      napi::sys::napi_get_reference_value(env.raw(), ctor_ref, &mut ctor_napi_val),
-      "Failed to get constructor reference of class `{}`",
-      name
-    )?
-  };
-  unsafe { Object::from_napi_value(env.raw(), ctor_napi_val) }
-}
-
-#[module_exports]
-fn init(_exports: JsObject, env: Env) -> Result<()> {
-  let global = env.get_global()?;
-  let global_object = global
-    .get_named_property::<JsUnknown>("Object")?
-    .coerce_to_object()?;
-  let set_prototype_of = global_object
-    .get_named_property::<Function<(&Object, &Object), JsUnknown>>("setPrototypeOf")?;
-
-  let css_module_prototype =
-    get_class_constructor(env, "CssModule\0")?.get_named_property::<Object>("prototype")?;
-  let normal_module_prototype =
-    get_class_constructor(env, "NormalModule\0")?.get_named_property::<Object>("prototype")?;
-
-  set_prototype_of.apply(
-    global_object,
-    (&css_module_prototype, &normal_module_prototype),
-  )?;
-
-  Ok(())
 }

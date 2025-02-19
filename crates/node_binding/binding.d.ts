@@ -19,11 +19,6 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class Dependency {
-
-}
-export type JsDependency = Dependency
-
 export declare class EntryDataDto {
   get dependencies(): Dependency[]
   get includeDependencies(): Dependency[]
@@ -151,7 +146,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsCompiler {
@@ -208,6 +203,16 @@ export declare class JsDependenciesBlock {
   get blocks(): JsDependenciesBlock[]
 }
 
+export declare class JsDependency {
+  constructor()
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
+}
+
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -217,6 +222,16 @@ export declare class JsEntries {
   get(key: string): EntryDataDto | undefined
   keys(): Array<string>
   values(): Array<EntryDataDto>
+}
+
+export declare class JsEntryDependency {
+  constructor(request: string)
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsExportsInfo {
@@ -251,16 +266,16 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: Dependency): JsModule | null
-  getResolvedModule(jsDependency: Dependency): JsModule | null
+  getModule(jsDependencyId: JsDependencyId): JsModule | null
+  getResolvedModule(jsDependencyId: JsDependencyId): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: Dependency): JsModuleGraphConnection | null
+  getConnection(jsDependencyId: JsDependencyId): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: Dependency): JsModule | null
-  getParentBlockIndex(jsDependency: Dependency): number
+  getParentModule(jsDependencyId: JsDependencyId): JsModule | null
+  getParentBlockIndex(jsDependencyId: JsDependencyId): number
   isAsync(module: JsModule): boolean
 }
 
@@ -1518,10 +1533,6 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
-}
-
-export interface RawDependency {
-  request: string
 }
 
 export interface RawDllEntryPluginOptions {

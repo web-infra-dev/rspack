@@ -20,9 +20,7 @@ use rspack_plugin_javascript::dependency::{
 
 use crate::{JsCompiler, COMPILER_REFERENCES};
 
-// JsDependency allows JS-side access to a Dependency instance that has already
-// been processed and stored in the Compilation.
-#[napi(js_name = "Dependency")]
+#[napi]
 pub struct JsDependency {
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: Option<Box<dyn Dependency>>,
@@ -75,6 +73,11 @@ impl JsDependency {
 
 #[napi]
 impl JsDependency {
+  #[napi(constructor)]
+  pub fn new() -> napi::Result<Self> {
+    unreachable!()
+  }
+
   #[napi(getter)]
   pub fn get_type(&self) -> napi::Result<&str> {
     self.as_ref(|_, dependency| Ok(dependency.dependency_type().as_str()))

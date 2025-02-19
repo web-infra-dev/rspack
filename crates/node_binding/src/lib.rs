@@ -4,14 +4,13 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::{bindgen_prelude::*, CallContext};
+use napi::{bindgen_prelude::*, CallContext, Env, JsUnknown, NapiValue};
 use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilerId, ModuleIdentifier, PluginExt};
 use rspack_error::Diagnostic;
@@ -335,11 +334,6 @@ enum TraceState {
   Off,
 }
 
-#[ctor]
-fn init() {
-  panic::install_panic_handler();
-}
-
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
   Diagnostic::from(e)
     .render_report(colored)
@@ -416,4 +410,45 @@ pub fn cleanup_global_trace() {
     }
     *state = TraceState::Off;
   });
+}
+
+#[ctor]
+fn init_rust_library() {
+  panic::install_panic_handler();
+}
+
+fn get_class_constructor(env: Env, name: &'static str) -> Result<Object> {
+  #[allow(clippy::unwrap_used)]
+  let ctor_ref = napi::bindgen_prelude::get_class_constructor(name).unwrap();
+  let mut ctor_napi_val = std::ptr::null_mut();
+  unsafe {
+    napi::check_status!(
+      napi::sys::napi_get_reference_value(env.raw(), ctor_ref, &mut ctor_napi_val),
+      "Failed to get constructor reference of class `{}`",
+      name
+    )?
+  };
+  unsafe { Ok(Object::from_raw_unchecked(env.raw(), ctor_napi_val)) }
+}
+
+#[module_exports]
+fn init_node_module(_exports: Object, env: Env) -> Result<()> {
+  let global = env.get_global()?;
+  let global_object = global
+    .get_named_property::<JsUnknown>("Object")?
+    .coerce_to_object()?;
+  let set_prototype_of = global_object
+    .get_named_property::<Function<(&Object, &Object), JsUnknown>>("setPrototypeOf")?;
+
+  let css_module_prototype =
+    get_class_constructor(env, "JsEntryDependency\0")?.get_named_property::<Object>("prototype")?;
+  let normal_module_prototype =
+    get_class_constructor(env, "JsDependency\0")?.get_named_property::<Object>("prototype")?;
+
+  set_prototype_of.apply(
+    global_object,
+    (&css_module_prototype, &normal_module_prototype),
+  )?;
+
+  Ok(())
 }
