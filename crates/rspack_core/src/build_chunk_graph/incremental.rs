@@ -476,19 +476,36 @@ impl CodeSplitter {
       self.chunk_caches.remove(&block);
     }
 
-    if compilation.entries.len() > compilation.entrypoints.len() {
-      edges.extend(
-        compilation
-          .entries
-          .keys()
-          .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
-          .map(|entry| ChunkReCreation::Entry(entry.to_owned())),
-      );
-    }
-
     for edge in edges {
       edge.rebuild(self, compilation)?;
     }
+
+    // If after edges rebuild there are still some entries not included in entrypoints
+    // then they are new added entries and we build them.
+    if compilation.entries.len() > compilation.entrypoints.len() {
+      let new_entries: Vec<_> = compilation
+        .entries
+        .keys()
+        .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
+        .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
+        .collect();
+      for edge in new_entries {
+        edge.rebuild(self, compilation)?;
+      }
+    }
+
+    // Ensure entrypoints always have the same order with entries
+    compilation.entrypoints.sort_unstable_by(|a, _, b, _| {
+      let a = compilation
+        .entries
+        .get_index_of(a)
+        .expect("entrypoints must exist in entries");
+      let b = compilation
+        .entries
+        .get_index_of(b)
+        .expect("entrypoints must exist in entries");
+      a.cmp(&b)
+    });
 
     Ok(())
   }
