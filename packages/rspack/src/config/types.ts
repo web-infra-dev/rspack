@@ -2465,7 +2465,7 @@ export type LazyCompilationOptions = {
 	/**
 	 * Test function or regex to determine which modules to include.
 	 */
-	test?: RegExp | ((module: any) => boolean);
+	test?: RegExp | ((module: Module) => boolean);
 };
 
 /**
