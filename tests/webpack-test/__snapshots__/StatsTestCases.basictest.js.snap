@@ -542,7 +542,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for import-with-invalid-options-comments 1`] = `
-"runtime modules 9.54 KiB 12 modules
+"runtime modules 9.56 KiB 12 modules
 cacheable modules 559 bytes
   ./index.js 50 bytes [built] [code generated]
   ./chunk.js 401 bytes [built] [code generated] [2 warnings]
@@ -603,11 +603,11 @@ Rspack x.x.x compiled successfully in X.23
 assets by chunk 862 bytes (id hint: all)
   asset c-all-b_js-b683c5304b71900e.js 480 bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-2c876c6ecab93d9b.js 382 bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-eaec7b786f5c12b2.js 11.1 KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-4da9c4c2c95bd257.js 11.2 KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-1b0ba12f79ed8053.js 643 bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-8e4df31a4698ceb4.js 173 bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main 12.1 KiB = c-runtime~main-eaec7b786f5c12b2.js 11.1 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
-runtime modules 9.75 KiB 13 modules
+Entrypoint main 12.2 KiB = c-runtime~main-4da9c4c2c95bd257.js 11.2 KiB c-all-c_js-2c876c6ecab93d9b.js 382 bytes c-main-1b0ba12f79ed8053.js 643 bytes
+runtime modules 9.78 KiB 13 modules
 cacheable modules 101 bytes
   ./c.js 61 bytes [built] [code generated]
   ./b.js 17 bytes [built] [code generated]

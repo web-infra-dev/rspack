@@ -77,7 +77,7 @@ __webpack_require__.e = function (chunkId) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = function () {
-	return "f4608fdcfef13de69f10";
+	return "827c2b9073549a953226";
 };
 
 })();
@@ -198,7 +198,7 @@ __webpack_require__.r = function(exports) {
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
     // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
     if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-    scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+    scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
     
 })();
