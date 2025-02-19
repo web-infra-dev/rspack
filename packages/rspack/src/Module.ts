@@ -10,7 +10,7 @@ import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
-import type { Dependency } from "./Dependency";
+import { Dependency } from "./Dependency";
 import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import { JsSource } from "./util/source";
 
@@ -176,7 +176,9 @@ export class ContextModuleFactoryAfterResolveData {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies;
+					return binding.dependencies.map(dep =>
+						Dependency.__from_binding(dep)
+					);
 				}
 			}
 		});
@@ -308,7 +310,7 @@ export class Module {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return module.dependencies;
+					return module.dependencies.map(d => Dependency.__from_binding(d));
 				}
 			},
 			useSourceMap: {
