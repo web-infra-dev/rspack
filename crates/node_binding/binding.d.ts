@@ -1396,6 +1396,7 @@ export interface RawCacheGroupOptions {
   automaticNameDelimiter?: string
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
+  minSizeReduction?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2230,6 +2231,7 @@ export interface RawSplitChunksOptions {
   minChunks?: number
   hidePathInfo?: boolean
   minSize?: number | RawSplitChunkSizes
+  minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number
   minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes

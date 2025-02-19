@@ -147,10 +147,65 @@ Prevents exposing path info when creating names for parts splitted by maxSize.
 
 ### splitChunks.minSize
 
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
+
 - **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
 
-Minimum size, in bytes, for a chunk to be generated.
+When using the `number` type of configuration, the same `minSize` will be configured for all module types defined in [`splitChunks.defaultSizeTypes`](/plugins/webpack/split-chunks-plugin#splitchunksdefaultsizetypes).
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSize: 100 * 1000,
+    },
+  },
+};
+```
+
+When configured with the object form, different `minSize` can be set for different types of module types defined in `splitChunks.defaultSizeTypes`.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSize: {
+        javascript: 100 * 1000,
+        css: 300 * 1000,
+      },
+    },
+  },
+};
+```
+
+For example, the above configuration means that the minimum size of javascript modules in the split chunks needs to be at least 100KB, and the minimum size of css modules needs to be at least 300KB.
+
+### splitChunks.minSizeReduction
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
+
+- **Type: ** `number | Record<string, number>`
+- **Default:** `0`
+
+If there are several small modules in the build output, developers may not want to generate separate chunks for them even if their total size exceeds the `minSize` threshold. In this case, you can use the `minSizeReduction` parameter to set the minimum size reduction threshold required for module splitting.
+
+The calculation rule for this parameter is: splitting will only occur when the total size reduction across all parent chunks after splitting the module is not less than the specified value.
+
+Assuming the following scenario, suppose there is a 40KB module that is referenced by 2 chunks, and we set `minSizeReduction: 100`. If we were to split this module, each parent chunk would be reduced by 40KB, resulting in a total reduction of `40KB × 2 = 80KB`. As this is less than 100KB, the split will not be triggered.
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSizeReduction: 100 * 1000,
+    },
+  },
+};
+```
 
 ### splitChunks.maxSize
 
@@ -302,9 +357,22 @@ chunk baz
 
 ### splitChunks.defaultSizeTypes
 
-- **Types:** `string[]`
+- **Type:** `string[]`
+- **Default:** `["javascript", "unknown"]`, and if `experiments.css` is enabled, it will also include `"css"`
 
-Sets the size types which are used when a number is used for sizes.
+When calculating the size of chunks, only the sizes of javascript modules and built-in css modules are taken into account by default. For example, when configuring `minSize: 300`, both javascript modules and css modules need to meet the requirement in order to be split.
+
+You can configure additional module types, for example, if you want WebAssembly modules to be split as well:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      defaultSizeTypes: ['wasm', '...'],
+    },
+  },
+};
+```
 
 ### splitChunks.cacheGroups
 
