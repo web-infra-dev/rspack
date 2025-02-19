@@ -10203,6 +10203,7 @@ type SharedOptimizationSplitChunksCacheGroup = {
     name?: false | OptimizationSplitChunksName;
     filename?: Filename;
     minSize?: OptimizationSplitChunksSizes;
+    minSizeReduction?: OptimizationSplitChunksSizes;
     maxSize?: OptimizationSplitChunksSizes;
     maxAsyncSize?: OptimizationSplitChunksSizes;
     maxInitialSize?: OptimizationSplitChunksSizes;

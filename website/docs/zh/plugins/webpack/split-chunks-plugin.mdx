@@ -127,10 +127,67 @@ export default {
 
 ### splitChunks.minSize
 
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
+
 - **类型：** `number | Record<string, number>`
 - **默认值：** 生产环境下为 `20000`, 其余为 `10000`
 
 生成 chunk 的最小体积（以 bytes 为单位）。
+
+当使用 `number` 类型的配置时，会为所有的模块类型配置同样的 `minSize`，模块类型为 [`splitChunks.defaultSizeTypes`](/plugins/webpack/split-chunks-plugin#splitchunksdefaultsizetypes) 中定义的模块类型。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSize: 100 * 1000,
+    },
+  },
+};
+```
+
+当使用对象形式配置时，可以为不同类型的模块类型分别配置不同的 `minSize`。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSize: {
+        javascript: 100 * 1000,
+        css: 300 * 1000,
+      },
+    },
+  },
+};
+```
+
+例如上面的配置表示拆分出的 chunk 中 javascript 模块的最小体积需要满足 100KB，css 模块的最小体积需要满足 300KB。
+
+### splitChunks.minSizeReduction
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** `0`
+
+当构建产物中存在多个小型模块时，即使这些模块的总体积超过 `minSize` 设定的值，开发者可能也不希望为它们生成独立的 chunk。此时，可以通过 `minSizeReduction` 参数设定模块拆分时必须达到的最小体积缩减阈值。
+
+该参数的计算规则是：只有当模块被拆分后，所有父 chunk 的减少的总体积不低于设定值时，才会进行拆分。
+
+假设存在以下场景，某个模块的体积为 40KB，它被 2 个 chunk 同时引用，我们配置了 `minSizeReduction: 100`。如果将该模块拆分出去，每个父 chunk 可以减少 40KB 体积，总共可以减少 `40KB × 2 = 80KB` 的体积， 不足 100KB，因此不触发拆分。
+
+```js title="rspack.config.mjs"
+export default {
+  //...
+  optimization: {
+    splitChunks: {
+      minSizeReduction: 100 * 1000,
+    },
+  },
+};
+```
 
 ### splitChunks.minChunks
 
@@ -292,9 +349,22 @@ chunk baz
 
 ### splitChunks.defaultSizeTypes
 
-- **类型:** `string[]`
+- **类型：** `string[]`
+- **默认值：** `["javascript", "unknown"]`，如果开启 `experiments.css` 还会包含 `"css"`
 
-用来控制在计算文件大小时应该使用哪些大小类型
+在计算 chunk 大小时的模块类型，默认只有 javascript 模块和内置的 css 模块的体积会被计算在内，例如配置 `minSize: 300` 时，javascript 模块和 css 模块的体积都需要满足要求才能拆分。
+
+你可以配置额外的模块类型，例如想让 WebAssembly 模块也进行拆分：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      defaultSizeTypes: ['wasm', '...'],
+    },
+  },
+};
+```
 
 ### splitChunks.cacheGroups
 

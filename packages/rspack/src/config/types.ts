@@ -2162,6 +2162,8 @@ type SharedOptimizationSplitChunksCacheGroup = {
 	 */
 	minSize?: OptimizationSplitChunksSizes;
 
+	minSizeReduction?: OptimizationSplitChunksSizes;
+
 	/** Maximum size, in bytes, for a chunk to be generated. */
 	maxSize?: OptimizationSplitChunksSizes;
 

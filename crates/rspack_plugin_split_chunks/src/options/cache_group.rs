@@ -31,6 +31,7 @@ pub struct CacheGroup {
   pub name: ChunkNameGetter,
   pub priority: f64,
   pub min_size: SplitChunkSizes,
+  pub min_size_reduction: SplitChunkSizes,
   pub reuse_existing_chunk: bool,
   /// number of referenced chunks
   pub min_chunks: u32,
