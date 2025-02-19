@@ -348,3 +348,5 @@ export const experiments: Experiments = {
 	RsdoctorPlugin,
 	SubresourceIntegrityPlugin
 };
+
+export { Dependency } from "./Dependency";

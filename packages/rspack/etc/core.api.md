@@ -17,7 +17,7 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
-import { Dependency } from '@rspack/binding';
+import { JsDependency as Dependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -44,6 +44,7 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
+import { JsEntryDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -1408,6 +1409,8 @@ class DependenciesBlock {
     readonly dependencies: Dependency[];
 }
 
+export { Dependency }
+
 // @public (undocumented)
 type DependencyLocation = any;
 
@@ -1699,12 +1702,6 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
-}
-
 // @public
 export type EntryDependOn = string | string[];
 
@@ -1767,7 +1764,7 @@ export const EntryPlugin: EntryPluginType;
 
 // @public (undocumented)
 type EntryPluginType = typeof OriginEntryPlugin & {
-    createDependency(entry: string): EntryDependency;
+    createDependency(entry: string): JsEntryDependency;
 };
 
 // @public (undocumented)
@@ -5387,6 +5384,7 @@ declare namespace rspackExports {
         LightningcssFeatureOptions,
         SubresourceIntegrityPluginOptions,
         experiments,
+        Dependency,
         getRawResolve,
         LoaderContext,
         LoaderDefinition,

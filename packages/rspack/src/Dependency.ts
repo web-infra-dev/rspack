@@ -1,1 +1,1 @@
-export { Dependency } from "@rspack/binding";
+export { JsDependency as Dependency } from "@rspack/binding";

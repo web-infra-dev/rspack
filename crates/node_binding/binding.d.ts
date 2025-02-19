@@ -19,14 +19,9 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class Dependency {
-
-}
-export type JsDependency = Dependency
-
 export declare class EntryDataDto {
-  get dependencies(): Dependency[]
-  get includeDependencies(): Dependency[]
+  get dependencies(): JsDependency[]
+  get includeDependencies(): JsDependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -151,7 +146,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, JsEntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsCompiler {
@@ -174,7 +169,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -204,8 +199,18 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
   get blocks(): JsDependenciesBlock[]
+}
+
+export declare class JsDependency {
+  constructor()
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
@@ -217,6 +222,16 @@ export declare class JsEntries {
   get(key: string): EntryDataDto | undefined
   keys(): Array<string>
   values(): Array<EntryDataDto>
+}
+
+export declare class JsEntryDependency {
+  constructor(request: string)
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsExportsInfo {
@@ -240,7 +255,7 @@ export declare class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -251,21 +266,21 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: Dependency): JsModule | null
-  getResolvedModule(jsDependency: Dependency): JsModule | null
+  getModule(dependency: JsDependency): JsModule | null
+  getResolvedModule(dependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: Dependency): JsModuleGraphConnection | null
+  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: Dependency): JsModule | null
-  getParentBlockIndex(jsDependency: Dependency): number
+  getParentModule(dependency: JsDependency): JsModule | null
+  getParentBlockIndex(dependency: JsDependency): number
   isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): Dependency
+  get dependency(): JsDependency
   get module(): JsModule | null
   get resolvedModule(): JsModule | null
   get originModule(): JsModule | null
@@ -1519,10 +1534,6 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
-}
-
-export interface RawDependency {
-  request: string
 }
 
 export interface RawDllEntryPluginOptions {

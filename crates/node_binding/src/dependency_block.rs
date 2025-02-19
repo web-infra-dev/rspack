@@ -18,7 +18,7 @@ pub struct JsDependenciesBlock {
 
 #[napi]
 impl JsDependenciesBlock {
-  #[napi(getter, ts_return_type = "Dependency[]")]
+  #[napi(getter, ts_return_type = "JsDependency[]")]
   pub fn dependencies(&mut self) -> Vec<JsDependencyWrapper> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
