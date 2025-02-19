@@ -41,7 +41,7 @@
     "fastify-static": "^4.7.0",
     "get-port": "^5.1.1",
     "http-shutdown": "^1.2.2",
-    "puppeteer": "^13.5.1",
+    "puppeteer": "24.2.1",
     "serve-static": "^1.15.0"
   },
   "dependencies": {}
