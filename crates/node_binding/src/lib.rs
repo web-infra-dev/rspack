@@ -134,14 +134,14 @@ impl JsCompiler {
     let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
     plugins.push(js_hooks_plugin.clone().boxed());
 
-    let tsfn = env
+    let cleanup_revoked_modules_tsfn = env
       .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
       .build_threadsafe_function::<External<Vec<ModuleIdentifier>>>()
       .weak::<true>()
       .callee_handled::<false>()
       .max_queue_size::<1>()
       .build()?;
-    let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
+    let js_cleanup_plugin = JsCleanupPlugin::new(cleanup_revoked_modules_tsfn);
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
@@ -297,7 +297,7 @@ impl JsCompiler {
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
-    JsDependencyWrapper::cleanup_last_compilation(compilation_id);
+    JsDependencyWrapper::cleanup_last_compilation(compilation);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
@@ -312,6 +312,7 @@ impl ObjectFinalize for JsCompiler {
     });
 
     JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    JsDependencyWrapper::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }

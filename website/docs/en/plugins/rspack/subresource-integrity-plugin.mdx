@@ -46,11 +46,12 @@ const {
 The [output.crossOriginLoading](/config/output#outputcrossoriginloading) option is required for SRI to work:
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin } } from "@rspack/core";
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
   output: {
-    crossOriginLoading: "anonymous",
+    crossOriginLoading: 'anonymous',
   },
   plugins: [new SubresourceIntegrityPlugin()],
 };
@@ -63,29 +64,28 @@ When the HTML plugin([`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx
 The SubresourceIntegrityPlugin will interact with [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin.mdx) by default:
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin }, HtmlRspackPlugin } from "@rspack/core";
+import { experiments, HtmlRspackPlugin } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
-  plugins: [
-    new SubresourceIntegrityPlugin(),
-    new HtmlRspackPlugin()
-  ],
+  plugins: [new SubresourceIntegrityPlugin(), new HtmlRspackPlugin()],
 };
 ```
 
 If [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) is used, the `htmlPlugin` option should be specified to the path of it:
 
 ```js title="rspack.config.mjs"
-import { experiments: { SubresourceIntegrityPlugin } } from "@rspack/core";
-import HtmlWebpackPlugin from "html-webpack-plugin";
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { experiments } from '@rspack/core';
+const { SubresourceIntegrityPlugin } = experiments;
 
 export default {
   plugins: [
     new SubresourceIntegrityPlugin({
       // the path to the html-webpack-plugin
-      htmlPlugin: import.meta.resolve("html-webpack-plugin"),
+      htmlPlugin: import.meta.resolve('html-webpack-plugin'),
     }),
-    new HtmlWebpackPlugin()
+    new HtmlWebpackPlugin(),
   ],
 };
 ```

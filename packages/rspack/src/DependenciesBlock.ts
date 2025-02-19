@@ -1,5 +1,5 @@
 import type { JsDependenciesBlock } from "@rspack/binding";
-import { Dependency } from "./Dependency";
+import type { Dependency } from "./Dependency";
 
 export class DependenciesBlock {
 	#binding: JsDependenciesBlock;
@@ -22,7 +22,7 @@ export class DependenciesBlock {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies.map(d => Dependency.__from_binding(d));
+					return binding.dependencies;
 				}
 			},
 			blocks: {

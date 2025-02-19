@@ -96,7 +96,7 @@ The `hooks` property on a `Compiler` instance is used to register a plugin to an
   </CollapsePanel>
 </Collapse>
 
-## Run
+## compiler.run
 
 The `run` method is then used to kickstart all compilation work. Upon completion, the given `callback` function is executed. The final logging of stats and errors should be done in this `callback` function.
 
@@ -120,7 +120,7 @@ compiler.run((err, stats) => {
 });
 ```
 
-## Watching
+## compiler.watch
 
 Calling the `watch` method triggers the rspack runner, but then watches for changes (much like CLI: `rspack --watch`), as soon as Rspack detects a change, runs again. Returns an instance of `Watching`.
 

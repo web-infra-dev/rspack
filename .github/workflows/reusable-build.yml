@@ -99,6 +99,15 @@ jobs:
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
+      # Linux
+      - name: Build x86_64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        uses: ./.github/actions/docker-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
+          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
       # runner these build in docker since we don't have github runner machine for it
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -144,11 +153,6 @@ jobs:
         if: ${{ !contains(inputs.target, 'linux') && !inputs.skipable }}
         run: rustup target add ${{ inputs.target }}
       # runner the following in github runner directly without docker since we have related machine
-      # Linux
-      - name: Build x86_64-unknown-linux-gnu
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
-
       # Windows
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
@@ -395,7 +399,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@995f97569c4a8ae84dcd7e1a0107f65ca6ebf139 # v2
+        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
         with:
           tool: cargo-codspeed@2.7.2
 
@@ -405,7 +409,7 @@ jobs:
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
-        uses: CodSpeedHQ/action@513a19673a831f139e8717bf45ead67e47f00044 # v3
+        uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci
