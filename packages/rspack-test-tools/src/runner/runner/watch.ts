@@ -13,12 +13,12 @@ interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack>
 	extends IBasicRunnerOptions<T> {
 	stepName: string;
 	isWeb: boolean;
+	state: Record<string, any>;
 }
 
 export class WatchRunner<
 	T extends ECompilerType = ECompilerType.Rspack
 > extends FakeDocumentWebRunner<T> {
-	private state: Record<string, any> = {};
 	constructor(protected _watchOptions: IWatchRunnerOptions<T>) {
 		super(_watchOptions);
 	}
@@ -31,7 +31,7 @@ export class WatchRunner<
 		const moduleScope = super.createModuleScope(requireFn, m, file);
 		moduleScope.__dirname = path.dirname(file.path);
 		moduleScope.document = this.globalContext!.document;
-		moduleScope.STATE = this.state;
+		moduleScope.STATE = this._watchOptions.state;
 		moduleScope.WATCH_STEP = this._watchOptions.stepName;
 		moduleScope.STATS_JSON = this._options.stats;
 		return moduleScope;

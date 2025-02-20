@@ -24,8 +24,34 @@
 
 	}
 
-	// expose the modules object (__webpack_modules__)
-	__webpack_require__.m = __webpack_modules__;
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+	// This function allow to reference chunks
+	__webpack_require__.u = function (chunkId) {
+		// return url for filenames not based on template
+
+		// return url for filenames based on template
+		return "" + chunkId + ".$" + { "\\css\\chunk": "__CONTENT__css_chunk_DH_js_HASH__", "\\js\\chunk": "__CONTENT__js_chunk_DH_js_HASH__", }[chunkId] + "$.js";
+	};
+
+})();
+// webpack/runtime/get mini-css chunk filename
+(() => {
+	// This function allow to reference chunks
+	__webpack_require__.miniCssF = function (chunkId) {
+		// return url for filenames not based on template
+
+		// return url for filenames based on template
+		return "" + chunkId + ".$" + "__CONTENT__css_chunk_DH_css_HASH__" + "$.css";
+	};
+
+})();
+// webpack/runtime/get_full_hash
+(() => {
+	__webpack_require__.h = function () {
+		return "__FULL_HASH__";
+	};
 
 	/************************************************************************/
 	// webpack/runtime/create_fake_namespace_object

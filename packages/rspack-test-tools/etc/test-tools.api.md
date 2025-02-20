@@ -1123,6 +1123,8 @@ interface IWatchRunnerOptions<T extends ECompilerType = ECompilerType.Rspack> ex
     // (undocumented)
     isWeb: boolean;
     // (undocumented)
+    state: Record<string, any>;
+    // (undocumented)
     stepName: string;
 }
 
@@ -1582,7 +1584,7 @@ export type TUpdateOptions = {
 
 // @public (undocumented)
 export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
-    constructor(_watchOptions: IWatchProcessorOptions<T>);
+    constructor(_watchOptions: IWatchProcessorOptions<T>, _watchState: Record<string, any>);
     // (undocumented)
     build(context: ITestContext): Promise<void>;
     // (undocumented)
@@ -1603,6 +1605,8 @@ export class WatchProcessor<T extends ECompilerType> extends MultiTaskProcessor<
     run(env: ITestEnv, context: ITestContext): Promise<void>;
     // (undocumented)
     protected _watchOptions: IWatchProcessorOptions<T>;
+    // (undocumented)
+    protected _watchState: Record<string, any>;
 }
 
 // @public (undocumented)
@@ -1626,13 +1630,15 @@ export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFact
 
 // @public (undocumented)
 export class WatchStepProcessor<T extends ECompilerType> extends WatchProcessor<T> {
-    constructor(_watchOptions: IWatchStepProcessorOptions<T>);
+    constructor(_watchOptions: IWatchStepProcessorOptions<T>, _watchState: Record<string, any>);
     // (undocumented)
     build(context: ITestContext): Promise<void>;
     // (undocumented)
     compiler(context: ITestContext): Promise<void>;
     // (undocumented)
     protected _watchOptions: IWatchStepProcessorOptions<T>;
+    // (undocumented)
+    protected _watchState: Record<string, any>;
 }
 
 // @public (undocumented)
