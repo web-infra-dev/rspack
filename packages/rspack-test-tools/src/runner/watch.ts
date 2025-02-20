@@ -33,6 +33,14 @@ export class WatchRunnerFactory<
 			throw new Error("Can not get watch step name from context");
 		}
 
+		const state: Record<string, any> | void = this.context.getValue(
+			this.name,
+			"watchState"
+		);
+		if (!state) {
+			throw new Error("Can not get watch state from context");
+		}
+
 		const isWeb = Array.isArray(compilerOptions)
 			? compilerOptions.some(option => {
 					return option.target === "web" || option.target === "webworker";
@@ -44,6 +52,7 @@ export class WatchRunnerFactory<
 			env,
 			stats,
 			name: this.name,
+			state,
 			stepName,
 			runInNewContext: isWeb,
 			isWeb,
