@@ -33,69 +33,129 @@ function clearDirectory(dirPath) {
 	fs.rmdirSync(dirPath);
 }
 
-function compareDirectory(actual, expected) {
-	const files = fs.readdirSync(expected);
+const hashRE = /(.*)\.\$.*\$\.(.*)/;
 
-	for (const file of files) {
-		const absoluteFilePath = path.resolve(expected, file);
+function normalizePath(str) {
+	return str.replace(/\\/g, "_").replace(/\\\\/g, "_").replace(/\./g, "_");
+}
 
-		const stats = fs.lstatSync(absoluteFilePath);
-
-		if (stats.isDirectory()) {
-			compareDirectory(
-				path.resolve(actual, file),
-				path.resolve(expected, file)
-			);
-		} else if (stats.isFile()) {
-			const expectedPath = path.resolve(expected, file);
-			const content = fs.readFileSync(expectedPath, "utf8");
-
-			let actualContent;
-
-			if (/^MISSING/.test(content)) {
-				expect(fs.existsSync(path.resolve(actual, file))).toBe(false);
-			} else {
-				try {
-					actualContent = fs.readFileSync(path.resolve(actual, file), "utf8");
-				} catch (error) {
-					const dir = fs.readdirSync(actual);
-
-					const hashRE = /(.*)\.\$.*\$\.(.*)/;
-					let match;
-					if (UPDATE_TEST && (match = file.match(hashRE))) {
-						const [, part1, part2] = match;
-						const realFileRE = new RegExp(`${part1}\\.\\$.*\\$\\.${part2}`);
-						const realFile = dir.find(value => {
-							return realFileRE.test(value);
-						});
-
-						// update expected
-						const newExpectedPath = path.resolve(expected, realFile);
-						fs.writeFileSync(
-							newExpectedPath,
-							fs.readFileSync(path.resolve(actual, realFile))
-						);
-						fs.unlinkSync(expectedPath);
-
-						continue;
-					} else {
-						// eslint-disable-next-line no-console
-						console.log(`Expected not exist ${expectedPath}`);
-
-						// eslint-disable-next-line no-console
-						console.log({ [actual]: dir });
-
-						throw error;
-					}
+function getHashes(webpackStats) {
+	const statsJson = webpackStats.toJson({
+		assets: true
+	});
+	const fullhash = webpackStats.hash;
+	const result = statsJson.assets || [];
+	for (const child of statsJson.children || []) {
+		result.push(...(child.assets || []));
+	}
+	return result.reduce((acc, i) => {
+		let name = i.name;
+		if (i.type === "asset" && i.info?.fullhash?.length) {
+			// TODO: handle moduleHashes of asset modules
+			if (i.info?.sourceFilename) {
+				name = `__ASSET_${normalizePath(i.info.sourceFilename)}_HASH__`;
+			} else if (i.info?.fullhash?.length) {
+				for (const hash of i.info.fullhash) {
+					name = `__ASSET_FULL_${normalizePath(name.replace(`$${hash}$`, "DH").replace(hash, "H"))}_HASH__`;
 				}
+			}
 
-				if (UPDATE_TEST) {
-					fs.writeFileSync(path.resolve(expected, file), actualContent);
+			acc[name] = i.info.fullhash.join("");
+		}
+		if (i.info?.contenthash?.length) {
+			for (const hash of i.info?.contenthash) {
+				name = `__CONTENT_${normalizePath(name.replace(`$${hash}$`, "DH").replace(hash, "H"))}_HASH__`;
+			}
+			acc[name] = i.info.contenthash.join("");
+		}
+		return acc;
+	}, {
+		__FULL_HASH__: fullhash
+	})
+}
+
+function compareDirectory(actual, expected, webpackStats) {
+	const files = fs.readdirSync(expected);
+	const hashes = getHashes(webpackStats);
+	function recoveryHash(str) {
+		for (const [placeholder, hash] of Object.entries(hashes)) {
+			str = str.replace(placeholder, hash);
+		}
+		return str;
+	}
+
+	function removeHash(str) {
+		for (const [placeholder, hash] of Object.entries(hashes)) {
+			str = str.replace(hash, placeholder);
+		}
+		return str;
+	}
+
+	try {
+		for (const file of files) {
+			const absoluteFilePath = path.resolve(expected, file);
+
+			const stats = fs.lstatSync(absoluteFilePath);
+
+			if (stats.isDirectory()) {
+				compareDirectory(
+					path.resolve(actual, file),
+					path.resolve(expected, file),
+					webpackStats
+				);
+			} else if (stats.isFile()) {
+				const expectedPath = path.resolve(expected, file);
+				const content = fs.readFileSync(expectedPath, "utf8");
+				const actualPath = recoveryHash(path.resolve(actual, file));
+				const dir = fs.readdirSync(actual);
+
+				let actualContent;
+
+				if (/^MISSING/.test(content)) {
+					expect(fs.existsSync(actualPath)).toBe(false);
 				} else {
-					expect(actualContent.replace(/\r\n/g, "\n").trim()).toEqual(content.replace(/\r\n/g, "\n").trim());
+					try {
+						actualContent = removeHash(fs.readFileSync(actualPath, "utf8"));
+					} catch (error) {
+						if (!UPDATE_TEST) {
+							// eslint-disable-next-line no-console
+							console.log(`Expected not exist ${expectedPath}`);
+
+							// eslint-disable-next-line no-console
+							console.log({ [actual]: dir });
+
+							throw error;
+						}
+					}
+
+					if (UPDATE_TEST) {
+						let match = file.match(hashRE);
+						if (match) {
+							const [, part1, part2] = match;
+							const realFileRE = new RegExp(`${part1}\\.\\$.*\\$\\.${part2}`);
+							const realFile = dir.find(value => realFileRE.test(value));
+
+							// update expected
+							const newExpectedPath = removeHash(path.resolve(expected, realFile));
+							fs.writeFileSync(
+								newExpectedPath,
+								fs.readFileSync(path.resolve(actual, realFile))
+							);
+							if (newExpectedPath !== expectedPath) {
+								fs.unlinkSync(expectedPath);
+							}
+						} else {
+							fs.writeFileSync(expectedPath, actualContent);
+						}
+					} else {
+						expect(actualContent.replace(/\r\n/g, "\n").trim()).toEqual(content.replace(/\r\n/g, "\n").trim());
+					}
 				}
 			}
 		}
+	} catch (e) {
+		console.log(e);
+		throw e;
 	}
 }
 
@@ -141,8 +201,8 @@ describe("TestCases", () => {
 							...config,
 							optimization: { moduleIds: "named", chunkIds: "named", ...config.optimization },
 							output: {
-								hashFunction: "md4",
-								hashDigestLength: 20,
+								hashFunction: "xxhash64",
+								hashDigestLength: 16,
 								...config.output,
 							},
 							experiments: {
@@ -164,8 +224,8 @@ describe("TestCases", () => {
 							...config.optimization,
 						},
 						output: {
-							hashFunction: "md4",
-							hashDigestLength: 20,
+							hashFunction: "xxhash64",
+							hashDigestLength: 16,
 							...config.output,
 						},
 						experiments: {
@@ -303,10 +363,11 @@ describe("TestCases", () => {
 					if (fs.existsSync(expectedDirectoryByVersion)) {
 						compareDirectory(
 							outputDirectoryForCase,
-							expectedDirectoryByVersion
+							expectedDirectoryByVersion,
+							stats
 						);
 					} else if (fs.existsSync(expectedDirectory)) {
-						compareDirectory(outputDirectoryForCase, expectedDirectory);
+						compareDirectory(outputDirectoryForCase, expectedDirectory, stats);
 					}
 
 					const warningsFile = path.resolve(directoryForCase, "warnings.js");

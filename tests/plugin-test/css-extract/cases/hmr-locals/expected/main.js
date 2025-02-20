@@ -232,12 +232,12 @@ __webpack_require__.d(__webpack_exports__, {
   x: () => (_1)
 });
 // extracted by css-extract-rspack-plugin
-var _1 = "VoofDB21D_QzDbRdwMiY";
+var _1 = "uKUN7__BVSobrm9K";
 
 
     if(true) {
       (function() {
-        var localsJsonString = "{\"x\":\"VoofDB21D_QzDbRdwMiY\"}";
+        var localsJsonString = "{\"x\":\"uKUN7__BVSobrm9K\"}";
         // 
         var cssReload = (__webpack_require__(/*! ../../../../../packages/rspack/dist/cssExtractHmr.js */ "../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
         // only invalidate when locals change
@@ -339,7 +339,7 @@ __webpack_require__.hu = function (chunkId) {
 })();
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () { return "xxxxxxxxxxxxxxxxxxxxxx" }
+__webpack_require__.h = function () { return "xxxxxxxxxxxxxxxxxx" }
 
 })();
 // webpack/runtime/get_main_filename/update manifest
