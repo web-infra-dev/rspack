@@ -496,6 +496,216 @@ opt-level = 3
 [profile.release.package.num-bigint]
 opt-level = "s"
 
+[profile.release.package.tonic]
+opt-level = "s"
+
+[profile.release.package.swc_error_reporters]
+opt-level = "s"
+
+[profile.release.package.ropey]
+opt-level = 3
+
+[profile.release.package.preset_env_base]
+opt-level = 3
+
+[profile.release.package.http]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_codegen]
+opt-level = 3
+
+[profile.release.package.swc_ecma_usage_analyzer]
+opt-level = 3
+
+[profile.release.package.parcel_sourcemap]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_merge_duplicate_chunks]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_lazy_compilation]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_asset]
+opt-level = 3
+
+[profile.release.package.idna]
+opt-level = "s"
+
+[profile.release.package.addr2line]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_dynamic_entry]
+opt-level = 3
+
+[profile.release.package.color-backtrace]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_externals]
+opt-level = 3
+
+[profile.release.package.json]
+opt-level = 3
+
+[profile.release.package.rspack_util]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2020]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_json]
+opt-level = 3
+
+[profile.release.package.libmimalloc-sys-rspack]
+opt-level = 3
+
+[profile.release.package.glob]
+opt-level = "s"
+
+[profile.release.package.rspack_loader_runner]
+opt-level = 3
+
+[profile.release.package.hyper-util]
+opt-level = "s"
+
+[profile.release.package.wasmparser]
+opt-level = "s"
+
+[profile.release.package.data-encoding]
+opt-level = "s"
+
+[profile.release.package.jsonc-parser]
+opt-level = "s"
+
+[profile.release.package.sha2]
+opt-level = 3
+
+[profile.release.package.opentelemetry]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_compat]
+opt-level = 3
+
+[profile.release.package.textwrap]
+opt-level = "s"
+
+[profile.release.package.console]
+opt-level = "s"
+
+[profile.release.package.chili]
+opt-level = 3
+
+[profile.release.package.swc_html_utils]
+opt-level = 3
+
+[profile.release.package.parcel_selectors]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_warn_sensitive_module]
+opt-level = 3
+
+[profile.release.package.swc_ecma_transforms_classes]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2016]
+opt-level = 3
+
+[profile.release.package.hashlink]
+opt-level = "s"
+
+[profile.release.package.tracing-core]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_entry]
+opt-level = 3
+
+[profile.release.package.hyper]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_size_limits]
+opt-level = 3
+
+[profile.release.package.opentelemetry-proto]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_ext_transforms]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_ensure_chunk_conditions]
+opt-level = 3
+
+[profile.release.package.tracing-opentelemetry]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_es2021]
+opt-level = 3
+
+[profile.release.package.simd-json]
+opt-level = 3
+
+[profile.release.package.icu_normalizer]
+opt-level = "s"
+
+[profile.release.package.rayon]
+opt-level = 3
+
+[profile.release.package.serde]
+opt-level = 3
+
+[profile.release.package.parking_lot]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_context_replacement]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_remove_duplicate_modules]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_common]
+opt-level = 3
+
+[profile.release.package.pest]
+opt-level = 3
+
+[profile.release.package.swc_node_comments]
+opt-level = 3
+
+[profile.release.package.memchr]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_banner]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_schemes]
+opt-level = 3
+
+[profile.release.package.dashmap]
+opt-level = 3
+
+[profile.release.package.anyhow]
+opt-level = "s"
+
+[profile.release.package.tracing-chrome]
+opt-level = "s"
+
+[profile.release.package.swc_html_codegen]
+opt-level = 3
+
+[profile.release.package.bytes]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2019]
+opt-level = 3
+
+[profile.release.package.rspack_cacheable]
+opt-level = 3
+
+[profile.release.package.swc_cached]
+opt-level = 3
+
+[profile.release.package.oneshot]
+opt-level = "s"
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
