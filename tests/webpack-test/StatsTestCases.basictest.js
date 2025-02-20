@@ -207,7 +207,9 @@ describe("StatsTestCases", () => {
 					.replace(new RegExp(quoteMeta(testPath), "g"), "Xdir/" + testName)
 					.replace(/(\w)\\(\w)/g, "$1/$2")
 					.replace(/, additional resolving: X ms/g, "")
-					.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier");
+					.replace(/Unexpected identifier '.+?'/g, "Unexpected identifier")
+					// CHANGE: Normalize bundle filenames by removing hashes, since bundle sizes may differ between platforms
+					.replace(/-.*\.js/g, "-xxx.js")
 				expect(actual).toMatchSnapshot();
 				// CHANGE: check actual snapshot
 				// if (testConfig.validate) testConfig.validate(stats, stderr.toString());
