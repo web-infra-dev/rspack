@@ -3,8 +3,8 @@ use std::fmt::Display;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ModuleDependency, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplate, DependencyType, FactorizeInfo, ModuleDependency, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -16,6 +16,7 @@ pub struct CssImportDependency {
   media: Option<String>,
   supports: Option<String>,
   layer: Option<CssLayer>,
+  factorize_info: FactorizeInfo,
 }
 
 #[cacheable]
@@ -40,6 +41,7 @@ impl CssImportDependency {
       media,
       supports,
       layer,
+      factorize_info: Default::default(),
     }
   }
 
@@ -91,6 +93,14 @@ impl ModuleDependency for CssImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

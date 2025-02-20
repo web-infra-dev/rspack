@@ -16,13 +16,18 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, BuildDependency, DependencyCondition, DependencyId, ExportInfo,
-  ExportInfoData, ExportsInfo, ExportsInfoData, ModuleIdentifier,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportInfo, ExportInfoData,
+  ExportsInfo, ExportsInfoData, ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
 pub type ImportVarMap =
   HashMap<Option<ModuleIdentifier> /* request */, String /* import_var */>;
+
+pub type BuildDependency = (
+  DependencyId,
+  Option<ModuleIdentifier>, /* parent module */
+);
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
 #[derive(Debug)]
@@ -221,17 +226,13 @@ impl<'a> ModuleGraph<'a> {
     dep_id: &DependencyId,
     force: bool,
   ) -> Option<BuildDependency> {
-    let connection_info = self.connection_by_dependency_id(dep_id).map(|connection| {
-      (
-        connection.original_module_identifier,
-        *connection.module_identifier(),
-      )
-    });
+    let original_module_identifier = self.get_parent_module(dep_id).copied();
+    let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
 
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
     };
-    if connection_info.is_some() {
+    if module_identifier.is_some() {
       active_partial.connections.insert(*dep_id, None);
     }
     if force {
@@ -241,7 +242,6 @@ impl<'a> ModuleGraph<'a> {
         .insert(*dep_id, None);
     }
 
-    let (original_module_identifier, module_identifier) = connection_info?;
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
       if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
@@ -251,8 +251,10 @@ impl<'a> ModuleGraph<'a> {
       }
     }
     // remove incoming from module graph module
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(&module_identifier) {
-      mgm.remove_incoming_connection(dep_id);
+    if let Some(module_identifier) = &module_identifier {
+      if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
+        mgm.remove_incoming_connection(dep_id);
+      }
     }
 
     Some((*dep_id, original_module_identifier))

@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   create_exports_object_referenced, create_no_exports_referenced, AsContextDependency, ChunkGraph,
-  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType, FactorizeInfo,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, NormalInitFragment, RuntimeGlobals,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -13,6 +13,7 @@ pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
   allow_exports_access: bool,
   id: DependencyId,
+  factorize_info: FactorizeInfo,
 }
 
 impl ModuleDecoratorDependency {
@@ -21,6 +22,7 @@ impl ModuleDecoratorDependency {
       decorator,
       allow_exports_access,
       id: DependencyId::new(),
+      factorize_info: Default::default(),
     }
   }
 }
@@ -29,6 +31,14 @@ impl ModuleDecoratorDependency {
 impl ModuleDependency for ModuleDecoratorDependency {
   fn request(&self) -> &str {
     "self"
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

@@ -1,6 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  module_id, Compilation, DependencyLocation, DependencyRange, RuntimeSpec, SharedSourceMap,
+  module_id, Compilation, DependencyLocation, DependencyRange, FactorizeInfo, RuntimeSpec,
+  SharedSourceMap,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
@@ -17,6 +18,7 @@ pub struct CommonJsRequireDependency {
   range_expr: Option<DependencyRange>,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsRequireDependency {
@@ -34,6 +36,7 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -81,6 +84,14 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

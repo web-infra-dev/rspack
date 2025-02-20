@@ -18,7 +18,10 @@ use self::{
   storage::{create_storage, Storage, StorageOptions},
 };
 use super::Cache;
-use crate::{make::MakeArtifact, Compilation, CompilerOptions};
+use crate::{
+  make::{MakeArtifact, MakeArtifactState},
+  Compilation, CompilerOptions,
+};
 
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
@@ -133,7 +136,7 @@ impl Cache for PersistentCache {
   }
 
   async fn before_make(&self, make_artifact: &mut MakeArtifact) -> Result<()> {
-    if !make_artifact.initialized {
+    if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
       *make_artifact = self.make_occasion.recovery().await?;
     }
     Ok(())

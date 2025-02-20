@@ -54,6 +54,7 @@ pub(crate) fn merge_loader_context(
         from.context_dependencies,
         from.missing_dependencies,
         from.build_dependencies,
+        from.cacheable,
       )
       .into(),
     );
