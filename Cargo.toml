@@ -248,7 +248,7 @@ opt-level = 3
 opt-level = 3
 
 [profile.release.package.regex-automata]
-opt-level = "s"
+opt-level = 3
 
 [profile.release.package.rspack_plugin_runtime]
 opt-level = 3
@@ -347,7 +347,7 @@ opt-level = "s"
 opt-level = 3
 
 [profile.release.package.rspack_regex]
-opt-level = "s"
+opt-level = 3
 
 [profile.release.package.hashbrown]
 opt-level = 3
