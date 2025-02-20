@@ -1203,6 +1203,23 @@ impl Compilation {
 
   #[instrument("Compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    // clean up the entry deps
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     let logger = self.get_logger("rspack.Compilation");
 
     self.in_finish_make.store(false, Ordering::Release);
@@ -1238,23 +1255,6 @@ impl Compilation {
       .finish_modules
       .call(self)
       .await?;
-
-    // finally clean up the entry deps
-    let make_artifact = std::mem::take(&mut self.make_artifact);
-    self.make_artifact = update_module_graph(
-      self,
-      make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
-        self
-          .entries
-          .values()
-          .flat_map(|item| item.all_dependencies())
-          .chain(self.global_entry.all_dependencies())
-          .copied()
-          .collect(),
-      )],
-    )
-    .await?;
 
     // sync assets to compilation from module_executor
     if let Some(module_executor) = &mut self.module_executor {
