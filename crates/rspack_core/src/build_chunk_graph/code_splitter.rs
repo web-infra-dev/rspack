@@ -444,16 +444,9 @@ impl CodeSplitter {
       .named_chunk_groups
       .insert(name.to_string(), entrypoint.ukey);
 
-    let index = compilation
-      .entries
-      .get_index_of(name)
-      .expect("should exists in compilation.entries");
     compilation
       .entrypoints
-      // Keep the order of entrypoints consistent with compilation.entries
-      // always O(1) when incremental build chunk graph disabled
-      // O(n) when incremental build chunk graph enabled
-      .insert_before(index, name.to_string(), entrypoint.ukey);
+      .insert(name.to_string(), entrypoint.ukey);
 
     let entrypoint = {
       let ukey = entrypoint.ukey;

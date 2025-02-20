@@ -12,9 +12,5 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: "single"
-	},
-	experiments: {
-		// TODO: disable new incremental because it will panic
-		incremental: false
 	}
 };
