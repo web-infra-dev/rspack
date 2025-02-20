@@ -3,7 +3,7 @@
 exports[`StatsTestCases should print correct stats for asset 1`] = `
 "asset c560fa876f51d750.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js xx KiB [emitted] (name: main)
-asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
+asset static/file.html xx bytes [emitted] [from: static/file.html] (auxiliary name: main)
 runtime modules xx KiB 2 modules
 modules by path ./ xx KiB (javascript) xx KiB (asset)
   modules by path ./images/ xx KiB (javascript) xx KiB (asset)
@@ -25,7 +25,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for asset-concat 1`] = `
 "asset c560fa876f51d750.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js xx KiB [emitted] (name: main)
-asset static/file.html 12 bytes [emitted] [from: static/file.html] (auxiliary name: main)
+asset static/file.html xx bytes [emitted] [from: static/file.html] (auxiliary name: main)
 orphan modules xx KiB [orphan] 8 modules
 runtime modules xx KiB 2 modules
 cacheable modules xx KiB (javascript) xx KiB (asset)
@@ -36,7 +36,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk 1`] = `
-"chunk (runtime: main) 726.js 21 bytes <{909}> [rendered]
+"chunk (runtime: main) 726.js xx bytes <{909}> [rendered]
   > ./index.js 9:4-13:6
   ./b.js 21 bytes [built] [code generated]
 chunk (runtime: main) main.js (main) 557 bytes (javascript) xx KiB (runtime) >{726}< [entry] [rendered]
@@ -48,7 +48,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk-auto 1`] = `
 "disabled:
-  chunk (runtime: main) disabled/async-xxx.js (async-c) 196 bytes [rendered]
+  chunk (runtime: main) disabled/async-xxx.js (async-c) xx bytes [rendered]
     > ./c ./index.js 3:0-47
     dependent modules 60 bytes [dependent] 3 modules
     ./c.js + 1 modules 136 bytes [code generated]
@@ -275,7 +275,7 @@ all:
 `;
 
 exports[`StatsTestCases should print correct stats for child-compiler-apply-entry-option 1`] = `
-"asset child.js 36 bytes [emitted]
+"asset child.js xx bytes [emitted]
 asset parent.js 36 bytes [emitted] (name: parent)
 Entrypoint parent 36 bytes = parent.js
 ./parent.js 1 bytes [built] [code generated]
@@ -288,7 +288,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for circular-correctness 1`] = `
-"chunk (runtime: main) 74.bundle.js (a) 49 bytes <{76}> <{909}> >{76}< [rendered]
+"chunk (runtime: main) 74.bundle.js (a) xx bytes <{76}> <{909}> >{76}< [rendered]
   ./module-xxx.js 49 bytes [built] [code generated]
 chunk (runtime: main) 751.bundle.js (b) 49 bytes <{76}> <{909}> >{76}< [rendered]
   ./module-xxx.js 49 bytes [built] [code generated]
@@ -300,20 +300,20 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for color-disabled 1`] = `
-"asset main.js 36 bytes [emitted] (name: main)
+"asset main.js xx bytes [emitted] (name: main)
 ./index.js 1 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for color-enabled 1`] = `
-"asset <CLR=32,BOLD>main.js</CLR> 36 bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
+"asset <CLR=32,BOLD>main.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
 <CLR=BOLD>./index.js</CLR> 1 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for common-libs 1`] = `
 "asset react.js xx KiB [emitted] (name: react)
-./react.js 74 bytes [built] [code generated]
+./react.js xx bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/index.js 186 bytes [built] [code generated]
 ../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -321,7 +321,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for commons-chunk-min-size-Infinity 1`] = `
 "asset entry-xxx.js xx KiB [emitted] (name: entry-1)
-asset vendor-xxx.js 236 bytes [emitted] (name: vendor-1) (id hint: vendor-1)
+asset vendor-xxx.js xx bytes [emitted] (name: vendor-1) (id hint: vendor-1)
 Entrypoint entry-xxx.js xx KiB
 runtime modules xx KiB 3 modules
 modules by path ./modules/*.js 132 bytes
@@ -336,7 +336,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for commons-plugin-issue-4980 1`] = `
-"asset app.824f7ad4e050d52c-xxx.js 52 bytes [emitted] [immutable] (name: app)
+"asset app.824f7ad4e050d52c-xxx.js xx bytes [emitted] [immutable] (name: app)
 orphan modules 205 bytes [orphan] 3 modules
 ./entry-xxx.js 67 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23
@@ -348,7 +348,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`] = `
-"./index.js 46 bytes [orphan] [built]
+"./index.js xx bytes [orphan] [built]
   Statement with side_effects in source code at ./index.js:3:0-15
   ModuleConcatenation bailout: Module is an entry point
 ./index.js + 2 modules 119 bytes [code generated]
@@ -372,7 +372,7 @@ exports[`StatsTestCases should print correct stats for concat-and-sideeffects 1`
 `;
 
 exports[`StatsTestCases should print correct stats for custom-terser 1`] = `
-"asset bundle.js 593 bytes [emitted] [minimized] (name: main)
+"asset bundle.js xx bytes [emitted] [minimized] (name: main)
 ./index.js 128 bytes [built] [code generated]
   [no exports used]
 ./a.js 49 bytes [built] [code generated]
@@ -381,7 +381,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for exclude-with-loader 1`] = `
-"hidden assets 34 bytes 1 asset
+"hidden assets xx bytes 1 asset
 asset bundle.js xx KiB [emitted] (name: main)
 runtime modules xx KiB 5 modules
 hidden modules 99 bytes 2 modules
@@ -392,14 +392,14 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for external 1`] = `
-"asset main.js 1020 bytes [emitted] (name: main)
+"asset main.js xx bytes [emitted] (name: main)
 ./index.js 17 bytes [built] [code generated]
 external \\"test\\" 42 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-correctness-entries 1`] = `
-"chunk (runtime: e1) e1.js (e1) 49 bytes (javascript) xx KiB (runtime) >{74}< [entry] [rendered]
+"chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) >{74}< [entry] [rendered]
   ./e1.js 49 bytes [built] [code generated]
     entry ./e1
 chunk (runtime: e1, e2) a.js (a) 49 bytes <{605}> <{76}> >{751}< [rendered]
@@ -420,7 +420,7 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-correctness-modules 1`] = `
-"chunk (runtime: e1) e1.js (e1) 119 bytes (javascript) xx KiB (runtime) >{74}< >{984}< [entry] [rendered]
+"chunk (runtime: e1) e1.js (e1) xx bytes (javascript) xx KiB (runtime) >{74}< >{984}< [entry] [rendered]
   ./e1.js 70 bytes [built] [code generated]
     entry ./e1
   ./module-xxx.js 49 bytes [dependent] [built] [code generated]
@@ -452,7 +452,7 @@ Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for graph-roots 1`] = `
-"chunk (runtime: main) cycle.js (cycle) 168 bytes [rendered]
+"chunk (runtime: main) cycle.js (cycle) xx bytes [rendered]
   ./cycle/a.js 39 bytes [built] [code generated]
   ./cycle/b.js 39 bytes [built] [code generated]
   ./cycle/c.js 51 bytes [built] [code generated]
@@ -490,7 +490,7 @@ chunk (runtime: main) trees.js (trees) 215 bytes [rendered]
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-warnings 1`] = `
-"asset main.js 928 bytes [emitted] (name: main)
+"asset main.js xx bytes [emitted] (name: main)
 orphan modules 794 bytes [orphan] 10 modules
 ./index.js + 9 modules 794 bytes [code generated]
 Rspack x.x.x compiled successfully in X.23"
@@ -498,12 +498,12 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
 "asset 4e754f8c75cc8afc.js xx KiB [emitted] [immutable] (name: main)
-asset 7342054f673663df.js 167 bytes [emitted] [immutable]"
+asset 7342054f673663df.js xx bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
 "asset entry.js xx KiB [emitted] (name: entry)
-asset 228.js 405 bytes [emitted]
+asset 228.js xx bytes [emitted]
 asset 271.js 405 bytes [emitted]
 asset 536.js 405 bytes [emitted]
 runtime modules xx KiB 9 modules
@@ -519,7 +519,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for import-weak 1`] = `
 "asset entry.js xx KiB [emitted] (name: entry)
-asset 332.js 283 bytes [emitted]
+asset 332.js xx bytes [emitted]
 asset 313.js 128 bytes [emitted]
 runtime modules xx KiB 10 modules
 cacheable modules 179 bytes
@@ -531,7 +531,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for import-weak-parser-option 1`] = `
 "asset entry.js xx KiB [emitted] (name: entry)
-asset 332.js 283 bytes [emitted]
+asset 332.js xx bytes [emitted]
 asset 313.js 128 bytes [emitted]
 runtime modules xx KiB 10 modules
 cacheable modules 153 bytes
@@ -543,7 +543,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for import-with-invalid-options-comments 1`] = `
 "runtime modules xx KiB 12 modules
-cacheable modules 559 bytes
+cacheable modules xx bytes
   ./index.js 50 bytes [built] [code generated]
   ./chunk.js 401 bytes [built] [code generated] [2 warnings]
   ./chunk-xxx.js 27 bytes [built] [code generated]
@@ -582,7 +582,7 @@ Rspack x.x.x compiled with 2 warnings"
 
 exports[`StatsTestCases should print correct stats for issue-7577 1`] = `
 "asset a-xxx.js xx KiB [emitted] [immutable] (name: runtime~main)
-asset a-xxx.js 387 bytes [emitted] [immutable] (name: main)
+asset a-xxx.js xx bytes [emitted] [immutable] (name: main)
 asset a-xxx.js 128 bytes [emitted] [immutable] (id hint: all)
 Entrypoint main xx KiB = a-xxx.js 387 bytes
 runtime modules xx KiB 3 modules
@@ -618,7 +618,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 1`] = `
 "1 chunks:
   asset bundle1.js xx KiB [emitted] (name: main)
-  chunk (runtime: main) bundle1.js (main) 219 bytes (javascript) xx KiB (runtime) <{909}> >{909}< [entry] [rendered]
+  chunk (runtime: main) bundle1.js (main) xx bytes (javascript) xx KiB (runtime) <{909}> >{909}< [entry] [rendered]
     ./a.js 22 bytes [dependent] [built] [code generated]
     ./b.js 22 bytes [dependent] [built] [code generated]
     ./c.js 30 bytes [dependent] [built] [code generated]
@@ -676,14 +676,14 @@ exports[`StatsTestCases should print correct stats for limit-chunk-count-plugin 
 
 exports[`StatsTestCases should print correct stats for logging-debug 1`] = `
 "<i> <CLR=32,BOLD>[LogTestPlugin] Info</CLR>
-asset <CLR=32,BOLD>main.js</CLR> 36 bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
+asset <CLR=32,BOLD>main.js</CLR> xx bytes <CLR=32,BOLD>[emitted]</CLR> (name: main)
 <CLR=BOLD>./index.js</CLR> 1 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 Rspack x.x.x compiled <CLR=32,BOLD>successfully</CLR> in X s"
 `;
 
 exports[`StatsTestCases should print correct stats for max-modules 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-./index.js 181 bytes [built] [code generated]
+./index.js xx bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
 ./a.js?3 33 bytes [built] [code generated]
@@ -708,7 +708,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for max-modules-default 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-./index.js 181 bytes [built] [code generated]
+./index.js xx bytes [built] [code generated]
 ./a.js?1 33 bytes [built] [code generated]
 ./a.js?2 33 bytes [built] [code generated]
 ./a.js?3 33 bytes [built] [code generated]
@@ -729,7 +729,7 @@ Rspack x.x.x compiled successfully in X.23"
 exports[`StatsTestCases should print correct stats for module-assets 1`] = `
 "assets by path *.js xx KiB
   asset main.js xx KiB [emitted] (name: main)
-  asset b.js 224 bytes [emitted] (name: b)
+  asset b.js xx bytes [emitted] (name: b)
   asset a.js 223 bytes [emitted] (name: a)
 assets by path *.png xx KiB
   asset 1.png xx KiB [emitted] [from: node_modules/a/1.png]
@@ -756,7 +756,7 @@ exports[`StatsTestCases should print correct stats for module-deduplication 1`] 
 "asset e1.js xx KiB [emitted] (name: e1)
 asset e2.js xx KiB [emitted] (name: e2)
 asset e3.js xx KiB [emitted] (name: e3)
-asset 106.js 749 bytes [emitted]
+asset 106.js xx bytes [emitted]
 asset 511.js 749 bytes [emitted]
 asset 637.js 749 bytes [emitted]
 asset 263.js 502 bytes [emitted]
@@ -796,7 +796,7 @@ exports[`StatsTestCases should print correct stats for module-deduplication-name
 "asset e1.js xx KiB [emitted] (name: e1)
 asset e2.js xx KiB [emitted] (name: e2)
 asset e3.js xx KiB [emitted] (name: e3)
-asset async1.js 861 bytes [emitted] (name: async1)
+asset async1.js xx bytes [emitted] (name: async1)
 asset async2.js 860 bytes [emitted] (name: async2)
 asset async3.js 860 bytes [emitted] (name: async3)
 chunk (runtime: e1, e2, e3) async3.js (async3) 135 bytes [rendered]
@@ -845,7 +845,7 @@ Rspack compiled with 2 errors"
 
 exports[`StatsTestCases should print correct stats for module-reasons 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-orphan modules 102 bytes [orphan] 3 modules
+orphan modules xx bytes [orphan] 3 modules
 cacheable modules 110 bytes
   ./index.js + 2 modules 102 bytes [code generated]
     entry ./index
@@ -857,7 +857,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for module-trace-disabled-in-error 1`] = `
 "assets by status xx KiB [cached] 1 asset
-modules with errors 53 bytes [errors]
+modules with errors xx bytes [errors]
   ./not-xxx.js 26 bytes [built] [code generated] [1 error]
   ./parse-xxx.js 27 bytes [built] [code generated] [1 error]
 ./index.js 19 bytes [built] [code generated]
@@ -890,7 +890,7 @@ Rspack x.x.x compiled with 2 errors in X.23"
 
 exports[`StatsTestCases should print correct stats for module-trace-enabled-in-error 1`] = `
 "assets by status xx KiB [cached] 1 asset
-modules with errors 53 bytes [errors]
+modules with errors xx bytes [errors]
   ./not-xxx.js 26 bytes [built] [code generated] [1 error]
   ./parse-xxx.js 27 bytes [built] [code generated] [1 error]
 ./index.js 19 bytes [built] [code generated]
@@ -926,7 +926,7 @@ Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-groups 1`] = `
-"Chunk Group async-xxx.js 749 bytes
+"Chunk Group async-xxx.js xx bytes
 Chunk Group async-xxx.js 749 bytes
 Chunk Group async-xxx.js 652 bytes
 Chunk Group main xx KiB = a-xxx.js
@@ -981,7 +981,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for named-chunks-plugin 1`] = `
 "asset entry.js xx KiB [emitted] (name: entry)
-asset vendor.js 211 bytes [emitted] (name: vendor) (id hint: vendor)
+asset vendor.js xx bytes [emitted] (name: vendor) (id hint: vendor)
 Entrypoint entry xx KiB = vendor.js 211 bytes entry.js xx KiB
 runtime modules xx KiB 3 modules
 cacheable modules 138 bytes
@@ -994,7 +994,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for optimize-chunks 1`] = `
 "asset main.js xx KiB {909} [emitted] (name: main)
-asset cir2 from cir1.js 351 bytes {334} [emitted] (name: cir2 from cir1)
+asset cir2 from cir1.js xx bytes {334} [emitted] (name: cir2 from cir1)
 asset cir1.js 325 bytes {228} [emitted] (name: cir1)
 asset cir2.js 325 bytes {787} [emitted] (name: cir2)
 asset chunk.js 178 bytes {919} [emitted] (name: chunk)
@@ -1041,7 +1041,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for output-module 1`] = `
 "asset main.mjs xx KiB [emitted] [javascript module] (name: main)
-asset 8.mjs 268 bytes [emitted] [javascript module]
+asset 8.mjs xx bytes [emitted] [javascript module]
 runtime modules xx KiB 8 modules
 orphan modules 225 bytes [orphan] 2 modules
 cacheable modules 263 bytes
@@ -1052,7 +1052,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 "assets by status xx KiB [cached] 1 asset
-orphan modules 30 bytes [orphan] 2 modules
+orphan modules xx bytes [orphan] 2 modules
 cacheable modules 85 bytes
   ./index.js + 1 modules 30 bytes [code generated]
   ./b.js 55 bytes [built] [code generated] [1 error]
@@ -1145,7 +1145,7 @@ exports[`StatsTestCases should print correct stats for performance-no-async-chun
 asset <CLR=32,BOLD>sec.js</CLR> xx KiB <CLR=32,BOLD>[emitted]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> xx KiB = <CLR=32,BOLD>sec.js</CLR>
-<CLR=BOLD>./index.js</CLR> 32 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./index2.js</CLR> 48 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./b.js</CLR> 22 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
@@ -1176,7 +1176,7 @@ exports[`StatsTestCases should print correct stats for performance-oversize-limi
 asset <CLR=33,BOLD>sec.js</CLR> <CLR=33,BOLD>xx KiB</CLR> <CLR=32,BOLD>[emitted]</CLR> <CLR=33,BOLD>[big]</CLR> (name: sec)
 Entrypoint <CLR=BOLD>main</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>main.js</CLR>
 Entrypoint <CLR=BOLD>sec</CLR> <CLR=33,BOLD>[big]</CLR> xx KiB = <CLR=32,BOLD>sec.js</CLR>
-<CLR=BOLD>./index.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
+<CLR=BOLD>./index.js</CLR> xx bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./index2.js</CLR> 16 bytes <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 <CLR=BOLD>./a.js</CLR> xx KiB <CLR=33,BOLD>[built]</CLR> <CLR=33,BOLD>[code generated]</CLR>
 
@@ -1204,7 +1204,7 @@ Rspack x.x.x compiled with <CLR=31,BOLD>3 errors</CLR> in X s"
 
 exports[`StatsTestCases should print correct stats for prefetch 1`] = `
 "asset main.js xx KiB {909} [emitted] (name: main)
-asset prefetched.js 552 bytes {674} [emitted] (name: prefetched)
+asset prefetched.js xx bytes {674} [emitted] (name: prefetched)
 asset inner2.js 126 bytes {857} [emitted] (name: inner2)
 asset inner.js 100 bytes {481} [emitted] (name: inner)
 asset normal.js 100 bytes {615} [emitted] (name: normal)
@@ -1227,7 +1227,7 @@ chunk (runtime: main) c2.js (c2) 1 bytes <{76}> [rendered]
 chunk (runtime: main) c1.js (c1) 1 bytes <{76}> [rendered]
 chunk (runtime: main) b3.js (b3) 1 bytes <{751}> [rendered]
 chunk (runtime: main) b2.js (b2) 1 bytes <{751}> [rendered]
-chunk (runtime: main) a.js (a) 136 bytes <{909}> >{330}< >{740}< (prefetch: {330} {740}) [rendered]
+chunk (runtime: main) a.js (a) xx bytes <{909}> >{330}< >{740}< (prefetch: {330} {740}) [rendered]
 chunk (runtime: main) a2.js (a2) 1 bytes <{74}> [rendered]
 chunk (runtime: main) b.js (b) 203 bytes <{909}> >{438}< >{439}< >{826}< (prefetch: {826} {438}) (preload: {439}) [rendered]
 chunk (runtime: main) c.js (c) 134 bytes <{909}> >{380}< >{433}< (preload: {433} {380}) [rendered]
@@ -1237,7 +1237,7 @@ chunk (runtime: main) main.js (main) 195 bytes (javascript) xx KiB (runtime) >{7
 
 exports[`StatsTestCases should print correct stats for preload 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-asset preloaded.js 552 bytes [emitted] (name: preloaded)
+asset preloaded.js xx bytes [emitted] (name: preloaded)
 asset inner2.js 126 bytes [emitted] (name: inner2)
 asset inner.js 100 bytes [emitted] (name: inner)
 asset normal.js 100 bytes [emitted] (name: normal)
@@ -1296,7 +1296,7 @@ exports[`StatsTestCases should print correct stats for preset-mixed-array 1`] = 
   minimal (Rspack x.x.x) compiled successfully in X.23
 
 verbose:
-  Entrypoint main 44 bytes = verbose.js
+  Entrypoint main xx bytes = verbose.js
   ./index.js 8 bytes [built] [code generated]
   verbose (Rspack x.x.x) compiled successfully"
 `;
@@ -1323,7 +1323,7 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 "default:
   assets by path *.br xx KiB
     asset default-xxx.js.br xx KiB [emitted]
-    asset default-xxx.js.map.br 676 bytes [emitted]
+    asset default-xxx.js.map.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
     asset default-xxx.js.gz xx KiB [emitted]
@@ -1401,7 +1401,7 @@ exclude3:
 
 exports[`StatsTestCases should print correct stats for reverse-sort-modules 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-./index.js 181 bytes [built] [code generated]
+./index.js xx bytes [built] [code generated]
 ./c.js?9 33 bytes [built] [code generated]
 ./c.js?8 33 bytes [built] [code generated]
 ./c.js?7 33 bytes [built] [code generated]
@@ -1436,19 +1436,19 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-chunk 1`] = `
-"Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js 391 bytes
+"Entrypoint e1 xx KiB = runtime~e1.js xx KiB e1.js xx bytes
 Entrypoint e2 xx KiB = runtime~e2.js xx KiB e2.js 391 bytes
 Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-chunk-issue-7382 1`] = `
-"Entrypoint e1 xx KiB = runtime.js xx KiB all.js 310 bytes e1.js 381 bytes
+"Entrypoint e1 xx KiB = runtime.js xx KiB all.js xx bytes e1.js 381 bytes
 Entrypoint e2 xx KiB = runtime.js xx KiB all.js 310 bytes e2.js 381 bytes
 Rspack x.x.x compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for runtime-chunk-single 1`] = `
-"Entrypoint e1 xx KiB = runtime.js xx KiB e1.js 391 bytes
+"Entrypoint e1 xx KiB = runtime.js xx KiB e1.js xx bytes
 Entrypoint e2 xx KiB = runtime.js xx KiB e2.js 391 bytes
 Rspack x.x.x compiled successfully"
 `;
@@ -1457,7 +1457,7 @@ exports[`StatsTestCases should print correct stats for runtime-specific-used-exp
 "production:
   asset production-xxx.js xx KiB [emitted] (name: a)
   asset production-xxx.js xx KiB [emitted] (name: b)
-  asset production-xxx.js 843 bytes [emitted]
+  asset production-xxx.js xx bytes [emitted]
   asset production-xxx.js 834 bytes [emitted]
   asset production-xxx.js 834 bytes [emitted]
   asset production-xxx.js 827 bytes [emitted]
@@ -1689,7 +1689,7 @@ global:
 
 exports[`StatsTestCases should print correct stats for scope-hoisting-multi 1`] = `
 "runtime modules xx KiB 18 modules
-orphan modules 118 bytes [orphan] 4 modules
+orphan modules xx bytes [orphan] 4 modules
 cacheable modules 726 bytes
   ./first.js 236 bytes [built] [code generated]
   ./second.js 202 bytes [built] [code generated]
@@ -1726,7 +1726,7 @@ Rspack x.x.x compiled successfully in X.23"
 
 exports[`StatsTestCases should print correct stats for side-effects-issue-7428 1`] = `
 "asset main.js xx KiB [emitted] (name: main)
-asset 0.js 561 bytes [emitted]
+asset 0.js xx bytes [emitted]
 runtime modules xx KiB 9 modules
 cacheable modules 967 bytes
   modules by path ./components/src/ 501 bytes
@@ -1770,7 +1770,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for side-effects-simple-unused 1`] = `
-"asset main.js 293 bytes [emitted] (name: main)
+"asset main.js xx bytes [emitted] (name: main)
 modules by path ./node_modules/pmodule/*.js 232 bytes
   ./node_modules/pmodule/index.js 75 bytes [orphan] [built]
     [only some exports used: default]
@@ -1818,7 +1818,7 @@ exports[`StatsTestCases should print correct stats for split-chunks 1`] = `
   Entrypoint a xx KiB = default/a.js
   Entrypoint b xx KiB = default/b.js
   Entrypoint c xx KiB = default/c.js
-  chunk (runtime: main) default/async-xxx.js (async-c) 116 bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
+  chunk (runtime: main) default/async-xxx.js (async-c) xx bytes <{909}> ={416}= ={418}= ={581}= ={753}= [rendered]
     > ./c ./index.js 3:0-47
     ./c.js 116 bytes [built] [code generated]
   chunk (runtime: main) default/async-xxx.js (async-a) 185 bytes <{909}> ={310}= ={418}= ={753}= >{581}< >{912}< [rendered]
@@ -2206,7 +2206,7 @@ custom-chunks-filter-in-cache-groups:
 
 exports[`StatsTestCases should print correct stats for split-chunks-automatic-name 1`] = `
 "Entrypoint main xx KiB = main.js
-chunk (runtime: main) async-xxx.js (async-a) (id hint: common) 136 bytes <{main}> ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
+chunk (runtime: main) async-xxx.js (async-a) (id hint: common) xx bytes <{main}> ={common-d_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
   > ./a ./index.js 1:0-47
   ./a.js + 1 modules 136 bytes [code generated]
 chunk (runtime: main) async-xxx.js (async-b) (id hint: common) 116 bytes <{main}> ={common-d_js}= ={common-f_js}= ={common-node_modules_x_js}= ={common-node_modules_y_js}= [rendered]
@@ -2244,7 +2244,7 @@ production (Rspack x.x.x) compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-chunk-name 1`] = `
 "Entrypoint main xx KiB = default/main.js
-chunk (runtime: main) default/async-xxx.js (async-a) 20 bytes <{909}> [rendered]
+chunk (runtime: main) default/async-xxx.js (async-a) xx bytes <{909}> [rendered]
   > a ./index.js 1:0-45
   ./node_modules/a.js 20 bytes [built] [code generated]
 chunk (runtime: main) default/async-xxx.js (async-b) (id hint: vendors) 122 bytes <{909}> [rendered]
@@ -2262,7 +2262,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-combinations 1`] = `
 "Entrypoint main xx KiB = main.js
-chunk (runtime: main) async-xxx.js (async-c) 132 bytes <{909}> [rendered]
+chunk (runtime: main) async-xxx.js (async-c) xx bytes <{909}> [rendered]
   > ./c ./index.js 3:0-47
   dependent modules 87 bytes [dependent] 1 module
   ./c.js 45 bytes [built] [code generated]
@@ -2301,7 +2301,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-6413 1`] = `
 "Entrypoint main xx KiB = main.js
-chunk (runtime: main) async-xxx.js (async-c) 36 bytes <{909}> ={306}= ={418}= [rendered]
+chunk (runtime: main) async-xxx.js (async-c) xx bytes <{909}> ={306}= ={418}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 36 bytes [built] [code generated]
 chunk (runtime: main) async-xxx.js (async-a) 36 bytes <{909}> ={306}= ={418}= [rendered]
@@ -2327,7 +2327,7 @@ default (Rspack x.x.x) compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-6696 1`] = `
-"Entrypoint main xx KiB = vendors.js 335 bytes main.js xx KiB
+"Entrypoint main xx KiB = vendors.js xx bytes main.js xx KiB
 chunk (runtime: main) vendors.js (vendors) (id hint: vendors) 20 bytes ={909}= >{250}< >{262}< [initial] [rendered] split chunk (cache group: vendors)
   > ./ main
   ./node_modules/y.js 20 bytes [built] [code generated]
@@ -2346,7 +2346,7 @@ default (Rspack x.x.x) compiled successfully"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-issue-7401 1`] = `
-"Entrypoint a xx KiB = 418.js 335 bytes a.js xx KiB
+"Entrypoint a xx KiB = 418.js xx bytes a.js xx KiB
 Entrypoint b xx KiB = b.js
 Chunk Group c 701 bytes = 418.js 335 bytes c.js 366 bytes
 chunk (runtime: a, b) 418.js (id hint: vendors) 20 bytes <{751}> ={74}= ={76}= [initial] [rendered] split chunk (cache group: defaultVendors)
@@ -2367,7 +2367,7 @@ default (Rspack x.x.x) compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-keep-remaining-size 1`] = `
 "Entrypoint main xx KiB = default/main.js
-chunk (runtime: main) default/async-xxx.js (async-c) 50 bytes <{909}> ={44}= [rendered]
+chunk (runtime: main) default/async-xxx.js (async-c) xx bytes <{909}> ={44}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 50 bytes [built] [code generated]
 chunk (runtime: main) default/async-xxx.js (async-a) 50 bytes <{909}> ={728}= [rendered]
@@ -2398,7 +2398,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-min-size-reduction 1`] = `
 "Entrypoint main xx KiB = default/main.js
-chunk (runtime: main) default/async-xxx.js (async-c) 50 bytes <{909}> ={44}= [rendered]
+chunk (runtime: main) default/async-xxx.js (async-c) xx bytes <{909}> ={44}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 50 bytes [built] [code generated]
 chunk (runtime: main) default/async-xxx.js (async-a) 176 bytes <{909}> [rendered]
@@ -2428,7 +2428,7 @@ Rspack x.x.x compiled successfully"
 
 exports[`StatsTestCases should print correct stats for split-chunks-prefer-bigger-splits 1`] = `
 "Entrypoint main xx KiB = default/main.js
-chunk (runtime: main) default/async-xxx.js (async-c) 70 bytes <{909}> ={457}= [rendered]
+chunk (runtime: main) default/async-xxx.js (async-c) xx bytes <{909}> ={457}= [rendered]
   > ./c ./index.js 3:0-47
   ./c.js 70 bytes [built] [code generated]
 chunk (runtime: main) default/async-xxx.js (async-a) 196 bytes <{909}> [rendered]
@@ -2454,7 +2454,7 @@ exports[`StatsTestCases should print correct stats for split-chunks-runtime-spec
 "used-exports:
   asset used-xxx.js xx KiB [emitted] (name: c)
   asset used-xxx.js xx KiB [emitted] (name: b)
-  asset used-xxx.js 353 bytes [emitted]
+  asset used-xxx.js xx bytes [emitted]
   asset used-xxx.js 249 bytes [emitted] (name: a)
   Entrypoint a 249 bytes = used-xxx.js
   Entrypoint b xx KiB = used-xxx.js xx KiB
