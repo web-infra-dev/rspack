@@ -215,6 +215,104 @@ opt-level = 3
 panic     = "abort"
 strip     = true
 
+[profile.release.package]
+
+[profile.release.package.std]
+opt-level = 3
+
+[profile.release.package.lightningcss]
+opt-level = 3
+
+[profile.release.package.rspack_core]
+opt-level = 3
+
+[profile.release.package.rspack_node]
+opt-level = 3
+
+[profile.release.package.swc_ecma_minifier]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_javascript]
+opt-level = 3
+
+[profile.release.package.swc]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2015]
+opt-level = 3
+
+[profile.release.package.swc_ecma_parser]
+opt-level = 3
+
+[profile.release.package.napi]
+opt-level = 3
+
+[profile.release.package.regex-automata]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_runtime]
+opt-level = 3
+
+[profile.release.package.browserslist-rs]
+opt-level = 3
+
+[profile.release.package.rspack_storage]
+opt-level = 3
+
+[profile.release.package.swc_ecma_utils]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_mf]
+opt-level = 3
+
+[profile.release.package.swc_ecma_visit]
+opt-level = 3
+
+[profile.release.package.regex-syntax]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_optimization]
+opt-level = 3
+
+[profile.release.package.swc_ecma_transforms_base]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_html]
+opt-level = 3
+
+[profile.release.package.rspack_loader_swc]
+opt-level = 3
+
+[profile.release.package.swc_ecma_ast]
+opt-level = 3
+
+[profile.release.package.swc_ecma_transforms_module]
+opt-level = "s"
+
+[profile.release.package.rspack_ids]
+opt-level = 3
+
+[profile.release.package.handlebars]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_proposal]
+opt-level = "s"
+
+[profile.release.package.swc_html_parser]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2022]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_rsdoctor]
+opt-level = "s"
+
+[profile.release.package.tokio]
+opt-level = 3
+
+[profile.release.package.rspack_loader_lightningcss]
+opt-level = 3
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
