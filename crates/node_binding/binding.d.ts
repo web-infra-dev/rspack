@@ -19,14 +19,9 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class Dependency {
-
-}
-export type JsDependency = Dependency
-
 export declare class EntryDataDto {
-  get dependencies(): Dependency[]
-  get includeDependencies(): Dependency[]
+  get dependencies(): JsDependency[]
+  get includeDependencies(): JsDependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -174,7 +169,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -204,8 +199,17 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
   get blocks(): JsDependenciesBlock[]
+}
+
+export declare class JsDependency {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
@@ -240,7 +244,7 @@ export declare class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
-  get dependencies(): Dependency[]
+  get dependencies(): JsDependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -251,21 +255,21 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: Dependency): JsModule | null
-  getResolvedModule(jsDependency: Dependency): JsModule | null
+  getModule(jsDependency: JsDependency): JsModule | null
+  getResolvedModule(jsDependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: Dependency): JsModuleGraphConnection | null
+  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: Dependency): JsModule | null
-  getParentBlockIndex(jsDependency: Dependency): number
+  getParentModule(jsDependency: JsDependency): JsModule | null
+  getParentBlockIndex(jsDependency: JsDependency): number
   isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): Dependency
+  get dependency(): JsDependency
   get module(): JsModule | null
   get resolvedModule(): JsModule | null
   get originModule(): JsModule | null
