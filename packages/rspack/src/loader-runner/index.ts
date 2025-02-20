@@ -630,12 +630,16 @@ export async function runLoaders(
 		};
 	};
 
-	const resolver = compiler._lastCompilation!.resolverFactory.get("normal");
+	const getResolver = memoize(() => {
+		return compiler._lastCompilation!.resolverFactory.get("normal");
+	});
+
 	loaderContext.resolve = function resolve(context, request, callback) {
-		resolver.resolve({}, context, request, getResolveContext(), callback);
+		getResolver().resolve({}, context, request, getResolveContext(), callback);
 	};
 
 	loaderContext.getResolve = function getResolve(options) {
+		const resolver = getResolver();
 		const child = options ? resolver.withOptions(options) : resolver;
 		return (context, request, callback) => {
 			if (callback) {
