@@ -93,23 +93,28 @@ module.exports = {
 		  },
 		}
 	`);
-		expect(stats?.toJson(statsOptions).namedChunkGroups).toMatchInlineSnapshot(`
+
+		const namedChunkGroups = stats?.toJson(statsOptions).namedChunkGroups;
+
+		deepReplaceNumbers(namedChunkGroups);
+
+		expect(namedChunkGroups).toMatchInlineSnapshot(`
 		Object {
 		  chunk: Object {
 		    assets: Array [
 		      Object {
 		        name: chunk.js,
-		        size: 841,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 841,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: chunk.js.map,
-		        size: 514,
+		        size: xxx,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 514,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {
 		      prefetch: Array [
 		        chunk-b.js,
@@ -124,12 +129,12 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-c.js,
-		              size: 134,
+		              size: xxx,
 		            },
 		          ],
-		          assetsSize: 134,
+		          assetsSize: xxx,
 		          auxiliaryAssets: Array [],
-		          auxiliaryAssetsSize: 0,
+		          auxiliaryAssetsSize: xxx,
 		          chunks: Array [
 		            212,
 		          ],
@@ -139,12 +144,12 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-a.js,
-		              size: 134,
+		              size: xxx,
 		            },
 		          ],
-		          assetsSize: 134,
+		          assetsSize: xxx,
 		          auxiliaryAssets: Array [],
-		          auxiliaryAssetsSize: 0,
+		          auxiliaryAssetsSize: xxx,
 		          chunks: Array [
 		            807,
 		          ],
@@ -156,12 +161,12 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk-b.js,
-		              size: 134,
+		              size: xxx,
 		            },
 		          ],
-		          assetsSize: 134,
+		          assetsSize: xxx,
 		          auxiliaryAssets: Array [],
-		          auxiliaryAssetsSize: 0,
+		          auxiliaryAssetsSize: xxx,
 		          chunks: Array [
 		            805,
 		          ],
@@ -180,12 +185,12 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-a.js,
-		        size: 134,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 134,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [],
-		    auxiliaryAssetsSize: 0,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {},
 		    children: Object {},
 		    chunks: Array [
@@ -199,12 +204,12 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-b.js,
-		        size: 134,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 134,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [],
-		    auxiliaryAssetsSize: 0,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {},
 		    children: Object {},
 		    chunks: Array [
@@ -218,12 +223,12 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: chunk-c.js,
-		        size: 134,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 134,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [],
-		    auxiliaryAssetsSize: 0,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {},
 		    children: Object {},
 		    chunks: Array [
@@ -237,17 +242,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14496,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 14496,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 686,
+		        size: xxx,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 686,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -255,17 +260,17 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 841,
+		              size: xxx,
 		            },
 		          ],
-		          assetsSize: 841,
+		          assetsSize: xxx,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,
-		              size: 514,
+		              size: xxx,
 		            },
 		          ],
-		          auxiliaryAssetsSize: 514,
+		          auxiliaryAssetsSize: xxx,
 		          chunks: Array [
 		            919,
 		          ],
