@@ -212,7 +212,7 @@ describe("StatsTestCases", () => {
 					.replace(/-.*\.js/g, "-xxx.js")
 					// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
 					.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB")
-					.replace(/[0-9]+\.?[0-9]+ bytes/, "xx bytes");
+					.replace(/[0-9]+ bytes/g, "xx bytes");
 				expect(actual).toMatchSnapshot();
 				// CHANGE: check actual snapshot
 				// if (testConfig.validate) testConfig.validate(stats, stderr.toString());
