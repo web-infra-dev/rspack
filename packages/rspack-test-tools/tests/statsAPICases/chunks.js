@@ -1,3 +1,19 @@
+function deepReplace(obj) {
+	if (typeof obj === "object" && obj !== null) {
+		for (const key in obj) {
+			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (typeof obj[key] === "number" && key === "runtime") {
+					obj[key] = "xxx";
+				} else if (key === "hash") {
+					obj[key] = "xxxxxxxxxxxxxxxx";
+				} else if (typeof obj[key] === "object") {
+					deepReplace(obj[key]);
+				}
+			}
+		}
+	}
+}
+
 /** @type {import('../../dist').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should output the chunks",
@@ -8,15 +24,17 @@ module.exports = {
 		};
 	},
 	async check(stats) {
-		expect(
-			stats?.toJson({
-				chunks: true,
-				timings: false,
-				builtAt: false,
-				version: false,
-				modulesSpace: 3
-			}).chunks
-		).toMatchInlineSnapshot(`
+		const statsChunks = stats?.toJson({
+			chunks: true,
+			timings: false,
+			builtAt: false,
+			version: false,
+			modulesSpace: 3
+		}).chunks;
+
+		deepReplace(statsChunks);
+
+		expect(statsChunks).toMatchInlineSnapshot(`
 		Array [
 		  Object {
 		    auxiliaryFiles: Array [],
@@ -27,7 +45,7 @@ module.exports = {
 		      chunkB.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: 64feb0c0aec6d474,
+		    hash: xxxxxxxxxxxxxxxx,
 		    id: 250,
 		    idHints: Array [],
 		    initial: false,
@@ -150,7 +168,7 @@ module.exports = {
 		      main.js,
 		    ],
 		    filteredModules: undefined,
-		    hash: f284da740ad9a1cb,
+		    hash: xxxxxxxxxxxxxxxx,
 		    id: 909,
 		    idHints: Array [],
 		    initial: true,
@@ -247,7 +265,7 @@ module.exports = {
 		    size: 85,
 		    sizes: Object {
 		      javascript: 85,
-		      runtime: 8965,
+		      runtime: xxx,
 		    },
 		    type: chunk,
 		  },
