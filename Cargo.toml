@@ -313,6 +313,189 @@ opt-level = 3
 [profile.release.package.rspack_loader_lightningcss]
 opt-level = 3
 
+[profile.release.package.swc_ecma_preset_env]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_css]
+opt-level = 3
+
+[profile.release.package.swc_ecma_transforms_typescript]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es3]
+opt-level = "s"
+
+[profile.release.package.rayon-core]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_split_chunks]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_lightning_css_minimizer]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_devtool]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_library]
+opt-level = 3
+
+[profile.release.package.h2]
+opt-level = "s"
+
+[profile.release.package.rspack_fs_node]
+opt-level = 3
+
+[profile.release.package.rspack_regex]
+opt-level = "s"
+
+[profile.release.package.hashbrown]
+opt-level = 3
+
+[profile.release.package.backtrace]
+opt-level = "s"
+
+[profile.release.package.rspack_sources]
+opt-level = 3
+
+[profile.release.package.aho-corasick]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_lints]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_extract_css]
+opt-level = 3
+
+[profile.release.package.swc_ecma_transforms_react]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_sri]
+opt-level = 3
+
+[profile.release.package.miette]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_bugfixes]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_dll]
+opt-level = 3
+
+[profile.release.package.rspack_dojang]
+opt-level = 3
+
+[profile.release.package.rspack_tracing]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2017]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_copy]
+opt-level = 3
+
+[profile.release.package.pnp]
+opt-level = "s"
+
+[profile.release.package.tracing-subscriber]
+opt-level = 3
+
+[profile.release.package.sourcemap]
+opt-level = 3
+
+[profile.release.package.swc_ecma_compat_es2018]
+opt-level = 3
+
+[profile.release.package.cssparser]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_real_content_hash]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_swc_js_minimizer]
+opt-level = 3
+
+[profile.release.package.rspack_fs]
+opt-level = 3
+
+[profile.release.package.serde_json]
+opt-level = 3
+
+[profile.release.package.swc_common]
+opt-level = 3
+
+[profile.release.package.css-module-lexer]
+opt-level = 3
+
+[profile.release.package.opentelemetry-otlp]
+opt-level = "s"
+
+[profile.release.package.fancy-regex]
+opt-level = "s"
+
+[profile.release.package.rspack_napi]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_limit_chunk_count]
+opt-level = 3
+
+[profile.release.package.rspack_plugin_wasm]
+opt-level = 3
+
+[profile.release.package.async-scoped]
+opt-level = 3
+
+[profile.release.package.swc_ecma_loader]
+opt-level = "s"
+
+[profile.release.package.chrono]
+opt-level = "s"
+
+[profile.release.package.rspack_resolver]
+opt-level = 3
+
+[profile.release.package.rkyv]
+opt-level = 3
+
+[profile.release.package.once_cell]
+opt-level = "s"
+
+[profile.release.package.rustc-demangle]
+opt-level = "s"
+
+[profile.release.package.url]
+opt-level = 3
+
+[profile.release.package.regress]
+opt-level = "s"
+
+[profile.release.package.indicatif]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_hmr]
+opt-level = 3
+
+[profile.release.package.gimli]
+opt-level = "s"
+
+[profile.release.package.regex]
+opt-level = "s"
+
+[profile.release.package.rspack_error]
+opt-level = "s"
+
+[profile.release.package.opentelemetry_sdk]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_progress]
+opt-level = "s"
+
+[profile.release.package.rspack_swc_plugin_import]
+opt-level = 3
+
+[profile.release.package.num-bigint]
+opt-level = "s"
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
