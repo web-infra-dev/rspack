@@ -1,3 +1,20 @@
+function deepReplaceNumbers(obj) {
+	if (typeof obj === "object" && obj !== null) {
+		for (const key in obj) {
+			if (Object.prototype.hasOwnProperty.call(obj, key)) {
+				if (
+					typeof obj[key] === "number" &&
+					(key.includes("size") || key.includes("Size"))
+				) {
+					obj[key] = "xxx";
+				} else if (typeof obj[key] === "object") {
+					deepReplaceNumbers(obj[key]);
+				}
+			}
+		}
+	}
+}
+
 /** @type {import('../..').TStatsAPICaseConfig} */
 module.exports = {
 	description: "should generate chunk group asset",
@@ -20,23 +37,28 @@ module.exports = {
 			builtAt: false,
 			version: false
 		};
-		expect(stats?.toJson(statsOptions).entrypoints).toMatchInlineSnapshot(`
+
+		const entrypoints = stats?.toJson(statsOptions).entrypoints;
+
+		deepReplaceNumbers(entrypoints);
+
+		expect(entrypoints).toMatchInlineSnapshot(`
 		Object {
 		  main: Object {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14594,
+		        size: xxx,
 		      },
 		    ],
-		    assetsSize: 14594,
+		    assetsSize: xxx,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 690,
+		        size: xxx,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 690,
+		    auxiliaryAssetsSize: xxx,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [
@@ -44,17 +66,17 @@ module.exports = {
 		          assets: Array [
 		            Object {
 		              name: chunk.js,
-		              size: 841,
+		              size: xxx,
 		            },
 		          ],
-		          assetsSize: 841,
+		          assetsSize: xxx,
 		          auxiliaryAssets: Array [
 		            Object {
 		              name: chunk.js.map,
-		              size: 514,
+		              size: xxx,
 		            },
 		          ],
-		          auxiliaryAssetsSize: 514,
+		          auxiliaryAssetsSize: xxx,
 		          chunks: Array [
 		            919,
 		          ],
@@ -215,17 +237,17 @@ module.exports = {
 		    assets: Array [
 		      Object {
 		        name: main.js,
-		        size: 14594,
+		        size: 14496,
 		      },
 		    ],
-		    assetsSize: 14594,
+		    assetsSize: 14496,
 		    auxiliaryAssets: Array [
 		      Object {
 		        name: main.js.map,
-		        size: 690,
+		        size: 686,
 		      },
 		    ],
-		    auxiliaryAssetsSize: 690,
+		    auxiliaryAssetsSize: 686,
 		    childAssets: Object {},
 		    children: Object {
 		      prefetch: Array [

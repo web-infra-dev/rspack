@@ -1,0 +1,6 @@
+<%- RUNTIME_HANDLERS %> = {};
+<%- RUNTIME_FUNCTION %> = <%- basicFunction("chunkId") %> {
+  Object.keys(<%- RUNTIME_HANDLERS %>).map(<%- basicFunction("key") %> {
+    <%- RUNTIME_HANDLERS %>[key](chunkId);
+  });
+}
