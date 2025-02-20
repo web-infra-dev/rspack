@@ -20,14 +20,6 @@ describeByWalk(
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/watchCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/watch`),
-		exclude: [
-			/module-concatenation-plugin/,
-			/missing-module/,
-			/caching-inner-source/,
-			/production/,
-			/warnings-contribute-to-hash/,
-			/issue-8766/
-		]
+		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/watch`)
 	}
 );

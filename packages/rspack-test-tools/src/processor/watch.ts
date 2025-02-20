@@ -37,7 +37,10 @@ export class WatchProcessor<
 	protected currentTriggerFilename: string | null = null;
 	protected lastHash: string | null = null;
 
-	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
+	constructor(
+		protected _watchOptions: IWatchProcessorOptions<T>,
+		protected _watchState: Record<string, any>
+	) {
 		super({
 			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
 			findBundle: WatchProcessor.findBundle<T>,
@@ -79,6 +82,7 @@ export class WatchProcessor<
 			"watchStepName",
 			this._watchOptions.stepName
 		);
+		context.setValue(this._options.name, "watchState", this._watchState);
 		await super.run(env, context);
 	}
 
@@ -271,8 +275,11 @@ export interface IWatchStepProcessorOptions<T extends ECompilerType>
 export class WatchStepProcessor<
 	T extends ECompilerType
 > extends WatchProcessor<T> {
-	constructor(protected _watchOptions: IWatchStepProcessorOptions<T>) {
-		super(_watchOptions);
+	constructor(
+		protected _watchOptions: IWatchStepProcessorOptions<T>,
+		protected _watchState: Record<string, any>
+	) {
+		super(_watchOptions, _watchState);
 	}
 
 	async compiler(context: ITestContext): Promise<void> {

@@ -71,7 +71,6 @@ pnpm-lock.yaml
 /packages/postcss-loader
 /packages/rspack
 /packages/rspack-cli
-/packages/rspack-dev-middleware
 /packages/rspack-plugin-html
 /packages/rspack-plugin-minify
 /packages/rspack-plugin-node-polyfill
