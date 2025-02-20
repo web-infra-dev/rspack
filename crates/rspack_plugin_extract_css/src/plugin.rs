@@ -141,9 +141,8 @@ impl PluginCssExtract {
       let a = compilation.chunk_group_by_ukey.expect_get(a);
       let b = compilation.chunk_group_by_ukey.expect_get(b);
       match a.index.cmp(&b.index) {
-        std::cmp::Ordering::Less => std::cmp::Ordering::Less,
-        std::cmp::Ordering::Equal => std::cmp::Ordering::Equal,
-        std::cmp::Ordering::Greater => a.ukey.cmp(&b.ukey),
+        std::cmp::Ordering::Equal => a.ukey.cmp(&b.ukey),
+        order_res => order_res,
       }
     });
 
