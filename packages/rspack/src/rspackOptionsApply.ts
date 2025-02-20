@@ -74,6 +74,7 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
+import {ModuleInfoHeaderPlugin} from "./builtin-plugin/ModuleInfoHeaderPluging";
 
 export class RspackOptionsApply {
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
@@ -130,6 +131,11 @@ export class RspackOptionsApply {
 		}
 
 		new ChunkPrefetchPreloadPlugin().apply(compiler);
+
+		if (options.output.pathinfo ) {
+			new ModuleInfoHeaderPlugin().apply(compiler);
+		}
+
 
 		if (typeof options.output.chunkFormat === "string") {
 			switch (options.output.chunkFormat) {

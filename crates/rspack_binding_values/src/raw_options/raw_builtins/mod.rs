@@ -49,11 +49,7 @@ use rspack_plugin_externals::{
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
-use rspack_plugin_javascript::{
-  api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
-};
+use rspack_plugin_javascript::{api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin, ModuleInfoHeaderPlugin, SideEffectsFlagPlugin};
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
 use rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin;
@@ -197,6 +193,7 @@ pub enum BuiltinPluginName {
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
+  ModuleInfoHeaderPlugin,
 }
 
 #[napi(object)]
@@ -557,6 +554,11 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::ModuleInfoHeaderPlugin => {
+        plugins.push(
+          ModuleInfoHeaderPlugin::default().boxed()
+        );
       }
     }
     Ok(())
