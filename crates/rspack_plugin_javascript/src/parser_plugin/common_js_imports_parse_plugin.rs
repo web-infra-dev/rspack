@@ -3,6 +3,7 @@ use rspack_core::{
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
+use rspack_util::atom::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr};
 
@@ -441,6 +442,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![]),
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.to_string(),
@@ -448,6 +450,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("resolve")]),
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE_WEAK.to_string(),
@@ -455,6 +458,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("resolveWeak")]),
       )),
       _ => None,
     }
