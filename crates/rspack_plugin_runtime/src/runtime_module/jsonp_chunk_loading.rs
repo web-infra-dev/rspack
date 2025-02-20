@@ -66,6 +66,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
+    let charset = compilation.options.output.charset;
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
@@ -150,6 +151,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       };
       let link_prefetch_code = r#"
     var link = document.createElement('link');
+    $LINK_CHART_CHARSET$
     $CROSS_ORIGIN$
     if (__webpack_require__.nc) {
       link.setAttribute("nonce", __webpack_require__.nc);
@@ -158,6 +160,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     link.as = "script";
     link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
       "#
+      .cow_replace(
+        "$LINK_CHART_CHARSET$",
+        if charset {
+          "link.charset = 'utf-8';"
+        } else {
+          ""
+        },
+      )
       .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
       .to_string();
 
@@ -221,8 +231,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       let link_preload_code = r#"
     var link = document.createElement('link');
+    $LINK_CHART_CHARSET$
     $SCRIPT_TYPE_LINK_PRE$
-    link.charset = 'utf-8';
     if (__webpack_require__.nc) {
       link.setAttribute("nonce", __webpack_require__.nc);
     }
@@ -230,6 +240,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
     $CROSS_ORIGIN$  
       "#
+      .cow_replace(
+        "$LINK_CHART_CHARSET$",
+        if charset {
+          "link.charset = 'utf-8';"
+        } else {
+          ""
+        },
+      )
       .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
       .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
       .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)

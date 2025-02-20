@@ -262,7 +262,7 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
     // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
     // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
     if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-    scriptUrl = scriptUrl.replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+    scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
     __webpack_require__.p = scriptUrl
     
 })();
