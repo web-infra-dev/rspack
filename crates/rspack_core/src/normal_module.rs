@@ -411,6 +411,7 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(mut r) => {
         let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+          self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
             .into_iter()

@@ -160,7 +160,9 @@ export class StatsProcessor<
 			actual = actual
 				.replace(/\u001b\[[0-9;]*m/g, "")
 				// CHANGE: The time unit display in Rspack is second
-				.replace(/[.0-9]+(\s?s)/g, "X$1");
+				.replace(/[.0-9]+(\s?s)/g, "X$1")
+				// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
+				.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
 		}
 
 		if (this.snapshotName) {

@@ -754,7 +754,7 @@ define_register!(
   RegisterCompilationExecuteModuleTaps,
   tap = CompilationExecuteModuleTap<JsExecuteModuleArg, ()> @ CompilationExecuteModuleHook,
   cache = false,
-  sync = true,
+  sync = false,
   kind = RegisterJsTapKind::CompilationExecuteModule,
   skip = true,
 );
@@ -1264,19 +1264,22 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
 
 #[async_trait]
 impl CompilationExecuteModule for CompilationExecuteModuleTap {
-  fn run(
+  async fn run(
     &self,
     entry: &ModuleIdentifier,
     runtime_modules: &IdentifierSet,
     codegen_results: &CodeGenerationResults,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
-    self.function.blocking_call_with_sync(JsExecuteModuleArg {
-      entry: entry.to_string(),
-      runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
-      codegen_results: codegen_results.clone().into(),
-      id: *id,
-    })
+    self
+      .function
+      .call_with_sync(JsExecuteModuleArg {
+        entry: entry.to_string(),
+        runtime_modules: runtime_modules.iter().map(|id| id.to_string()).collect(),
+        codegen_results: codegen_results.clone().into(),
+        id: *id,
+      })
+      .await
   }
 
   fn stage(&self) -> i32 {

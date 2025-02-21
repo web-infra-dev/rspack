@@ -1,5 +1,6 @@
 use rspack_error::Diagnostic;
 
+use super::FactorizeInfo;
 use crate::{ContextOptions, ContextTypePrefix, Dependency};
 
 pub trait ContextDependency: Dependency {
@@ -17,6 +18,9 @@ pub trait ContextDependency: Dependency {
 
   fn critical(&self) -> &Option<Diagnostic>;
   fn critical_mut(&mut self) -> &mut Option<Diagnostic>;
+
+  fn factorize_info(&self) -> &FactorizeInfo;
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
 }
 
 pub trait AsContextDependency {
