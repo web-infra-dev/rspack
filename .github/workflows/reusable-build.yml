@@ -10,6 +10,10 @@ on:
       target:
         required: true
         type: string
+      full-install:
+        default: true
+        required: false
+        type: boolean
       runner: # Runner labels
         required: true
         type: string
@@ -65,10 +69,10 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           save-if: ${{ github.ref_name == 'main' }}
-          run-install: false
+          run-install: ${{ inputs.full-install == 'true' }}
 
-      - name: Install node dependencies
-        if: ${{ !inputs.skipable }}
+      - name: Install binding node dependencies
+        if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
         shell: bash
         run: |
           cd ./crates/node_binding
