@@ -68,6 +68,7 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
       bench: true
+      full-install: false
 
   test-windows:
     name: Test Windows
@@ -78,6 +79,8 @@ jobs:
       profile: "dev"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      full-install: false
+
   test-mac:
     name: Test Mac
     needs: [get-runner-labels, check-changed]
@@ -88,6 +91,7 @@ jobs:
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+      full-install: false
 
   cargo-deny:
     name: Check license of dependencies
@@ -212,6 +216,11 @@ jobs:
           fmt: true
           shared-key: check
 
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+        with:
+          run-install: false
+      
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 

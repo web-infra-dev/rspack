@@ -10,6 +10,10 @@ on:
       target:
         required: true
         type: string
+      full-install:
+        default: true
+        required: false
+        type: boolean
       runner: # Runner labels
         required: true
         type: string
@@ -60,11 +64,20 @@ jobs:
         with:
           target: ${{ inputs.target }}
 
-      - name: Pnpm Cache
+      - name: Pnpm Setup
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
           save-if: ${{ github.ref_name == 'main' }}
+          run-install: ${{ inputs.full-install == 'true' }}
+
+      - name: Install binding node dependencies
+        if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
+        shell: bash
+        run: |
+          cd ./crates/node_binding
+          pnpm install --ignore-workspace --no-lockfile
+          cd ../../
 
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
@@ -99,6 +112,7 @@ jobs:
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
+
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
@@ -184,6 +198,7 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/upload-artifact
