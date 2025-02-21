@@ -76,7 +76,7 @@ jobs:
         shell: bash
         run: |
           cd ./crates/node_binding
-          pnpm install --ignore-workspace
+          pnpm install --ignore-workspace --no-lockfile
           cd ../../
 
       - name: Install Rust Toolchain
