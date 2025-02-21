@@ -260,6 +260,7 @@ jobs:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
       # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
       # PUPPETEER_SKIP_DOWNLOAD: true
+      
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
@@ -358,9 +359,8 @@ jobs:
 
   bench:
     name: Bench
-    needs: build
     if: ${{ inputs.bench && !inputs.skipable }}
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -374,6 +374,30 @@ jobs:
         with:
           target: ${{ inputs.target }}
 
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
+      
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
+        with:
+          tool: cargo-codspeed@2.7.2
+
+      - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Wait for build job
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: 'Test Linux / Build'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
@@ -386,27 +410,11 @@ jobs:
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
-
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
       - name: Build JS
         run: pnpm run build:js
-
-      - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
-        with:
-          tool: cargo-codspeed@2.7.2
-
-      - name: Build Benchmark
-        env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Run benchmark
         uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
