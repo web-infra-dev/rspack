@@ -19,3 +19,4 @@ packages:
   - "packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/*"
   # this following is used to test sri plugin
   - "tests/plugin-test/sri-plugin/examples/*"
+  - ".bench/**"

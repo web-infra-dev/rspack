@@ -405,8 +405,11 @@ jobs:
 
       - name: Build Benchmark
         env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed --verbose"
         run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Prepare Benchmark cases
+        run: pnpm run bench:prepare
 
       - name: Run benchmark
         uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
