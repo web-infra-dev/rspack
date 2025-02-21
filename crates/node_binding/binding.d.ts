@@ -279,7 +279,7 @@ export declare class JsModuleGraphConnection {
 
 export declare class JsResolver {
   resolveSync(path: string, request: string): string | false
-  withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
+  withOptions(JsResolver): JsResolverWrapper
 }
 
 export declare class JsResolverFactory {
@@ -292,11 +292,6 @@ export declare class JsStats {
   hasWarnings(): boolean
   hasErrors(): boolean
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
-}
-
-export declare class RawExternalItemFnCtx {
-  data(): RawExternalItemFnCtxData
-  getResolver(): JsResolver
 }
 
 export interface BuiltinPlugin {
@@ -682,6 +677,14 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   id: number
   error?: string
+}
+
+export interface JsExternalItemFnCtx {
+  request: string
+  context: string
+  dependencyType: string
+  contextInfo: ContextInfo
+  resolver: JsResolverWrapper
 }
 
 export interface JsFactorizeArgs {
@@ -1623,13 +1626,6 @@ export interface RawExposeOptions {
   key: string
   name?: string
   import: Array<string>
-}
-
-export interface RawExternalItemFnCtxData {
-  request: string
-  context: string
-  dependencyType: string
-  contextInfo: ContextInfo
 }
 
 export interface RawExternalItemFnResult {

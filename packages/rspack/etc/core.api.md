@@ -5136,15 +5136,16 @@ type ResolveOptionsWithDependencyType_2 = Resolve & {
 
 // @public (undocumented)
 class Resolver {
-    constructor(binding: binding.JsResolver);
     // (undocumented)
-    binding: binding.JsResolver;
+    static __from_binding(binding: binding.JsResolver): Resolver;
+    // (undocumented)
+    static __to_binding(chunk: Resolver): binding.JsResolver;
     // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
-    withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
+    withOptions(options: ResolveOptionsWithDependencyType_2): Resolver;
 }
 
 // @public (undocumented)
