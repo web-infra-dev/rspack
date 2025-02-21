@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (fc4b68e80ae135da)
+Rspack compiled successfully (ea70de85332c1294)
 `;
 
 exports[`new code splitting stats output new code splitting stats output/builtin-swc-loader-parse-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
@@ -452,7 +452,7 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`new code splitting stats output new code splitting stats output/simple-module-source should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 702 bytes 3 modules
+runtime modules 661 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes
   ./index.js 75 bytes [built] [code generated]
