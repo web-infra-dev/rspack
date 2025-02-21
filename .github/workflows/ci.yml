@@ -212,9 +212,6 @@ jobs:
           fmt: true
           shared-key: check
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
-
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -231,7 +228,7 @@ jobs:
           args: --all -- --check
 
       - name: Run toml format check
-        run: pnpm run format-ci:toml
+        run: npm run format-ci:toml
 
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies
@@ -254,9 +251,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -287,9 +281,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
