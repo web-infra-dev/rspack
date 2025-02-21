@@ -46,16 +46,13 @@ return module.exports;
 // webpack/runtime/compat_get_default_export
 (() => {
 // getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = function (module) {
+__webpack_require__.n = (module) => {
 	var getter = module && module.__esModule ?
-		function () { return module['default']; } :
-		function () { return module; };
+		() => (module['default']) :
+		() => (module);
 	__webpack_require__.d(getter, { a: getter });
 	return getter;
 };
-
-
-
 
 })();
 // webpack/runtime/define_property_getters

@@ -72,9 +72,9 @@ module.exports = {
 		    preOrderIndex: undefined,
 		    providedExports: Array [],
 		    reasons: Array [],
-		    size: 305,
+		    size: 264,
 		    sizes: Object {
-		      runtime: 305,
+		      runtime: 264,
 		    },
 		    type: module,
 		    usedExports: null,
