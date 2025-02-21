@@ -212,9 +212,6 @@ jobs:
           fmt: true
           shared-key: check
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
-
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
