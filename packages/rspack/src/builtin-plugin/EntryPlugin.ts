@@ -4,6 +4,7 @@ import {
 	type JsEntryPluginOptions
 } from "@rspack/binding";
 
+import { EntryDependency } from "../EntryDependency";
 import type { EntryDescriptionNormalized } from "../config";
 import { create } from "./base";
 
@@ -41,11 +42,6 @@ const OriginEntryPlugin = create(
 	"make"
 );
 
-// TODO: Currently, the Rspack framework does not support the inheritance hierarchy of Dependency.
-interface EntryDependency {
-	request: string;
-}
-
 type EntryPluginType = typeof OriginEntryPlugin & {
 	createDependency(entry: string): EntryDependency;
 };
@@ -53,9 +49,7 @@ type EntryPluginType = typeof OriginEntryPlugin & {
 export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
 
 EntryPlugin.createDependency = request => {
-	return {
-		request
-	};
+	return new EntryDependency(request);
 };
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
