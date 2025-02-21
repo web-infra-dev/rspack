@@ -457,7 +457,6 @@ impl CodeSplitter {
           _ => None,
         })
         .collect();
-      dbg!(&removed_modules);
       (affected_modules, removed_modules)
     } else {
       (
@@ -474,7 +473,21 @@ impl CodeSplitter {
     let mut edges = vec![];
 
     // collect invalidate caches before we do anything to the chunk graph
-    let dirty_blocks = self.collect_dirty_caches(compilation, affected_modules.iter().copied());
+    let dirty_blocks = self.collect_dirty_caches(
+      compilation,
+      affected_modules
+        .iter()
+        .chain(removed_modules.iter())
+        .copied(),
+    );
+
+    for m in removed_modules {
+      for module_map in self.block_modules_runtime_map.values_mut() {
+        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
+      }
+
+      self.invalidate_from_module(m, compilation)?;
+    }
 
     for m in affected_modules {
       for module_map in self.block_modules_runtime_map.values_mut() {

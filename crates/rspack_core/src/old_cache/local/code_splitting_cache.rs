@@ -46,7 +46,6 @@ where
       .incremental
       .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
   let no_change = !compilation.has_module_import_export_change()
-    && compilation.code_splitting_cache.entrypoints.len() == compilation.entries.len()
     && compilation
       .code_splitting_cache
       .entrypoints
