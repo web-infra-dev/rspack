@@ -4,8 +4,10 @@ mod compiler;
 mod options;
 mod transformer;
 
+use std::collections::HashMap;
 use std::default::Default;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use compiler::{IntoJsAst, SwcCompiler};
 use next_custom_transforms::chain_transforms::{custom_before_pass, TransformOptions};
@@ -16,6 +18,8 @@ use next_custom_transforms::transforms::{
 use once_cell::sync::Lazy;
 use options::NextSwcLoaderJsOptions;
 pub use options::SwcLoaderJsOptions;
+use preset_env_base::query::QueryOrVersion;
+use preset_env_base::version::Version;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::RunnerContext;
@@ -209,7 +213,15 @@ impl NextSwcLoader {
           ..Default::default()
         })
       } else {
-        None
+        Some(swc_core::ecma::preset_env::Config {
+          targets: Some(swc_core::ecma::preset_env::Targets::HashMap(
+            HashMap::from_iter(vec![(
+              "node".to_string(),
+              QueryOrVersion::Version(Version::from_str("18.20.4").unwrap()),
+            )]),
+          )),
+          ..Default::default()
+        })
       }
     };
 
@@ -283,6 +295,13 @@ impl NextSwcLoader {
       ..Default::default()
     };
 
+    let server_components = server_components.map(|_| {
+      react_server_components::Config::WithOptions(react_server_components::Options {
+        is_react_server_layer,
+        dynamic_io_enabled: false,
+      })
+    });
+
     let opts = TransformOptions {
       swc: swc_options.clone(),
       disable_next_ssg,
@@ -293,7 +312,7 @@ impl NextSwcLoader {
       is_development,
       is_server_compiler: *is_server,
       prefer_esm: *esm,
-      server_components: server_components.map(react_server_components::Config::All),
+      server_components,
       styled_jsx: Default::default(),
       styled_components,
       remove_console: None,
@@ -319,7 +338,6 @@ impl NextSwcLoader {
       .map_err(AnyhowError::from)?;
 
     let c_ref = &c;
-
     let built = c
       .parse(None, |_| {
         custom_before_pass(

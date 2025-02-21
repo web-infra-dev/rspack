@@ -22,15 +22,15 @@ lazy_static = { workspace = true }
 once_cell   = { workspace = true }
 pathdiff    = { workspace = true }
 regex       = "1.5"
-rustc-hash  = "1.1.0"
+rustc-hash  = { workspace = true }
 serde       = { workspace = true }
 serde_json  = { workspace = true, features = ["preserve_order"] }
 sha1        = "0.10.1"
 tracing     = { version = "0.1.37" }
 
-modularize_imports = { version = "0.70.1" }
-styled_components = { version = "0.98.1" }
-styled_jsx = { version = "0.75.1" }
+modularize_imports = { version = "0.77.0" }
+styled_components = { version = "0.105.0" }
+styled_jsx = { version = "0.81.0" }
 swc_core = { workspace = true, features = [
   "base",
   "cached",
@@ -50,9 +50,9 @@ swc_core = { workspace = true, features = [
   "ecma_utils",
   "ecma_visit",
 ] }
-swc_emotion = { version = "0.74.1" }
-swc_relay = { version = "0.46.1" }
+swc_emotion = { version = "0.81.0" }
+swc_relay = { version = "0.51.0" }
 
-preset_env_base         = "1.0.0"
-react_remove_properties = "0.26.1"
-remove_console          = "0.27.1"
+preset_env_base         = "2.0.1"
+react_remove_properties = "0.31.0"
+remove_console          = "0.32.0"

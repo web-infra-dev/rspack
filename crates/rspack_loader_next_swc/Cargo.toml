@@ -23,26 +23,28 @@ base64                   = { version = "0.22.1" }
 either                   = { workspace = true }
 indoc                    = { workspace = true }
 jsonc-parser             = { version = "0.26.2", features = ["serde"] }
+next-custom-transforms   = { workspace = true }
+once_cell                = { workspace = true }
+preset_env_base          = "2.0.1"
+regex                    = { workspace = true }
 rspack_ast               = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_core              = { workspace = true }
-rspack_paths= { workspace = true }
 rspack_error             = { workspace = true }
 rspack_loader_runner     = { workspace = true }
+rspack_paths             = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_swc_plugin_import = { workspace = true }
 rspack_util              = { workspace = true }
+rustc-hash               = { workspace = true }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 stacker                  = { workspace = true }
-swc                      = { workspace = true, features = ["manual-tokio-runtmie"] }
+sugar_path               = { workspace = true }
+swc                      = { workspace = true }
 swc_config               = { workspace = true }
-next-custom-transforms   = { workspace = true }
-once_cell   = { workspace = true }
-sugar_path = { workspace = true }
-regex   = { workspace = true }
-rustc-hash  = "1.1.0"
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 url                      = "2.5.4"
+
 [build-dependencies]
 cargo_toml = { version = "0.21.0" }

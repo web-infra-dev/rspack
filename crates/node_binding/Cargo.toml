@@ -61,6 +61,7 @@ tokio              = { workspace = true, features = ["rt", "rt-multi-thread", "m
 
 
 rspack_loader_lightningcss             = { workspace = true }
+rspack_loader_next_swc                 = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }
 rspack_loader_runner                   = { workspace = true }

@@ -16,6 +16,7 @@ use rspack_error::{
 };
 use rspack_hook::plugin_hook;
 use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER};
+use rspack_loader_next_swc::NEXT_SWC_LOADER_IDENTIFIER;
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::{SwcLoader, SWC_LOADER_IDENTIFIER};
@@ -77,6 +78,21 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
     SWC_LOADER_CACHE.write().await.insert(
       (Cow::Owned(builtin.to_owned()), options.clone()),
       loader.clone(),
+    );
+    return Ok(loader);
+  }
+
+  if builtin.starts_with(NEXT_SWC_LOADER_IDENTIFIER) {
+    let loader = Arc::new(
+      rspack_loader_next_swc::NextSwcLoader::new(options.as_ref())
+        .map_err(|e| {
+          serde_error_to_miette(
+            e,
+            options.clone(),
+            "failed to parse builtin:swc-loader options",
+          )
+        })?
+        .with_identifier(builtin.into()),
     );
     return Ok(loader);
   }
