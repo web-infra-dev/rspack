@@ -32,9 +32,6 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
-        echo "ttt1"
-        echo "ttt2"
-        echo "ttt3"
         if [[ "${{runner.os}}" == "Windows" ]]; then
           # add the npm prefix to PATH to ensure the installed corepack work properly
           NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
@@ -55,7 +52,7 @@ runs:
         standalone: true
 
     - name: Get pnpm store directory
-      if: ${{ inputs.run-install }}
+      if: ${{ inputs.run-install == 'true' }}
       id: pnpm-cache
       shell: bash
       run: |
@@ -70,7 +67,7 @@ runs:
 
     - name: Restore pnpm cache
       id: restore
-      if: ${{ inputs.run-install && startsWith(runner.name, 'GitHub Actions') }}
+      if: ${{ inputs.run-install == 'true' && startsWith(runner.name, 'GitHub Actions') }}
       uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -80,7 +77,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      if: ${{ inputs.run-install }}
+      if: ${{ inputs.run-install == 'true' }}
       run: |
         if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
           pnpm install --frozen-lockfile --prefer-offline
@@ -90,7 +87,7 @@ runs:
 
     - name: Save pnpm cache
       uses: actions/cache/save@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
-      if: ${{ inputs.run-install && startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.run-install == 'true' && startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
