@@ -3875,6 +3875,8 @@ class ModuleGraph {
     // (undocumented)
     getOutgoingConnections(module: Module): ModuleGraphConnection[];
     // (undocumented)
+    getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[];
+    // (undocumented)
     getParentBlockIndex(dependency: Dependency): number;
     // (undocumented)
     getParentModule(dependency: Dependency): Module | null;
