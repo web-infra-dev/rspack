@@ -379,10 +379,11 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void

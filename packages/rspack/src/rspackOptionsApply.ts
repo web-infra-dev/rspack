@@ -67,6 +67,7 @@ import {
 	SplitChunksPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
+import { ModuleInfoHeaderPlugin } from "./builtin-plugin/ModuleInfoHeaderPluging";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
 import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
@@ -130,6 +131,10 @@ export class RspackOptionsApply {
 		}
 
 		new ChunkPrefetchPreloadPlugin().apply(compiler);
+
+		if (options.output.pathinfo) {
+			new ModuleInfoHeaderPlugin().apply(compiler);
+		}
 
 		if (typeof options.output.chunkFormat === "string") {
 			switch (options.output.chunkFormat) {
