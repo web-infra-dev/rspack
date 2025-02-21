@@ -60,12 +60,6 @@ jobs:
         with:
           target: ${{ inputs.target }}
 
-      - name: Pnpm Cache
-        if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          save-if: ${{ github.ref_name == 'main' }}
-
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/rustup
@@ -260,7 +254,7 @@ jobs:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
       # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
       # PUPPETEER_SKIP_DOWNLOAD: true
-      
+
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
@@ -379,7 +373,7 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
-      
+
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
         with:
@@ -394,10 +388,10 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          check-name: 'Test Linux / Build'
+          check-name: "Test Linux / Build"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
-      
+
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
