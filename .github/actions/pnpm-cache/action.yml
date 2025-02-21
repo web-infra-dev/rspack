@@ -44,16 +44,16 @@ runs:
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
-      uses: pnpm/action-setup@v4
       if: ${{ inputs.node-version == '16' }}
+      uses: pnpm/action-setup@v4
       with:
         dest: ${{ runner.tool_cache }}/pnpm
         # Use `@pnpm/exe` for Node 16
         standalone: true
 
     - name: Get pnpm store directory
-      id: pnpm-cache
       if: ${{ inputs.run-install }}
+      id: pnpm-cache
       shell: bash
       run: |
         # set store-dir to $(pnpm config get store-dir)/$(pnpm -v)
@@ -67,7 +67,7 @@ runs:
 
     - name: Restore pnpm cache
       id: restore
-      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.run-install }}
+      if: ${{ inputs.run-install && startsWith(runner.name, 'GitHub Actions') }}
       uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -87,7 +87,7 @@ runs:
 
     - name: Save pnpm cache
       uses: actions/cache/save@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' && inputs.run-install }}
+      if: ${{ inputs.run-install && startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
