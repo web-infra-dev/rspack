@@ -390,7 +390,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
+          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
