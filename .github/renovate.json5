@@ -144,8 +144,7 @@
 		{
 			groupName: "webpack",
 			matchManagers: ["npm"],
-			matchPackagePrefixes: ["webpack"],
-			enabled: false
+			matchPackagePrefixes: ["webpack"]
 		},
 		{
 			// should update the playwright image in .github/workflows/reusable-build.yml
