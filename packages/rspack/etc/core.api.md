@@ -650,7 +650,7 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
-    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
+    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err: WebpackError_2 | null, module: Module | null) => void): void;
     // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
@@ -1409,17 +1409,17 @@ class DependenciesBlock {
 
 // @public (undocumented)
 class Dependency {
-    constructor();
     // (undocumented)
-    readonly category: string;
+    get category(): string;
     // (undocumented)
-    critical: boolean;
+    get critical(): boolean;
+    set critical(val: boolean);
     // (undocumented)
     get ids(): string[] | undefined;
     // (undocumented)
-    readonly request: string | undefined;
+    get request(): string | undefined;
     // (undocumented)
-    readonly type: string;
+    get type(): string;
 }
 
 // @public (undocumented)
@@ -3790,7 +3790,7 @@ type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNex
 class ModuleDependency extends Dependency {
     constructor(request: string);
     // (undocumented)
-    request: string;
+    get request(): string;
 }
 
 // @public (undocumented)
