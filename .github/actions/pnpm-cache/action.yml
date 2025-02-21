@@ -32,6 +32,9 @@ runs:
       if: ${{ inputs.node-version != '16' }}
       shell: bash
       run: |
+        echo "Corepack version: $(corepack --version)"
+        echo "Corepack version: $(corepack --version)"
+        echo "Corepack version: $(corepack --version)"
         if [[ "${{runner.os}}" == "Windows" ]]; then
           # add the npm prefix to PATH to ensure the installed corepack work properly
           NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
