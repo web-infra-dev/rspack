@@ -217,9 +217,6 @@ strip     = true
 
 [profile.release.package]
 
-[profile.release.package.std]
-opt-level = 3
-
 [profile.release.package.lightningcss]
 opt-level = 3
 
