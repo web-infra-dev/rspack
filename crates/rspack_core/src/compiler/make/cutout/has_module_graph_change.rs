@@ -120,7 +120,9 @@ impl HasModuleGraphChange {
     if self.disabled {
       return;
     }
-    if artifact.built_modules.len() != self.expect_built_modules_len {
+    if artifact.built_modules.len() != self.expect_built_modules_len
+      || artifact.built_modules.len() != artifact.revoked_modules.len()
+    {
       // contain unexpected module built
       artifact.has_module_graph_change = true;
       return;
