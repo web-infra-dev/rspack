@@ -216,6 +216,16 @@ jobs:
           fmt: true
           shared-key: check
 
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+        with:
+          run-install: false
+      
+      - name: Install taplo cli
+        shell: bash
+        run: |
+          pnpm install -g @taplo/cli@0.7.0
+
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
