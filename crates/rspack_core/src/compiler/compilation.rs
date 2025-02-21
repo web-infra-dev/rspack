@@ -1250,6 +1250,10 @@ impl Compilation {
     }
 
     let start = logger.time("finish modules");
+    // finish_modules means the module graph (modules, connections, dependencies) are
+    // frozen and start to optimize (provided exports, infer async, etc.) based on the
+    // module graph, so any kind of change that affect these should be done before the
+    // finish_modules
     plugin_driver
       .compilation_hooks
       .finish_modules
