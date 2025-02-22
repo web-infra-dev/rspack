@@ -36,7 +36,7 @@
     "memfs": "^4.17.0",
     "mime-types": "^2.1.27",
     "mini-svg-data-uri": "^1.2.3",
-    "postcss-loader": "^7.3.4",
+    "postcss-loader": "^8.1.1",
     "postcss-pxtorem": "^6.0.0",
     "raw-loader": "^4.0.2",
     "bundle-loader": "^0.5.6",
