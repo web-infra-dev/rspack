@@ -5,7 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "html-webpack-plugin": "^5.5.0",
+    "html-webpack-plugin": "^5.6.3",
     "nyc": "*",
     "script-ext-html-webpack-plugin": "^2.1.5",
     "webpack": "5.98.0",
