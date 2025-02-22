@@ -5,7 +5,13 @@ import type {
 	Compiler as WebpackCompiler
 } from "webpack";
 
-import type { ECompilerType, ITestContext, ITestEnv } from "../type";
+import type {
+	ECompilerType,
+	ITestContext,
+	ITestEnv,
+	TCompilerMultiStats,
+	TCompilerStats
+} from "../type";
 import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 
 export interface ISnapshotProcessorOptions<T extends ECompilerType>
@@ -33,10 +39,21 @@ export class SnapshotProcessor<
 		if (!stats || !c) return;
 
 		if (stats.hasErrors()) {
+			const errors = [];
+			if ((stats as TCompilerMultiStats<T>).stats) {
+				for (const s of (stats as TCompilerMultiStats<T>).stats) {
+					if (s.hasErrors()) {
+						errors.push(...s.compilation.errors);
+					}
+				}
+			} else {
+				const s = stats as TCompilerStats<T>;
+				errors.push(...s.compilation.errors);
+			}
+
 			throw new Error(
-				`Failed to compile in fixture ${this._options.name}, Errors: ${stats
-					.toJson({ errors: true, all: false })
-					.errors?.map(i => `${i.message}\n${i.stack}`)
+				`Failed to compile in fixture ${this._options.name}, Errors: ${errors
+					?.map(i => `${i.message}\n${i.stack}`)
 					.join("\n\n")}`
 			);
 		}

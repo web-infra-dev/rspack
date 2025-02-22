@@ -8,6 +8,7 @@ const creator = new BasicCaseCreator({
 	steps: ({ name }) => [
 		new StatsProcessor({
 			name,
+			writeStatsOuptut: false,
 			compilerType: ECompilerType.Rspack,
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
