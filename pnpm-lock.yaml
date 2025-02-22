@@ -538,8 +538,8 @@ importers:
         specifier: 0.5.15
         version: 0.5.15
       '@swc/plugin-remove-console':
-        specifier: ^6.2.0
-        version: 6.2.0
+        specifier: ^6.3.2
+        version: 6.3.2
       '@types/babel__generator':
         specifier: 7.6.8
         version: 7.6.8
@@ -4063,8 +4063,8 @@ packages:
   '@swc/helpers@0.5.15':
     resolution: {integrity: sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g==}
 
-  '@swc/plugin-remove-console@6.2.0':
-    resolution: {integrity: sha512-1r2WPnhlLBP0ronIF8XoAmHkNERfu4naqyzBi0n0mksGUWSE45G6W4xoEM/97I6/OOZwy6vBhxT7XX0km59vyw==}
+  '@swc/plugin-remove-console@6.3.2':
+    resolution: {integrity: sha512-92rPpkAPv4f8nd+9RiOWh/ditZYyy5tXn9OMtOm2PnDoO6auqDgzkLEAq9q2FE3Rq+C2b47aH6oqvQCQkw8SbA==}
 
   '@swc/types@0.1.17':
     resolution: {integrity: sha512-V5gRru+aD8YVyCOMAjMpWR1Ui577DD5KSJsHP8RAxopAH22jFz6GZd/qxqjO6MJHQhcsjvjOFXyDhyLQUnMveQ==}
@@ -12591,7 +12591,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swc/plugin-remove-console@6.2.0':
+  '@swc/plugin-remove-console@6.3.2':
     dependencies:
       '@swc/counter': 0.1.3
 
