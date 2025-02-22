@@ -3,7 +3,6 @@ use std::collections::hash_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::hash::Hash;
-use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
@@ -141,6 +140,7 @@ impl ExportsInfo {
     let redirect_id = exports_info.redirect_to;
     let other_exports_info_id = exports_info.other_exports_info;
     let export_id_list = exports_info.exports.values().copied().collect::<Vec<_>>();
+
     for export_info_id in export_id_list {
       let export_info = mg.get_export_info_mut_by_id(&export_info_id);
       if export_info.provided.is_none() {
@@ -1207,13 +1207,13 @@ impl ExportInfo {
   }
 
   pub fn get_target(&self, mg: &ModuleGraph) -> Option<ResolvedExportInfoTarget> {
-    self.get_target_with_filter(mg, Rc::new(|_, _| true))
+    self.get_target_with_filter(mg, &|_, _| true)
   }
 
   pub fn get_target_with_filter(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
@@ -1225,7 +1225,7 @@ impl ExportInfo {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let data = self.as_export_info(mg);
@@ -1710,7 +1710,7 @@ impl ExportInfoData {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     let max_target = self.get_max_target();
@@ -1721,12 +1721,7 @@ impl ExportInfoData {
         export: item.export.clone(),
       })
       .collect::<VecDeque<_>>();
-    let target = resolve_target(
-      values.pop_front(),
-      already_visited,
-      resolve_filter.clone(),
-      mg,
-    );
+    let target = resolve_target(values.pop_front(), already_visited, resolve_filter, mg);
 
     match target {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => {
@@ -1735,8 +1730,7 @@ impl ExportInfoData {
       None => None,
       Some(ResolvedExportInfoTargetWithCircular::Target(target)) => {
         for val in values {
-          let resolved_target =
-            resolve_target(Some(val), already_visited, resolve_filter.clone(), mg);
+          let resolved_target = resolve_target(Some(val), already_visited, resolve_filter, mg);
           match resolved_target {
             Some(ResolvedExportInfoTargetWithCircular::Circular) => {
               return Some(ResolvedExportInfoTargetWithCircular::Circular);
@@ -1837,7 +1831,7 @@ impl MaybeDynamicTargetExportInfo {
   pub fn get_target_with_filter(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     match self.get_target_impl(mg, resolve_filter, &mut Default::default()) {
       Some(ResolvedExportInfoTargetWithCircular::Circular) => None,
@@ -1849,7 +1843,7 @@ impl MaybeDynamicTargetExportInfo {
   fn get_target_impl(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
     already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
   ) -> Option<ResolvedExportInfoTargetWithCircular> {
     match self {
@@ -1885,7 +1879,7 @@ impl MaybeDynamicTargetExportInfo {
   pub fn can_move_target(
     &self,
     mg: &ModuleGraph,
-    resolve_filter: ResolveFilterFnTy,
+    resolve_filter: &ResolveFilterFn,
   ) -> Option<ResolvedExportInfoTarget> {
     let target = self.get_target_with_filter(mg, resolve_filter)?;
     let max_target = self.get_max_target(mg);
@@ -1923,12 +1917,12 @@ impl ExportInfo {
   }
 }
 
-pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a>;
+pub type ResolveFilterFn<'a> = dyn Fn(&ResolvedExportInfoTarget, &ModuleGraph) -> bool + 'a;
 
 fn resolve_target(
   input_target: Option<UnResolvedExportInfoTarget>,
   already_visited: &mut HashSet<MaybeDynamicTargetExportInfoHashKey>,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFn,
   mg: &ModuleGraph,
 ) -> Option<ResolvedExportInfoTargetWithCircular> {
   if let Some(input_target) = input_target {
@@ -1960,7 +1954,7 @@ fn resolve_target(
       if already_visited.contains(&export_info_hash_key) {
         return Some(ResolvedExportInfoTargetWithCircular::Circular);
       }
-      let new_target = export_info.get_target_impl(mg, resolve_filter.clone(), already_visited);
+      let new_target = export_info.get_target_impl(mg, resolve_filter, already_visited);
 
       match new_target {
         Some(ResolvedExportInfoTargetWithCircular::Circular) => {
