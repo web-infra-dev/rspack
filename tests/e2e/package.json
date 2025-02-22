@@ -18,17 +18,17 @@
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^9.2.1",
     "fs-extra": "^11.3.0",
-    "postcss": "^8.5.2",
-    "postcss-loader": "^8.0.0",
+    "postcss": "^8.5.3",
+    "postcss-loader": "^8.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-refresh": "^0.16.0",
     "typescript": "^5.7.3",
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.13",
-    "vue-loader": "^17.3.1",
+    "vue-loader": "^17.4.2",
     "css-loader": "^7.1.2",
     "webpack-dev-server": "5.0.4",
-    "ws": "^8.16.0"
+    "ws": "^8.18.1"
   }
 }
