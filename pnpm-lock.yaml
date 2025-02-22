@@ -1791,8 +1791,8 @@ importers:
         specifier: 4.2.2
         version: 4.2.2
       less-loader:
-        specifier: ^11.1.0
-        version: 11.1.4(less@4.2.2)(webpack@5.98.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
+        specifier: ^12.2.0
+        version: 12.2.0(@rspack/core@packages+rspack)(less@4.2.2)(webpack@5.98.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
       loader-utils:
         specifier: ^2.0.4
         version: 2.0.4
@@ -7263,13 +7263,6 @@ packages:
 
   leac@0.6.0:
     resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
-
-  less-loader@11.1.4:
-    resolution: {integrity: sha512-6/GrYaB6QcW6Vj+/9ZPgKKs6G10YZai/l/eJ4SLwbzqNTBsAqt5hSLVF47TgsiBxV1P6eAU0GYRH3YRuQU9V3A==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      less: ^3.5.0 || ^4.0.0
-      webpack: ^5.0.0
 
   less-loader@12.2.0:
     resolution: {integrity: sha512-MYUxjSQSBUQmowc0l5nPieOYwMzGPUaTzB6inNW/bdPEG9zOL3eAAD1Qw5ZxSPk7we5dMojHwNODYMV1hq4EVg==}
@@ -16441,11 +16434,6 @@ snapshots:
   layout-base@2.0.1: {}
 
   leac@0.6.0: {}
-
-  less-loader@11.1.4(less@4.2.2)(webpack@5.98.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
-    dependencies:
-      less: 4.2.2
-      webpack: 5.98.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))
 
   less-loader@12.2.0(@rspack/core@packages+rspack)(less@4.2.2)(webpack@5.98.0(@swc/core@1.10.1(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
     dependencies:
