@@ -7,7 +7,7 @@
 	lockFileMaintenance: {
 		enabled: true
 	},
-	ignorePaths: ["**/fixtures/**", "npm/**"],
+	ignorePaths: ["**/fixtures/**", "npm/**", "**/no-override-loaded/**"],
 	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
