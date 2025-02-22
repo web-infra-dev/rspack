@@ -31,7 +31,7 @@
     "file-loader": "^6.2.0",
     "is-ci": "4.1.0",
     "less": "4.2.2",
-    "less-loader": "^11.1.0",
+    "less-loader": "^12.2.0",
     "loader-utils": "^2.0.4",
     "memfs": "^4.17.0",
     "mime-types": "^2.1.27",
