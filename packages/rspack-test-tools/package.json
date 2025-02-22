@@ -80,7 +80,7 @@
     "@rspack/plugin-react-refresh": "^1.0.1",
     "@rspack/test-tools": "workspace:*",
     "@swc/helpers": "0.5.15",
-    "@swc/plugin-remove-console": "^6.2.0",
+    "@swc/plugin-remove-console": "^6.3.2",
     "@types/babel__generator": "7.6.8",
     "@types/babel__traverse": "7.20.6",
     "@types/fs-extra": "11.0.4",
