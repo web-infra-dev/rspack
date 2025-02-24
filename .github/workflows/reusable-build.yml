@@ -224,18 +224,20 @@ jobs:
 
     steps:
       - name: Checkout
+        if: ${{ !inputs.skipable }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
 
       - name: Download bindings
+        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/download-artifact
         with:
           name: bindings-${{ inputs.target }}
@@ -243,17 +245,16 @@ jobs:
           try-local-cache: ${{ inputs.profile == 'ci' }}
           link-when-local: true
 
+      - name: Show restored binding
+        if: ${{ !inputs.skipable }}
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
       - name: Setup Pnpm
+        if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
-          node-version: 20
-
-      - name: Calculate Node Bin Path
-        id: calculate-node-bin-path
-        shell: bash
-        run: |
-          NODE_BIN_PATH=$(dirname $(which node))
-          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+          node-version: ${{ matrix.node }}
 
       - name: Run Legacy Test
         shell: bash
