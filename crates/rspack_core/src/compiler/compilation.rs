@@ -34,9 +34,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::{info_span, instrument, Instrument};
 
 use super::{
-  hmr::CompilationRecords,
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
+  rebuild::CompilationRecords,
   CompilerId,
 };
 use crate::{

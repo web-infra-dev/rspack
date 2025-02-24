@@ -1,17 +1,15 @@
 use std::path::Path;
 
-use rayon::iter::{ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPath;
-use rspack_sources::Source;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
   incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
-  RuntimeSpec,
+  RuntimeSpec, RuntimeSpecMap,
 };
 
 impl Compiler {
@@ -24,42 +22,13 @@ impl Compiler {
     changed_files: std::collections::HashSet<String>,
     deleted_files: std::collections::HashSet<String>,
   ) -> Result<()> {
-    let old = self.compilation.get_stats();
-    let old_hash = self.compilation.hash.clone();
-
-    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation)?;
-    // TODO: should use `records`
-
-    let all_old_runtime = old
-      .compilation
-      .get_chunk_graph_entries()
-      .filter_map(|entry_ukey| old.compilation.chunk_by_ukey.get(&entry_ukey))
-      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
-      .collect();
-
-    let mut old_chunks: Vec<(ChunkId, RuntimeSpec)> = vec![];
-    for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
-      if chunk.kind() != ChunkKind::HotUpdate {
-        old_chunks.push((
-          chunk.expect_id(&old.compilation.chunk_ids_artifact).clone(),
-          chunk.runtime().clone(),
-        ));
-      }
-    }
-
-    let records = CompilationRecords {
-      old_chunks,
-      all_old_runtime,
-      old_all_modules,
-      old_runtime_modules,
-      old_hash,
-    };
+    let records = CompilationRecords::record(&self.compilation);
 
     // build without stats
     {
-      let mut modified_files: HashSet<ArcPath> = HashSet::default();
+      let mut modified_files: FxHashSet<ArcPath> = FxHashSet::default();
       modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
-      let mut removed_files: HashSet<ArcPath> = HashSet::default();
+      let mut removed_files: FxHashSet<ArcPath> = FxHashSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
@@ -214,51 +183,99 @@ impl Compiler {
 
 #[derive(Debug)]
 pub struct CompilationRecords {
-  pub old_chunks: Vec<(ChunkId, RuntimeSpec)>,
-  pub all_old_runtime: RuntimeSpec,
-  pub old_all_modules: IdentifierMap<(RspackHashDigest, ModuleId)>,
-  pub old_runtime_modules: IdentifierMap<String>,
-  pub old_hash: Option<RspackHashDigest>,
+  pub runtimes: RuntimeSpec,
+  pub runtime_modules: IdentifierMap<RspackHashDigest>,
+  pub chunks: FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)>,
+  pub modules: FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>>,
+  pub hash: Option<RspackHashDigest>,
 }
 
-pub type ChangedModules = (
-  IdentifierMap<(RspackHashDigest, ModuleId)>,
-  IdentifierMap<String>,
-);
-pub fn collect_changed_modules(compilation: &Compilation) -> Result<ChangedModules> {
-  let modules_map = compilation
-    .chunk_graph
-    .chunk_graph_module_by_module_identifier
-    .keys()
-    .par_bridge()
-    .filter_map(|identifier| {
-      let cid = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier);
-      // TODO: Determine how to calc module hash if module related to multiple runtime code
-      // gen
-      if let Some(code_generation_result) = compilation.code_generation_results.get_one(identifier)
-        && let Some(module_hash) = &code_generation_result.hash
-        && let Some(cid) = cid
-      {
-        Some((*identifier, (module_hash.clone(), cid.clone())))
-      } else {
-        None
-      }
-    })
-    .collect::<IdentifierMap<_>>();
+impl CompilationRecords {
+  pub fn record(compilation: &Compilation) -> Self {
+    Self {
+      runtimes: Self::record_runtimes(compilation),
+      runtime_modules: Self::record_runtime_modules(compilation),
+      chunks: Self::record_chunks(compilation),
+      modules: Self::record_modules(compilation),
+      hash: Self::record_hash(compilation),
+    }
+  }
 
-  let old_runtime_modules = compilation
-    .runtime_modules
-    .iter()
-    .map(|(identifier, module)| -> Result<(Identifier, String)> {
-      Ok((
-        *identifier,
-        module
-          .generate_with_custom(compilation)?
-          .source()
-          .to_string(),
-      ))
-    })
-    .collect::<Result<IdentifierMap<String>>>()?;
+  pub fn record_hash(compilation: &Compilation) -> Option<RspackHashDigest> {
+    compilation.hash.clone()
+  }
 
-  Ok((modules_map, old_runtime_modules))
+  pub fn record_modules(
+    compilation: &Compilation,
+  ) -> FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>> {
+    compilation
+      .chunk_graph
+      .chunk_graph_module_by_module_identifier
+      .keys()
+      .filter_map(|identifier| {
+        let module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
+        let mut hashes = RuntimeSpecMap::new();
+        for runtime in compilation
+          .chunk_graph
+          .get_module_runtimes(*identifier, &compilation.chunk_by_ukey)
+          .into_values()
+        {
+          let hash = compilation
+            .code_generation_results
+            .get_hash(identifier, Some(&runtime))
+            .expect("should have hash");
+          hashes.set(runtime, hash.clone());
+        }
+        Some((module_id, hashes))
+      })
+      .collect()
+  }
+
+  pub fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
+    compilation
+      .runtime_modules
+      .keys()
+      .map(|identifier| {
+        (
+          *identifier,
+          compilation
+            .runtime_modules_hash
+            .get(identifier)
+            .expect("should have runtime module hash")
+            .clone(),
+        )
+      })
+      .collect()
+  }
+
+  pub fn record_runtimes(compilation: &Compilation) -> RuntimeSpec {
+    compilation
+      .get_chunk_graph_entries()
+      .filter_map(|entry_ukey| compilation.chunk_by_ukey.get(&entry_ukey))
+      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
+      .collect()
+  }
+
+  pub fn record_chunks(
+    compilation: &Compilation,
+  ) -> FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)> {
+    compilation
+      .chunk_by_ukey
+      .values()
+      .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
+      .map(|chunk| {
+        let chunk_id = chunk.expect_id(&compilation.chunk_ids_artifact).clone();
+        let chunk_runtime = chunk.runtime().clone();
+        let chunk_modules: FxHashSet<ModuleId> = compilation
+          .chunk_graph
+          .get_chunk_modules_identifier(&chunk.ukey())
+          .iter()
+          .filter_map(|m| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *m))
+          .cloned()
+          .collect();
+        (chunk_id, (chunk_runtime, chunk_modules))
+      })
+      .collect()
+  }
 }

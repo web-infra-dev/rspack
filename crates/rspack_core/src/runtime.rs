@@ -1,4 +1,4 @@
-use std::collections::hash_map::IntoValues;
+use std::collections::hash_map;
 use std::collections::hash_set;
 use std::ops::Deref;
 use std::{cmp::Ordering, fmt::Debug, sync::Arc};
@@ -453,11 +453,15 @@ impl RuntimeSpecSet {
       .insert(get_runtime_key(&runtime).to_string(), runtime);
   }
 
-  pub fn values(&self) -> Vec<&RuntimeSpec> {
-    self.map.values().collect()
+  pub fn contains(&self, runtime: &RuntimeSpec) -> bool {
+    self.map.contains_key(get_runtime_key(runtime))
   }
 
-  pub fn into_values(self) -> IntoValues<String, RuntimeSpec> {
+  pub fn values(&self) -> hash_map::Values<RuntimeKey, RuntimeSpec> {
+    self.map.values()
+  }
+
+  pub fn into_values(self) -> hash_map::IntoValues<RuntimeKey, RuntimeSpec> {
     self.map.into_values()
   }
 
