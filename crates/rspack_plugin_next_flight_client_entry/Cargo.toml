@@ -19,6 +19,7 @@ rspack_plugin_runtime = { workspace = true }
 rspack_util           = { workspace = true }
 
 async-trait = { workspace = true }
+derive_more = { workspace = true }
 futures     = { workspace = true }
 hashlink    = { workspace = true }
 indexmap    = { workspace = true }

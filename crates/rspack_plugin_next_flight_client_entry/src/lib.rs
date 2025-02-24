@@ -6,6 +6,7 @@ mod is_metadata_route;
 use std::{
   collections::{HashMap, HashSet},
   path::Path,
+  sync::Mutex,
 };
 
 use async_trait::async_trait;
@@ -13,6 +14,7 @@ use constants::{
   BARREL_OPTIMIZATION_PREFIX, REGEX_CSS, UNDERSCORE_NOT_FOUND_ROUTE_ENTRY, WEBPACK_LAYERS,
   WEBPACK_RESOURCE_QUERIES,
 };
+use derive_more::Debug;
 use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
 use get_module_build_info::get_rsc_module_information;
@@ -50,6 +52,7 @@ pub struct ModulePair {
   pub client: Option<ModuleInfo>,
 }
 
+#[derive(Default)]
 pub struct State {
   // A map to track "action" -> "list of bundles".
   pub server_actions: Actions,
@@ -83,10 +86,7 @@ pub type ClientComponentImports =
   std::collections::HashMap<String, std::collections::HashSet<String>>;
 pub type CssImports = std::collections::HashMap<String, Vec<String>>;
 
-struct ActionIdNamePair {
-  id: String,
-  name: String,
-}
+type ActionIdNamePair = (String, String);
 
 struct ComponentInfo {
   css_imports: CssImports,
@@ -449,12 +449,12 @@ struct ClientEntry {
   absolute_page_path: String,
 }
 
-struct ActionEntry {
+struct ActionEntry<'a> {
   actions: HashMap<String, Vec<ActionIdNamePair>>,
   entry_name: String,
   bundle_path: String,
   from_client: bool,
-  created_action_ids: HashSet<String>,
+  created_action_ids: &'a mut HashSet<String>,
 }
 
 #[plugin]
@@ -466,6 +466,9 @@ pub struct FlightClientEntryPlugin {
   asset_prefix: &'static str,
   webpack_runtime: &'static str,
   app_loader: &'static str,
+
+  #[debug(skip)]
+  plugin_state: Mutex<State>,
 }
 
 impl FlightClientEntryPlugin {
@@ -492,6 +495,7 @@ impl FlightClientEntryPlugin {
       asset_prefix,
       webpack_runtime,
       app_loader,
+      Mutex::new(Default::default()),
     )
   }
 
@@ -648,9 +652,95 @@ impl FlightClientEntryPlugin {
 
   fn inject_action_entry(
     &self,
+    compilation: &Compilation,
     action_entry: ActionEntry,
-  ) -> BoxFuture<'static, InjectedActionEntry> {
-    todo!()
+  ) -> Option<InjectedActionEntry> {
+    let ActionEntry {
+      actions,
+      entry_name,
+      bundle_path,
+      from_client,
+      created_action_ids,
+    } = action_entry;
+
+    if actions.is_empty() {
+      return None;
+    }
+
+    for (_, actions_from_module) in &actions {
+      for (id, _) in actions_from_module {
+        created_action_ids.insert(format!("{}@{}", entry_name, id));
+      }
+    }
+
+    let action_loader = format!(
+      "next-flight-action-entry-loader?{}!",
+      serde_json::to_string(&json!({
+          "actions": serde_json::to_string(&actions).unwrap(),
+          "__client_imported__": from_client,
+      }))
+      .unwrap()
+    );
+
+    let mut plugin_state = self.plugin_state.lock().unwrap();
+    let current_compiler_server_actions = if self.is_edge_server {
+      &mut plugin_state.edge_server_actions
+    } else {
+      &mut plugin_state.server_actions
+    };
+
+    for (_, actions_from_module) in &actions {
+      for (id, _) in actions_from_module {
+        if !current_compiler_server_actions.contains_key(id) {
+          current_compiler_server_actions.insert(
+            id.clone(),
+            Action {
+              workers: HashMap::new(),
+              layer: HashMap::new(),
+            },
+          );
+        }
+        let action = current_compiler_server_actions.get_mut(id).unwrap();
+        action.workers.insert(
+          bundle_path.to_string(),
+          Worker {
+            module_id: "".to_string(), // TODO: What's the meaning of this?
+            is_async: false,
+          },
+        );
+
+        action.layer.insert(
+          bundle_path.to_string(),
+          if from_client {
+            WEBPACK_LAYERS.action_browser.to_string()
+          } else {
+            WEBPACK_LAYERS.react_server_components.to_string()
+          },
+        );
+      }
+    }
+
+    // Inject the entry to the server compiler
+    let layer = if from_client {
+      WEBPACK_LAYERS.action_browser.to_string()
+    } else {
+      WEBPACK_LAYERS.react_server_components.to_string()
+    };
+    let action_entry_dep = EntryDependency::new(
+      action_loader,
+      compilation.options.context.clone(),
+      Some(layer.to_string()),
+      false,
+    );
+
+    Some((
+      Box::new(action_entry_dep),
+      EntryOptions {
+        name: Some(entry_name.to_string()),
+        layer: Some(layer),
+        ..Default::default()
+      },
+    ))
   }
 
   fn collect_component_info_from_server_entry_dependency(
@@ -699,7 +789,7 @@ impl FlightClientEntryPlugin {
 
     let mut created_ssr_dependencies_for_entry: HashMap<String, Vec<DependencyId>> = HashMap::new();
 
-    let mut add_action_entry_list: Vec<BoxFuture<'static, InjectedActionEntry>> = Vec::new();
+    let mut add_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
 
     let mut action_maps_per_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
       HashMap::new();
@@ -875,15 +965,20 @@ impl FlightClientEntryPlugin {
     }
 
     for (name, action_entry_imports) in action_maps_per_entry {
-      add_action_entry_list.push(self.inject_action_entry(ActionEntry {
-        // compiler: compiler.clone(),
-        // compilation: compilation.clone(),
-        actions: action_entry_imports,
-        entry_name: name.clone(),
-        bundle_path: name,
-        from_client: false,
-        created_action_ids: created_action_ids.clone(),
-      }));
+      self
+        .inject_action_entry(
+          compilation,
+          ActionEntry {
+            // compiler: compiler.clone(),
+            // compilation: compilation.clone(),
+            actions: action_entry_imports,
+            entry_name: name.clone(),
+            bundle_path: name,
+            from_client: false,
+            created_action_ids: &mut created_action_ids,
+          },
+        )
+        .map(|injected| add_action_entry_list.push(injected));
     }
 
     // // Invalidate in development to trigger recompilation
@@ -901,6 +996,8 @@ impl FlightClientEntryPlugin {
     // Client compiler is invalidated before awaiting the compilation of the SSR
     // and RSC client component entries so that the client compiler is running
     // in parallel to the server compiler.
+
+    // Wait for action entries to be added.
     let args = add_client_entry_and_ssr_modules_list
       .into_iter()
       .flat_map(|add_client_entry_and_ssr_modules| {
@@ -909,14 +1006,11 @@ impl FlightClientEntryPlugin {
           add_client_entry_and_ssr_modules.add_ssr_entry,
         ]
       })
+      .chain(add_action_entry_list.into_iter())
       .collect::<Vec<_>>();
     compilation.add_include(args).await?;
 
-    // Wait for action entries to be added.
-    futures::future::join_all(add_action_entry_list).await;
-
-    let mut added_client_action_entry_list: Vec<BoxFuture<'static, InjectedActionEntry>> =
-      Vec::new();
+    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     let mut action_maps_per_client_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
       HashMap::new();
 
@@ -949,10 +1043,10 @@ impl FlightClientEntryPlugin {
       let mut remaining_action_entry_imports = HashMap::new();
       for (dep, actions) in action_entry_imports {
         let mut remaining_action_names = Vec::new();
-        for action in actions {
+        for (id, name) in actions {
           // `action` is a [id, name] pair.
-          if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.id)) {
-            remaining_action_names.push(action);
+          if !created_action_ids.contains(&format!("{}@{}", entry_name, &id)) {
+            remaining_action_names.push((id, name));
           }
         }
         if !remaining_action_names.is_empty() {
@@ -962,19 +1056,25 @@ impl FlightClientEntryPlugin {
       }
 
       if remaining_client_imported_actions {
-        added_client_action_entry_list.push(self.inject_action_entry(ActionEntry {
-          // compiler: compiler.clone(),
-          // compilation: compilation.clone(),
-          actions: remaining_action_entry_imports,
-          entry_name: entry_name.clone(),
-          bundle_path: entry_name.clone(),
-          from_client: true,
-          created_action_ids: created_action_ids.clone(),
-        }));
+        self
+          .inject_action_entry(
+            compilation,
+            ActionEntry {
+              // compiler: compiler.clone(),
+              // compilation: compilation.clone(),
+              actions: remaining_action_entry_imports,
+              entry_name: entry_name.clone(),
+              bundle_path: entry_name.clone(),
+              from_client: true,
+              created_action_ids: &mut created_action_ids,
+            },
+          )
+          .map(|injected| added_client_action_entry_list.push(injected));
       }
     }
-
-    futures::future::join_all(added_client_action_entry_list).await;
+    compilation
+      .add_include(added_client_action_entry_list)
+      .await?;
     Ok(())
   }
 }
@@ -1025,9 +1125,4 @@ struct InjectedClientEntry {
   ssr_dep: DependencyId,
 }
 
-struct InjectedActionEntry {
-  // shouldInvalidate: boolean,
-  // addSSREntryPromise: Promise<void>,
-  // addRSCEntryPromise: Promise<void>,
-  // ssr_dep: DependencyId,
-}
+type InjectedActionEntry = (BoxDependency, EntryOptions);
