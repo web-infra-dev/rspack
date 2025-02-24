@@ -4,6 +4,7 @@ use std::{
   sync::{LazyLock, Mutex},
 };
 
+use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_dojang::{Context, Dojang, Operand};
 use rspack_error::{miette, Result};
@@ -119,7 +120,7 @@ impl RuntimeTemplate {
           file_content,
           &mut Mutex::new(HashMap::new()),
         )
-        .map(|render| render.replace("\r\n", "\n"))
+        .map(|render| render.cow_replace("\r\n", "\n").to_string())
         .map_err(|err| {
           miette::Error::msg(format!(
             "Runtime module: failed to render template {key} from: {err}"
