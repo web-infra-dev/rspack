@@ -80,7 +80,8 @@ describe("build command", () => {
 		expect(mainJs).toContain("other");
 		expect(mainJs).not.toContain("CONFIG");
 	});
-	it.each(["-o", "--output-path"])(
+
+	it.each(["-o", "--output-path", "--outputPath"])(
 		"output-path option %p should have higher priority than config",
 		async command => {
 			const { exitCode, stderr, stdout } = await run(__dirname, [
