@@ -119,6 +119,7 @@ impl RuntimeTemplate {
           file_content,
           &mut Mutex::new(HashMap::new()),
         )
+        .map(|render| render.replace("\r\n", "\n"))
         .map_err(|err| {
           miette::Error::msg(format!(
             "Runtime module: failed to render template {key} from: {err}"
