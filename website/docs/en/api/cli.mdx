@@ -9,6 +9,30 @@
 `@rspack/cli` is not compatible with `webpack-cli`, so there will be some differences between the two.
 :::
 
+## All commands
+
+To view all available CLI commands, run the following command in the project directory:
+
+```bash
+npx rspack -h
+```
+
+## Common flags
+
+Rspack CLI provides several common flags that can be used with all commands:
+
+| Flag                 | Description                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| -c, --config [value] | Specify the path to the configuration file, see [Specify the configuration file](/config/index#specify-the-configuration-file) |
+| --configLoader       | Specify the loader to load the config file, can be `native` or `register`, defaults to `register`                              |
+| --configName         | Specify the name of the configuration to use.                                                                                  |
+| -h, --help           | Show help information                                                                                                          |
+| -v, --version        | Show version number                                                                                                            |
+
+:::tip
+All flags in Rspack CLI support the `camelCase` and `kebab-case`, for example, both `--configLoader` and `--config-loader` are valid.
+:::
+
 ## rspack build
 
 `rspack build` is used to run Rspack build, which will generate the output files in the [output.path](/config/output#outputpath) directory.
@@ -35,17 +59,13 @@ The complete flags are as follows:
 rspack build
 
 Options:
-  -c, --config         config file                                      [string]
       --entry          entry file                                        [array]
-  -o, --output-path    output path dir                                  [string]
+  -o, --outputPath     output path dir                                  [string]
   -m, --mode           mode                                             [string]
   -w, --watch          watch                          [boolean] [default: false]
       --env            env passed to config function                     [array]
-      --node-env       sets process.env.NODE_ENV to be specified value  [string]
+      --nodeEnv        sets process.env.NODE_ENV to be specified value  [string]
   -d, --devtool        devtool                        [boolean] [default: false]
-      --configName     Name of the configuration to use.                 [array]
-      --config-loader  Specify the loader to load the config file, can be
-                       `native` or `register`.    [string] [default: "register"]
       --analyze        analyze                        [boolean] [default: false]
       --json           emit stats json
       --profile        capture timing information for each module
@@ -79,22 +99,16 @@ The complete flags are as follows:
 rspack dev
 
 Options:
-  -c, --config         config file                                      [string]
       --entry          entry file                                        [array]
-  -o, --output-path    output path dir                                  [string]
+  -o, --outputPath     output path dir                                  [string]
   -m, --mode           mode                                             [string]
   -w, --watch          watch                          [boolean] [default: false]
       --env            env passed to config function                     [array]
-      --node-env       sets process.env.NODE_ENV to be specified value  [string]
+      --nodeEnv        sets process.env.NODE_ENV to be specified value  [string]
   -d, --devtool        devtool                        [boolean] [default: false]
-      --configName     Name of the configuration to use.                 [array]
-      --config-loader  Specify the loader to load the config file, can be
-                       `native` or `register`.    [string] [default: "register"]
       --hot            enables hot module replacement
       --port           allows to specify a port to use                  [number]
       --host           allows to specify a hostname to use              [string]
-  -v, --version        Show version number                             [boolean]
-  -h, --help           Show help                                       [boolean]
 ```
 
 ## rspack preview
@@ -116,23 +130,9 @@ Positionals:
   dir  directory want to preview                                        [string]
 
 Options:
-      --help        Show help                                          [boolean]
-      --version     Show version number                                [boolean]
       --publicPath  static resource server path                         [string]
-  -c, --config      config file                                         [string]
       --port        preview server port                                 [number]
       --host        preview server host                                 [string]
       --open        open browser                                       [boolean]
       --server      Configuration items for the server.                 [string]
-      --configName  Name of the configuration to use.                    [array]
 ```
-
-## Common flags
-
-Here are some common flags that are supported by all Rspack commands:
-
-| Flags                | Usage                                      |
-| -------------------- | ------------------------------------------ |
-| -c, --config [value] | Specify the path to the configuration file |
-| -h, --help           | Show help information                      |
-| -v, --version        | Show version number                        |
