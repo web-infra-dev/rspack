@@ -11,6 +11,8 @@ import type EventEmitter from 'node:events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
+import type { MultiStats } from '@rspack/core';
+import type { MultiStats as MultiStats_2 } from 'webpack';
 import type { RspackOptions } from '@rspack/core';
 import type { RspackOptionsNormalized } from '@rspack/core';
 import type { RspackPluginInstance } from '@rspack/core';
@@ -934,6 +936,8 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
     // (undocumented)
     snapshotName?: string;
+    // (undocumented)
+    writeStatsOuptut?: boolean;
 }
 
 // @public (undocumented)
@@ -957,7 +961,7 @@ export interface ITestCompilerManager<T extends ECompilerType> {
     // (undocumented)
     getOptions(): TCompilerOptions<T>;
     // (undocumented)
-    getStats(): TCompilerStats<T> | null;
+    getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
     // (undocumented)
     mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
     // (undocumented)
@@ -1367,6 +1371,9 @@ export type TCompilerFactories = Record<ECompilerType, TCompilerFactory<ECompile
 export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
 
 // @public (undocumented)
+export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack ? MultiStats : MultiStats_2;
+
+// @public (undocumented)
 export type TCompilerOptions<T> = T extends ECompilerType.Rspack ? RspackOptions : Configuration;
 
 // @public (undocumented)
@@ -1553,8 +1560,10 @@ export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.R
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {
     documentType?: EDocumentType;
-    validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
+    validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
     noTest?: boolean;
+    writeStatsOuptut?: boolean;
+    writeStatsJson?: boolean;
     beforeExecute?: () => void;
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
