@@ -211,7 +211,7 @@ jobs:
 
   legacy:
     needs: build
-    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test && !inputs.skipable
+    if: inputs.test
     runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
     timeout-minutes: 60
     strategy:
