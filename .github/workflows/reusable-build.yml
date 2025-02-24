@@ -209,6 +209,74 @@ jobs:
           try-local-cache: ${{ inputs.profile == 'ci' }}
           mv-when-local: true
 
+  legacy:
+    needs: build
+    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test && !inputs.skipable
+    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        node: ${{ fromJSON(contains(inputs.target, 'linux') && github.ref_name == 'main' && '[16, 18, 20]' || '[18]' )}}
+    name: Legacy Testing ${{ matrix.node }}
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+
+      - name: Clean
+        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        uses: ./.github/actions/clean
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Download bindings
+        uses: ./.github/actions/download-artifact
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+          try-local-cache: ${{ inputs.profile == 'ci' }}
+          link-when-local: true
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: 20
+
+      - name: Calculate Node Bin Path
+        id: calculate-node-bin-path
+        shell: bash
+        run: |
+          NODE_BIN_PATH=$(dirname $(which node))
+          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+
+      - name: Run Legacy Test
+        shell: bash
+        run: |
+          pnpm run build:js
+          pnpm run test:legacy
+    
+      ### write the latest metric into branch gh-pages
+      ### Note that, We can't merge this script, because this script only runs on main branch
+      ### [Note] This step requires push permission and should be refactored.
+      # - name: Update main branch test compatibility metric
+      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' && !inputs.skipable }}
+      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
+
+      # ### update metric diff against main branch when pull request change
+      - name: Update
+        if: inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' && !inputs.skipable
+        uses: ./.github/actions/webpack-test-metric-diff
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{ github.sha }}
+
+
   e2e:
     name: E2E Testing
     needs: build
@@ -273,8 +341,7 @@ jobs:
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
-      # PUPPETEER_SKIP_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
       
     steps:
       - name: Checkout
@@ -352,21 +419,6 @@ jobs:
           echo "$ pnpm build:js && pnpm api-extractor:local"
           echo "===================================="
           pnpm api-extractor:ci
-
-      ### write the latest metric into branch gh-pages
-      ### Note that, We can't merge this script, because this script only runs on main branch
-      ### [Note] This step requires push permission and should be refactored.
-      # - name: Update main branch test compatibility metric
-      #   if: ${{ github.repository_owner == 'web-infra-dev' && inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' && !inputs.skipable }}
-      #   run: node ./tests/webpack-test/scripts/generate.js ${{ github.sha }}
-
-      # ### update metric diff against main branch when pull request change
-      - name: Update
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' && !inputs.skipable }}
-        uses: ./.github/actions/webpack-test-metric-diff
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{ github.sha }}
 
       - name: Documentation coverage check
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.skipable }}
