@@ -2,11 +2,11 @@ mod constants;
 mod for_each_entry_module;
 mod get_module_build_info;
 mod is_metadata_route;
+mod loader_util;
 
 use std::{
-  collections::{HashMap, HashSet},
   path::Path,
-  sync::Mutex,
+  sync::{Arc, Mutex},
 };
 
 use async_trait::async_trait;
@@ -17,17 +17,24 @@ use constants::{
 use derive_more::Debug;
 use for_each_entry_module::for_each_entry_module;
 use futures::future::BoxFuture;
-use get_module_build_info::get_rsc_module_information;
+use get_module_build_info::get_module_build_info;
 use is_metadata_route::is_metadata_route;
+use loader_util::{get_actions_from_build_info, is_client_component_entry_module, is_css_mod};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  ApplyContext, BoxDependency, Compilation, CompilerAfterEmit, CompilerFinishMake, CompilerOptions,
-  DependenciesBlock, Dependency, DependencyId, EntryDependency, EntryOptions, Module, NormalModule,
-  Plugin, PluginContext,
+  make::repair::build, ApplyContext, BoxDependency, Compilation, CompilerAfterEmit,
+  CompilerFinishMake, CompilerOptions, DependenciesBlock, Dependency, DependencyId,
+  EntryDependency, EntryOptions, Module, NormalModule, Plugin, PluginContext, RuntimeSpec,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::Utf8PathBuf;
+use rspack_plugin_javascript::dependency::{
+  CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
+  ESMImportSpecifierDependency,
+};
+use rspack_util::atom::Atom;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 
 pub struct Worker {
@@ -82,9 +89,8 @@ pub struct Options {
 }
 
 /// { [client import path]: [exported names] }
-pub type ClientComponentImports =
-  std::collections::HashMap<String, std::collections::HashSet<String>>;
-pub type CssImports = std::collections::HashMap<String, Vec<String>>;
+pub type ClientComponentImports = HashMap<String, HashSet<String>>;
+pub type CssImports = HashMap<String, Vec<String>>;
 
 type ActionIdNamePair = (String, String);
 
@@ -164,8 +170,8 @@ fn deduplicate_css_imports_for_entry(merged_css_imports: CssImports) -> CssImpor
     index_a.cmp(&index_b)
   });
 
-  let mut deduped_css_imports: CssImports = HashMap::new();
-  let mut tracked_css_imports = HashSet::new();
+  let mut deduped_css_imports: CssImports = HashMap::default();
+  let mut tracked_css_imports = HashSet::default();
   for (entry_name, css_imports) in sorted_css_imports {
     for css_import in css_imports {
       if tracked_css_imports.contains(&css_import) {
@@ -263,92 +269,6 @@ fn get_module_resource(module: &dyn Module) -> String {
   }
 }
 
-fn filter_client_components(
-  module: &dyn Module,
-  imported_identifiers: &[String],
-  visited: &mut HashSet<String>,
-  client_component_imports: &mut ClientComponentImports,
-  action_imports: &mut Vec<(String, Vec<ActionIdNamePair>)>,
-  css_imports: &mut HashSet<String>,
-  compilation: &Compilation,
-) {
-  // let mod_resource = get_module_resource(module);
-  // if mod_resource.is_empty() {
-  //     return;
-  // }
-  // if visited.contains(&mod_resource) {
-  //     if client_component_imports.contains_key(&mod_resource) {
-  //         add_client_import(
-  //           module,
-  //           &mod_resource,
-  //           client_component_imports,
-  //           imported_identifiers,
-  //           false,
-  //         );
-  //     }
-  //     return;
-  // }
-  // visited.insert(mod_resource.clone());
-
-  // let actions = get_actions_from_build_info(mod);
-  // if let Some(actions) = actions {
-  //     action_imports.push((mod_resource.clone(), actions.into_iter().collect()));
-  // }
-
-  // if is_css_mod(mod) {
-  //     let side_effect_free = mod.factory_meta.as_ref().map_or(false, |meta| meta.side_effect_free);
-
-  //     if side_effect_free {
-  //         let unused = !compilation
-  //             .module_graph
-  //             .get_exports_info(mod)
-  //             .is_module_used(&compilation.webpack_runtime);
-
-  //         if unused {
-  //             return;
-  //         }
-  //     }
-
-  //     css_imports.insert(mod_resource);
-  // } else if is_client_component_entry_module(mod) {
-  //     if !client_component_imports.contains_key(&mod_resource) {
-  //         client_component_imports.insert(mod_resource.clone(), HashSet::new());
-  //     }
-  //     add_client_import(
-  //         mod,
-  //         &mod_resource,
-  //         client_component_imports,
-  //         imported_identifiers,
-  //         true,
-  //     );
-
-  //     return;
-  // }
-
-  // for connection in get_module_references_in_order(mod, &compilation.module_graph) {
-  //     let mut dependency_ids = Vec::new();
-
-  //     // `ids` are the identifiers that are imported from the dependency,
-  //     // if it's present, it's an array of strings.
-  //     if let Some(ids) = &connection.dependency.ids {
-  //         dependency_ids.extend_from_slice(ids);
-  //     } else {
-  //         dependency_ids.push("*".to_string());
-  //     }
-
-  //     filter_client_components(
-  //         &connection.resolved_module,
-  //         &dependency_ids,
-  //         visited,
-  //         client_component_imports,
-  //         action_imports,
-  //         css_imports,
-  //         compilation,
-  //     );
-  // }
-  todo!()
-}
-
 pub fn get_assumed_source_type(module: &dyn Module, source_type: String) -> String {
   // let build_info = get_module_build_info(module);
   // let detected_client_entry_type =
@@ -388,10 +308,8 @@ fn add_client_import(
   imported_identifiers: &[String],
   is_first_visit_module: bool,
 ) {
-  let source = module
-    .original_source()
-    .map(|s| get_rsc_module_information(s.source().as_ref(), true));
-  let client_entry_type = source.and_then(|s| s.client_entry_type);
+  let build_info = get_module_build_info(module);
+  let client_entry_type = build_info.rsc.client_entry_type;
   let is_cjs_module = client_entry_type == Some("cjs".to_string());
   let assumed_source_type = get_assumed_source_type(
     module,
@@ -404,19 +322,25 @@ fn add_client_import(
 
   let client_imports_set = client_component_imports
     .entry(mod_request.to_string())
-    .or_insert_with(HashSet::new);
+    .or_insert_with(HashSet::default);
 
   if imported_identifiers[0] == "*" {
     // If there's collected import path with named import identifiers,
     // or there's nothing in collected imports are empty.
     // we should include the whole module.
     if !is_first_visit_module && !client_imports_set.contains("*") {
-      client_component_imports.insert(mod_request.to_string(), HashSet::from(["*".to_string()]));
+      client_component_imports.insert(
+        mod_request.to_string(),
+        HashSet::from_iter(["*".to_string()]),
+      );
     }
   } else {
     let is_auto_module_source_type = assumed_source_type == "auto";
     if is_auto_module_source_type {
-      client_component_imports.insert(mod_request.to_string(), HashSet::from(["*".to_string()]));
+      client_component_imports.insert(
+        mod_request.to_string(),
+        HashSet::from_iter(["*".to_string()]),
+      );
     } else {
       // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
       // We'll include all modules since it's not able to do tree-shaking.
@@ -464,7 +388,7 @@ pub struct FlightClientEntryPlugin {
   app_dir: Utf8PathBuf,
   is_edge_server: bool,
   asset_prefix: &'static str,
-  webpack_runtime: &'static str,
+  webpack_runtime: RuntimeSpec,
   app_loader: &'static str,
 
   #[debug(skip)]
@@ -488,6 +412,10 @@ impl FlightClientEntryPlugin {
     } else {
       "next-app-loader"
     };
+    let mut set: HashSet<Arc<str>> = HashSet::default();
+    set.insert(Arc::from(webpack_runtime.to_string()));
+    let webpack_runtime = RuntimeSpec::new(set);
+
     Self::new_inner(
       options.dev,
       options.app_dir,
@@ -497,6 +425,118 @@ impl FlightClientEntryPlugin {
       app_loader,
       Mutex::new(Default::default()),
     )
+  }
+
+  fn filter_client_components(
+    &self,
+    module: &dyn Module,
+    imported_identifiers: &[String],
+    visited: &mut HashSet<String>,
+    client_component_imports: &mut ClientComponentImports,
+    action_imports: &mut Vec<(String, Vec<ActionIdNamePair>)>,
+    css_imports: &mut HashSet<String>,
+    compilation: &Compilation,
+  ) {
+    let mod_resource = get_module_resource(module);
+    if mod_resource.is_empty() {
+      return;
+    }
+    if visited.contains(&mod_resource) {
+      if client_component_imports.contains_key(&mod_resource) {
+        add_client_import(
+          module,
+          &mod_resource,
+          client_component_imports,
+          imported_identifiers,
+          false,
+        );
+      }
+      return;
+    }
+    visited.insert(mod_resource.clone());
+
+    let actions = get_actions_from_build_info(module);
+    if let Some(actions) = actions {
+      action_imports.push((mod_resource.clone(), actions.into_iter().collect()));
+    }
+
+    let module_graph = compilation.get_module_graph();
+    if is_css_mod(module) {
+      let side_effect_free = module
+        .factory_meta()
+        .map_or(false, |meta| meta.side_effect_free.unwrap_or(false));
+
+      if side_effect_free {
+        let unused = !module_graph
+          .get_exports_info(&module.identifier())
+          .is_module_used(&module_graph, Some(&self.webpack_runtime));
+
+        if unused {
+          return;
+        }
+      }
+
+      css_imports.insert(mod_resource);
+    } else if is_client_component_entry_module(module) {
+      if !client_component_imports.contains_key(&mod_resource) {
+        client_component_imports.insert(mod_resource.clone(), HashSet::default());
+      }
+      add_client_import(
+        module,
+        &mod_resource,
+        client_component_imports,
+        imported_identifiers,
+        true,
+      );
+
+      return;
+    }
+
+    for dependency_id in module_graph.get_outgoing_connections_in_order(&module.identifier()) {
+      let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+        continue;
+      };
+      let mut dependency_ids = Vec::new();
+
+      // `ids` are the identifiers that are imported from the dependency,
+      // if it's present, it's an array of strings.
+      let Some(dependency) = module_graph.dependency_by_id(&connection.dependency_id) else {
+        continue;
+      };
+      let ids =
+        if let Some(dependency) = dependency.downcast_ref::<CommonJsExportRequireDependency>() {
+          Some(dependency.get_ids(&module_graph))
+        } else if let Some(dependency) =
+          dependency.downcast_ref::<ESMExportImportedSpecifierDependency>()
+        {
+          Some(dependency.get_ids(&module_graph))
+        } else if let Some(dependency) = dependency.downcast_ref::<ESMImportSpecifierDependency>() {
+          Some(dependency.get_ids(&module_graph))
+        } else {
+          None
+        };
+      if let Some(ids) = ids {
+        for id in ids {
+          dependency_ids.push(id.to_string());
+        }
+      } else {
+        dependency_ids.push("*".into());
+      }
+
+      let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
+      else {
+        continue;
+      };
+      self.filter_client_components(
+        resolved_module.as_ref(),
+        &dependency_ids,
+        visited,
+        client_component_imports,
+        action_imports,
+        css_imports,
+        compilation,
+      );
+    }
   }
 
   fn inject_client_entry_and_ssr_modules(
@@ -695,8 +735,8 @@ impl FlightClientEntryPlugin {
           current_compiler_server_actions.insert(
             id.clone(),
             Action {
-              workers: HashMap::new(),
-              layer: HashMap::new(),
+              workers: HashMap::default(),
+              layer: HashMap::default(),
             },
           );
         }
@@ -749,31 +789,33 @@ impl FlightClientEntryPlugin {
     compilation: &Compilation,
     resolved_module: &dyn Module,
   ) -> ComponentInfo {
-    // // Keep track of checked modules to avoid infinite loops with recursive imports.
-    // let mut visited_of_client_components_traverse = HashSet::new();
+    // Keep track of checked modules to avoid infinite loops with recursive imports.
+    let mut visited_of_client_components_traverse: HashSet<String> = HashSet::default();
 
-    // // Info to collect.
-    // let mut client_component_imports: ClientComponentImports = HashMap::new();
-    // let mut action_imports: Vec<(String, Vec<ActionIdNamePair>)> = Vec::new();
-    // let mut css_imports = CssImports::new();
+    // Info to collect.
+    let mut client_component_imports: ClientComponentImports = HashMap::default();
+    let mut action_imports: Vec<(String, Vec<ActionIdNamePair>)> = Vec::new();
+    let mut css_imports: HashSet<String> = Default::default();
 
-    // // Traverse the module graph to find all client components.
-    // filter_client_components(
-    //   resolved_module,
-    //   &[],
-    //   visited_of_client_components_traverse,
-    //   client_component_imports,
-    //   action_imports,
-    //   css_imports,
-    //   compilation,
-    // );
+    // Traverse the module graph to find all client components.
+    self.filter_client_components(
+      resolved_module,
+      &[],
+      &mut visited_of_client_components_traverse,
+      &mut client_component_imports,
+      &mut action_imports,
+      &mut css_imports,
+      compilation,
+    );
 
-    // ComponentInfo {
-    //   css_imports,
-    //   client_component_imports,
-    //   action_imports,
-    // }
-    todo!()
+    let mut css_imports_map: CssImports = HashMap::default();
+    css_imports_map.insert(entry_request.to_string(), css_imports.into_iter().collect());
+
+    ComponentInfo {
+      css_imports: css_imports_map,
+      client_component_imports,
+      action_imports,
+    }
   }
 
   fn collect_client_actions_from_dependencies(
@@ -787,21 +829,22 @@ impl FlightClientEntryPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_client_entry_and_ssr_modules_list: Vec<InjectedClientEntry> = Vec::new();
 
-    let mut created_ssr_dependencies_for_entry: HashMap<String, Vec<DependencyId>> = HashMap::new();
+    let mut created_ssr_dependencies_for_entry: HashMap<String, Vec<DependencyId>> =
+      HashMap::default();
 
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
 
     let mut action_maps_per_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
-      HashMap::new();
+      HashMap::default();
 
-    let mut created_action_ids: HashSet<String> = HashSet::new();
+    let mut created_action_ids: HashSet<String> = HashSet::default();
 
     let module_graph = compilation.get_module_graph();
     for (name, entry_module) in for_each_entry_module(&compilation, &module_graph) {
-      let mut internal_client_component_entry_imports = ClientComponentImports::new();
-      let mut action_entry_imports: HashMap<String, Vec<ActionIdNamePair>> = HashMap::new();
+      let mut internal_client_component_entry_imports = ClientComponentImports::default();
+      let mut action_entry_imports: HashMap<String, Vec<ActionIdNamePair>> = HashMap::default();
       let mut client_entries_to_inject = Vec::new();
-      let mut merged_css_imports: CssImports = CssImports::new();
+      let mut merged_css_imports: CssImports = CssImports::default();
 
       for dependency_id in module_graph.get_outgoing_connections_in_order(&entry_module.id()) {
         let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
@@ -844,7 +887,7 @@ impl FlightClientEntryPlugin {
         // Next.js internals are put into a separate entry.
         if !is_absolute_request {
           for value in component_info.client_component_imports.keys() {
-            internal_client_component_entry_imports.insert(value.to_string(), HashSet::new());
+            internal_client_component_entry_imports.insert(value.to_string(), HashSet::default());
           }
           continue;
         }
@@ -900,7 +943,7 @@ impl FlightClientEntryPlugin {
             // compiler: compiler.clone(),
             // compilation: compilation.clone(),
             entry_name: name.to_string(),
-            client_imports: HashMap::new(),
+            client_imports: HashMap::default(),
             bundle_path: format!("app{}", UNDERSCORE_NOT_FOUND_ROUTE_ENTRY),
             absolute_page_path: entry_request.to_string_lossy().to_string(),
           });
@@ -916,7 +959,7 @@ impl FlightClientEntryPlugin {
           deduped_css_imports.get(&client_entry_to_inject.absolute_page_path)
         {
           for curr in css_imports {
-            client_imports.insert(curr.clone(), HashSet::new());
+            client_imports.insert(curr.clone(), HashSet::default());
           }
         }
 
@@ -955,7 +998,7 @@ impl FlightClientEntryPlugin {
 
       if !action_entry_imports.is_empty() {
         if !action_maps_per_entry.contains_key(name) {
-          action_maps_per_entry.insert(name.to_string(), HashMap::new());
+          action_maps_per_entry.insert(name.to_string(), HashMap::default());
         }
         let entry = action_maps_per_entry.get_mut(name).unwrap();
         for (key, value) in action_entry_imports {
@@ -1012,7 +1055,7 @@ impl FlightClientEntryPlugin {
 
     let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
     let mut action_maps_per_client_entry: HashMap<String, HashMap<String, Vec<ActionIdNamePair>>> =
-      HashMap::new();
+      HashMap::default();
 
     // We need to create extra action entries that are created from the
     // client layer.
@@ -1025,7 +1068,7 @@ impl FlightClientEntryPlugin {
 
       if !action_entry_imports.is_empty() {
         if !action_maps_per_client_entry.contains_key(&name) {
-          action_maps_per_client_entry.insert(name.clone(), HashMap::new());
+          action_maps_per_client_entry.insert(name.clone(), HashMap::default());
         }
         let entry = action_maps_per_client_entry.get_mut(&name).unwrap();
         for (key, value) in action_entry_imports {
@@ -1040,7 +1083,7 @@ impl FlightClientEntryPlugin {
       // This is to avoid duplicate action instances and make sure the module
       // state is shared.
       let mut remaining_client_imported_actions = false;
-      let mut remaining_action_entry_imports = HashMap::new();
+      let mut remaining_action_entry_imports = HashMap::default();
       for (dep, actions) in action_entry_imports {
         let mut remaining_action_names = Vec::new();
         for (id, name) in actions {

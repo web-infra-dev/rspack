@@ -18,20 +18,21 @@ rspack_paths          = { workspace = true }
 rspack_plugin_runtime = { workspace = true }
 rspack_util           = { workspace = true }
 
-async-trait = { workspace = true }
-derive_more = { workspace = true }
-futures     = { workspace = true }
-hashlink    = { workspace = true }
-indexmap    = { workspace = true }
-itertools   = { workspace = true }
-lazy-regex  = "3.4.1"
-querystring = { version = "1.1.0" }
-regex       = { workspace = true }
-rustc-hash  = { workspace = true }
-serde       = { workspace = true }
-serde_json  = { workspace = true }
-tokio       = { workspace = true, features = ["rt"] }
-tracing     = { workspace = true }
+async-trait              = { workspace = true }
+derive_more              = { workspace = true }
+futures                  = { workspace = true }
+hashlink                 = { workspace = true }
+indexmap                 = { workspace = true }
+itertools                = { workspace = true }
+lazy-regex               = "3.4.1"
+querystring              = { version = "1.1.0" }
+regex                    = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rustc-hash               = { workspace = true }
+serde                    = { workspace = true }
+serde_json               = { workspace = true }
+tokio                    = { workspace = true, features = ["rt"] }
+tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

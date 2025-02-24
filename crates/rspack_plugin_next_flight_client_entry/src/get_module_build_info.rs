@@ -18,6 +18,7 @@ pub struct RSCModuleTypes {
   pub server: RSCModuleType,
 }
 
+#[derive(Default)]
 pub struct RSCMeta {
   pub r#type: RSCModuleType,
   pub actions: Option<Vec<String>>,
@@ -27,7 +28,7 @@ pub struct RSCMeta {
   pub is_client_ref: bool,
 }
 
-pub fn get_rsc_module_information(source: &str, is_react_server_layer: bool) -> RSCMeta {
+fn get_rsc_module_information(source: &str, is_react_server_layer: bool) -> RSCMeta {
   let actions_json = regex::Regex::new(ACTION_MODULE_LABEL)
     .unwrap()
     .captures(source)
@@ -76,4 +77,21 @@ pub fn get_rsc_module_information(source: &str, is_react_server_layer: bool) -> 
     client_entry_type,
     is_client_ref,
   }
+}
+
+pub struct BuildInfo {
+  pub rsc: RSCMeta,
+}
+
+pub fn get_module_build_info(module: &dyn Module) -> BuildInfo {
+  let is_react_server_layer = module
+    .get_layer()
+    .is_some_and(|layer| layer == "react-server");
+
+  let rsc = module
+    .original_source()
+    .map(|s| get_rsc_module_information(s.source().as_ref(), is_react_server_layer))
+    .unwrap_or_default();
+
+  BuildInfo { rsc }
 }
