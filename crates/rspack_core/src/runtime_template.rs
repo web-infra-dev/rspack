@@ -120,6 +120,7 @@ impl RuntimeTemplate {
           file_content,
           &mut Mutex::new(HashMap::new()),
         )
+        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())
         .map_err(|err| {
           miette::Error::msg(format!(
