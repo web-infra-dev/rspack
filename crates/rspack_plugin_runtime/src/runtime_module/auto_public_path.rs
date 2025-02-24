@@ -100,8 +100,8 @@ fn auto_public_path_template(
     id,
     Some(serde_json::json!({
       "script_type": output.script_type,
-      "IMPORT_META_NAME": import_meta_name,
-      "ASSIGN": assign
+      "import_meta_name": import_meta_name,
+      "assign": assign
     })),
   )
 }
