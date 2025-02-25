@@ -62,7 +62,8 @@ export function compareFile(
 	function formatModules(modules: Record<string, string>) {
 		const res: Record<string, string> = {};
 		for (const [name, content] of Object.entries(modules)) {
-			res[name] = formatCode(name, content, compareOptions.format);
+			const renamed = name.replaceAll(path.sep, path.posix.sep);
+			res[renamed] = formatCode(renamed, content, compareOptions.format);
 		}
 		return res;
 	}
@@ -140,7 +141,10 @@ export function compareModules(
 ) {
 	const compareResults: TModuleCompareResult[] = [];
 	for (const name of modules) {
-		const renamed = replaceRuntimeModuleName(name);
+		const renamed = replaceRuntimeModuleName(name).replaceAll(
+			path.sep,
+			path.posix.sep
+		);
 		const sourceContent = sourceModules[renamed];
 		const distContent = distModules[renamed];
 
