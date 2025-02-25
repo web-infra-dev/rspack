@@ -1,4 +1,4 @@
-# Case issue-5597: Step 3
+# Case move-between-runtime: Step 3
 
 ## Changed Files
 - moduleA.js
@@ -15,9 +15,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 201
-- Update: shared.LAST_HASH.hot-update.js, size: 673
+- Update: shared.LAST_HASH.hot-update.js, size: 788
 - Update: workerA_js.LAST_HASH.hot-update.js, size: 517
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 517
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 629
 
 ## Manifest
 
@@ -100,7 +100,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
+/* ESM import */var _moduleS__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+
 
 
 }),
@@ -164,7 +166,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
+/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */ "./module.js");
 /* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+
 
 
 }),

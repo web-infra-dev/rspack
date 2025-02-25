@@ -115,9 +115,8 @@ impl ModernModuleLibraryPlugin {
     for module_id in unconcatenated_module_ids.into_iter() {
       let chunk_runtime = compilation
         .chunk_graph
-        .get_module_runtimes(*module_id, &compilation.chunk_by_ukey)
-        .into_values()
-        .fold(Default::default(), |acc, r| merge_runtime(&acc, &r));
+        .get_module_runtimes_iter(*module_id, &compilation.chunk_by_ukey)
+        .fold(Default::default(), |acc, r| merge_runtime(&acc, r));
 
       let current_configuration: ConcatConfiguration =
         ConcatConfiguration::new(*module_id, Some(chunk_runtime.clone()));

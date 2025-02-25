@@ -34,9 +34,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::{info_span, instrument, Instrument};
 
 use super::{
-  hmr::CompilationRecords,
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
+  rebuild::CompilationRecords,
   CompilerId,
 };
 use crate::{
@@ -1687,15 +1687,15 @@ impl Compilation {
       .into_par_iter()
       .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
       .map(|module| {
+        let mut map = RuntimeSpecMap::new();
         let runtimes = self
           .chunk_graph
-          .get_module_runtimes(module, &self.chunk_by_ukey);
-        let mut map = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+          .get_module_runtimes_iter(module, &self.chunk_by_ukey);
+        for runtime in runtimes {
           let runtime_requirements = self
             .old_cache
             .process_runtime_requirements_occasion
-            .use_cache(module, &runtime, self, |module, runtime| {
+            .use_cache(module, runtime, self, |module, runtime| {
               let mut runtime_requirements = self
                 .code_generation_results
                 .get_runtime_requirements(&module, Some(runtime));
@@ -1723,7 +1723,7 @@ impl Compilation {
               )?;
               Ok(runtime_requirements)
             })?;
-          map.set(runtime, runtime_requirements);
+          map.set(runtime.clone(), runtime_requirements);
         }
         Ok((module, map))
       })
@@ -2156,18 +2156,21 @@ impl Compilation {
           module,
           self
             .chunk_graph
-            .get_module_runtimes(module, &self.chunk_by_ukey),
+            .get_module_runtimes_iter(module, &self.chunk_by_ukey),
         )
       })
       .map(|(module_identifier, runtimes)| {
         let mut hashes = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+        for runtime in runtimes {
           let mut hasher = RspackHash::from(&self.options.output);
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");
-          module.update_hash(&mut hasher, self, Some(&runtime))?;
-          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
+          module.update_hash(&mut hasher, self, Some(runtime))?;
+          hashes.set(
+            runtime.clone(),
+            hasher.digest(&self.options.output.hash_digest),
+          );
         }
         Ok((module_identifier, hashes))
       })

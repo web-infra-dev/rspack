@@ -1,4 +1,4 @@
-# Case issue-5597: Step 3
+# Case move-between-runtime: Step 6
 
 ## Changed Files
 - moduleA.js
@@ -7,24 +7,27 @@
 - moduleBs.js
 
 ## Asset Files
+- Bundle: chunkS_js.chunk.CURRENT_HASH.js
+- Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Bundle: workerA_js.chunk.CURRENT_HASH.js
 - Bundle: workerB_js.chunk.CURRENT_HASH.js
-- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 43
-- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
+- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 65
+- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 54
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 369
 - Update: main.LAST_HASH.hot-update.js, size: 201
-- Update: shared.LAST_HASH.hot-update.js, size: 673
+- Update: shared.LAST_HASH.hot-update.js, size: 831
 - Update: workerA_js.LAST_HASH.hot-update.js, size: 517
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 517
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 672
 
 ## Manifest
 
 ### [runtime of workerA_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerA_js"],"r":[],"m":[]}
+{"c":["shared","workerA_js"],"r":["chunk_js"],"m":["./chunk.js"]}
 ```
 
 
@@ -32,7 +35,7 @@
 ### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerB_js"],"r":[],"m":[]}
+{"c":["chunk_js","shared","workerB_js"],"r":[],"m":[]}
 ```
 
 
@@ -45,6 +48,33 @@
 
 
 ## Update
+
+
+### chunk_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./chunk.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["webpackHotUpdate"]('chunk_js', {
+"./chunk.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("chunk");
+
+
+}),
+
+});
+```
+
 
 
 ### main.LAST_HASH.hot-update.js
@@ -91,7 +121,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 
 
 }),
@@ -100,7 +130,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunkS */ "./chunkS.js"));
 
 
 }),
@@ -127,7 +158,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
 
 
 }),
@@ -164,7 +195,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (6);
+if (Math.random() < 0) __webpack_require__.e(/*! import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, /*! ./chunk */ "./chunk.js"));
 
 
 }),
