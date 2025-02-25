@@ -910,46 +910,25 @@ impl Compilation {
     let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
     for module in modules {
-      let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
-      if runtimes.is_empty() {
-        continue;
-      }
-      if runtimes.len() == 1 {
-        let runtime = runtimes
-          .into_values()
-          .next()
-          .expect("should have first value");
-        let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-          .expect("should have cgm.hash in code generation")
-          .clone();
-        jobs.push(CodeGenerationJob {
-          module,
-          hash,
-          runtime: runtime.clone(),
-          runtimes: vec![runtime],
-        })
-      } else {
-        let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-        for runtime in runtimes.into_values() {
-          let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-            .expect("should have cgm.hash in code generation")
-            .clone();
-          if let Some(job) = map.get_mut(&hash) {
-            job.runtimes.push(runtime);
-          } else {
-            map.insert(
-              hash.clone(),
-              CodeGenerationJob {
-                module,
-                hash,
-                runtime: runtime.clone(),
-                runtimes: vec![runtime],
-              },
-            );
-          }
+      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
+        let hash = ChunkGraph::get_module_hash(self, module, runtime)
+          .expect("should have cgm.hash in code generation");
+        if let Some(job) = map.get_mut(hash) {
+          job.runtimes.push(runtime.clone());
+        } else {
+          map.insert(
+            hash.clone(),
+            CodeGenerationJob {
+              module,
+              hash: hash.clone(),
+              runtime: runtime.clone(),
+              runtimes: vec![runtime.clone()],
+            },
+          );
         }
-        jobs.extend(map.into_values());
       }
+      jobs.extend(map.into_values());
     }
     let results = jobs
       .into_par_iter()

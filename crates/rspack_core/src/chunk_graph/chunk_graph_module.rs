@@ -14,9 +14,9 @@ use serde::{Serialize, Serializer};
 use tracing::instrument;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -312,10 +312,20 @@ impl ChunkGraph {
       if visited_modules.contains(module_identifier) {
         continue;
       }
-      if connection.active_state(&mg, runtime).is_false() {
+      let active_state = connection.active_state(&mg, runtime);
+      if active_state.is_false() {
         continue;
       }
       visited_modules.insert(*module_identifier);
+      for_each_runtime(
+        runtime,
+        |runtime| {
+          let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
+          let active_state = connection.active_state(&mg, runtime.as_ref());
+          active_state.hash(&mut hasher);
+        },
+        true,
+      );
       let module = mg
         .module_by_identifier(module_identifier)
         .expect("should have module")

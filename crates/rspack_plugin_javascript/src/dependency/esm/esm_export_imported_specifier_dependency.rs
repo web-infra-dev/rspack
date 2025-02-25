@@ -1079,7 +1079,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     self.attributes.as_ref()
   }
 
-  #[allow(clippy::unwrap_in_result)]
   fn get_exports(&self, mg: &ModuleGraph) -> Option<ExportsSpec> {
     let mode = self.get_mode(self.name.clone(), mg, &self.id, None);
     match mode.ty {
