@@ -2386,14 +2386,14 @@ pub struct AssetInfo {
   pub version: String,
   /// unused local idents of the chunk
   pub css_unused_idents: Option<HashSet<String>>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
+
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
-  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
-  /// in the rust struct and have the Js side to reshape and align with webpack.
+  /// This is a hack to store the additional fields in the rust struct.
   /// Related: packages/rspack/src/Compilation.ts
   #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
-  /// whether this asset is over the size limit
-  pub is_over_size_limit: Option<bool>,
 }
 
 impl AssetInfo {

@@ -5,25 +5,25 @@ use napi::{
   bindgen_prelude::{FromNapiValue, Function, ToNapiValue, ValidateNapiValue},
   Either,
 };
-use rspack_core::{AssetInfo, LocalFilenameFn, PathData, PublicPath};
 use rspack_core::{Filename, FilenameFn};
+use rspack_core::{LocalFilenameFn, PathData, PublicPath};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
 
-use crate::{JsAssetInfo, JsPathData};
+use crate::{AssetInfo, JsPathData};
 
 /// A js filename value. Either a string or a function
 ///
 /// The function type is generic. By default the function type is tsfn.
 #[derive(Debug)]
-pub struct JsFilename<F = ThreadsafeFunction<(JsPathData, Option<JsAssetInfo>), String>>(
+pub struct JsFilename<F = ThreadsafeFunction<(JsPathData, Option<AssetInfo>), String>>(
   Either<String, F>,
 );
 
 /// A local js filename value. Only valid in the current native call.
 ///
 /// Useful as the type of a parameter that is invoked immediately inside the function.
-pub type LocalJsFilename<'f> = JsFilename<Function<'f, (JsPathData, Option<JsAssetInfo>), String>>;
+pub type LocalJsFilename<'f> = JsFilename<Function<'f, (JsPathData, Option<AssetInfo>), String>>;
 
 impl<'f> From<LocalJsFilename<'f>> for Filename<LocalJsFilenameFn<'f>> {
   fn from(value: LocalJsFilename<'f>) -> Self {
@@ -84,24 +84,24 @@ impl<'de> Deserialize<'de> for JsFilename {
 
 /// Wrapper of a thread-safe filename js function. Implements `FilenameFn`
 #[derive(Debug)]
-struct ThreadSafeFilenameFn(ThreadsafeFunction<(JsPathData, Option<JsAssetInfo>), String>);
+struct ThreadSafeFilenameFn(ThreadsafeFunction<(JsPathData, Option<AssetInfo>), String>);
 impl LocalFilenameFn for ThreadSafeFilenameFn {
   type Error = rspack_error::Error;
   fn call(
     &self,
     path_data: &PathData,
-    asset_info: Option<&AssetInfo>,
+    asset_info: Option<&rspack_core::AssetInfo>,
   ) -> rspack_error::Result<String> {
     self.0.blocking_call_with_sync((
       JsPathData::from_path_data(*path_data),
-      asset_info.cloned().map(JsAssetInfo::from),
+      asset_info.cloned().map(AssetInfo::from),
     ))
   }
 }
 impl FilenameFn for ThreadSafeFilenameFn {}
 
 /// Wrapper of a local filename js function. Implements `LocalFilenameFn`. Only valid in the current native call.
-pub struct LocalJsFilenameFn<'f>(Function<'f, (JsPathData, Option<JsAssetInfo>), String>);
+pub struct LocalJsFilenameFn<'f>(Function<'f, (JsPathData, Option<AssetInfo>), String>);
 
 impl LocalFilenameFn for LocalJsFilenameFn<'_> {
   type Error = napi::Error;
@@ -109,10 +109,10 @@ impl LocalFilenameFn for LocalJsFilenameFn<'_> {
   fn call(
     &self,
     path_data: &PathData,
-    asset_info: Option<&AssetInfo>,
+    asset_info: Option<&rspack_core::AssetInfo>,
   ) -> Result<String, Self::Error> {
     let js_path_data = JsPathData::from_path_data(*path_data);
-    let js_asset_info = asset_info.cloned().map(JsAssetInfo::from);
+    let js_asset_info = asset_info.cloned().map(AssetInfo::from);
     self.0.call((js_path_data, js_asset_info))
   }
 }

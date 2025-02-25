@@ -15,7 +15,7 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsAssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
+  AssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
   JsDependenciesBlockWrapper, JsDependencyWrapper, JsResourceData, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
@@ -326,7 +326,7 @@ impl JsModule {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: JsAssetInfo,
+    asset_info: AssetInfo,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
 
