@@ -1,4 +1,4 @@
-# Case issue-5597: Step 3
+# Case move-between-runtime: Step 2
 
 ## Changed Files
 - moduleA.js
@@ -15,9 +15,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 201
-- Update: shared.LAST_HASH.hot-update.js, size: 673
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 517
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 517
+- Update: shared.LAST_HASH.hot-update.js, size: 903
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 629
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 943
 
 ## Manifest
 
@@ -91,7 +91,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM import */var _moduleS__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+
 
 
 }),
@@ -100,7 +102,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM import */var _moduleS__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleS */ "./moduleS.js");
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+
 
 
 }),
@@ -127,7 +131,9 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */ "./module.js");
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+
 
 
 }),
@@ -150,6 +156,7 @@ __webpack_require__.h = function () {
 ### workerB_js.LAST_HASH.hot-update.js
 
 #### Changed Modules
+- ./module.js
 - ./moduleB.js
 
 #### Changed Runtime Modules
@@ -159,12 +166,23 @@ __webpack_require__.h = function () {
 ```js
 "use strict";
 self["webpackHotUpdate"]('workerB_js', {
+"./module.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+});
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = ("module");
+
+
+}),
 "./moduleB.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 });
-/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (3);
+/* ESM import */var _module__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module */ "./module.js");
+/* ESM default export */ const __WEBPACK_DEFAULT_EXPORT__ = (2);
+
 
 
 }),

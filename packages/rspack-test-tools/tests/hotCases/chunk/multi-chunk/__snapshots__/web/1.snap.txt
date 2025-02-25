@@ -7,9 +7,9 @@
 - Bundle: a.js
 - Bundle: b.js
 - Bundle: main.js
-- Manifest: a.LAST_HASH.hot-update.json, size: 35
-- Manifest: b.LAST_HASH.hot-update.json, size: 35
-- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Manifest: a.LAST_HASH.hot-update.json, size: 25
+- Manifest: b.LAST_HASH.hot-update.json, size: 25
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: a.LAST_HASH.hot-update.js, size: 246
 - Update: b.LAST_HASH.hot-update.js, size: 246
 - Update: main.LAST_HASH.hot-update.js, size: 249
@@ -19,7 +19,7 @@
 ### a.LAST_HASH.hot-update.json
 
 ```json
-{"c":["a"],"r":["b","main"],"m":[]}
+{"c":["a"],"r":[],"m":[]}
 ```
 
 
@@ -27,7 +27,7 @@
 ### b.LAST_HASH.hot-update.json
 
 ```json
-{"c":["b"],"r":["a","main"],"m":[]}
+{"c":["b"],"r":[],"m":[]}
 ```
 
 
@@ -35,7 +35,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":["a","b"],"m":[]}
+{"c":["main"],"r":[],"m":[]}
 ```
 
 
