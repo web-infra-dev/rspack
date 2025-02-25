@@ -113,7 +113,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-refresh": "^0.16.0",
-    "sass-embedded": "^1.85.0",
+    "sass-embedded": "^1.85.1",
     "sass-loader": "^16.0.5",
     "source-map": "^0.7.4",
     "source-map-loader": "^5.0.0",
