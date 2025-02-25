@@ -28,10 +28,15 @@ function run(
 ```
 
 :::warning
-This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
+
+- This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
+- Direct use of this API requires manual configuration of `compiler.modifiedFiles` and `compiler.removedFiles`, otherwise the memory cache will not be invalidated properly.
+
 :::
 
 ```js
+compiler.modifiedFiles = new Set([...]);
+compiler.removedFiles = new Set([...]);
 compiler.run((err, stats) => {
   // Deal with the compiler errors
   handlerCompilerError(err);
@@ -41,6 +46,8 @@ compiler.run((err, stats) => {
   handleBuildResult(stats);
   // End this compilation
   compiler.close(closeErr => {
+    compiler.modifiedFiles = new Set([...]);
+    compiler.removedFiles = new Set([...]);
     // Start a new compilation
     compiler.run((err, stats) => {});
   });
@@ -342,6 +349,18 @@ Get the watching object, see [watch method](#watch) for more details.
 - **Type:** `boolean`
 
 Whether the compilation is currently being executed.
+
+### modifiedFiles
+
+- **Type:** `Set<string>`
+
+Files modified when triggering compilation, Rspack will use it to invalidate some caches.
+
+### removedFiles
+
+- **Type:** `Set<string>`
+
+Files removed when triggering compilation, Rspack will use it to invalidate some caches.
 
 ### inputFileSystem
 

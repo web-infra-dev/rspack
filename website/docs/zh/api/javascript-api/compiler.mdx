@@ -28,10 +28,15 @@ function run(
 ```
 
 :::warning
-这个 API 一次仅支持一个编译。请在 `compiler.run` 回调中调用 `compiler.close`，并等待它完成后再次执行 `compiler.run`。并发编译将破坏输出文件。
+
+- 这个 API 一次仅支持一个编译。请在 `compiler.run` 回调中调用 `compiler.close`，并等待它完成后再次执行 `compiler.run`。并发编译将破坏输出文件。
+- 直接使用这个 API 需要手动配置 `compiler.modifiedFiles` 和 `compiler.removedFiles`，否则将导致 memory cache 无法正常失效。
+
 :::
 
 ```js
+compiler.modifiedFiles = new Set([...]);
+compiler.removedFiles = new Set([...]);
 compiler.run((err, stats) => {
   // 处理构建器错误
   handlerCompilerError(err);
@@ -42,6 +47,8 @@ compiler.run((err, stats) => {
   // 结束本次编译
   compiler.close(closeErr => {
     // 重新启动一次编译
+    compiler.modifiedFiles = new Set([...]);
+    compiler.removedFiles = new Set([...]);
     compiler.run((err, stats) => {});
   });
 });
@@ -342,6 +349,18 @@ console.log(compiler.webpack === compiler.rspack); // true
 - **类型：** `boolean`
 
 当前是否正在执行构建流程。
+
+### modifiedFiles
+
+- **类型：** `Set<string>`
+
+触发编译时修改的文件，Rspack 会通过它来使部分缓存失效。
+
+### removedFiles
+
+- **类型：** `Set<string>`
+
+触发编译时删除的文件，Rspack 会通过它来使部分缓存失效。
 
 ### inputFileSystem
 
