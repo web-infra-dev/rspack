@@ -83,7 +83,7 @@ export function replaceRuntimeModuleName(content: string) {
 				);
 			}
 
-			return res.split(rspackName).join(webpackName);
+			return res.replaceAll(rspackName, webpackName);
 		},
 		res
 	);
