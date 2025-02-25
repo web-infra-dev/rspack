@@ -52,7 +52,6 @@ pub static RESERVED_IDENTIFIER: LazyLock<HashSet<&str>> = LazyLock::new(|| {
     "public",
     "static",
     "yield",
-    "yield",
     // module code
     "await",
     // skip future reserved keywords defined under ES1 till ES3
