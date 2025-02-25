@@ -9,7 +9,7 @@ module.exports = {
 		providedExports: true,
 		usedExports: true,
 		concatenateModules: false,
-		moduleIds: "named"
+		moduleIds: "named",
 	},
 	output: {
 		filename: "[name].js"
