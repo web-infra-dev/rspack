@@ -1,4 +1,4 @@
-__webpack_require__.g = (function () {
+<%- GLOBAL %> = (<%- basicFunction("") %> {
 	if (typeof globalThis === 'object') return globalThis;
 	try {
 		return this || new Function('return this')();
