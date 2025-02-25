@@ -8,28 +8,39 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use crate::{
-  utils::FileCounter, BuildDependency, Compilation, DependencyId, ModuleGraph, ModuleGraphPartial,
-  ModuleIdentifier,
+  utils::FileCounter, BuildDependency, Compilation, DependencyId, FactorizeInfo, ModuleGraph,
+  ModuleGraphPartial, ModuleIdentifier,
 };
+
+#[derive(Debug)]
+pub enum MakeArtifactState {
+  Uninitialized(HashSet<DependencyId>),
+  Initialized,
+}
+
+impl Default for MakeArtifactState {
+  fn default() -> Self {
+    MakeArtifactState::Uninitialized(Default::default())
+  }
+}
 
 #[derive(Debug, Default)]
 pub struct MakeArtifact {
   // temporary data, used by subsequent steps of make
   // should be reset when rebuild
-  pub diagnostics: Vec<Diagnostic>,
   pub has_module_graph_change: bool,
   pub built_modules: IdentifierSet,
   pub revoked_modules: IdentifierSet,
   // Field to mark whether artifact has been initialized.
-  // Only Default::default() is false, `update_module_graph` will set this field to true
-  // Persistent cache will update MakeArtifact when this is false.
-  pub initialized: bool,
+  // Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
+  // Persistent cache will update MakeArtifact and set force_build_deps to this field when this is Uninitialized.
+  pub state: MakeArtifactState,
 
   // data
-  pub make_failed_dependencies: HashSet<BuildDependency>,
-  pub make_failed_module: IdentifierSet,
   pub module_graph_partial: ModuleGraphPartial,
   // statistical data, which can be regenerated from module_graph_partial and used as index.
+  pub make_failed_module: IdentifierSet,
+  pub make_failed_dependencies: HashSet<DependencyId>,
   pub entry_dependencies: HashSet<DependencyId>,
   pub file_dependencies: FileCounter,
   pub context_dependencies: FileCounter,
@@ -53,15 +64,12 @@ impl MakeArtifact {
     &mut self.module_graph_partial
   }
 
-  pub fn take_diagnostics(&mut self) -> Vec<Diagnostic> {
-    std::mem::take(&mut self.diagnostics)
-  }
-
   fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    let mut module_graph = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
-    let module = module_graph
+    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+    let module = mg
       .module_by_identifier(module_identifier)
       .expect("should have module");
+    // clean module build info
     let build_info = module.build_info();
     self
       .file_dependencies
@@ -75,9 +83,63 @@ impl MakeArtifact {
     self
       .build_dependencies
       .remove_batch_file(&build_info.build_dependencies);
+    self.make_failed_module.remove(module_identifier);
+
+    // clean incoming & all_dependencies(outgoing) factorize info
+    let mgm = mg
+      .module_graph_module_by_identifier(module_identifier)
+      .expect("should have mgm");
+    for dep_id in mgm
+      .all_dependencies
+      .iter()
+      .chain(mgm.incoming_connections())
+    {
+      if !self.make_failed_dependencies.remove(dep_id) {
+        continue;
+      }
+      // make failed dependencies clean it.
+      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      self
+        .file_dependencies
+        .remove_batch_file(&info.file_dependencies());
+      self
+        .context_dependencies
+        .remove_batch_file(&info.context_dependencies());
+      self
+        .missing_dependencies
+        .remove_batch_file(&info.missing_dependencies());
+    }
 
     self.revoked_modules.insert(*module_identifier);
-    module_graph.revoke_module(module_identifier)
+    mg.revoke_module(module_identifier)
+  }
+
+  pub fn revoke_dependency(&mut self, dep_id: &DependencyId, force: bool) -> Vec<BuildDependency> {
+    let mut mg = ModuleGraph::new(vec![], Some(&mut self.module_graph_partial));
+
+    let revoke_dep_ids = if self.make_failed_dependencies.remove(dep_id) {
+      // make failed dependencies clean it.
+      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let info = FactorizeInfo::get_from(dep).expect("should have factorize info");
+      self
+        .file_dependencies
+        .remove_batch_file(&info.file_dependencies());
+      self
+        .context_dependencies
+        .remove_batch_file(&info.context_dependencies());
+      self
+        .missing_dependencies
+        .remove_batch_file(&info.missing_dependencies());
+      // related_dep_ids will contain dep_id it self
+      info.related_dep_ids().into_owned()
+    } else {
+      vec![*dep_id]
+    };
+    revoke_dep_ids
+      .iter()
+      .filter_map(|dep_id| mg.revoke_dependency(dep_id, force))
+      .collect()
   }
 
   pub fn reset_dependencies_incremental_info(&mut self) {
@@ -85,6 +147,35 @@ impl MakeArtifact {
     self.context_dependencies.reset_incremental_info();
     self.missing_dependencies.reset_incremental_info();
     self.build_dependencies.reset_incremental_info();
+  }
+
+  pub fn diagnostics(&self) -> Vec<Diagnostic> {
+    let mg = self.get_module_graph();
+    let module_diagnostics = self
+      .make_failed_module
+      .iter()
+      .flat_map(|module_identifier| {
+        let m = mg
+          .module_by_identifier(module_identifier)
+          .expect("should have module");
+        m.diagnostics()
+          .iter()
+          .cloned()
+          .map(|d| d.with_module_identifier(Some(*module_identifier)))
+          .collect::<Vec<_>>()
+      });
+    let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
+      let dep = mg.dependency_by_id(dep_id).expect("should have dependency");
+      let origin_module_identifier = mg.get_parent_module(dep_id);
+      FactorizeInfo::get_from(dep)
+        .expect("should have factorize info")
+        .diagnostics()
+        .iter()
+        .cloned()
+        .map(|d| d.with_module_identifier(origin_module_identifier.copied()))
+        .collect::<Vec<_>>()
+    });
+    module_diagnostics.chain(dep_diagnostics).collect()
   }
 }
 
@@ -95,7 +186,7 @@ pub enum MakeParam {
   CheckNeedBuild,
   ModifiedFiles(HashSet<ArcPath>),
   RemovedFiles(HashSet<ArcPath>),
-  ForceBuildDeps(HashSet<BuildDependency>),
+  ForceBuildDeps(HashSet<DependencyId>),
   ForceBuildModules(IdentifierSet),
 }
 
@@ -123,20 +214,14 @@ pub async fn make_module_graph(
   if !compilation.removed_files.is_empty() {
     params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
   }
-  if !artifact.make_failed_module.is_empty() {
-    let make_failed_module = std::mem::take(&mut artifact.make_failed_module);
-    params.push(MakeParam::ForceBuildModules(make_failed_module));
-  }
-  if !artifact.make_failed_dependencies.is_empty() {
-    let make_failed_dependencies = std::mem::take(&mut artifact.make_failed_dependencies);
-    params.push(MakeParam::ForceBuildDeps(make_failed_dependencies));
+  if let MakeArtifactState::Uninitialized(force_build_deps) = &artifact.state {
+    params.push(MakeParam::ForceBuildDeps(force_build_deps.clone()));
   }
 
   // reset temporary data
   artifact.built_modules = Default::default();
   artifact.revoked_modules = Default::default();
-  artifact.diagnostics = Default::default();
-  if artifact.initialized {
+  if matches!(artifact.state, MakeArtifactState::Initialized) {
     artifact.has_module_graph_change = false;
   }
 
@@ -149,7 +234,7 @@ pub async fn update_module_graph(
   mut artifact: MakeArtifact,
   params: Vec<MakeParam>,
 ) -> Result<MakeArtifact> {
-  artifact.initialized = true;
+  artifact.state = MakeArtifactState::Initialized;
   let mut cutout = Cutout::default();
   let build_dependencies = cutout.cutout_artifact(&mut artifact, params);
 

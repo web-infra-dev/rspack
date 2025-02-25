@@ -3255,7 +3255,7 @@ export type LazyCompilationOptions = {
     backend?: LazyCompilationDefaultBackendOptions;
     imports?: boolean;
     entries?: boolean;
-    test?: RegExp | ((module: any) => boolean);
+    test?: RegExp | ((module: Module) => boolean);
 };
 
 // @public

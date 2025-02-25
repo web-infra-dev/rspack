@@ -136,8 +136,8 @@ export class RspackCLI {
 			}
 			// to set output.path
 			item.output = item.output || {};
-			if (options["output-path"]) {
-				item.output.path = path.resolve(process.cwd(), options["output-path"]);
+			if (options.outputPath) {
+				item.output.path = path.resolve(process.cwd(), options.outputPath);
 			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(

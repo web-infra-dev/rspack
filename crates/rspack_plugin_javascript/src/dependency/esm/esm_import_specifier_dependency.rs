@@ -8,8 +8,9 @@ use rspack_core::{
   get_exports_type, AsContextDependency, Compilation, ConnectionState, Dependency,
   DependencyCategory, DependencyCondition, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyType, ExportPresenceMode, ExportsType, ExtendedReferencedExport,
-  ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph, ReferencedExport,
-  RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource, UsedByExports,
+  FactorizeInfo, ImportAttributes, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ReferencedExport, RuntimeSpec, SharedSourceMap, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rspack_core::{property_access, ModuleReferenceOptions};
 use rspack_error::Diagnostic;
@@ -44,6 +45,7 @@ pub struct ESMImportSpecifierDependency {
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
   pub namespace_object_as_context: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSpecifierDependency {
@@ -83,6 +85,7 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 
@@ -375,6 +378,14 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     // TODO: this part depend on inner graph parser plugin to call set_used_by_exports to update the used_by_exports
     get_dependency_used_by_exports_condition(self.id, self.used_by_exports.as_ref())
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

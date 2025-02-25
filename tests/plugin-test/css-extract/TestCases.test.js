@@ -360,41 +360,52 @@ describe("TestCases", () => {
 						);
 					}
 
-					if (fs.existsSync(expectedDirectoryByVersion)) {
-						compareDirectory(
-							outputDirectoryForCase,
-							expectedDirectoryByVersion,
-							stats
-						);
-					} else if (fs.existsSync(expectedDirectory)) {
-						compareDirectory(outputDirectoryForCase, expectedDirectory, stats);
+					try {
+						if (fs.existsSync(expectedDirectoryByVersion)) {
+							compareDirectory(
+								outputDirectoryForCase,
+								expectedDirectoryByVersion,
+								stats
+							);
+						} else if (fs.existsSync(expectedDirectory)) {
+							compareDirectory(outputDirectoryForCase, expectedDirectory, stats);
+						}
+
+						const warningsFile = path.resolve(directoryForCase, "warnings.js");
+
+						if (fs.existsSync(warningsFile)) {
+							const actualWarnings = stats.toString({
+								all: false,
+								warnings: true
+							});
+							// eslint-disable-next-line global-require, import/no-dynamic-require
+							const expectedWarnings = require(warningsFile);
+							expect(
+								actualWarnings
+									.replace(/(\(from: .*\))?/g, "")
+									.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+									.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+									.replace(/│     at .*\n/g, "")
+									.trim()
+							).toBe(
+								expectedWarnings
+									.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
+									.replace(/│     at .*\n/g, "")
+									.trim()
+							);
+						}
+
+						const testFile = path.resolve(directoryForCase, "test.js");
+
+						if (fs.existsSync(testFile)) {
+							const test = require(testFile);
+							test(outputDirectoryForCase, stats);
+						}
+
+						done();
+					} catch (e) {
+						done(e);
 					}
-
-					const warningsFile = path.resolve(directoryForCase, "warnings.js");
-
-					if (fs.existsSync(warningsFile)) {
-						const actualWarnings = stats.toString({
-							all: false,
-							warnings: true
-						});
-						// eslint-disable-next-line global-require, import/no-dynamic-require
-						const expectedWarnings = require(warningsFile);
-						expect(
-							actualWarnings
-								.replace(/(\(from: .*\))?/g, "")
-								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
-								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
-								.replace(/│     at .*\n/g, "")
-								.trim()
-						).toBe(
-							expectedWarnings
-								.replace(/\*\scss\s(.*)?!/g, "* css /path/to/loader.js!")
-								.replace(/│     at .*\n/g, "")
-								.trim()
-						);
-					}
-
-					done();
 				});
 			});
 		}

@@ -3,8 +3,8 @@ pub use create_script_url_dependency::CreateScriptUrlDependency;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
+  ModuleGraph, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -16,6 +16,7 @@ pub struct WorkerDependency {
   public_path: String,
   range: DependencyRange,
   range_path: DependencyRange,
+  factorize_info: FactorizeInfo,
 }
 
 impl WorkerDependency {
@@ -31,6 +32,7 @@ impl WorkerDependency {
       public_path,
       range,
       range_path,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -78,6 +80,14 @@ impl ModuleDependency for WorkerDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

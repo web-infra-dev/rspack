@@ -7,7 +7,13 @@
 	lockFileMaintenance: {
 		enabled: true
 	},
-	ignorePaths: ["**/fixtures/**", "npm/**"],
+	ignorePaths: [
+		"**/fixtures/**",
+		"npm/**",
+		"**/no-override-loaded/**",
+		"**/share-plugin-dual-mode/**",
+		"**/resolve-plugin-context/**"
+	],
 	assignees: ["@SoonIter"],
 	packageRules: [
 		// manually update peer dependencies
@@ -28,11 +34,6 @@
 				"actions/upload-artifact",
 				"actions/download-artifact"
 			]
-		},
-		{
-			groupName: "pnpm",
-			matchPackageNames: ["pnpm"],
-			matchUpdateTypes: ["minor"]
 		},
 		{
 			groupName: "ignored github-actions upload-download-actions",
@@ -120,13 +121,12 @@
 			enabled: false
 		},
 		{
-			groupName: "npm dev dependencies",
+			groupName: "npm dependencies",
 			matchManagers: ["npm"],
-			matchDepTypes: ["devDependencies"],
+			matchDepTypes: ["dependencies", "devDependencies"],
 			excludePackagePrefixes: ["webpack"],
 			excludePackageNames: [
 				"typescript",
-				"pnpm",
 				"@playwright/test",
 				"@biomejs/biome",
 				"prettier"
@@ -135,17 +135,9 @@
 			matchUpdateTypes: ["patch"]
 		},
 		{
-			groupName: "npm dependencies",
-			matchManagers: ["npm"],
-			matchDepTypes: ["dependencies"],
-			// bump major and minor in a separate PR
-			matchUpdateTypes: ["patch"]
-		},
-		{
 			groupName: "webpack",
 			matchManagers: ["npm"],
-			matchPackagePrefixes: ["webpack"],
-			enabled: false
+			matchPackagePrefixes: ["webpack"]
 		},
 		{
 			// should update the playwright image in .github/workflows/reusable-build.yml
@@ -177,6 +169,12 @@
 			matchFileNames: ["website/package.json"],
 			matchPackagePrefixes: ["@rspress/", "rspress-plugin-", "rsbuild-plugin"],
 			matchPackageNames: ["rspress"]
+		},
+		// Disable Node.js updates
+		{
+			groupName: "node",
+			matchPackageNames: ["node"],
+			enabled: false
 		}
 	]
 }

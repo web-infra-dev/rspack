@@ -4,8 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   module_id, property_access, to_normal_comment, Compilation, DependencyLocation, DependencyRange,
-  ExportsType, ExtendedReferencedExport, ModuleGraph, RuntimeGlobals, RuntimeSpec, SharedSourceMap,
-  UsedName,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleGraph, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, UsedName,
 };
 use rspack_core::{AsContextDependency, Dependency, DependencyCategory};
 use rspack_core::{DependencyId, DependencyTemplate};
@@ -26,6 +26,7 @@ pub struct CommonJsFullRequireDependency {
   asi_safe: bool,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsFullRequireDependency {
@@ -47,6 +48,7 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -117,6 +119,14 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

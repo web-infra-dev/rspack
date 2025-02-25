@@ -13,7 +13,7 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "entry file"
 			},
-			"output-path": {
+			outputPath: {
 				type: "string",
 				describe: "output path dir",
 				alias: "o"
@@ -30,7 +30,7 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "env passed to config function"
 			},
-			"node-env": {
+			nodeEnv: {
 				string: true,
 				describe: "sets process.env.NODE_ENV to be specified value"
 			},
@@ -45,7 +45,7 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "Name of the configuration to use."
 			},
-			"config-loader": {
+			configLoader: {
 				type: "string",
 				default: "register",
 				describe:

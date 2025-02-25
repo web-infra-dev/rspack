@@ -31,11 +31,10 @@ export class HashProcessor<
 			env.expect(false);
 			return;
 		}
-		const statsJson = stats.toJson({ assets: true });
 		if (REG_ERROR_CASE.test(this._options.name)) {
-			env.expect((statsJson.errors || []).length > 0);
+			env.expect(stats.hasErrors());
 		} else {
-			env.expect((statsJson.errors || []).length === 0);
+			env.expect(!stats.hasErrors());
 		}
 
 		if (typeof testConfig.validate === "function") {

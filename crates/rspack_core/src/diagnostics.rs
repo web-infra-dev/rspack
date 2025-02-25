@@ -157,9 +157,11 @@ pub struct CapturedLoaderError {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
+  pub cacheable: bool,
 }
 
 impl CapturedLoaderError {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     message: String,
     stack: Option<String>,
@@ -168,6 +170,7 @@ impl CapturedLoaderError {
     context_dependencies: Vec<String>,
     missing_dependencies: Vec<String>,
     build_dependencies: Vec<String>,
+    cacheable: bool,
   ) -> Self {
     Self {
       message,
@@ -177,6 +180,7 @@ impl CapturedLoaderError {
       context_dependencies,
       missing_dependencies,
       build_dependencies,
+      cacheable,
     }
   }
 

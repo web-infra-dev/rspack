@@ -14,10 +14,10 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyType, ESMExportInitFragment, ExportInfo, ExportInfoProvided,
   ExportNameOrSpec, ExportPresenceMode, ExportSpec, ExportsInfo, ExportsOfExportsSpec, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, ImportAttributes, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SharedSourceMap, Template,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, NormalInitFragment, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SharedSourceMap, Template, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
 };
 use rspack_error::{
   miette::{MietteDiagnostic, Severity},
@@ -54,6 +54,7 @@ pub struct ESMExportImportedSpecifierDependency {
   export_presence_mode: ExportPresenceMode,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -85,6 +86,7 @@ impl ESMExportImportedSpecifierDependency {
       export_presence_mode,
       attributes,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 
@@ -1394,6 +1396,14 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     Some(DependencyCondition::Fn(Arc::new(
       ESMExportImportedSpecifierDependencyCondition(id),
     )))
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

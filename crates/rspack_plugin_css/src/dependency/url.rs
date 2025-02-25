@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
+  FactorizeInfo, ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -15,6 +15,7 @@ pub struct CssUrlDependency {
   request: String,
   range: DependencyRange,
   replace_function: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl CssUrlDependency {
@@ -24,6 +25,7 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
+      factorize_info: Default::default(),
     }
   }
 
@@ -84,6 +86,14 @@ impl ModuleDependency for CssUrlDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

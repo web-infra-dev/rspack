@@ -4,10 +4,10 @@ use rspack_collections::IdentifierMap;
 use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
   merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
-  CodeGenerationExportsFinalNames, Compilation, CompilationFinishModules,
-  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerOptions,
-  ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency,
-  DependencyId, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  CodeGenerationExportsFinalNames, Compilation, CompilationOptimizeChunkModules, CompilationParams,
+  CompilerCompilation, CompilerFinishMake, CompilerOptions, ConcatenatedModule,
+  ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency, DependencyId,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -211,8 +211,8 @@ fn render_startup(
   Ok(())
 }
 
-#[plugin_hook(CompilationFinishModules for ModernModuleLibraryPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONS)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
   let module_ids = modules.keys().cloned().collect::<Vec<_>>();
@@ -456,9 +456,9 @@ impl Plugin for ModernModuleLibraryPlugin {
       .tap(optimize_chunk_modules::new(self));
     ctx
       .context
-      .compilation_hooks
-      .finish_modules
-      .tap(finish_modules::new(self));
+      .compiler_hooks
+      .finish_make
+      .tap(finish_make::new(self));
 
     Ok(())
   }

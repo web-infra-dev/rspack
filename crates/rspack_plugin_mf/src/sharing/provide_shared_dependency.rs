@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency,
 };
 
 use super::provide_shared_plugin::ProvideVersion;
@@ -20,6 +20,7 @@ pub struct ProvideSharedDependency {
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
   resource_identifier: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl ProvideSharedDependency {
@@ -53,6 +54,7 @@ impl ProvideSharedDependency {
       required_version,
       strict_version,
       resource_identifier,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -84,6 +86,14 @@ impl Dependency for ProvideSharedDependency {
 impl ModuleDependency for ProvideSharedDependency {
   fn request(&self) -> &str {
     &self.request
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

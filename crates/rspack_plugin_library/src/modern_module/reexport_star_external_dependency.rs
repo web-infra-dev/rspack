@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
-  AsContextDependency, Dependency, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  NormalInitFragment,
+  AsContextDependency, Dependency, FactorizeInfo, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, NormalInitFragment,
 };
 use rspack_core::{Compilation, DependencyType, ExternalRequest, ExternalType, RuntimeSpec};
 use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
@@ -18,6 +18,7 @@ pub struct ModernModuleReexportStarExternalDependency {
   target_request: ExternalRequest,
   external_type: ExternalType,
   resource_identifier: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl ModernModuleReexportStarExternalDependency {
@@ -29,6 +30,7 @@ impl ModernModuleReexportStarExternalDependency {
       external_type,
       id: DependencyId::new(),
       resource_identifier,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -68,6 +70,14 @@ impl ModuleDependency for ModernModuleReexportStarExternalDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

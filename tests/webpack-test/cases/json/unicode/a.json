@@ -1,0 +1,6 @@
+{
+  "a": "Some test message with unicode\u2027char",
+  "b": "Some test message with unicode\u2028char",
+  "c": "Some test message with unicode\u2029char",
+  "d": "Some test message with unicode\u2027\u2028\u2029char"
+}

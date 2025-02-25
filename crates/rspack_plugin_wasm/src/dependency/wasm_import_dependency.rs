@@ -4,8 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExtendedReferencedExport, ModuleDependency, ModuleGraph,
-  RuntimeSpec,
+  DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
+  ModuleGraph, RuntimeSpec,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -24,6 +24,7 @@ pub struct WasmImportDependency {
   #[cacheable(with=Unsupported)]
   pub desc: WasmNode,
   span: Option<DependencyRange>,
+  factorize_info: FactorizeInfo,
 }
 
 impl WasmImportDependency {
@@ -35,6 +36,7 @@ impl WasmImportDependency {
       desc,
       // only_direct_import,
       span: None,
+      factorize_info: Default::default(),
     }
   }
   pub fn name(&self) -> &str {
@@ -81,6 +83,14 @@ impl ModuleDependency for WasmImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

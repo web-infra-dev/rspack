@@ -59,11 +59,6 @@ use crate::{
   Stats,
 };
 
-pub type BuildDependency = (
-  DependencyId,
-  Option<ModuleIdentifier>, /* parent module */
-);
-
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 // NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
@@ -71,7 +66,7 @@ define_hook!(CompilationRevokedModules: AsyncSeries(revoked_modules: &Identifier
 define_hook!(CompilationStillValidModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
-  SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  AsyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationSeal: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
@@ -1190,6 +1185,23 @@ impl Compilation {
 
   #[instrument("Compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    // clean up the entry deps
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     let logger = self.get_logger("rspack.Compilation");
 
     self.in_finish_make.store(false, Ordering::Release);
@@ -1220,6 +1232,10 @@ impl Compilation {
     }
 
     let start = logger.time("finish modules");
+    // finish_modules means the module graph (modules, connections, dependencies) are
+    // frozen and start to optimize (provided exports, infer async, etc.) based on the
+    // module graph, so any kind of change that affect these should be done before the
+    // finish_modules
     plugin_driver
       .compilation_hooks
       .finish_modules
@@ -1240,7 +1256,7 @@ impl Compilation {
     self.collect_dependencies_diagnostics();
 
     // take make diagnostics
-    let diagnostics = self.make_artifact.take_diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     self.extend_diagnostics(diagnostics);
     Ok(())
   }

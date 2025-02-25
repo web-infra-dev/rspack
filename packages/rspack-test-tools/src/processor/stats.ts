@@ -15,6 +15,7 @@ import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 export interface IStatsProcessorOptions<T extends ECompilerType>
 	extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
 	snapshotName?: string;
+	writeStatsOuptut?: boolean;
 }
 
 const REG_ERROR_CASE = /error$/;
@@ -28,6 +29,7 @@ export class StatsProcessor<
 > extends MultiTaskProcessor<T> {
 	private stderr: any;
 	private snapshotName?: string;
+	private writeStatsOuptut?: boolean;
 	constructor(_statsOptions: IStatsProcessorOptions<T>) {
 		super({
 			defaultOptions: StatsProcessor.defaultOptions<T>,
@@ -36,6 +38,7 @@ export class StatsProcessor<
 			..._statsOptions
 		});
 		this.snapshotName = _statsOptions.snapshotName;
+		this.writeStatsOuptut = _statsOptions.writeStatsOuptut;
 	}
 
 	async before(context: ITestContext) {
@@ -114,7 +117,7 @@ export class StatsProcessor<
 					// errorDetails: true
 				})
 			);
-		} else {
+		} else if (this.writeStatsOuptut) {
 			fs.writeFileSync(
 				path.join(context.getDist(), "stats.txt"),
 				stats.toString({
@@ -160,7 +163,9 @@ export class StatsProcessor<
 			actual = actual
 				.replace(/\u001b\[[0-9;]*m/g, "")
 				// CHANGE: The time unit display in Rspack is second
-				.replace(/[.0-9]+(\s?s)/g, "X$1");
+				.replace(/[.0-9]+(\s?s)/g, "X$1")
+				// CHANGE: Replace bundle size, since bundle sizes may differ between platforms
+				.replace(/[0-9]+\.?[0-9]+ KiB/g, "xx KiB");
 		}
 
 		if (this.snapshotName) {
