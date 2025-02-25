@@ -702,16 +702,21 @@ class Compiler {
 				return callback?.(error);
 			}
 			if (!this.#initial) {
-				instance!.rebuild(
-					Array.from(this.modifiedFiles || []),
-					Array.from(this.removedFiles || []),
-					error => {
-						if (error) {
-							return callback?.(error);
-						}
-						callback?.(null);
+				const modifiedFiles = Array.from(this.modifiedFiles || []);
+				const removedFiles = Array.from(this.removedFiles || []);
+				if (!modifiedFiles.length && !removedFiles.length) {
+					// both not exist modified file and remove files show warnings
+					const logger = this.getInfrastructureLogger("Compiler");
+					logger.warn(
+						"Neither modifiedFiles nor removedFiles are included when running the build. This is an unexpected behavior and the memory cache will not be invalidated correctly. Please set them manually."
+					);
+				}
+				instance!.rebuild(modifiedFiles, removedFiles, error => {
+					if (error) {
+						return callback?.(error);
 					}
-				);
+					callback?.(null);
+				});
 				return;
 			}
 			this.#initial = false;
