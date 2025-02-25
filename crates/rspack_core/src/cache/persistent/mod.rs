@@ -78,8 +78,9 @@ impl PersistentCache {
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&self, compilation: &mut Compilation) -> Result<()> {
+    // rebuild will pass modified_files and removed_files from js side,
+    // so only calculate them when build.
     if !compilation.is_rebuild {
-      // inject modified_files and removed_files
       let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths().await?;
       tracing::info!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);

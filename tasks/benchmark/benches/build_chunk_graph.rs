@@ -137,6 +137,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
       compiler.input_filesystem.clone(),
       compiler.intermediate_filesystem.clone(),
       compiler.output_filesystem.clone(),
+      false,
     ),
   );
 
