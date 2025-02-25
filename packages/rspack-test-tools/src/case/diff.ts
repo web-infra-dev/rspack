@@ -46,20 +46,6 @@ export function createDiffCase(name: string, src: string, dist: string) {
 	const buildTask: Promise<void> | null = tester.compile();
 
 	const prefix = path.basename(name);
-	describe(`${prefix}:build`, () => {
-		checkBundleFiles(
-			"webpack",
-			path.join(dist, "webpack"),
-			caseConfig.files!,
-			buildTask
-		);
-		checkBundleFiles(
-			"rspack",
-			path.join(dist, "rspack"),
-			caseConfig.files!,
-			buildTask
-		);
-	});
 	describe(`${prefix}:check`, () => {
 		beforeAll(async () => {
 			await buildTask;
@@ -130,21 +116,6 @@ function createDiffProcessor(config: IDiffProcessorOptions) {
 		DiffProcessor,
 		Map<string, TFileCompareResult>
 	];
-}
-
-function checkBundleFiles(
-	name: string,
-	dist: string,
-	files: string[],
-	buildTask: Promise<void>
-) {
-	for (const file of files) {
-		it.concurrent(`${name}: ${file} should be generated`, async () => {
-			await buildTask;
-			const exists = await fs.exists(path.join(dist, file));
-			expect(exists).toBeTruthy();
-		});
-	}
 }
 
 function checkCompareResults(

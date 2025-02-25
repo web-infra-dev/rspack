@@ -1,0 +1,14 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/compat-get-default-export/src/a.js": "(function () {\n  \"use strict\";\n\n  __webpack_require__.r(__webpack_exports__);\n  var __WEBPACK_IMPORTED_MODULE_xxx__ = __webpack_require__(\"./src/b.js\");\n  var __WEBPACK_IMPORTED_MODULE_xxx__ = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_xxx__);\n  console.log(__WEBPACK_IMPORTED_MODULE_xxx__());\n});",
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/compat-get-default-export/src/b.js": "(function () {\n  console.log(\"b\");\n});",
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/compat-get-default-export/src/index.js": "(function () {\n  \"use strict\";\n\n  __webpack_require__.r(__webpack_exports__);\n  var __WEBPACK_IMPORTED_MODULE_xxx__ = __webpack_require__(\"./src/a.js\");\n  console.log(\"hello, world\");\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_module_cache__ = {};\nfunction __webpack_require__(moduleId) {\n  var cachedModule = __webpack_module_cache__[moduleId];\n  if (cachedModule !== undefined) return cachedModule.exports;\n  var module = __webpack_module_cache__[moduleId] = {\n    \"exports\": {}\n  };\n  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n  return module.exports;\n}",
+    "webpack/runtime/compat get default export": "!function () {\n  __webpack_require__.n = function (module) {\n    var getter = module && module.__esModule ? function () {\n      return module[\"default\"];\n    } : function () {\n      return module;\n    };\n    __webpack_require__.d(getter, {\n      \"a\": getter\n    });\n    return getter;\n  };\n}();",
+    "webpack/runtime/define property getters": "!function () {\n  __webpack_require__.d = function (exports, definition) {\n    for (var key in definition) if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) Object.defineProperty(exports, key, {\n      \"enumerable\": true,\n      \"get\": definition[key]\n    });\n  };\n}();",
+    "webpack/runtime/hasOwnProperty shorthand": "!function () {\n  __webpack_require__.o = function (obj, prop) {\n    return Object.prototype.hasOwnProperty.call(obj, prop);\n  };\n}();",
+    "webpack/runtime/make namespace object": "!function () {\n  __webpack_require__.r = function (exports) {\n    if (typeof Symbol !== \"undefined\" && Symbol.toStringTag) Object.defineProperty(exports, Symbol.toStringTag, {\n      \"value\": \"Module\"\n    });\n    Object.defineProperty(exports, \"__esModule\", {\n      \"value\": true\n    });\n  };\n}();"
+  }
+}
