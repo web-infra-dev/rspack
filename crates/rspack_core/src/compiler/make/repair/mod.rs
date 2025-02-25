@@ -86,6 +86,8 @@ impl MakeTaskContext {
       self.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
+      // used at module executor which not support persistent cache, set as false
+      false,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.swap_make_artifact(&mut self.artifact);
