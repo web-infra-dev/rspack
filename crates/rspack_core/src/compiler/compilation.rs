@@ -238,6 +238,11 @@ pub struct Compilation {
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
+
+  /// A flag indicating whether the current compilation is being rebuilt.
+  ///
+  /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
+  pub is_rebuild: bool,
 }
 
 impl Compilation {
@@ -278,6 +283,7 @@ impl Compilation {
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
+    is_rebuild: bool,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
@@ -349,6 +355,7 @@ impl Compilation {
 
       intermediate_filesystem,
       output_filesystem,
+      is_rebuild,
     }
   }
 

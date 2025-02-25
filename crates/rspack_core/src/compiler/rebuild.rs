@@ -57,6 +57,7 @@ impl Compiler {
         self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
+        true,
       );
 
       new_compilation.hot_index = self.compilation.hot_index + 1;

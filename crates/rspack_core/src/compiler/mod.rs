@@ -170,6 +170,7 @@ impl Compiler {
         input_filesystem.clone(),
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
+        false,
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -218,6 +219,7 @@ impl Compiler {
         self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
+        false,
       ),
     );
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
