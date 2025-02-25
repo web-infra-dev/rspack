@@ -1234,7 +1234,7 @@ export function readConfigFile<T extends ECompilerType>(files: string[], functio
 export function replaceModuleArgument(raw: string): string;
 
 // @public (undocumented)
-export function replaceRuntimeModuleName(name: string): string;
+export function replaceRuntimeModuleName(content: string): string;
 
 // @public (undocumented)
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
