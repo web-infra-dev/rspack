@@ -62,7 +62,7 @@ export function compareFile(
 	function formatModules(modules: Record<string, string>) {
 		const res: Record<string, string> = {};
 		for (const [name, content] of Object.entries(modules)) {
-			const renamed = name.replaceAll(path.sep, path.posix.sep);
+			const renamed = name.replaceAll(path.win32.sep, path.posix.sep);
 			res[renamed] = formatCode(renamed, content, compareOptions.format);
 		}
 		return res;
@@ -142,7 +142,7 @@ export function compareModules(
 	const compareResults: TModuleCompareResult[] = [];
 	for (const name of modules) {
 		const renamed = replaceRuntimeModuleName(name).replaceAll(
-			path.sep,
+			path.win32.sep,
 			path.posix.sep
 		);
 		const sourceContent = sourceModules[renamed];
