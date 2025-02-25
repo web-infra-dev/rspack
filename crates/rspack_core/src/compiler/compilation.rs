@@ -1360,11 +1360,13 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
+      let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
         build_chunk_graph_new(compilation)?;
       } else {
         build_chunk_graph(compilation)?;
       }
+      logger.time_end(start);
       Ok(compilation)
     })
     .await?;
@@ -2284,11 +2286,6 @@ impl Compilation {
         )
       })
       .clone()
-  }
-
-  // TODO remove it after code splitting support incremental rebuild
-  pub fn has_module_import_export_change(&self) -> bool {
-    self.make_artifact.has_module_graph_change
   }
 
   pub fn built_modules(&self) -> &IdentifierSet {

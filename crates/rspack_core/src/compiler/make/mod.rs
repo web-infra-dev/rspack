@@ -28,7 +28,6 @@ impl Default for MakeArtifactState {
 pub struct MakeArtifact {
   // temporary data, used by subsequent steps of make
   // should be reset when rebuild
-  pub has_module_graph_change: bool,
   pub built_modules: IdentifierSet,
   pub revoked_modules: IdentifierSet,
   // Field to mark whether artifact has been initialized.
@@ -221,10 +220,6 @@ pub async fn make_module_graph(
   // reset temporary data
   artifact.built_modules = Default::default();
   artifact.revoked_modules = Default::default();
-  if matches!(artifact.state, MakeArtifactState::Initialized) {
-    artifact.has_module_graph_change = false;
-  }
-
   artifact = update_module_graph(compilation, artifact, params).await?;
   Ok(artifact)
 }
