@@ -209,6 +209,18 @@ impl ChunkGraph {
     runtimes
   }
 
+  pub fn get_module_runtimes_iter<'a>(
+    &self,
+    module_identifier: ModuleIdentifier,
+    chunk_by_ukey: &'a ChunkByUkey,
+  ) -> impl Iterator<Item = &'a RuntimeSpec> + use<'a, '_> {
+    let cgm = self.expect_chunk_graph_module(module_identifier);
+    cgm.chunks.iter().map(|chunk_ukey| {
+      let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+      chunk.runtime()
+    })
+  }
+
   pub fn get_module_id(
     module_ids: &ModuleIdsArtifact,
     module_identifier: ModuleIdentifier,

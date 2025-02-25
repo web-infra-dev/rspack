@@ -218,14 +218,13 @@ impl CompilationRecords {
         let mut hashes = RuntimeSpecMap::new();
         for runtime in compilation
           .chunk_graph
-          .get_module_runtimes(*identifier, &compilation.chunk_by_ukey)
-          .into_values()
+          .get_module_runtimes_iter(*identifier, &compilation.chunk_by_ukey)
         {
           let hash = compilation
             .code_generation_results
-            .get_hash(identifier, Some(&runtime))
+            .get_hash(identifier, Some(runtime))
             .expect("should have hash");
-          hashes.set(runtime, hash.clone());
+          hashes.set(runtime.clone(), hash.clone());
         }
         Some((module_id, hashes))
       })

@@ -18,10 +18,6 @@ impl CgmHashArtifact {
     hashes.get(runtime)
   }
 
-  pub fn get_hashes(&self, module: &ModuleIdentifier) -> Option<&RuntimeSpecMap<RspackHashDigest>> {
-    self.module_to_hashes.get(module)
-  }
-
   pub fn set_hashes(&mut self, module: ModuleIdentifier, hashes: RuntimeSpecMap<RspackHashDigest>) {
     self.module_to_hashes.insert(module, hashes);
   }

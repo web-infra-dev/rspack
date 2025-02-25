@@ -110,7 +110,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let all_module_ids: HashMap<ModuleId, ModuleIdentifier> = compilation
     .module_ids_artifact
     .iter()
-    .map(|(k, v)| (v.clone(), k.clone()))
+    .map(|(k, v)| (v.clone(), *k))
     .collect();
   let mut completely_removed_modules: HashSet<ModuleId> = Default::default();
 
@@ -216,11 +216,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               continue;
             }
           }
-          hot_update_main_content_by_runtime
-            .get_mut(removed.as_ref())
-            .map(|info| {
-              info.removed_modules.insert(old_module_id.clone());
-            });
+          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
+            content.removed_modules.insert(old_module_id.clone());
+          }
         }
       }
     }

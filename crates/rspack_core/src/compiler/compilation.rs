@@ -908,44 +908,26 @@ impl Compilation {
     let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
     for module in modules {
-      let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
-      if runtimes.is_empty() {
-        continue;
-      }
-      if runtimes.len() == 1 {
-        let runtime = runtimes
-          .into_values()
-          .next()
-          .expect("should have first value");
-        let hash = ChunkGraph::get_module_hash(self, module, &runtime)
+      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
+        let hash = ChunkGraph::get_module_hash(self, module, runtime)
           .expect("should have cgm.hash in code generation")
           .clone();
-        jobs.push(CodeGenerationJob {
-          module,
-          hash,
-          runtime: runtime.clone(),
-          runtimes: vec![runtime],
-        })
-      } else {
-        let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-        for runtime in runtimes.into_values() {
-          let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-            .expect("should have cgm.hash in code generation")
-            .clone();
-          if let Some(job) = map.get_mut(&hash) {
-            job.runtimes.push(runtime);
-          } else {
-            map.insert(
-              hash.clone(),
-              CodeGenerationJob {
-                module,
-                hash,
-                runtime: runtime.clone(),
-                runtimes: vec![runtime],
-              },
-            );
-          }
+        if let Some(job) = map.get_mut(&hash) {
+          job.runtimes.push(runtime.clone());
+        } else {
+          map.insert(
+            hash.clone(),
+            CodeGenerationJob {
+              module,
+              hash,
+              runtime: runtime.clone(),
+              runtimes: vec![runtime.clone()],
+            },
+          );
         }
+      }
+      if !map.is_empty() {
         jobs.extend(map.into_values());
       }
     }
@@ -1671,15 +1653,15 @@ impl Compilation {
       .into_par_iter()
       .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
       .map(|module| {
+        let mut map = RuntimeSpecMap::new();
         let runtimes = self
           .chunk_graph
-          .get_module_runtimes(module, &self.chunk_by_ukey);
-        let mut map = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+          .get_module_runtimes_iter(module, &self.chunk_by_ukey);
+        for runtime in runtimes {
           let runtime_requirements = self
             .old_cache
             .process_runtime_requirements_occasion
-            .use_cache(module, &runtime, self, |module, runtime| {
+            .use_cache(module, runtime, self, |module, runtime| {
               let mut runtime_requirements = self
                 .code_generation_results
                 .get_runtime_requirements(&module, Some(runtime));
@@ -1707,7 +1689,7 @@ impl Compilation {
               )?;
               Ok(runtime_requirements)
             })?;
-          map.set(runtime, runtime_requirements);
+          map.set(runtime.clone(), runtime_requirements);
         }
         Ok((module, map))
       })
@@ -2140,18 +2122,21 @@ impl Compilation {
           module,
           self
             .chunk_graph
-            .get_module_runtimes(module, &self.chunk_by_ukey),
+            .get_module_runtimes_iter(module, &self.chunk_by_ukey),
         )
       })
       .map(|(module_identifier, runtimes)| {
         let mut hashes = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+        for runtime in runtimes {
           let mut hasher = RspackHash::from(&self.options.output);
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");
-          module.update_hash(&mut hasher, self, Some(&runtime))?;
-          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
+          module.update_hash(&mut hasher, self, Some(runtime))?;
+          hashes.set(
+            runtime.clone(),
+            hasher.digest(&self.options.output.hash_digest),
+          );
         }
         Ok((module_identifier, hashes))
       })
