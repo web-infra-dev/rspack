@@ -201,11 +201,11 @@ impl CompilationRecords {
     }
   }
 
-  pub fn record_hash(compilation: &Compilation) -> Option<RspackHashDigest> {
+  fn record_hash(compilation: &Compilation) -> Option<RspackHashDigest> {
     compilation.hash.clone()
   }
 
-  pub fn record_modules(
+  fn record_modules(
     compilation: &Compilation,
   ) -> FxHashMap<ModuleId, RuntimeSpecMap<RspackHashDigest>> {
     compilation
@@ -231,7 +231,7 @@ impl CompilationRecords {
       .collect()
   }
 
-  pub fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
+  fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
     compilation
       .runtime_modules
       .keys()
@@ -248,7 +248,7 @@ impl CompilationRecords {
       .collect()
   }
 
-  pub fn record_runtimes(compilation: &Compilation) -> RuntimeSpec {
+  fn record_runtimes(compilation: &Compilation) -> RuntimeSpec {
     compilation
       .get_chunk_graph_entries()
       .filter_map(|entry_ukey| compilation.chunk_by_ukey.get(&entry_ukey))
@@ -256,7 +256,7 @@ impl CompilationRecords {
       .collect()
   }
 
-  pub fn record_chunks(
+  fn record_chunks(
     compilation: &Compilation,
   ) -> FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)> {
     compilation
