@@ -128,6 +128,7 @@ export class HotStepRunnerFactory<
 					return moduleScope;
 				}
 			},
+			cachable: true,
 			source,
 			dist,
 			compilerOptions

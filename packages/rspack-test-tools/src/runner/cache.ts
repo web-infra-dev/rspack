@@ -41,6 +41,7 @@ export class CacheRunnerFactory<
 					EDocumentType.JSDOM,
 				env,
 				stats,
+				cachable: false,
 				name: this.name,
 				runInNewContext: false,
 				testConfig: {

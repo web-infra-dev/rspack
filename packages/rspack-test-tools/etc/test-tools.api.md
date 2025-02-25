@@ -639,6 +639,8 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IBasicRunnerOptions<T extends ECompilerType> {
     // (undocumented)
+    cachable?: boolean;
+    // (undocumented)
     compilerOptions: TCompilerOptions<T>;
     // (undocumented)
     dist: string;
