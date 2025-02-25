@@ -5,7 +5,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use itertools::Itertools;
 use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_macros::cacheable;
@@ -15,9 +14,9 @@ use serde::{Serialize, Serializer};
 use tracing::instrument;
 
 use crate::{
-  get_runtime_key, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact, RuntimeGlobals,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -216,14 +215,10 @@ impl ChunkGraph {
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> impl Iterator<Item = &'a RuntimeSpec> + use<'a, '_> {
     let cgm = self.expect_chunk_graph_module(module_identifier);
-    cgm
-      .chunks
-      .iter()
-      .map(|chunk_ukey| {
-        let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-        chunk.runtime()
-      })
-      .unique_by(|&r| get_runtime_key(r))
+    cgm.chunks.iter().map(|chunk_ukey| {
+      let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+      chunk.runtime()
+    })
   }
 
   pub fn get_module_id(

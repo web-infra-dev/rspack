@@ -12,7 +12,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone)]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
   inner: FxHashSet<Arc<str>>,
@@ -38,6 +38,14 @@ impl std::hash::Hash for RuntimeSpec {
     self.key.hash(state);
   }
 }
+
+impl std::cmp::PartialEq for RuntimeSpec {
+  fn eq(&self, other: &Self) -> bool {
+    self.key == other.key
+  }
+}
+
+impl std::cmp::Eq for RuntimeSpec {}
 
 impl Deref for RuntimeSpec {
   type Target = FxHashSet<Arc<str>>;
