@@ -1,7 +1,13 @@
-import type { JsDependency } from "@rspack/binding";
+import { EntryDependency, JsDependency } from "@rspack/binding";
 
 export class Dependency {
 	#inner: JsDependency;
+
+	static [Symbol.hasInstance](instance: any) {
+		return (
+			instance instanceof EntryDependency || instance instanceof JsDependency
+		);
+	}
 
 	declare readonly type: string;
 	declare readonly category: string;
@@ -13,6 +19,9 @@ export class Dependency {
 	}
 
 	static __to_binding(data: Dependency): JsDependency {
+		if (data instanceof EntryDependency) {
+			return data;
+		}
 		return data.#inner;
 	}
 

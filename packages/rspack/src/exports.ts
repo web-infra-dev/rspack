@@ -41,6 +41,8 @@ export type {
 } from "./Stats";
 export { Stats } from "./Stats";
 export { RuntimeModule } from "./RuntimeModule";
+export { Dependency } from "./Dependency";
+export { EntryDependency } from "@rspack/binding";
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";

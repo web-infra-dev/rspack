@@ -26,6 +26,13 @@ export declare class EntryDataDto {
 }
 export type EntryDataDTO = EntryDataDto
 
+export declare class EntryDependency {
+  constructor(request: string)
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+}
+
 export declare class EntryOptionsDto {
   get name(): string | undefined
   set name(name: string | undefined)
@@ -146,7 +153,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsCompiler {
@@ -255,16 +262,16 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: JsDependency): JsModule | null
-  getResolvedModule(jsDependency: JsDependency): JsModule | null
+  getModule(dependency: JsDependency): JsModule | null
+  getResolvedModule(dependency: JsDependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: JsDependency): JsModule | null
-  getParentBlockIndex(jsDependency: JsDependency): number
+  getParentModule(dependency: JsDependency): JsModule | null
+  getParentBlockIndex(dependency: JsDependency): number
   isAsync(module: JsModule): boolean
 }
 
@@ -1523,10 +1530,6 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
-}
-
-export interface RawDependency {
-  request: string
 }
 
 export interface RawDllEntryPluginOptions {

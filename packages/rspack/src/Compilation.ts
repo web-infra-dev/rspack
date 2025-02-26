@@ -1236,8 +1236,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
-		[];
+	#args: [
+		string,
+		binding.EntryDependency,
+		binding.JsEntryOptions | undefined
+	][] = [];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {

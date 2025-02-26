@@ -15,7 +15,6 @@ use rspack_core::AssetInfo;
 use rspack_core::BoxDependency;
 use rspack_core::Compilation;
 use rspack_core::CompilationId;
-use rspack_core::EntryDependency;
 use rspack_core::EntryOptions;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
@@ -27,6 +26,7 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
 use crate::utils::callbackify;
+use crate::EntryDependency;
 use crate::JsAddingRuntimeModule;
 use crate::JsChunk;
 use crate::JsChunkGraph;
@@ -37,7 +37,6 @@ use crate::JsModuleGraph;
 use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::RawDependency;
 use crate::ToJsCompatSource;
 use crate::{JsAsset, JsAssetInfo, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
@@ -691,12 +690,12 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void"
+    ts_args_type = "args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void"
   )]
   pub fn add_include(
     &mut self,
     env: Env,
-    js_args: Vec<(String, RawDependency, Option<JsEntryOptions>)>,
+    js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
     f: Function,
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
@@ -708,19 +707,14 @@ impl JsCompilation {
           Some(options) => options.layer.clone(),
           None => None,
         };
-        let dependency = Box::new(EntryDependency::new(
-          js_dependency.request,
-          js_context.into(),
-          layer,
-          false,
-        )) as BoxDependency;
+        let dependency = js_dependency.resolve(js_context.into(), layer)?;
         let options = match js_options {
           Some(js_opts) => js_opts.into(),
           None => EntryOptions::default(),
         };
-        (dependency, options)
+        Ok((dependency, options))
       })
-      .collect::<Vec<(BoxDependency, EntryOptions)>>();
+      .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
 
     callbackify(env, f, async move {
       let dependency_ids = args

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ptr::NonNull};
+use std::{any::TypeId, cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
@@ -13,7 +13,10 @@ use rustc_hash::FxHashMap as HashMap;
 // JsDependency allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]
+#[repr(C)]
 pub struct JsDependency {
+  #[allow(dead_code)]
+  type_id: TypeId,
   pub(crate) compilation: Option<NonNull<Compilation>>,
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: NonNull<dyn Dependency>,
@@ -209,6 +212,7 @@ impl ToNapiValue for JsDependencyWrapper {
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
           let js_dependency = JsDependency {
+            type_id: TypeId::of::<JsDependency>(),
             compilation: val.compilation,
             dependency_id: val.dependency_id,
             dependency: val.dependency,
@@ -219,9 +223,4 @@ impl ToNapiValue for JsDependencyWrapper {
       }
     })
   }
-}
-
-#[napi(object)]
-pub struct RawDependency {
-  pub request: String,
 }
