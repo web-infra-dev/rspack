@@ -1,4 +1,5 @@
 import type {
+	AssetInfo,
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
@@ -11,7 +12,6 @@ import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
-import type { AssetInfo } from "./util/AssetInfo";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {

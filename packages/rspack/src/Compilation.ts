@@ -9,6 +9,7 @@
  */
 import type * as binding from "@rspack/binding";
 import {
+	type AssetInfo,
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
@@ -16,6 +17,7 @@ import {
 	JsRspackSeverity,
 	type JsRuntimeModule
 } from "@rspack/binding";
+export type { AssetInfo } from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
 import type { Source } from "webpack-sources";
 import { Chunk } from "./Chunk";
@@ -51,14 +53,12 @@ import WebpackError from "./lib/WebpackError";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import type { AssetInfo } from "./util/AssetInfo";
 import { AsyncTask } from "./util/AsyncTask";
 import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";
 import type { InputFileSystem } from "./util/fs";
 import type Hash from "./util/hash";
 import { JsSource } from "./util/source";
-export type { AssetInfo } from "./util/AssetInfo";
 
 export type Assets = Record<string, Source>;
 export interface Asset {
