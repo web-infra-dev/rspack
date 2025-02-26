@@ -18,7 +18,9 @@ jobs:
   try-requst-opt:
     name: Show Me the Otp
     runs-on: ubuntu-latest
-    environment: npm
+#   should add back later
+#   environment: npm
+
     permissions:
       id-token: write
 
