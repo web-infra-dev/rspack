@@ -18,6 +18,9 @@ jobs:
   try-requst-opt:
     name: Show Me the Otp
     runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
 
     steps:
       - name: Start
