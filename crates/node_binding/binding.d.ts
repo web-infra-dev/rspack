@@ -231,6 +231,7 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsModule {
+  get constructorName(): string
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
   get resource(): string | undefined

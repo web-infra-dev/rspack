@@ -240,6 +240,15 @@ export class Module {
 		this.buildMeta = {};
 
 		Object.defineProperties(this, {
+			/**
+			 * @internal maybe temp solution for plugin distinguish between different modules.
+			 */
+			_constructorName: {
+				enumerable: true,
+				get: (): string => {
+					return module.constructorName;
+				}
+			},
 			type: {
 				enumerable: true,
 				get(): string | null {

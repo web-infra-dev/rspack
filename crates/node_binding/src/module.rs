@@ -85,6 +85,27 @@ impl JsModule {
 #[napi]
 impl JsModule {
   #[napi(getter)]
+  pub fn constructor_name(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    let name = if module.as_concatenated_module().is_some() {
+      "ConcatenatedModule"
+    } else if module.as_normal_module().is_some() {
+      "NormalModule"
+    } else if module.as_context_module().is_some() {
+      "ContextModule"
+    } else if module.as_external_module().is_some() {
+      "ExternalModule"
+    } else if module.as_raw_module().is_some() {
+      "RawModule"
+    } else if module.as_self_module().is_some() {
+      "SelfModule"
+    } else {
+      "Module"
+    };
+    Ok(name.to_string())
+  }
+
+  #[napi(getter)]
   pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
     let (_, module) = self.as_ref()?;
 
