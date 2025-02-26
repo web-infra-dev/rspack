@@ -1280,6 +1280,7 @@ export interface KnownAssetInfo {
    * the value(s) of the content hash used for this asset
    */
   contenthash?: string | Array<string>
+  /** when asset was created from a source file (potentially transformed), the original filename relative to compilation context */
   sourceFilename?: string
   /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
   copied?: boolean

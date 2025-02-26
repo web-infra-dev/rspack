@@ -37,7 +37,7 @@ pub struct KnownAssetInfo {
   // pub modulehash:
   /// the value(s) of the content hash used for this asset
   pub contenthash: Option<Either<String, Vec<String>>>,
-  // when asset was created from a source file (potentially transformed), the original filename relative to compilation context
+  /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   pub source_filename: Option<String>,
   /// when asset was created from a source file (potentially transformed), it should be flagged as copied
   pub copied: Option<bool>,
