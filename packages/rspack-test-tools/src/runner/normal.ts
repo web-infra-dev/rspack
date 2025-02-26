@@ -19,6 +19,7 @@ export class NormalRunnerFactory<
 	): ITestRunner {
 		return new NormalRunner({
 			env,
+			cachable: true,
 			name: this.name,
 			runInNewContext: false,
 			testConfig: this.context.getTestConfig(),

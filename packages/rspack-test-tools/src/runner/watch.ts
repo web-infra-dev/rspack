@@ -56,6 +56,7 @@ export class WatchRunnerFactory<
 			stepName,
 			runInNewContext: isWeb,
 			isWeb,
+			cachable: false,
 			testConfig: this.context.getTestConfig(),
 			source: this.context.getSource(),
 			dist: this.context.getDist(),

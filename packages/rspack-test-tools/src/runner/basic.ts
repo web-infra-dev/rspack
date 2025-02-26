@@ -64,6 +64,7 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			return new WebRunner<T>({
 				...runnerOptions,
 				runInNewContext: true,
+				cachable: true,
 				dom:
 					this.context.getValue(this.name, "documentType") || EDocumentType.Fake
 			});

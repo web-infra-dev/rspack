@@ -111,6 +111,7 @@ export class HotRunnerFactory<
 					return moduleScope;
 				}
 			},
+			cachable: true,
 			source,
 			dist,
 			compilerOptions

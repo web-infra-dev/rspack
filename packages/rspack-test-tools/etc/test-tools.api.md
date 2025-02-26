@@ -189,7 +189,7 @@ export function compareContent(sourceContent: string | false, distContent: strin
 export function compareFile(sourceFile: string, distFile: string, compareOptions: ICompareOptions): TFileCompareResult;
 
 // @public (undocumented)
-export function compareModules(modules: string[], sourceModules: Map<string, string>, distModules: Map<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
+export function compareModules(modules: string[], sourceModules: Record<string, string>, distModules: Record<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
 
 // @public (undocumented)
 export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
@@ -639,6 +639,8 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IBasicRunnerOptions<T extends ECompilerType> {
     // (undocumented)
+    cachable?: boolean;
+    // (undocumented)
     compilerOptions: TCompilerOptions<T>;
     // (undocumented)
     dist: string;
@@ -680,6 +682,8 @@ export interface ICompareOptions {
     renameModule?: (name: string) => string;
     // (undocumented)
     runtimeModules?: TCompareModules;
+    // (undocumented)
+    snapshot?: string;
 }
 
 // @public (undocumented)
@@ -1221,8 +1225,8 @@ export function parseModules(content: string, options?: {
     bootstrap?: boolean;
     renameModule?: (name: string) => string;
 }): {
-    modules: Map<string, string>;
-    runtimeModules: Map<string, string>;
+    modules: Record<string, string>;
+    runtimeModules: Record<string, string>;
 };
 
 // @public (undocumented)
@@ -1232,7 +1236,7 @@ export function readConfigFile<T extends ECompilerType>(files: string[], functio
 export function replaceModuleArgument(raw: string): string;
 
 // @public (undocumented)
-export function replaceRuntimeModuleName(name: string): string;
+export function replaceRuntimeModuleName(content: string): string;
 
 // @public (undocumented)
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
