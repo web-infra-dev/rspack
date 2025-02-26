@@ -656,6 +656,11 @@ class Compiler {
 		return !isRoot;
 	}
 
+	/**
+	 * Create a compilation and run it, which is the basic method that `compiler.run` and `compiler.watch` depend on.
+	 * TODO: make this method private in the next major release
+	 * @private this method is only used in Rspack core
+	 */
 	compile(callback: liteTapable.Callback<Error, Compilation>) {
 		const startTime = Date.now();
 		const params = this.#newCompilationParams();
