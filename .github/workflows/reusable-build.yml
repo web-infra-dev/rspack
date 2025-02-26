@@ -68,7 +68,6 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
-          save-if: ${{ github.ref_name == 'main' }}
           run-install: ${{ inputs.full-install == 'true' }}
 
       - name: Install binding node dependencies
@@ -308,7 +307,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           node-version: ${{ matrix.node }}
-
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
