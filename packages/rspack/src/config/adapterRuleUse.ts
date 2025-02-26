@@ -1,8 +1,4 @@
-import type {
-	JsAssetInfo,
-	RawModuleRuleUse,
-	RawOptions
-} from "@rspack/binding";
+import type { AssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import type { ResolveRequest } from "enhanced-resolve";
 
 import type { Compilation } from "../Compilation";
@@ -177,7 +173,7 @@ export interface LoaderContext<OptionsType = {}> {
 		name: string,
 		content: string | Buffer,
 		sourceMap?: string,
-		assetInfo?: JsAssetInfo
+		assetInfo?: AssetInfo
 	): void;
 	addDependency(file: string): void;
 	dependency(file: string): void;

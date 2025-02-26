@@ -324,13 +324,15 @@ impl JsCompilation {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: AssetInfo,
+    js_asset_info: Option<AssetInfo>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
+    let asset_info: rspack_core::AssetInfo = js_asset_info.map(Into::into).unwrap_or_default();
+
     compilation.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(source.into()), asset_info),
     );
     Ok(())
   }
