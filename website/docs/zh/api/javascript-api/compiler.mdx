@@ -118,26 +118,6 @@ Watching 对象提供如下方法：
   </CollapsePanel>
 </Collapse>
 
-### compile
-
-创建 Compilation 并执行编译流程，是 `compiler.run` 和 `compiler.watch` 依赖的底层方法。
-
-```ts
-function compile(
-  callback: (compilation: Compilation) => void, // 编译流程完成后回调
-): void;
-```
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Compilation.ts"
-    key="Compilation"
-  >
-    <CompilationType />
-  </CollapsePanel>
-</Collapse>
-
 ### close
 
 关闭当前构建器，在此期间处理低优先级任务，如缓存等。

@@ -894,7 +894,6 @@ export class Compiler {
     cache: Cache_2;
     // (undocumented)
     close(callback: (error?: Error | null) => void): void;
-    // (undocumented)
     compile(callback: liteTapable.Callback<Error, Compilation>): void;
     // (undocumented)
     compilerPath: string;
