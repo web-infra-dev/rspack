@@ -226,10 +226,12 @@ opt-level = 2
 
 # This is for production for profiling production build
 [profile.profiling]
-debug    = true
-inherits = "release"
-lto      = "thin"
-strip    = false
+debug           = "limited"
+inherits        = "release"
+lto             = "thin"
+split-debuginfo = "off"
+strip           = false
+
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]
