@@ -76,7 +76,7 @@ for (const { root, match, comment } of [
 		),
 		match: "*.js",
 		comment: `/** @type {import('../..').TStatsAPICaseConfig} */`
-	},
+	}
 ]) {
 	const files = glob.sync(match, { cwd: root });
 	for (const file of files) {
