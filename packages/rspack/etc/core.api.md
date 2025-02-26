@@ -3400,96 +3400,62 @@ export interface LoaderContext<OptionsType = {}> {
     __internal__parseMeta: Record<string, string>;
     // (undocumented)
     addBuildDependency(file: string): void;
-    // (undocumented)
     addContextDependency(context: string): void;
-    // (undocumented)
     addDependency(file: string): void;
-    // (undocumented)
     addMissingDependency(missing: string): void;
-    // (undocumented)
     async(): LoaderContextCallback;
-    // (undocumented)
     cacheable(cacheable?: boolean): void;
-    // (undocumented)
     callback: LoaderContextCallback;
-    // (undocumented)
     clearDependencies(): void;
-    // (undocumented)
     _compilation: Compilation;
-    // (undocumented)
     _compiler: Compiler;
-    // (undocumented)
     context: string | null;
     // (undocumented)
     currentRequest: string;
-    // (undocumented)
     data: unknown;
-    // (undocumented)
     dependency(file: string): void;
-    // (undocumented)
     emitError(error: Error): void;
-    // (undocumented)
     emitFile(name: string, content: string | Buffer, sourceMap?: string, assetInfo?: AssetInfo): void;
-    // (undocumented)
     emitWarning(warning: Error): void;
     experiments: LoaderExperiments;
-    // (undocumented)
     fs: any;
     // (undocumented)
     getContextDependencies(): string[];
     // (undocumented)
     getDependencies(): string[];
-    // (undocumented)
     getLogger(name: string): Logger;
     // (undocumented)
     getMissingDependencies(): string[];
-    // (undocumented)
     getOptions(schema?: any): OptionsType;
-    // (undocumented)
     getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
-    // (undocumented)
     hot?: boolean;
     importModule<T = any>(request: string, options: ImportModuleOptions | undefined, callback: (err?: null | Error, exports?: T) => any): void;
     // (undocumented)
     importModule<T = any>(request: string, options?: ImportModuleOptions): Promise<T>;
-    // (undocumented)
     loaderIndex: number;
     loaders: LoaderObject[];
-    // (undocumented)
     mode?: Mode;
-    // (undocumented)
+    // @deprecated (undocumented)
     _module: Module;
     // (undocumented)
     previousRequest: string;
-    // (undocumented)
     query: string | OptionsType;
     // (undocumented)
     remainingRequest: string;
-    // (undocumented)
     request: string;
-    // (undocumented)
     resolve(context: string, request: string, callback: (arg0: null | Error, arg1?: string | false, arg2?: ResolveRequest) => void): void;
-    // (undocumented)
     resource: string;
-    // (undocumented)
     resourceFragment: string;
-    // (undocumented)
     resourcePath: string;
-    // (undocumented)
     resourceQuery: string;
-    // (undocumented)
     rootContext: string;
-    // (undocumented)
     sourceMap: boolean;
-    // (undocumented)
     target?: Target;
-    // (undocumented)
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
         createHash: (algorithm?: string) => Hash_2;
     };
-    // (undocumented)
     version: 2;
 }
 
