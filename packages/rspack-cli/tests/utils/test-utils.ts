@@ -5,6 +5,7 @@
 const os = require("os");
 const { stripVTControlCharacters: stripAnsi } = require("node:util");
 const path = require("path");
+const net = require("node:net");
 const fs = require("fs");
 const execa = require("execa");
 const { exec } = require("child_process");
@@ -393,6 +394,42 @@ const uniqueDirectoryForTest = async () => {
 
 	return result;
 };
+
+function isPortAvailable(port: number) {
+	try {
+		const server = net.createServer().listen(port);
+		return new Promise(resolve => {
+			server.on("listening", () => {
+				server.close();
+				resolve(true);
+			});
+
+			server.on("error", () => {
+				resolve(false);
+			});
+		});
+	} catch (err) {
+		return false;
+	}
+}
+
+const portMap = new Map();
+
+// Available port ranges: 1024 ～ 65535
+// `10080` is not available in macOS CI, `> 50000` get 'permission denied' in Windows.
+// so we use `15000` ~ `45000`.
+export async function getRandomPort(
+	defaultPort = Math.ceil(Math.random() * 30000) + 15000
+) {
+	let port = defaultPort;
+	while (true) {
+		if (!portMap.get(port) && (await isPortAvailable(port))) {
+			portMap.set(port, 1);
+			return port;
+		}
+		port++;
+	}
+}
 
 export {
 	run,
