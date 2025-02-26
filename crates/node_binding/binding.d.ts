@@ -253,7 +253,7 @@ export declare class JsModule {
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
-  emitFile(filename: string, source: JsCompatSource, assetInfo: AssetInfo): void
+  emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsModuleGraph {

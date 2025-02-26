@@ -51,7 +51,7 @@ import WebpackError from "./lib/WebpackError";
 import { LogType, Logger } from "./logging/Logger";
 import { StatsFactory } from "./stats/StatsFactory";
 import { StatsPrinter } from "./stats/StatsPrinter";
-import { AssetInfo } from "./util/AssetInfo";
+import type { AssetInfo } from "./util/AssetInfo";
 import { AsyncTask } from "./util/AsyncTask";
 import { createReadonlyMap } from "./util/createReadonlyMap";
 import { createFakeCompilationDependencies } from "./util/fake";

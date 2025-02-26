@@ -11,7 +11,7 @@ import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
-import { AssetInfo } from "./util/AssetInfo";
+import type { AssetInfo } from "./util/AssetInfo";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -363,7 +363,7 @@ export class Module {
 		return this.#inner.libIdent(options);
 	}
 
-	emitFile(filename: string, source: Source, assetInfo: AssetInfo) {
+	emitFile(filename: string, source: Source, assetInfo?: AssetInfo) {
 		return this.#inner.emitFile(
 			filename,
 			JsSource.__to_binding(source),
