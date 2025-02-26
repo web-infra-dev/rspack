@@ -12,7 +12,7 @@ import { Tabs, Tab } from '@theme';
 
 ## output.assetModuleFilename
 
-- **类型：** `string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `'[hash][ext][query]'`
 
 与 [`output.filename`](#outputfilename) 类似，但适用于[资源模块](/guide/features/asset-module)。
@@ -48,7 +48,7 @@ Asset module 输出的文件名称。这个值可以被 [Rule.generator.filename
 
 ## output.chunkFilename
 
-- **类型：** `string = '[id].js' | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **类型：** `string = '[id].js' | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **默认值：** 当 [`output.filename`](/config/output#outputfilename) 不为函数时，推断 [`output.filename`](/config/output#outputfilename) 推断；否则为 `'[id].js'`。
 
 这个选项决定了非初始块文件的名称。有关可能值的详细信息，请参见 [`output.filename`](/config/output#outputfilename) 选项。
@@ -234,7 +234,7 @@ export default {
 
 ## output.cssChunkFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **默认值：** 当 [`output.chunkFilename`](/config/output#outputchunkfilename) 不为函数时，根据 [`output.chunkFilename`](/config/output#outputchunkfilename) 推断；否则为 `'[id].css'`。
 
 此选项决定了非初始（non-initial）CSS chunk 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
@@ -243,7 +243,7 @@ export default {
 
 ## output.cssFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
 
 此选项决定了 CSS 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
@@ -407,7 +407,7 @@ export default {
 
 ## output.filename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **默认值：** [output.module](#outputmodule) 为 `true` 时为 `'[name].mjs'`，否则为 `'[name].js'`
 
 这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 [`output.path`](#outputpath) 指定的目录下。
@@ -1605,7 +1605,7 @@ export default {
 
 ## output.publicPath
 
-- **类型：** `'auto' | string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **类型：** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** targets 为 `'web'` 或 `'webworker'` 时为 `'auto'`
 
 此选项决定了引用的资源的 URL 前缀，如: 图片、文件等等。
