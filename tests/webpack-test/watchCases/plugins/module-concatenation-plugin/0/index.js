@@ -14,7 +14,7 @@ it("should watch for changes", function () {
 	}
 
 	const realModule = m => m.moduleType !== "runtime" && !m.orphan;
-	expect(STATS_JSON.modules.filter(realModule).length).toBe(
+	expect(__STATS__.modules.filter(realModule).length).toBe(
 		4 + Number(WATCH_STEP)
 	);
 });

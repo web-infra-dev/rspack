@@ -13,7 +13,7 @@ export class NormalRunnerFactory<
 > extends BasicRunnerFactory<T> {
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {

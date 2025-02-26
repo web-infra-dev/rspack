@@ -11,5 +11,5 @@ function checkStats(stats) {
 
 it('should compile', () => {
 	expect(v).toBe(1)
-	expect(checkStats(STATS_JSON)).toBe(true)
+	expect(checkStats(__STATS__)).toBe(true)
 })
