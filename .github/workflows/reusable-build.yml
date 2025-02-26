@@ -273,8 +273,7 @@ jobs:
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
-      # PUPPETEER_SKIP_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
       
     steps:
       - name: Checkout
