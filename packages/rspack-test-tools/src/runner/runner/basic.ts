@@ -43,7 +43,7 @@ const cached = new Map<string, TBasicRunnerFile>();
 
 export interface IBasicRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
-	stats?: TCompilerStatsCompilation<T>;
+	stats?: () => TCompilerStatsCompilation<T>;
 	name: string;
 	runInNewContext?: boolean;
 	testConfig: TTestConfig<T>;

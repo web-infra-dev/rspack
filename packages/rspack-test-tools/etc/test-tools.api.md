@@ -115,7 +115,9 @@ export class BasicRunnerFactory<T extends ECompilerType> implements TRunnerFacto
     // (undocumented)
     create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    // (undocumented)
+    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
     // (undocumented)
     protected getRunnerKey(file: string): string;
     // (undocumented)
@@ -653,7 +655,7 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
     // (undocumented)
     source: string;
     // (undocumented)
-    stats?: TCompilerStatsCompilation<T>;
+    stats?: () => TCompilerStatsCompilation<T>;
     // (undocumented)
     testConfig: TTestConfig<T>;
 }
@@ -1172,7 +1174,7 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
 // @public (undocumented)
 export class MultipleRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
     // (undocumented)
     protected getFileIndexHandler(file: string): {
         getIndex: () => number[];
@@ -1217,7 +1219,7 @@ export class NormalRunner<T extends ECompilerType = ECompilerType.Rspack> extend
 // @public (undocumented)
 export class NormalRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
 }
 
 // @public (undocumented)
@@ -1636,7 +1638,9 @@ export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends
 // @public (undocumented)
 export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    // (undocumented)
+    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
     // (undocumented)
     protected getRunnerKey(file: string): string;
 }

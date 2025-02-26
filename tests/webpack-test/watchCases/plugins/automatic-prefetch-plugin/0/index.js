@@ -4,7 +4,7 @@ it("should watch for changes", function() {
 	else
 		expect(require("./delayed!./delayed")).toBe('This is only a test.' + WATCH_STEP);
 	if(+WATCH_STEP > 0) {
-		for(var m of STATS_JSON.modules.filter(m => /(a|b|c)\.js$/.test(m.identifier)))
+		for(var m of __STATS__.modules.filter(m => /(a|b|c)\.js$/.test(m.identifier)))
 			expect(m.issuer).toBe(null);
 	}
 });

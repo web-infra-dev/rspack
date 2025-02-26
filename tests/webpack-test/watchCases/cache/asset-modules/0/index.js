@@ -14,6 +14,6 @@ it("should return a valid url when modified", async () => {
 });
 
 it("should not emit undefined files", () => {
-	expect(STATS_JSON.assets.map(a => a.name)).not.toContain(undefined);
-	expect(STATS_JSON.assets.map(a => a.name)).not.toContain("undefined");
+	expect(__STATS__.assets.map(a => a.name)).not.toContain(undefined);
+	expect(__STATS__.assets.map(a => a.name)).not.toContain("undefined");
 });

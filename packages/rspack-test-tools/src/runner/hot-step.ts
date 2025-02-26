@@ -112,7 +112,7 @@ export class HotStepRunnerFactory<
 			dom:
 				this.context.getValue(this.name, "documentType") || EDocumentType.JSDOM,
 			env,
-			stats,
+			stats: this.createStatsGetter(),
 			name: this.name,
 			runInNewContext: false,
 			testConfig: {
