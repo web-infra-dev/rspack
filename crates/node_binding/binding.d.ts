@@ -1272,14 +1272,14 @@ export interface KnownAssetInfo {
   /** whether the asset is minimized */
   minimized?: boolean
   /** the value(s) of the full hash used for this asset */
-  fullhash: Array<string>
+  fullhash?: string | Array<string>
   /** the value(s) of the chunk hash used for this asset */
-  chunkhash: Array<string>
+  chunkhash?: string | Array<string>
   /**
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
-  contenthash: Array<string>
+  contenthash?: string | Array<string>
   sourceFilename?: string
   /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
   copied?: boolean
@@ -1293,7 +1293,7 @@ export interface KnownAssetInfo {
   /** when asset is javascript and an ESM */
   javascriptModule?: boolean
   /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related: JsAssetInfoRelated
+  related?: JsAssetInfoRelated
   /** unused css local ident for the css chunk */
   cssUnusedIdents?: Array<string>
   /** whether this asset is over the size limit */

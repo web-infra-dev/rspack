@@ -1,6 +1,6 @@
 use napi::{
   bindgen_prelude::{
-    Array, FromNapiValue, Object, ToNapiValue, TypeName, Unknown, ValidateNapiValue,
+    Array, Either, FromNapiValue, Object, ToNapiValue, TypeName, Unknown, ValidateNapiValue,
   },
   sys, NapiRaw,
 };
@@ -30,13 +30,13 @@ pub struct KnownAssetInfo {
   /// whether the asset is minimized
   pub minimized: Option<bool>,
   /// the value(s) of the full hash used for this asset
-  pub fullhash: Vec<String>,
+  pub fullhash: Option<Either<String, Vec<String>>>,
   /// the value(s) of the chunk hash used for this asset
-  pub chunkhash: Vec<String>,
+  pub chunkhash: Option<Either<String, Vec<String>>>,
   /// the value(s) of the module hash used for this asset
   // pub modulehash:
   /// the value(s) of the content hash used for this asset
-  pub contenthash: Vec<String>,
+  pub contenthash: Option<Either<String, Vec<String>>>,
   // when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   pub source_filename: Option<String>,
   /// when asset was created from a source file (potentially transformed), it should be flagged as copied
@@ -50,7 +50,7 @@ pub struct KnownAssetInfo {
   /// when asset is javascript and an ESM
   pub javascript_module: Option<bool>,
   /// related object to other assets, keyed by type of relation (only points from parent to child)
-  pub related: JsAssetInfoRelated,
+  pub related: Option<JsAssetInfoRelated>,
   /// unused css local ident for the css chunk
   pub css_unused_idents: Option<Vec<String>>,
   /// whether this asset is over the size limit
@@ -174,18 +174,39 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       is_over_size_limit,
     } = known;
 
+    let chunk_hash = chunkhash
+      .map(|either| match either {
+        Either::A(string) => FxHashSet::from_iter(vec![string]),
+        Either::B(vec) => FxHashSet::from_iter(vec),
+      })
+      .unwrap_or_default();
+
+    let full_hash = fullhash
+      .map(|either| match either {
+        Either::A(string) => FxHashSet::from_iter(vec![string]),
+        Either::B(vec) => FxHashSet::from_iter(vec),
+      })
+      .unwrap_or_default();
+
+    let content_hash = contenthash
+      .map(|either| match either {
+        Either::A(string) => FxHashSet::from_iter(vec![string]),
+        Either::B(vec) => FxHashSet::from_iter(vec),
+      })
+      .unwrap_or_default();
+
     Self {
       immutable,
       minimized,
-      chunk_hash: chunkhash.into_iter().collect(),
-      full_hash: fullhash.into_iter().collect(),
-      content_hash: contenthash.into_iter().collect(),
+      chunk_hash,
+      full_hash,
+      content_hash,
       source_filename,
       copied,
       development,
       hot_module_replacement,
       javascript_module,
-      related: related.into(),
+      related: related.map(Into::into).unwrap_or_default(),
       version: String::default(),
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().collect()),
       is_over_size_limit,
@@ -234,10 +255,10 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
         minimized,
         development,
         hot_module_replacement,
-        related: related.into(),
-        chunkhash: chunk_hash.into_iter().collect(),
-        fullhash: full_hash.into_iter().collect(),
-        contenthash: content_hash.into_iter().collect(),
+        related: Some(related.into()),
+        chunkhash: Some(Either::B(chunk_hash.into_iter().collect())),
+        fullhash: Some(Either::B(full_hash.into_iter().collect())),
+        contenthash: Some(Either::B(content_hash.into_iter().collect())),
         source_filename,
         copied,
         javascript_module,
