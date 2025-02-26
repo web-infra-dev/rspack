@@ -19,16 +19,3 @@ describeByWalk(
 		dist: path.resolve(__dirname, `./js/new-incremental/hot-web`)
 	}
 );
-
-// Run tests webpack-test/hotCases in target web
-describeByWalk(
-	v("hot web (webpack-test)"),
-	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "web", "fake");
-	},
-	{
-		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-web`),
-		exclude: [/move-between-runtime/]
-	}
-);

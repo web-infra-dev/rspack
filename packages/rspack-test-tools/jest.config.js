@@ -16,7 +16,8 @@ const config = {
 	prettierPath: require.resolve("prettier-2"),
 	testMatch: [
 		"<rootDir>/tests/*.test.js",
-		"<rootDir>/tests/legacy-test/*.test.js"
+		"<rootDir>/tests/legacy-test/*.test.js",
+		"<rootDir>/tests/*-splitted/*.test.js"
 	],
 	moduleNameMapper: {
 		// Fixed jest-serialize-path not working when non-ascii code contains.
