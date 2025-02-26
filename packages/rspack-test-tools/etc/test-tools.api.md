@@ -1571,7 +1571,7 @@ export type TTestConfig<T extends ECompilerType> = {
     beforeExecute?: () => void;
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
-    checkStats?: (stepName: string, stats: TCompilerStatsCompilation<T>) => boolean;
+    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T>, stringStats: String) => boolean;
     findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;

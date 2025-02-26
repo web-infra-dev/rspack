@@ -38,7 +38,6 @@ impl MakeOccasion {
       missing_dependencies: _,
       build_dependencies: _,
       state: _,
-      has_module_graph_change: _,
       make_failed_dependencies: _,
       make_failed_module: _,
     } = artifact;
@@ -68,9 +67,6 @@ impl MakeOccasion {
       module_graph::recovery_module_graph(&self.storage, &self.context).await?;
     artifact.module_graph_partial = partial;
     artifact.state = MakeArtifactState::Uninitialized(force_build_dependencies);
-
-    // TODO remove it after code splitting support incremental rebuild
-    artifact.has_module_graph_change = true;
 
     // regenerate statistical data
     // TODO remove set make_failed_module after all of module are cacheable
