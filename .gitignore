@@ -218,13 +218,6 @@ tests/webpack-test/**/dev-defaults.webpack.lock
 !tests/webpack-test/**/target
 !tests/webpack-test/cases/**/node_modules
 
-tests/plugin-test/css-extract/js
-!tests/plugin-test/css-extract/**/node_modules
-
-tests/plugin-test/html-plugin/js
-
-tests/plugin-test/copy-plugin/build
-
 /webpack-examples/**/dist
 
 smoke-example
