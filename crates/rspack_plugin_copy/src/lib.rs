@@ -6,7 +6,7 @@ use std::{
   hash::Hash,
   ops::DerefMut,
   path::{Path, PathBuf, MAIN_SEPARATOR},
-  sync::{Arc, Mutex},
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use dashmap::DashSet;
@@ -131,10 +131,8 @@ pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
 }
 
-lazy_static::lazy_static! {
-  /// This is an example for using doc comment attributes
-  static ref TEMPLATE_RE: Regex = Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail");
-}
+static TEMPLATE_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
