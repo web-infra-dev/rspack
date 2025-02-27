@@ -672,7 +672,7 @@ impl Module for ConcatenatedModule {
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();
     let mut public_path_auto_replace: bool = false;
 
-    for module_info_id in modules_with_info.iter() {
+    for (module_info_id, _raw_condition) in modules_with_info.iter() {
       let Some(ModuleInfo::Concatenated(info)) = module_to_info_map.get_mut(module_info_id) else {
         continue;
       };
@@ -866,7 +866,7 @@ impl Module for ConcatenatedModule {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
-            let referenced_info_id = &modules_with_info[match_info.index];
+            let referenced_info_id = &modules_with_info[match_info.index].0;
             refs.push((
               reference.clone(),
               referenced_info_id,
@@ -1175,7 +1175,7 @@ impl Module for ConcatenatedModule {
 
     // Evaluate modules in order
     let module_graph = compilation.get_module_graph();
-    for module_info_id in modules_with_info {
+    for (module_info_id, item_runtime_condition) in modules_with_info {
       let name;
       let mut is_conditional = false;
       let info = module_to_info_map
@@ -1208,11 +1208,9 @@ impl Module for ConcatenatedModule {
 
           runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
-          let runtime_condition = &info.runtime_condition;
-
           let condition = runtime_condition_expression(
             &compilation.chunk_graph,
-            Some(runtime_condition),
+            item_runtime_condition.as_ref(),
             runtime,
             &mut runtime_requirements,
           );
@@ -1426,7 +1424,10 @@ impl ConcatenatedModule {
     &self,
     mg: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
-  ) -> (Vec<ModuleIdentifier>, IdentifierIndexMap<ModuleInfo>) {
+  ) -> (
+    Vec<(ModuleIdentifier, Option<RuntimeCondition>)>,
+    IdentifierIndexMap<ModuleInfo>,
+  ) {
     let ordered_concatenation_list = self.create_concatenation_list(
       self.root_module_ctxt.id,
       self.modules.iter().map(|item| item.id).collect(),
@@ -1439,7 +1440,17 @@ impl ConcatenatedModule {
       let module_id = concatenation_entry.module(mg);
       match map.entry(module_id) {
         indexmap::map::Entry::Occupied(_) => {
-          list.push(module_id);
+          let runtime_condition =
+            if let ConcatenationEntry::External(ConcatenationEntryExternal {
+              runtime_condition,
+              ..
+            }) = &concatenation_entry
+            {
+              Some(runtime_condition.clone())
+            } else {
+              None
+            };
+          list.push((module_id, runtime_condition));
         }
         indexmap::map::Entry::Vacant(vac) => {
           match concatenation_entry {
@@ -1450,13 +1461,13 @@ impl ConcatenatedModule {
                 ..Default::default()
               };
               vac.insert(ModuleInfo::Concatenated(Box::new(info)));
-              list.push(module_id);
+              list.push((module_id, None));
             }
             ConcatenationEntry::External(e) => {
               let info = ExternalModuleInfo {
                 index: i,
                 module: module_id,
-                runtime_condition: e.runtime_condition,
+                runtime_condition: e.runtime_condition.clone(),
                 interop_namespace_object_used: false,
                 interop_namespace_object_name: None,
                 interop_namespace_object2_used: false,
@@ -1466,7 +1477,7 @@ impl ConcatenatedModule {
                 name: None,
               };
               vac.insert(ModuleInfo::External(info));
-              list.push(module_id)
+              list.push((module_id, Some(e.runtime_condition)))
             }
           };
         }
@@ -1523,7 +1534,7 @@ impl ConcatenatedModule {
     let exist_entry = match exists_entry.get(module) {
       Some(RuntimeCondition::Boolean(true)) => return,
       None => None,
-      Some(_condition) => Some(runtime_condition.clone()),
+      Some(condition) => Some(condition.clone()),
     };
     if module_set.contains(module) {
       exists_entry.insert(*module, RuntimeCondition::Boolean(true));
@@ -1552,16 +1563,22 @@ impl ConcatenatedModule {
         },
       ));
     } else {
-      if let Some(cond) = exist_entry {
+      let runtime_condition = if let Some(cond) = exist_entry {
         let reduced_runtime_condition =
           subtract_runtime_condition(&runtime_condition, &cond, runtime);
         if matches!(reduced_runtime_condition, RuntimeCondition::Boolean(false)) {
           return;
         }
-        exists_entry.insert(*con.module_identifier(), reduced_runtime_condition);
+        exists_entry.insert(
+          *con.module_identifier(),
+          merge_runtime_condition_non_false(&cond, &reduced_runtime_condition, runtime),
+        );
+        reduced_runtime_condition
       } else {
         exists_entry.insert(*con.module_identifier(), runtime_condition.clone());
-      }
+        runtime_condition
+      };
+
       if let Some(ConcatenationEntry::External(last)) = list.last_mut()
         && last.module(mg) == *con.module_identifier()
       {
