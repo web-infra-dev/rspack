@@ -8,7 +8,7 @@ use rspack_core::{
 use rspack_napi::{napi::bindgen_prelude::*, OneShotRef};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::JsDependencyWrapper;
+use crate::DependencyWrapper;
 
 #[napi]
 pub struct JsDependenciesBlock {
@@ -18,8 +18,8 @@ pub struct JsDependenciesBlock {
 
 #[napi]
 impl JsDependenciesBlock {
-  #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn dependencies(&mut self) -> Vec<JsDependencyWrapper> {
+  #[napi(getter, ts_return_type = "Dependency[]")]
+  pub fn dependencies(&mut self) -> Vec<DependencyWrapper> {
     let compilation = unsafe { self.compilation.as_ref() };
     let module_graph = compilation.get_module_graph();
     if let Some(block) = module_graph.block_by_id(&self.block_id) {
@@ -29,7 +29,7 @@ impl JsDependenciesBlock {
         .filter_map(|dependency_id| {
           module_graph
             .dependency_by_id(dependency_id)
-            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+            .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
         })
         .collect::<Vec<_>>()
     } else {

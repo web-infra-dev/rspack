@@ -42,7 +42,7 @@ export class ModuleGraphConnection {
 			dependency: {
 				enumerable: true,
 				get(): Dependency {
-					return Dependency.__from_binding(binding.dependency);
+					return binding.dependency;
 				}
 			},
 			resolvedModule: {

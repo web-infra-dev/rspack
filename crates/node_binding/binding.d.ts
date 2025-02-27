@@ -21,9 +21,18 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Dependency {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
+}
+
 export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
+  get dependencies(): Dependency[]
+  get includeDependencies(): Dependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
@@ -178,7 +187,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -208,17 +217,8 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   get blocks(): JsDependenciesBlock[]
-}
-
-export declare class JsDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-  set critical(val: boolean)
-  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
@@ -253,7 +253,7 @@ export declare class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
@@ -264,21 +264,21 @@ export declare class JsModule {
 }
 
 export declare class JsModuleGraph {
-  getModule(dependency: JsDependency): JsModule | null
-  getResolvedModule(dependency: JsDependency): JsModule | null
+  getModule(dependency: Dependency): JsModule | null
+  getResolvedModule(dependency: Dependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
+  getConnection(dependency: Dependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(dependency: JsDependency): JsModule | null
-  getParentBlockIndex(dependency: JsDependency): number
+  getParentModule(dependency: Dependency): JsModule | null
+  getParentBlockIndex(dependency: Dependency): number
   isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): JsDependency
+  get dependency(): Dependency
   get module(): JsModule | null
   get resolvedModule(): JsModule | null
   get originModule(): JsModule | null
@@ -609,8 +609,8 @@ export interface JsDiagnosticLocation {
 }
 
 export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
+  dependencies: Array<Dependency>
+  includeDependencies: Array<Dependency>
   options: JsEntryOptions
 }
 

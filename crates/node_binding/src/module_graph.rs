@@ -33,7 +33,7 @@ impl JsModuleGraph {
 #[napi]
 impl JsModuleGraph {
   #[napi(
-    ts_args_type = "dependency: JsDependency",
+    ts_args_type = "dependency: Dependency",
     ts_return_type = "JsModule | null"
   )]
   pub fn get_module(
@@ -52,7 +52,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: JsDependency",
+    ts_args_type = "dependency: Dependency",
     ts_return_type = "JsModule | null"
   )]
   pub fn get_resolved_module(
@@ -125,7 +125,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: JsDependency",
+    ts_args_type = "dependency: Dependency",
     ts_return_type = "JsModuleGraphConnection | null"
   )]
   pub fn get_connection(
@@ -180,7 +180,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: JsDependency",
+    ts_args_type = "dependency: Dependency",
     ts_return_type = "JsModule | null"
   )]
   pub fn get_parent_module(
@@ -201,7 +201,7 @@ impl JsModuleGraph {
     })
   }
 
-  #[napi(ts_args_type = "dependency: JsDependency")]
+  #[napi(ts_args_type = "dependency: Dependency")]
   pub fn get_parent_block_index(&self, js_dependency: DependencyObject) -> napi::Result<i64> {
     let (_, module_graph) = self.as_ref()?;
 

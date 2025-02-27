@@ -4,13 +4,13 @@ use std::{any::TypeId, ffi::c_void, ptr};
 
 pub use entry_dependency::*;
 use napi::{
-  bindgen_prelude::{FromNapiValue, Object, ValidateNapiValue},
-  sys, Error, JsObject, NapiRaw, Status,
+  bindgen_prelude::{FromNapiValue, Object},
+  sys, Error, NapiRaw, Status,
 };
 use rspack_core::DependencyId;
 use rspack_napi::napi::check_status;
 
-use crate::JsDependency;
+use crate::Dependency;
 
 pub struct DependencyObject(Option<DependencyId>);
 
@@ -25,8 +25,6 @@ impl FromNapiValue for DependencyObject {
     env: napi::sys::napi_env,
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
-    JsObject::validate(env, napi_val)?;
-
     let js_object = Object::from_napi_value(env, napi_val)?;
 
     let mut unknown_tagged_object: *mut c_void = ptr::null_mut();
@@ -37,8 +35,8 @@ impl FromNapiValue for DependencyObject {
     ))?;
 
     let type_id = unknown_tagged_object as *const TypeId;
-    if *type_id == TypeId::of::<JsDependency>() {
-      let tagged_object = &*(unknown_tagged_object as *mut JsDependency);
+    if *type_id == TypeId::of::<Dependency>() {
+      let tagged_object = &*(unknown_tagged_object as *mut Dependency);
       Ok(DependencyObject(Some(tagged_object.dependency_id)))
     } else if *type_id == TypeId::of::<EntryDependency>() {
       let tagged_object = &*(unknown_tagged_object as *mut EntryDependency);
