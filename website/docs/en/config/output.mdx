@@ -12,7 +12,7 @@ The top-level output key contains a set of options instructing Rspack on how and
 
 ## output.assetModuleFilename
 
-- **Type:** `string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `'[hash][ext][query]'`
 
 The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/features/asset-module).
@@ -48,7 +48,7 @@ Although the `charset` attribute for `<script>` tag was [deprecated](https://dev
 
 ## output.chunkFilename
 
-- **Type:** `string = '[id].js' | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Type:** `string = '[id].js' | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **Default:** Determined by [`output.filename`](/config/output#outputfilename) when it is not a function, otherwise `'[id].js'`.
 
 This option determines the name of non-initial chunk files. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
@@ -238,7 +238,7 @@ When Rspack dynamically loads JavaScript resources, it will generate the followi
 
 ## output.cssChunkFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **Default:** Determined by [`output.chunkFilename`](/config/output#outputchunkfilename) when it is not a function, otherwise `'[id].css'`.
 
 This option determines the name of non-initial CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
@@ -247,7 +247,7 @@ You **must not** specify an absolute path here. However, feel free to include fo
 
 ## output.cssFilename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **Default:** Determined by [`output.filename`](/config/output#outputfilename)
 
 This option determines the name of CSS output files on disk. See [`output.filename`](/config/output#outputfilename) option for details on the possible values.
@@ -411,7 +411,7 @@ export default {
 
 ## output.filename
 
-- **Type:** `string | (pathData: PathData, assetInfo?: JsAssetInfo) => string`
+- **Type:** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
 - **Default:** When `[output.module](#outputmodule)` is `true`, it is `'[name].mjs'`, otherwise it is `'[name].js'`.
 
 This option determines the name of each output bundle. The bundle is written to the directory specified by the [`output.path`](#outputpath) option.
@@ -1613,7 +1613,7 @@ It also adds some info about tree shaking to the generated bundle.
 
 ## output.publicPath
 
-- **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: JsAssetInfo) => string)`
+- **Type:** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `'auto'` when `targets` is `'web'` or `'webworker'`. `undefined` otherwise
 
 This option determines the URL prefix of the referenced resource, such as: image, file, etc.

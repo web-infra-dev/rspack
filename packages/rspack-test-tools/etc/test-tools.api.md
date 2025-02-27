@@ -11,6 +11,8 @@ import type EventEmitter from 'node:events';
 import { IBasicGlobalContext as IBasicGlobalContext_2 } from '../../type';
 import { IBasicModuleScope as IBasicModuleScope_2 } from '../../type';
 import { ITestCompilerManager as ITestCompilerManager_2 } from '../type';
+import type { MultiStats } from '@rspack/core';
+import type { MultiStats as MultiStats_2 } from 'webpack';
 import type { RspackOptions } from '@rspack/core';
 import type { RspackOptionsNormalized } from '@rspack/core';
 import type { RspackPluginInstance } from '@rspack/core';
@@ -113,7 +115,9 @@ export class BasicRunnerFactory<T extends ECompilerType> implements TRunnerFacto
     // (undocumented)
     create(file: string, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    // (undocumented)
+    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
     // (undocumented)
     protected getRunnerKey(file: string): string;
     // (undocumented)
@@ -187,7 +191,7 @@ export function compareContent(sourceContent: string | false, distContent: strin
 export function compareFile(sourceFile: string, distFile: string, compareOptions: ICompareOptions): TFileCompareResult;
 
 // @public (undocumented)
-export function compareModules(modules: string[], sourceModules: Map<string, string>, distModules: Map<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
+export function compareModules(modules: string[], sourceModules: Record<string, string>, distModules: Record<string, string>, compareOptions: ICompareOptions): TModuleCompareResult[];
 
 // @public (undocumented)
 export class ConfigProcessor<T extends ECompilerType> extends MultiTaskProcessor<T> {
@@ -637,6 +641,8 @@ export interface IBasicProcessorOptions<T extends ECompilerType> {
 // @public (undocumented)
 export interface IBasicRunnerOptions<T extends ECompilerType> {
     // (undocumented)
+    cachable?: boolean;
+    // (undocumented)
     compilerOptions: TCompilerOptions<T>;
     // (undocumented)
     dist: string;
@@ -649,7 +655,7 @@ export interface IBasicRunnerOptions<T extends ECompilerType> {
     // (undocumented)
     source: string;
     // (undocumented)
-    stats?: TCompilerStatsCompilation<T>;
+    stats?: () => TCompilerStatsCompilation<T>;
     // (undocumented)
     testConfig: TTestConfig<T>;
 }
@@ -678,6 +684,8 @@ export interface ICompareOptions {
     renameModule?: (name: string) => string;
     // (undocumented)
     runtimeModules?: TCompareModules;
+    // (undocumented)
+    snapshot?: string;
 }
 
 // @public (undocumented)
@@ -934,6 +942,8 @@ export interface IStatsAPIProcessorOptions<T extends ECompilerType> {
 export interface IStatsProcessorOptions<T extends ECompilerType> extends Omit<IMultiTaskProcessorOptions<T>, "runable"> {
     // (undocumented)
     snapshotName?: string;
+    // (undocumented)
+    writeStatsOuptut?: boolean;
 }
 
 // @public (undocumented)
@@ -957,7 +967,7 @@ export interface ITestCompilerManager<T extends ECompilerType> {
     // (undocumented)
     getOptions(): TCompilerOptions<T>;
     // (undocumented)
-    getStats(): TCompilerStats<T> | null;
+    getStats(): TCompilerStats<T> | TCompilerMultiStats<T> | null;
     // (undocumented)
     mergeOptions(newOptions: TCompilerOptions<T>): TCompilerOptions<T>;
     // (undocumented)
@@ -1164,7 +1174,7 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
 // @public (undocumented)
 export class MultipleRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
     // (undocumented)
     protected getFileIndexHandler(file: string): {
         getIndex: () => number[];
@@ -1209,7 +1219,7 @@ export class NormalRunner<T extends ECompilerType = ECompilerType.Rspack> extend
 // @public (undocumented)
 export class NormalRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
 }
 
 // @public (undocumented)
@@ -1217,8 +1227,8 @@ export function parseModules(content: string, options?: {
     bootstrap?: boolean;
     renameModule?: (name: string) => string;
 }): {
-    modules: Map<string, string>;
-    runtimeModules: Map<string, string>;
+    modules: Record<string, string>;
+    runtimeModules: Record<string, string>;
 };
 
 // @public (undocumented)
@@ -1228,7 +1238,7 @@ export function readConfigFile<T extends ECompilerType>(files: string[], functio
 export function replaceModuleArgument(raw: string): string;
 
 // @public (undocumented)
-export function replaceRuntimeModuleName(name: string): string;
+export function replaceRuntimeModuleName(content: string): string;
 
 // @public (undocumented)
 export class RspackDiffConfigPlugin implements RspackPluginInstance {
@@ -1365,6 +1375,9 @@ export type TCompilerFactories = Record<ECompilerType, TCompilerFactory<ECompile
 
 // @public (undocumented)
 export type TCompilerFactory<T extends ECompilerType> = (options: TCompilerOptions<T> | TCompilerOptions<T>[]) => TCompiler<T>;
+
+// @public (undocumented)
+export type TCompilerMultiStats<T> = T extends ECompilerType.Rspack ? MultiStats : MultiStats_2;
 
 // @public (undocumented)
 export type TCompilerOptions<T> = T extends ECompilerType.Rspack ? RspackOptions : Configuration;
@@ -1553,12 +1566,14 @@ export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.R
 // @public (undocumented)
 export type TTestConfig<T extends ECompilerType> = {
     documentType?: EDocumentType;
-    validate?: (stats: TCompilerStats<T>, stderr?: string) => void;
+    validate?: (stats: TCompilerStats<T> | TCompilerMultiStats<T>, stderr?: string) => void;
     noTest?: boolean;
+    writeStatsOuptut?: boolean;
+    writeStatsJson?: boolean;
     beforeExecute?: () => void;
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
-    checkStats?: (stepName: string, stats: TCompilerStatsCompilation<T>) => boolean;
+    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T>, stringStats: String) => boolean;
     findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
@@ -1623,7 +1638,9 @@ export class WatchRunner<T extends ECompilerType = ECompilerType.Rspack> extends
 // @public (undocumented)
 export class WatchRunnerFactory<T extends ECompilerType> extends BasicRunnerFactory<T> {
     // (undocumented)
-    protected createRunner(file: string, stats: TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    protected createRunner(file: string, stats: () => TCompilerStatsCompilation<T>, compilerOptions: TCompilerOptions<T>, env: ITestEnv): ITestRunner;
+    // (undocumented)
+    protected createStatsGetter(): () => TCompilerStatsCompilation<T>;
     // (undocumented)
     protected getRunnerKey(file: string): string;
 }

@@ -26,6 +26,7 @@ const SWC_HELPER_PATH_REG =
 	/^_swc_helpers_[a-zA-Z\d_-]+__WEBPACK_IMPORTED_MODULE_xxx__$/;
 const CSS_FILE_EXT_REG = /(le|sa|c|sc)ss$/;
 const INVALID_PATH_REG = /[<>:"/\\|?*.]/g;
+const MODULE_ID_REG = /__WEBPACK_IMPORTED_MODULE_\d+__/;
 
 export function formatCode(
 	name: string,
@@ -62,10 +63,9 @@ export function formatCode(
 		},
 		Identifier(path) {
 			if (options.ignoreModuleId) {
-				path.node.name = path.node.name.replace(
-					/__WEBPACK_IMPORTED_MODULE_\d+__/g,
-					"__WEBPACK_IMPORTED_MODULE_xxx__"
-				);
+				if (MODULE_ID_REG.test(path.node.name)) {
+					path.node.name = "__WEBPACK_IMPORTED_MODULE_xxx__";
+				}
 			}
 			if (options.ignoreSwcHelpersPath) {
 				if (SWC_HELPER_PATH_REG.test(path.node.name)) {

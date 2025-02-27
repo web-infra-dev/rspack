@@ -81,9 +81,16 @@ Tells Rspack that this loader will be called asynchronously. Returns [this.callb
 function cacheable(flag: boolean = true): void;
 ```
 
-A function that sets the cacheable flag:
+A function that sets the cacheable flag.
 
 By default, the processing results of the loader are marked as cacheable. Calling this method and passing `false` turns off the loader's ability to cache processing results.
+
+```js title="loader.js"
+module.exports = function loader(source) {
+  this.cacheable(false);
+  return source;
+};
+```
 
 ## this.callback()
 
@@ -139,6 +146,12 @@ module.exports = function loader(source) {
 
 If the module being processed is not from the file system, such as a virtual module, then the value of `this.context` is `null`.
 
+## this.loaderIndex
+
+- **Type:** `number`
+
+The index in the loaders array of the current loader.
+
 ## this.data
 
 - **Type:** `unknown`
@@ -184,7 +197,7 @@ function emitFile(
   name: string,
   content: string | Buffer,
   sourceMap?: string,
-  assetInfo?: JsAssetInfo,
+  assetInfo?: AssetInfo,
 ): void;
 ```
 
@@ -216,6 +229,12 @@ module.exports = function loader(source) {
   return source;
 };
 ```
+
+## this.fs
+
+- **Type:** `InputFileSystem`
+
+Access to the `compilation` object's `inputFileSystem` property.
 
 ## this.getOptions()
 
@@ -291,6 +310,19 @@ function getResolve(options: ResolveOptions): resolve;
 ```
 
 Create a resolver like `this.resolve`.
+
+## this.hot
+
+- **Type:** `boolean`
+
+Whether HMR is enabled.
+
+```js title="loader.js"
+module.exports = function (source) {
+  console.log(this.hot); // true if HMR is enabled
+  return source;
+};
+```
 
 ## this.importModule()
 
@@ -368,6 +400,23 @@ module.exports = function loader(source) {
 };
 ```
 
+## this.query
+
+- **Type:** `string | OptionsType`
+
+The value depends on the loader configuration:
+
+- If the current loader was configured with an options object, `this.query` will point to that object.
+- If the current loader has no options, but was invoked with a query string, this will be a string starting with `?`.
+
+## this.request
+
+- **Type:** `string`
+
+The module specifier string after being resolved.
+
+For example, if a `resource.js` is processed by `loader1.js` and `loader2.js`, the value of `this.request` will be `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`.
+
 ## this.resolve()
 
 - **Type:**
@@ -405,12 +454,49 @@ module.exports = function loader(source) {
 
 - **Type:** `Target`
 
-The value of [`target`](/config/target) is read when Rspack is run.
+The current compilation target. Passed from [`target`](/config/target) configuration options.
 
 ```js title="loader.js"
 module.exports = function loader(source) {
   console.log(this.target); // 'web' or other values
   return source;
+};
+```
+
+## this.utils
+
+- **Type:**
+
+```ts
+type Utils = {
+  absolutify: (context: string, request: string) => string;
+  contextify: (context: string, request: string) => string;
+  createHash: (algorithm?: string) => Hash;
+};
+```
+
+Access to the following utilities.
+
+- `absolutify`: Return a new request string using absolute paths when possible.
+- `contextify`: Return a new request string avoiding absolute paths when possible.
+- `createHash`: Return a new Hash object from provided hash function.
+
+```js title="loader.js"
+module.exports = function (content) {
+  this.utils.contextify(
+    this.context,
+    this.utils.absolutify(this.context, './index.js'),
+  );
+
+  this.utils.absolutify(this.context, this.resourcePath);
+
+  const mainHash = this.utils.createHash(
+    this._compilation.outputOptions.hashFunction,
+  );
+  mainHash.update(content);
+  mainHash.digest('hex');
+
+  return content;
 };
 ```
 
@@ -483,7 +569,9 @@ module.exports = function loader(source) {
 
 - **Type:** `boolean`
 
-Whether a source map should be generated.
+Tells if source map should be generated.
+
+Since generating source maps can be an expensive task, you should check if source maps are actually requested.
 
 ## this.getLogger()
 
@@ -494,3 +582,23 @@ function getLogger(name?: string): Logger;
 ```
 
 Get the logger of this compilation, through which messages can be logged.
+
+## this.version
+
+- **Type:** `number`
+
+The version number of the loader API. Currently 2.
+
+This is useful for providing backwards compatibility. Using the version you can specify custom logic or fallbacks for breaking changes.
+
+## this.\_compiler
+
+- **Type:** `Compiler`
+
+Access to the current [Compiler](/api/javascript-api/compiler) object of Rspack.
+
+## this.\_compilation
+
+- **Type:** `Compilation`
+
+Access to the current [Compilation](/api/javascript-api/compilation) object of Rspack.

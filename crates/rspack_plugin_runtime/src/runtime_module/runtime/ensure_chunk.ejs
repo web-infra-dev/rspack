@@ -1,0 +1,11 @@
+<%- ENSURE_CHUNK_HANDLERS %> = {};
+// This file contains only the entry chunk.
+// The chunk loading function for additional chunks
+<%- ENSURE_CHUNK %> = <%- basicFunction(_args) %> {
+	return Promise.all(
+		Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).reduce(<%- basicFunction("promises, key") %> {
+			<%- ENSURE_CHUNK_HANDLERS %>[key](chunkId, promises<%- _fetch_priority %>);
+			return promises;
+		}, [])
+	);
+};

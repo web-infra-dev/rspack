@@ -11,9 +11,9 @@
         "@rspack/cli": "workspace:*",
         "@rspack/core": "workspace:*",
         "@rspack/plugin-react-refresh": "^1.0.1",
-        "@types/react": "^19.0.8",
-        "@types/react-dom": "^19.0.3",
-        "vitest": "^3.0.5"
+        "@types/react": "^19.0.10",
+        "@types/react-dom": "^19.0.4",
+        "vitest": "^3.0.7"
     },
     "dependencies": {
         "react": "^19.0.0",

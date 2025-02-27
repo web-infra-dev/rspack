@@ -74,6 +74,7 @@ jobs:
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
       bench: true
+      full-install: false
 
   test-windows:
     name: Test Windows
@@ -84,6 +85,8 @@ jobs:
       profile: "dev"
       runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed != 'true' }}
+      full-install: false
+
   test-mac:
     name: Test Mac
     needs: [get-runner-labels, check-changed]
@@ -94,6 +97,7 @@ jobs:
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+      full-install: false
 
   cargo-deny:
     name: Check license of dependencies
@@ -108,7 +112,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
+        uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -120,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@51f257b946f503b768e522781f56e9b7b5570d48 # v1.29.7
+      - uses: crate-ci/typos@db35ee91e80fbb447f33b0e5fbddb24d2a1a884f # v1.29.10
         with:
           files: .
 
@@ -220,7 +224,9 @@ jobs:
 
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
-
+        with:
+          run-install: false
+      
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
@@ -237,7 +243,7 @@ jobs:
           args: --all -- --check
 
       - name: Run toml format check
-        run: pnpm run format-ci:toml
+        run: npm run format-ci:toml
 
   rust_unused_dependencies:
     name: Check Rust Unused Dependencies
@@ -249,7 +255,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@ac0e34cc778e82d0fda528e42de57e41afd2fb1f # v1.11.0
+      - uses: cargo-bins/cargo-binstall@6010abb1da3dbaae07e8823fa57c0cd7cf183245 # v1.11.1
       - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 
@@ -260,9 +266,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -293,9 +296,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup

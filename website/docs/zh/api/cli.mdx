@@ -9,6 +9,30 @@
 `@rspack/cli` 与 `webpack-cli` 并不是完全兼容的，它们会有一些使用方式的差异。
 :::
 
+## 查看所有命令
+
+如果你需要查看所有可用的 CLI 命令，请在项目目录中运行以下命令：
+
+```bash
+npx rspack -h
+```
+
+## 公共选项
+
+Rspack CLI 提供了一些公共选项，可以用于所有命令：
+
+| 选项                 | 描述                                                                 |
+| -------------------- | -------------------------------------------------------------------- |
+| -c, --config [value] | 指定配置文件路径，详见 [指定配置文件](/config/index#指定配置文件)    |
+| --configLoader       | 指定配置文件加载器，可以是 `native` 或 `register`，默认是 `register` |
+| --configName         | 指定配置文件名称                                                     |
+| -h, --help           | 显示帮助信息                                                         |
+| -v, --version        | 显示版本号                                                           |
+
+:::tip
+Rspack CLI 的所有选项都支持使用 `camelCase`（驼峰命名）和 `kebab-case`（短横线命名），例如 `--configLoader` 和 `--config-loader` 都是有效的。
+:::
+
 ## rspack build
 
 `rspack build` 用于运行 Rspack 构建，将会在 [output.path](/config/output#outputpath) 目录下生成构建后的文件。
@@ -36,13 +60,12 @@ rspack build
 
 Options:
       --entry        entry file                                          [array]
-  -o, --output-path  output path dir                                    [string]
+  -o, --outputPath   output path dir                                    [string]
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-      --node-env     sets process.env.NODE_ENV to be specified value    [string]
+      --nodeEnv     sets process.env.NODE_ENV to be specified value    [string]
   -d, --devtool      devtool                          [boolean] [default: false]
-      --configName   Name of the configuration to use.                   [array]
       --analyze      analyze                          [boolean] [default: false]
       --json         emit stats json
       --profile      capture timing information for each module
@@ -77,13 +100,12 @@ rspack dev
 
 Options:
       --entry        entry file                                          [array]
-  -o, --output-path  output path dir                                    [string]
+  -o, --outputPath   output path dir                                    [string]
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-      --node-env     sets process.env.NODE_ENV to be specified value    [string]
+      --nodeEnv      sets process.env.NODE_ENV to be specified value    [string]
   -d, --devtool      devtool                          [boolean] [default: false]
-      --configName   Name of the configuration to use.                   [array]
       --hot          enables hot module replacement
       --port         allows to specify a port to use                    [number]
       --host         allows to specify a hostname to use                [string]
@@ -111,15 +133,4 @@ Options:
       --host        preview server host                                 [string]
       --open        open browser                                       [boolean]
       --server      Configuration items for the server.                 [string]
-      --configName  Name of the configuration to use.                    [array]
 ```
-
-## 公共选项
-
-下面是一些公共的选项，所有 Rspack 命令都支持这些选项：
-
-| 选项                 | 作用             |
-| -------------------- | ---------------- |
-| -c, --config [value] | 指定配置文件路径 |
-| -h, --help           | 显示帮助信息     |
-| -v, --version        | 显示版本号       |

@@ -1,0 +1,11 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/node-module-decorator/src/aaa.js": "(function () {\n  module.exports = __webpack_require__(\"./src/bbb.js\");\n});",
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/node-module-decorator/src/bbb.js": "(function () {\n  module = __webpack_require__.nmd(module);\n  Object.defineProperty(module, \"exports\", 123123);\n});",
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/node-module-decorator/src/index.js": "(function () {\n  var aaa = __webpack_require__(\"./src/aaa.js\");\n  console.log(aaa);\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_module_cache__ = {};\nfunction __webpack_require__(moduleId) {\n  var cachedModule = __webpack_module_cache__[moduleId];\n  if (cachedModule !== undefined) return cachedModule.exports;\n  var module = __webpack_module_cache__[moduleId] = {\n    \"exports\": {},\n    \"id\": moduleId,\n    \"loaded\": false\n  };\n  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n  module.loaded = true;\n  return module.exports;\n}",
+    "webpack/runtime/node module decorator": "!function () {\n  __webpack_require__.nmd = function (module) {\n    module.paths = [];\n    if (!module.children) module.children = [];\n    return module;\n  };\n}();"
+  }
+}

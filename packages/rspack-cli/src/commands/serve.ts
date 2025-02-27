@@ -5,6 +5,7 @@ import type { RspackCLI } from "../cli";
 import type { RspackCommand } from "../types";
 import {
 	commonOptions,
+	commonOptionsForBuildAndServe,
 	ensureEnvObject,
 	setBuiltinEnvArg
 } from "../utils/options";
@@ -15,7 +16,7 @@ export class ServeCommand implements RspackCommand {
 			["serve", "server", "s", "dev"],
 			"run the rspack dev server.",
 			yargs =>
-				commonOptions(yargs).options({
+				commonOptionsForBuildAndServe(commonOptions(yargs)).options({
 					hot: {
 						coerce: arg => {
 							if (typeof arg === "boolean" || arg === "only") {

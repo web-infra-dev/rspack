@@ -227,16 +227,11 @@ lto = "thin"
 ## reduce little optimization to reduce build time
 opt-level = 2
 
-[profile.release-debug]
-# reduce debug size for linux
-debug           = 'limited'
-inherits        = "release"
-split-debuginfo = "off"
-strip           = false
-
-[profile.release-dev]
+# This is for production for profiling production build
+[profile.profiling]
 debug           = "limited"
-inherits        = "dev"
+inherits        = "release"
+lto             = "thin"
 split-debuginfo = "off"
 strip           = false
 

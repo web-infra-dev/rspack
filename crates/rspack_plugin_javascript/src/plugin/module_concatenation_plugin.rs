@@ -306,10 +306,7 @@ impl ModuleConcatenationPlugin {
         }
 
         let mut origin_runtime = RuntimeSpec::default();
-        for r in chunk_graph
-          .get_module_runtimes(*origin_module, chunk_by_ukey)
-          .values()
-        {
+        for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
           origin_runtime = merge_runtime(&origin_runtime, r);
         }
 
@@ -900,10 +897,9 @@ impl ModuleConcatenationPlugin {
       let mut chunk_runtime = Default::default();
       for r in compilation
         .chunk_graph
-        .get_module_runtimes(*current_root, &compilation.chunk_by_ukey)
-        .into_values()
+        .get_module_runtimes_iter(*current_root, &compilation.chunk_by_ukey)
       {
-        chunk_runtime = merge_runtime(&chunk_runtime, &r);
+        chunk_runtime = merge_runtime(&chunk_runtime, r);
       }
       let module_graph = compilation.get_module_graph();
       let exports_info = module_graph.get_exports_info(current_root);

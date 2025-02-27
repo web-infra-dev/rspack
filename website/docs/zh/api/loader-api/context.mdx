@@ -83,6 +83,13 @@ function cacheable(flag: boolean = true): void;
 
 默认情况下，loader 的处理结果会被标记为可缓存。调用这个方法然后传入 `false`，可以关闭 loader 处理结果的缓存能力。
 
+```js title="loader.js"
+module.exports = function loader(source) {
+  this.cacheable(false);
+  return source;
+};
+```
+
 ## this.clearDependencies()
 
 - **类型：**
@@ -134,6 +141,12 @@ module.exports = function loader(source) {
 
 如果被处理的是模块不是来自文件系统，例如虚拟模块，那么 `this.context` 的值为 `null`。
 
+## this.loaderIndex
+
+- **类型：** `number`
+
+当前 loader 在 loaders 数组中的索引。
+
 ## this.data
 
 - **类型：** `unknown`
@@ -179,7 +192,7 @@ function emitFile(
   name: string,
   content: string | Buffer,
   sourceMap?: string,
-  assetInfo?: JsAssetInfo,
+  assetInfo?: AssetInfo,
 ): void;
 ```
 
@@ -211,6 +224,12 @@ module.exports = function loader(source) {
   return source;
 };
 ```
+
+## this.fs
+
+- **类型：** `InputFileSystem`
+
+访问 `compilation` 对象的 `inputFileSystem` 属性。
 
 ## this.getOptions()
 
@@ -286,6 +305,19 @@ function getResolve(options: ResolveOptions): resolve;
 ```
 
 创建一个类似于 `this.resolve` 的解析函数。
+
+## this.hot
+
+- **类型：** `boolean`
+
+是否启用了 HMR。
+
+```js title="loader.js"
+module.exports = function (source) {
+  console.log(this.hot); // true if HMR is enabled
+  return source;
+};
+```
 
 ## this.importModule()
 
@@ -363,6 +395,23 @@ module.exports = function loader(source) {
 };
 ```
 
+## this.query
+
+- **类型：** `string | OptionsType`
+
+该值取决于 loader 的配置方式：
+
+- 如果当前 loader 配置了一个选项对象，`this.query` 将指向这个对象。
+- 如果当前 loader 没有选项，但是通过查询字符串调用，这将是一个以 `?` 开头的字符串。
+
+## this.request
+
+- **类型：** `string`
+
+解析后的 module specifier 字符串。
+
+例如，如果 `resource.js` 被 `loader1.js` 和 `loader2.js` 处理，那么 `this.request` 的值为 `/path/to/loader1.js!/path/to/loader2.js!/path/to/resource.js`。
+
 ## this.resolve()
 
 - **类型：**
@@ -398,12 +447,49 @@ module.exports = function loader(source) {
 
 - **类型：** `Target`
 
-当 Rspack 运行时读取 [target](/config/target) 的值。
+当前编译的目标。对应 [`target`](/config/target) 配置项的值。
 
 ```js title="loader.js"
 module.exports = function loader(source) {
   console.log(this.target); // 'web' or other values
   return source;
+};
+```
+
+## this.utils
+
+- **类型：**
+
+```ts
+type Utils = {
+  absolutify: (context: string, request: string) => string;
+  contextify: (context: string, request: string) => string;
+  createHash: (algorithm?: string) => Hash;
+};
+```
+
+访问以下 utils：
+
+- `absolutify`: 返回一个新的 request 字符串，尽可能使用绝对路径。
+- `contextify`: 返回一个新的 request 字符串，尽可能避免使用绝对路径。
+- `createHash`: 基于提供的哈希函数返回一个新的 Hash 对象。
+
+```js title="loader.js"
+module.exports = function (content) {
+  this.utils.contextify(
+    this.context,
+    this.utils.absolutify(this.context, './index.js'),
+  );
+
+  this.utils.absolutify(this.context, this.resourcePath);
+
+  const mainHash = this.utils.createHash(
+    this._compilation.outputOptions.hashFunction,
+  );
+  mainHash.update(content);
+  mainHash.digest('hex');
+
+  return content;
 };
 ```
 
@@ -476,7 +562,9 @@ module.exports = function loader(source) {
 
 - **类型：** `boolean`
 
-是否应该生成一个 source map。
+是否应该生成 source map。
+
+由于生成 source map 通常是一项耗费资源的任务，你应该检查是否需要 source map。
 
 ## this.getLogger()
 
@@ -487,3 +575,23 @@ function getLogger(name?: string): Logger;
 ```
 
 获取此次编译过程的 logger，可通过该 logger 记录消息。
+
+## this.version
+
+- **类型：** `number`
+
+loader API 的版本号。当前为 2。
+
+这对于提供向后兼容性很有用。基于版本号，你可以为 breaking changes 指定自定义逻辑或降级方案。
+
+## this.\_compiler
+
+- **类型：** `Compiler`
+
+访问当前的 Rspack [Compiler](/api/javascript-api/compiler) 对象。
+
+## this.\_compilation
+
+- **类型：** `Compilation`
+
+访问当前的 Rspack [Compilation](/api/javascript-api/compilation) 对象。

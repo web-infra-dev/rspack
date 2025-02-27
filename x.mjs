@@ -154,14 +154,6 @@ testCommand
 		await $`pnpm --filter "webpack-test" test`;
 	});
 
-// x test plugin
-testCommand
-	.command("plugin")
-	.description("run plugin test suites")
-	.action(async () => {
-		await $`pnpm --filter "plugin-test" test`;
-	});
-
 // x api-extractor
 const extractorCommand = program
 	.command("api-extractor")

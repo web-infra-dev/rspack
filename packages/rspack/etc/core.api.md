@@ -8,6 +8,7 @@
 
 import type { Abortable } from 'node:events';
 import type { AddressInfo } from 'node:net';
+import { AssetInfo } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -30,7 +31,6 @@ import type { JsAfterEmitData } from '@rspack/binding';
 import type { JsAfterTemplateExecutionData } from '@rspack/binding';
 import type { JsAlterAssetTagGroupsData } from '@rspack/binding';
 import type { JsAlterAssetTagsData } from '@rspack/binding';
-import type { JsAssetInfo } from '@rspack/binding';
 import type { JsBeforeAssetTagGenerationData } from '@rspack/binding';
 import type { JsBeforeEmitData } from '@rspack/binding';
 import type { JsBuildMeta } from '@rspack/binding';
@@ -180,8 +180,7 @@ export type AssetGeneratorDataUrlOptions = {
 // @public
 export type AssetGeneratorOptions = AssetInlineGeneratorOptions & AssetResourceGeneratorOptions;
 
-// @public (undocumented)
-export type AssetInfo = Partial<Omit<JsAssetInfo, "extras">> & Record<string, any>;
+export { AssetInfo }
 
 // @public (undocumented)
 type AssetInfo_2 = KnownAssetInfo & Record<string, any>;
@@ -895,7 +894,6 @@ export class Compiler {
     cache: Cache_2;
     // (undocumented)
     close(callback: (error?: Error | null) => void): void;
-    // (undocumented)
     compile(callback: liteTapable.Callback<Error, Compilation>): void;
     // (undocumented)
     compilerPath: string;
@@ -2217,7 +2215,7 @@ const FetchCompileAsyncWasmPlugin: {
 };
 
 // @public (undocumented)
-export type Filename = FilenameTemplate | ((pathData: PathData, assetInfo?: JsAssetInfo) => string);
+export type Filename = FilenameTemplate | ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 // @public (undocumented)
 export type FilenameTemplate = string;
@@ -3411,96 +3409,62 @@ export interface LoaderContext<OptionsType = {}> {
     __internal__parseMeta: Record<string, string>;
     // (undocumented)
     addBuildDependency(file: string): void;
-    // (undocumented)
     addContextDependency(context: string): void;
-    // (undocumented)
     addDependency(file: string): void;
-    // (undocumented)
     addMissingDependency(missing: string): void;
-    // (undocumented)
     async(): LoaderContextCallback;
-    // (undocumented)
     cacheable(cacheable?: boolean): void;
-    // (undocumented)
     callback: LoaderContextCallback;
-    // (undocumented)
     clearDependencies(): void;
-    // (undocumented)
     _compilation: Compilation;
-    // (undocumented)
     _compiler: Compiler;
-    // (undocumented)
     context: string | null;
     // (undocumented)
     currentRequest: string;
-    // (undocumented)
     data: unknown;
-    // (undocumented)
     dependency(file: string): void;
-    // (undocumented)
     emitError(error: Error): void;
-    // (undocumented)
-    emitFile(name: string, content: string | Buffer, sourceMap?: string, assetInfo?: JsAssetInfo): void;
-    // (undocumented)
+    emitFile(name: string, content: string | Buffer, sourceMap?: string, assetInfo?: AssetInfo): void;
     emitWarning(warning: Error): void;
     experiments: LoaderExperiments;
-    // (undocumented)
     fs: any;
     // (undocumented)
     getContextDependencies(): string[];
     // (undocumented)
     getDependencies(): string[];
-    // (undocumented)
     getLogger(name: string): Logger;
     // (undocumented)
     getMissingDependencies(): string[];
-    // (undocumented)
     getOptions(schema?: any): OptionsType;
-    // (undocumented)
     getResolve(options: Resolve): ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string | false | undefined>);
-    // (undocumented)
     hot?: boolean;
     importModule<T = any>(request: string, options: ImportModuleOptions | undefined, callback: (err?: null | Error, exports?: T) => any): void;
     // (undocumented)
     importModule<T = any>(request: string, options?: ImportModuleOptions): Promise<T>;
-    // (undocumented)
     loaderIndex: number;
     loaders: LoaderObject[];
-    // (undocumented)
     mode?: Mode;
-    // (undocumented)
+    // @deprecated (undocumented)
     _module: Module;
     // (undocumented)
     previousRequest: string;
-    // (undocumented)
     query: string | OptionsType;
     // (undocumented)
     remainingRequest: string;
-    // (undocumented)
     request: string;
-    // (undocumented)
     resolve(context: string, request: string, callback: (arg0: null | Error, arg1?: string | false, arg2?: ResolveRequest) => void): void;
-    // (undocumented)
     resource: string;
-    // (undocumented)
     resourceFragment: string;
-    // (undocumented)
     resourcePath: string;
-    // (undocumented)
     resourceQuery: string;
-    // (undocumented)
     rootContext: string;
-    // (undocumented)
     sourceMap: boolean;
-    // (undocumented)
     target?: Target;
-    // (undocumented)
     utils: {
         absolutify: (context: string, request: string) => string;
         contextify: (context: string, request: string) => string;
         createHash: (algorithm?: string) => Hash_2;
     };
-    // (undocumented)
     version: 2;
 }
 
@@ -3763,7 +3727,7 @@ export class Module {
     // (undocumented)
     readonly dependencies: Dependency[];
     // (undocumented)
-    emitFile(filename: string, source: Source, assetInfo: AssetInfo): void;
+    emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
     // (undocumented)
     readonly factoryMeta?: JsFactoryMeta;
     // (undocumented)
@@ -5669,12 +5633,12 @@ export const rspackOptions: z.ZodObject<{
     entry: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -5750,9 +5714,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5778,9 +5742,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5803,12 +5767,12 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -5884,9 +5848,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5912,9 +5876,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -5937,12 +5901,12 @@ export const rspackOptions: z.ZodObject<{
     }>]>>, z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>]>, z.ZodPromise<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
         baseUri: z.ZodOptional<z.ZodString>;
         chunkLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["jsonp", "import-scripts", "require", "async-node", "import"]>, z.ZodString]>]>>;
         asyncChunks: z.ZodOptional<z.ZodBoolean>;
         wasmLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodUnion<[z.ZodEnum<["fetch-streaming", "fetch", "async-node"]>, z.ZodString]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         library: z.ZodOptional<z.ZodObject<{
             amdContainer: z.ZodOptional<z.ZodString>;
             auxiliaryComment: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodObject<{
@@ -6018,9 +5982,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -6046,9 +6010,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -6079,17 +6043,17 @@ export const rspackOptions: z.ZodObject<{
         }, {
             keep?: string | undefined;
         }>]>>;
-        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
-        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+        filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        chunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         crossOriginLoading: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodEnum<["anonymous", "use-credentials"]>]>>;
-        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         cssHeadDataCompression: z.ZodOptional<z.ZodBoolean>;
-        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        cssChunkFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         hotUpdateMainFilename: z.ZodOptional<z.ZodString>;
         hotUpdateChunkFilename: z.ZodOptional<z.ZodString>;
         hotUpdateGlobal: z.ZodOptional<z.ZodString>;
-        assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+        assetModuleFilename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
         uniqueName: z.ZodOptional<z.ZodString>;
         chunkLoadingGlobal: z.ZodOptional<z.ZodString>;
         enabledLibraryTypes: z.ZodOptional<z.ZodArray<z.ZodUnion<[z.ZodEnum<["var", "module", "assign", "assign-properties", "this", "window", "self", "global", "commonjs", "commonjs2", "commonjs-module", "commonjs-static", "amd", "amd-require", "umd", "umd2", "jsonp", "system"]>, z.ZodString]>, "many">>;
@@ -6281,8 +6245,8 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: string | string[] | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -6317,14 +6281,14 @@ export const rspackOptions: z.ZodObject<{
         clean?: boolean | {
             keep?: string | undefined;
         } | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -6380,8 +6344,8 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: string | string[] | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -6416,14 +6380,14 @@ export const rspackOptions: z.ZodObject<{
         clean?: boolean | {
             keep?: string | undefined;
         } | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -7197,7 +7161,7 @@ export const rspackOptions: z.ZodObject<{
             minChunks: z.ZodOptional<z.ZodNumber>;
             usedExports: z.ZodOptional<z.ZodBoolean>;
             name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>, z.ZodArray<z.ZodType<Chunk, z.ZodTypeDef, Chunk>, "many">, z.ZodString], z.ZodUnknown>, z.ZodOptional<z.ZodString>>]>>;
-            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+            filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
             minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
             maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
@@ -7211,7 +7175,7 @@ export const rspackOptions: z.ZodObject<{
                 minChunks: z.ZodOptional<z.ZodNumber>;
                 usedExports: z.ZodOptional<z.ZodBoolean>;
                 name: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodLiteral<false>]>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>, z.ZodArray<z.ZodType<Chunk, z.ZodTypeDef, Chunk>, "many">, z.ZodString], z.ZodUnknown>, z.ZodOptional<z.ZodString>>]>>;
-                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
                 minSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
                 maxAsyncSize: z.ZodOptional<z.ZodUnion<[z.ZodNumber, z.ZodRecord<z.ZodString, z.ZodNumber>]>>;
@@ -7240,7 +7204,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -7264,7 +7228,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -7310,7 +7274,7 @@ export const rspackOptions: z.ZodObject<{
         }, "strict", z.ZodTypeAny, {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -7318,7 +7282,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -7358,7 +7322,7 @@ export const rspackOptions: z.ZodObject<{
         }, {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -7366,7 +7330,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -7445,7 +7409,7 @@ export const rspackOptions: z.ZodObject<{
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -7453,7 +7417,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -7517,7 +7481,7 @@ export const rspackOptions: z.ZodObject<{
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -7525,7 +7489,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -8090,11 +8054,11 @@ export const rspackOptions: z.ZodObject<{
                 }>], z.ZodUnknown>, z.ZodString>]>>;
             }, {
                 emit: z.ZodOptional<z.ZodBoolean>;
-                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
             }>, "strict", z.ZodTypeAny, {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8104,8 +8068,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             }, {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8154,15 +8118,15 @@ export const rspackOptions: z.ZodObject<{
             }>>;
             "asset/resource": z.ZodOptional<z.ZodObject<{
                 emit: z.ZodOptional<z.ZodBoolean>;
-                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
-                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<JsAssetInfo, z.ZodTypeDef, JsAssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
+                filename: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>>;
+                publicPath: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<"auto">, z.ZodUnion<[z.ZodString, z.ZodFunction<z.ZodTuple<[z.ZodType<PathData, z.ZodTypeDef, PathData>, z.ZodOptional<z.ZodType<AssetInfo, z.ZodTypeDef, AssetInfo>>], z.ZodUnknown>, z.ZodString>]>]>>;
             }, "strict", z.ZodTypeAny, {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             }, {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             }>>;
             css: z.ZodOptional<z.ZodObject<{
@@ -8213,8 +8177,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8246,8 +8210,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         }, {
@@ -8256,8 +8220,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8289,8 +8253,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         }>, z.ZodRecord<z.ZodString, z.ZodRecord<z.ZodString, z.ZodAny>>]>>;
@@ -8404,8 +8368,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8437,8 +8401,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -8552,8 +8516,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8585,8 +8549,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -8724,8 +8688,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -8757,8 +8721,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -8937,9 +8901,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8965,9 +8929,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -8993,9 +8957,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -9021,8 +8985,8 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: string | string[] | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -9057,14 +9021,14 @@ export const rspackOptions: z.ZodObject<{
         clean?: boolean | {
             keep?: string | undefined;
         } | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -9149,7 +9113,7 @@ export const rspackOptions: z.ZodObject<{
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -9157,7 +9121,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
@@ -9335,8 +9299,8 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
             } | undefined;
             asset?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
@@ -9368,8 +9332,8 @@ export const rspackOptions: z.ZodObject<{
                 }, ...args: unknown[]) => string) | undefined;
             } | undefined;
             "asset/resource"?: {
-                publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 emit?: boolean | undefined;
             } | undefined;
         } | undefined;
@@ -9548,9 +9512,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -9576,9 +9540,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -9604,9 +9568,9 @@ export const rspackOptions: z.ZodObject<{
         runtime?: string | false | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         baseUri?: string | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: {
             type: string;
             name?: string | string[] | {
@@ -9632,8 +9596,8 @@ export const rspackOptions: z.ZodObject<{
         path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
-        publicPath?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         library?: string | string[] | {
             commonjs?: string | undefined;
             amd?: string | undefined;
@@ -9668,14 +9632,14 @@ export const rspackOptions: z.ZodObject<{
         clean?: boolean | {
             keep?: string | undefined;
         } | undefined;
-        chunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        chunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         crossOriginLoading?: false | "anonymous" | "use-credentials" | undefined;
-        cssFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
-        cssChunkFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        cssChunkFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         hotUpdateMainFilename?: string | undefined;
         hotUpdateChunkFilename?: string | undefined;
         hotUpdateGlobal?: string | undefined;
-        assetModuleFilename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+        assetModuleFilename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
         uniqueName?: string | undefined;
         chunkLoadingGlobal?: string | undefined;
         enabledLibraryTypes?: string[] | undefined;
@@ -9760,7 +9724,7 @@ export const rspackOptions: z.ZodObject<{
         splitChunks?: false | {
             chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
             name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-            filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+            filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
             usedExports?: boolean | undefined;
             defaultSizeTypes?: string[] | undefined;
             cacheGroups?: Record<string, false | {
@@ -9768,7 +9732,7 @@ export const rspackOptions: z.ZodObject<{
                 layer?: string | RegExp | ((args_0: string | undefined) => boolean) | undefined;
                 chunks?: RegExp | "initial" | "async" | "all" | ((args_0: Chunk, ...args: unknown[]) => boolean) | undefined;
                 name?: string | false | ((args_0: Module, args_1: Chunk[], args_2: string, ...args: unknown[]) => string | undefined) | undefined;
-                filename?: string | ((args_0: PathData, args_1: JsAssetInfo | undefined, ...args: unknown[]) => string) | undefined;
+                filename?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
                 usedExports?: boolean | undefined;
                 defaultSizeTypes?: string[] | undefined;
                 maxSize?: number | Record<string, number> | undefined;
