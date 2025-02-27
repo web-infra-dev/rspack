@@ -33,8 +33,10 @@ function run(
 
 :::warning
 
-1. 这个 API 一次仅支持一个编译。请在 `compiler.run` 回调中调用 `compiler.close`，并等待它完成后再次执行 `compiler.run`。并发编译将破坏输出文件。
-2. Rspack 缓存失效检测依赖 `modifiedFiles` 和 `removedFiles`，在启用缓存的情况下，需要将它们通过 options 参数传递给 Rspack。
+如果你需要多次调用同一个 `compiler` 对象的 `run` 方法，请注意以下事项：
+
+1. 该 API 不支持并发编译操作。在启动新的编译任务之前，必须在 `compiler.run` 的回调函数中调用 `compiler.close()` 并等待其执行完成，之后才能进行下一次 `compiler.run` 调用。若同时运行多个编译进程，可能会导致输出文件产生不可预期的结果。
+2. Rspack 的缓存失效检测机制依赖于 `modifiedFiles` 和 `removedFiles` 参数。在启用缓存的情况下，如果你使用了自定义的 watcher 来监听文件变化，需要通过 `options` 参数将这两个值传递给 Rspack。
 
 :::
 
@@ -447,7 +449,7 @@ validateDependencies(
 ```ts
 run(
   callback: (err: Error, stats: MultiStats) => void,
-  options: {
+  options?: {
     modifiedFiles?: ReadonlySet<string>; // 本次编译包含的被修改的文件
     removedFiles?: ReadonlySet<string>; // 本次编译包含的被删除的文件
   },
