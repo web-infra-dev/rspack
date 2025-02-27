@@ -4755,7 +4755,6 @@ dependencies = [
  "derive_more 1.0.0",
  "futures",
  "glob",
- "lazy_static",
  "pathdiff",
  "regex",
  "rspack_core",

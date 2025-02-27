@@ -220,7 +220,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           run-install: false
-      
+
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
 
