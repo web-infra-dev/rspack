@@ -1,7 +1,7 @@
 import {
 	type BuiltinPlugin,
 	BuiltinPluginName,
-	type JsExternalItemFnCtx,
+	type RawExternalItemFnCtx,
 	type RawExternalsPluginOptions
 } from "@rspack/binding";
 
@@ -45,19 +45,20 @@ function getRawExternalItem(
 	}
 
 	if (typeof item === "function") {
-		return async (ctx: JsExternalItemFnCtx) => {
+		return async (ctx: RawExternalItemFnCtx) => {
 			return await new Promise((resolve, reject) => {
+				const data = ctx.data();
 				const promise = item(
 					{
-						request: ctx.request,
-						dependencyType: ctx.dependencyType,
-						context: ctx.context,
+						request: data.request,
+						dependencyType: data.dependencyType,
+						context: data.context,
 						contextInfo: {
-							issuer: ctx.contextInfo.issuer,
-							issuerLayer: ctx.contextInfo.issuerLayer ?? null
+							issuer: data.contextInfo.issuer,
+							issuerLayer: data.contextInfo.issuerLayer ?? null
 						},
 						getResolve: function getResolve(options) {
-							const resolver = Resolver.__from_binding(ctx.resolver);
+							const resolver = new Resolver(ctx.getResolver());
 							const getResolveContext = () => ({
 								fileDependencies: compiler._lastCompilation!.fileDependencies,
 								missingDependencies:

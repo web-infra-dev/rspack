@@ -295,6 +295,11 @@ export declare class JsStats {
   getLogging(acceptedTypes: number): Array<JsStatsLogging>
 }
 
+export declare class RawExternalItemFnCtx {
+  data(): RawExternalItemFnCtxData
+  getResolver(): JsResolver
+}
+
 export interface BuiltinPlugin {
   name: BuiltinPluginName
   options: unknown
@@ -684,14 +689,6 @@ export interface JsExecuteModuleResult {
   cacheable: boolean
   id: number
   error?: string
-}
-
-export interface JsExternalItemFnCtx {
-  request: string
-  context: string
-  dependencyType: string
-  contextInfo: ContextInfo
-  resolver: JsResolver
 }
 
 export interface JsFactorizeArgs {
@@ -1662,6 +1659,13 @@ export interface RawExposeOptions {
   key: string
   name?: string
   import: Array<string>
+}
+
+export interface RawExternalItemFnCtxData {
+  request: string
+  context: string
+  dependencyType: string
+  contextInfo: ContextInfo
 }
 
 export interface RawExternalItemFnResult {

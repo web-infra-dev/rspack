@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use napi::bindgen_prelude::{Either4, ToNapiValue};
+use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
 use rspack_core::{ExternalItemFnCtx, ResolveOptionsWithDependencyType, ResolverFactory};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 
-use crate::JsResolverWrapper;
+use crate::JsResolver;
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
@@ -30,7 +30,7 @@ type RawExternalItem = Either4<
   String,
   RspackRegex,
   HashMap<String, RawExternalItemValue>,
-  ThreadsafeFunction<JsExternalItemFnCtxWrapper, RawExternalItemFnResult>,
+  ThreadsafeFunction<RawExternalItemFnCtx, RawExternalItemFnResult>,
 >;
 type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, Vec<String>>>;
 pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
@@ -72,17 +72,9 @@ pub struct ContextInfo {
   pub issuer_layer: Option<String>,
 }
 
-#[napi(object, object_from_js = false)]
-pub struct JsExternalItemFnCtx {
-  pub request: String,
-  pub context: String,
-  pub dependency_type: String,
-  pub context_info: ContextInfo,
-  #[napi(ts_type = "JsResolver")]
-  pub resolver: JsResolverWrapper,
-}
-
-pub struct JsExternalItemFnCtxWrapper {
+#[derive(Debug)]
+#[napi]
+pub struct RawExternalItemFnCtx {
   request: String,
   context: String,
   dependency_type: String,
@@ -91,28 +83,37 @@ pub struct JsExternalItemFnCtxWrapper {
   resolver_factory: Arc<ResolverFactory>,
 }
 
-impl ToNapiValue for JsExternalItemFnCtxWrapper {
-  unsafe fn to_napi_value(
-    env: napi::sys::napi_env,
-    val: Self,
-  ) -> napi::Result<napi::sys::napi_value> {
-    let resolver = JsResolverWrapper::new(
-      val.resolver_factory,
-      val.resolve_options_with_dependency_type,
-    );
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawExternalItemFnCtxData {
+  pub request: String,
+  pub context: String,
+  pub dependency_type: String,
+  pub context_info: ContextInfo,
+}
 
-    let ctx = JsExternalItemFnCtx {
-      request: val.request,
-      context: val.context,
-      dependency_type: val.dependency_type,
-      context_info: val.context_info,
-      resolver,
-    };
-    ToNapiValue::to_napi_value(env, ctx)
+#[napi]
+impl RawExternalItemFnCtx {
+  #[napi]
+  pub fn data(&self) -> RawExternalItemFnCtxData {
+    RawExternalItemFnCtxData {
+      request: self.request.clone(),
+      context: self.context.clone(),
+      dependency_type: self.dependency_type.clone(),
+      context_info: self.context_info.clone(),
+    }
+  }
+
+  #[napi]
+  pub fn get_resolver(&self) -> JsResolver {
+    JsResolver::new(
+      self.resolver_factory.clone(),
+      self.resolve_options_with_dependency_type.clone(),
+    )
   }
 }
 
-impl From<ExternalItemFnCtx> for JsExternalItemFnCtxWrapper {
+impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
   fn from(value: ExternalItemFnCtx) -> Self {
     Self {
       request: value.request,

@@ -32,6 +32,6 @@ export class ResolverFactory {
 			dependencyCategory,
 			resolveToContext
 		});
-		return Resolver.__from_binding(binding);
+		return new Resolver(binding);
 	}
 }

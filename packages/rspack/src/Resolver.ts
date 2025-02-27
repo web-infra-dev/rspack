@@ -16,32 +16,15 @@ function isString(value: string | RegExp): value is string {
 	return typeof value === "string";
 }
 
-const RESOLVER_MAPPINGS = new WeakMap<binding.JsResolver, Resolver>();
-
 export class Resolver {
-	#binding: binding.JsResolver;
-	#cache = new WeakMap();
+	binding: binding.JsResolver;
 
-	static __from_binding(binding: binding.JsResolver) {
-		let chunk = RESOLVER_MAPPINGS.get(binding);
-		if (chunk) {
-			return chunk;
-		}
-		chunk = new Resolver(binding);
-		RESOLVER_MAPPINGS.set(binding, chunk);
-		return chunk;
-	}
-
-	static __to_binding(chunk: Resolver): binding.JsResolver {
-		return chunk.#binding;
-	}
-
-	private constructor(binding: binding.JsResolver) {
-		this.#binding = binding;
+	constructor(binding: binding.JsResolver) {
+		this.binding = binding;
 	}
 
 	resolveSync(context: object, path: string, request: string): string | false {
-		return this.#binding.resolveSync(path, request);
+		return this.binding.resolveSync(path, request);
 	}
 
 	resolve(
@@ -52,18 +35,18 @@ export class Resolver {
 		callback: ResolveCallback
 	): void {
 		try {
-			const res = this.#binding.resolveSync(path, request);
+			const res = this.binding.resolveSync(path, request);
 			callback(null, res);
 		} catch (err) {
 			callback(err as ErrorWithDetails);
 		}
 	}
 
-	withOptions(options: ResolveOptionsWithDependencyType): Resolver {
-		const cacheEntry = this.#cache.get(options);
-		if (cacheEntry !== undefined) return cacheEntry;
-
-		const { dependencyCategory, resolveToContext, ...resolve } = options;
+	withOptions({
+		dependencyCategory,
+		resolveToContext,
+		...resolve
+	}: ResolveOptionsWithDependencyType): Resolver {
 		const rawResolve = getRawResolve(resolve);
 
 		// TODO: rspack_resolver is unimplemented regex
@@ -72,13 +55,11 @@ export class Resolver {
 				rawResolve.restrictions.filter<string>(isString);
 		}
 
-		const binding = this.#binding.withOptions({
+		const binding = this.binding.withOptions({
 			dependencyCategory,
 			resolveToContext,
 			...rawResolve
 		});
-		const resolver = new Resolver(binding);
-		this.#cache.set(options, resolver);
 		return new Resolver(binding);
 	}
 }

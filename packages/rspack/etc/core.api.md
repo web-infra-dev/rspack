@@ -66,6 +66,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawFlightClientEntryPluginOptions } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
@@ -2242,6 +2243,20 @@ export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 
 // @public
 export type FilterTypes = FilterItemTypes | FilterItemTypes[];
+
+// @public (undocumented)
+export const FlightClientEntryPlugin: {
+    new (options: RawFlightClientEntryPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [options: RawFlightClientEntryPluginOptions];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+export type FlightClientEntryPluginOptions = RawFlightClientEntryPluginOptions;
 
 // @public
 export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
@@ -5136,16 +5151,15 @@ type ResolveOptionsWithDependencyType_2 = Resolve & {
 
 // @public (undocumented)
 class Resolver {
+    constructor(binding: binding.JsResolver);
     // (undocumented)
-    static __from_binding(binding: binding.JsResolver): Resolver;
-    // (undocumented)
-    static __to_binding(chunk: Resolver): binding.JsResolver;
+    binding: binding.JsResolver;
     // (undocumented)
     resolve(context: object, path: string, request: string, resolveContext: ResolveContext, callback: ResolveCallback): void;
     // (undocumented)
     resolveSync(context: object, path: string, request: string): string | false;
     // (undocumented)
-    withOptions(options: ResolveOptionsWithDependencyType_2): Resolver;
+    withOptions({ dependencyCategory, resolveToContext, ...resolve }: ResolveOptionsWithDependencyType_2): Resolver;
 }
 
 // @public (undocumented)
@@ -5388,6 +5402,7 @@ declare namespace rspackExports {
         EvalDevToolModulePluginOptions,
         CssExtractRspackLoaderOptions,
         CssExtractRspackPluginOptions,
+        FlightClientEntryPluginOptions,
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
         LightningCssMinimizerRspackPlugin,
@@ -5397,6 +5412,7 @@ declare namespace rspackExports {
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
         ContextReplacementPlugin,
+        FlightClientEntryPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
         SwcLoaderJscConfig,
