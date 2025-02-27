@@ -24,11 +24,18 @@ function run(
     error: Error, // Only including compiler-related errors, such as configuration errors, not including compilation errors
     stats: Stats, // detailed information generated during the compilation
   ) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
 ): void;
 ```
 
 :::warning
-This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
+
+1. This API only supports one compilation at a time. Please call `compiler.close` in the `compiler.run` callback and wait for it to finish before executing `compiler.run` again. Concurrent compilations will damage the output files.
+2. Rspack cache invalidation detection relies on `modifiedFiles` and `removedFiles`. When cache is enabled, they need to be passed to Rspack via the options parameter.
+
 :::
 
 ```js
@@ -438,7 +445,13 @@ validateDependencies(
 Execute the `run` method of each compiler according to the dependency relationship to start the compilation process.
 
 ```ts
-run(callback: (err: Error, stats: MultiStats) => void): void;
+run(
+  callback: (err: Error, stats: MultiStats) => void,
+  options?: {
+    modifiedFiles?: ReadonlySet<string>; // Modified files included in this compilation
+    removedFiles?: ReadonlySet<string>; // Deleted files included in this compilation
+  },
+): void;
 ```
 
 #### watch
