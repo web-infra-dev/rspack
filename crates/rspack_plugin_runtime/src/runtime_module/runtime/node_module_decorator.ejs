@@ -1,0 +1,5 @@
+<%- NODE_MODULE_DECORATOR %> = <%- basicFunction("module") %> {
+  module.paths = [];
+  if (!module.children) module.children = [];
+  return module;
+};
