@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.49.2",
     "@microsoft/api-extractor-model": "7.30.3",
@@ -86,8 +87,5 @@
       "graceful-fs": "patches/graceful-fs.patch",
       "rollup-plugin-dts": "patches/rollup-plugin-dts.patch"
     }
-  },
-  "dependencies": {
-    "@continuous-auth/client": "^2.3.2"
   }
 }
