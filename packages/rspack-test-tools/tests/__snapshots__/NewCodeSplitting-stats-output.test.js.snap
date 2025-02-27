@@ -54,11 +54,11 @@ runtime modules xx KiB
   webpack/runtime/auto_public_path xx KiB {909} [code generated]
     [no exports]
     [used exports unknown]
-  webpack/runtime/global 223 bytes {909} [code generated]
+  webpack/runtime/global 216 bytes {909} [code generated]
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (ea70de85332c1294)
+Rspack compiled successfully (27eddb11e03f28d2)
 `;
 
 exports[`new code splitting stats output new code splitting stats output/builtin-swc-loader-parse-error should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
@@ -113,7 +113,7 @@ Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`new code splitting stats output new code splitting stats output/ignore-plugin should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
-runtime modules 107 bytes 1 module
+runtime modules 88 bytes 1 module
 ./index.js 103 bytes [built] [code generated]
 <TEST_TOOLS_ROOT>/tests/statsOutputCases/ignore-plugin/locals|sync|/^\\.\\/.*$/ 160 bytes [built] [code generated]
 ./locals/en.js 30 bytes [built] [code generated]
@@ -199,7 +199,7 @@ DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loade
 `;
 
 exports[`new code splitting stats output new code splitting stats output/match-resource-data-url should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
-runtime modules 672 bytes 3 modules
+runtime modules 653 bytes 3 modules
 ./index.js 150 bytes [built] [code generated]
 ./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]
 `;
@@ -414,7 +414,7 @@ Rspack x.x.x compiled with 1 error in X s
 exports[`new code splitting stats output new code splitting stats output/runtime-modules should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 ./index.js 19 bytes [built] [code generated]
 webpack/runtime/define_property_getters 285 bytes [code generated]
-webpack/runtime/has_own_property 107 bytes [code generated]
+webpack/runtime/has_own_property 88 bytes [code generated]
 webpack/runtime/make_namespace_object 280 bytes [code generated]
 `;
 
@@ -445,14 +445,14 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`new code splitting stats output new code splitting stats output/simple-export should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 672 bytes 3 modules
+runtime modules 653 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
 
 exports[`new code splitting stats output new code splitting stats output/simple-module-source should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
-asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 656 bytes 3 modules
+asset bundle.js 2 KiB [emitted] (name: main)
+runtime modules 637 bytes 3 modules
 orphan modules 1 bytes [orphan] 1 module
 cacheable modules 82 bytes
   ./index.js 75 bytes [built] [code generated]

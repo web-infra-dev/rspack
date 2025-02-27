@@ -87,6 +87,28 @@ export function pitch(remainingRequest, precedingRequest, data) {
 ESM loader 和 CommonJS loader 的功能完全相同，只是使用了不同的模块语法。你可以根据项目需求选择使用哪种格式。
 :::
 
+### 使用 TypeScript 编写
+
+如果你使用 TypeScript 来编写 Rspack loader，可以引入 `LoaderContext` 来为 loader 添加类型：
+
+```ts title="my-loader.ts"
+import type { LoaderContext } from '@rspack/core';
+
+// 声明 loader 选项的类型
+type MyLoaderOptions = {
+  foo: string;
+};
+
+export default function myLoader(
+  this: LoaderContext<MyLoaderOptions>,
+  source: string,
+) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+}
+```
+
 ## 'Raw' Loader
 
 默认情况下，资源文件会被转化为 UTF-8 字符串，然后传给 loader。通过设置 `raw` 为 `true`，loader 可以接收原始的 `Buffer`。每一个 loader 都可以用 `String` 或者 `Buffer` 的形式传递它的处理结果。Compiler 将会把它们在 loader 之间相互转换。
