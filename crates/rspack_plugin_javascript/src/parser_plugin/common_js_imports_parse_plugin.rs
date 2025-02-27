@@ -23,13 +23,12 @@ use crate::visitors::{extract_require_call_info, is_require_call_start};
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
-  expr: &Expr,
-  span: Span,
-  callee_span: Span,
+  call_expr: &CallExpr,
+  arg_expr: &Expr,
 ) -> CommonJsRequireContextDependency {
-  let start = callee_span.real_lo();
-  let end = callee_span.real_hi();
-  let result = create_context_dependency(param, expr, parser);
+  let result = create_context_dependency(param, parser);
+  parser.walk_expression(arg_expr);
+
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -42,13 +41,17 @@ fn create_commonjs_require_context_dependency(
     namespace_object: ContextNameSpaceObject::Unset,
     group_options: None,
     replaces: result.replaces,
-    start,
-    end,
+    start: call_expr.span().real_lo(),
+    end: call_expr.span().real_hi(),
     referenced_exports: None,
     attributes: None,
   };
-  let mut dep =
-    CommonJsRequireContextDependency::new(options, span.into(), (start, end).into(), parser.in_try);
+  let mut dep = CommonJsRequireContextDependency::new(
+    options,
+    call_expr.span().into(),
+    Some(arg_expr.span().into()),
+    parser.in_try,
+  );
   *dep.critical_mut() = result.critical;
   dep
 }
@@ -62,7 +65,10 @@ fn create_require_resolve_context_dependency(
 ) -> RequireResolveContextDependency {
   let start = range.start;
   let end = range.end;
-  let result = create_context_dependency(param, expr, parser);
+
+  let result = create_context_dependency(param, parser);
+  parser.walk_expression(expr);
+
   let options = ContextOptions {
     mode: if weak {
       ContextMode::Weak
@@ -253,13 +259,7 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    let dep = create_commonjs_require_context_dependency(
-      parser,
-      param,
-      argument_expr,
-      call_expr.span,
-      call_expr.callee.span(),
-    );
+    let dep = create_commonjs_require_context_dependency(parser, param, call_expr, argument_expr);
     parser.dependencies.push(Box::new(dep));
     Some(true)
   }
@@ -364,7 +364,7 @@ impl CommonJsImportsParserPlugin {
         attributes: None,
       },
       ident.span().into(),
-      (start, end).into(),
+      None,
       parser.in_try,
     );
     *dep.critical_mut() = Some(

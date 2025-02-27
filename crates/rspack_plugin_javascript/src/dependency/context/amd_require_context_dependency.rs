@@ -12,10 +12,9 @@ use super::{
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct CommonJsRequireContextDependency {
+pub struct AMDRequireContextDependency {
   id: DependencyId,
   range: DependencyRange,
-  value_range: Option<DependencyRange>,
   resource_identifier: String,
   options: ContextOptions,
   optional: bool,
@@ -23,17 +22,11 @@ pub struct CommonJsRequireContextDependency {
   factorize_info: FactorizeInfo,
 }
 
-impl CommonJsRequireContextDependency {
-  pub fn new(
-    options: ContextOptions,
-    range: DependencyRange,
-    value_range: Option<DependencyRange>,
-    optional: bool,
-  ) -> Self {
+impl AMDRequireContextDependency {
+  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       range,
-      value_range,
       options,
       resource_identifier,
       optional,
@@ -45,17 +38,17 @@ impl CommonJsRequireContextDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for CommonJsRequireContextDependency {
+impl Dependency for AMDRequireContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CommonJS
+    &DependencyCategory::Amd
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CommonJSRequireContext
+    &DependencyType::AmdRequireContext
   }
 
   fn range(&self) -> Option<&DependencyRange> {
@@ -74,7 +67,7 @@ impl Dependency for CommonJsRequireContextDependency {
   }
 }
 
-impl ContextDependency for CommonJsRequireContextDependency {
+impl ContextDependency for AMDRequireContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -121,7 +114,7 @@ impl ContextDependency for CommonJsRequireContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyTemplate for CommonJsRequireContextDependency {
+impl DependencyTemplate for AMDRequireContextDependency {
   fn apply(
     &self,
     source: &mut TemplateReplaceSource,
@@ -132,7 +125,7 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
       source,
       code_generatable_context,
       &self.range,
-      self.value_range.as_ref(),
+      Some(&self.range),
     );
   }
 
@@ -149,4 +142,4 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
   }
 }
 
-impl AsModuleDependency for CommonJsRequireContextDependency {}
+impl AsModuleDependency for AMDRequireContextDependency {}
