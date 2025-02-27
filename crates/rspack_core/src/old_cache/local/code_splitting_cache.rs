@@ -66,7 +66,7 @@ impl CodeSplittingCache {
         let mut visited = IdentifierSet::default();
         let mut active_modules = IdentifierSet::default();
         module_graph
-          .get_ordered_outgoing_connections(&module)
+          .get_outgoing_connections_in_order(&module)
           .filter_map(|dep| module_graph.connection_by_dependency_id(dep))
           .map(|conn| {
             let m = *conn.module_identifier();
