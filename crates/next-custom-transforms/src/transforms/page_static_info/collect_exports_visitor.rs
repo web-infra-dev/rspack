@@ -1,6 +1,5 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 
-use lazy_static::lazy_static;
 use swc_core::ecma::{
   ast::{
     Decl, ExportDecl, ExportNamedSpecifier, ExportSpecifier, Expr, ExprOrSpread, ExprStmt, Lit,
@@ -11,15 +10,15 @@ use swc_core::ecma::{
 
 use super::{ExportInfo, ExportInfoWarning};
 
-lazy_static! {
-  static ref EXPORTS_SET: HashSet<&'static str> = HashSet::from([
+static EXPORTS_SET: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+  HashSet::from([
     "getStaticProps",
     "getServerSideProps",
     "generateImageMetadata",
     "generateSitemaps",
     "generateStaticParams",
-  ]);
-}
+  ])
+});
 
 pub(crate) struct CollectExportsVisitor {
   pub export_info: Option<ExportInfo>,

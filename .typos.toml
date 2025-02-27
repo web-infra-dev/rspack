@@ -16,7 +16,6 @@ extend-exclude = [
   "biome.jsonc",
   "scripts/test/diff.cjs",
   "scripts/test/binary-path.cjs",
-  "packages/rspack/src/util/volatile.ts",
   "crates/next-custom-transforms"
 ]
 

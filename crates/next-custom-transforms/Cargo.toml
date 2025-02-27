@@ -23,7 +23,6 @@ easy-error = "1.0.0"
 either = "1"
 hex = "0.4.3"
 indoc = { workspace = true }
-lazy_static = { workspace = true }
 modularize_imports = { version = "0.77.0" }
 once_cell = { workspace = true }
 pathdiff = { workspace = true }
