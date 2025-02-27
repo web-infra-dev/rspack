@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 const ESCAPE_STRING_LENGTH: usize = 3;
-const U2028: &str = r#"\\u2028"#;
-const U2029: &str = r#"\\u2029"#;
+const U2028: &str = "\\u2028";
+const U2029: &str = "\\u2029";
 
 pub fn escape_json(input: &str) -> Cow<'_, str> {
   let mut vec = input
@@ -43,17 +43,14 @@ mod test {
     let cases = vec![
       (
         r#"{"LS":" ","PS":" ","escaped":"\\u2028"}"#,
-        r#"{"LS":"\\u2028","PS":"\\u2029","escaped":"\\u2028"}"#,
+        r#"{"LS":"\u2028","PS":"\u2029","escaped":"\\u2028"}"#,
       ),
-      (
-        r#"[" "," ","\\u2028"]"#,
-        r#"["\\u2029","\\u2028","\\u2028"]"#,
-      ),
+      (r#"[" "," ","\\u2028"]"#, r#"["\u2029","\u2028","\\u2028"]"#),
       (r#"{"na\ me": "\ntest"}"#, r#"{"na\ me": "\ntest"}"#),
       (r#"{"a": \n\r\t"a"}"#, r#"{"a": \n\r\t"a"}"#),
       (
         r#"{"\"\\\/\b \f\t\r\n": "\"\\\/\b\f\t \r\n"}"#,
-        r#"{"\"\\\/\b\\u2028\f\t\r\n": "\"\\\/\b\f\t\\u2028\r\n"}"#,
+        r#"{"\"\\\/\b\u2028\f\t\r\n": "\"\\\/\b\f\t\u2028\r\n"}"#,
       ),
     ];
 

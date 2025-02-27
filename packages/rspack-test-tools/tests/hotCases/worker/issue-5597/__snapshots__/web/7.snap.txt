@@ -11,20 +11,20 @@
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Bundle: workerA_js.chunk.CURRENT_HASH.js
 - Bundle: workerB_js.chunk.CURRENT_HASH.js
-- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 62
-- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 62
-- Manifest: main.LAST_HASH.hot-update.json, size: 62
-- Update: main.LAST_HASH.hot-update.js, size: 201
+- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 43
+- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 182
 - Update: shared.LAST_HASH.hot-update.js, size: 673
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 517
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 517
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 498
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 498
 
 ## Manifest
 
 ### [runtime of workerA_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerA_js"],"r":["main","workerB_js"],"m":[]}
+{"c":["shared","workerA_js"],"r":[],"m":[]}
 ```
 
 
@@ -32,7 +32,7 @@
 ### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerB_js"],"r":["main","workerA_js"],"m":[]}
+{"c":["shared","workerB_js"],"r":[],"m":[]}
 ```
 
 
@@ -40,7 +40,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":["shared","workerA_js","workerB_js"],"m":[]}
+{"c":["main"],"r":[],"m":[]}
 ```
 
 
@@ -61,10 +61,7 @@
 self["webpackHotUpdate"]('main', {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
+__webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
 }
@@ -135,10 +132,7 @@ __webpack_require__.d(__webpack_exports__, {
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
+__webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
 }
@@ -172,10 +166,7 @@ __webpack_require__.d(__webpack_exports__, {
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
+__webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
 }

@@ -10,7 +10,6 @@ dashmap        = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 futures        = { workspace = true }
 glob           = { workspace = true }
-lazy_static    = "1.5.0"
 pathdiff       = { workspace = true, features = ["camino"] }
 regex          = { workspace = true }
 rspack_core    = { workspace = true }

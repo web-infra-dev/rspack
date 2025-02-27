@@ -323,8 +323,7 @@ impl JsPlugin {
                     .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
                     && compilation
                       .chunk_graph
-                      .get_module_runtimes(*origin_module, &compilation.chunk_by_ukey)
-                      .into_values()
+                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
                       .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
                 } else {
                   false

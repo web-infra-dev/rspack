@@ -1,4 +1,4 @@
-import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import type * as webpackDevServer from "webpack-dev-server";
 import type { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
@@ -12,7 +12,7 @@ export type FilenameTemplate = string;
 
 export type Filename =
 	| FilenameTemplate
-	| ((pathData: PathData, assetInfo?: JsAssetInfo) => string);
+	| ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 //#region Name
 /** Name of the configuration. Used when loading multiple configurations. */

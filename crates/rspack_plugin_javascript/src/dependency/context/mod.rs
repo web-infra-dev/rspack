@@ -1,9 +1,11 @@
+mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
 mod import_meta_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
 
+pub use amd_require_context_dependency::AMDRequireContextDependency;
 pub use common_js_require_context_dependency::CommonJsRequireContextDependency;
 pub use import_context_dependency::ImportContextDependency;
 pub use import_meta_context_dependency::ImportMetaContextDependency;
@@ -72,9 +74,8 @@ fn context_dependency_template_as_require_call(
   dep: &dyn ContextDependency,
   source: &mut TemplateReplaceSource,
   code_generatable_context: &mut TemplateContext,
-  callee_start: u32,
-  callee_end: u32,
-  args_end: u32,
+  range: &DependencyRange,
+  value_range: Option<&DependencyRange>,
 ) {
   let TemplateContext {
     compilation,
@@ -83,21 +84,23 @@ fn context_dependency_template_as_require_call(
   } = code_generatable_context;
   let id = dep.id();
 
-  let expr = module_raw(compilation, runtime_requirements, id, dep.request(), false);
+  let mut expr = module_raw(compilation, runtime_requirements, id, dep.request(), false);
 
   if compilation
     .get_module_graph()
     .module_graph_module_by_dependency_id(id)
-    .is_none()
+    .is_some()
+    && let Some(value_range) = value_range
   {
-    source.replace(callee_start, args_end, &expr, None);
+    for (content, start, end) in &dep.options().replaces {
+      source.replace(*start, *end, content, None);
+    }
+    source.replace(value_range.end, range.end, ")", None);
+    expr.push('(');
+    source.replace(range.start, value_range.start, &expr, None);
     return;
   }
-
-  for (content, start, end) in &dep.options().replaces {
-    source.replace(*start, *end - 1, content, None);
-  }
-  source.replace(callee_start, callee_end, &expr, None);
+  source.replace(range.start, range.end, &expr, None);
 }
 
 fn context_dependency_template_as_id(
@@ -131,7 +134,7 @@ fn context_dependency_template_as_id(
   }
 
   for (content, start, end) in &dep.options().replaces {
-    source.replace(*start, *end - 1, content, None);
+    source.replace(*start, *end, content, None);
   }
 
   source.replace(

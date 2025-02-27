@@ -10,7 +10,8 @@ import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
@@ -102,31 +103,79 @@ export class WatchProcessor<
 		const checkStats = testConfig.checkStats || (() => true);
 
 		if (stats) {
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.txt"),
-				stats.toString({
-					preset: "verbose",
-					colors: false
-				}),
-				"utf-8"
-			);
-			const jsonStats = stats.toJson({
-				errorDetails: true
-			});
+			if (testConfig.writeStatsOuptut) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.txt"),
+					stats.toString({
+						preset: "verbose",
+						colors: false
+					}),
+					"utf-8"
+				);
+			}
 
-			if (!checkStats(this._watchOptions.stepName, jsonStats)) {
-				throw new Error("stats check failed");
+			const getJsonStats = (() => {
+				let cached: TCompilerStatsCompilation<T> | null = null;
+				return () => {
+					if (!cached) {
+						cached = stats.toJson({
+							errorDetails: true
+						});
+					}
+					return cached;
+				};
+			})();
+			const getStringStats = (() => {
+				let cached: string | null = null;
+				return () => {
+					if (!cached) {
+						cached = stats.toString({
+							logging: "verbose"
+						});
+					}
+					return cached;
+				};
+			})();
+			if (checkStats.length > 1) {
+				if (
+					!checkStats(
+						this._watchOptions.stepName,
+						getJsonStats(),
+						getStringStats()
+					)
+				) {
+					throw new Error("stats check failed");
+				}
+			} else {
+				// @ts-expect-error only one param
+				if (!checkStats(this._watchOptions.stepName)) {
+					throw new Error("stats check failed");
+				}
 			}
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.json"),
-				JSON.stringify(jsonStats, null, 2),
-				"utf-8"
-			);
-			if (jsonStats.errors) {
-				errors.push(...jsonStats.errors);
+			if (testConfig.writeStatsJson) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.json"),
+					JSON.stringify(getJsonStats(), null, 2),
+					"utf-8"
+				);
 			}
-			if (jsonStats.warnings) {
-				warnings.push(...jsonStats.warnings);
+			if (
+				fs.existsSync(
+					context.getSource(`${this._watchOptions.stepName}/errors.js`)
+				) ||
+				fs.existsSync(
+					context.getSource(`${this._watchOptions.stepName}/warnings.js`)
+				)
+			) {
+				const statsJson = stats.toJson({
+					errorDetails: true
+				});
+				if (statsJson.errors) {
+					errors.push(...statsJson.errors);
+				}
+				if (statsJson.warnings) {
+					warnings.push(...statsJson.warnings);
+				}
 			}
 		}
 		await checkArrayExpectation(
@@ -151,14 +200,21 @@ export class WatchProcessor<
 		}
 
 		// check hash
-		fs.renameSync(
-			path.join(context.getDist(), "stats.txt"),
-			path.join(context.getDist(), `stats.${this._watchOptions.stepName}.txt`)
-		);
-		fs.renameSync(
-			path.join(context.getDist(), "stats.json"),
-			path.join(context.getDist(), `stats.${this._watchOptions.stepName}.json`)
-		);
+		if (testConfig.writeStatsOuptut) {
+			fs.renameSync(
+				path.join(context.getDist(), "stats.txt"),
+				path.join(context.getDist(), `stats.${this._watchOptions.stepName}.txt`)
+			);
+		}
+		if (testConfig.writeStatsJson) {
+			fs.renameSync(
+				path.join(context.getDist(), "stats.json"),
+				path.join(
+					context.getDist(),
+					`stats.${this._watchOptions.stepName}.json`
+				)
+			);
+		}
 	}
 
 	async config(context: ITestContext) {

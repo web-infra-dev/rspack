@@ -7,10 +7,10 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
 use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
 use rspack_core::{
-  render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph,
-  Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  remove_bom, render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
+  ChunkGraph, Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext,
+  Module, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::miette::Diagnostic;
 use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -342,15 +342,5 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some(format!("Module uses {bailout}").into());
     }
     None
-  }
-}
-
-fn remove_bom(s: Arc<dyn Source>) -> Arc<dyn Source> {
-  if s.source().starts_with('\u{feff}') {
-    let mut s = ReplaceSource::new(s);
-    s.replace(0, 3, "", None);
-    s.boxed()
-  } else {
-    s
   }
 }

@@ -31,6 +31,13 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/startup_chunk_dependencies.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk_ids = compilation
@@ -78,18 +85,14 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .join("\n")
       };
 
-      Ok(
-        RawStringSource::from(format!(
-          r#"var next = {};
-        {} = function() {{
-          {}
-        }};"#,
-          RuntimeGlobals::STARTUP,
-          RuntimeGlobals::STARTUP,
-          body
-        ))
-        .boxed(),
-      )
+      let source = compilation.runtime_template.render(
+        &self.id,
+        Some(serde_json::json!({
+          "_body": body,
+        })),
+      )?;
+
+      Ok(RawStringSource::from(source).boxed())
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }

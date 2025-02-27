@@ -11,7 +11,6 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::AssetInfo;
 use rspack_core::BoxDependency;
 use rspack_core::Compilation;
 use rspack_core::CompilationId;
@@ -39,7 +38,7 @@ use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::RawDependency;
 use crate::ToJsCompatSource;
-use crate::{JsAsset, JsAssetInfo, JsPathData, JsStats};
+use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
@@ -79,16 +78,14 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<
-      Either<JsAssetInfo, Function<'_, JsAssetInfo, JsAssetInfo>>,
-    >,
+    asset_info_update_or_function: Option<Either<AssetInfo, Function<'_, AssetInfo, AssetInfo>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -107,7 +104,7 @@ impl JsCompilation {
         };
         let new_source = new_source.into_rspack_result()?;
 
-        let new_info: napi::Result<Option<AssetInfo>> = asset_info_update_or_function
+        let new_info: napi::Result<Option<rspack_core::AssetInfo>> = asset_info_update_or_function
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
@@ -327,13 +324,15 @@ impl JsCompilation {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: JsAssetInfo,
+    js_asset_info: Option<AssetInfo>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
+    let asset_info: rspack_core::AssetInfo = js_asset_info.map(Into::into).unwrap_or_default();
+
     compilation.emit_asset(
       filename,
-      rspack_core::CompilationAsset::new(Some(source.into()), asset_info.into()),
+      rspack_core::CompilationAsset::new(Some(source.into()), asset_info),
     );
     Ok(())
   }
@@ -517,7 +516,7 @@ impl JsCompilation {
   ) -> napi::Result<PathWithInfo> {
     let compilation = self.as_ref()?;
 
-    let mut asset_info = AssetInfo::default();
+    let mut asset_info = rspack_core::AssetInfo::default();
     let path =
       compilation.get_path_with_info(&filename.into(), data.to_path_data(), &mut asset_info)?;
     Ok((path, asset_info).into())

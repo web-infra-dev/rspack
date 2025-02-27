@@ -1,6 +1,6 @@
 use napi_derive::napi;
 
-use super::JsAssetInfo;
+use super::AssetInfo;
 
 #[napi(object)]
 pub struct JsPathData {
@@ -59,7 +59,7 @@ impl JsPathData {
 #[napi(object)]
 pub struct PathWithInfo {
   pub path: String,
-  pub info: JsAssetInfo,
+  pub info: AssetInfo,
 }
 
 impl From<(String, rspack_core::AssetInfo)> for PathWithInfo {

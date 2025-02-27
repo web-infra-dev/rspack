@@ -19,6 +19,23 @@ export class BasicRunnerFactory<T extends ECompilerType>
 		protected context: ITestContext
 	) {}
 
+	protected createStatsGetter() {
+		const compiler = this.context.getCompiler<T>(this.name);
+		const statsGetter = (() => {
+			let cached: TCompilerStatsCompilation<T> | null = null;
+			return () => {
+				if (cached) {
+					return cached;
+				}
+				cached = compiler.getStats()!.toJson({
+					errorDetails: true
+				});
+				return cached;
+			};
+		})();
+		return statsGetter;
+	}
+
 	create(
 		file: string,
 		compilerOptions: TCompilerOptions<T>,
@@ -29,11 +46,12 @@ export class BasicRunnerFactory<T extends ECompilerType>
 		if (exists) {
 			return exists;
 		}
-		const compiler = this.context.getCompiler<T>(this.name);
-		const stats = compiler.getStats()!.toJson({
-			errorDetails: true
-		});
-		const runner = this.createRunner(file, stats, compilerOptions, env);
+		const runner = this.createRunner(
+			file,
+			this.createStatsGetter(),
+			compilerOptions,
+			env
+		);
 		this.context.setRunner(key, runner);
 		return runner;
 	}
@@ -44,7 +62,7 @@ export class BasicRunnerFactory<T extends ECompilerType>
 
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -64,6 +82,7 @@ export class BasicRunnerFactory<T extends ECompilerType>
 			return new WebRunner<T>({
 				...runnerOptions,
 				runInNewContext: true,
+				cachable: true,
 				dom:
 					this.context.getValue(this.name, "documentType") || EDocumentType.Fake
 			});

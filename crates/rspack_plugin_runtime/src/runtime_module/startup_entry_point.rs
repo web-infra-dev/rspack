@@ -26,12 +26,20 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     self.id
   }
 
-  fn generate(&self, _compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    let source = if self.async_chunk_loading {
-      include_str!("runtime/startup_entrypoint_with_async.js")
-    } else {
-      include_str!("runtime/startup_entrypoint.js")
-    };
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      if self.async_chunk_loading {
+        include_str!("runtime/startup_entrypoint_with_async.ejs").to_string()
+      } else {
+        include_str!("runtime/startup_entrypoint.ejs").to_string()
+      },
+    )]
+  }
+
+  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+    let source = compilation.runtime_template.render(&self.id, None)?;
+
     Ok(RawStringSource::from(source).boxed())
   }
 }

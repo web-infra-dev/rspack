@@ -154,7 +154,6 @@ export class JSDOMWebRunner<
 				}
 			};
 		};
-		moduleScope.STATS = moduleScope.__STATS__;
 		return moduleScope;
 	}
 

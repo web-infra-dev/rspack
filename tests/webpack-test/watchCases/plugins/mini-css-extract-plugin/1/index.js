@@ -59,7 +59,7 @@ it("should generate correct css", () => {
 if (WATCH_STEP !== "1") {
 	it("should not emit javascript again", () => {
 		expect(
-			STATS_JSON.assets.filter(a => a.name.endsWith(".js"))
+			__STATS__.assets.filter(a => a.name.endsWith(".js"))
 		).not.toContainEqual(
 			expect.objectContaining({
 				cached: false

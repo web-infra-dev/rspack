@@ -27,6 +27,14 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_chunk_update_filename.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     if let Some(chunk_ukey) = self.chunk {
       let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
@@ -49,17 +57,15 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
             .runtime(chunk.runtime().as_str()),
         )
         .always_ok();
-      Ok(
-        RawStringSource::from(format!(
-          "{} = function (chunkId) {{
-            return '{}';
-         }};
-        ",
-          RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME,
-          filename
-        ))
-        .boxed(),
-      )
+
+      let source = compilation.runtime_template.render(
+        &self.id,
+        Some(serde_json::json!({
+          "_filename": format!("'{}'", filename),
+        })),
+      )?;
+
+      Ok(RawStringSource::from(source).boxed())
     } else {
       unreachable!("should attach chunk for get_main_filename")
     }

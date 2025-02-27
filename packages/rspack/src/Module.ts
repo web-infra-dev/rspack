@@ -1,4 +1,5 @@
 import type {
+	AssetInfo,
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
@@ -11,7 +12,6 @@ import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
 import { Dependency } from "./Dependency";
-import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -26,7 +26,7 @@ export type ResourceDataWithData = ResourceData & {
 export type CreateData = Partial<JsCreateData>;
 export type ContextInfo = {
 	issuer: string;
-	issuerLayer?: string;
+	issuerLayer?: string | null;
 };
 export type ResolveData = {
 	contextInfo: ContextInfo;
@@ -363,11 +363,11 @@ export class Module {
 		return this.#inner.libIdent(options);
 	}
 
-	emitFile(filename: string, source: Source, assetInfo: AssetInfo) {
+	emitFile(filename: string, source: Source, assetInfo?: AssetInfo) {
 		return this.#inner.emitFile(
 			filename,
 			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo)
+			assetInfo
 		);
 	}
 }

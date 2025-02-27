@@ -63,7 +63,6 @@ impl ModuleExecutor {
     }
     make_artifact.built_modules = Default::default();
     make_artifact.revoked_modules = Default::default();
-    make_artifact.has_module_graph_change = false;
 
     // Modules imported by `importModule` are passively loaded.
     let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);

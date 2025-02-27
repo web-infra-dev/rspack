@@ -1,0 +1,13 @@
+<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
+	return new Promise(<%- basicFunction("resolve, reject") %> {
+		var filename = require('path').join(__dirname, "<%- _output_dir %>" + <%- GET_UPDATE_MANIFEST_FILENAME %>());
+		require('fs').readFile(filename, 'utf-8', <%- basicFunction("err, content") %> {
+			if (err) {
+				if (err.code === "ENOENT") return resolve();
+				return reject(err);
+			}
+			try { resolve(JSON.parse(content)); }
+			catch (e) { reject(e); }
+		});
+	});
+}

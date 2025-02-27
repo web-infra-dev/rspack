@@ -42,9 +42,7 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
     compilation.chunk_graph.add_module(module_identifier)
   }
 
-  if enable_incremental {
-    compilation.code_splitting_cache.code_splitter = splitter;
-  }
+  compilation.code_splitting_cache.code_splitter = splitter;
 
   Ok(())
 }

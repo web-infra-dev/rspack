@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use rspack_cacheable::with::Unsupported;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -25,6 +26,7 @@ use crate::{utils::json_stringify, ConsumeOptions};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
+  #[cacheable(with=Unsupported)]
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   identifier: ModuleIdentifier,

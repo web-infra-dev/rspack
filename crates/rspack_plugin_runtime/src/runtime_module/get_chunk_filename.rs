@@ -78,6 +78,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/get_chunk_filename.ejs").to_string(),
+    )]
+  }
+
   fn dependent_hash(&self) -> bool {
     true
   }
@@ -344,25 +351,17 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         }
       }
     }
-    Ok(
-      RawStringSource::from(format!(
-        "// This function allow to reference chunks
-        {} = function (chunkId) {{
-          // return url for filenames not based on template
-          {}
-          // return url for filenames based on template
-          return {};
-        }};
-      ",
-        self.global,
-        static_urls
-          .iter()
-          .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
-          .join("\n"),
-        dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
-      ))
-      .boxed(),
-    )
+
+    let source = compilation.runtime_template.render(&self.id, Some(serde_json::json!({
+      "_global": self.global,
+      "_static_urls": static_urls
+                        .iter()
+                        .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
+                        .join("\n"),
+      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+    })))?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {

@@ -1,7 +1,7 @@
 mod compilation;
-mod hmr;
 pub mod make;
 mod module_executor;
+mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
@@ -17,8 +17,8 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 pub use self::compilation::*;
-pub use self::hmr::{collect_changed_modules, CompilationRecords};
 pub use self::module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor};
+pub use self::rebuild::CompilationRecords;
 use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
@@ -170,6 +170,7 @@ impl Compiler {
         input_filesystem.clone(),
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
+        false,
       ),
       output_filesystem,
       intermediate_filesystem,
@@ -218,6 +219,7 @@ impl Compiler {
         self.input_filesystem.clone(),
         self.intermediate_filesystem.clone(),
         self.output_filesystem.clone(),
+        false,
       ),
     );
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {

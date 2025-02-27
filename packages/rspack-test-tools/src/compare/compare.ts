@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import { diffLinesRaw, diffStringsUnified } from "jest-diff";
 
+import path from "node:path";
 import { parseModules } from "../helper";
 import {
 	ECompareResultType,
@@ -12,6 +13,12 @@ import {
 import { type IFormatCodeOptions, formatCode } from "./format-code";
 import { replaceRuntimeModuleName } from "./replace-runtime-module-name";
 
+declare global {
+	var updateSnapshot: boolean;
+}
+
+const WORKSPACE = path.resolve(__dirname, "../../../..");
+
 export interface ICompareOptions {
 	modules?: TCompareModules;
 	runtimeModules?: TCompareModules;
@@ -19,6 +26,7 @@ export interface ICompareOptions {
 	renameModule?: (name: string) => string;
 	bootstrap?: boolean;
 	detail?: boolean;
+	snapshot?: string;
 }
 
 export function compareFile(
@@ -35,7 +43,9 @@ export function compareFile(
 		modules: {}
 	};
 	const sourceExists = fs.existsSync(sourceFile);
-	const distExists = fs.existsSync(distFile);
+	const distExists = compareOptions.snapshot
+		? fs.existsSync(compareOptions.snapshot)
+		: fs.existsSync(distFile);
 	if (!sourceExists && !distExists) {
 		result.type = ECompareResultType.Missing;
 		return result;
@@ -49,34 +59,66 @@ export function compareFile(
 		return result;
 	}
 
+	function formatModules(modules: Record<string, string>) {
+		const res: Record<string, string> = {};
+		for (const [name, content] of Object.entries(modules)) {
+			const renamed = name.replaceAll(path.win32.sep, path.posix.sep);
+			if (!renamed.includes("node_modules/css-loader/dist")) {
+				res[renamed] = formatCode(renamed, content, compareOptions.format);
+			}
+		}
+		return res;
+	}
+
 	const sourceContent = replaceRuntimeModuleName(
-		fs.readFileSync(sourceFile, "utf-8")
+		fs.readFileSync(sourceFile, "utf-8").replaceAll(WORKSPACE, "__WORKSPACE__")
 	);
-	const distContent = replaceRuntimeModuleName(
-		fs.readFileSync(distFile, "utf-8")
-	);
-
-	// const compareContentResult = compareContent(sourceContent, distContent);
-	// result.detail = compareContentResult.detail;
-	// result.lines = compareContentResult.lines;
-	result.type = ECompareResultType.Different;
-
 	const sourceModules = parseModules(sourceContent, {
 		bootstrap: compareOptions.bootstrap,
 		renameModule: compareOptions.renameModule
 	});
-	const distModules = parseModules(distContent, {
-		bootstrap: compareOptions.bootstrap,
-		renameModule: compareOptions.renameModule
-	});
+	sourceModules.modules = formatModules(sourceModules.modules);
+	sourceModules.runtimeModules = formatModules(sourceModules.runtimeModules);
+
+	let distModules = {
+		modules: {},
+		runtimeModules: {}
+	};
+	if (
+		!global.updateSnapshot &&
+		compareOptions.snapshot &&
+		fs.existsSync(compareOptions.snapshot)
+	) {
+		distModules = JSON.parse(fs.readFileSync(compareOptions.snapshot, "utf-8"));
+	} else {
+		const distContent = replaceRuntimeModuleName(
+			fs.readFileSync(distFile, "utf-8").replaceAll(WORKSPACE, "__WORKSPACE__")
+		);
+		distModules = parseModules(distContent, {
+			bootstrap: compareOptions.bootstrap,
+			renameModule: compareOptions.renameModule
+		});
+		distModules.modules = formatModules(distModules.modules);
+		distModules.runtimeModules = formatModules(distModules.runtimeModules);
+
+		if (compareOptions.snapshot) {
+			fs.ensureDirSync(path.dirname(compareOptions.snapshot));
+			fs.writeFileSync(
+				compareOptions.snapshot,
+				JSON.stringify(distModules, null, 2)
+			);
+		}
+	}
+
+	result.type = ECompareResultType.Different;
 
 	for (const type of ["modules", "runtimeModules"]) {
 		const t = type as "modules" | "runtimeModules";
 		let moduleList: string[] = [];
 		if (compareOptions[t] === true) {
 			moduleList = [
-				...sourceModules[t].keys(),
-				...distModules[t].keys()
+				...Object.keys(sourceModules[t]),
+				...Object.keys(distModules[t])
 			].filter((i, idx, arr) => arr.indexOf(i) === idx);
 		} else if (Array.isArray(compareOptions[t])) {
 			moduleList = compareOptions[t] as string[];
@@ -95,19 +137,18 @@ export function compareFile(
 
 export function compareModules(
 	modules: string[],
-	sourceModules: Map<string, string>,
-	distModules: Map<string, string>,
+	sourceModules: Record<string, string>,
+	distModules: Record<string, string>,
 	compareOptions: ICompareOptions
 ) {
 	const compareResults: TModuleCompareResult[] = [];
 	for (const name of modules) {
-		const renamed = replaceRuntimeModuleName(name);
-		const sourceContent =
-			sourceModules.has(renamed) &&
-			formatCode(name, sourceModules.get(renamed)!, compareOptions.format);
-		const distContent =
-			distModules.has(renamed) &&
-			formatCode(name, distModules.get(renamed)!, compareOptions.format);
+		const renamed = replaceRuntimeModuleName(name).replaceAll(
+			path.win32.sep,
+			path.posix.sep
+		);
+		const sourceContent = sourceModules[renamed];
+		const distContent = distModules[renamed];
 
 		compareResults.push({
 			...compareContent(sourceContent, distContent, compareOptions),

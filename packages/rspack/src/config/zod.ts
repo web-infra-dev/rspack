@@ -1,5 +1,5 @@
 import nodePath from "node:path";
-import type { JsAssetInfo, RawFuncUseCtx } from "@rspack/binding";
+import type { AssetInfo, RawFuncUseCtx } from "@rspack/binding";
 import { type SyncParseReturnType, ZodIssueCode, z } from "zod";
 import { Chunk } from "../Chunk";
 import { ChunkGraph } from "../ChunkGraph";
@@ -14,7 +14,7 @@ const filenameTemplate = z.string() satisfies z.ZodType<t.FilenameTemplate>;
 const filename = filenameTemplate.or(
 	z
 		.function()
-		.args(z.custom<PathData>(), z.custom<JsAssetInfo>().optional())
+		.args(z.custom<PathData>(), z.custom<AssetInfo>().optional())
 		.returns(z.string())
 ) satisfies z.ZodType<t.Filename>;
 

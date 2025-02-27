@@ -71,6 +71,10 @@ async fn compilation(
     DependencyType::AmdRequireItem,
     params.normal_module_factory.clone(),
   );
+  compilation.set_dependency_factory(
+    DependencyType::AmdRequireContext,
+    params.context_module_factory.clone(),
+  );
   // RequireContextPlugin
   compilation.set_dependency_factory(
     DependencyType::RequireContext,

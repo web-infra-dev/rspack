@@ -497,7 +497,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset 4e754f8c75cc8afc.js xx KiB [emitted] [immutable] (name: main)
+"asset db899090d3fd46fc.js xx KiB [emitted] [immutable] (name: main)
 asset 7342054f673663df.js xx bytes [emitted] [immutable]"
 `;
 
@@ -1938,7 +1938,7 @@ all-chunks:
   all-chunks (Rspack x.x.x) compiled successfully
 
 manual:
-  Entrypoint main xx KiB = manual/main.js
+  Entrypoint main 9 KiB = manual/main.js
   Entrypoint a xx KiB = manual/vendors.js xx bytes manual/a.js xx KiB
   Entrypoint b xx KiB = manual/vendors.js xx bytes manual/b.js xx KiB
   Entrypoint c xx KiB = manual/vendors.js xx bytes manual/c.js xx KiB
