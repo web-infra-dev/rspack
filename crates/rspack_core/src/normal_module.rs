@@ -447,6 +447,15 @@ impl Module for NormalModule {
           .with_stack(stack)
           .with_hide_stack(captured_error.hide_stack)
         } else {
+          self.build_info.cacheable = false;
+          if let Some(file_path) = &self.resource_data.resource_path {
+            if file_path.is_absolute() {
+              self
+                .build_info
+                .file_dependencies
+                .insert(file_path.clone().into_std_path_buf().into());
+            }
+          }
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);

@@ -7,7 +7,7 @@ use rspack_core::{ChunkGroupOptions, DynamicImportFetchPriority};
 use rspack_core::{ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt};
 use rspack_error::miette::Severity;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{CallExpr, Callee};
+use swc_core::ecma::ast::CallExpr;
 use swc_core::ecma::atoms::Atom;
 
 use super::JavascriptParserPlugin;
@@ -23,9 +23,6 @@ pub struct ImportParserPlugin;
 
 impl JavascriptParserPlugin for ImportParserPlugin {
   fn import_call(&self, parser: &mut JavascriptParser, node: &CallExpr) -> Option<bool> {
-    let Callee::Import(import_call) = &node.callee else {
-      unreachable!()
-    };
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
@@ -156,7 +153,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         fragment,
         replaces,
         critical,
-      } = create_context_dependency(&param, &dyn_imported.expr, parser);
+      } = create_context_dependency(&param, parser);
+      parser.walk_expression(&dyn_imported.expr);
+
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
       let mut dep = ImportContextDependency::new(
         ContextOptions {
@@ -186,7 +185,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           attributes,
         },
         node.span().into(),
-        import_call.span.into(),
+        dyn_imported.span().into(),
         parser.in_try,
       );
       *dep.critical_mut() = critical;

@@ -3,7 +3,8 @@ use std::{borrow::Cow, iter};
 use either::Either;
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, Dependency, DependencyRange,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, ContextDependency, ContextMode,
+  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
   RuntimeGlobals, SharedSourceMap, SpanExt,
 };
 use rspack_error::miette::Severity;
@@ -20,10 +21,13 @@ use crate::{
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
     unsupported_dependency::UnsupportedDependency,
+    AMDRequireContextDependency,
   },
   parser_plugin::require_ensure_dependencies_block_parse_plugin::GetFunctionExpression,
   utils::eval::BasicEvaluatedExpression,
-  visitors::{create_traceable_error, JavascriptParser, Statement},
+  visitors::{
+    context_reg_exp, create_context_dependency, create_traceable_error, JavascriptParser, Statement,
+  },
   JavascriptParserPlugin,
 };
 
@@ -63,7 +67,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for item in param.items().iter() {
         let result = self.process_item(parser, block_deps, call_expr, item);
         if result.is_none() {
-          self.process_context(parser, call_expr, item);
+          self.process_context(parser, block_deps, call_expr, item);
         }
       }
       return Some(true);
@@ -110,7 +114,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       for option in options.iter() {
         let result = self.process_item(parser, block_deps, call_expr, option);
         if result.is_none() {
-          self.process_context(parser, call_expr, param);
+          self.process_context(parser, block_deps, call_expr, param);
         }
       }
 
@@ -171,12 +175,37 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
   fn process_context(
     &self,
-    _parser: &mut JavascriptParser,
-    _call_expr: &CallExpr,
-    _param: &BasicEvaluatedExpression,
+    parser: &mut JavascriptParser,
+    block_deps: &mut Vec<BoxDependency>,
+    call_expr: &CallExpr,
+    param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    // TODO: support amd context dep
-    None
+    let call_span = call_expr.span();
+    let param_range = (param.range().0, param.range().1 - 1);
+
+    let result = create_context_dependency(param, parser);
+
+    let options = ContextOptions {
+      mode: ContextMode::Sync,
+      recursive: true,
+      reg_exp: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser),
+      include: None,
+      exclude: None,
+      category: DependencyCategory::Amd,
+      request: format!("{}{}{}", result.context, result.query, result.fragment),
+      context: result.context,
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: result.replaces,
+      start: call_span.real_lo(),
+      end: call_span.real_hi(),
+      referenced_exports: None,
+      attributes: None,
+    };
+    let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
+    *dep.critical_mut() = result.critical;
+    block_deps.push(Box::new(dep));
+    Some(true)
   }
 
   fn process_array_for_request_string(&self, param: &BasicEvaluatedExpression) -> Option<String> {
@@ -314,7 +343,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
 
       let mut result = None;
       parser.in_function_scope(true, iter::empty(), |parser| {
-        result = self.process_array(parser, &mut block_deps, call_expr, &param)
+        result = self.process_array(parser, &mut block_deps, call_expr, &param);
       });
 
       if !result.is_some_and(|x| x) {

@@ -4,14 +4,17 @@ import { run } from "../../utils/test-utils";
 
 describe("rspack cli", () => {
 	describe("should config not found", () => {
-		it("should throw an error when config file does not found", async () => {
-			const { stderr } = await run(__dirname, ["-c", "not-found-config.js"]);
-			expect(stderr).toMatch(/not found/);
-		});
+		it.concurrent(
+			"should throw an error when config file does not found",
+			async () => {
+				const { stderr } = await run(__dirname, ["-c", "not-found-config.js"]);
+				expect(stderr).toMatch(/not found/);
+			}
+		);
 	});
 	describe("should respect cjs in esm folder", () => {
 		const cwd = resolve(__dirname, "./cjs_in_esm");
-		it("should load config.cjs file", async () => {
+		it.concurrent("should load config.cjs file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.cjs"
@@ -24,7 +27,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main cjs file/);
 		});
 
-		it("should load config.cts file", async () => {
+		it.concurrent("should load config.cts file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.cts"
@@ -40,7 +43,7 @@ describe("rspack cli", () => {
 	describe("should load cjs config", () => {
 		const cwd = resolve(__dirname, "./cjs");
 
-		it("should load default config.js file", async () => {
+		it.concurrent("should load default config.js file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
@@ -50,7 +53,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main cjs file/);
 		});
 
-		it("should load config.ts file", async () => {
+		it.concurrent("should load config.ts file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.ts"
@@ -62,7 +65,7 @@ describe("rspack cli", () => {
 				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
 			).resolves.toMatch(/Main cjs file/);
 		});
-		it("should load config.export.ts file", async () => {
+		it.concurrent("should load config.export.ts file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.export.ts"
@@ -75,7 +78,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main cjs file/);
 		});
 
-		it("should load config.cjs file", async () => {
+		it.concurrent("should load config.cjs file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.cjs"
@@ -88,7 +91,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main cjs file/);
 		});
 
-		it("should load config.cts file", async () => {
+		it.concurrent("should load config.cts file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.cts"
@@ -105,7 +108,7 @@ describe("rspack cli", () => {
 	describe("should load esm config", () => {
 		const cwd = resolve(__dirname, "./esm");
 
-		it("should load default config.js file", async () => {
+		it.concurrent("should load default config.js file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
@@ -115,7 +118,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main esm file/);
 		});
 
-		it("should load config.ts file", async () => {
+		it.concurrent("should load config.ts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -126,7 +129,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main esm file/);
 		});
 
-		it("should load config.mjs file", async () => {
+		it.concurrent("should load config.mjs file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
 				"-c",
 				"rspack.config.mjs"
@@ -139,7 +142,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main esm file/);
 		});
 
-		it("should load config.mts file", async () => {
+		it.concurrent("should load config.mts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.mts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -155,7 +158,7 @@ describe("rspack cli", () => {
 	describe("should load config with defineConfig helper", () => {
 		const cwd = resolve(__dirname, "./esm");
 
-		it("should load config.ts file", async () => {
+		it.concurrent("should load config.ts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -166,7 +169,7 @@ describe("rspack cli", () => {
 			).resolves.toMatch(/Main esm file/);
 		});
 
-		it("should load config.mts file", async () => {
+		it.concurrent("should load config.mts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.mts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -181,7 +184,7 @@ describe("rspack cli", () => {
 
 	describe("should load monorepo config", () => {
 		const cwd = resolve(__dirname, "./monorepo");
-		it("should load monorepo config.ts file", async () => {
+		it.concurrent("should load monorepo config.ts file", async () => {
 			const { exitCode, stdout } = await run(cwd, ["-c", "rspack.config.ts"], {
 				nodeOptions: ["--experimental-loader=ts-node/esm"]
 			});
@@ -198,7 +201,7 @@ describe("rspack cli", () => {
 
 	// describe("loose-unrecognized-keys (default)", () => {
 	// 	const cwd = resolve(__dirname, "./loose-unrecognized-keys");
-	// 	it("should report unrecognized keys", async () => {
+	// 	it.concurrent("should report unrecognized keys", async () => {
 	// 		const { stderr, exitCode } = await run(cwd, []);
 	// 		expect(stderr).toMatchInlineSnapshot(`
 	// 		"Configuration error:
@@ -211,7 +214,7 @@ describe("rspack cli", () => {
 
 	// describe("loose-unrecognized-keys 2 (default)", () => {
 	// 	const cwd = resolve(__dirname, "./loose-unrecognized-keys-other-error");
-	// 	it("should fail on other error", async () => {
+	// 	it.concurrent("should fail on other error", async () => {
 	// 		const { stderr, exitCode } = await run(cwd, []);
 	// 		expect(stderr).toMatch("ValidationError");
 	// 		expect(stderr).toMatch(
