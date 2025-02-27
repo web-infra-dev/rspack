@@ -22,25 +22,28 @@ impl RuntimeModule for CreateScriptRuntimeModule {
     self.id
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/create_script.ejs").to_string(),
+    )]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
-    Ok(
-      RawStringSource::from(format!(
-        r#"
-    {} = function(script){{
-      return {};
-    }};
-    "#,
-        RuntimeGlobals::CREATE_SCRIPT,
-        if compilation.options.output.trusted_types.is_some() {
+    let source = compilation.runtime_template.render(
+      &self.id,
+      Some(serde_json::json!({
+        "_return": if compilation.options.output.trusted_types.is_some() {
           format!(
             "{}().createScript(script)",
             RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
           )
         } else {
           "script".to_string()
-        }
-      ))
-      .boxed(),
-    )
+        },
+      })),
+    )?;
+
+    Ok(RawStringSource::from(source).boxed())
   }
 }

@@ -48,9 +48,6 @@ export class CommonJsRunner<
 			},
 			...this._options.env
 		};
-		if (this._options.stats) {
-			baseModuleScope.__STATS__ = this._options.stats;
-		}
 		return baseModuleScope;
 	}
 
@@ -120,15 +117,16 @@ export class CommonJsRunner<
 			);
 
 			if (this._options.testConfig.moduleScope) {
-				this._options.testConfig.moduleScope(
-					currentModuleScope,
-					this._options.stats
-				);
+				this._options.testConfig.moduleScope(currentModuleScope);
 			}
 
 			if (!this._options.runInNewContext) {
 				file.content = `Object.assign(global, _globalAssign);\n ${file.content}`;
 			}
+			if (file.content.includes("__STATS__") && this._options.stats) {
+				currentModuleScope.__STATS__ = this._options.stats();
+			}
+
 			const args = Object.keys(currentModuleScope);
 			const argValues = args.map(arg => currentModuleScope[arg]);
 			const code = `(function(${args.join(", ")}) {

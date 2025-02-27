@@ -125,8 +125,25 @@ export class WatchProcessor<
 					return cached;
 				};
 			})();
+			const getStringStats = (() => {
+				let cached: string | null = null;
+				return () => {
+					if (!cached) {
+						cached = stats.toString({
+							logging: "verbose"
+						});
+					}
+					return cached;
+				};
+			})();
 			if (checkStats.length > 1) {
-				if (!checkStats(this._watchOptions.stepName, getJsonStats())) {
+				if (
+					!checkStats(
+						this._watchOptions.stepName,
+						getJsonStats(),
+						getStringStats()
+					)
+				) {
 					throw new Error("stats check failed");
 				}
 			} else {

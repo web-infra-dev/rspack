@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -9,7 +9,7 @@
     "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
-    "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples --ignore-package plugin-test",
+    "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
     "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
@@ -37,8 +37,7 @@
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"e2e-test\" test",
-    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && npm run test:plugin && pnpm test:webpack",
-    "test:plugin": "pnpm --filter \"plugin-test\" test",
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
     "doc-coverage": "pnpm --filter \"@rspack/core\" doc-coverage",
     "api-extractor:local": "pnpm --filter \"@rspack/*\" api-extractor --local",
@@ -52,7 +51,7 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "engines": {
-    "pnpm": "9.15.5"
+    "pnpm": "9.15.6"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -72,16 +71,16 @@
     "jest-cli": "29.7.0",
     "jest-environment-node": "29.7.0",
     "lint-staged": "^15.4.3",
-    "prettier": "3.5.1",
+    "prettier": "3.5.2",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
-    "ts-jest": "29.2.5",
+    "ts-jest": "29.2.6",
     "typescript": "^5.7.3",
     "webpack": "5.98.0",
     "webpack-cli": "5.1.4",
     "zx": "8.3.2"
   },
-  "packageManager": "pnpm@9.15.5",
+  "packageManager": "pnpm@9.15.6",
   "pnpm": {
     "patchedDependencies": {
       "graceful-fs": "patches/graceful-fs.patch",

@@ -13,12 +13,13 @@ export class NormalRunnerFactory<
 > extends BasicRunnerFactory<T> {
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
 		return new NormalRunner({
 			env,
+			cachable: true,
 			name: this.name,
 			runInNewContext: false,
 			testConfig: this.context.getTestConfig(),

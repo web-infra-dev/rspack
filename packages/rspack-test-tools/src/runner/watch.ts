@@ -18,9 +18,28 @@ export class WatchRunnerFactory<
 		);
 		return `${this.name}-${stepName}`;
 	}
+
+	protected createStatsGetter() {
+		const compiler = this.context.getCompiler<T>(this.name);
+		const stepName: string = this.context.getValue(this.name, "watchStepName")!;
+		const statsGetter = (() => {
+			const cached: Record<string, TCompilerStatsCompilation<T>> = {};
+			return () => {
+				if (cached[stepName]) {
+					return cached[stepName];
+				}
+				cached[stepName] = compiler.getStats()!.toJson({
+					errorDetails: true
+				});
+				return cached[stepName];
+			};
+		})();
+		return statsGetter;
+	}
+
 	protected createRunner(
 		file: string,
-		stats: TCompilerStatsCompilation<T>,
+		stats: () => TCompilerStatsCompilation<T>,
 		compilerOptions: TCompilerOptions<T>,
 		env: ITestEnv
 	): ITestRunner {
@@ -56,6 +75,7 @@ export class WatchRunnerFactory<
 			stepName,
 			runInNewContext: isWeb,
 			isWeb,
+			cachable: false,
 			testConfig: this.context.getTestConfig(),
 			source: this.context.getSource(),
 			dist: this.context.getDist(),

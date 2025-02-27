@@ -74,7 +74,6 @@ pnpm-lock.yaml
 
 /tests/bench
 /tests/e2e
-/tests/plugin-test
 /tests/webpack-cli-test
 /tests/webpack-examples
 /tests/webpack-test

@@ -207,7 +207,8 @@ export type TTestConfig<T extends ECompilerType> = {
 	) => IBasicModuleScope;
 	checkStats?: (
 		stepName: string,
-		stats: TCompilerStatsCompilation<T>
+		jsonStats: TCompilerStatsCompilation<T>,
+		stringStats: String
 	) => boolean;
 	findBundle?: (
 		index: number,

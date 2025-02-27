@@ -1,5 +1,5 @@
 it("should change chunkhash of main chunk", function () {
-	const mainChunk = STATS_JSON.chunks.find((chunk) => chunk.names.indexOf("main") !== -1);
+	const mainChunk = __STATS__.chunks.find((chunk) => chunk.names.indexOf("main") !== -1);
 	expect(mainChunk).toBeDefined();
 	switch (WATCH_STEP) {
 		case "0":

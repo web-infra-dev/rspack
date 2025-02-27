@@ -497,7 +497,7 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset 3190aaba72d74f79.js xx KiB [emitted] [immutable] (name: main)
+"asset d885ba2ea85160b7.js xx KiB [emitted] [immutable] (name: main)
 asset 7342054f673663df.js xx bytes [emitted] [immutable]"
 `;
 

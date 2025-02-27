@@ -68,7 +68,6 @@ jobs:
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
-          save-if: ${{ github.ref_name == 'main' }}
           run-install: ${{ inputs.full-install == 'true' }}
 
       - name: Install binding node dependencies
@@ -273,9 +272,8 @@ jobs:
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
-      # PUPPETEER_SKIP_DOWNLOAD: true
-      
+      PUPPETEER_SKIP_DOWNLOAD: true
+
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
@@ -309,7 +307,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           node-version: ${{ matrix.node }}
-
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
@@ -394,9 +392,9 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
-      
+
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
+        uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
         with:
           tool: cargo-codspeed@2.7.2
 
@@ -406,13 +404,13 @@ jobs:
         run: cargo codspeed build -p rspack_benchmark --features codspeed
 
       - name: Wait for build job
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          check-name: 'Test Linux / Build'
+          check-name: "Test Linux / Build"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
-      
+
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
@@ -432,7 +430,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Run benchmark
-        uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
+        uses: CodSpeedHQ/action@63ae6025a0ffee97d7736a37c9192dbd6ed4e75f # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci

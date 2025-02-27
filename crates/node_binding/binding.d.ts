@@ -4,11 +4,13 @@
 /* -- banner.d.ts -- */
 export type JsFilename =
 	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
+
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -104,7 +106,7 @@ export declare class JsChunkGroup {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
@@ -120,7 +122,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): JsChunkGroup[]
@@ -258,7 +260,7 @@ export declare class JsModule {
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
-  emitFile(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsModuleGraph {
@@ -459,54 +461,13 @@ export interface JsAlterAssetTagsData {
 
 export interface JsAsset {
   name: string
-  info: JsAssetInfo
+  info: AssetInfo
 }
 
 export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
   targetPath: string
-}
-
-export interface JsAssetInfo {
-  /** if the asset can be long term cached forever (contains a hash) */
-  immutable?: boolean
-  /** whether the asset is minimized */
-  minimized?: boolean
-  /** the value(s) of the full hash used for this asset */
-  fullhash: Array<string>
-  /** the value(s) of the chunk hash used for this asset */
-  chunkhash: Array<string>
-  /**
-   * the value(s) of the module hash used for this asset
-   * the value(s) of the content hash used for this asset
-   */
-  contenthash: Array<string>
-  sourceFilename?: string
-  /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
-  copied?: boolean
-  /**
-   * size in bytes, only set after asset has been emitted
-   * when asset is only used for development and doesn't count towards user-facing assets
-   */
-  development?: boolean
-  /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement?: boolean
-  /** when asset is javascript and an ESM */
-  javascriptModule?: boolean
-  /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related: JsAssetInfoRelated
-  /** unused css local ident for the css chunk */
-  cssUnusedIdents?: Array<string>
-  /**
-   * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
-   * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
-   * in the rust struct and have the Js side to reshape and align with webpack
-   * Related: packages/rspack/src/Compilation.ts
-   */
-  extras: Record<string, any>
-  /** whether this asset is over the size limit */
-  isOverSizeLimit?: boolean
 }
 
 export interface JsAssetInfoRelated {
@@ -1312,6 +1273,41 @@ export interface JsTap {
   stage: number
 }
 
+export interface KnownAssetInfo {
+  /** if the asset can be long term cached forever (contains a hash) */
+  immutable?: boolean
+  /** whether the asset is minimized */
+  minimized?: boolean
+  /** the value(s) of the full hash used for this asset */
+  fullhash?: string | Array<string>
+  /** the value(s) of the chunk hash used for this asset */
+  chunkhash?: string | Array<string>
+  /**
+   * the value(s) of the module hash used for this asset
+   * the value(s) of the content hash used for this asset
+   */
+  contenthash?: string | Array<string>
+  /** when asset was created from a source file (potentially transformed), the original filename relative to compilation context */
+  sourceFilename?: string
+  /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
+  copied?: boolean
+  /**
+   * size in bytes, only set after asset has been emitted
+   * when asset is only used for development and doesn't count towards user-facing assets
+   */
+  development?: boolean
+  /** when asset ships data for updating an existing application (HMR) */
+  hotModuleReplacement?: boolean
+  /** when asset is javascript and an ESM */
+  javascriptModule?: boolean
+  /** related object to other assets, keyed by type of relation (only points from parent to child) */
+  related?: JsAssetInfoRelated
+  /** unused css local ident for the css chunk */
+  cssUnusedIdents?: Array<string>
+  /** whether this asset is over the size limit */
+  isOverSizeLimit?: boolean
+}
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1325,7 +1321,7 @@ export interface NodeFsStats {
 
 export interface PathWithInfo {
   path: string
-  info: JsAssetInfo
+  info: AssetInfo
 }
 
 export interface RawAliasOptionItem {

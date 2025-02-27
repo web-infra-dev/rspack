@@ -910,46 +910,25 @@ impl Compilation {
     let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
     for module in modules {
-      let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
-      if runtimes.is_empty() {
-        continue;
-      }
-      if runtimes.len() == 1 {
-        let runtime = runtimes
-          .into_values()
-          .next()
-          .expect("should have first value");
-        let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-          .expect("should have cgm.hash in code generation")
-          .clone();
-        jobs.push(CodeGenerationJob {
-          module,
-          hash,
-          runtime: runtime.clone(),
-          runtimes: vec![runtime],
-        })
-      } else {
-        let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-        for runtime in runtimes.into_values() {
-          let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-            .expect("should have cgm.hash in code generation")
-            .clone();
-          if let Some(job) = map.get_mut(&hash) {
-            job.runtimes.push(runtime);
-          } else {
-            map.insert(
-              hash.clone(),
-              CodeGenerationJob {
-                module,
-                hash,
-                runtime: runtime.clone(),
-                runtimes: vec![runtime],
-              },
-            );
-          }
+      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
+        let hash = ChunkGraph::get_module_hash(self, module, runtime)
+          .expect("should have cgm.hash in code generation");
+        if let Some(job) = map.get_mut(hash) {
+          job.runtimes.push(runtime.clone());
+        } else {
+          map.insert(
+            hash.clone(),
+            CodeGenerationJob {
+              module,
+              hash: hash.clone(),
+              runtime: runtime.clone(),
+              runtimes: vec![runtime.clone()],
+            },
+          );
         }
-        jobs.extend(map.into_values());
       }
+      jobs.extend(map.into_values());
     }
     let results = jobs
       .into_par_iter()
@@ -1367,11 +1346,13 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
+      let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
         build_chunk_graph_new(compilation)?;
       } else {
         build_chunk_graph(compilation)?;
       }
+      logger.time_end(start);
       Ok(compilation)
     })
     .await?;
@@ -2296,11 +2277,6 @@ impl Compilation {
       .clone()
   }
 
-  // TODO remove it after code splitting support incremental rebuild
-  pub fn has_module_import_export_change(&self) -> bool {
-    self.make_artifact.has_module_graph_change
-  }
-
   pub fn built_modules(&self) -> &IdentifierSet {
     &self.make_artifact.built_modules
   }
@@ -2386,14 +2362,14 @@ pub struct AssetInfo {
   pub version: String,
   /// unused local idents of the chunk
   pub css_unused_idents: Option<HashSet<String>>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
+
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
-  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
-  /// in the rust struct and have the Js side to reshape and align with webpack.
+  /// This is a hack to store the additional fields in the rust struct.
   /// Related: packages/rspack/src/Compilation.ts
   #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
-  /// whether this asset is over the size limit
-  pub is_over_size_limit: Option<bool>,
 }
 
 impl AssetInfo {

@@ -118,26 +118,6 @@ The Watching object provides the following methods:
   </CollapsePanel>
 </Collapse>
 
-### compile
-
-Create a compilation and run it, which is the basic method that `compiler.run` and `compiler.watch` depend on.
-
-```ts
-compile(
-  callback: (compilation: Compilation) => void // callback after this compilation
-): void
-```
-
-<Collapse>
-  <CollapsePanel
-    className="collapse-code-panel"
-    header="Compilation.ts"
-    key="Compilation"
-  >
-    <CompilationType />
-  </CollapsePanel>
-</Collapse>
-
 ### close
 
 Close the current compiler, and handle low-priority tasks such as caching during this period.
