@@ -1,4 +1,4 @@
-name: Release Full
+name: Release Full(OTP)
 
 on:
   workflow_dispatch:
@@ -44,7 +44,7 @@ jobs:
       force-use-github-runner: true
 
   build:
-    needs: [get-runner-labels]
+    needs: [ get-runner-labels ]
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -76,6 +76,7 @@ jobs:
 
   release:
     name: Release
+    environment: npm
     permissions:
       contents: write
       # To publish packages with provenance
@@ -110,11 +111,38 @@ jobs:
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Obtain OIDC token
+        id: oidc
+        run: |
+          token=$(curl --fail -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=cfa.rspack.dev" | jq -r '.value')
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Obtain GitHub credentials
+        id: github_creds
+        run: |
+          token=$(curl --fail "https://cfa.rspack.dev/api/request/${{ secrets.CFA_PROJECT_ID }}/github/credentials" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: bearer ${{ secrets.CFA_SECRET }}" \
+            --data "{\"token\":\"${{ steps.oidc.outputs.token }}\"}" | jq -r '.GITHUB_TOKEN')
+          echo "::add-mask::${token}"
+          echo "token=${token}" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Release Full
         run: |
-          ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+          ./x publish stable --otp --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.OTP_NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+          # CFA required environment variables
+          CFA_HOST: https://cfa.rspack.dev
+          GITHUB_TOKEN: ${{ steps.github_creds.outputs.token }}
+          GITHUB_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          CFA_PROJECT_ID: ${{ secrets.CFA_PROJECT_ID }}
+          CFA_SECRET: ${{ secrets.CFA_SECRET }}
