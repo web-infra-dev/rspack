@@ -273,7 +273,7 @@ jobs:
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
       PUPPETEER_SKIP_DOWNLOAD: true
-      
+
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
@@ -392,7 +392,7 @@ jobs:
         with:
           save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
           shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
-      
+
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
         with:
@@ -407,10 +407,10 @@ jobs:
         uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          check-name: 'Test Linux / Build'
+          check-name: "Test Linux / Build"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 10
-      
+
       - name: Download bindings
         uses: ./.github/actions/download-artifact
         with:
