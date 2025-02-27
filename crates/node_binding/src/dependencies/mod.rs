@@ -12,6 +12,15 @@ use rspack_napi::napi::check_status;
 
 use crate::Dependency;
 
+// DependencyObject is used to uniformly handle Dependency and EntryDependency.
+// The reason for not using Either<&Dependency, &EntryDependency> is that
+// the performance of Either<&Dependency, &EntryDependency> is suboptimal.
+//
+// The current implementation is not perfect and has potential UB (undefined behavior) risks.
+// If the passed object is neither Dependency nor EntryDependency, reading type_id may cause UB.
+// The current implementation on the N-API side is similar and also has this potential risk.
+//
+// I have opened an issue to find a better solution: https://github.com/napi-rs/napi-rs/issues/2484
 pub struct DependencyObject(Option<DependencyId>);
 
 impl DependencyObject {
