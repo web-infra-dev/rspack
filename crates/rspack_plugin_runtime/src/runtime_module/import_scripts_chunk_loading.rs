@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -57,11 +56,44 @@ impl ImportScriptsChunkLoadingRuntimeModule {
     };
     Ok(RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed())
   }
+
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.id.as_str();
+
+    match id {
+      TemplateId::Raw => base_id.to_string(),
+      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
+      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+    }
+  }
+}
+
+enum TemplateId {
+  Raw,
+  WithHmr,
+  WithHmrManifest,
 }
 
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::Raw),
+        include_str!("runtime/import_scripts_chunk_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmr),
+        include_str!("runtime/import_scripts_chunk_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmrManifest),
+        include_str!("runtime/import_scripts_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+    ]
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -143,13 +175,16 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         )
       };
 
+      let render_source = compilation.runtime_template.render(
+        &self.template_id(TemplateId::Raw),
+        Some(serde_json::json!({
+          "_body": body,
+          "_chunk_loading_global_expr": chunk_loading_global_expr,
+        })),
+      )?;
+
       // If chunkId not corresponding chunkName will skip load it.
-      source.add(RawStringSource::from(
-        include_str!("runtime/import_scripts_chunk_loading.js")
-          .cow_replace("$BODY$", body.as_str())
-          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-          .into_owned(),
-      ));
+      source.add(RawStringSource::from(render_source));
     }
 
     if with_hmr {
@@ -167,17 +202,14 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
           RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
         )
       };
-      source.add(RawStringSource::from(
-        include_str!("runtime/import_scripts_chunk_loading_with_hmr.js")
-          .cow_replace("$URL$", &url)
-          .cow_replace("$globalObject$", &compilation.options.output.global_object)
-          .cow_replace(
-            "$hotUpdateGlobal$",
-            &serde_json::to_string(&compilation.options.output.hot_update_global)
-              .expect("failed to serde_json::to_string(hot_update_global)"),
-          )
-          .into_owned(),
-      ));
+
+      let source_with_hmr = compilation.runtime_template.render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
+        "_url": &url,
+        "_global_object": &compilation.options.output.global_object.as_str(),
+        "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
+      })))?;
+
+      source.add(RawStringSource::from(source_with_hmr));
       source.add(RawStringSource::from(generate_javascript_hmr_runtime(
         "importScripts",
       )));
@@ -185,9 +217,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
 
     if with_hmr_manifest {
       // TODO: import_scripts_chunk_loading_with_hmr_manifest same as jsonp_chunk_loading_with_hmr_manifest
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/import_scripts_chunk_loading_with_hmr_manifest.js"
-      )));
+      let source_with_hmr_manifest = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+
+      source.add(RawStringSource::from(source_with_hmr_manifest));
     }
 
     Ok(source.boxed())
