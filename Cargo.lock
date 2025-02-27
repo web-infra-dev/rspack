@@ -1894,15 +1894,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fxhash"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
 name = "generator"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3264,7 +3255,6 @@ dependencies = [
  "chrono",
  "easy-error",
  "either",
- "fxhash",
  "hex",
  "indoc",
  "lazy_static",
@@ -4687,8 +4677,6 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "base64-simd 0.8.0",
- "cow-utils",
- "dashmap 6.1.0",
  "futures",
  "json",
  "lazy-regex",
@@ -4894,7 +4882,6 @@ dependencies = [
  "futures",
  "glob",
  "heck 0.5.0",
- "json",
  "napi",
  "napi-build",
  "napi-derive",
@@ -5421,28 +5408,21 @@ dependencies = [
  "derive_more 1.0.0",
  "form_urlencoded",
  "futures",
- "hashlink",
  "indexmap 2.7.0",
- "itertools 0.14.0",
  "lazy-regex",
  "querystring",
  "regex",
- "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_loader_runner",
  "rspack_paths",
  "rspack_plugin_javascript",
- "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash 2.1.0",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "sugar_path",
- "tokio",
  "tracing",
 ]
 
@@ -6120,18 +6100,6 @@ version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
 dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde_urlencoded"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
-dependencies = [
- "form_urlencoded",
- "itoa",
- "ryu",
  "serde",
 ]
 

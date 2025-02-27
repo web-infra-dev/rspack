@@ -10,8 +10,6 @@ version     = "0.2.0"
 async-recursion          = { workspace = true }
 async-trait              = { workspace = true }
 base64-simd              = { version = "0.8.0", features = ["alloc"] }
-cow-utils                = { workspace = true }
-dashmap                  = { workspace = true }
 futures                  = { workspace = true }
 json                     = { workspace = true }
 lazy-regex               = "3.4.1"

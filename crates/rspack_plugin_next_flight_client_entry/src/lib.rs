@@ -930,10 +930,10 @@ impl FlightClientEntryPlugin {
         }
         visited_entry.insert(request);
 
-        let Some(connction) = module_graph.connection_by_dependency_id(dependency_id) else {
+        let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
           continue;
         };
-        let Some(resolved_module) = module_graph.module_by_identifier(&connction.resolved_module)
+        let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
         else {
           continue;
         };

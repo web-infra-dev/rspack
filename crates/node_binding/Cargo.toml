@@ -61,8 +61,6 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio              = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 
-
-json                                   = { workspace = true }
 rspack_loader_lightningcss             = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }

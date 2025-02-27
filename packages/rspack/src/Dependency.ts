@@ -47,6 +47,7 @@ export class Dependency {
 		if (binding) {
 			return binding.request;
 		}
+		return undefined;
 	}
 
 	get critical(): boolean {

@@ -1,6 +1,6 @@
 import {
 	BuiltinPluginName,
-	RawFlightClientEntryPluginOptions
+	type RawFlightClientEntryPluginOptions
 } from "@rspack/binding";
 
 import { create } from "./base";

@@ -8,23 +8,18 @@ version     = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_cacheable      = { workspace = true }
-rspack_collections    = { workspace = true }
-rspack_core           = { workspace = true }
-rspack_error          = { workspace = true }
-rspack_hook           = { workspace = true }
-rspack_loader_runner  = { workspace = true }
-rspack_paths          = { workspace = true }
-rspack_plugin_runtime = { workspace = true }
-rspack_util           = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_error       = { workspace = true }
+rspack_hook        = { workspace = true }
+rspack_paths       = { workspace = true }
+rspack_util        = { workspace = true }
 
 async-trait              = { workspace = true }
 derive_more              = { workspace = true }
 form_urlencoded          = "1.2.1"
 futures                  = { workspace = true }
-hashlink                 = { workspace = true }
 indexmap                 = { workspace = true }
-itertools                = { workspace = true }
 lazy-regex               = "3.4.1"
 querystring              = { version = "1.1.0" }
 regex                    = { workspace = true }
@@ -32,9 +27,7 @@ rspack_plugin_javascript = { workspace = true }
 rustc-hash               = { workspace = true }
 serde                    = { workspace = true }
 serde_json               = { workspace = true }
-serde_urlencoded         = "0.7.1"
 sugar_path               = { workspace = true }
-tokio                    = { workspace = true, features = ["rt"] }
 tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]
