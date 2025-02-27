@@ -424,6 +424,7 @@ class Compiler {
 
 	/**
 	 * @param callback - signals when the call finishes
+	 * @param options - additional data like modifiedFiles, removedFiles
 	 */
 	run(
 		callback: liteTapable.Callback<Error, Stats>,
