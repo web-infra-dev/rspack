@@ -220,8 +220,6 @@ export class Module {
 	declare readonly resourceResolveData: Record<string, any> | undefined;
 	declare readonly matchResource: string | undefined;
 
-	#constructorName?: string;
-
 	static __from_binding(binding: JsModule) {
 		let module = MODULE_MAPPINGS.get(binding);
 		if (module) {
@@ -246,10 +244,7 @@ export class Module {
 			constructorName: {
 				enumerable: true,
 				get: (): string => {
-					if (this.#constructorName === undefined) {
-						this.#constructorName = module.constructorName;
-					}
-					return this.#constructorName;
+					return module.constructorName;
 				}
 			},
 			type: {
