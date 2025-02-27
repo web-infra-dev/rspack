@@ -63,7 +63,9 @@ export function compareFile(
 		const res: Record<string, string> = {};
 		for (const [name, content] of Object.entries(modules)) {
 			const renamed = name.replaceAll(path.win32.sep, path.posix.sep);
-			res[renamed] = formatCode(renamed, content, compareOptions.format);
+			if (!renamed.includes("node_modules/css-loader/dist")) {
+				res[renamed] = formatCode(renamed, content, compareOptions.format);
+			}
 		}
 		return res;
 	}
