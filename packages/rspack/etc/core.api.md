@@ -17,6 +17,7 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
+import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -43,7 +44,7 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import type { JsDependency } from '@rspack/binding';
+import { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -332,27 +333,27 @@ interface BaseModuleConfig {
 
 // @public (undocumented)
 interface BaseResolveRequest {
-     // (undocumented)
+    	// (undocumented)
     __innerRequest?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_relativePath?: string;
-     // (undocumented)
+    	// (undocumented)
     __innerRequest_request?: string;
-     // (undocumented)
+    	// (undocumented)
     context?: object;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileData?: JsonObject;
-     // (undocumented)
+    	// (undocumented)
     descriptionFilePath?: string;
-     // (undocumented)
+    	// (undocumented)
     descriptionFileRoot?: string;
-     // (undocumented)
+    	// (undocumented)
     fullySpecified?: boolean;
-     // (undocumented)
+    	// (undocumented)
     ignoreSymlinks?: boolean;
-     // (undocumented)
+    	// (undocumented)
     path: string | false;
-     // (undocumented)
+    	// (undocumented)
     relativePath?: string;
 }
 
@@ -1409,7 +1410,9 @@ class DependenciesBlock {
 }
 
 // @public (undocumented)
-class Dependency {
+export class Dependency {
+    // (undocumented)
+    static [Symbol.hasInstance](instance: any): instance is JsDependency | EntryDependency;
     // (undocumented)
     static __from_binding(binding: JsDependency): Dependency;
     // (undocumented)
@@ -1717,11 +1720,7 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
-}
+export { EntryDependency }
 
 // @public
 export type EntryDependOn = string | string[];
@@ -2309,11 +2308,11 @@ type GroupOptions = {
 
 // @public (undocumented)
 class Hash {
-     constructor();
+    	constructor();
 
-     digest(encoding?: string): string | Buffer;
+    	digest(encoding?: string): string | Buffer;
 
-     update(data: string | Buffer, inputEncoding?: string): Hash;
+    	update(data: string | Buffer, inputEncoding?: string): Hash;
 }
 
 // @public (undocumented)
@@ -2819,14 +2818,14 @@ type JsonArray = JsonValue_2[];
 
 // @public (undocumented)
 type JsonObject = { [index: string]: JsonValue } & {
-     [index: string]:
-      | undefined
-      | null
-      | string
-      | number
-      | boolean
-      | JsonObject
-      | JsonValue[];
+    	[index: string]:
+    		| undefined
+    		| null
+    		| string
+    		| number
+    		| boolean
+    		| JsonObject
+    		| JsonValue[];
 };
 
 // @public (undocumented)
@@ -4566,19 +4565,19 @@ interface ParseContext {
 
 // @public (undocumented)
 interface ParsedIdentifier {
-     // (undocumented)
+    	// (undocumented)
     directory: boolean;
-     // (undocumented)
+    	// (undocumented)
     file: boolean;
-     // (undocumented)
+    	// (undocumented)
     fragment: string;
-     // (undocumented)
+    	// (undocumented)
     internal: boolean;
-     // (undocumented)
+    	// (undocumented)
     module: boolean;
-     // (undocumented)
+    	// (undocumented)
     query: string;
-     // (undocumented)
+    	// (undocumented)
     request: string;
 }
 
@@ -4849,13 +4848,13 @@ type RawCreateParams = {
 
 // @public (undocumented)
 type RawSourceMap = {
-     version: number;
-     sources: string[];
-     names: string[];
-     sourceRoot?: string;
-     sourcesContent?: string[];
-     mappings: string;
-     file: string;
+    	version: number;
+    	sources: string[];
+    	names: string[];
+    	sourceRoot?: string;
+    	sourcesContent?: string[];
+    	mappings: string;
+    	file: string;
 };
 
 // @public (undocumented)
@@ -5296,6 +5295,8 @@ declare namespace rspackExports {
         StatsModule,
         Stats,
         RuntimeModule,
+        Dependency,
+        EntryDependency,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -10285,25 +10286,25 @@ export type SnapshotOptions = {};
 
 // @public (undocumented)
 abstract class Source {
-     // (undocumented)
+    	// (undocumented)
     buffer(): Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     map(options?: MapOptions): RawSourceMap | null;
 
-     // (undocumented)
+    	// (undocumented)
     size(): number;
 
-     // (undocumented)
+    	// (undocumented)
     source(): string | Buffer;
 
-     // (undocumented)
+    	// (undocumented)
     sourceAndMap(options?: MapOptions): {
-          source: string | Buffer;
-          map: Object;
-         };
+        		source: string | Buffer;
+        		map: Object;
+        	};
 
-     // (undocumented)
+    	// (undocumented)
     updateHash(hash: Hash): void;
 }
 
