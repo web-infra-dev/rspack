@@ -310,7 +310,7 @@ Object {
       isOverSizeLimit: false,
       name: main.js,
       related: Array [],
-      size: 435,
+      size: 420,
       type: asset,
     },
   ],
@@ -330,7 +330,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: 4a78afd9e32ae469,
+      hash: d397ed1b9bacc5b3,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -688,7 +688,7 @@ Object {
       size: 192,
       sizes: Object {
         javascript: 192,
-        runtime: 672,
+        runtime: 653,
       },
       type: chunk,
     },
@@ -698,10 +698,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 435,
+          size: 420,
         },
       ],
-      assetsSize: 435,
+      assetsSize: 420,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
@@ -718,7 +718,7 @@ Object {
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: c126035081b62e91,
+  hash: d88e365a9d98fbc3,
   modules: Array [
     Object {
       assets: Array [],
@@ -1399,9 +1399,9 @@ Object {
       preOrderIndex: undefined,
       providedExports: Array [],
       reasons: Array [],
-      size: 107,
+      size: 88,
       sizes: Object {
-        runtime: 107,
+        runtime: 88,
       },
       type: module,
       usedExports: null,
@@ -1455,10 +1455,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 435,
+          size: 420,
         },
       ],
-      assetsSize: 435,
+      assetsSize: 420,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
