@@ -1176,7 +1176,7 @@ export type Context = string;
 // @public (undocumented)
 type ContextInfo = {
     issuer: string;
-    issuerLayer?: string;
+    issuerLayer?: string | null;
 };
 
 // @public (undocumented)
