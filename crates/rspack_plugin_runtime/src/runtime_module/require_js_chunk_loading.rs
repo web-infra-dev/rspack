@@ -177,8 +177,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_with_on_chunk_loaded": match with_on_chunk_load {
-            true => "__webpack_require__.O();",
-            false => "",
+            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            false => "".to_string(),
           }
         })),
       )?;
