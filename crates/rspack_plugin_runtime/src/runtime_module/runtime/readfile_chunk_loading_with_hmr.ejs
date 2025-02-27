@@ -1,6 +1,6 @@
 function loadUpdateChunk(chunkId, updatedModulesList) {
 	return new Promise(function(resolve, reject) {
-		var filename = require('path').join(__dirname, "" + __webpack_require__.hu(chunkId));
+		var filename = require('path').join(__dirname, "" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
 		require('fs').readFile(filename, 'utf-8', function(err, content) {
 			if(err) return reject(err);
 			var update = {};
@@ -8,7 +8,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 			var updatedModules = update.modules;
 			var runtime = update.runtime;
 			for(var moduleId in updatedModules) {
-				if(__webpack_require__.o(updatedModules, moduleId)) {
+				if(<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
 					currentUpdate[moduleId] = updatedModules[moduleId];
 					if(updatedModulesList) updatedModulesList.push(moduleId);
 				}
