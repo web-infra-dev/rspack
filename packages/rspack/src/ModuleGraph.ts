@@ -71,4 +71,10 @@ export default class ModuleGraph {
 	isAsync(module: Module): boolean {
 		return this.#inner.isAsync(Module.__to_binding(module));
 	}
+
+	getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[] {
+		return this.#inner
+			.getOutgoingConnectionsInOrder(Module.__to_binding(module))
+			.map(binding => ModuleGraphConnection.__from_binding(binding));
+	}
 }
