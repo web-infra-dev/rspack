@@ -1,4 +1,4 @@
-use std::{any::TypeId, cell::RefCell, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
@@ -13,10 +13,7 @@ use rustc_hash::FxHashMap as HashMap;
 // allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]
-#[repr(C)]
 pub struct Dependency {
-  #[allow(dead_code)]
-  type_id: TypeId,
   pub(crate) compilation: Option<NonNull<Compilation>>,
   pub(crate) dependency_id: DependencyId,
   pub(crate) dependency: NonNull<dyn rspack_core::Dependency>,
@@ -217,7 +214,6 @@ impl ToNapiValue for DependencyWrapper {
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
           let js_dependency = Dependency {
-            type_id: TypeId::of::<Dependency>(),
             compilation: val.compilation,
             dependency_id: val.dependency_id,
             dependency: val.dependency,

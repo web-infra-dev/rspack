@@ -1,12 +1,7 @@
-use std::any::TypeId;
-
 use napi::{Either, Env, JsString};
 
 #[napi]
-#[repr(C)]
 pub struct EntryDependency {
-  #[allow(dead_code)]
-  type_id: TypeId,
   pub(crate) request: String,
   pub(crate) dependency_id: Option<rspack_core::DependencyId>,
 }
@@ -43,7 +38,6 @@ impl EntryDependency {
   #[napi(constructor)]
   pub fn new(request: String) -> Self {
     Self {
-      type_id: TypeId::of::<EntryDependency>(),
       request,
       dependency_id: None,
     }
