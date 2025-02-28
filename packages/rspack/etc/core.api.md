@@ -652,7 +652,7 @@ export class Compilation {
     // @internal
     __internal_getInner(): binding.JsCompilation;
     // (undocumented)
-    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err: WebpackError_2 | null, module: Module | null) => void): void;
+    addInclude(context: string, dependency: ReturnType<typeof EntryPlugin.createDependency>, options: EntryOptions, callback: (err?: null | WebpackError_2, module?: Module) => void): void;
     // (undocumented)
     addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule): void;
     get assets(): Record<string, Source>;
@@ -1715,7 +1715,13 @@ export type EntryDescription = {
     runtime?: EntryRuntime;
     publicPath?: PublicPath;
     baseUri?: BaseUri;
+    chunkLoading?: ChunkLoading;
+    asyncChunks?: AsyncChunks;
+    wasmLoading?: WasmLoading;
+    filename?: EntryFilename;
+    library?: LibraryOptions;
     dependOn?: EntryDependOn;
+    layer?: Layer;
 };
 
 // @public (undocumented)
@@ -3748,13 +3754,6 @@ export class Module {
 
 // @public (undocumented)
 type ModuleConfig = Es6Config | CommonJsConfig | UmdConfig | AmdConfig | NodeNextConfig | SystemjsConfig;
-
-// @public (undocumented)
-class ModuleDependency extends Dependency {
-    constructor(request: string);
-    // (undocumented)
-    get request(): string;
-}
 
 // @public (undocumented)
 class ModuleFederationPlugin {

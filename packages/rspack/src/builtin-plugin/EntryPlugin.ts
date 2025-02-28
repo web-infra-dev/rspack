@@ -48,9 +48,7 @@ type EntryPluginType = typeof OriginEntryPlugin & {
 
 export const EntryPlugin = OriginEntryPlugin as EntryPluginType;
 
-EntryPlugin.createDependency = request => {
-	return new EntryDependency(request);
-};
+EntryPlugin.createDependency = request => new EntryDependency(request);
 
 export function getRawEntryOptions(entry: EntryOptions): JsEntryOptions {
 	const runtime = entry.runtime;

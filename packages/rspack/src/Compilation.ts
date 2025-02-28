@@ -1108,7 +1108,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err: WebpackError | null, module?: Module) => void
+		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
 		this.#addIncludeDispatcher.call(context, dependency, options, callback);
 	}
@@ -1236,7 +1236,7 @@ class AddIncludeDispatcher {
 		binding.EntryDependency,
 		binding.JsEntryOptions | undefined
 	][] = [];
-	#cbs: ((err: null | WebpackError, module?: Module) => void)[] = [];
+	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {
 		if (this.#running) {
@@ -1279,7 +1279,7 @@ class AddIncludeDispatcher {
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err: WebpackError | null, module?: Module) => void
+		callback: (err?: null | WebpackError, module?: Module) => void
 	) {
 		if (this.#args.length === 0) {
 			queueMicrotask(this.#execute.bind(this));
