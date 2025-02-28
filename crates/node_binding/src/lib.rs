@@ -31,6 +31,7 @@ mod codegen_result;
 mod compilation;
 mod compiler;
 mod context_module_factory;
+mod dependencies;
 mod dependency;
 mod dependency_block;
 mod diagnostic;
@@ -66,6 +67,7 @@ pub use clean_options::*;
 pub use codegen_result::*;
 pub use compilation::*;
 pub use context_module_factory::*;
+pub use dependencies::*;
 pub use dependency::*;
 pub use dependency_block::*;
 pub use diagnostic::*;
@@ -87,7 +89,6 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
-use rspack_util::fx_hash::FxDashMap;
 pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
@@ -116,7 +117,7 @@ pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
-  include_dependencies_map: FxDashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
+  include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
 
 #[napi]
@@ -303,7 +304,7 @@ impl JsCompiler {
     JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
-    JsDependencyWrapper::cleanup_last_compilation(compilation_id);
+    DependencyWrapper::cleanup_last_compilation(compilation_id);
     JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
