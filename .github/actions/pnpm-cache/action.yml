@@ -62,7 +62,7 @@ runs:
 
     - name: Restore pnpm cache
       id: restore
-      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
+      if: ${{ runner.environment == 'github-hosted' }}
       uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
@@ -81,7 +81,7 @@ runs:
 
     - name: Save pnpm cache
       uses: actions/cache/save@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ runner.environment == 'github-hosted' && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}

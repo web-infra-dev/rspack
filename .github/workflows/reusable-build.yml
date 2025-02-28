@@ -52,10 +52,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Check local cache
         id: check_cache
-        if: ${{ inputs.profile == 'ci' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
+        if: ${{ inputs.profile == 'ci' && runner.environment == 'self-hosted' && !inputs.skipable }}
         shell: bash
         run: |
           set -e
@@ -95,7 +95,7 @@ jobs:
 
       # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
       - name: Free disk cache
-        if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ runner.environment == 'github-hosted' && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
@@ -175,7 +175,7 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
-          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+          if [[ "${{ runner.environment == 'github-hosted' }}" == "true" ]]; then
             # Github runner
             sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
           fi
@@ -204,10 +204,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -266,10 +266,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -366,10 +366,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
