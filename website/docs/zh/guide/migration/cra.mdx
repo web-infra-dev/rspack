@@ -1,15 +1,17 @@
 # 迁移 Create React App
 
-因为 CRA 本身内置了非常多的工程能力，手动的从 `@rspack/cli` 搭建出一个对等能力的配置并非易事，因此我们推荐 CRA 应用迁移到 [Rsbuild](https://rsbuild.dev/) 来使用 Rspack 的能力。
+由于 Create React App（CRA）内置了丰富的工程能力，如果使用 Rspack CLI 手动搭建一个具有同等能力的配置会比较困难。因此，我们推荐将 CRA 应用迁移到 [Rsbuild](https://rsbuild.dev/)，以便开箱即用地使用 Rspack 的能力。
 
 ## 什么是 Rsbuild
 
-**Rsbuild 是一个基于 Rspack 的 web 构建工具**，它的目标是为 Rspack 用户提供开箱即用的构建能力，使开发者能够在零配置的情况下启动一个 web 项目。
+Rsbuild 是由 Rspack 驱动的高性能构建工具，它默认包含了一套精心设计的构建配置，提供开箱即用的开发体验，并能够充分发挥出 Rspack 的性能优势。
 
-Rsbuild 集成了社区中基于 Rust 的高性能工具，包括 Rspack 和 SWC，以提供一流的构建速度和开发体验。
+Rsbuild 提供丰富的构建功能，包括编译 TypeScript、JSX、Sass、Less、CSS Modules、Wasm，以及其他资源，也支持模块联邦、图片压缩、类型检查、PostCSS、Lightning CSS 等功能。
 
-![Rspack Ecosystem](https://github.com/web-infra-dev/rsbuild/assets/7237365/1ec93ad6-b8b1-475b-963f-cba1e7d79dec)
+![build tools](https://assets.rspack.dev/rsbuild/assets/rsbuild-1-0-build-tools.png)
 
 ## 如何迁移
 
-请参考 Rsbuild 提供的 [Create React App 迁移指南](https://rsbuild.dev/zh/guide/migration/cra) 来了解更多内容。
+Rsbuild 提供了一个全面的迁移指南，帮助你从 Create React App 迁移。
+
+请参考 [迁移指南](https://rsbuild.dev/zh/guide/migration/cra) 来了解更多内容。
