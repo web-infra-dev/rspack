@@ -199,7 +199,7 @@ DEBUG LOG from TestLoader|<TEST_TOOLS_ROOT>/tests/statsOutputCases/logging-loade
 `;
 
 exports[`statsOutput statsOutput/match-resource-data-url should print correct stats for 1`] = `
-runtime modules 653 bytes 3 modules
+runtime modules 647 bytes 3 modules
 ./index.js 150 bytes [built] [code generated]
 ./a.js!=!data:javascript,var __looooooooo.. 98 bytes [built] [code generated]
 `;
@@ -402,7 +402,7 @@ Rspack x.x.x compiled with 1 error in X s
 
 exports[`statsOutput statsOutput/resolve-unexpected-exports-in-pkg-error should print correct stats for 1`] = `
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 280 bytes 1 module
+runtime modules 274 bytes 1 module
 ./index.js 39 bytes [built] [code generated] [1 error]
 
 ERROR in ./index.js 1:0-22
@@ -415,7 +415,7 @@ exports[`statsOutput statsOutput/runtime-modules should print correct stats for 
 ./index.js 19 bytes [built] [code generated]
 webpack/runtime/define_property_getters 285 bytes [code generated]
 webpack/runtime/has_own_property 88 bytes [code generated]
-webpack/runtime/make_namespace_object 280 bytes [code generated]
+webpack/runtime/make_namespace_object 274 bytes [code generated]
 `;
 
 exports[`statsOutput statsOutput/runtime-specific-exports should print correct stats for 1`] = `
@@ -445,7 +445,7 @@ Rspack x.x.x compiled successfully in X s
 
 exports[`statsOutput statsOutput/simple-export should print correct stats for 1`] = `
 asset bundle.js xx KiB [emitted] (name: main)
-runtime modules 653 bytes 3 modules
+runtime modules 647 bytes 3 modules
 ./index.js 26 bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 `;
