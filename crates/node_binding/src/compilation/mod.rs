@@ -767,24 +767,15 @@ impl JsCompilation {
         .into_iter()
         .map(|dependency_id| {
           let module_graph = compilation.get_module_graph();
-          match module_graph.module_graph_module_by_dependency_id(&dependency_id) {
-            Some(module) => match module_graph.module_by_identifier(&module.module_identifier) {
-              Some(module) => {
-                let js_module =
-                  JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-                (Either::B(()), Either::B(js_module))
-              }
-              None => (
-                Either::A(format!(
-                  "Module created by {:#?} cannot be found",
-                  dependency_id
-                )),
-                Either::A(()),
-              ),
-            },
+          match module_graph.get_module_by_dependency_id(&dependency_id) {
+            Some(module) => {
+              let js_module =
+                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+              (Either::B(()), Either::B(js_module))
+            }
             None => (
               Either::A(format!(
-                "Module created by {:#?} cannot be found",
+                "Module created by {:?} cannot be found",
                 dependency_id
               )),
               Either::A(()),
