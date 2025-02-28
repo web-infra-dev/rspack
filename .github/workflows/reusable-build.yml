@@ -221,7 +221,7 @@ jobs:
           clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: runner.environment == 'self-hosted'
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -382,7 +382,7 @@ jobs:
           clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: runner.environment == 'self-hosted'
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
