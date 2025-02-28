@@ -39,15 +39,18 @@ const getSubPath = (p: string) => {
 	return "";
 };
 
+const cached = new Map<string, TBasicRunnerFile>();
+
 export interface IBasicRunnerOptions<T extends ECompilerType> {
 	env: ITestEnv;
-	stats?: TCompilerStatsCompilation<T>;
+	stats?: () => TCompilerStatsCompilation<T>;
 	name: string;
 	runInNewContext?: boolean;
 	testConfig: TTestConfig<T>;
 	source: string;
 	dist: string;
 	compilerOptions: TCompilerOptions<T>;
+	cachable?: boolean;
 }
 
 export abstract class BasicRunner<
@@ -107,8 +110,13 @@ export abstract class BasicRunner<
 		modulePath: string[] | string,
 		currentDirectory: string
 	): TBasicRunnerFile | null {
+		const cacheKey = `${currentDirectory}|${modulePath}`;
+		if (this._options.cachable && cached.has(cacheKey)) {
+			return cached.get(cacheKey)!;
+		}
+		let res = null;
 		if (Array.isArray(modulePath)) {
-			return {
+			res = {
 				path: path.join(currentDirectory, ".array-require.js"),
 				content: `module.exports = (${modulePath
 					.map(arg => {
@@ -117,23 +125,24 @@ export abstract class BasicRunner<
 					.join(", ")});`,
 				subPath: ""
 			};
-		}
-		if (isRelativePath(modulePath)) {
+		} else if (isRelativePath(modulePath)) {
 			const p = path.join(currentDirectory, modulePath);
-			return {
+			res = {
 				path: p,
 				content: fs.readFileSync(p, "utf-8"),
 				subPath: getSubPath(modulePath)
 			};
-		}
-		if (path.isAbsolute(modulePath)) {
-			return {
+		} else if (path.isAbsolute(modulePath)) {
+			res = {
 				path: modulePath,
 				content: fs.readFileSync(modulePath, "utf-8"),
 				subPath: "absolute_path"
 			};
 		}
-		return null;
+		if (this._options.cachable && res) {
+			cached.set(cacheKey, res);
+		}
+		return res;
 	}
 
 	protected preExecute(code: string, file: TBasicRunnerFile) {}

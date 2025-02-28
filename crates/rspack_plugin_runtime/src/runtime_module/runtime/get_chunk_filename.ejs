@@ -1,0 +1,7 @@
+// This function allow to reference chunks
+<%- _global %> = <%- basicFunction("chunkId") %> {
+  // return url for filenames not based on template
+  <%- _static_urls %>
+  // return url for filenames based on template
+  return <%- _dynamic_url %>
+}

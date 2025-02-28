@@ -24,7 +24,7 @@ const config = {
 		// disable sourcmap remapping for ts file
 		"source-map-support/register": "identity-obj-proxy"
 	},
-	cache: false,
+	cache: !process.env.CI,
 	transformIgnorePatterns: [root],
 	maxWorkers: "80%",
 	snapshotFormat: {

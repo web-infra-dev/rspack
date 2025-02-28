@@ -67,9 +67,9 @@ module.exports = {
 		        userRequest: <TEST_TOOLS_ROOT>/tests/fixtures/css/style.css.webpack[javascript/auto]!=!!!<ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		      },
 		    ],
-		    size: 758,
+		    size: 754,
 		    sizes: Object {
-		      javascript: 758,
+		      javascript: 754,
 		    },
 		    type: module,
 		    usedExports: null,
@@ -105,7 +105,7 @@ module.exports = {
 		    reasons: Array [
 		      Object {
 		        active: true,
-		        loc: 3:0-241,
+		        loc: 3:0-239,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
@@ -171,7 +171,7 @@ module.exports = {
 		    reasons: Array [
 		      Object {
 		        active: true,
-		        loc: 2:0-263,
+		        loc: 2:0-261,
 		        moduleIdentifier: <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_TOOLS_ROOT>/tests/fixtures/css/style.css,
 		        moduleName: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,
 		        resolvedModule: ./fixtures/css/style.css!=!../../../node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!./fixtures/css/style.css,

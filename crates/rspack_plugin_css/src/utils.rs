@@ -12,7 +12,7 @@ use rspack_core::rspack_sources::{ConcatSource, RawStringSource};
 use rspack_core::ChunkGraph;
 use rspack_core::{
   to_identifier, Compilation, CompilerOptions, GenerateContext, PathData, ResourceData,
-  RuntimeGlobals,
+  RuntimeGlobals, RESERVED_IDENTIFIER,
 };
 use rspack_core::{CssExportsConvention, LocalIdentName};
 use rspack_error::{error, miette::Diagnostic, Result, TraceableError};
@@ -296,6 +296,9 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
       .collect::<Vec<_>>()
       .join(" + \" \" + ");
     let mut identifier = to_identifier(key);
+    if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
+      identifier = Cow::Owned(format!("_{identifier}"));
+    }
     let mut i = 0;
     while used_identifiers.contains(&identifier) {
       identifier = Cow::Owned(format!("{identifier}{}", itoa!(i)));

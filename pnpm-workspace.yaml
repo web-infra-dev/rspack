@@ -12,10 +12,7 @@ packages:
   - "tests/e2e"
   - "tests/webpack-examples"
   - "tests/webpack-test"
-  - "tests/plugin-test"
   - "tests/webpack-cli-test"
   - "tests/bench"
   # this following is used to test resolve in monorepo
   - "packages/rspack-test-tools/tests/normalCases/resolve/pnpm-workspace/packages/*"
-  # this following is used to test sri plugin
-  - "tests/plugin-test/sri-plugin/examples/*"

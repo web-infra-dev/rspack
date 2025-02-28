@@ -424,11 +424,21 @@ class Compiler {
 
 	/**
 	 * @param callback - signals when the call finishes
+	 * @param options - additional data like modifiedFiles, removedFiles
 	 */
-	run(callback: liteTapable.Callback<Error, Stats>) {
+	run(
+		callback: liteTapable.Callback<Error, Stats>,
+		options: {
+			modifiedFiles?: ReadonlySet<string>;
+			removedFiles?: ReadonlySet<string>;
+		} = {}
+	) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
+
+		this.modifiedFiles = options.modifiedFiles;
+		this.removedFiles = options.removedFiles;
 		const startTime = Date.now();
 		this.running = true;
 
@@ -656,6 +666,11 @@ class Compiler {
 		return !isRoot;
 	}
 
+	/**
+	 * Create a compilation and run it, which is the basic method that `compiler.run` and `compiler.watch` depend on.
+	 * TODO: make this method private in the next major release
+	 * @private this method is only used in Rspack core
+	 */
 	compile(callback: liteTapable.Callback<Error, Compilation>) {
 		const startTime = Date.now();
 		const params = this.#newCompilationParams();
@@ -696,31 +711,21 @@ class Compiler {
 		});
 	}
 
-	#build(callback?: (error: Error | null) => void) {
+	#build(callback: (error: Error | null) => void) {
 		this.#getInstance((error, instance) => {
 			if (error) {
-				return callback?.(error);
+				return callback(error);
 			}
 			if (!this.#initial) {
 				instance!.rebuild(
 					Array.from(this.modifiedFiles || []),
 					Array.from(this.removedFiles || []),
-					error => {
-						if (error) {
-							return callback?.(error);
-						}
-						callback?.(null);
-					}
+					callback
 				);
 				return;
 			}
 			this.#initial = false;
-			instance!.build(error => {
-				if (error) {
-					return callback?.(error);
-				}
-				callback?.(null);
-			});
+			instance!.build(callback);
 		});
 	}
 

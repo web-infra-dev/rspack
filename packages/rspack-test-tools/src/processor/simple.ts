@@ -54,9 +54,9 @@ export class SimpleTaskProcessor<T extends ECompilerType>
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
+		const stats = compiler.getStats() as TCompilerStats<T>;
 		if (typeof this._options.check === "function") {
-			await this._options.check(context, compiler.getCompiler()!, stats!);
+			await this._options.check(context, compiler.getCompiler()!, stats);
 		}
 	}
 

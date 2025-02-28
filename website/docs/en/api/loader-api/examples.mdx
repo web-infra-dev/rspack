@@ -85,6 +85,28 @@ export function pitch(remainingRequest, precedingRequest, data) {
 ESM loader and CommonJS loader have the same functionality, but use different module syntax. You can choose the format based on your project needs.
 :::
 
+### Write with TypeScript
+
+If you write Rspack loader using TypeScript, you can import `LoaderContext` to add types to the loader:
+
+```ts title="my-loader.ts"
+import type { LoaderContext } from '@rspack/core';
+
+// Declare the type of loader options
+type MyLoaderOptions = {
+  foo: string;
+};
+
+export default function myLoader(
+  this: LoaderContext<MyLoaderOptions>,
+  source: string,
+) {
+  const options = this.getOptions();
+  console.log(options); // { foo: 'bar' }
+  return source;
+}
+```
+
 ## 'Raw' Loader
 
 By default, resource files are converted to UTF-8 strings and passed to the loader. loaders can receive raw `Buffer` by setting `raw` to `true`. Each loader can pass its processing results as `String` or `Buffer`, and the Rspack compiler will convert them to and from the loader.

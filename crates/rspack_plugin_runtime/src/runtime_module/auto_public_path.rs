@@ -3,7 +3,7 @@ use rspack_core::{
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   ChunkUkey, Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleStage, SourceType,
+  RuntimeModuleStage, RuntimeTemplate, SourceType,
 };
 
 #[impl_runtime_module]
@@ -30,6 +30,13 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      include_str!("runtime/auto_public_path.ejs").to_string(),
+    )]
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -61,15 +68,22 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
     )?;
     Ok(
       RawStringSource::from(auto_public_path_template(
+        &compilation.runtime_template,
+        &self.id,
         &filename,
         &compilation.options.output,
-      ))
+      )?)
       .boxed(),
     )
   }
 }
 
-fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
+fn auto_public_path_template(
+  runtime_template: &RuntimeTemplate,
+  id: &str,
+  filename: &str,
+  output: &OutputOptions,
+) -> rspack_error::Result<String> {
   let output_path = output.path.as_str().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
   let assign = if undo_path.is_empty() {
@@ -80,45 +94,14 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
       RuntimeGlobals::PUBLIC_PATH
     )
   };
-  let global = RuntimeGlobals::GLOBAL.name();
   let import_meta_name = output.import_meta_name.clone();
 
-  let script_url_template = if output.script_type.eq("module") {
-    format!(
-      r#"var scriptUrl;
-    if (typeof {import_meta_name}.url === "string") scriptUrl = {import_meta_name}.url
-    "#
-    )
-    .to_string()
-  } else {
-    format!(
-      r#"var scriptUrl;
-    if ({global}.importScripts) scriptUrl = {global}.location + "";
-    var document = {global}.document;
-    if (!scriptUrl && document) {{
-      // Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
-      // but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
-      // and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
-      if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
-      if (!scriptUrl) {{
-        var scripts = document.getElementsByTagName("script");
-            if (scripts.length) {{
-              var i = scripts.length - 1;
-              while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-            }}
-      }}
-      }}
-    "#
-    )
-  };
-  format!(
-    r#"
-    {script_url_template}
-    // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
-    // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
-    if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-    scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-    {assign}
-    "#
+  runtime_template.render(
+    id,
+    Some(serde_json::json!({
+      "script_type": output.script_type,
+      "import_meta_name": import_meta_name,
+      "assign": assign
+    })),
   )
 }

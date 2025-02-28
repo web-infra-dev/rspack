@@ -4,6 +4,7 @@ use std::{
   sync::RwLock,
 };
 
+use itertools::{Either, Itertools};
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{IdentifierMap, IdentifierSet, UkeySet};
@@ -274,37 +275,35 @@ fn compute_affected_modules_with_module_graph(
   }
 
   let mut all_affected_modules: IdentifierSet = built_modules.clone();
-  let affected_modules_cache_iter = built_modules.par_iter().flat_map(|module_identifier| {
-    module_graph
-      .get_incoming_connections_by_origin_module(module_identifier)
-      .into_iter()
-      .filter_map(|(referencing_module, connections)| {
-        let referencing_module = referencing_module?;
-        if all_affected_modules.contains(&referencing_module) {
-          return None;
-        }
-        match reduce_affect_type(module_graph, &connections) {
-          AffectType::False => None,
-          AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
-          AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
-        }
-      })
-      .collect::<Vec<_>>()
-  });
-  let mut direct_affected_modules: IdentifierSet = affected_modules_cache_iter
-    .clone()
-    .filter_map(|k| match k {
-      AffectedModuleKind::Direct(m) => Some(m),
-      AffectedModuleKind::Transitive(_) => None,
+  let (mut direct_affected_modules, mut transitive_affected_modules): (
+    IdentifierSet,
+    IdentifierSet,
+  ) = built_modules
+    .par_iter()
+    .flat_map(|module_identifier| {
+      module_graph
+        .get_incoming_connections_by_origin_module(module_identifier)
+        .into_iter()
+        .filter_map(|(referencing_module, connections)| {
+          let referencing_module = referencing_module?;
+          if all_affected_modules.contains(&referencing_module) {
+            return None;
+          }
+          match reduce_affect_type(module_graph, &connections) {
+            AffectType::False => None,
+            AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
+            AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
+          }
+        })
+        .collect::<Vec<_>>()
     })
-    .collect();
-  let mut transitive_affected_modules: IdentifierSet = affected_modules_cache_iter
-    .clone()
-    .filter_map(|k| match k {
-      AffectedModuleKind::Transitive(m) => Some(m),
-      AffectedModuleKind::Direct(_) => None,
-    })
-    .collect();
+    .collect::<Vec<_>>()
+    .iter()
+    .partition_map(|reduce_type| match reduce_type {
+      AffectedModuleKind::Direct(m) => Either::Left(*m),
+      AffectedModuleKind::Transitive(m) => Either::Right(*m),
+    });
+
   while !transitive_affected_modules.is_empty() {
     let transitive_affected_modules_current = std::mem::take(&mut transitive_affected_modules);
     all_affected_modules.extend(transitive_affected_modules_current.iter().copied());

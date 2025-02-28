@@ -15,7 +15,7 @@ use super::{
 pub struct CommonJsRequireContextDependency {
   id: DependencyId,
   range: DependencyRange,
-  range_callee: DependencyRange,
+  value_range: Option<DependencyRange>,
   resource_identifier: String,
   options: ContextOptions,
   optional: bool,
@@ -27,13 +27,13 @@ impl CommonJsRequireContextDependency {
   pub fn new(
     options: ContextOptions,
     range: DependencyRange,
-    range_callee: DependencyRange,
+    value_range: Option<DependencyRange>,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       range,
-      range_callee,
+      value_range,
       options,
       resource_identifier,
       optional,
@@ -131,9 +131,8 @@ impl DependencyTemplate for CommonJsRequireContextDependency {
       self,
       source,
       code_generatable_context,
-      self.range_callee.start,
-      self.range_callee.end,
-      self.range.end,
+      &self.range,
+      self.value_range.as_ref(),
     );
   }
 

@@ -1,0 +1,12 @@
+function loadUpdateChunk(chunkId, updatedModulesList) {
+	var update = require("./" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+	var updatedModules = update.modules;
+	var runtime = update.runtime;
+	for (var moduleId in updatedModules) {
+		if (<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
+			currentUpdate[moduleId] = updatedModules[moduleId];
+			if (updatedModulesList) updatedModulesList.push(moduleId);
+		}
+	}
+	if (runtime) currentUpdateRuntime.push(runtime);
+}

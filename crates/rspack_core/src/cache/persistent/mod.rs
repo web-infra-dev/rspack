@@ -78,12 +78,13 @@ impl PersistentCache {
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&self, compilation: &mut Compilation) -> Result<()> {
-    if compilation.modified_files.is_empty() && compilation.removed_files.is_empty() {
-      // inject modified_files and removed_files
+    // rebuild will pass modified_files and removed_files from js side,
+    // so only calculate them when build.
+    if !compilation.is_rebuild {
       let (modified_paths, removed_paths) = self.snapshot.calc_modified_paths().await?;
       tracing::info!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
-      compilation.modified_files = modified_paths;
-      compilation.removed_files = removed_paths;
+      compilation.modified_files.extend(modified_paths);
+      compilation.removed_files.extend(removed_paths);
     }
     Ok(())
   }
@@ -136,6 +137,7 @@ impl Cache for PersistentCache {
   }
 
   async fn before_make(&self, make_artifact: &mut MakeArtifact) -> Result<()> {
+    // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if matches!(make_artifact.state, MakeArtifactState::Uninitialized(..)) {
       *make_artifact = self.make_occasion.recovery().await?;
     }
