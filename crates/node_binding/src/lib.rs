@@ -340,6 +340,12 @@ enum TraceState {
 #[ctor]
 fn init() {
   panic::install_panic_handler();
+  let rt = tokio::runtime::Builder::new_multi_thread()
+    .max_blocking_threads(8)
+    .enable_all()
+    .build()
+    .expect("Create tokio runtime failed");
+  create_custom_tokio_runtime(rt);
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
