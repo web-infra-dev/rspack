@@ -18,6 +18,7 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
+import { Dependency } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
@@ -44,7 +45,6 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -1410,25 +1410,7 @@ class DependenciesBlock {
     readonly dependencies: Dependency[];
 }
 
-// @public (undocumented)
-export class Dependency {
-    // (undocumented)
-    static [Symbol.hasInstance](instance: any): instance is JsDependency | EntryDependency;
-    // (undocumented)
-    static __from_binding(binding: JsDependency): Dependency;
-    // (undocumented)
-    static __to_binding(data: Dependency): JsDependency;
-    // (undocumented)
-    readonly category: string;
-    // (undocumented)
-    critical: boolean;
-    // (undocumented)
-    get ids(): string[] | undefined;
-    // (undocumented)
-    readonly request: string | undefined;
-    // (undocumented)
-    readonly type: string;
-}
+export { Dependency }
 
 // @public (undocumented)
 type DependencyLocation = any;
@@ -5265,8 +5247,8 @@ declare namespace rspackExports {
         StatsModule,
         Stats,
         RuntimeModule,
-        Dependency,
         EntryDependency,
+        Dependency,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
