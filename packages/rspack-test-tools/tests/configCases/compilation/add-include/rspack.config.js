@@ -8,14 +8,14 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { EntryPlugin, Dependency } = compiler.webpack;
+		const { EntryPlugin, EntryDependency } = compiler.webpack;
 
 		const modules = {};
 
 		const fooDependency = EntryPlugin.createDependency(path.resolve(__dirname, "foo.js"));
 		const barDependency = EntryPlugin.createDependency(path.resolve(__dirname, "bar.js"));
 
-		expect(fooDependency instanceof Dependency).toBeTruthy();
+		expect(fooDependency instanceof EntryDependency).toBeTruthy();
 
 		compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, compilation => {
 			const tasks = [];

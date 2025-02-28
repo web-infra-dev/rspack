@@ -1,5 +1,6 @@
 import type {
 	AssetInfo,
+	Dependency,
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
@@ -11,7 +12,6 @@ import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Dependency } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {

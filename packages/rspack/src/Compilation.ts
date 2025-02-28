@@ -10,6 +10,7 @@
 import type * as binding from "@rspack/binding";
 import {
 	type AssetInfo,
+	type Dependency,
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
@@ -25,7 +26,6 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
