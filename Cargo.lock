@@ -4524,6 +4524,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cargo_toml",
+ "cow-utils",
  "either",
  "indoc",
  "jsonc-parser 0.26.2",

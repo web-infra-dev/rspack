@@ -20,6 +20,7 @@ plugin = [
 anyhow                   = { workspace = true }
 async-trait              = { workspace = true }
 base64                   = { version = "0.22.1" }
+cow-utils                = { workspace = true }
 either                   = { workspace = true }
 indoc                    = { workspace = true }
 jsonc-parser             = { version = "0.26.2", features = ["serde"] }
