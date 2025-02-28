@@ -11,5 +11,5 @@ version     = "0.2.0"
 # Turned on `local_dynamic_tls` to avoid issue: https://github.com/microsoft/mimalloc/issues/147
 mimalloc = { workspace = true, features = ["local_dynamic_tls"] }
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
+[target.'cfg(not(any(target_os = "linux", target_family = "wasm")))'.dependencies]
 mimalloc = { workspace = true }
