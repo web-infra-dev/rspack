@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.2.6",
+  "version": "1.2.7-alpha.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -10,7 +10,7 @@
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "check-dependency-version": "pnpx check-dependency-version-consistency@5 . --ignore-dep @napi-rs/cli --ignore-dep chalk --ignore-package webpack-test --ignore-package webpack-examples",
-    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
+    "build:js": "pnpm --filter \"@rspack/core\" build:force && pnpm --parallel --filter \"@rspack/*\" --filter \"create-rspack\" --filter \"!@rspack/core\" build",
     "build:cli:dev": "npm run build:binding:dev && npm run build:js",
     "build:cli:release": "npm run build:binding:release && npm run build:js",
     "build:cli:release:all": "pnpm --filter @rspack/binding build:release:all && npm run build:js",
@@ -35,7 +35,7 @@
     "prepare": "is-ci || husky",
     "test:diff": "pnpm --filter \"@rspack/*\" test:diff",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
-    "test:unit": "pnpm --filter \"@rspack/*\" test",
+    "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"e2e-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:unit && pnpm test:webpack",
     "test:webpack": "pnpm --filter \"webpack-test\" test:metric",
@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@continuous-auth/client": "^2.3.2",
     "@jest/reporters": "29.7.0",
     "@microsoft/api-extractor": "7.49.2",
     "@microsoft/api-extractor-model": "7.30.3",

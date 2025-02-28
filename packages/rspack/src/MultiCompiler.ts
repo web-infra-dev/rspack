@@ -515,7 +515,17 @@ export class MultiCompiler {
 		return new MultiWatching([], this);
 	}
 
-	run(callback: liteTapable.Callback<Error, MultiStats>) {
+	/**
+	 * @param callback - signals when the call finishes
+	 * @param options - additional data like modifiedFiles, removedFiles
+	 */
+	run(
+		callback: liteTapable.Callback<Error, MultiStats>,
+		options?: {
+			modifiedFiles?: ReadonlySet<string>;
+			removedFiles?: ReadonlySet<string>;
+		}
+	) {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
@@ -524,7 +534,7 @@ export class MultiCompiler {
 		if (this.validateDependencies(callback)) {
 			this.#runGraph(
 				() => {},
-				(compiler, _, callback) => compiler.run(callback),
+				(compiler, _, callback) => compiler.run(callback, options),
 				(err, stats) => {
 					this.running = false;
 

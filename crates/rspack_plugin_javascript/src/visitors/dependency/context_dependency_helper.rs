@@ -6,14 +6,16 @@ use regex::Regex;
 use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, DiagnosticExt, Severity};
 use rspack_util::json_stringify;
-use swc_core::ecma::ast::Expr;
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
+// Webpack will walk only the dynamic parts of evaluated expression in this function
+// but in our implementation, due to we can't easily implement setExpression for
+// BasicEvaluatedExpression (will introduce lots of lifetime), so this function's
+// caller should consider whether need to walk expressions
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
-  expr: &Expr,
   parser: &mut crate::visitors::JavascriptParser,
 ) -> ContextModuleScanResult {
   let mut critical = None;
@@ -70,10 +72,10 @@ pub fn create_context_dependency(
               TemplateStringKind::Raw => "String.raw`",
             }
           );
-          replaces.push((value, param.range().0, part.range().1));
+          replaces.push((value, param.range().0, part.range().1 - 1));
         } else if i == parts.len() - 1 {
           let value = format!("{postfix}`");
-          replaces.push((value, part.range().0, param.range().1));
+          replaces.push((value, part.range().0, param.range().1 - 1));
         } else {
           let value = match param.template_string_kind() {
             TemplateStringKind::Cooked => {
@@ -82,7 +84,7 @@ pub fn create_context_dependency(
             TemplateStringKind::Raw => part.string().to_owned(),
           };
           let range = part.range();
-          replaces.push((value, range.0, range.1));
+          replaces.push((value, range.0, range.1 - 1));
         }
       }
     }
@@ -101,12 +103,6 @@ pub fn create_context_dependency(
       let warn = warn.with_module_identifier(Some(*parser.module_identifier));
       critical = Some(warn);
     }
-
-    // Webpack will walk only the expression parts of the template string
-    // but we walk the whole template string, which allows us don't need to implement
-    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
-    // This may have slight performance difference in some cases
-    parser.walk_expression(expr);
 
     ContextModuleScanResult {
       context,
@@ -158,10 +154,14 @@ pub fn create_context_dependency(
 
     let mut replaces = Vec::new();
     if let Some(prefix_range) = prefix_range {
-      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1))
+      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1 - 1))
     }
     if let Some(postfix_range) = postfix_range {
-      replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
+      replaces.push((
+        json_stringify(&postfix),
+        postfix_range.0,
+        postfix_range.1 - 1,
+      ))
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {
@@ -178,12 +178,6 @@ pub fn create_context_dependency(
       let warn = warn.with_module_identifier(Some(*parser.module_identifier));
       critical = Some(warn);
     }
-
-    // Webpack will walk only the dynamic parts of evaluated expression
-    // but we walk the whole expression, which allows us don't need to implement
-    // setExpression for BasicEvaluatedExpression (will introduce lots of lifetime)
-    // This may have slight performance difference in some cases
-    parser.walk_expression(expr);
 
     ContextModuleScanResult {
       context,
@@ -208,8 +202,6 @@ pub fn create_context_dependency(
       let warn = warn.with_module_identifier(Some(*parser.module_identifier));
       critical = Some(warn);
     }
-
-    parser.walk_expression(expr);
 
     ContextModuleScanResult {
       context: String::from("."),
