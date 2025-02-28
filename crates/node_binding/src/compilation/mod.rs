@@ -21,6 +21,7 @@ use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rustc_hash::FxHashMap;
 
 use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
@@ -37,6 +38,7 @@ use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ToJsCompatSource;
+use crate::COMPILER_REFERENCES;
 use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
@@ -699,6 +701,21 @@ impl JsCompilation {
   ) -> napi::Result<()> {
     let compilation = self.as_mut()?;
 
+    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow_mut();
+      references.get(&compilation.compiler_id()).cloned()
+    }) else {
+      return Err(napi::Error::from_reason(
+        "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let Some(js_compiler) = compiler_reference.get_mut() else {
+      return Err(napi::Error::from_reason(
+        "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let include_dependencies_map = &mut js_compiler.include_dependencies_map;
+
     let args = js_args
       .into_iter()
       .map(|(js_context, js_dependency, js_options)| {
@@ -706,10 +723,24 @@ impl JsCompilation {
           Some(options) => options.layer.clone(),
           None => None,
         };
-        let dependency = js_dependency.resolve(js_context.into(), layer)?;
         let options = match js_options {
           Some(js_opts) => js_opts.into(),
           None => EntryOptions::default(),
+        };
+        let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
+          && let Some(dependency) = map.get(&options)
+        {
+          dependency.clone()
+        } else {
+          let dependency = js_dependency.resolve(js_context.into(), layer)?;
+          if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
+            map.insert(options.clone(), dependency.clone());
+          } else {
+            let mut map = FxHashMap::default();
+            map.insert(options.clone(), dependency.clone());
+            include_dependencies_map.insert(js_dependency.request.to_string(), map);
+          }
+          dependency
         };
         Ok((dependency, options))
       })
@@ -726,34 +757,25 @@ impl JsCompilation {
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
+      let module_graph = compilation.get_module_graph();
       let results = dependency_ids
         .into_iter()
-        .map(|dependency_id| {
-          let module_graph = compilation.get_module_graph();
-          match module_graph.module_graph_module_by_dependency_id(&dependency_id) {
-            Some(module) => match module_graph.module_by_identifier(&module.module_identifier) {
-              Some(module) => {
-                let js_module =
-                  JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-                (Either::B(()), Either::B(js_module))
-              }
-              None => (
-                Either::A(format!(
-                  "Module created by {:#?} cannot be found",
-                  dependency_id
-                )),
-                Either::A(()),
-              ),
-            },
+        .map(
+          |dependency_id| match module_graph.get_module_by_dependency_id(&dependency_id) {
+            Some(module) => {
+              let js_module =
+                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+              (Either::B(()), Either::B(js_module))
+            }
             None => (
               Either::A(format!(
-                "Module created by {:#?} cannot be found",
+                "Module created by {:?} cannot be found",
                 dependency_id
               )),
               Either::A(()),
             ),
-          }
-        })
+          },
+        )
         .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
 
       Ok(JsAddIncludeCallbackArgs(results))

@@ -806,7 +806,7 @@ impl<'a> ModuleGraph<'a> {
     exports_info.get_export_info(self, export_name)
   }
 
-  pub(crate) fn get_ordered_outgoing_connections(
+  pub fn get_outgoing_connections_in_order(
     &self,
     module_identifier: &ModuleIdentifier,
   ) -> impl Iterator<Item = &DependencyId> {
