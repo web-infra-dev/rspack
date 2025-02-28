@@ -16,6 +16,7 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
+
 import { Module } from "./Module";
 import {
 	APIPlugin,
@@ -74,6 +75,7 @@ import { DefaultStatsFactoryPlugin } from "./stats/DefaultStatsFactoryPlugin";
 import { DefaultStatsPresetPlugin } from "./stats/DefaultStatsPresetPlugin";
 import { DefaultStatsPrinterPlugin } from "./stats/DefaultStatsPrinterPlugin";
 import { assertNotNill } from "./util/assertNotNil";
+import { JsModule } from "@rspack/binding";
 
 export class RspackOptionsApply {
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
@@ -269,21 +271,20 @@ export class RspackOptionsApply {
 
 		if (options.experiments.lazyCompilation) {
 			const lazyOptions = options.experiments.lazyCompilation;
-
 			new LazyCompilationPlugin(
 				// this is only for test
-				// @ts-expect-error cacheable is hide
+				lazyOptions,
+				// @ts-expect-error cacheable is hidden
 				lazyOptions.cacheable ?? true,
 				lazyOptions.entries ?? true,
 				lazyOptions.imports ?? true,
 				typeof lazyOptions.test === "function"
-					? jsModule =>
+					? (jsModule: JsModule): boolean =>
 							(lazyOptions.test as (jsModule: Module) => boolean)!.call(
 								lazyOptions,
 								Module.__from_binding(jsModule)
 							)
-					: lazyOptions.test,
-				lazyOptions.backend
+					: lazyOptions.test
 			).apply(compiler);
 		}
 
