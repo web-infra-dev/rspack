@@ -264,6 +264,7 @@ export declare class JsModuleGraph {
   getExportsInfo(module: JsModule): JsExportsInfo
   getConnection(dependency: JsDependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
   getParentModule(jsDependency: JsDependency): JsModule | null
   getParentBlockIndex(jsDependency: JsDependency): number

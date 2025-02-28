@@ -138,6 +138,20 @@ impl JsModuleGraph {
   }
 
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
+  pub fn get_outgoing_connections_in_order(
+    &self,
+    module: &JsModule,
+  ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
+    let (compilation, module_graph) = self.as_ref()?;
+    Ok(
+      module_graph
+        .get_outgoing_connections_in_order(&module.identifier)
+        .map(|dependency_id| JsModuleGraphConnectionWrapper::new(*dependency_id, compilation))
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_incoming_connections(
     &self,
     module: &JsModule,
