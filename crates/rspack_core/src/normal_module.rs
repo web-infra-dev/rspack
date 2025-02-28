@@ -513,6 +513,7 @@ impl Module for NormalModule {
       .into_iter()
       .map(Into::into)
       .collect();
+    self.build_info.extra = loader_result.extra;
 
     if no_parse {
       self.parsed = false;
