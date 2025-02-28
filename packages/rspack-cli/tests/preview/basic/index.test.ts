@@ -5,7 +5,7 @@ import {
 } from "../../utils/test-utils";
 
 describe("should run preview command as expected", () => {
-	it("should work", async () => {
+	it.concurrent("should work", async () => {
 		const port = await getRandomPort();
 		const { stderr } = await runWatch(
 			__dirname,

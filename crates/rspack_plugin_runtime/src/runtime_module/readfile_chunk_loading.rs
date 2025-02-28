@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -58,12 +57,65 @@ impl ReadFileChunkLoadingRuntimeModule {
       });
     RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
+
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.id.to_string();
+
+    match id {
+      TemplateId::Raw => base_id,
+      TemplateId::WithOnChunkLoad => format!("{}_with_on_chunk_load", base_id),
+      TemplateId::WithLoading => format!("{}_with_loading", base_id),
+      TemplateId::WithExternalInstallChunk => format!("{}_with_external_install_chunk", base_id),
+      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
+      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+    }
+  }
+}
+
+#[allow(clippy::enum_variant_names)]
+enum TemplateId {
+  Raw,
+  WithOnChunkLoad,
+  WithLoading,
+  WithExternalInstallChunk,
+  WithHmr,
+  WithHmrManifest,
 }
 
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
   }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::WithOnChunkLoad),
+        include_str!("runtime/readfile_chunk_loading_with_on_chunk_load.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::Raw),
+        include_str!("runtime/readfile_chunk_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithLoading),
+        include_str!("runtime/readfile_chunk_loading_with_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithExternalInstallChunk),
+        include_str!("runtime/readfile_chunk_loading_with_external_install_chunk.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmr),
+        include_str!("runtime/readfile_chunk_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmrManifest),
+        include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+    ]
+  }
+
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunk = compilation
       .chunk_by_ukey
@@ -108,41 +160,43 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_on_chunk_load {
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/readfile_chunk_loading_with_on_chunk_load.js"
-      )));
+      let source_with_on_chunk_load = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
+
+      source.add(RawStringSource::from(source_with_on_chunk_load));
     }
 
     if with_loading || with_external_install_chunk {
-      source.add(RawStringSource::from(
-        include_str!("runtime/readfile_chunk_loading.js")
-          .cow_replace(
-            "$WITH_ON_CHUNK_LOADED$",
-            match with_on_chunk_load {
-              true => "__webpack_require__.O();",
-              false => "",
-            },
-          )
-          .into_owned(),
-      ));
+      let raw_source = compilation.runtime_template.render(
+        &self.template_id(TemplateId::Raw),
+        Some(serde_json::json!({
+          "_with_on_chunk_loaded": match with_on_chunk_load {
+            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            false => "".to_string(),
+          }
+        })),
+      )?;
+
+      source.add(RawStringSource::from(raw_source));
     }
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        include_str!("runtime/readfile_chunk_loading_with_loading.js")
-          .cow_replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
-          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
-          .cow_replace(
-            "$MATCH_FALLBACK$",
-            if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+        compilation.runtime_template.render(
+          &self.template_id(TemplateId::WithLoading),
+          Some(serde_json::json!({
+            "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_output_dir": &root_output_dir,
+            "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
               "else installedChunks[chunkId] = 0;\n"
             },
-          )
-          .into_owned()
+          })),
+        )?
       };
 
       source.add(RawStringSource::from(format!(
@@ -156,26 +210,33 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     }
 
     if with_external_install_chunk {
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/readfile_chunk_loading_with_external_install_chunk.js"
-      )));
+      let source_with_external_install_chunk = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithExternalInstallChunk),
+        None,
+      )?;
+
+      source.add(RawStringSource::from(source_with_external_install_chunk));
     }
 
     if with_hmr {
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/readfile_chunk_loading_with_hmr.js"
-      )));
+      let source_with_hmr = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmr), None)?;
+      source.add(RawStringSource::from(source_with_hmr));
       source.add(RawStringSource::from(generate_javascript_hmr_runtime(
         "readFileVm",
       )));
     }
 
     if with_hmr_manifest {
-      source.add(RawStringSource::from(
-        include_str!("runtime/readfile_chunk_loading_with_hmr_manifest.js")
-          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
-          .into_owned(),
-      ));
+      let source_with_hmr_manifest = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithHmrManifest),
+        Some(serde_json::json!({
+          "_output_dir":  &root_output_dir
+        })),
+      )?;
+
+      source.add(RawStringSource::from(source_with_hmr_manifest));
     }
 
     Ok(source.boxed())

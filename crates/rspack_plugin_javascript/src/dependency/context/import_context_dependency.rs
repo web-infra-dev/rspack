@@ -16,7 +16,7 @@ pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
-  range_callee: DependencyRange,
+  value_range: DependencyRange,
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
@@ -27,14 +27,14 @@ impl ImportContextDependency {
   pub fn new(
     options: ContextOptions,
     range: DependencyRange,
-    range_callee: DependencyRange,
+    value_range: DependencyRange,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       options,
       range,
-      range_callee,
+      value_range,
       id: DependencyId::new(),
       resource_identifier,
       optional,
@@ -131,9 +131,8 @@ impl DependencyTemplate for ImportContextDependency {
       self,
       source,
       code_generatable_context,
-      self.range_callee.start,
-      self.range_callee.end,
-      self.range.end,
+      &self.range,
+      Some(&self.value_range),
     );
   }
 

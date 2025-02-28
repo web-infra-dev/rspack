@@ -989,7 +989,10 @@ export class Compiler {
     // (undocumented)
     rspack: typeof rspack;
     // (undocumented)
-    run(callback: liteTapable.Callback<Error, Stats>): void;
+    run(callback: liteTapable.Callback<Error, Stats>, options?: {
+        modifiedFiles?: ReadonlySet<string>;
+        removedFiles?: ReadonlySet<string>;
+    }): void;
     // (undocumented)
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
@@ -1173,7 +1176,7 @@ export type Context = string;
 // @public (undocumented)
 type ContextInfo = {
     issuer: string;
-    issuerLayer?: string;
+    issuerLayer?: string | null;
 };
 
 // @public (undocumented)
@@ -3929,7 +3932,10 @@ export class MultiCompiler {
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
-    run(callback: liteTapable.Callback<Error, MultiStats>): void;
+    run(callback: liteTapable.Callback<Error, MultiStats>, options?: {
+        modifiedFiles?: ReadonlySet<string>;
+        removedFiles?: ReadonlySet<string>;
+    }): void;
     // (undocumented)
     running: boolean;
     // (undocumented)

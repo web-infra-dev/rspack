@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, Dependency, RuntimeGlobals,
-  SpanExt,
+  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, ContextDependency, ContextMode,
+  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals, SpanExt,
 };
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap;
@@ -20,9 +20,12 @@ use crate::{
     amd_require_array_dependency::{AMDRequireArrayDependency, AMDRequireArrayItem},
     amd_require_item_dependency::AMDRequireItemDependency,
     local_module_dependency::LocalModuleDependency,
+    AMDRequireContextDependency,
   },
   utils::eval::BasicEvaluatedExpression,
-  visitors::{scope_info::FreeName, JavascriptParser, Statement},
+  visitors::{
+    context_reg_exp, create_context_dependency, scope_info::FreeName, JavascriptParser, Statement,
+  },
   JavascriptParserPlugin,
 };
 
@@ -250,12 +253,36 @@ impl AMDDefineDependencyParserPlugin {
 
   fn process_context(
     &self,
-    _parser: &mut JavascriptParser,
-    _call_expr: &CallExpr,
-    _param: &BasicEvaluatedExpression,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    // TODO: support amd context dep
-    None
+    let call_span = call_expr.span();
+    let param_range = (param.range().0, param.range().1 - 1);
+
+    let result = create_context_dependency(param, parser);
+
+    let options = ContextOptions {
+      mode: ContextMode::Sync,
+      recursive: true,
+      reg_exp: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser),
+      include: None,
+      exclude: None,
+      category: DependencyCategory::Amd,
+      request: format!("{}{}{}", result.context, result.query, result.fragment),
+      context: result.context,
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: result.replaces,
+      start: call_span.real_lo(),
+      end: call_span.real_hi(),
+      referenced_exports: None,
+      attributes: None,
+    };
+    let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
+    *dep.critical_mut() = result.critical;
+    parser.dependencies.push(Box::new(dep));
+    Some(true)
   }
 
   fn process_call_define(
