@@ -1,5 +1,6 @@
 import type {
 	AssetInfo,
+	Dependency,
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
@@ -11,7 +12,6 @@ import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Dependency, bindingDependencyFactory } from "./Dependency";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -176,9 +176,7 @@ export class ContextModuleFactoryAfterResolveData {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies.map(dep =>
-						bindingDependencyFactory.create(Dependency, dep)
-					);
+					return binding.dependencies;
 				}
 			}
 		});
@@ -317,9 +315,7 @@ export class Module {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return module.dependencies.map(d =>
-						bindingDependencyFactory.create(Dependency, d)
-					);
+					return module.dependencies;
 				}
 			},
 			useSourceMap: {

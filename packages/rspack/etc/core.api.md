@@ -18,6 +18,8 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
+import { Dependency } from '@rspack/binding';
+import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -1409,20 +1411,7 @@ class DependenciesBlock {
     readonly dependencies: Dependency[];
 }
 
-// @public (undocumented)
-class Dependency {
-    // (undocumented)
-    get category(): string;
-    // (undocumented)
-    get critical(): boolean;
-    set critical(val: boolean);
-    // (undocumented)
-    get ids(): string[] | undefined;
-    // (undocumented)
-    get request(): string | undefined;
-    // (undocumented)
-    get type(): string;
-}
+export { Dependency }
 
 // @public (undocumented)
 type DependencyLocation = any;
@@ -1715,9 +1704,7 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-class EntryDependency extends ModuleDependency {
-}
+export { EntryDependency }
 
 // @public
 export type EntryDependOn = string | string[];
@@ -1728,13 +1715,7 @@ export type EntryDescription = {
     runtime?: EntryRuntime;
     publicPath?: PublicPath;
     baseUri?: BaseUri;
-    chunkLoading?: ChunkLoading;
-    asyncChunks?: AsyncChunks;
-    wasmLoading?: WasmLoading;
-    filename?: EntryFilename;
-    library?: LibraryOptions;
     dependOn?: EntryDependOn;
-    layer?: Layer;
 };
 
 // @public (undocumented)
@@ -5284,6 +5265,8 @@ declare namespace rspackExports {
         StatsModule,
         Stats,
         RuntimeModule,
+        EntryDependency,
+        Dependency,
         ModuleFilenameHelpers,
         Template,
         WebpackError,

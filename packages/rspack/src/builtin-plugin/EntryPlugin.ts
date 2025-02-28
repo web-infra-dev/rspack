@@ -1,10 +1,10 @@
 import {
 	BuiltinPluginName,
+	EntryDependency,
 	type JsEntryOptions,
 	type JsEntryPluginOptions
 } from "@rspack/binding";
 
-import { EntryDependency } from "../EntryDependency";
 import type { EntryDescriptionNormalized } from "../config";
 import { create } from "./base";
 

@@ -10,6 +10,7 @@
 import type * as binding from "@rspack/binding";
 import {
 	type AssetInfo,
+	type Dependency,
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
@@ -25,11 +26,9 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency, bindingDependencyFactory } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
-import type { ModuleDependency } from "./ModuleDependency";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";
@@ -1109,7 +1108,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err: WebpackError | null, module: Module | null) => void
+		callback: (err: WebpackError | null, module?: Module) => void
 	) {
 		this.#addIncludeDispatcher.call(context, dependency, options, callback);
 	}
@@ -1232,8 +1231,12 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, ModuleDependency, binding.JsEntryOptions | undefined][] = [];
-	#cbs: ((err: WebpackError | null, module: Module | null) => void)[] = [];
+	#args: [
+		string,
+		binding.EntryDependency,
+		binding.JsEntryOptions | undefined
+	][] = [];
+	#cbs: ((err: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {
 		if (this.#running) {
@@ -1252,20 +1255,16 @@ class AddIncludeDispatcher {
 			if (wholeErr) {
 				const webpackError = new WebpackError(wholeErr.message);
 				for (const cb of cbs) {
-					cb(webpackError, null);
+					cb(webpackError);
 				}
 				return;
 			}
 			for (let i = 0; i < results.length; i++) {
-				const [errMsg, dependencyBinding, moduleBinding] = results[i];
+				const [errMsg, moduleBinding] = results[i];
 				const cb = cbs[i];
-				const [_, dependency] = args[i];
-				if (dependencyBinding) {
-					bindingDependencyFactory.setBinding(dependency, dependencyBinding);
-				}
 				cb(
 					errMsg ? new WebpackError(errMsg) : null,
-					moduleBinding ? Module.__from_binding(moduleBinding) : null
+					moduleBinding ? Module.__from_binding(moduleBinding) : undefined
 				);
 			}
 		});
@@ -1280,7 +1279,7 @@ class AddIncludeDispatcher {
 		context: string,
 		dependency: ReturnType<typeof EntryPlugin.createDependency>,
 		options: EntryOptions,
-		callback: (err: WebpackError | null, module: Module | null) => void
+		callback: (err: WebpackError | null, module?: Module) => void
 	) {
 		if (this.#args.length === 0) {
 			queueMicrotask(this.#execute.bind(this));
@@ -1301,12 +1300,8 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(d =>
-			bindingDependencyFactory.create(Dependency, d)
-		);
-		this.includeDependencies = binding.includeDependencies.map(d =>
-			bindingDependencyFactory.create(Dependency, d)
-		);
+		this.dependencies = binding.dependencies;
+		this.includeDependencies = binding.includeDependencies;
 		this.options = binding.options;
 	}
 }
