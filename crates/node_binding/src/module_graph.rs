@@ -146,7 +146,6 @@ impl JsModuleGraph {
     Ok(
       module_graph
         .get_outgoing_connections_in_order(&module.identifier)
-        .into_iter()
         .map(|dependency_id| JsModuleGraphConnectionWrapper::new(*dependency_id, compilation))
         .collect::<Vec<_>>(),
     )
