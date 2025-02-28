@@ -1,4 +1,3 @@
-use cow_utils::CowUtils;
 use rspack_collections::{DatabaseItem, Identifier};
 use rspack_core::{
   compile_boolean_matcher, impl_runtime_module,
@@ -48,11 +47,36 @@ impl ModuleChunkLoadingRuntimeModule {
       });
     RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
+
+  fn template(&self, template_id: TemplateId) -> String {
+    match template_id {
+      TemplateId::Raw => self.id.to_string(),
+      TemplateId::WithLoading => format!("{}_with_loading", self.id),
+    }
+  }
+}
+
+enum TemplateId {
+  Raw,
+  WithLoading,
 }
 
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template(TemplateId::Raw),
+        include_str!("runtime/module_chunk_loading.ejs").to_string(),
+      ),
+      (
+        self.template(TemplateId::WithLoading),
+        include_str!("runtime/module_chunk_loading_with_loading.ejs").to_string(),
+      ),
+    ]
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -101,39 +125,36 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     )));
 
     if with_loading || with_external_install_chunk {
-      source.add(RawStringSource::from(
-        include_str!("runtime/module_chunk_loading.js")
-          .cow_replace(
-            "$WITH_ON_CHUNK_LOAD$",
-            match with_on_chunk_load {
-              true => "__webpack_require__.O();",
-              false => "",
-            },
-          )
-          .into_owned(),
-      ));
+      let raw_source = compilation.runtime_template.render(
+        &self.template(TemplateId::Raw),
+        Some(serde_json::json!({
+          "_with_on_chunk_load": match with_on_chunk_load {
+            true => format!("{}();", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            false => "".to_string(),
+          },
+        })),
+      )?;
+
+      source.add(RawStringSource::from(raw_source));
     }
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        include_str!("runtime/module_chunk_loading_with_loading.js")
-          .cow_replace("$JS_MATCHER$", &has_js_matcher.render("chunkId"))
-          .cow_replace(
-            "$IMPORT_FUNCTION_NAME$",
-            &compilation.options.output.import_function_name,
-          )
-          .cow_replace("$OUTPUT_DIR$", &root_output_dir)
-          .cow_replace(
-            "$MATCH_FALLBACK$",
-            if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+        compilation.runtime_template.render(
+          &self.template(TemplateId::WithLoading),
+          Some(serde_json::json!({
+            "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_import_function_name":&compilation.options.output.import_function_name,
+            "_output_dir": &root_output_dir,
+            "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
               "else installedChunks[chunkId] = 0;\n"
             },
-          )
-          .into_owned()
+          })),
+        )?
       };
 
       source.add(RawStringSource::from(format!(
