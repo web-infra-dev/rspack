@@ -1,4 +1,4 @@
-const createHash = require("@rspack/core/dist/util/hash/xxhash64");
+const createHash = require("../../../lib/util/hash/xxhash64");
 const fs = require("fs");
 
 const h = url => {
