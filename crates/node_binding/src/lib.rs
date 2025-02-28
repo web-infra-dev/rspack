@@ -13,7 +13,9 @@ use std::sync::{Arc, Mutex};
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
-use rspack_core::{Compilation, CompilerId, ModuleIdentifier, PluginExt};
+use rspack_core::{
+  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
+};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
@@ -85,7 +87,9 @@ use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
 use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
+use rspack_util::fx_hash::FxDashMap;
 pub use runtime::*;
+use rustc_hash::FxHashMap;
 pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
@@ -112,6 +116,7 @@ pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
   compiler: Pin<Box<Compiler>>,
   state: CompilerState,
+  include_dependencies_map: FxDashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
 
 #[napi]
@@ -187,6 +192,7 @@ impl JsCompiler {
       compiler: Box::pin(Compiler::from(rspack)),
       state: CompilerState::init(),
       js_hooks_plugin,
+      include_dependencies_map: Default::default(),
     })
   }
 
