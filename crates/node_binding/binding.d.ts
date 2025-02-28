@@ -1410,6 +1410,7 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptions {
   type: string
+  maxGenerations?: number
 }
 
 export interface RawConsumeOptions {
