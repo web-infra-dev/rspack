@@ -234,3 +234,5 @@ diff_output
 
 # xcode trace
 *.trace
+
+packages/rspack-test-tools/tests/*-splitted
