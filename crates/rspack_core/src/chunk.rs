@@ -320,6 +320,9 @@ impl Chunk {
       });
     new_chunk.id_name_hints.extend(self.id_name_hints.clone());
     new_chunk.runtime = merge_runtime(&new_chunk.runtime, &self.runtime);
+    if new_chunk.filename_template.is_none() {
+      new_chunk.filename_template = self.filename_template.clone();
+    }
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
