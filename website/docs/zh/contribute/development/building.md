@@ -17,6 +17,6 @@ pnpm i
 ## 构建 Rspack
 
 - 执行 `cargo build` 编译 Rust 代码。
-- 执行 `pnpm run build:cli:debug` 编译 Node.js 和 Rust 代码。
+- 执行 `pnpm run build:cli:dev` 编译 Node.js 和 Rust 代码。
 
 被编译的二进制产物位于 `packages/rspack-cli/bin/rspack` 。
