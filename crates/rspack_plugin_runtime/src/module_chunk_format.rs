@@ -165,6 +165,16 @@ fn render_chunk(
         if loaded_chunks.contains(chunk_ukey) {
           continue;
         }
+
+        // Skip empty chunks (virtual chunks with no modules, like federation share chunks which are side effects for the runtime)
+        if compilation
+          .chunk_graph
+          .get_number_of_chunk_modules(chunk_ukey)
+          == 0
+        {
+          continue;
+        }
+
         loaded_chunks.insert(*chunk_ukey);
         let index = loaded_chunks.len();
         let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
