@@ -174,6 +174,16 @@ fn render_chunk(
         {
           continue;
         }
+        let chunkchild = compilation
+          .chunk_graph
+          .get_number_of_chunk_modules(chunk_ukey);
+
+        // Get the chunk to access its name/id
+        let chunk_for_debug = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let chunk_id = chunk_for_debug.expect_id(&compilation.chunk_ids_artifact);
+
+        dbg!(chunkchild);
+        dbg!(chunk_id);
 
         loaded_chunks.insert(*chunk_ukey);
         let index = loaded_chunks.len();
