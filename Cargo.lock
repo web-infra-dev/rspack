@@ -902,6 +902,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cooked-waker"
 version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1192,13 +1201,18 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.2.9"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
+checksum = "21d960ecacd0a1bf55e73144b72de745e7bf275c7952c50e36e8af0a0cb7ab1f"
 dependencies = [
- "quote",
- "syn 2.0.95",
+ "ctor-proc-macro",
 ]
+
+[[package]]
+name = "ctor-proc-macro"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c426d2ba3e525b39c1f0a9ba41b9fe61878dee11fa4e4a76b6ab440f46c5db5d"
 
 [[package]]
 name = "darling"
@@ -2748,7 +2762,7 @@ version = "1.0.0-alpha.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84c12744d1279367caed41739ef094c325d53fb0ffcd4f9b84a368796f870252"
 dependencies = [
- "convert_case",
+ "convert_case 0.6.0",
  "proc-macro2",
  "quote",
  "syn 1.0.109",
@@ -3050,9 +3064,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.0.0-alpha.24"
+version = "3.0.0-alpha.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5de0beff58a431b3bd6568b690bcf55d72d8dd7f8e0e613a0193a8a9a8eef26b"
+checksum = "b1911b4f0d33fbcb5f46ff68319ec053ab8a655f3a17440eae1246a23ba2ad78"
 dependencies = [
  "anyhow",
  "bitflags 2.6.0",
@@ -3066,17 +3080,17 @@ dependencies = [
 
 [[package]]
 name = "napi-build"
-version = "2.1.4"
+version = "2.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db836caddef23662b94e16bf1f26c40eceb09d6aee5d5b06a7ac199320b69b19"
+checksum = "40685973218af4aa4b42486652692c294c44b5a67e4b2202df721c9063f2e51c"
 
 [[package]]
 name = "napi-derive"
-version = "3.0.0-alpha.22"
+version = "3.0.0-alpha.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f5e3b98fb51282253a2fa9903ae62273c68d89d6f8f304876de30354e86e1e"
+checksum = "c8097918a9af1976700eac6944b120b65ad17bf6d38906703d2b68e17ee89256"
 dependencies = [
- "convert_case",
+ "convert_case 0.7.1",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -3085,11 +3099,11 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "2.0.0-alpha.22"
+version = "2.0.0-alpha.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a986ad1072af191e8e1e10a170644025f5b2ee28f2148f3acda818210960cc1a"
+checksum = "8e5adc92fcdec3aa09f591bd2b139d7c669399f34b8211fe653641b52d40d3b3"
 dependencies = [
- "convert_case",
+ "convert_case 0.7.1",
  "proc-macro2",
  "quote",
  "semver 1.0.24",
