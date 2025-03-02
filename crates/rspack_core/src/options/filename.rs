@@ -17,7 +17,7 @@ use rspack_util::atom::Atom;
 use rspack_util::ext::CowExt;
 use rspack_util::MergeFrom;
 
-use crate::replace_all_placeholder;
+use crate::ReplaceAllPlaceholder;
 use crate::{parse_resource, AssetInfo, PathData, ResourceParsedData};
 
 static FILE_PLACEHOLDER: &str = "[file]";
@@ -244,15 +244,14 @@ fn render_template(
         .unwrap_or("");
 
       t = t
-        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, PATH_PLACEHOLDER, ""))
-        .map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, replacer))
-        .map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, replacer))
+        .map(|t| t.replace_all(FILE_PLACEHOLDER, ""))
+        .map(|t| t.replace_all(QUERY_PLACEHOLDER, ""))
+        .map(|t| t.replace_all(FRAGMENT_PLACEHOLDER, ""))
+        .map(|t| t.replace_all(PATH_PLACEHOLDER, ""))
+        .map(|t| t.replace_all(BASE_PLACEHOLDER, replacer))
+        .map(|t| t.replace_all(NAME_PLACEHOLDER, replacer))
         .map(|t| {
-          replace_all_placeholder(
-            t,
+          t.replace_all(
             EXT_PLACEHOLDER,
             &ext.map(|ext| format!(".{ext}")).unwrap_or_default(),
           )
@@ -264,10 +263,9 @@ fn render_template(
     }) = parse_resource(filename)
     {
       t = t
-        .map(|t| replace_all_placeholder(t, FILE_PLACEHOLDER, file.as_str()))
+        .map(|t| t.replace_all(FILE_PLACEHOLDER, file.as_str()))
         .map(|t| {
-          replace_all_placeholder(
-            t,
+          t.replace_all(
             EXT_PLACEHOLDER,
             &file
               .extension()
@@ -277,15 +275,14 @@ fn render_template(
         });
 
       if let Some(base) = file.file_name() {
-        t = t.map(|t| replace_all_placeholder(t, BASE_PLACEHOLDER, base));
+        t = t.map(|t| t.replace_all(BASE_PLACEHOLDER, base));
       }
       if let Some(name) = file.file_stem() {
-        t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
+        t = t.map(|t| t.replace_all(NAME_PLACEHOLDER, name));
       }
       t = t
         .map(|t| {
-          replace_all_placeholder(
-            t,
+          t.replace_all(
             PATH_PLACEHOLDER,
             &file
               .parent()
@@ -295,15 +292,15 @@ fn render_template(
               .unwrap_or_default(),
           )
         })
-        .map(|t| replace_all_placeholder(t, QUERY_PLACEHOLDER, &query.unwrap_or_default()))
-        .map(|t| replace_all_placeholder(t, FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default()));
+        .map(|t| t.replace_all(QUERY_PLACEHOLDER, &query.unwrap_or_default()))
+        .map(|t| t.replace_all(FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default()));
     }
   }
   // compilation-level
   if let Some(hash) = options.hash {
     for key in [HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER] {
       t = t.map(|t| {
-        replace_all_placeholder(t, key, |len| {
+        t.replace_all_with_len(key, |len| {
           let hash = &hash[..hash_len(hash, len)];
           if let Some(asset_info) = asset_info.as_mut() {
             asset_info.set_immutable(Some(true));
@@ -316,11 +313,11 @@ fn render_template(
   }
   // shared by chunk-level and module-level
   if let Some(id) = options.id {
-    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, id));
+    t = t.map(|t| t.replace_all(ID_PLACEHOLDER, id));
   } else if let Some(chunk_id) = options.chunk_id {
-    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, chunk_id));
+    t = t.map(|t| t.replace_all(ID_PLACEHOLDER, chunk_id));
   } else if let Some(module_id) = options.module_id {
-    t = t.map(|t| replace_all_placeholder(t, ID_PLACEHOLDER, module_id));
+    t = t.map(|t| t.replace_all(ID_PLACEHOLDER, module_id));
   }
   if let Some(content_hash) = options.content_hash {
     if let Some(asset_info) = asset_info.as_mut() {
@@ -328,7 +325,7 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      replace_all_placeholder(t, CONTENT_HASH_PLACEHOLDER, |len| {
+      t.replace_all_with_len(CONTENT_HASH_PLACEHOLDER, |len| {
         let hash: &str = &content_hash[..hash_len(content_hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
@@ -340,11 +337,11 @@ fn render_template(
   }
   // chunk-level
   if let Some(name) = options.chunk_name {
-    t = t.map(|t| replace_all_placeholder(t, NAME_PLACEHOLDER, name));
+    t = t.map(|t| t.replace_all(NAME_PLACEHOLDER, name));
   }
   if let Some(hash) = options.chunk_hash {
     t = t.map(|t| {
-      replace_all_placeholder(t, CHUNK_HASH_PLACEHOLDER, |len| {
+      t.replace_all_with_len(CHUNK_HASH_PLACEHOLDER, |len| {
         let hash: &str = &hash[..hash_len(hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
@@ -355,9 +352,9 @@ fn render_template(
     });
   }
   // other things
-  t = t.map(|t| replace_all_placeholder(t, RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_")));
+  t = t.map(|t| t.replace_all(RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_")));
   if let Some(url) = options.url {
-    t = t.map(|t| replace_all_placeholder(t, URL_PLACEHOLDER, url));
+    t = t.map(|t| t.replace_all(URL_PLACEHOLDER, url));
   }
   t.into_owned()
 }
