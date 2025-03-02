@@ -341,7 +341,7 @@ fn render_template(
   }
   if let Some(hash) = options.chunk_hash {
     t = t.map(|t| {
-      t.replace_all(CHUNK_HASH_PLACEHOLDER, |len| {
+      t.replace_all_with_len(CHUNK_HASH_PLACEHOLDER, |len| {
         let hash: &str = &hash[..hash_len(hash, len)];
         if let Some(asset_info) = asset_info.as_mut() {
           asset_info.set_immutable(Some(true));
