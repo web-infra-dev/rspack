@@ -1,4 +1,5 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt};
+use rspack_util::atom::Atom;
 use swc_core::ecma::ast::{CallExpr, Expr, MemberExpr};
 use swc_core::{common::Spanned, ecma::ast::UnaryExpr};
 
@@ -175,6 +176,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("amd")]),
       ));
     }
 
@@ -185,6 +187,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("amd")]),
       ));
     }
 

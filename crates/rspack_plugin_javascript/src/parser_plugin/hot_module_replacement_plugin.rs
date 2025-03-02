@@ -132,6 +132,7 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("hot")]),
       ))
     } else {
       None
@@ -199,6 +200,7 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("webpackHot")]),
       ))
     } else {
       None

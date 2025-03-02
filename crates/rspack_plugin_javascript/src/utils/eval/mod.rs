@@ -623,12 +623,13 @@ pub fn evaluate_to_identifier(
   truthy: Option<bool>,
   start: u32,
   end: u32,
+  get_members: Option<Vec<Atom>>,
 ) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_identifier(
     identifier,
     ExportedVariableInfo::Name(root_info),
-    None,
+    get_members,
     None,
     None,
   );
