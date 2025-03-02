@@ -1006,8 +1006,15 @@ impl JavascriptParser<'_> {
               return;
             }
 
-            if drive
-              .call(self, expr, evaluated_callee.identifier())
+            // if drive
+            //   .call(self, expr, evaluated_callee.identifier())
+            //   .unwrap_or_default()
+
+            if evaluated_callee
+              .identifier()
+              .call_hooks_name(self, |parser, for_name| {
+                return drive.call(parser, expr, for_name);
+              })
               .unwrap_or_default()
             {
               /* result2 */
