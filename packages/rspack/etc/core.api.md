@@ -68,6 +68,7 @@ import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
+import { RawFlightClientEntryPluginOptions } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
 import { RawIgnorePluginOptions } from '@rspack/binding';
 import { RawOptions } from '@rspack/binding';
@@ -2230,6 +2231,20 @@ export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
 
 // @public
 export type FilterTypes = FilterItemTypes | FilterItemTypes[];
+
+// @public (undocumented)
+export const FlightClientEntryPlugin: {
+    new (options: RawFlightClientEntryPluginOptions): {
+        name: BuiltinPluginName;
+        _args: [options: RawFlightClientEntryPluginOptions];
+        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        raw(compiler: Compiler_2): BuiltinPlugin;
+        apply(compiler: Compiler_2): void;
+    };
+};
+
+// @public (undocumented)
+export type FlightClientEntryPluginOptions = RawFlightClientEntryPluginOptions;
 
 // @public
 export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
@@ -5339,6 +5354,7 @@ declare namespace rspackExports {
         EvalDevToolModulePluginOptions,
         CssExtractRspackLoaderOptions,
         CssExtractRspackPluginOptions,
+        FlightClientEntryPluginOptions,
         HtmlRspackPlugin,
         SwcJsMinimizerRspackPlugin,
         LightningCssMinimizerRspackPlugin,
@@ -5348,6 +5364,7 @@ declare namespace rspackExports {
         EvalDevToolModulePlugin,
         CssExtractRspackPlugin,
         ContextReplacementPlugin,
+        FlightClientEntryPlugin,
         SwcLoaderEnvConfig,
         SwcLoaderEsParserConfig,
         SwcLoaderJscConfig,
