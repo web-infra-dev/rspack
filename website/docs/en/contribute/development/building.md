@@ -17,6 +17,6 @@ pnpm i
 ## Building Rspack
 
 - Run `cargo build` to compile Rust code.
-- Run `pnpm run build:cli:debug` to compile both Node.js and Rust code.
+- Run `pnpm run build:cli:dev` to compile both Node.js and Rust code.
 
 The built binary is located at `packages/rspack-cli/bin/rspack`.
