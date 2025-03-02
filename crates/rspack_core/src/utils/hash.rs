@@ -140,7 +140,7 @@ pub trait ReplaceAllPlaceholder {
 impl ReplaceAllPlaceholder for str {
   #[inline]
   fn replace_all<'a>(&'a self, placeholder: &'a str, replacer: impl Replacer) -> Cow<'a, str> {
-    replace_all_placeholder_impl(&self, false, placeholder, replacer)
+    replace_all_placeholder_impl(self, false, placeholder, replacer)
   }
 
   #[inline]
@@ -149,7 +149,7 @@ impl ReplaceAllPlaceholder for str {
     placeholder: &'a str,
     replacer: impl Replacer,
   ) -> Cow<'a, str> {
-    replace_all_placeholder_impl(&self, true, placeholder, replacer)
+    replace_all_placeholder_impl(self, true, placeholder, replacer)
   }
 }
 
