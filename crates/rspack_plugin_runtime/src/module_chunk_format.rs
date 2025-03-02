@@ -19,7 +19,8 @@ use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
 use crate::{
-  get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  chunk_has_js, get_all_chunks, get_chunk_output_name, get_relative_path,
+  get_runtime_chunk_output_name,
 };
 
 const PLUGIN_NAME: &str = "rspack.ModuleChunkFormatPlugin";
@@ -99,6 +100,11 @@ fn render_chunk(
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
 ) -> Result<()> {
+  // Skip processing if the chunk doesn't have any JavaScript
+  if !chunk_has_js(chunk_ukey, compilation) {
+    return Ok(());
+  }
+
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation)?;
@@ -162,6 +168,10 @@ fn render_chunk(
       );
 
       for chunk_ukey in chunks.iter() {
+        // Skip processing if the chunk doesn't have any JavaScript
+        if !chunk_has_js(chunk_ukey, compilation) {
+          continue;
+        }
         if loaded_chunks.contains(chunk_ukey) {
           continue;
         }
