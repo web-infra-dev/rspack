@@ -327,6 +327,11 @@ export class Module {
 				enumerable: true,
 				get(): string | undefined {
 					return module.matchResource;
+				},
+				set(val: string | undefined) {
+					if (val) {
+						module.matchResource = val;
+					}
 				}
 			}
 		});
