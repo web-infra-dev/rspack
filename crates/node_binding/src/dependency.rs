@@ -2,7 +2,7 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{bindgen_prelude::ToNapiValue, Either, Env, JsString};
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, Dependency, DependencyId};
+use rspack_core::{Compilation, CompilationId, DependencyId};
 use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -10,24 +10,26 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-// JsDependency allows JS-side access to a Dependency instance that has already
+// allows JS-side access to a Dependency instance that has already
 // been processed and stored in the Compilation.
 #[napi]
-pub struct JsDependency {
+pub struct Dependency {
   pub(crate) compilation: Option<NonNull<Compilation>>,
   pub(crate) dependency_id: DependencyId,
-  pub(crate) dependency: NonNull<dyn Dependency>,
+  pub(crate) dependency: NonNull<dyn rspack_core::Dependency>,
 }
 
-impl JsDependency {
-  fn as_ref(&mut self) -> napi::Result<(&dyn Dependency, Option<&Compilation>)> {
+impl Dependency {
+  fn as_ref(&mut self) -> napi::Result<(&dyn rspack_core::Dependency, Option<&Compilation>)> {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
       if let Some(dependency) = module_graph.dependency_by_id(&self.dependency_id) {
         self.dependency = {
           #[allow(clippy::unwrap_used)]
-          NonNull::new(dependency.as_ref() as *const dyn Dependency as *mut dyn Dependency).unwrap()
+          NonNull::new(dependency.as_ref() as *const dyn rspack_core::Dependency
+            as *mut dyn rspack_core::Dependency)
+          .unwrap()
         };
         Ok((unsafe { self.dependency.as_ref() }, Some(compilation)))
       } else {
@@ -44,7 +46,7 @@ impl JsDependency {
     }
   }
 
-  fn as_mut(&mut self) -> napi::Result<&mut dyn Dependency> {
+  fn as_mut(&mut self) -> napi::Result<&mut dyn rspack_core::Dependency> {
     // SAFETY:
     // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
     // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
@@ -53,7 +55,7 @@ impl JsDependency {
 }
 
 #[napi]
-impl JsDependency {
+impl Dependency {
   #[napi(getter)]
   pub fn get_type(&mut self) -> napi::Result<&str> {
     let (dependency, _) = self.as_ref()?;
@@ -140,7 +142,7 @@ impl JsDependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<JsDependency>>;
+type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<Dependency>>;
 
 type DependencyInstanceRefsByCompilationId =
   RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
@@ -149,16 +151,16 @@ thread_local! {
   static DEPENDENCY_INSTANCE_REFS: DependencyInstanceRefsByCompilationId = Default::default();
 }
 
-pub struct JsDependencyWrapper {
+pub struct DependencyWrapper {
   dependency_id: DependencyId,
-  dependency: NonNull<dyn Dependency>,
+  dependency: NonNull<dyn rspack_core::Dependency>,
   compilation_id: CompilationId,
   compilation: Option<NonNull<Compilation>>,
 }
 
-impl JsDependencyWrapper {
+impl DependencyWrapper {
   pub fn new(
-    dependency: &dyn Dependency,
+    dependency: &dyn rspack_core::Dependency,
     compilation_id: CompilationId,
     compilation: Option<&Compilation>,
   ) -> Self {
@@ -167,7 +169,10 @@ impl JsDependencyWrapper {
     #[allow(clippy::unwrap_used)]
     Self {
       dependency_id,
-      dependency: NonNull::new(dependency as *const dyn Dependency as *mut dyn Dependency).unwrap(),
+      dependency: NonNull::new(
+        dependency as *const dyn rspack_core::Dependency as *mut dyn rspack_core::Dependency,
+      )
+      .unwrap(),
       compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
@@ -182,7 +187,7 @@ impl JsDependencyWrapper {
   }
 }
 
-impl ToNapiValue for JsDependencyWrapper {
+impl ToNapiValue for DependencyWrapper {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
     val: Self,
@@ -208,7 +213,7 @@ impl ToNapiValue for JsDependencyWrapper {
           ToNapiValue::to_napi_value(env, r)
         }
         std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-          let js_dependency = JsDependency {
+          let js_dependency = Dependency {
             compilation: val.compilation,
             dependency_id: val.dependency_id,
             dependency: val.dependency,
@@ -219,9 +224,4 @@ impl ToNapiValue for JsDependencyWrapper {
       }
     })
   }
-}
-
-#[napi(object)]
-pub struct RawDependency {
-  pub request: String,
 }

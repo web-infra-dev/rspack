@@ -18,6 +18,12 @@ impl ProcessRuntimeRequirementsOccasion {
     Self { storage }
   }
 
+  pub fn begin_idle(&self) {
+    if let Some(s) = &self.storage {
+      s.begin_idle();
+    }
+  }
+
   // #[tracing::instrument(skip_all, fields(module = ?module))]
   pub fn use_cache(
     &self,
