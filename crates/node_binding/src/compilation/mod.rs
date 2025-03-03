@@ -776,7 +776,7 @@ impl JsCompilation {
                 JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
               Either::B(js_module)
             }
-            None => Either::A(format!("build failed with unknown error")),
+            None => Either::A("build failed with unknown error".to_string()),
           }
         })
         .collect::<Vec<Either<String, JsModuleWrapper>>>();
