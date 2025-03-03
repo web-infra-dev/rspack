@@ -2953,9 +2953,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc-rspack"
-version = "0.2.2"
+version = "0.2.3-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a20c79e2af9969e00c35087512ea1d35b11b728b4f0448c595822247f33adcf"
+checksum = "92adcff8fb05d665068ae7fbab197804ed828467d6e6d6c04235615ab2429855"
 dependencies = [
  "rspack-libmimalloc-sys",
 ]
@@ -4194,9 +4194,9 @@ dependencies = [
 
 [[package]]
 name = "rspack-libmimalloc-sys"
-version = "0.2.2"
+version = "0.2.3-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8b968dfa086e029c06fd926d1db4c8a40d08c28edd4b23ecddab5eb73baacbc"
+checksum = "4b656d1a2d8267d4924922633fe83ac249db9ef109c7281492b1eb1493632ba2"
 dependencies = [
  "cc",
  "libc",
