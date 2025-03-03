@@ -736,6 +736,7 @@ impl JsCompilation {
         let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
           && let Some(dependency) = map.get(&options)
         {
+          js_dependency.dependency_id = Some(*dependency.id());
           dependency.clone()
         } else {
           let dependency = js_dependency.resolve(js_context.into(), layer)?;
