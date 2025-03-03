@@ -1264,7 +1264,7 @@ class AddIncludeDispatcher {
 				const cb = cbs[i];
 				cb(
 					errMsg ? new WebpackError(errMsg) : null,
-					Module.__from_binding(moduleBinding)
+					moduleBinding ? Module.__from_binding(moduleBinding) : undefined
 				);
 			}
 		});
