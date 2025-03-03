@@ -184,6 +184,10 @@ jobs:
             echo "finish run $SUITE"
           fi
           echo "{\"conclusion\":\"$CONCLUSION\"}" >> "$RSPACK_DIR/$SUITE.json"
+
+      - name: Check package.json
+        run:  find  workspace  -maxdepth 4  -name package.json -exec cat {} \;
+
       - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
