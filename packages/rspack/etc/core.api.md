@@ -851,7 +851,7 @@ export class Compilation {
     startTime?: number;
     // (undocumented)
     unseal(): void;
-    updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
+    updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void;
     // (undocumented)
     get warnings(): RspackError[];
     set warnings(warnings: RspackError[]);
