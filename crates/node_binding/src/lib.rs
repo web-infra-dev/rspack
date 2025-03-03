@@ -342,10 +342,17 @@ fn init() {
   panic::install_panic_handler();
   // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
   const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
+  // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
+  // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
+  let default_blocking_threads = if std::env::consts::OS == "macos" {
+    8
+  } else {
+    512
+  };
   let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
     .ok()
     .and_then(|v| v.parse::<usize>().ok())
-    .unwrap_or(8);
+    .unwrap_or(default_blocking_threads);
   let rt = tokio::runtime::Builder::new_multi_thread()
     .max_blocking_threads(blocking_threads)
     .enable_all()
