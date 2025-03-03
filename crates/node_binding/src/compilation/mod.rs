@@ -80,14 +80,16 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
   pub fn update_asset(
     &mut self,
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<Either<AssetInfo, Function<'_, AssetInfo, AssetInfo>>>,
+    asset_info_update_or_function: Option<
+      Either<AssetInfo, Function<'_, AssetInfo, Option<AssetInfo>>>,
+    >,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -110,9 +112,12 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => {
-                Ok(asset_info_fn.call(original_info.clone().into())?.into())
-              }
+              Either::B(asset_info_fn) => Ok(
+                asset_info_fn
+                  .call(original_info.clone().into())?
+                  .map(Into::into)
+                  .unwrap_or_default(),
+              ),
             },
           )
           .transpose();
