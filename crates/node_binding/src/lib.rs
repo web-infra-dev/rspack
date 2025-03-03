@@ -340,8 +340,14 @@ enum TraceState {
 #[ctor]
 fn init() {
   panic::install_panic_handler();
+  // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
+  const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
+  let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
+    .ok()
+    .and_then(|v| v.parse::<usize>().ok())
+    .unwrap_or(8);
   let rt = tokio::runtime::Builder::new_multi_thread()
-    .max_blocking_threads(8)
+    .max_blocking_threads(blocking_threads)
     .enable_all()
     .build()
     .expect("Create tokio runtime failed");
