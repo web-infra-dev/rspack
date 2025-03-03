@@ -91,7 +91,7 @@ jobs:
           fetch-depth: 1
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

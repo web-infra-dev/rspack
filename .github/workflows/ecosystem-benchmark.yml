@@ -102,7 +102,7 @@ jobs:
         run: ls -lah crates/node_binding/*.node
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Build JS
         run: pnpm run build:js

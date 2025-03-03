@@ -66,7 +66,7 @@ jobs:
 
       - name: Pnpm Setup
         if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
         with:
           run-install: ${{ inputs.full-install == 'true' }}
 
@@ -235,7 +235,7 @@ jobs:
           link-when-local: true
 
       - name: Setup Pnpm
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: 20
 
@@ -304,7 +304,7 @@ jobs:
 
       - name: Setup Pnpm
         if: ${{ !inputs.skipable }}
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
         with:
           node-version: ${{ matrix.node }}
           save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
@@ -424,7 +424,7 @@ jobs:
         run: ls -lah crates/node_binding/*.node
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Build JS
         run: pnpm run build:js

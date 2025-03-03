@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

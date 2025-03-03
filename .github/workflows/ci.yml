@@ -139,7 +139,7 @@ jobs:
               - '**/*.{ts,js,mjs,tsx,jsx}'
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
@@ -161,7 +161,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
 
       - name: Run
         run: |
@@ -197,7 +197,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
         with:
           frozen-lockfile: true
 
@@ -217,7 +217,7 @@ jobs:
           shared-key: check
 
       - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+        uses: ./.github/actions/pnpm-setup
         with:
           run-install: false
 
