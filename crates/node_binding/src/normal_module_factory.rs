@@ -16,6 +16,7 @@ pub struct JsBeforeResolveArgs {
   pub request: String,
   pub context: String,
   pub issuer: String,
+  pub issuer_layer: Option<String>,
 }
 
 pub type JsBeforeResolveOutput = (Option<bool>, JsBeforeResolveArgs);
@@ -25,6 +26,7 @@ pub struct JsFactorizeArgs {
   pub request: String,
   pub context: String,
   pub issuer: String,
+  pub issuer_layer: Option<String>,
 }
 
 pub type JsFactorizeOutput = JsFactorizeArgs;
@@ -34,6 +36,7 @@ pub struct JsResolveArgs {
   pub request: String,
   pub context: String,
   pub issuer: String,
+  pub issuer_layer: Option<String>,
 }
 
 pub type JsResolveOutput = JsResolveArgs;
@@ -50,6 +53,7 @@ pub struct JsAfterResolveData {
   pub request: String,
   pub context: String,
   pub issuer: String,
+  pub issuer_layer: Option<String>,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,

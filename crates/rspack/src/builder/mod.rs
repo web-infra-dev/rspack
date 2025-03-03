@@ -916,7 +916,9 @@ impl CompilerOptionsBuilder {
     let bail = d!(self.bail.take(), false);
     let cache = d!(self.cache.take(), {
       if development {
-        CacheOptions::Memory
+        CacheOptions::Memory {
+          max_generations: None,
+        }
       } else {
         CacheOptions::Disabled
       }

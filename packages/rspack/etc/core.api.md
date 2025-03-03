@@ -18,6 +18,8 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
+import { Dependency } from '@rspack/binding';
+import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -43,7 +45,6 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import type { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -989,7 +990,10 @@ export class Compiler {
     // (undocumented)
     rspack: typeof rspack;
     // (undocumented)
-    run(callback: liteTapable.Callback<Error, Stats>): void;
+    run(callback: liteTapable.Callback<Error, Stats>, options?: {
+        modifiedFiles?: ReadonlySet<string>;
+        removedFiles?: ReadonlySet<string>;
+    }): void;
     // (undocumented)
     runAsChild(callback: (err?: null | Error, entries?: Chunk[], compilation?: Compilation) => any): void;
     // (undocumented)
@@ -1173,7 +1177,7 @@ export type Context = string;
 // @public (undocumented)
 type ContextInfo = {
     issuer: string;
-    issuerLayer?: string;
+    issuerLayer?: string | null;
 };
 
 // @public (undocumented)
@@ -1406,23 +1410,7 @@ class DependenciesBlock {
     readonly dependencies: Dependency[];
 }
 
-// @public (undocumented)
-class Dependency {
-    // (undocumented)
-    static __from_binding(binding: JsDependency): Dependency;
-    // (undocumented)
-    static __to_binding(data: Dependency): JsDependency;
-    // (undocumented)
-    readonly category: string;
-    // (undocumented)
-    critical: boolean;
-    // (undocumented)
-    get ids(): string[] | undefined;
-    // (undocumented)
-    readonly request: string | undefined;
-    // (undocumented)
-    readonly type: string;
-}
+export { Dependency }
 
 // @public (undocumented)
 type DependencyLocation = any;
@@ -1715,11 +1703,7 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
-}
+export { EntryDependency }
 
 // @public
 export type EntryDependOn = string | string[];
@@ -3838,6 +3822,8 @@ class ModuleGraph {
     // (undocumented)
     getOutgoingConnections(module: Module): ModuleGraphConnection[];
     // (undocumented)
+    getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[];
+    // (undocumented)
     getParentBlockIndex(dependency: Dependency): number;
     // (undocumented)
     getParentModule(dependency: Dependency): Module | null;
@@ -3927,7 +3913,10 @@ export class MultiCompiler {
     // (undocumented)
     purgeInputFileSystem(): void;
     // (undocumented)
-    run(callback: liteTapable.Callback<Error, MultiStats>): void;
+    run(callback: liteTapable.Callback<Error, MultiStats>, options?: {
+        modifiedFiles?: ReadonlySet<string>;
+        removedFiles?: ReadonlySet<string>;
+    }): void;
     // (undocumented)
     running: boolean;
     // (undocumented)
@@ -5260,6 +5249,8 @@ declare namespace rspackExports {
         StatsModule,
         Stats,
         RuntimeModule,
+        EntryDependency,
+        Dependency,
         ModuleFilenameHelpers,
         Template,
         WebpackError,

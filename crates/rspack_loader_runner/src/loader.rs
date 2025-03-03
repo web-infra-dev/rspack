@@ -14,7 +14,7 @@ use regex::Regex;
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::LoaderContext;
@@ -60,6 +60,21 @@ impl<C> LoaderItem<C> {
   #[inline]
   pub fn request(&self) -> Identifier {
     self.request
+  }
+
+  #[inline]
+  pub fn path(&self) -> &Utf8Path {
+    &self.path
+  }
+
+  #[inline]
+  pub fn query(&self) -> Option<&str> {
+    self.query.as_deref()
+  }
+
+  #[inline]
+  pub fn fragment(&self) -> Option<&str> {
+    self.fragment.as_deref()
   }
 
   #[inline]

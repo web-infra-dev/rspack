@@ -86,6 +86,6 @@ runs:
 
     - name: Cache on ${{ github.ref_name }}
       uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2
-      if: ${{ startsWith(runner.name, 'GitHub Actions') }}
+      if: ${{ runner.environment == 'github-hosted' }}
       with:
         shared-key: ${{ inputs.shared-key }}
