@@ -1,6 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`new code splitting stats output new code splitting stats output/auxiliary-files-test should print correct stats for: NewCodeSplittingStatsOutput 1`] = `
+(node:74667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use \`node --trace-warnings ...\` to show where the warning was created)
 PublicPath: auto
 asset bundle.js xx KiB {909} [emitted] (name: main)
 asset 98396dbfd5c74c34.png 7 bytes ({909}) [emitted] [immutable] [from: raw.png] (auxiliary name: main)
