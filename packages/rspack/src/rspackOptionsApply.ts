@@ -50,6 +50,7 @@ import {
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
 	ModuleConcatenationPlugin,
+	ModuleInfoHeaderPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
 	NaturalChunkIdsPlugin,
@@ -67,7 +68,6 @@ import {
 	SplitChunksPlugin,
 	WorkerPlugin
 } from "./builtin-plugin";
-import { ModuleInfoHeaderPlugin } from "./builtin-plugin/ModuleInfoHeaderPluging";
 import EntryOptionPlugin from "./lib/EntryOptionPlugin";
 import IgnoreWarningsPlugin from "./lib/IgnoreWarningsPlugin";
 import MemoryCachePlugin from "./lib/cache/MemoryCachePlugin";
@@ -133,7 +133,9 @@ export class RspackOptionsApply {
 		new ChunkPrefetchPreloadPlugin().apply(compiler);
 
 		if (options.output.pathinfo) {
-			new ModuleInfoHeaderPlugin().apply(compiler);
+			new ModuleInfoHeaderPlugin(options.output.pathinfo === "verbose").apply(
+				compiler
+			);
 		}
 
 		if (typeof options.output.chunkFormat === "string") {

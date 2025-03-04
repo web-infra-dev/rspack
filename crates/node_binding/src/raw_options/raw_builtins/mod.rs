@@ -576,7 +576,8 @@ impl BuiltinPlugin {
         plugins.push(SubresourceIntegrityPlugin::new(options).boxed());
       }
       BuiltinPluginName::ModuleInfoHeaderPlugin => {
-        plugins.push(ModuleInfoHeaderPlugin::default().boxed());
+        let verbose = downcast_into::<bool>(self.options)?;
+        plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
     }
     Ok(())

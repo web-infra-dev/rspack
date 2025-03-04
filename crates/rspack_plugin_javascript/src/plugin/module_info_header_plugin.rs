@@ -144,6 +144,10 @@ fn print_exports_info_to_source<F>(
 }
 
 impl ModuleInfoHeaderPlugin {
+  pub fn new(verbose: bool) -> ModuleInfoHeaderPlugin {
+    Self::new_inner(verbose)
+  }
+
   pub fn generate_header(module: &BoxModule, compilation: &Compilation) -> String {
     let req = module.readable_identifier(&compilation.options.context);
     let req = COMMENT_END_REGEX.replace_all(&req, "*_/");
@@ -160,8 +164,6 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  println!("here? ModuleInfoHeaderPlugin");
-
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   hooks
     .render_module_package
