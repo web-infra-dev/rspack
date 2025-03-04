@@ -233,6 +233,7 @@ pub fn render_module(
 
     hooks.render_module_package.call(
       compilation,
+      chunk_ukey,
       module,
       &mut post_module_package,
       &mut module_chunk_init_fragments,
@@ -243,6 +244,7 @@ pub fn render_module(
   } else {
     hooks.render_module_package.call(
       compilation,
+      chunk_ukey,
       module,
       &mut render_source,
       &mut module_chunk_init_fragments,
