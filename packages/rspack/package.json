@@ -62,7 +62,7 @@
     "json-parse-even-better-errors": "^3.0.2",
     "prebundle": "^1.2.7",
     "tsc-alias": "^1.8.11",
-    "tsup": "^8.3.6",
+    "tsup": "^8.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.7.3",
     "watchpack": "^2.4.2",
