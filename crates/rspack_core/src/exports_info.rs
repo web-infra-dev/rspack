@@ -135,7 +135,7 @@ impl ExportsInfo {
   }
 
   /// # Panic
-  /// it will panic if you provide a export info that does not exists in the module graph  
+  /// it will panic if you provide a export info that does not exists in the module graph
   pub fn set_has_provide_info(&self, mg: &mut ModuleGraph) {
     let exports_info = mg.get_exports_info_by_id(self);
     let redirect_id = exports_info.redirect_to;
@@ -948,6 +948,31 @@ impl ExportInfo {
     }
   }
 
+  pub fn get_rename_info(&self, mg: &ModuleGraph) -> Cow<str> {
+    let export_info_data = self.as_export_info(mg);
+
+    match (&export_info_data.used_name, &export_info_data.name) {
+      (Some(used), Some(name)) if used != name => return format!("renamed to {used}").into(),
+      (Some(used), None) => return format!("renamed to {used}").into(),
+      _ => {}
+    }
+
+    match (self.can_mangle_provide(mg), self.can_mangle_use(mg)) {
+      (None, None) => "missing provision and use info prevents renaming",
+      (None, Some(false)) => "usage prevents renaming (no provision info)",
+      (None, Some(true)) => "missing provision info prevents renaming",
+
+      (Some(true), None) => "missing usage info prevents renaming",
+      (Some(true), Some(false)) => "usage prevents renaming",
+      (Some(true), Some(true)) => "could be renamed",
+
+      (Some(false), None) => "provision prevents renaming (no use info)",
+      (Some(false), Some(false)) => "usage and provision prevents renaming",
+      (Some(false), Some(true)) => "provision prevents renaming",
+    }
+    .into()
+  }
+
   pub fn get_used_info(&self, mg: &ModuleGraph) -> Cow<str> {
     let export_info = self.as_export_info(mg);
     if let Some(global_used) = export_info.global_used {
@@ -1486,7 +1511,7 @@ pub struct ExportInfoData {
 pub enum ExportInfoProvided {
   True,
   False,
-  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830  
+  /// `Null` has real semantic in webpack https://github.com/webpack/webpack/blob/853bfda35a0080605c09e1bdeb0103bcb9367a10/lib/ExportsInfo.js#L830
   Null,
 }
 

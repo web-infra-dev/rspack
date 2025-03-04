@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::sync::Arc;
 use std::{any::Any, borrow::Cow, fmt::Debug};
@@ -109,6 +109,20 @@ pub enum BuildMetaExportsType {
   Namespace,
   Flagged,
   Dynamic,
+}
+
+impl Display for BuildMetaExportsType {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    let d = match self {
+      BuildMetaExportsType::Unset => "unknown exports (runtime-defined)",
+      BuildMetaExportsType::Default => "default exports",
+      BuildMetaExportsType::Namespace => "namespace exports",
+      BuildMetaExportsType::Flagged => "flagged exports",
+      BuildMetaExportsType::Dynamic => "dynamic exports",
+    };
+
+    f.write_str(d)
+  }
 }
 
 #[derive(Debug, Clone, Copy, Hash)]

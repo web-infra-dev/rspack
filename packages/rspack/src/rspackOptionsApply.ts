@@ -50,6 +50,7 @@ import {
 	MergeDuplicateChunksPlugin,
 	ModuleChunkFormatPlugin,
 	ModuleConcatenationPlugin,
+	ModuleInfoHeaderPlugin,
 	NamedChunkIdsPlugin,
 	NamedModuleIdsPlugin,
 	NaturalChunkIdsPlugin,
@@ -130,6 +131,12 @@ export class RspackOptionsApply {
 		}
 
 		new ChunkPrefetchPreloadPlugin().apply(compiler);
+
+		if (options.output.pathinfo) {
+			new ModuleInfoHeaderPlugin(options.output.pathinfo === "verbose").apply(
+				compiler
+			);
+		}
 
 		if (typeof options.output.chunkFormat === "string") {
 			switch (options.output.chunkFormat) {

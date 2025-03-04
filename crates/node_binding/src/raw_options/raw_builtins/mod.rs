@@ -54,7 +54,7 @@ use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
   api_plugin::APIPlugin, define_plugin::DefinePlugin, provide_plugin::ProvidePlugin,
   FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin, JsPlugin,
-  MangleExportsPlugin, ModuleConcatenationPlugin, SideEffectsFlagPlugin,
+  MangleExportsPlugin, ModuleConcatenationPlugin, ModuleInfoHeaderPlugin, SideEffectsFlagPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -196,13 +196,14 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  SubresourceIntegrityPlugin,
   RsdoctorPlugin,
 
   // rspack js adapter plugins
   // naming format follow XxxRspackPlugin
   JsLoaderRspackPlugin,
   LazyCompilationPlugin,
-  SubresourceIntegrityPlugin,
+  ModuleInfoHeaderPlugin,
 }
 
 #[napi(object)]
@@ -573,6 +574,10 @@ impl BuiltinPlugin {
         let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)?;
         let options = raw_options.into();
         plugins.push(SubresourceIntegrityPlugin::new(options).boxed());
+      }
+      BuiltinPluginName::ModuleInfoHeaderPlugin => {
+        let verbose = downcast_into::<bool>(self.options)?;
+        plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
     }
     Ok(())
