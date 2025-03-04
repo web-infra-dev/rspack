@@ -55,6 +55,7 @@ const coreTeam: Member[] = [
     id: 'hardfist',
     avatar: 'https://avatars.githubusercontent.com/u/8898718?s=120&v=4',
     x: 'https://x.com/hardfist_1',
+    bluesky: 'https://bsky.app/profile/hardfist1.bsky.social',
     desc: 'Rspack core team',
   },
   {
@@ -197,7 +198,7 @@ const coreTeam: Member[] = [
   },
   {
     id: 'stormslowly',
-    avatar: 'https://avatars.githubusercontent.com/u/415655',
+    avatar: 'https://avatars.githubusercontent.com/u/415655?v=4',
     desc: 'Rspack core team',
   },
 ];
