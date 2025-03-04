@@ -165,10 +165,9 @@ where
     && compilation
       .incremental
       .can_read_mutations(IncrementalPasses::BUILD_CHUNK_GRAPH);
-  // let no_change = compilation
-  //   .code_splitting_cache
-  //   .can_skip_rebuilding(compilation);
-  let no_change = false;
+  let no_change = compilation
+    .code_splitting_cache
+    .can_skip_rebuilding(compilation);
 
   if incremental_code_splitting || no_change {
     let cache = &mut compilation.code_splitting_cache;
