@@ -8,15 +8,15 @@ function v(name) {
 	return path.join(__dirname, `new-incremental ${name}`);
 }
 
-// Run tests rspack-test-tools/tests/hotCases in target webworker
+// Run tests rspack-test-tools/tests/hotCases in target async-node
 describeByWalk(
-	v("hot webworker"),
+	v("hot async-node"),
 	(name, src, dist) => {
-		createHotNewIncrementalCase(name, src, dist, "webworker", "jsdom");
+		createHotNewIncrementalCase(name, src, dist, "async-node", "jsdom");
 	},
 	{
 		source: path.resolve(__dirname, "./hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/hot-worker`),
+		dist: path.resolve(__dirname, `./js/new-incremental/hot-async-node`),
 		exclude: [/^css$/]
 	}
 );
