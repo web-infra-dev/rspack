@@ -21,13 +21,14 @@ npx rspack -h
 
 Rspack CLI 提供了一些公共选项，可以用于所有命令：
 
-| 选项                 | 描述                                                                 |
-| -------------------- | -------------------------------------------------------------------- |
-| -c, --config [value] | 指定配置文件路径，详见 [指定配置文件](/config/index#指定配置文件)    |
-| --configLoader       | 指定配置文件加载器，可以是 `native` 或 `register`，默认是 `register` |
-| --configName         | 指定配置文件名称                                                     |
-| -h, --help           | 显示帮助信息                                                         |
-| -v, --version        | 显示版本号                                                           |
+| 选项                 | 描述                                                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| -c, --config [value] | 指定配置文件路径，详见 [指定配置文件](/config/index#指定配置文件)                                                           |
+| --configLoader       | 指定配置文件加载器，可以是 `native` 或 `register`，默认是 `register`                                                        |
+| --configName         | 指定配置文件名称                                                                                                            |
+| --nodeEnv            | 设置 `process.env.NODE_ENV` 的值，`rspack dev` 默认是 `development`，`rspack build` 和 `rspack preview` 默认是 `production` |
+| -h, --help           | 显示帮助信息                                                                                                                |
+| -v, --version        | 显示版本号                                                                                                                  |
 
 :::tip
 Rspack CLI 的所有选项都支持使用 `camelCase`（驼峰命名）和 `kebab-case`（短横线命名），例如 `--configLoader` 和 `--config-loader` 都是有效的。
@@ -64,7 +65,6 @@ Options:
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-      --nodeEnv     sets process.env.NODE_ENV to be specified value    [string]
   -d, --devtool      devtool                          [boolean] [default: false]
       --analyze      analyze                          [boolean] [default: false]
       --json         emit stats json
@@ -104,7 +104,6 @@ Options:
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-      --nodeEnv      sets process.env.NODE_ENV to be specified value    [string]
   -d, --devtool      devtool                          [boolean] [default: false]
       --hot          enables hot module replacement
       --port         allows to specify a port to use                    [number]
