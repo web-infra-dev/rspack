@@ -74,12 +74,14 @@ fn print_exports_info_to_source<F>(
 
     let target_desc = match export_info.get_target(module_graph) {
       Some(resolve_target) => {
-        let from = resolve_target.module.to_string();
-        let to = match resolve_target.export {
-          None => "",
-          Some(es) => &es.iter().map(|a| a.as_str()).collect::<Vec<_>>().join("."),
-        };
-        format!("{from} -> {to}")
+        let target_module = request_shortener(&resolve_target.module);
+        match resolve_target.export {
+          None => format!("-> {}", target_module),
+          Some(es) => {
+            let exp = es.iter().map(|a| a.as_str()).collect::<Vec<_>>().join(".");
+            format!(" -> {target_module} {exp}")
+          }
+        }
       }
       None => "".into(),
     };
