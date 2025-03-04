@@ -6540,8 +6540,6 @@ export const rspackOptions: z.ZodObject<{
             test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
         }, "strip", z.ZodTypeAny, {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6557,10 +6555,10 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         }, {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6576,6 +6574,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
         outputModule: z.ZodOptional<z.ZodBoolean>;
@@ -6680,8 +6680,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6697,6 +6695,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -6748,8 +6748,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6765,6 +6763,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -8734,8 +8734,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -8751,6 +8749,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -9345,8 +9345,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -9362,6 +9360,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
