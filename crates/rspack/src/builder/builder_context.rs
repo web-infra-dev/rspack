@@ -282,8 +282,8 @@ impl BuilderContext {
       BuiltinPluginOptions::RealContentHashPlugin => {
         plugins.push(rspack_plugin_real_content_hash::RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginOptions::ModuleInfoHeaderPlugin(_verbose) => {
-        plugins.push(rspack_plugin_javascript::ModuleInfoHeaderPlugin::default().boxed())
+      BuiltinPluginOptions::ModuleInfoHeaderPlugin(verbose) => {
+        plugins.push(rspack_plugin_javascript::ModuleInfoHeaderPlugin::new(verbose).boxed())
       }
 
       // Module and chunk ID plugins
