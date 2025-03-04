@@ -122,7 +122,7 @@ fn print_exports_info_to_source<F>(
       )
       || other_exports_info.get_used(module_graph, None) != UsageState::Unused
     {
-      let title = if printed_exports.len() > 0 || already_printed_exports > 0 {
+      let title = if !printed_exports.is_empty() || already_printed_exports > 0 {
         "other exports"
       } else {
         "exports"
@@ -244,7 +244,7 @@ fn render_module_package(
       let reqs = {
         let mut rr = runtime_requirements
           .iter()
-          .map(|v| format!("{}", v.name()))
+          .map(|v| v.name().to_string())
           .collect::<Vec<_>>();
         rr.sort_by(|a, b| b.cmp(a));
         rr.join(", ")
