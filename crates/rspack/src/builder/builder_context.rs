@@ -68,7 +68,6 @@ pub(super) enum BuiltinPluginOptions {
 
   // Output plugins
   EnableLibraryPlugin(LibraryType),
-  ModuleInfoHeaderPlugin(bool),
   // TODO: support split chunks
   // SplitChunksPlugin,
   RemoveEmptyChunksPlugin,
@@ -282,10 +281,6 @@ impl BuilderContext {
       BuiltinPluginOptions::RealContentHashPlugin => {
         plugins.push(rspack_plugin_real_content_hash::RealContentHashPlugin::default().boxed())
       }
-      BuiltinPluginOptions::ModuleInfoHeaderPlugin(verbose) => {
-        plugins.push(rspack_plugin_javascript::ModuleInfoHeaderPlugin::new(verbose).boxed())
-      }
-
       // Module and chunk ID plugins
       BuiltinPluginOptions::NamedModuleIdsPlugin => {
         plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed())
