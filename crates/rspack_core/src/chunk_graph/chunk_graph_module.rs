@@ -273,10 +273,10 @@ impl ChunkGraph {
     compilation: &mut Compilation,
     module_identifier: ModuleIdentifier,
     hashes: RuntimeSpecMap<RspackHashDigest>,
-  ) {
+  ) -> bool {
     compilation
       .cgm_hash_artifact
-      .set_hashes(module_identifier, hashes);
+      .set_hashes(module_identifier, hashes)
   }
 
   pub fn try_get_module_chunks(
@@ -305,7 +305,7 @@ impl ChunkGraph {
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
     for connection in mg
-      .get_ordered_outgoing_connections(&module.identifier())
+      .get_outgoing_connections_in_order(&module.identifier())
       .filter_map(|c| mg.connection_by_dependency_id(c))
     {
       let module_identifier = connection.module_identifier();

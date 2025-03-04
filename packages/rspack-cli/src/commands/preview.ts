@@ -9,7 +9,7 @@ import type yargs from "yargs";
 
 import type { RspackCLI } from "../cli";
 import type { RspackCommand, RspackPreviewCLIOptions } from "../types";
-import { commonOptions } from "../utils/options";
+import { commonOptions, setDefaultNodeEnv } from "../utils/options";
 
 const previewOptions = (yargs: yargs.Argv) => {
 	yargs.positional("dir", {
@@ -49,6 +49,8 @@ export class PreviewCommand implements RspackCommand {
 			"run the rspack server for build output",
 			previewOptions,
 			async options => {
+				setDefaultNodeEnv(options, "production");
+
 				const rspackOptions = { ...options, argv: { ...options } };
 				const { RspackDevServer } = await import("@rspack/dev-server");
 

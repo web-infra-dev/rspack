@@ -34,17 +34,31 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     create(name: string, src: string, dist: string, temp?: string): ITester | undefined;
     // (undocumented)
+    protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv;
+    // (undocumented)
     protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
     // (undocumented)
     protected createTester(name: string, src: string, dist: string, temp: string | void, testConfig: TTestConfig<T>): ITester;
     // (undocumented)
+    protected currentConcurrent: number;
+    // (undocumented)
     protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    // (undocumented)
+    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    // (undocumented)
+    protected getMaxConcurrent(): number;
     // (undocumented)
     protected _options: IBasicCaseCreatorOptions<T>;
     // (undocumented)
     protected readTestConfig(src: string): TTestConfig<T>;
     // (undocumented)
+    protected registerConcurrentTask(name: string, starter: () => void): () => void;
+    // (undocumented)
     protected skip(name: string, reason: string | boolean): void;
+    // (undocumented)
+    protected tasks: [string, () => void][];
+    // (undocumented)
+    protected tryRunTask(): void;
 }
 
 // @public (undocumented)
@@ -578,6 +592,8 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     clean?: boolean;
     // (undocumented)
+    concurrent?: boolean | number;
+    // (undocumented)
     contextValue?: Record<string, unknown>;
     // (undocumented)
     describe?: boolean;
@@ -686,6 +702,14 @@ export interface ICompareOptions {
     runtimeModules?: TCompareModules;
     // (undocumented)
     snapshot?: string;
+}
+
+// @public (undocumented)
+interface IConcurrentTestEnv {
+    // (undocumented)
+    clear: () => void;
+    // (undocumented)
+    run: () => Promise<void>;
 }
 
 // @public (undocumented)
@@ -1573,12 +1597,13 @@ export type TTestConfig<T extends ECompilerType> = {
     beforeExecute?: () => void;
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
-    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T>, stringStats: String) => boolean;
+    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T> | undefined, stringStats: String) => boolean;
     findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
     modules?: Record<string, Object>;
     timeout?: number;
+    concurrent?: boolean;
 };
 
 // @public (undocumented)

@@ -7,7 +7,8 @@ import {
 	commonOptions,
 	commonOptionsForBuildAndServe,
 	ensureEnvObject,
-	setBuiltinEnvArg
+	setBuiltinEnvArg,
+	setDefaultNodeEnv
 } from "../utils/options";
 
 export class BuildCommand implements RspackCommand {
@@ -33,13 +34,16 @@ export class BuildCommand implements RspackCommand {
 				});
 			},
 			async options => {
+				setDefaultNodeEnv(options, "production");
 				const env = ensureEnvObject(options);
+
 				if (options.watch) {
 					setBuiltinEnvArg(env, "WATCH", true);
 				} else {
 					setBuiltinEnvArg(env, "BUNDLE", true);
 					setBuiltinEnvArg(env, "BUILD", true);
 				}
+
 				const logger = cli.getLogger();
 				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {

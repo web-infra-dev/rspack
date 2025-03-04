@@ -37,6 +37,8 @@ function getHotCreator(target: TTarget, documentType: EDocumentType) {
 					})
 				],
 				runner: HotRunnerFactory
+				// TODO: enable concurrent then rspack will be hanged
+				// concurrent: true
 			})
 		);
 	}
@@ -101,7 +103,8 @@ const watchCreator = new BasicCaseCreator({
 						watchState
 					)
 		);
-	}
+	},
+	concurrent: true
 });
 
 export function createWatchNewIncrementalCase(
