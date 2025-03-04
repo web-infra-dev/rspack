@@ -3,27 +3,48 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Launch Rspack CLI",
+      "name": "Debug Rspack",
       "program": "node",
       "args": [
         "packages/rspack-cli/bin/rspack.js",
+        "${input:rspackCommand}",
         "-c",
         "${input:rspackConfigPath}"
       ],
       "cwd": "${workspaceFolder}"
     },
     {
+      "name": "Attach JavaScript",
+      "processId": "${command:PickProcess}",
+      "request": "attach",
+      "skipFiles": [
+          "<node_internals>/**"
+      ],
+      "type": "node"
+     },
+    {
       "type": "lldb",
       "request": "attach",
-      "name": "Attach to Rspack Process",
-      "pid": "${command:pickMyProcess}" // use ${command:pickProcess} to pick other users' processes
-    }
+      "name": "Attach Rust",
+      "pid": "${command:pickMyProcess}"
+    },
   ],
   "inputs": [
     {
+      "id": "rspackCommand",
+      "type": "pickString",
+      "options": [
+        "build",
+        "dev"
+      ],
+      "description": "choose build or dev mode",
+      "default": "dev"
+    },
+    {
       "id": "rspackConfigPath",
       "type": "promptString",
-      "description": "the rspack config path of your project"
+      "description": "the rspack config path of your project",
+      "default": "examples/basic/rspack.config.cjs"
     }
   ]
 }
