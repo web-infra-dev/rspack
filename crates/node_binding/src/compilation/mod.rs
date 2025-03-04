@@ -15,6 +15,7 @@ use rspack_core::BoxDependency;
 use rspack_core::Compilation;
 use rspack_core::CompilationId;
 use rspack_core::EntryOptions;
+use rspack_core::FactorizeInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
@@ -79,14 +80,16 @@ impl JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
   pub fn update_asset(
     &mut self,
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, Function<'_, JsCompatSource, JsCompatSource>>,
-    asset_info_update_or_function: Option<Either<AssetInfo, Function<'_, AssetInfo, AssetInfo>>>,
+    asset_info_update_or_function: Option<
+      Either<AssetInfo, Function<'_, AssetInfo, Option<AssetInfo>>>,
+    >,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -109,9 +112,12 @@ impl JsCompilation {
           .map(
             |asset_info_update_or_function| match asset_info_update_or_function {
               Either::A(asset_info) => Ok(asset_info.into()),
-              Either::B(asset_info_fn) => {
-                Ok(asset_info_fn.call(original_info.clone().into())?.into())
-              }
+              Either::B(asset_info_fn) => Ok(
+                asset_info_fn
+                  .call(original_info.clone().into())?
+                  .map(Into::into)
+                  .unwrap_or_default(),
+              ),
             },
           )
           .transpose();
@@ -730,6 +736,7 @@ impl JsCompilation {
         let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
           && let Some(dependency) = map.get(&options)
         {
+          js_dependency.dependency_id = Some(*dependency.id());
           dependency.clone()
         } else {
           let dependency = js_dependency.resolve(js_context.into(), layer)?;
@@ -760,49 +767,53 @@ impl JsCompilation {
       let module_graph = compilation.get_module_graph();
       let results = dependency_ids
         .into_iter()
-        .map(
-          |dependency_id| match module_graph.get_module_by_dependency_id(&dependency_id) {
+        .map(|dependency_id| {
+          if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+            if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
+              if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                return Either::A(diagnostic.to_string());
+              }
+            }
+          }
+
+          match module_graph.get_module_by_dependency_id(&dependency_id) {
             Some(module) => {
               let js_module =
                 JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-              (Either::B(()), Either::B(js_module))
+              Either::B(js_module)
             }
-            None => (
-              Either::A(format!(
-                "Module created by {:?} cannot be found",
-                dependency_id
-              )),
-              Either::A(()),
-            ),
-          },
-        )
-        .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
+            None => Either::A("build failed with unknown error".to_string()),
+          }
+        })
+        .collect::<Vec<Either<String, JsModuleWrapper>>>();
 
       Ok(JsAddIncludeCallbackArgs(results))
     })
   }
 }
 
-pub struct JsAddIncludeCallbackArgs(Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>);
+pub struct JsAddIncludeCallbackArgs(Vec<Either<String, JsModuleWrapper>>);
 
 impl ToNapiValue for JsAddIncludeCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env_wrapper = Env::from_raw(env);
     let mut js_array = env_wrapper.create_array(0)?;
-    for (error, module) in val.0 {
-      let js_error = match error {
-        Either::A(val) => env_wrapper.create_string(&val)?.into_unknown(),
-        Either::B(_) => env_wrapper.get_undefined()?.into_unknown(),
-      };
-      let js_module = match module {
-        Either::A(_) => env_wrapper.get_undefined()?.into_unknown(),
-        Either::B(val) => {
-          let napi_val = ToNapiValue::to_napi_value(env, val)?;
-          Unknown::from_napi_value(env, napi_val)?
+
+    for result in val.0 {
+      let js_result = match result {
+        Either::A(msg) => vec![
+          env_wrapper.create_string(&msg)?.into_unknown(),
+          env_wrapper.get_undefined()?.into_unknown(),
+        ],
+        Either::B(module) => {
+          let napi_val = ToNapiValue::to_napi_value(env, module)?;
+          let js_module = Unknown::from_napi_value(env, napi_val)?;
+          vec![env_wrapper.get_undefined()?.into_unknown(), js_module]
         }
       };
-      js_array.insert(vec![js_error, js_module])?;
+      js_array.insert(js_result)?;
     }
+
     ToNapiValue::to_napi_value(env, js_array)
   }
 }

@@ -509,16 +509,14 @@ impl CodeSplitter {
 
     // If after edges rebuild there are still some entries not included in entrypoints
     // then they are new added entries and we build them.
-    if compilation.entries.len() > compilation.entrypoints.len() {
-      let new_entries: Vec<_> = compilation
-        .entries
-        .keys()
-        .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
-        .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
-        .collect();
-      for edge in new_entries {
-        edge.rebuild(self, compilation)?;
-      }
+    let new_entries: Vec<_> = compilation
+      .entries
+      .keys()
+      .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
+      .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
+      .collect();
+    for edge in new_entries {
+      edge.rebuild(self, compilation)?;
     }
 
     // Ensure entrypoints always have the same order with entries

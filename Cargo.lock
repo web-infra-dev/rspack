@@ -2801,16 +2801,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libmimalloc-sys-rspack"
-version = "0.1.40"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7997f74815cc4b73f7b1897f13aed74d8ea49e7d86192d9c08779edfc9e1d9f"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
 name = "libredox"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3081,11 +3071,11 @@ dependencies = [
 
 [[package]]
 name = "mimalloc-rspack"
-version = "0.1.44"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63bb1f78735e4b7d309a05ea64f47b70a9b0ca3d0b6a6e4470f99915cdb836c6"
+checksum = "4e7183f84cbe10d63d277f1dce9e04a41a6670247f1e2171024d3474fd6b49b3"
 dependencies = [
- "libmimalloc-sys-rspack",
+ "rspack-libmimalloc-sys",
 ]
 
 [[package]]
@@ -4399,6 +4389,16 @@ dependencies = [
  "rustc-hash 2.1.0",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "rspack-libmimalloc-sys"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77d3261219a73922d83550152a76313a7eb897bed1352d838f53e7bb284091ab"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]

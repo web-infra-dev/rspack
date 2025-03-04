@@ -59,6 +59,19 @@ class Plugin {
 					);
 				})
 			);
+			tasks.push(
+				new Promise(resolve => {
+					compilation.addInclude(
+						compiler.context,
+						EntryPlugin.createDependency(path.resolve(__dirname, "no-exist.js")),
+						{},
+						(err, module) => {
+							expect(err.message).toMatch(/Can't resolve/);
+							resolve(module);
+						}
+					);
+				})
+			);
 			return Promise.all(tasks);
 		});
 

@@ -130,6 +130,14 @@ impl CodeSplittingCache {
       }
     }
 
+    if !this_compilation
+      .entries
+      .keys()
+      .eq(this_compilation.code_splitting_cache.entrypoints.keys())
+    {
+      return false;
+    }
+
     true
   }
 }

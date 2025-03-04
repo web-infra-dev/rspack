@@ -226,6 +226,10 @@ impl NormalModule {
     self.match_resource.as_ref()
   }
 
+  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+    &mut self.match_resource
+  }
+
   pub fn resource_resolved_data(&self) -> &ResourceData {
     &self.resource_data
   }

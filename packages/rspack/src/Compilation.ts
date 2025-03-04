@@ -576,7 +576,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		newSourceOrFunction: Source | ((source: Source) => Source),
 		assetInfoUpdateOrFunction?:
 			| AssetInfo
-			| ((assetInfo: AssetInfo) => AssetInfo)
+			| ((assetInfo: AssetInfo) => AssetInfo | undefined)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSourceOwned
@@ -597,11 +597,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction === undefined
-				? assetInfoUpdateOrFunction
-				: typeof assetInfoUpdateOrFunction === "function"
-					? assetInfo => assetInfoUpdateOrFunction(assetInfo)
-					: assetInfoUpdateOrFunction
+			assetInfoUpdateOrFunction
 		);
 	}
 

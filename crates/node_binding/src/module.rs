@@ -4,8 +4,9 @@ use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, Module, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  parse_resource, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation,
+  CompilationAsset, CompilerId, LibIdentOptions, Module, ModuleIdentifier, ResourceData,
+  ResourceParsedData, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, JsonExt, OneShotInstanceRef,
@@ -339,6 +340,30 @@ impl JsModule {
       },
       None => Either::B(()),
     })
+  }
+
+  #[napi(setter)]
+  pub fn set_match_resource(&mut self, val: Either<String, ()>) -> napi::Result<()> {
+    match val {
+      Either::A(val) => {
+        let module: &mut dyn Module = self.as_mut()?;
+        if let Ok(normal_module) = module.try_as_normal_module_mut() {
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(&val).expect("Should parse resource");
+          *normal_module.match_resource_mut() = Some(
+            ResourceData::new(val)
+              .path(path)
+              .query_optional(query)
+              .fragment_optional(fragment),
+          );
+        }
+      }
+      Either::B(_) => {}
+    }
+    Ok(())
   }
 
   #[napi]
