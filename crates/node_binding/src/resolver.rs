@@ -42,7 +42,7 @@ impl JsResolver {
     }
   }
 
-  #[napi]
+  #[napi(ts_return_type = "JsResolver")]
   pub fn with_options(
     &self,
     raw: Option<RawResolveOptionsWithDependencyType>,
