@@ -44,14 +44,7 @@ export class RspackCLI {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
-		const nodeEnv = process?.env?.NODE_ENV;
-		const rspackCommandDefaultEnv =
-			rspackCommand === "build" ? "production" : "development";
-		if (typeof options.nodeEnv === "string") {
-			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
-		} else {
-			process.env.NODE_ENV = nodeEnv || rspackCommandDefaultEnv;
-		}
+
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
 

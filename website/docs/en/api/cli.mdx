@@ -21,13 +21,14 @@ npx rspack -h
 
 Rspack CLI provides several common flags that can be used with all commands:
 
-| Flag                 | Description                                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| -c, --config [value] | Specify the path to the configuration file, see [Specify the configuration file](/config/index#specify-the-configuration-file) |
-| --configLoader       | Specify the loader to load the config file, can be `native` or `register`, defaults to `register`                              |
-| --configName         | Specify the name of the configuration to use.                                                                                  |
-| -h, --help           | Show help information                                                                                                          |
-| -v, --version        | Show version number                                                                                                            |
+| Flag                 | Description                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| -c, --config [value] | Specify the path to the configuration file, see [Specify the configuration file](/config/index#specify-the-configuration-file)                |
+| --configLoader       | Specify the loader to load the config file, can be `native` or `register`, defaults to `register`                                             |
+| --configName         | Specify the name of the configuration to use.                                                                                                 |
+| --nodeEnv            | Set the value of `process.env.NODE_ENV`, defaults to `development` for `rspack dev`, and `production` for `rspack build` and `rspack preview` |
+| -h, --help           | Show help information                                                                                                                         |
+| -v, --version        | Show version number                                                                                                                           |
 
 :::tip
 All flags in Rspack CLI support the `camelCase` and `kebab-case`, for example, both `--configLoader` and `--config-loader` are valid.
@@ -64,7 +65,6 @@ Options:
   -m, --mode           mode                                             [string]
   -w, --watch          watch                          [boolean] [default: false]
       --env            env passed to config function                     [array]
-      --nodeEnv        sets process.env.NODE_ENV to be specified value  [string]
   -d, --devtool        devtool                        [boolean] [default: false]
       --analyze        analyze                        [boolean] [default: false]
       --json           emit stats json
@@ -104,7 +104,6 @@ Options:
   -m, --mode           mode                                             [string]
   -w, --watch          watch                          [boolean] [default: false]
       --env            env passed to config function                     [array]
-      --nodeEnv        sets process.env.NODE_ENV to be specified value  [string]
   -d, --devtool        devtool                        [boolean] [default: false]
       --hot            enables hot module replacement
       --port           allows to specify a port to use                  [number]
