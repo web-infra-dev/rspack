@@ -117,9 +117,6 @@ export class RspackCLI {
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const isBuild = command === "build";
 		const isServe = command === "serve";
-		const commandDefaultEnv: "production" | "development" = isBuild
-			? "production"
-			: "development";
 
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.entry) {
@@ -158,7 +155,7 @@ export class RspackCLI {
 			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
-				item.mode = commandDefaultEnv ?? "none";
+				item.mode = isBuild ? "production" : "development";
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
