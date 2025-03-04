@@ -226,7 +226,7 @@ opt-level = 2
 
 # This is for production for profiling production build
 [profile.profiling]
-debug           = true
+debug           = "limited"
 inherits        = "release"
 lto             = "thin"
 split-debuginfo = "off"
