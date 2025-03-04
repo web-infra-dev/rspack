@@ -60,7 +60,8 @@ export class WatchProcessor<
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const currentWatchStepModule = require(currentWatchStepModulePath);
-		currentWatchStepModule.step = this._watchOptions.stepName;
+		currentWatchStepModule.step[this._options.name] =
+			this._watchOptions.stepName;
 		fs.mkdirSync(this._watchOptions.tempDir, { recursive: true });
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
@@ -345,7 +346,8 @@ export class WatchStepProcessor<
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const currentWatchStepModule = require(currentWatchStepModulePath);
-		currentWatchStepModule.step = this._watchOptions.stepName;
+		currentWatchStepModule.step[this._options.name] =
+			this._watchOptions.stepName;
 		const task = new Promise((resolve, reject) => {
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);

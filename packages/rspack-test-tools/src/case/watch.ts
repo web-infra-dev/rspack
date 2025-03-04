@@ -50,7 +50,8 @@ const creator = new BasicCaseCreator({
 						watchState
 					)
 		);
-	}
+	},
+	concurrent: true
 });
 
 export function createWatchCase(

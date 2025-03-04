@@ -84,6 +84,10 @@ export class TestCompilerManager<T extends ECompilerType>
 			throw new Error("Compiler should be created before watch");
 		this.compilerInstance!.watch(
 			{
+				// IMPORTANT:
+				// This is a workaround for the issue that watchpack cannot detect the file change in time
+				// so we set the poll to 300ms to make it more sensitive to the file change
+				poll: 300,
 				aggregateTimeout: timeout
 			},
 			(error, newStats) => {
