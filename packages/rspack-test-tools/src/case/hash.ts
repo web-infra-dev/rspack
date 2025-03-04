@@ -31,8 +31,7 @@ const creator = new HashCaseCreator({
 			compilerType: ECompilerType.Rspack,
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
-	],
-	concurrent: true
+	]
 });
 
 export function createHashCase(name: string, src: string, dist: string) {
