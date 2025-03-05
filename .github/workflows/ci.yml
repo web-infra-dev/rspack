@@ -144,6 +144,7 @@ jobs:
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint-ci:js
+        
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
@@ -151,6 +152,20 @@ jobs:
       - name: Check Dependency Version
         if: steps.changes.outputs.src == 'true'
         run: pnpm run check-dependency-version
+
+      - name: API change check
+        if: steps.changes.outputs.src == 'true'
+        run: |
+          echo "===================================="
+          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
+          echo "$ pnpm build:js && pnpm api-extractor:local"
+          echo "===================================="
+          pnpm build:js
+          pnpm api-extractor:ci
+      
+      - name: Documentation coverage check
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm doc-coverage
 
   lint-website:
     name: Lint and format website
