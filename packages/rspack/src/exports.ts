@@ -86,7 +86,7 @@ import { createHash } from "./util/createHash";
 export const util = { createHash, cleverMerge };
 
 export { default as EntryOptionPlugin } from "./lib/EntryOptionPlugin";
-export type { OutputFileSystem, InputFileSystem } from "./util/fs";
+export type { OutputFileSystem } from "./util/fs";
 
 ///// Internal Plugins /////
 export type { BannerPluginArgument } from "./builtin-plugin";
