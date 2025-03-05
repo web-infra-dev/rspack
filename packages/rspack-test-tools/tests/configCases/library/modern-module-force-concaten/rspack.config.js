@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
@@ -44,24 +46,36 @@ module.exports = {
 			 */
 			const handler = compilation => {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
-					expect(assets["a.js"]._value).toMatchSnapshot(
+					expect(assets["a.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "a.js.snap"),
 						"ESM export should concat"
 					);
-					expect(assets["b.js"]._value).toMatchSnapshot(".cjs should bail out");
-					expect(assets["c.js"]._value).toMatchSnapshot(
+					expect(assets["b.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "b.js.snap"),
+						".cjs should bail out"
+					);
+					expect(assets["c.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "c.js.snap"),
 						"unambiguous should bail out"
 					);
-					expect(assets["d.js"]._value).toMatchSnapshot(".mjs should concat");
-					expect(assets["e.js"]._value).toMatchSnapshot(
+					expect(assets["d.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "d.js.snap"),
+						".mjs should concat"
+					);
+					expect(assets["e.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "e.js.snap"),
 						".cjs should bail out when bundling"
 					);
-					expect(assets["f.js"]._value).toMatchSnapshot(
+					expect(assets["f.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "f.js.snap"),
 						"external module should bail out when bundling"
 					);
-					expect(assets["g.js"]._value).toMatchSnapshot(
+					expect(assets["g.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "g.js.snap"),
 						"harmony export should concat, even with bailout reason"
 					);
-					expect(assets["h.js"]._value).toMatchSnapshot(
+					expect(assets["h.js"]._value).toMatchFileSnapshot(
+						path.join(__dirname, "__snapshot__", "h.js.snap"),
 						"asset as entry should not be concatenated"
 					);
 				});
