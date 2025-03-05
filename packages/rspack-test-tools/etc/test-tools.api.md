@@ -54,6 +54,8 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     protected registerConcurrentTask(name: string, starter: () => void): () => void;
     // (undocumented)
+    protected shouldRun(name: string): boolean;
+    // (undocumented)
     protected skip(name: string, reason: string | boolean): void;
     // (undocumented)
     protected tasks: [string, () => void][];
