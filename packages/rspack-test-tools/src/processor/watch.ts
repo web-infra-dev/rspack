@@ -270,7 +270,7 @@ export class WatchProcessor<
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
 			if (typeof options.output.pathinfo === "undefined")
-				options.output.pathinfo = true;
+				options.output.pathinfo = false;
 			if (!options.output.filename) options.output.filename = "bundle.js";
 			if (options.cache && (options.cache as any).type === "filesystem") {
 				const cacheDirectory = path.join(tempDir, ".cache");
