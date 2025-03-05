@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyTemplate, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  DependencyType, FactorizeInfo, ModuleDependency,
 };
 
 #[cacheable]
@@ -10,6 +10,7 @@ pub struct FallbackDependency {
   id: DependencyId,
   resource_identifier: String,
   pub requests: Vec<String>,
+  factorize_info: FactorizeInfo,
 }
 
 impl FallbackDependency {
@@ -19,6 +20,7 @@ impl FallbackDependency {
       id: DependencyId::new(),
       resource_identifier,
       requests,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -50,6 +52,14 @@ impl Dependency for FallbackDependency {
 impl ModuleDependency for FallbackDependency {
   fn request(&self) -> &str {
     &self.resource_identifier
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

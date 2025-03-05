@@ -10,7 +10,8 @@ import type {
 	ECompilerType,
 	ITestContext,
 	ITestEnv,
-	TCompilerOptions
+	TCompilerOptions,
+	TCompilerStatsCompilation
 } from "../type";
 import { type IMultiTaskProcessorOptions, MultiTaskProcessor } from "./multi";
 
@@ -37,7 +38,10 @@ export class WatchProcessor<
 	protected currentTriggerFilename: string | null = null;
 	protected lastHash: string | null = null;
 
-	constructor(protected _watchOptions: IWatchProcessorOptions<T>) {
+	constructor(
+		protected _watchOptions: IWatchProcessorOptions<T>,
+		protected _watchState: Record<string, any>
+	) {
 		super({
 			overrideOptions: WatchProcessor.overrideOptions<T>(_watchOptions),
 			findBundle: WatchProcessor.findBundle<T>,
@@ -56,7 +60,8 @@ export class WatchProcessor<
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const currentWatchStepModule = require(currentWatchStepModulePath);
-		currentWatchStepModule.step = this._watchOptions.stepName;
+		currentWatchStepModule.step[this._options.name] =
+			this._watchOptions.stepName;
 		fs.mkdirSync(this._watchOptions.tempDir, { recursive: true });
 		copyDiff(
 			path.join(context.getSource(), this._watchOptions.stepName),
@@ -79,6 +84,7 @@ export class WatchProcessor<
 			"watchStepName",
 			this._watchOptions.stepName
 		);
+		context.setValue(this._options.name, "watchState", this._watchState);
 		await super.run(env, context);
 	}
 
@@ -98,31 +104,79 @@ export class WatchProcessor<
 		const checkStats = testConfig.checkStats || (() => true);
 
 		if (stats) {
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.txt"),
-				stats.toString({
-					preset: "verbose",
-					colors: false
-				}),
-				"utf-8"
-			);
-			const jsonStats = stats.toJson({
-				errorDetails: true
-			});
+			if (testConfig.writeStatsOuptut) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.txt"),
+					stats.toString({
+						preset: "verbose",
+						colors: false
+					}),
+					"utf-8"
+				);
+			}
 
-			if (!checkStats(this._watchOptions.stepName, jsonStats)) {
-				throw new Error("stats check failed");
+			const getJsonStats = (() => {
+				let cached: TCompilerStatsCompilation<T> | null = null;
+				return () => {
+					if (!cached) {
+						cached = stats.toJson({
+							errorDetails: true
+						});
+					}
+					return cached;
+				};
+			})();
+			const getStringStats = (() => {
+				let cached: string | null = null;
+				return () => {
+					if (!cached) {
+						cached = stats.toString({
+							logging: "verbose"
+						});
+					}
+					return cached;
+				};
+			})();
+			if (checkStats.length > 1) {
+				if (
+					!checkStats(
+						this._watchOptions.stepName,
+						getJsonStats(),
+						getStringStats()
+					)
+				) {
+					throw new Error("stats check failed");
+				}
+			} else {
+				// @ts-expect-error only one param
+				if (!checkStats(this._watchOptions.stepName)) {
+					throw new Error("stats check failed");
+				}
 			}
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.json"),
-				JSON.stringify(jsonStats, null, 2),
-				"utf-8"
-			);
-			if (jsonStats.errors) {
-				errors.push(...jsonStats.errors);
+			if (testConfig.writeStatsJson) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.json"),
+					JSON.stringify(getJsonStats(), null, 2),
+					"utf-8"
+				);
 			}
-			if (jsonStats.warnings) {
-				warnings.push(...jsonStats.warnings);
+			if (
+				fs.existsSync(
+					context.getSource(`${this._watchOptions.stepName}/errors.js`)
+				) ||
+				fs.existsSync(
+					context.getSource(`${this._watchOptions.stepName}/warnings.js`)
+				)
+			) {
+				const statsJson = stats.toJson({
+					errorDetails: true
+				});
+				if (statsJson.errors) {
+					errors.push(...statsJson.errors);
+				}
+				if (statsJson.warnings) {
+					warnings.push(...statsJson.warnings);
+				}
 			}
 		}
 		await checkArrayExpectation(
@@ -147,14 +201,21 @@ export class WatchProcessor<
 		}
 
 		// check hash
-		fs.renameSync(
-			path.join(context.getDist(), "stats.txt"),
-			path.join(context.getDist(), `stats.${this._watchOptions.stepName}.txt`)
-		);
-		fs.renameSync(
-			path.join(context.getDist(), "stats.json"),
-			path.join(context.getDist(), `stats.${this._watchOptions.stepName}.json`)
-		);
+		if (testConfig.writeStatsOuptut) {
+			fs.renameSync(
+				path.join(context.getDist(), "stats.txt"),
+				path.join(context.getDist(), `stats.${this._watchOptions.stepName}.txt`)
+			);
+		}
+		if (testConfig.writeStatsJson) {
+			fs.renameSync(
+				path.join(context.getDist(), "stats.json"),
+				path.join(
+					context.getDist(),
+					`stats.${this._watchOptions.stepName}.json`
+				)
+			);
+		}
 	}
 
 	async config(context: ITestContext) {
@@ -209,7 +270,7 @@ export class WatchProcessor<
 			if (!options.output) options.output = {};
 			if (!options.output.path) options.output.path = context.getDist();
 			if (typeof options.output.pathinfo === "undefined")
-				options.output.pathinfo = true;
+				options.output.pathinfo = false;
 			if (!options.output.filename) options.output.filename = "bundle.js";
 			if (options.cache && (options.cache as any).type === "filesystem") {
 				const cacheDirectory = path.join(tempDir, ".cache");
@@ -271,8 +332,11 @@ export interface IWatchStepProcessorOptions<T extends ECompilerType>
 export class WatchStepProcessor<
 	T extends ECompilerType
 > extends WatchProcessor<T> {
-	constructor(protected _watchOptions: IWatchStepProcessorOptions<T>) {
-		super(_watchOptions);
+	constructor(
+		protected _watchOptions: IWatchStepProcessorOptions<T>,
+		protected _watchState: Record<string, any>
+	) {
+		super(_watchOptions, _watchState);
 	}
 
 	async compiler(context: ITestContext): Promise<void> {
@@ -282,7 +346,8 @@ export class WatchStepProcessor<
 	async build(context: ITestContext) {
 		const compiler = this.getCompiler(context);
 		const currentWatchStepModule = require(currentWatchStepModulePath);
-		currentWatchStepModule.step = this._watchOptions.stepName;
+		currentWatchStepModule.step[this._options.name] =
+			this._watchOptions.stepName;
 		const task = new Promise((resolve, reject) => {
 			compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
 				if (e) return reject(e);

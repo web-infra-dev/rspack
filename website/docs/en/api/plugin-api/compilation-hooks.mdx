@@ -725,10 +725,11 @@ Process the assets before emit.
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
-      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
     },
     assets => {
       const { RawSource } = compiler.webpack.sources;
@@ -743,10 +744,11 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
-      stage: compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
     },
     assets => {
       const asset = assets['foo.js'];
@@ -769,10 +771,11 @@ compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
 
 ```js
 compiler.hooks.thisCompilation.tap('MyPlugin', compilation => {
+  const { Compilation } = compiler.webpack;
   compilation.hooks.processAssets.tap(
     {
       name: 'MyPlugin',
-      stage: compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+      stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
     },
     assets => {
       const assetName = 'unwanted-script.js';

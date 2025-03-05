@@ -53,7 +53,7 @@ itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
 lightningcss       = { version = "1.0.0-alpha.63" }
 linked_hash_set    = { version = "0.1.5" }
-mimalloc           = { version = "0.1.44", package = "mimalloc-rspack" }
+mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }
 once_cell          = { version = "1.20.2" }
 parcel_sourcemap   = { version = "2.1.1" }
@@ -66,7 +66,7 @@ quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.1" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.2" }
 rspack_sources     = { version = "0.4.7" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
@@ -714,10 +714,12 @@ opt-level = 2
 
 # This is for production for profiling production build
 [profile.profiling]
-debug    = true
-inherits = "release"
-lto      = "thin"
-strip    = false
+debug           = "limited"
+inherits        = "release"
+lto             = "thin"
+split-debuginfo = "off"
+strip           = false
+
 
 # the following lints rules are from https://github.com/biomejs/biome/blob/4bd3d6f09642952ee14445ed56af81a73796cea1/Cargo.toml#L7C1-L75C1
 [workspace.lints.rust]

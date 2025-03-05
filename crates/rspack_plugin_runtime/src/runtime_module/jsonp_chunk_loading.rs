@@ -42,11 +42,69 @@ impl JsonpChunkLoadingRuntimeModule {
       .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
     RawStringSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
+
+  fn template_id(&self, id: TemplateId) -> String {
+    let base_id = self.id.as_str();
+
+    match id {
+      TemplateId::Raw => base_id.to_string(),
+      TemplateId::WithPrefetch => format!("{}_with_prefetch", base_id),
+      TemplateId::WithPreload => format!("{}_with_preload", base_id),
+      TemplateId::WithHmr => format!("{}_with_hmr", base_id),
+      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", base_id),
+      TemplateId::WithOnChunkLoad => format!("{}_with_on_chunk_load", base_id),
+      TemplateId::WithCallback => format!("{}_with_callback", base_id),
+    }
+  }
+}
+
+#[allow(clippy::enum_variant_names)]
+enum TemplateId {
+  Raw,
+  WithPrefetch,
+  WithPreload,
+  WithHmr,
+  WithHmrManifest,
+  WithOnChunkLoad,
+  WithCallback,
 }
 
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
+  }
+
+  fn template(&self) -> Vec<(String, String)> {
+    vec![
+      (
+        self.template_id(TemplateId::Raw),
+        include_str!("runtime/jsonp_chunk_loading.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPrefetch),
+        include_str!("runtime/jsonp_chunk_loading_with_prefetch.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithPreload),
+        include_str!("runtime/jsonp_chunk_loading_with_preload.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmr),
+        include_str!("runtime/jsonp_chunk_loading_with_hmr.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithHmrManifest),
+        include_str!("runtime/jsonp_chunk_loading_with_hmr_manifest.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithOnChunkLoad),
+        include_str!("runtime/jsonp_chunk_loading_with_on_chunk_load.ejs").to_string(),
+      ),
+      (
+        self.template_id(TemplateId::WithCallback),
+        include_str!("runtime/jsonp_chunk_loading_with_callback.ejs").to_string(),
+      ),
+    ]
   }
 
   fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
@@ -66,6 +124,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
+    let charset = compilation.options.output.charset;
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
@@ -105,25 +164,22 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        include_str!("runtime/jsonp_chunk_loading.js")
-          .cow_replace("$JS_MATCHER$", &js_matcher)
-          .cow_replace(
-            "$MATCH_FALLBACK$",
-            if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
+        compilation.runtime_template.render(
+          &self.template_id(TemplateId::Raw),
+          Some(serde_json::json!({
+            "_js_matcher": &js_matcher,
+            "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
               "else installedChunks[chunkId] = 0;\n"
             },
-          )
-          .cow_replace(
-            "$FETCH_PRIORITY$",
-            if with_fetch_priority {
-              ", fetchPriority"
+            "_fetch_priority": if with_fetch_priority {
+               ", fetchPriority"
             } else {
-              ""
+               ""
             },
-          )
-          .into_owned()
+          })),
+        )?
       };
 
       source.add(RawStringSource::from(format!(
@@ -150,6 +206,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       };
       let link_prefetch_code = r#"
     var link = document.createElement('link');
+    $LINK_CHART_CHARSET$
     $CROSS_ORIGIN$
     if (__webpack_require__.nc) {
       link.setAttribute("nonce", __webpack_require__.nc);
@@ -158,6 +215,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     link.as = "script";
     link.href = __webpack_require__.p + __webpack_require__.u(chunkId);  
       "#
+      .cow_replace(
+        "$LINK_CHART_CHARSET$",
+        if charset {
+          "link.charset = 'utf-8';"
+        } else {
+          ""
+        },
+      )
       .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
       .to_string();
 
@@ -176,12 +241,15 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           .await
       })?;
 
-      source.add(RawStringSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_prefetch.js")
-          .cow_replace("$JS_MATCHER$", &js_matcher)
-          .cow_replace("$LINK_PREFETCH$", &res.code)
-          .into_owned(),
-      ));
+      let source_with_prefetch = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPrefetch),
+        Some(serde_json::json!({
+          "_js_matcher": &js_matcher,
+          "_link_prefetch": &res.code,
+        })),
+      )?;
+
+      source.add(RawStringSource::from(source_with_prefetch));
     }
 
     if with_preload && !matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
@@ -221,8 +289,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       let link_preload_code = r#"
     var link = document.createElement('link');
+    $LINK_CHART_CHARSET$
     $SCRIPT_TYPE_LINK_PRE$
-    link.charset = 'utf-8';
     if (__webpack_require__.nc) {
       link.setAttribute("nonce", __webpack_require__.nc);
     }
@@ -230,6 +298,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
     $CROSS_ORIGIN$  
       "#
+      .cow_replace(
+        "$LINK_CHART_CHARSET$",
+        if charset {
+          "link.charset = 'utf-8';"
+        } else {
+          ""
+        },
+      )
       .cow_replace("$CROSS_ORIGIN$", cross_origin.as_str())
       .cow_replace("$SCRIPT_TYPE_LINK_PRE$", script_type_link_pre.as_str())
       .cow_replace("$SCRIPT_TYPE_LINK_POST$", script_type_link_post)
@@ -250,40 +326,45 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           .await
       })?;
 
-      source.add(RawStringSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_preload.js")
-          .cow_replace("$JS_MATCHER$", &js_matcher)
-          .cow_replace("$LINK_PRELOAD$", &res.code)
-          .into_owned(),
-      ));
+      let source_with_preload = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithPreload),
+        Some(serde_json::json!({
+          "_js_matcher": &js_matcher,
+          "_link_preload": &res.code,
+        })),
+      )?;
+
+      source.add(RawStringSource::from(source_with_preload));
     }
 
     if with_hmr {
-      source.add(RawStringSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
-          .cow_replace("$GLOBAL_OBJECT$", &compilation.options.output.global_object)
-          .cow_replace(
-            "$HOT_UPDATE_GLOBAL$",
-            &serde_json::to_string(&compilation.options.output.hot_update_global)
-              .expect("failed to serde_json::to_string(hot_update_global)"),
-          )
-          .into_owned(),
-      ));
+      let source_with_hmr = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
+          "_global_object": &compilation.options.output.global_object,
+          "_hot_update_global": &serde_json::to_string(&compilation.options.output.hot_update_global).expect("failed to serde_json::to_string(hot_update_global)"),
+        })))?;
+
+      source.add(RawStringSource::from(source_with_hmr));
       source.add(RawStringSource::from(generate_javascript_hmr_runtime(
         "jsonp",
       )));
     }
 
     if with_hmr_manifest {
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/jsonp_chunk_loading_with_hmr_manifest.js"
-      )));
+      let source_with_hmr_manifest = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+
+      source.add(RawStringSource::from(source_with_hmr_manifest));
     }
 
     if with_on_chunk_load {
-      source.add(RawStringSource::from_static(include_str!(
-        "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
-      )));
+      let source_with_on_chunk_load = compilation
+        .runtime_template
+        .render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
+
+      source.add(RawStringSource::from(source_with_on_chunk_load));
     }
 
     if with_callback || with_loading {
@@ -291,18 +372,18 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         r#"{}["{}"]"#,
         &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
       );
-      source.add(RawStringSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_callback.js")
-          .cow_replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
-          .cow_replace(
-            "$WITH_ON_CHUNK_LOAD$",
-            match with_on_chunk_load {
-              true => "return __webpack_require__.O(result);",
-              false => "",
-            },
-          )
-          .into_owned(),
-      ));
+      let source_with_callback = compilation.runtime_template.render(
+        &self.template_id(TemplateId::WithCallback),
+        Some(serde_json::json!({
+          "_chunk_loading_global_expr": &chunk_loading_global_expr,
+          "_with_on_chunk_load": match with_on_chunk_load {
+            true => format!("return {}(result);", RuntimeGlobals::ON_CHUNKS_LOADED.name()),
+            false => "".to_string(),
+          },
+        })),
+      )?;
+
+      source.add(RawStringSource::from(source_with_callback));
     }
 
     Ok(source.boxed())

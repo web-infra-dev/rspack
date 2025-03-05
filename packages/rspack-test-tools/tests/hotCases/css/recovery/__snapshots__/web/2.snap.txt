@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6905
+- Update: main.hot-update.js, size: 7132
 
 ## Manifest
 
@@ -33,7 +33,11 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('main', {
-"../../../../../rspack/dist/cssExtractHmr.js": (function (module) {
+"../../../../../rspack/dist/cssExtractHmr.js": 
+/*!***************************************************!*\
+  !*** ../../../../../rspack/dist/cssExtractHmr.js ***!
+  \***************************************************/
+(function (module) {
 
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -258,7 +262,11 @@ function cssReload(moduleId, options) {
 
 
 }),
-"./index.css": (function (module, __webpack_exports__, __webpack_require__) {
+"./index.css": 
+/*!*******************!*\
+  !*** ./index.css ***!
+  \*******************/
+(function (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
@@ -289,10 +297,7 @@ __webpack_require__.r(__webpack_exports__);
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
+__webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
 }

@@ -30,7 +30,7 @@ runs:
   steps:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
-      if: ${{ startsWith(runner.name, 'GitHub Actions') || inputs.try-local-cache == 'false' }}
+      if: ${{ runner.environment == 'github-hosted' || inputs.try-local-cache == 'false' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
@@ -38,7 +38,7 @@ runs:
         overwrite: true
     - name: Upload local
       id: upload-local
-      if: ${{ !startsWith(runner.name, 'GitHub Actions') && inputs.try-local-cache == 'true' }}
+      if: ${{ runner.environment == 'self-hosted' && inputs.try-local-cache == 'true' }}
       shell: bash
       run: |
         set -e

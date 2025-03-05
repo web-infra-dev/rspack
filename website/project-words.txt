@@ -1,4 +1,5 @@
 aarch
+absolutify
 ahabhgk
 Akait
 alexander-akait
@@ -149,6 +150,7 @@ Rslib
 rspack
 Rspack
 rspackplugin
+Rspeedy
 rspress
 Rspress
 rstack

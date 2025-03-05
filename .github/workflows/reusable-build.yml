@@ -10,6 +10,10 @@ on:
       target:
         required: true
         type: string
+      full-install:
+        default: true
+        required: false
+        type: boolean
       runner: # Runner labels
         required: true
         type: string
@@ -52,19 +56,27 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
 
-      - name: Pnpm Cache
+      - name: Pnpm Setup
         if: ${{ !inputs.skipable }}
         uses: ./.github/actions/pnpm-cache
         with:
-          save-if: ${{ github.ref_name == 'main' }}
+          run-install: ${{ inputs.full-install == 'true' }}
+
+      - name: Install binding node dependencies
+        if: ${{ !inputs.skipable && inputs.full-install != 'true' }}
+        shell: bash
+        run: |
+          cd ./crates/node_binding
+          pnpm install --ignore-workspace --no-lockfile
+          cd ../../
 
       - name: Install Rust Toolchain
         if: ${{ !inputs.skipable }}
@@ -82,7 +94,7 @@ jobs:
 
       - name: Check local cache
         id: check_cache
-        if: ${{ inputs.profile == 'ci' && !startsWith(runner.name, 'GitHub Actions') && !inputs.skipable }}
+        if: ${{ inputs.profile == 'ci' && runner.environment == 'self-hosted' && !inputs.skipable }}
         shell: bash
         run: |
           set -e
@@ -95,10 +107,11 @@ jobs:
 
       # Fix: Resolve disk space error "ENOSPC: no space left on device" on GitHub Actions runners
       - name: Free disk cache
-        if: ${{ startsWith(runner.name, 'GitHub Actions') && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ runner.environment == 'github-hosted' && inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
+
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
@@ -175,7 +188,7 @@ jobs:
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
         run: |
-          if [[ "${{ startsWith(runner.name, 'GitHub Actions') }}" == "true" ]]; then
+          if [[ "${{ runner.environment == 'github-hosted' }}" == "true" ]]; then
             # Github runner
             sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
           fi
@@ -184,6 +197,7 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/upload-artifact
@@ -204,10 +218,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -258,18 +272,18 @@ jobs:
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      # TODO: use puppeteer to test SRI Plugin, maybe find a better performance way
-      # PUPPETEER_SKIP_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+
     steps:
       - name: Checkout
         if: ${{ !inputs.skipable }}
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !inputs.skipable && !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ !inputs.skipable && runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
@@ -293,7 +307,7 @@ jobs:
         uses: ./.github/actions/pnpm-cache
         with:
           node-version: ${{ matrix.node }}
-
+          save-if: ${{ github.ref_name == 'main' && matrix.node == '18' }}
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
@@ -358,21 +372,44 @@ jobs:
 
   bench:
     name: Bench
-    needs: build
     if: ${{ inputs.bench && !inputs.skipable }}
-    runs-on: ${{ fromJSON(needs.build.outputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           ref: ${{ inputs.ref }}
-          clean: ${{ startsWith(runner.name, 'GitHub Actions') }}
+          clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Clean
-        if: ${{ !startsWith(runner.name, 'GitHub Actions') }}
+        if: ${{ runner.environment == 'self-hosted' }}
         uses: ./.github/actions/clean
         with:
           target: ${{ inputs.target }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
+          shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
+        with:
+          tool: cargo-codspeed@2.7.2
+
+      - name: Build Benchmark
+        env:
+          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
+        run: cargo codspeed build -p rspack_benchmark --features codspeed
+
+      - name: Wait for build job
+        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: "Test Linux / Build"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
 
       - name: Download bindings
         uses: ./.github/actions/download-artifact
@@ -386,30 +423,14 @@ jobs:
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          save-cache: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
-          shared-key: build-${{ inputs.target }}-${{ inputs.profile }}
-
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@54b836426b3fa9aef432e760885ea0419ab50dab # v2
-        with:
-          tool: cargo-codspeed@2.7.2
-
-      - name: Build Benchmark
-        env:
-          RUSTFLAGS: "-C debuginfo=1 -C strip=none -g --cfg codspeed"
-        run: cargo codspeed build -p rspack_benchmark --features codspeed
-
       - name: Run benchmark
-        uses: CodSpeedHQ/action@1015f4f828ff74b7a950909897fe581d6ba868cc # v3
+        uses: CodSpeedHQ/action@63ae6025a0ffee97d7736a37c9192dbd6ed4e75f # v3
         timeout-minutes: 30
         with:
           run: pnpm run bench:ci

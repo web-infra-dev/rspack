@@ -15,7 +15,7 @@ use crate::{
   module_graph::{ModuleGraph, ModuleGraphPartial},
   old_cache::Cache as OldCache,
   utils::task_loop::{run_task_loop, Task},
-  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType, Module,
+  BuildDependency, Compilation, CompilationId, CompilerId, CompilerOptions, DependencyType,
   ModuleFactory, ModuleProfile, ResolverFactory, SharedPluginDriver,
 };
 
@@ -86,6 +86,8 @@ impl MakeTaskContext {
       self.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
+      // used at module executor which not support persistent cache, set as false
+      false,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.swap_make_artifact(&mut self.artifact);
@@ -103,42 +105,50 @@ pub async fn repair(
   build_dependencies: HashSet<BuildDependency>,
 ) -> Result<MakeArtifact> {
   let module_graph = artifact.get_module_graph_mut();
-  let init_tasks = build_dependencies
+  let mut grouped_deps = HashMap::default();
+  for (dep_id, parent_module_identifier) in build_dependencies {
+    grouped_deps
+      .entry(parent_module_identifier)
+      .or_insert(vec![])
+      .push(dep_id);
+  }
+  let init_tasks = grouped_deps
     .into_iter()
-    .map::<Box<dyn Task<MakeTaskContext>>, _>(|(id, parent_module_identifier)| {
-      let dependency = module_graph
-        .dependency_by_id(&id)
-        .expect("dependency not found");
-
-      let parent_module =
-        parent_module_identifier.and_then(|id| module_graph.module_by_identifier(&id));
-
-      let current_profile = compilation
-        .options
-        .profile
-        .then(Box::<ModuleProfile>::default);
-      let module_graph = compilation.get_module_graph();
-      let original_module_source = parent_module_identifier
-        .and_then(|i| module_graph.module_by_identifier(&i))
-        .and_then(|m| m.as_normal_module())
-        .and_then(|m| m.source().cloned());
-      Box::new(factorize::FactorizeTask {
-        compiler_id: compilation.compiler_id(),
-        compilation_id: compilation.id(),
-        module_factory: compilation.get_dependency_factory(dependency),
-        original_module_identifier: parent_module_identifier,
-        original_module_source,
-        issuer: parent_module
-          .and_then(|m| m.as_normal_module())
-          .and_then(|module| module.name_for_condition()),
-        issuer_layer: parent_module.and_then(|m| m.get_layer()).cloned(),
-        original_module_context: parent_module.and_then(|m| m.get_context()),
-        dependencies: vec![dependency.clone()],
-        resolve_options: parent_module.and_then(|module| module.get_resolve_options()),
-        options: compilation.options.clone(),
-        current_profile,
-        resolver_factory: compilation.resolver_factory.clone(),
-      })
+    .flat_map(|(parent_module_identifier, dependencies)| {
+      if let Some(original_module_identifier) = parent_module_identifier {
+        return vec![Box::new(process_dependencies::ProcessDependenciesTask {
+          original_module_identifier,
+          dependencies,
+        }) as Box<dyn Task<MakeTaskContext>>];
+      }
+      // entry dependencies
+      dependencies
+        .into_iter()
+        .map(|dep_id| {
+          let dependency = module_graph
+            .dependency_by_id(&dep_id)
+            .expect("dependency not found");
+          let current_profile = compilation
+            .options
+            .profile
+            .then(Box::<ModuleProfile>::default);
+          Box::new(factorize::FactorizeTask {
+            compiler_id: compilation.compiler_id(),
+            compilation_id: compilation.id(),
+            module_factory: compilation.get_dependency_factory(dependency),
+            original_module_identifier: None,
+            original_module_source: None,
+            issuer: None,
+            issuer_layer: None,
+            original_module_context: None,
+            dependencies: vec![dependency.clone()],
+            resolve_options: None,
+            options: compilation.options.clone(),
+            current_profile,
+            resolver_factory: compilation.resolver_factory.clone(),
+          }) as Box<dyn Task<MakeTaskContext>>
+        })
+        .collect::<Vec<_>>()
     })
     .collect::<Vec<_>>();
 

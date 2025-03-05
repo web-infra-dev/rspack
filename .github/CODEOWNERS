@@ -18,15 +18,10 @@ pnpm-lock.yaml
 /.github/workflows @jerrykingxyz
 /scripts @jerrykingxyz
 
-# Webpack Tests
-
-/tests/webpack-test
-
 # Crates in alphabetical order
 
 /crates/rspack
 /crates/node_binding
-/crates/rspack_ast_viewer
 /crates/rspack_base64
 /crates/rspack_core
 /crates/rspack_core/src/compiler/make @jerrykingxyz
@@ -36,11 +31,13 @@ pnpm-lock.yaml
 /crates/rspack_futures
 /crates/rspack_collections
 /crates/rspack_ids
-/crates/rspack_napi_shared
 
 # Loaders
 
+/crates/rspack_loader_lightningcss @JSerFeng
 /crates/rspack_loader_swc
+/crates/rspack_loader_preact_refresh @LingyuCoder
+/crates/rspack_loader_react_refresh @ahabhgk
 
 # Plugins
 
@@ -51,7 +48,7 @@ pnpm-lock.yaml
 /crates/rspack_plugin_devtool
 /crates/rspack_plugin_entry
 /crates/rspack_plugin_externals
-/crates/rspack_plugin_html
+/crates/rspack_plugin_html @LingyuCoder
 /crates/rspack_plugin_javascript
 /crates/rspack_plugin_json
 /crates/rspack_plugin_library
@@ -60,17 +57,23 @@ pnpm-lock.yaml
 /crates/rspack_plugin_remove_empty_chunks
 /crates/rspack_plugin_runtime
 /crates/rspack_plugin_schemes
-/crates/rspack_plugin_split_chunks
+/crates/rspack_plugin_split_chunks @JSerFeng
 /crates/rspack_plugin_wasm
-/crates/rspack_tracing
+/crates/rspack_tracing @h-a-n-a
 /crates/rspack_util
 
 # Packages in alphabetical order
 
-/packages/create-rspack
-/packages/postcss-loader
+/packages/create-rspack @chenjiahan
 /packages/rspack
 /packages/rspack-cli
-/packages/rspack-plugin-html
-/packages/rspack-plugin-minify
-/packages/rspack-plugin-node-polyfill
+/packages/rspack-test-tools
+/packages/rspack-tracing @h-a-n-a
+
+# Tests
+
+/tests/bench
+/tests/e2e
+/tests/webpack-cli-test
+/tests/webpack-examples
+/tests/webpack-test

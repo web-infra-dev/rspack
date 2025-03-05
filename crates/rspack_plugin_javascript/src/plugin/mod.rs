@@ -11,7 +11,9 @@ pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
 mod mangle_exports_plugin;
 pub mod module_concatenation_plugin;
+mod module_info_header_plugin;
 mod side_effects_flag_plugin;
+
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::hash::Hash;
@@ -23,6 +25,7 @@ pub use flag_dependency_usage_plugin::*;
 use indoc::indoc;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
+pub use module_info_header_plugin::*;
 use rspack_ast::javascript::Ast;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::concatenated_module::find_new_name;
@@ -320,8 +323,7 @@ impl JsPlugin {
                     .any(|c| c.is_target_active(&module_graph, Some(chunk.runtime())))
                     && compilation
                       .chunk_graph
-                      .get_module_runtimes(*origin_module, &compilation.chunk_by_ukey)
-                      .into_values()
+                      .get_module_runtimes_iter(*origin_module, &compilation.chunk_by_ukey)
                       .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
                 } else {
                   false

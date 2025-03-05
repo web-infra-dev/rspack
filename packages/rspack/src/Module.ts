@@ -1,4 +1,6 @@
 import type {
+	AssetInfo,
+	Dependency,
 	JsCodegenerationResult,
 	JsContextModuleFactoryAfterResolveData,
 	JsContextModuleFactoryBeforeResolveData,
@@ -10,8 +12,6 @@ import type { JsModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Dependency } from "./Dependency";
-import { type AssetInfo, JsAssetInfo } from "./util/AssetInfo";
 import { JsSource } from "./util/source";
 
 export type ResourceData = {
@@ -26,7 +26,7 @@ export type ResourceDataWithData = ResourceData & {
 export type CreateData = Partial<JsCreateData>;
 export type ContextInfo = {
 	issuer: string;
-	issuerLayer?: string;
+	issuerLayer?: string | null;
 };
 export type ResolveData = {
 	contextInfo: ContextInfo;
@@ -176,9 +176,7 @@ export class ContextModuleFactoryAfterResolveData {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return binding.dependencies.map(dep =>
-						Dependency.__from_binding(dep)
-					);
+					return binding.dependencies;
 				}
 			}
 		});
@@ -310,7 +308,7 @@ export class Module {
 			dependencies: {
 				enumerable: true,
 				get(): Dependency[] {
-					return module.dependencies.map(d => Dependency.__from_binding(d));
+					return module.dependencies;
 				}
 			},
 			useSourceMap: {
@@ -329,6 +327,11 @@ export class Module {
 				enumerable: true,
 				get(): string | undefined {
 					return module.matchResource;
+				},
+				set(val: string | undefined) {
+					if (val) {
+						module.matchResource = val;
+					}
 				}
 			}
 		});
@@ -363,11 +366,11 @@ export class Module {
 		return this.#inner.libIdent(options);
 	}
 
-	emitFile(filename: string, source: Source, assetInfo: AssetInfo) {
+	emitFile(filename: string, source: Source, assetInfo?: AssetInfo) {
 		return this.#inner.emitFile(
 			filename,
 			JsSource.__to_binding(source),
-			JsAssetInfo.__to_binding(assetInfo)
+			assetInfo
 		);
 	}
 }

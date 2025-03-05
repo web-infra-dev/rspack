@@ -58,7 +58,7 @@ export class StatsAPIProcessor<
 
 	async check(env: ITestEnv, context: ITestContext) {
 		const compiler = this.getCompiler(context);
-		const stats = compiler.getStats();
+		const stats = compiler.getStats() as TCompilerStats<T>;
 		env.expect(typeof stats).toBe("object");
 		await this._statsAPIOptions.check?.(stats!, compiler.getCompiler()!);
 	}

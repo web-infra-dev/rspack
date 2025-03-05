@@ -17,7 +17,8 @@ const creator = new BasicCaseCreator({
 				return output.replace(/(│.* at ).*/g, "$1xxx");
 			}
 		})
-	]
+	],
+	concurrent: true
 });
 
 export function createDiagnosticCase(name: string, src: string, dist: string) {

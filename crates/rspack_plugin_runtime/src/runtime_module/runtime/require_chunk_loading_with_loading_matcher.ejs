@@ -1,0 +1,9 @@
+// require() chunk loading for javascript
+<%- ENSURE_CHUNK_HANDLERS %>.require = <%- basicFunction("chunkId, promises") %> {
+	// "1" is the signal for "already loaded"
+	if (!installedChunks[chunkId]) {
+		if (<%- _js_matcher %>) {
+			installChunk(require("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
+		} else installedChunks[chunkId] = 1;
+	}
+};

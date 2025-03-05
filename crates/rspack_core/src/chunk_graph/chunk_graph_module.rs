@@ -14,9 +14,9 @@ use serde::{Serialize, Serializer};
 use tracing::instrument;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact, RuntimeGlobals,
-  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  for_each_runtime, AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGroup, ChunkGroupByUkey,
+  ChunkGroupUkey, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
 };
 use crate::{ChunkGraph, Module};
 
@@ -209,6 +209,18 @@ impl ChunkGraph {
     runtimes
   }
 
+  pub fn get_module_runtimes_iter<'a>(
+    &self,
+    module_identifier: ModuleIdentifier,
+    chunk_by_ukey: &'a ChunkByUkey,
+  ) -> impl Iterator<Item = &'a RuntimeSpec> + use<'a, '_> {
+    let cgm = self.expect_chunk_graph_module(module_identifier);
+    cgm.chunks.iter().map(|chunk_ukey| {
+      let chunk = chunk_by_ukey.expect_get(chunk_ukey);
+      chunk.runtime()
+    })
+  }
+
   pub fn get_module_id(
     module_ids: &ModuleIdsArtifact,
     module_identifier: ModuleIdentifier,
@@ -261,10 +273,10 @@ impl ChunkGraph {
     compilation: &mut Compilation,
     module_identifier: ModuleIdentifier,
     hashes: RuntimeSpecMap<RspackHashDigest>,
-  ) {
+  ) -> bool {
     compilation
       .cgm_hash_artifact
-      .set_hashes(module_identifier, hashes);
+      .set_hashes(module_identifier, hashes)
   }
 
   pub fn try_get_module_chunks(
@@ -293,17 +305,27 @@ impl ChunkGraph {
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
     for connection in mg
-      .get_ordered_outgoing_connections(&module.identifier())
+      .get_outgoing_connections_in_order(&module.identifier())
       .filter_map(|c| mg.connection_by_dependency_id(c))
     {
       let module_identifier = connection.module_identifier();
       if visited_modules.contains(module_identifier) {
         continue;
       }
-      if connection.active_state(&mg, runtime).is_false() {
+      let active_state = connection.active_state(&mg, runtime);
+      if active_state.is_false() {
         continue;
       }
       visited_modules.insert(*module_identifier);
+      for_each_runtime(
+        runtime,
+        |runtime| {
+          let runtime = runtime.map(|r| RuntimeSpec::from_iter([r.as_str().into()]));
+          let active_state = connection.active_state(&mg, runtime.as_ref());
+          active_state.hash(&mut hasher);
+        },
+        true,
+      );
       let module = mg
         .module_by_identifier(module_identifier)
         .expect("should have module")

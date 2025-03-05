@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
+  FactorizeInfo, ModuleDependency, ModuleIdentifier, PublicPath, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 
@@ -15,6 +15,7 @@ pub struct CssUrlDependency {
   request: String,
   range: DependencyRange,
   replace_function: bool,
+  factorize_info: FactorizeInfo,
 }
 
 impl CssUrlDependency {
@@ -24,6 +25,7 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
+      factorize_info: Default::default(),
     }
   }
 
@@ -31,24 +33,20 @@ impl CssUrlDependency {
     &self,
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
   ) -> Option<String> {
-    // TODO: how to handle if module related to multi runtime codegen
-    let code_gen_result = compilation.code_generation_results.get_one(identifier);
-    if let Some(code_gen_result) = code_gen_result {
-      if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
-        Some(url.inner().to_string())
-      } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
-        let filename = data.filename();
-        let public_path = match data.public_path() {
-          PublicPath::Filename(p) => PublicPath::render_filename(compilation, p),
-          PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
-        };
-        Some(format!("{public_path}{filename}"))
-      } else {
-        None
-      }
+    let code_gen_result = compilation.code_generation_results.get(identifier, runtime);
+    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+      Some(url.inner().to_string())
+    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+      let filename = data.filename();
+      let public_path = match data.public_path() {
+        PublicPath::Filename(p) => PublicPath::render_filename(compilation, p),
+        PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER.to_string(),
+      };
+      Some(format!("{public_path}{filename}"))
     } else {
-      Some("data:,".to_string())
+      None
     }
   }
 }
@@ -89,6 +87,14 @@ impl ModuleDependency for CssUrlDependency {
   fn set_request(&mut self, request: String) {
     self.request = request;
   }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
+  }
 }
 
 #[cacheable_dyn]
@@ -98,11 +104,15 @@ impl DependencyTemplate for CssUrlDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext { compilation, .. } = code_generatable_context;
+    let TemplateContext {
+      compilation,
+      runtime,
+      ..
+    } = code_generatable_context;
     if let Some(mgm) = compilation
       .get_module_graph()
       .module_graph_module_by_dependency_id(self.id())
-      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
+      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation, *runtime)
     {
       let target_url = css_escape_string(&target_url);
       let content = if self.replace_function {

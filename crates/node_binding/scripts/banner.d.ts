@@ -4,11 +4,13 @@
 /* -- banner.d.ts -- */
 export type JsFilename =
 	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
+
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

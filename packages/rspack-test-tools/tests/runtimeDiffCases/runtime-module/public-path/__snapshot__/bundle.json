@@ -1,0 +1,15 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/public-path/src/index.js": "(function () {\n  __webpack_require__(\"./src/index.css\");\n});",
+    "asset/resource|__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/public-path/src/logo.png": "(function () {\n  \"use strict\";\n\n  module.exports = __webpack_require__.p + \"31d6cfe0d16ae931b73c.png\";\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_module_cache__ = {};\nfunction __webpack_require__(moduleId) {\n  var cachedModule = __webpack_module_cache__[moduleId];\n  if (cachedModule !== undefined) return cachedModule.exports;\n  var module = __webpack_module_cache__[moduleId] = {\n    \"exports\": {},\n    \"id\": moduleId\n  };\n  __webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n  return module.exports;\n}\n__webpack_require__.m = __webpack_modules__;",
+    "webpack/runtime/compat get default export": "!function () {\n  __webpack_require__.n = function (module) {\n    var getter = module && module.__esModule ? function () {\n      return module[\"default\"];\n    } : function () {\n      return module;\n    };\n    __webpack_require__.d(getter, {\n      \"a\": getter\n    });\n    return getter;\n  };\n}();",
+    "webpack/runtime/define property getters": "!function () {\n  __webpack_require__.d = function (exports, definition) {\n    for (var key in definition) if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) Object.defineProperty(exports, key, {\n      \"enumerable\": true,\n      \"get\": definition[key]\n    });\n  };\n}();",
+    "webpack/runtime/hasOwnProperty shorthand": "!function () {\n  __webpack_require__.o = function (obj, prop) {\n    return Object.prototype.hasOwnProperty.call(obj, prop);\n  };\n}();",
+    "webpack/runtime/make namespace object": "!function () {\n  __webpack_require__.r = function (exports) {\n    if (typeof Symbol !== \"undefined\" && Symbol.toStringTag) Object.defineProperty(exports, Symbol.toStringTag, {\n      \"value\": \"Module\"\n    });\n    Object.defineProperty(exports, \"__esModule\", {\n      \"value\": true\n    });\n  };\n}();",
+    "webpack/runtime/publicPath": "!function () {\n  __webpack_require__.p = \"/public/\";\n}();",
+    "webpack/runtime/jsonp chunk loading": "!function () {\n  __webpack_require__.b = document.baseURI || self.location.href;\n  var installedChunks = {\n    \"main\": 0\n  };\n}();"
+  }
+}

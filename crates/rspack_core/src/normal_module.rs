@@ -226,6 +226,10 @@ impl NormalModule {
     self.match_resource.as_ref()
   }
 
+  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+    &mut self.match_resource
+  }
+
   pub fn resource_resolved_data(&self) -> &ResourceData {
     &self.resource_data
   }
@@ -411,6 +415,7 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(mut r) => {
         let diagnostic = if let Some(captured_error) = r.downcast_mut::<CapturedLoaderError>() {
+          self.build_info.cacheable = captured_error.cacheable;
           self.build_info.file_dependencies = captured_error
             .take_file_dependencies()
             .into_iter()
@@ -446,6 +451,15 @@ impl Module for NormalModule {
           .with_stack(stack)
           .with_hide_stack(captured_error.hide_stack)
         } else {
+          self.build_info.cacheable = false;
+          if let Some(file_path) = &self.resource_data.resource_path {
+            if file_path.is_absolute() {
+              self
+                .build_info
+                .file_dependencies
+                .insert(file_path.clone().into_std_path_buf().into());
+            }
+          }
           let node_error = r.downcast_ref::<NodeError>();
           let stack = node_error.and_then(|e| e.stack.clone());
           let hide_stack = node_error.and_then(|e| e.hide_stack);

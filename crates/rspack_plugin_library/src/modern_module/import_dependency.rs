@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
-use rspack_core::{AsContextDependency, Dependency};
+use rspack_core::{AsContextDependency, Dependency, FactorizeInfo};
 use rspack_core::{
   Compilation, DependencyRange, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
   RuntimeSpec,
@@ -20,6 +20,7 @@ pub struct ModernModuleImportDependency {
   range: DependencyRange,
   attributes: Option<ImportAttributes>,
   resource_identifier: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl ModernModuleImportDependency {
@@ -40,6 +41,7 @@ impl ModernModuleImportDependency {
       id: DependencyId::new(),
       attributes,
       resource_identifier,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -87,6 +89,14 @@ impl ModuleDependency for ModernModuleImportDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

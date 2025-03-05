@@ -16,6 +16,7 @@ module.exports = {
 		LOG from rspack.Compilation
 		<t> finish modules: X ms
 		<t> optimize dependencies: X ms
+		<t> rebuild chunk graph: X ms
 		<t> create chunks: X ms
 		<t> optimize: X ms
 		<t> module ids: X ms

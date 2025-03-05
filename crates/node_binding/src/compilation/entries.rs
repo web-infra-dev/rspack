@@ -3,7 +3,7 @@ use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRunti
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
-  dependency::JsDependency, entry::JsEntryOptions, library::JsLibraryOptions, JsDependencyWrapper,
+  dependency::Dependency, entry::JsEntryOptions, library::JsLibraryOptions, DependencyWrapper,
   RawChunkLoading, WithFalse,
 };
 
@@ -158,8 +158,8 @@ impl EntryOptionsDTO {
 
 #[napi(object, object_to_js = false)]
 pub struct JsEntryData {
-  pub dependencies: Vec<ClassInstance<'static, JsDependency>>,
-  pub include_dependencies: Vec<ClassInstance<'static, JsDependency>>,
+  pub dependencies: Vec<ClassInstance<'static, Dependency>>,
+  pub include_dependencies: Vec<ClassInstance<'static, Dependency>>,
   pub options: JsEntryOptions,
 }
 
@@ -189,8 +189,8 @@ pub struct EntryDataDTO {
 
 #[napi]
 impl EntryDataDTO {
-  #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn dependencies(&'static self) -> Vec<JsDependencyWrapper> {
+  #[napi(getter, ts_return_type = "Dependency[]")]
+  pub fn dependencies(&'static self) -> Vec<DependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
@@ -199,13 +199,13 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn include_dependencies(&'static self) -> Vec<JsDependencyWrapper> {
+  #[napi(getter, ts_return_type = "Dependency[]")]
+  pub fn include_dependencies(&'static self) -> Vec<DependencyWrapper> {
     let module_graph = self.compilation.get_module_graph();
     self
       .entry_data
@@ -214,7 +214,7 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         #[allow(clippy::unwrap_used)]
         let dep = module_graph.dependency_by_id(dependency_id).unwrap();
-        JsDependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
+        DependencyWrapper::new(dep.as_ref(), self.compilation.id(), Some(self.compilation))
       })
       .collect::<Vec<_>>()
   }

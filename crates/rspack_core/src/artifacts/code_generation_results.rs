@@ -317,7 +317,6 @@ impl CodeGenerationResults {
     self.get(module_identifier, runtime).runtime_requirements
   }
 
-  #[allow(clippy::unwrap_in_result)]
   pub fn get_hash(
     &self,
     module_identifier: &ModuleIdentifier,

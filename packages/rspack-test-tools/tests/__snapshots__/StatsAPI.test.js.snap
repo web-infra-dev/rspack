@@ -310,7 +310,7 @@ Object {
       isOverSizeLimit: false,
       name: main.js,
       related: Array [],
-      size: 441,
+      size: 412,
       type: asset,
     },
   ],
@@ -330,7 +330,7 @@ Object {
         main.js,
       ],
       filteredModules: undefined,
-      hash: 2dd20186ade39fda,
+      hash: 6b90d3665b9a32f0,
       id: 909,
       idHints: Array [],
       initial: true,
@@ -688,7 +688,7 @@ Object {
       size: 192,
       sizes: Object {
         javascript: 192,
-        runtime: 677,
+        runtime: 647,
       },
       type: chunk,
     },
@@ -698,10 +698,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 441,
+          size: 412,
         },
       ],
-      assetsSize: 441,
+      assetsSize: 412,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},
@@ -718,7 +718,7 @@ Object {
   errorsCount: 0,
   filteredAssets: undefined,
   filteredModules: undefined,
-  hash: 869653cdb9b09f07,
+  hash: 78322e9a4de35476,
   modules: Array [
     Object {
       assets: Array [],
@@ -1357,9 +1357,9 @@ Object {
       preOrderIndex: undefined,
       providedExports: Array [],
       reasons: Array [],
-      size: 290,
+      size: 285,
       sizes: Object {
-        runtime: 290,
+        runtime: 285,
       },
       type: module,
       usedExports: null,
@@ -1399,9 +1399,9 @@ Object {
       preOrderIndex: undefined,
       providedExports: Array [],
       reasons: Array [],
-      size: 107,
+      size: 88,
       sizes: Object {
-        runtime: 107,
+        runtime: 88,
       },
       type: module,
       usedExports: null,
@@ -1441,9 +1441,9 @@ Object {
       preOrderIndex: undefined,
       providedExports: Array [],
       reasons: Array [],
-      size: 280,
+      size: 274,
       sizes: Object {
-        runtime: 280,
+        runtime: 274,
       },
       type: module,
       usedExports: null,
@@ -1455,10 +1455,10 @@ Object {
       assets: Array [
         Object {
           name: main.js,
-          size: 441,
+          size: 412,
         },
       ],
-      assetsSize: 441,
+      assetsSize: 412,
       auxiliaryAssets: Array [],
       auxiliaryAssetsSize: 0,
       childAssets: Object {},

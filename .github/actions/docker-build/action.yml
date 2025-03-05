@@ -60,6 +60,7 @@ runs:
           -v $CARGO_HOME/registry/index:/usr/local/cargo/registry/index \
           -v $CARGO_HOME/registry/cache:/usr/local/cargo/registry/cache \
           -v $CARGO_HOME/git/db:/usr/local/cargo/git/db \
+          -v /tmp:/tmp \
           ${{ inputs.options }} \
           -e CI=1 \
           -e HOME=$HOME \

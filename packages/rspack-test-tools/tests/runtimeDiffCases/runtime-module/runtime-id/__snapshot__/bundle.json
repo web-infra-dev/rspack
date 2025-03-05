@@ -1,0 +1,9 @@
+{
+  "modules": {
+    "__WORKSPACE__/packages/rspack-test-tools/tests/runtimeDiffCases/runtime-module/runtime-id/src/index.js": "(function () {\n  console.log(__webpack_require__.j);\n});"
+  },
+  "runtimeModules": {
+    "webpack/runtime/bootstrap": "var __webpack_require__ = {};",
+    "webpack/runtime/runtimeId": "!function () {\n  __webpack_require__.j = \"other\";\n}();"
+  }
+}

@@ -61,18 +61,8 @@ impl ModuleExecutor {
     if !compilation.removed_files.is_empty() {
       params.push(MakeParam::RemovedFiles(compilation.removed_files.clone()));
     }
-    if !make_artifact.make_failed_dependencies.is_empty() {
-      let deps = std::mem::take(&mut make_artifact.make_failed_dependencies);
-      params.push(MakeParam::ForceBuildDeps(deps));
-    }
-    if !make_artifact.make_failed_module.is_empty() {
-      let modules = std::mem::take(&mut make_artifact.make_failed_module);
-      params.push(MakeParam::ForceBuildModules(modules));
-    }
     make_artifact.built_modules = Default::default();
     make_artifact.revoked_modules = Default::default();
-    make_artifact.diagnostics = Default::default();
-    make_artifact.has_module_graph_change = false;
 
     // Modules imported by `importModule` are passively loaded.
     let mut build_dependencies = self.cutout.cutout_artifact(&mut make_artifact, params);
@@ -155,7 +145,7 @@ impl ModuleExecutor {
 
     //    let module_code_generation_modules = std::mem::take(&mut self.module_code_generated_modules);
 
-    let diagnostics = self.make_artifact.take_diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);
 
     let code_generated_modules = std::mem::take(&mut self.code_generated_modules);

@@ -10,10 +10,10 @@
 - Bundle: main_async_js.chunk.CURRENT_HASH.js
 - Bundle: runtime.js
 - Manifest: runtime.LAST_HASH.hot-update.json, size: 46
-- Update: a.LAST_HASH.hot-update.js, size: 96
-- Update: b.LAST_HASH.hot-update.js, size: 96
-- Update: main.LAST_HASH.hot-update.js, size: 99
-- Update: runtime.LAST_HASH.hot-update.js, size: 204
+- Update: a.LAST_HASH.hot-update.js, size: 165
+- Update: b.LAST_HASH.hot-update.js, size: 165
+- Update: main.LAST_HASH.hot-update.js, size: 168
+- Update: runtime.LAST_HASH.hot-update.js, size: 185
 
 ## Manifest
 
@@ -38,7 +38,11 @@
 #### Changed Content
 ```js
 self["webpackHotUpdate"]('a', {
-"./file.js": (function (module) {
+"./file.js": 
+/*!*****************!*\
+  !*** ./file.js ***!
+  \*****************/
+(function (module) {
 module.exports = 3;
 
 
@@ -60,7 +64,11 @@ module.exports = 3;
 #### Changed Content
 ```js
 self["webpackHotUpdate"]('b', {
-"./file.js": (function (module) {
+"./file.js": 
+/*!*****************!*\
+  !*** ./file.js ***!
+  \*****************/
+(function (module) {
 module.exports = 3;
 
 
@@ -82,7 +90,11 @@ module.exports = 3;
 #### Changed Content
 ```js
 self["webpackHotUpdate"]('main', {
-"./file.js": (function (module) {
+"./file.js": 
+/*!*****************!*\
+  !*** ./file.js ***!
+  \*****************/
+(function (module) {
 module.exports = 3;
 
 
@@ -107,10 +119,7 @@ module.exports = 3;
 self["webpackHotUpdate"]('runtime', {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
-__webpack_require__.h = function () {
-	return "CURRENT_HASH";
-};
-
+__webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
 }

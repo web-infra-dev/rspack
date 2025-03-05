@@ -32,7 +32,6 @@ describeByWalk(
 		dist: path.resolve(
 			__dirname,
 			`./js/new-incremental/webpack-test/hot-webworker`
-		),
-		exclude: [/move-between-runtime/]
+		)
 	}
 );

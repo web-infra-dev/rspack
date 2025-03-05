@@ -1,7 +1,9 @@
 use std::{collections::HashSet, hash::BuildHasherDefault};
 
 use num_bigint::BigUint;
-use rspack_collections::{IdentifierHasher, IdentifierIndexSet, IdentifierMap, UkeySet};
+use rspack_collections::{
+  IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
+};
 use rspack_error::Result;
 use tracing::instrument;
 
@@ -443,26 +445,51 @@ impl CodeSplitter {
     self.stat_cache_miss_by_available_modules = 0;
     self.stat_cache_miss_by_cant_rebuild = 0;
 
-    let modules = if let Some(mutations) = compilation
+    let (affected_modules, removed_modules) = if let Some(mutations) = compilation
       .incremental
       .mutations_read(IncrementalPasses::BUILD_CHUNK_GRAPH)
     {
-      mutations.get_affected_modules_with_module_graph(&module_graph)
+      let affected_modules = mutations.get_affected_modules_with_module_graph(&module_graph);
+      let removed_modules: IdentifierSet = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleRemove { module } => Some(*module),
+          _ => None,
+        })
+        .collect();
+      (affected_modules, removed_modules)
     } else {
-      compilation
-        .get_module_graph()
-        .modules()
-        .keys()
-        .copied()
-        .collect()
+      (
+        compilation
+          .get_module_graph()
+          .modules()
+          .keys()
+          .copied()
+          .collect(),
+        Default::default(),
+      )
     };
 
     let mut edges = vec![];
 
     // collect invalidate caches before we do anything to the chunk graph
-    let dirty_blocks = self.collect_dirty_caches(compilation, modules.iter().copied());
+    let dirty_blocks = self.collect_dirty_caches(
+      compilation,
+      affected_modules
+        .iter()
+        .chain(removed_modules.iter())
+        .copied(),
+    );
 
-    for m in modules {
+    for m in removed_modules {
+      for module_map in self.block_modules_runtime_map.values_mut() {
+        module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
+      }
+
+      self.invalidate_from_module(m, compilation)?;
+    }
+
+    for m in affected_modules {
       for module_map in self.block_modules_runtime_map.values_mut() {
         module_map.swap_remove(&DependenciesBlockIdentifier::Module(m));
       }
@@ -476,19 +503,34 @@ impl CodeSplitter {
       self.chunk_caches.remove(&block);
     }
 
-    if compilation.entries.len() > compilation.entrypoints.len() {
-      edges.extend(
-        compilation
-          .entries
-          .keys()
-          .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
-          .map(|entry| ChunkReCreation::Entry(entry.to_owned())),
-      );
-    }
-
     for edge in edges {
       edge.rebuild(self, compilation)?;
     }
+
+    // If after edges rebuild there are still some entries not included in entrypoints
+    // then they are new added entries and we build them.
+    let new_entries: Vec<_> = compilation
+      .entries
+      .keys()
+      .filter(|entry| !compilation.entrypoints.contains_key(entry.as_str()))
+      .map(|entry| ChunkReCreation::Entry(entry.to_owned()))
+      .collect();
+    for edge in new_entries {
+      edge.rebuild(self, compilation)?;
+    }
+
+    // Ensure entrypoints always have the same order with entries
+    compilation.entrypoints.sort_unstable_by(|a, _, b, _| {
+      let a = compilation
+        .entries
+        .get_index_of(a)
+        .expect("entrypoints must exist in entries");
+      let b = compilation
+        .entries
+        .get_index_of(b)
+        .expect("entrypoints must exist in entries");
+      a.cmp(&b)
+    });
 
     Ok(())
   }

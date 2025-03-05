@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, Compilation, ContextDependency, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyRange, DependencyTemplate, DependencyType,
-  ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  FactorizeInfo, ModuleGraph, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -16,28 +16,30 @@ pub struct ImportContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
-  range_callee: DependencyRange,
+  value_range: DependencyRange,
   resource_identifier: String,
   optional: bool,
   critical: Option<Diagnostic>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ImportContextDependency {
   pub fn new(
     options: ContextOptions,
     range: DependencyRange,
-    range_callee: DependencyRange,
+    value_range: DependencyRange,
     optional: bool,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       options,
       range,
-      range_callee,
+      value_range,
       id: DependencyId::new(),
       resource_identifier,
       optional,
       critical: None,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -108,6 +110,14 @@ impl ContextDependency for ImportContextDependency {
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
     &mut self.critical
   }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
+  }
 }
 
 #[cacheable_dyn]
@@ -121,9 +131,8 @@ impl DependencyTemplate for ImportContextDependency {
       self,
       source,
       code_generatable_context,
-      self.range_callee.start,
-      self.range_callee.end,
-      self.range.end,
+      &self.range,
+      Some(&self.value_range),
     );
   }
 

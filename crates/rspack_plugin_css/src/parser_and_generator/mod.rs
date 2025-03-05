@@ -12,6 +12,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, ConstDependency,
   CssExportsConvention, Dependency, DependencyId, DependencyRange, DependencyTemplate,
@@ -133,6 +134,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       BuildMetaDefaultObject::Redirect
     };
 
+    let source = remove_bom(source);
     let source_code = source.source();
     let resource_path = &resource_data.resource_path;
     let cached_source_code = OnceCell::new();

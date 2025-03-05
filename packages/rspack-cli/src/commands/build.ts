@@ -5,8 +5,10 @@ import type { RspackCLI } from "../cli";
 import type { RspackCommand } from "../types";
 import {
 	commonOptions,
+	commonOptionsForBuildAndServe,
 	ensureEnvObject,
-	setBuiltinEnvArg
+	setBuiltinEnvArg,
+	setDefaultNodeEnv
 } from "../utils/options";
 
 export class BuildCommand implements RspackCommand {
@@ -14,8 +16,8 @@ export class BuildCommand implements RspackCommand {
 		cli.program.command(
 			["build", "$0", "bundle", "b"],
 			"run the rspack build",
-			yargs =>
-				commonOptions(yargs).options({
+			yargs => {
+				commonOptionsForBuildAndServe(commonOptions(yargs)).options({
 					analyze: {
 						type: "boolean",
 						default: false,
@@ -29,15 +31,19 @@ export class BuildCommand implements RspackCommand {
 						default: false,
 						describe: "capture timing information for each module"
 					}
-				}),
+				});
+			},
 			async options => {
+				setDefaultNodeEnv(options, "production");
 				const env = ensureEnvObject(options);
+
 				if (options.watch) {
 					setBuiltinEnvArg(env, "WATCH", true);
 				} else {
 					setBuiltinEnvArg(env, "BUNDLE", true);
 					setBuiltinEnvArg(env, "BUILD", true);
 				}
+
 				const logger = cli.getLogger();
 				let createJsonStringifyStream: typeof import("@discoveryjs/json-ext").stringifyStream;
 				if (options.json) {

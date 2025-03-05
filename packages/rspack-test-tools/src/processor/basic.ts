@@ -142,27 +142,41 @@ export class BasicProcessor<T extends ECompilerType> implements ITestProcessor {
 		const compiler = this.getCompiler(context);
 		const stats = compiler.getStats();
 		if (stats) {
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.txt"),
-				stats.toString({
-					preset: "verbose",
-					colors: false
-				}),
-				"utf-8"
-			);
-			const jsonStats = stats.toJson({
-				errorDetails: true
-			});
-			fs.writeFileSync(
-				path.join(context.getDist(), "stats.json"),
-				JSON.stringify(jsonStats, null, 2),
-				"utf-8"
-			);
-			if (jsonStats.errors) {
-				errors.push(...jsonStats.errors);
+			if (testConfig.writeStatsOuptut) {
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.txt"),
+					stats.toString({
+						preset: "verbose",
+						colors: false
+					}),
+					"utf-8"
+				);
 			}
-			if (jsonStats.warnings) {
-				warnings.push(...jsonStats.warnings);
+
+			if (testConfig.writeStatsJson) {
+				const jsonStats = stats.toJson({
+					errorDetails: true
+				});
+				fs.writeFileSync(
+					path.join(context.getDist(), "stats.json"),
+					JSON.stringify(jsonStats, null, 2),
+					"utf-8"
+				);
+			}
+
+			if (
+				fs.existsSync(context.getSource("errors.js")) ||
+				fs.existsSync(context.getSource("warnings.js"))
+			) {
+				const statsJson = stats.toJson({
+					errorDetails: true
+				});
+				if (statsJson.errors) {
+					errors.push(...statsJson.errors);
+				}
+				if (statsJson.warnings) {
+					warnings.push(...statsJson.warnings);
+				}
 			}
 		}
 		await checkArrayExpectation(

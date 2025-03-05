@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyId, DependencyTemplate, DependencyType,
-  ExtendedReferencedExport, ModuleDependency, ModuleGraph, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -12,6 +12,7 @@ pub struct WebpackIsIncludedDependency {
   pub end: u32,
   pub id: DependencyId,
   pub request: String,
+  factorize_info: FactorizeInfo,
 }
 
 impl WebpackIsIncludedDependency {
@@ -21,6 +22,7 @@ impl WebpackIsIncludedDependency {
       end,
       id: DependencyId::default(),
       request,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -58,6 +60,14 @@ impl ModuleDependency for WebpackIsIncludedDependency {
 
   fn request(&self) -> &str {
     &self.request
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
   }
 }
 

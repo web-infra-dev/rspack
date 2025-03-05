@@ -1,0 +1,22 @@
+var installChunk = <%- basicFunction("data") %> {
+    var __webpack_ids__ = data.__webpack_ids__;
+    var __webpack_modules__ = data.__webpack_modules__;
+    var __webpack_runtime__ = data.__webpack_runtime__;
+    // add "modules" to the modules object,
+    // then flag all "ids" as loaded and fire callback
+    var moduleId, chunkId, i = 0;
+    for (moduleId in __webpack_modules__) {
+        if (<%- HAS_OWN_PROPERTY %>(__webpack_modules__, moduleId)) {
+            <%- MODULE_FACTORIES %>[moduleId] = __webpack_modules__[moduleId];
+        }
+    }
+    if (__webpack_runtime__) __webpack_runtime__(<%- REQUIRE %>);
+    for (; i < __webpack_ids__.length; i++) {
+        chunkId = __webpack_ids__[i];
+        if (<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) && installedChunks[chunkId]) {
+            installedChunks[chunkId][0]();
+        }
+        installedChunks[__webpack_ids__[i]] = 0;
+    }
+    <%- _with_on_chunk_load %>
+};

@@ -1,19 +1,46 @@
 import type yargs from "yargs";
+
+/**
+ * Apply common options for all commands
+ */
 export const commonOptions = (yargs: yargs.Argv) => {
+	return yargs.options({
+		config: {
+			g: true,
+			type: "string",
+			describe: "config file",
+			alias: "c"
+		},
+		configName: {
+			type: "array",
+			string: true,
+			describe: "Name of the configuration to use."
+		},
+		configLoader: {
+			type: "string",
+			default: "register",
+			describe:
+				"Specify the loader to load the config file, can be `native` or `register`."
+		},
+		nodeEnv: {
+			string: true,
+			describe: "sets `process.env.NODE_ENV` to be specified value"
+		}
+	});
+};
+
+/**
+ * Apply common options for `build` and `serve` commands
+ */
+export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 	return yargs
 		.options({
-			config: {
-				g: true,
-				type: "string",
-				describe: "config file",
-				alias: "c"
-			},
 			entry: {
 				type: "array",
 				string: true,
 				describe: "entry file"
 			},
-			"output-path": {
+			outputPath: {
 				type: "string",
 				describe: "output path dir",
 				alias: "o"
@@ -30,71 +57,14 @@ export const commonOptions = (yargs: yargs.Argv) => {
 				string: true,
 				describe: "env passed to config function"
 			},
-			"node-env": {
-				string: true,
-				describe: "sets process.env.NODE_ENV to be specified value"
-			},
 			devtool: {
 				type: "boolean",
 				default: false,
 				describe: "devtool",
 				alias: "d"
-			},
-			configName: {
-				type: "array",
-				string: true,
-				describe: "Name of the configuration to use."
-			},
-			"config-loader": {
-				type: "string",
-				default: "register",
-				describe:
-					"Specify the loader to load the config file, can be `native` or `register`."
 			}
 		})
 		.alias({ v: "version", h: "help" });
-};
-
-export const previewOptions = (yargs: yargs.Argv) => {
-	return yargs
-		.positional("dir", {
-			type: "string",
-			describe: "directory want to preview"
-		})
-		.options({
-			publicPath: {
-				type: "string",
-				describe: "static resource server path"
-			},
-			config: {
-				g: true,
-				type: "string",
-				describe: "config file",
-				alias: "c"
-			},
-			port: {
-				type: "number",
-				describe: "preview server port"
-			},
-			host: {
-				type: "string",
-				describe: "preview server host"
-			},
-			open: {
-				type: "boolean",
-				describe: "open browser"
-			},
-			// same as devServer.server
-			server: {
-				type: "string",
-				describe: "Configuration items for the server."
-			},
-			configName: {
-				type: "array",
-				string: true,
-				describe: "Name of the configuration to use."
-			}
-		});
 };
 
 export function normalizeEnv(argv: yargs.Arguments) {
@@ -173,4 +143,16 @@ export function ensureEnvObject<T extends Record<string, unknown>>(
 	}
 	options.env = options.env || {};
 	return options.env as T;
+}
+
+export function setDefaultNodeEnv(
+	options: yargs.Arguments,
+	defaultEnv: string
+) {
+	if (process.env.NODE_ENV !== undefined) {
+		return;
+	}
+
+	process.env.NODE_ENV =
+		typeof options.nodeEnv === "string" ? options.nodeEnv : defaultEnv;
 }

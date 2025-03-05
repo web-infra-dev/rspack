@@ -5,7 +5,6 @@ use rspack_cacheable::{
   with::{AsPreset, Skip},
 };
 use rspack_collections::IdentifierSet;
-use rspack_core::Compilation;
 use rspack_core::DependencyConditionFn;
 use rspack_core::DependencyLocation;
 use rspack_core::DependencyRange;
@@ -18,6 +17,7 @@ use rspack_core::{
   ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleDependency,
   ProvidedExports, RuntimeCondition, TemplateContext, TemplateReplaceSource,
 };
+use rspack_core::{Compilation, FactorizeInfo};
 use rspack_core::{ModuleGraph, RuntimeSpec};
 use rspack_error::miette::{MietteDiagnostic, Severity};
 use rspack_error::DiagnosticExt;
@@ -77,6 +77,7 @@ pub struct ESMImportSideEffectDependency {
   resource_identifier: String,
   #[cacheable(with=Skip)]
   source_map: Option<SharedSourceMap>,
+  factorize_info: FactorizeInfo,
 }
 
 impl ESMImportSideEffectDependency {
@@ -104,6 +105,7 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       source_map,
+      factorize_info: Default::default(),
     }
   }
 }
@@ -494,7 +496,13 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     )))
   }
 
-  // It's from ESMImportSideEffectDependency.
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
+  }
 }
 
 #[cacheable_dyn]

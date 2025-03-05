@@ -32,7 +32,8 @@ const creator = new BasicCaseCreator({
 				compilerType: ECompilerType.Rspack
 			})
 		];
-	}
+	},
+	concurrent: true
 });
 
 export function createBuiltinCase(name: string, src: string, dist: string) {

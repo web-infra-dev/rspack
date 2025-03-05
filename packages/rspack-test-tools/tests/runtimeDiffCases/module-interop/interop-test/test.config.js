@@ -6,8 +6,8 @@ module.exports = {
 	errors: true,
 	replacements: [
 		{
-			from: /"[\s\S]*Module parse failed:[\s\S]*Top-level-await is only supported in EcmaScript Modules[\s\S]*"/g,
-			to: '"Module parse failed: Top-level-await is only supported in EcmaScript Modules"'
+			from: /throw new Error\("(.*)Module parse failed(.*)Top-level-await is only supported in EcmaScript Modules(.*)"\)/g,
+			to: 'throw new Error("Module parse failed: Top-level-await is only supported in EcmaScript Modules")'
 		}
 	]
 };

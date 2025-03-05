@@ -1,0 +1,34 @@
+// install a JSONP callback for chunk loading
+var webpackJsonpCallback = <%- basicFunction("parentChunkLoadingFunction, data") %> {
+	<%- destructureArray("chunkIds, moreModules, runtime", "data") %>
+	// add "moreModules" to the modules object,
+	// then flag all "chunkIds" as loaded and fire callback
+	var moduleId, chunkId, i = 0;
+	if (chunkIds.some(<%- returningFunction("installedChunks[id] !== 0", "id") %>)) {
+		for (moduleId in moreModules) {
+			if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+				<%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
+			}
+		}
+		if (runtime) var result = runtime(<%- REQUIRE %>);
+	}
+	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+	for (; i < chunkIds.length; i++) {
+		chunkId = chunkIds[i];
+		if (
+			<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) &&
+			installedChunks[chunkId]
+		) {
+			installedChunks[chunkId][0]();
+		}
+		installedChunks[chunkId] = 0;
+	}
+	<%- _with_on_chunk_load %>
+};
+
+var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
+chunkLoadingGlobal.push = webpackJsonpCallback.bind(
+	null,
+	chunkLoadingGlobal.push.bind(chunkLoadingGlobal)
+);

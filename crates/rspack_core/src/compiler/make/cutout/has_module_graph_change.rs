@@ -120,7 +120,9 @@ impl HasModuleGraphChange {
     if self.disabled {
       return;
     }
-    if artifact.built_modules.len() != self.expect_built_modules_len {
+    if artifact.built_modules.len() != self.expect_built_modules_len
+      || artifact.built_modules.len() != artifact.revoked_modules.len()
+    {
       // contain unexpected module built
       artifact.has_module_graph_change = true;
       return;
@@ -153,9 +155,9 @@ mod t {
   use crate::{
     compiler::make::cutout::has_module_graph_change::ModuleDeps, AffectType, AsContextDependency,
     BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactoryMeta,
-    Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial, ModuleIdentifier,
-    ModuleType, RuntimeSpec, SourceType,
+    DependenciesBlock, Dependency, DependencyId, DependencyTemplate, ExportsInfo, FactorizeInfo,
+    FactoryMeta, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleGraphPartial,
+    ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   };
 
   #[cacheable]
@@ -164,6 +166,7 @@ mod t {
     #[cacheable(with=Skip)]
     ids: Vec<Atom>,
     id: DependencyId,
+    factorize_info: FactorizeInfo,
   }
 
   impl TestDep {
@@ -171,6 +174,7 @@ mod t {
       Self {
         ids,
         id: DependencyId::new(),
+        factorize_info: Default::default(),
       }
     }
   }
@@ -224,6 +228,14 @@ mod t {
   impl ModuleDependency for TestDep {
     fn request(&self) -> &str {
       ""
+    }
+
+    fn factorize_info(&self) -> &FactorizeInfo {
+      unreachable!()
+    }
+
+    fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+      unreachable!()
     }
   }
 

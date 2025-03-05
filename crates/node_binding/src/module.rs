@@ -4,8 +4,9 @@ use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, Module, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  parse_resource, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation,
+  CompilationAsset, CompilerId, LibIdentOptions, Module, ModuleIdentifier, ResourceData,
+  ResourceParsedData, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
@@ -15,9 +16,8 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  JsAssetInfo, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
-  JsDependenciesBlockWrapper, JsDependencyWrapper, JsResourceData, ToJsCompatSource,
-  COMPILER_REFERENCES,
+  AssetInfo, DependencyWrapper, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
+  JsCompiler, JsDependenciesBlockWrapper, JsResourceData, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -228,8 +228,8 @@ impl JsModule {
     )
   }
 
-  #[napi(getter, ts_return_type = "JsDependency[]")]
-  pub fn dependencies(&mut self) -> napi::Result<Vec<JsDependencyWrapper>> {
+  #[napi(getter, ts_return_type = "Dependency[]")]
+  pub fn dependencies(&mut self) -> napi::Result<Vec<DependencyWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
     let module_graph = compilation.get_module_graph();
@@ -240,7 +240,7 @@ impl JsModule {
         .filter_map(|dependency_id| {
           module_graph
             .dependency_by_id(dependency_id)
-            .map(|dep| JsDependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
+            .map(|dep| DependencyWrapper::new(dep.as_ref(), compilation.id(), Some(compilation)))
         })
         .collect::<Vec<_>>(),
     )
@@ -321,18 +321,44 @@ impl JsModule {
     })
   }
 
+  #[napi(setter)]
+  pub fn set_match_resource(&mut self, val: Either<String, ()>) -> napi::Result<()> {
+    match val {
+      Either::A(val) => {
+        let module: &mut dyn Module = self.as_mut()?;
+        if let Ok(normal_module) = module.try_as_normal_module_mut() {
+          let ResourceParsedData {
+            path,
+            query,
+            fragment,
+          } = parse_resource(&val).expect("Should parse resource");
+          *normal_module.match_resource_mut() = Some(
+            ResourceData::new(val)
+              .path(path)
+              .query_optional(query)
+              .fragment_optional(fragment),
+          );
+        }
+      }
+      Either::B(_) => {}
+    }
+    Ok(())
+  }
+
   #[napi]
   pub fn emit_file(
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: JsAssetInfo,
+    js_asset_info: Option<AssetInfo>,
   ) -> napi::Result<()> {
     let module = self.as_mut()?;
 
+    let asset_info = js_asset_info.map(Into::into).unwrap_or_default();
+
     module.build_info_mut().assets.insert(
       filename,
-      CompilationAsset::new(Some(source.into()), asset_info.into()),
+      CompilationAsset::new(Some(source.into()), asset_info),
     );
     Ok(())
   }

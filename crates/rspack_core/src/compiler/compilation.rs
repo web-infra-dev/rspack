@@ -34,9 +34,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::{info_span, instrument, Instrument};
 
 use super::{
-  hmr::CompilationRecords,
   make::{make_module_graph, update_module_graph, MakeArtifact, MakeParam},
   module_executor::ModuleExecutor,
+  rebuild::CompilationRecords,
   CompilerId,
 };
 use crate::{
@@ -59,11 +59,6 @@ use crate::{
   Stats,
 };
 
-pub type BuildDependency = (
-  DependencyId,
-  Option<ModuleIdentifier>, /* parent module */
-);
-
 define_hook!(CompilationAddEntry: AsyncSeries(compilation: &mut Compilation, entry_name: Option<&str>));
 define_hook!(CompilationBuildModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 // NOTE: This is a Rspack-specific hook and has not been standardized yet. Do not expose it to the JS side.
@@ -71,7 +66,7 @@ define_hook!(CompilationRevokedModules: AsyncSeries(revoked_modules: &Identifier
 define_hook!(CompilationStillValidModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: AsyncSeries(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationExecuteModule:
-  SyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
+  AsyncSeries(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, codegen_results: &CodeGenerationResults, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationSeal: AsyncSeries(compilation: &mut Compilation));
 define_hook!(CompilationOptimizeDependencies: SyncSeriesBail(compilation: &mut Compilation) -> bool);
@@ -243,6 +238,11 @@ pub struct Compilation {
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
+
+  /// A flag indicating whether the current compilation is being rebuilt.
+  ///
+  /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
+  pub is_rebuild: bool,
 }
 
 impl Compilation {
@@ -283,6 +283,7 @@ impl Compilation {
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     output_filesystem: Arc<dyn WritableFileSystem>,
+    is_rebuild: bool,
   ) -> Self {
     let incremental = Incremental::new(options.experiments.incremental);
     Self {
@@ -354,6 +355,7 @@ impl Compilation {
 
       intermediate_filesystem,
       output_filesystem,
+      is_rebuild,
     }
   }
 
@@ -610,7 +612,7 @@ impl Compilation {
     self.make_artifact = update_module_graph(
       self,
       make_artifact,
-      vec![MakeParam::BuildEntryAndClean(
+      vec![MakeParam::BuildEntry(
         self
           .entries
           .values()
@@ -908,46 +910,25 @@ impl Compilation {
     let module_graph = self.get_module_graph();
     let mut jobs = Vec::new();
     for module in modules {
-      let runtimes = chunk_graph.get_module_runtimes(module, &self.chunk_by_ukey);
-      if runtimes.is_empty() {
-        continue;
-      }
-      if runtimes.len() == 1 {
-        let runtime = runtimes
-          .into_values()
-          .next()
-          .expect("should have first value");
-        let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-          .expect("should have cgm.hash in code generation")
-          .clone();
-        jobs.push(CodeGenerationJob {
-          module,
-          hash,
-          runtime: runtime.clone(),
-          runtimes: vec![runtime],
-        })
-      } else {
-        let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-        for runtime in runtimes.into_values() {
-          let hash = ChunkGraph::get_module_hash(self, module, &runtime)
-            .expect("should have cgm.hash in code generation")
-            .clone();
-          if let Some(job) = map.get_mut(&hash) {
-            job.runtimes.push(runtime);
-          } else {
-            map.insert(
-              hash.clone(),
-              CodeGenerationJob {
-                module,
-                hash,
-                runtime: runtime.clone(),
-                runtimes: vec![runtime],
-              },
-            );
-          }
+      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
+        let hash = ChunkGraph::get_module_hash(self, module, runtime)
+          .expect("should have cgm.hash in code generation");
+        if let Some(job) = map.get_mut(hash) {
+          job.runtimes.push(runtime.clone());
+        } else {
+          map.insert(
+            hash.clone(),
+            CodeGenerationJob {
+              module,
+              hash: hash.clone(),
+              runtime: runtime.clone(),
+              runtimes: vec![runtime.clone()],
+            },
+          );
         }
-        jobs.extend(map.into_values());
       }
+      jobs.extend(map.into_values());
     }
     let results = jobs
       .into_par_iter()
@@ -1208,6 +1189,23 @@ impl Compilation {
 
   #[instrument("Compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    // clean up the entry deps
+    let make_artifact = std::mem::take(&mut self.make_artifact);
+    self.make_artifact = update_module_graph(
+      self,
+      make_artifact,
+      vec![MakeParam::BuildEntryAndClean(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+
     let logger = self.get_logger("rspack.Compilation");
 
     self.in_finish_make.store(false, Ordering::Release);
@@ -1238,6 +1236,10 @@ impl Compilation {
     }
 
     let start = logger.time("finish modules");
+    // finish_modules means the module graph (modules, connections, dependencies) are
+    // frozen and start to optimize (provided exports, infer async, etc.) based on the
+    // module graph, so any kind of change that affect these should be done before the
+    // finish_modules
     plugin_driver
       .compilation_hooks
       .finish_modules
@@ -1258,7 +1260,7 @@ impl Compilation {
     self.collect_dependencies_diagnostics();
 
     // take make diagnostics
-    let diagnostics = self.make_artifact.take_diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     self.extend_diagnostics(diagnostics);
     Ok(())
   }
@@ -1344,11 +1346,13 @@ impl Compilation {
 
     let start = logger.time("create chunks");
     use_code_splitting_cache(self, |compilation| async {
+      let start = logger.time("rebuild chunk graph");
       if compilation.options.experiments.parallel_code_splitting {
         build_chunk_graph_new(compilation)?;
       } else {
         build_chunk_graph(compilation)?;
       }
+      logger.time_end(start);
       Ok(compilation)
     })
     .await?;
@@ -1417,14 +1421,46 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let mg = self.get_module_graph();
+      let mut affected_modules = mutations.get_affected_modules_with_module_graph(&mg);
+      for mutation in mutations.iter() {
+        match mutation {
+          Mutation::ModuleSetAsync { module } => {
+            affected_modules.insert(*module);
+          }
+          Mutation::ModuleSetId { module } => {
+            affected_modules.insert(*module);
+            affected_modules.extend(
+              mg.get_incoming_connections(module)
+                .filter_map(|c| c.original_module_identifier),
+            );
+          }
+          Mutation::ChunkAdd { chunk } => {
+            affected_modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
+          }
+          Mutation::ChunkSetId { chunk } => {
+            let chunk = self.chunk_by_ukey.expect_get(chunk);
+            affected_modules.extend(
+              chunk
+                .groups()
+                .iter()
+                .flat_map(|group| {
+                  let group = self.chunk_group_by_ukey.expect_get(group);
+                  group.origins()
+                })
+                .filter_map(|origin| origin.module),
+            );
+          }
+          _ => {}
+        }
+      }
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
         "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
+        affected_modules.len(),
+        mg.modules().len()
       ));
-      modules
+      affected_modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1452,7 +1488,13 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.code_generation_results.remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let modules: IdentifierSet = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleSetHashes { module } => Some(*module),
+          _ => None,
+        })
+        .collect();
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -1486,7 +1528,13 @@ impl Compilation {
           .cgm_runtime_requirements_artifact
           .remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let modules: IdentifierSet = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleSetHashes { module } => Some(*module),
+          _ => None,
+        })
+        .collect();
       let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -1671,15 +1719,15 @@ impl Compilation {
       .into_par_iter()
       .filter(|module| self.chunk_graph.get_number_of_module_chunks(*module) > 0)
       .map(|module| {
+        let mut map = RuntimeSpecMap::new();
         let runtimes = self
           .chunk_graph
-          .get_module_runtimes(module, &self.chunk_by_ukey);
-        let mut map = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+          .get_module_runtimes_iter(module, &self.chunk_by_ukey);
+        for runtime in runtimes {
           let runtime_requirements = self
             .old_cache
             .process_runtime_requirements_occasion
-            .use_cache(module, &runtime, self, |module, runtime| {
+            .use_cache(module, runtime, self, |module, runtime| {
               let mut runtime_requirements = self
                 .code_generation_results
                 .get_runtime_requirements(&module, Some(runtime));
@@ -1707,7 +1755,7 @@ impl Compilation {
               )?;
               Ok(runtime_requirements)
             })?;
-          map.set(runtime, runtime_requirements);
+          map.set(runtime.clone(), runtime_requirements);
         }
         Ok((module, map))
       })
@@ -2140,24 +2188,31 @@ impl Compilation {
           module,
           self
             .chunk_graph
-            .get_module_runtimes(module, &self.chunk_by_ukey),
+            .get_module_runtimes_iter(module, &self.chunk_by_ukey),
         )
       })
       .map(|(module_identifier, runtimes)| {
         let mut hashes = RuntimeSpecMap::new();
-        for runtime in runtimes.into_values() {
+        for runtime in runtimes {
           let mut hasher = RspackHash::from(&self.options.output);
           let module = mg
             .module_by_identifier(&module_identifier)
             .expect("should have module");
-          module.update_hash(&mut hasher, self, Some(&runtime))?;
-          hashes.set(runtime, hasher.digest(&self.options.output.hash_digest));
+          module.update_hash(&mut hasher, self, Some(runtime))?;
+          hashes.set(
+            runtime.clone(),
+            hasher.digest(&self.options.output.hash_digest),
+          );
         }
         Ok((module_identifier, hashes))
       })
       .collect::<Result<_>>()?;
     for (module, hashes) in results {
-      ChunkGraph::set_module_hashes(self, module, hashes);
+      if ChunkGraph::set_module_hashes(self, module, hashes)
+        && let Some(mutations) = self.incremental.mutations_write()
+      {
+        mutations.add(Mutation::ModuleSetHashes { module });
+      }
     }
     Ok(())
   }
@@ -2270,11 +2325,6 @@ impl Compilation {
       .clone()
   }
 
-  // TODO remove it after code splitting support incremental rebuild
-  pub fn has_module_import_export_change(&self) -> bool {
-    self.make_artifact.has_module_graph_change
-  }
-
   pub fn built_modules(&self) -> &IdentifierSet {
     &self.make_artifact.built_modules
   }
@@ -2360,14 +2410,14 @@ pub struct AssetInfo {
   pub version: String,
   /// unused local idents of the chunk
   pub css_unused_idents: Option<HashSet<String>>,
+  /// whether this asset is over the size limit
+  pub is_over_size_limit: Option<bool>,
+
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
-  /// But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
-  /// in the rust struct and have the Js side to reshape and align with webpack.
+  /// This is a hack to store the additional fields in the rust struct.
   /// Related: packages/rspack/src/Compilation.ts
   #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
-  /// whether this asset is over the size limit
-  pub is_over_size_limit: Option<bool>,
 }
 
 impl AssetInfo {

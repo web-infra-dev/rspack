@@ -214,7 +214,8 @@ impl Task<MakeTaskContext> for ExecuteTask {
         &runtime_modules,
         &codegen_results,
         &id,
-      );
+      )
+      .await;
 
     let module_graph = compilation.get_module_graph();
     let mut execute_result = modules.iter().fold(

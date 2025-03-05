@@ -4,11 +4,13 @@
 /* -- banner.d.ts -- */
 export type JsFilename =
 	| string
-	| ((pathData: JsPathData, assetInfo?: JsAssetInfo) => string);
+	| ((pathData: JsPathData, assetInfo?: AssetInfo) => string);
 
 export type LocalJsFilename = JsFilename;
 
 export type RawLazyCompilationTest = RegExp | ((m: JsModule) => boolean);
+
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -19,12 +21,28 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Dependency {
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+  get critical(): boolean
+  set critical(val: boolean)
+  get ids(): Array<string> | undefined
+}
+
 export declare class EntryDataDto {
-  get dependencies(): JsDependency[]
-  get includeDependencies(): JsDependency[]
+  get dependencies(): Dependency[]
+  get includeDependencies(): Dependency[]
   get options(): EntryOptionsDto
 }
 export type EntryDataDTO = EntryDataDto
+
+export declare class EntryDependency {
+  constructor(request: string)
+  get type(): string
+  get category(): string
+  get request(): string | undefined
+}
 
 export declare class EntryOptionsDto {
   get name(): string | undefined
@@ -97,7 +115,7 @@ export declare class JsChunkGroup {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
@@ -113,7 +131,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): JsChunkGroup[]
@@ -146,7 +164,7 @@ export declare class JsCompilation {
   addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
   get moduleGraph(): JsModuleGraph
   get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, RawDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
+  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsCompiler {
@@ -169,7 +187,7 @@ export declare class JsContextModuleFactoryAfterResolveData {
   set regExp(rawRegExp: RegExp | undefined)
   get recursive(): boolean
   set recursive(recursive: boolean)
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
 }
 
 export declare class JsContextModuleFactoryBeforeResolveData {
@@ -199,17 +217,8 @@ export declare class JsDependencies {
 }
 
 export declare class JsDependenciesBlock {
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   get blocks(): JsDependenciesBlock[]
-}
-
-export declare class JsDependency {
-  get type(): string
-  get category(): string
-  get request(): string | undefined
-  get critical(): boolean
-  set critical(val: boolean)
-  get ids(): Array<string> | undefined
 }
 
 export declare class JsEntries {
@@ -244,32 +253,34 @@ export declare class JsModule {
   get type(): string
   get layer(): string | undefined
   get blocks(): JsDependenciesBlock[]
-  get dependencies(): JsDependency[]
+  get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get modules(): JsModule[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
-  emitFile(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  set matchResource(val: string | undefined)
+  emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class JsModuleGraph {
-  getModule(jsDependency: JsDependency): JsModule | null
-  getResolvedModule(jsDependency: JsDependency): JsModule | null
+  getModule(dependency: Dependency): JsModule | null
+  getResolvedModule(dependency: Dependency): JsModule | null
   getUsedExports(jsModule: JsModule, jsRuntime: string | Array<string>): boolean | Array<string> | null
   getIssuer(module: JsModule): JsModule | null
   getExportsInfo(module: JsModule): JsExportsInfo
-  getConnection(dependency: JsDependency): JsModuleGraphConnection | null
+  getConnection(dependency: Dependency): JsModuleGraphConnection | null
   getOutgoingConnections(module: JsModule): JsModuleGraphConnection[]
+  getOutgoingConnectionsInOrder(module: JsModule): JsModuleGraphConnection[]
   getIncomingConnections(module: JsModule): JsModuleGraphConnection[]
-  getParentModule(jsDependency: JsDependency): JsModule | null
-  getParentBlockIndex(jsDependency: JsDependency): number
+  getParentModule(dependency: Dependency): JsModule | null
+  getParentBlockIndex(dependency: Dependency): number
   isAsync(module: JsModule): boolean
 }
 
 export declare class JsModuleGraphConnection {
-  get dependency(): JsDependency
+  get dependency(): Dependency
   get module(): JsModule | null
   get resolvedModule(): JsModule | null
   get originModule(): JsModule | null
@@ -379,10 +390,11 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -421,6 +433,7 @@ export interface JsAfterResolveData {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -452,54 +465,13 @@ export interface JsAlterAssetTagsData {
 
 export interface JsAsset {
   name: string
-  info: JsAssetInfo
+  info: AssetInfo
 }
 
 export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
   targetPath: string
-}
-
-export interface JsAssetInfo {
-  /** if the asset can be long term cached forever (contains a hash) */
-  immutable?: boolean
-  /** whether the asset is minimized */
-  minimized?: boolean
-  /** the value(s) of the full hash used for this asset */
-  fullhash: Array<string>
-  /** the value(s) of the chunk hash used for this asset */
-  chunkhash: Array<string>
-  /**
-   * the value(s) of the module hash used for this asset
-   * the value(s) of the content hash used for this asset
-   */
-  contenthash: Array<string>
-  sourceFilename?: string
-  /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
-  copied?: boolean
-  /**
-   * size in bytes, only set after asset has been emitted
-   * when asset is only used for development and doesn't count towards user-facing assets
-   */
-  development?: boolean
-  /** when asset ships data for updating an existing application (HMR) */
-  hotModuleReplacement?: boolean
-  /** when asset is javascript and an ESM */
-  javascriptModule?: boolean
-  /** related object to other assets, keyed by type of relation (only points from parent to child) */
-  related: JsAssetInfoRelated
-  /** unused css local ident for the css chunk */
-  cssUnusedIdents?: Array<string>
-  /**
-   * Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
-   * But Napi.rs does not support Intersectiont types. This is a hack to store the additional fields
-   * in the rust struct and have the Js side to reshape and align with webpack
-   * Related: packages/rspack/src/Compilation.ts
-   */
-  extras: Record<string, any>
-  /** whether this asset is over the size limit */
-  isOverSizeLimit?: boolean
 }
 
 export interface JsAssetInfoRelated {
@@ -528,6 +500,7 @@ export interface JsBeforeResolveArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsBuildMeta {
@@ -641,8 +614,8 @@ export interface JsDiagnosticLocation {
 }
 
 export interface JsEntryData {
-  dependencies: Array<JsDependency>
-  includeDependencies: Array<JsDependency>
+  dependencies: Array<Dependency>
+  includeDependencies: Array<Dependency>
   options: JsEntryOptions
 }
 
@@ -686,6 +659,7 @@ export interface JsFactorizeArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsFactoryMeta {
@@ -834,6 +808,7 @@ export interface JsResolveArgs {
   request: string
   context: string
   issuer: string
+  issuerLayer?: string
 }
 
 export interface JsResolveForSchemeArgs {
@@ -1305,6 +1280,41 @@ export interface JsTap {
   stage: number
 }
 
+export interface KnownAssetInfo {
+  /** if the asset can be long term cached forever (contains a hash) */
+  immutable?: boolean
+  /** whether the asset is minimized */
+  minimized?: boolean
+  /** the value(s) of the full hash used for this asset */
+  fullhash?: string | Array<string>
+  /** the value(s) of the chunk hash used for this asset */
+  chunkhash?: string | Array<string>
+  /**
+   * the value(s) of the module hash used for this asset
+   * the value(s) of the content hash used for this asset
+   */
+  contenthash?: string | Array<string>
+  /** when asset was created from a source file (potentially transformed), the original filename relative to compilation context */
+  sourceFilename?: string
+  /** when asset was created from a source file (potentially transformed), it should be flagged as copied */
+  copied?: boolean
+  /**
+   * size in bytes, only set after asset has been emitted
+   * when asset is only used for development and doesn't count towards user-facing assets
+   */
+  development?: boolean
+  /** when asset ships data for updating an existing application (HMR) */
+  hotModuleReplacement?: boolean
+  /** when asset is javascript and an ESM */
+  javascriptModule?: boolean
+  /** related object to other assets, keyed by type of relation (only points from parent to child) */
+  related?: JsAssetInfoRelated
+  /** unused css local ident for the css chunk */
+  cssUnusedIdents?: Array<string>
+  /** whether this asset is over the size limit */
+  isOverSizeLimit?: boolean
+}
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1318,7 +1328,7 @@ export interface NodeFsStats {
 
 export interface PathWithInfo {
   path: string
-  info: JsAssetInfo
+  info: AssetInfo
 }
 
 export interface RawAliasOptionItem {
@@ -1414,6 +1424,7 @@ export interface RawCacheGroupOptions {
 
 export interface RawCacheOptions {
   type: string
+  maxGenerations?: number
 }
 
 export interface RawConsumeOptions {
@@ -1523,10 +1534,6 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   namedExports?: boolean
-}
-
-export interface RawDependency {
-  request: string
 }
 
 export interface RawDllEntryPluginOptions {
