@@ -46,6 +46,7 @@ export class CommonJsRunner<
 				});
 				return m;
 			},
+			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			...this._options.env
 		};
 		return baseModuleScope;

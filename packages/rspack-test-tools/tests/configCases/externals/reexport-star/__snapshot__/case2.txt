@@ -1,0 +1,15 @@
+import * as __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ from "external1-alias";
+export * from "external1-alias";
+
+;// CONCATENATED MODULE: external "external1-alias"
+
+;// CONCATENATED MODULE: ./case2.js
+
+
+
+
+
+
+var __webpack_exports__a = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.a;
+var __webpack_exports__b = __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__.b;
+export { __WEBPACK_EXTERNAL_MODULE_external1_alias_bc4b12e4__ as n1, __webpack_exports__a as a, __webpack_exports__b as b };

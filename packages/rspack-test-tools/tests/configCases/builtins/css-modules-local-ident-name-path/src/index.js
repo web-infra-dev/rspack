@@ -1,4 +1,6 @@
+const path = __non_webpack_require__("path");
+
 it("css modules localIdentName with path", () => {
 	const style = require("./index.css");
-	expect(style).toMatchSnapshot();
+	expect(style).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'index.css.txt'));
 });
