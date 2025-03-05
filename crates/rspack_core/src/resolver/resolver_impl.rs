@@ -328,10 +328,10 @@ fn map_rspack_resolver_error(
             index = index.saturating_sub(1);
           }
 
-          return index;
+          index
         }
 
-        let offset = ceil_char_boundary(&**content, offset);
+        let offset = ceil_char_boundary(content, offset);
 
         if content[offset..].starts_with('\u{feff}') {
           return TraceableError::from_file(
@@ -353,12 +353,12 @@ fn map_rspack_resolver_error(
         )
         .boxed()
       } else {
-        return diagnostic!(
+        diagnostic!(
           "JSON parse error: {:?} in '{}'",
           error,
           error.path.display()
         )
-        .boxed();
+        .boxed()
       }
     }
     _ => diagnostic!("{}", error).boxed(),
