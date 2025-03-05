@@ -14,6 +14,10 @@ import type {
 } from "../type";
 import { Tester } from "./tester";
 
+declare global {
+	var testFilter: string | undefined;
+}
+
 interface IConcurrentTestEnv {
 	clear: () => void;
 	run: () => Promise<void>;
@@ -65,25 +69,46 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			this.clean([dist, temp || ""].filter(Boolean));
 		}
 
+		const run = this.shouldRun(name);
 		const tester = this.createTester(name, src, dist, temp, testConfig);
 		const concurrent =
 			testConfig.concurrent ?? this._options.concurrent ?? false;
 
 		if (this._options.describe) {
-			if (concurrent) {
-				describe(name, () => this.describeConcurrent(name, tester, testConfig));
+			if (run) {
+				if (concurrent) {
+					describe(name, () =>
+						this.describeConcurrent(name, tester, testConfig)
+					);
+				} else {
+					describe(name, () => this.describe(name, tester, testConfig));
+				}
 			} else {
-				describe(name, () => this.describe(name, tester, testConfig));
+				describe.skip(name, () => {
+					it.skip("skipped", () => {});
+				});
 			}
 		} else {
-			if (concurrent) {
-				this.describeConcurrent(name, tester, testConfig);
+			if (run) {
+				if (concurrent) {
+					this.describeConcurrent(name, tester, testConfig);
+				} else {
+					this.describe(name, tester, testConfig);
+				}
 			} else {
-				this.describe(name, tester, testConfig);
+				it.skip("skipped", () => {});
 			}
 		}
 
 		return tester;
+	}
+
+	protected shouldRun(name: string) {
+		// TODO: more flexible filter
+		if (typeof global.testFilter !== "string" || !global.testFilter) {
+			return true;
+		}
+		return name.includes(global.testFilter);
 	}
 
 	protected describeConcurrent(
