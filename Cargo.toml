@@ -217,77 +217,11 @@ strip     = true
 
 [profile.release.package]
 
-[profile.release.package.lightningcss]
-opt-level = 3
-
-[profile.release.package.rspack_core]
-opt-level = 3
-
-[profile.release.package.rspack_node]
-opt-level = 3
-
-[profile.release.package.swc_ecma_minifier]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_javascript]
-opt-level = 3
-
-[profile.release.package.swc]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2015]
-opt-level = 3
-
-[profile.release.package.swc_ecma_parser]
-opt-level = 3
-
-[profile.release.package.napi]
-opt-level = 3
-
-[profile.release.package.regex-automata]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_runtime]
-opt-level = 3
-
-[profile.release.package.browserslist-rs]
-opt-level = 3
-
-[profile.release.package.rspack_storage]
-opt-level = 3
-
-[profile.release.package.swc_ecma_utils]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_mf]
-opt-level = 3
-
-[profile.release.package.swc_ecma_visit]
-opt-level = 3
-
 [profile.release.package.regex-syntax]
 opt-level = "s"
 
-[profile.release.package.swc_ecma_transforms_optimization]
-opt-level = 3
-
-[profile.release.package.swc_ecma_transforms_base]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_html]
-opt-level = 3
-
-[profile.release.package.rspack_loader_swc]
-opt-level = 3
-
-[profile.release.package.swc_ecma_ast]
-opt-level = 3
-
 [profile.release.package.swc_ecma_transforms_module]
 opt-level = "s"
-
-[profile.release.package.rspack_ids]
-opt-level = 3
 
 [profile.release.package.handlebars]
 opt-level = "s"
@@ -295,65 +229,20 @@ opt-level = "s"
 [profile.release.package.swc_ecma_transforms_proposal]
 opt-level = "s"
 
-[profile.release.package.swc_html_parser]
-opt-level = 3
-
 [profile.release.package.swc_ecma_compat_es2022]
 opt-level = "s"
 
 [profile.release.package.rspack_plugin_rsdoctor]
 opt-level = "s"
 
-[profile.release.package.tokio]
-opt-level = 3
-
-[profile.release.package.rspack_loader_lightningcss]
-opt-level = 3
-
-[profile.release.package.swc_ecma_preset_env]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_css]
-opt-level = 3
-
-[profile.release.package.swc_ecma_transforms_typescript]
-opt-level = 3
-
 [profile.release.package.swc_ecma_compat_es3]
 opt-level = "s"
-
-[profile.release.package.rayon-core]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_split_chunks]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_lightning_css_minimizer]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_devtool]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_library]
-opt-level = 3
 
 [profile.release.package.h2]
 opt-level = "s"
 
-[profile.release.package.rspack_fs_node]
-opt-level = 3
-
-[profile.release.package.rspack_regex]
-opt-level = 3
-
-[profile.release.package.hashbrown]
-opt-level = 3
-
 [profile.release.package.backtrace]
 opt-level = "s"
-
-[profile.release.package.rspack_sources]
-opt-level = 3
 
 [profile.release.package.aho-corasick]
 opt-level = "s"
@@ -361,68 +250,11 @@ opt-level = "s"
 [profile.release.package.swc_ecma_lints]
 opt-level = "s"
 
-[profile.release.package.rspack_plugin_extract_css]
-opt-level = 3
-
-[profile.release.package.swc_ecma_transforms_react]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_sri]
-opt-level = 3
-
 [profile.release.package.miette]
 opt-level = "s"
 
-[profile.release.package.swc_ecma_compat_bugfixes]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_dll]
-opt-level = 3
-
-[profile.release.package.rspack_dojang]
-opt-level = 3
-
-[profile.release.package.rspack_tracing]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2017]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_copy]
-opt-level = 3
-
 [profile.release.package.pnp]
 opt-level = "s"
-
-[profile.release.package.tracing-subscriber]
-opt-level = 3
-
-[profile.release.package.sourcemap]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2018]
-opt-level = 3
-
-[profile.release.package.cssparser]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_real_content_hash]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_swc_js_minimizer]
-opt-level = 3
-
-[profile.release.package.rspack_fs]
-opt-level = 3
-
-[profile.release.package.serde_json]
-opt-level = 3
-
-[profile.release.package.swc_common]
-opt-level = 3
-
-[profile.release.package.css-module-lexer]
-opt-level = 3
 
 [profile.release.package.opentelemetry-otlp]
 opt-level = "s"
@@ -430,29 +262,11 @@ opt-level = "s"
 [profile.release.package.fancy-regex]
 opt-level = "s"
 
-[profile.release.package.rspack_napi]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_limit_chunk_count]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_wasm]
-opt-level = 3
-
-[profile.release.package.async-scoped]
-opt-level = 3
-
 [profile.release.package.swc_ecma_loader]
 opt-level = "s"
 
 [profile.release.package.chrono]
 opt-level = "s"
-
-[profile.release.package.rspack_resolver]
-opt-level = 3
-
-[profile.release.package.rkyv]
-opt-level = 3
 
 [profile.release.package.once_cell]
 opt-level = "s"
@@ -460,17 +274,11 @@ opt-level = "s"
 [profile.release.package.rustc-demangle]
 opt-level = "s"
 
-[profile.release.package.url]
-opt-level = 3
-
 [profile.release.package.regress]
 opt-level = "s"
 
 [profile.release.package.indicatif]
 opt-level = "s"
-
-[profile.release.package.rspack_plugin_hmr]
-opt-level = 3
 
 [profile.release.package.gimli]
 opt-level = "s"
@@ -487,9 +295,6 @@ opt-level = "s"
 [profile.release.package.rspack_plugin_progress]
 opt-level = "s"
 
-[profile.release.package.rspack_swc_plugin_import]
-opt-level = 3
-
 [profile.release.package.num-bigint]
 opt-level = "s"
 
@@ -499,32 +304,8 @@ opt-level = "s"
 [profile.release.package.swc_error_reporters]
 opt-level = "s"
 
-[profile.release.package.ropey]
-opt-level = 3
-
-[profile.release.package.preset_env_base]
-opt-level = 3
-
 [profile.release.package.http]
 opt-level = "s"
-
-[profile.release.package.swc_ecma_codegen]
-opt-level = 3
-
-[profile.release.package.swc_ecma_usage_analyzer]
-opt-level = 3
-
-[profile.release.package.parcel_sourcemap]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_merge_duplicate_chunks]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_lazy_compilation]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_asset]
-opt-level = 3
 
 [profile.release.package.idna]
 opt-level = "s"
@@ -532,35 +313,11 @@ opt-level = "s"
 [profile.release.package.addr2line]
 opt-level = "s"
 
-[profile.release.package.rspack_plugin_dynamic_entry]
-opt-level = 3
-
 [profile.release.package.color-backtrace]
 opt-level = "s"
 
-[profile.release.package.rspack_plugin_externals]
-opt-level = 3
-
-[profile.release.package.json]
-opt-level = 3
-
-[profile.release.package.rspack_util]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2020]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_json]
-opt-level = 3
-
-[profile.release.package.libmimalloc-sys-rspack]
-opt-level = 3
-
 [profile.release.package.glob]
 opt-level = "s"
-
-[profile.release.package.rspack_loader_runner]
-opt-level = 3
 
 [profile.release.package.hyper-util]
 opt-level = "s"
@@ -574,14 +331,8 @@ opt-level = "s"
 [profile.release.package.jsonc-parser]
 opt-level = "s"
 
-[profile.release.package.sha2]
-opt-level = 3
-
 [profile.release.package.opentelemetry]
 opt-level = "s"
-
-[profile.release.package.swc_ecma_transforms_compat]
-opt-level = 3
 
 [profile.release.package.textwrap]
 opt-level = "s"
@@ -589,38 +340,11 @@ opt-level = "s"
 [profile.release.package.console]
 opt-level = "s"
 
-[profile.release.package.chili]
-opt-level = 3
-
-[profile.release.package.swc_html_utils]
-opt-level = 3
-
-[profile.release.package.parcel_selectors]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_warn_sensitive_module]
-opt-level = 3
-
-[profile.release.package.swc_ecma_transforms_classes]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2016]
-opt-level = 3
-
 [profile.release.package.hashlink]
 opt-level = "s"
 
-[profile.release.package.tracing-core]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_entry]
-opt-level = 3
-
 [profile.release.package.hyper]
 opt-level = "s"
-
-[profile.release.package.rspack_plugin_size_limits]
-opt-level = 3
 
 [profile.release.package.opentelemetry-proto]
 opt-level = "s"
@@ -628,77 +352,20 @@ opt-level = "s"
 [profile.release.package.swc_ecma_ext_transforms]
 opt-level = "s"
 
-[profile.release.package.rspack_plugin_ensure_chunk_conditions]
-opt-level = 3
-
 [profile.release.package.tracing-opentelemetry]
 opt-level = "s"
-
-[profile.release.package.swc_ecma_compat_es2021]
-opt-level = 3
-
-[profile.release.package.simd-json]
-opt-level = 3
 
 [profile.release.package.icu_normalizer]
 opt-level = "s"
 
-[profile.release.package.rayon]
-opt-level = 3
-
-[profile.release.package.serde]
-opt-level = 3
-
-[profile.release.package.parking_lot]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_context_replacement]
-opt-level = 3
-
-[profile.release.package.rspack_plugin_remove_duplicate_modules]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_common]
-opt-level = 3
-
-[profile.release.package.pest]
-opt-level = 3
-
-[profile.release.package.swc_node_comments]
-opt-level = 3
-
-[profile.release.package.memchr]
-opt-level = 3
-
 [profile.release.package.rspack_plugin_banner]
 opt-level = "s"
-
-[profile.release.package.rspack_plugin_schemes]
-opt-level = 3
-
-[profile.release.package.dashmap]
-opt-level = 3
 
 [profile.release.package.anyhow]
 opt-level = "s"
 
 [profile.release.package.tracing-chrome]
 opt-level = "s"
-
-[profile.release.package.swc_html_codegen]
-opt-level = 3
-
-[profile.release.package.bytes]
-opt-level = 3
-
-[profile.release.package.swc_ecma_compat_es2019]
-opt-level = 3
-
-[profile.release.package.rspack_cacheable]
-opt-level = 3
-
-[profile.release.package.swc_cached]
-opt-level = 3
 
 [profile.release.package.oneshot]
 opt-level = "s"
