@@ -2529,7 +2529,7 @@ export type InfrastructureLogging = {
 type input<T extends ZodType<any, any, any>> = T["_input"];
 
 // @public (undocumented)
-export type InputFileSystem = {
+type InputFileSystem = {
     readFile: ReadFile;
     readFileSync?: ReadFileSync;
     readlink: Readlink;
@@ -5261,7 +5261,6 @@ declare namespace rspackExports {
         util,
         EntryOptionPlugin,
         OutputFileSystem,
-        InputFileSystem,
         BannerPluginArgument,
         ProvidePluginOptions,
         DefinePluginOptions,
