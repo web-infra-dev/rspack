@@ -24,7 +24,8 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    context_reg_exp, create_context_dependency, scope_info::FreeName, JavascriptParser, Statement,
+    context_reg_exp, create_context_dependency, scope_info::FreeName, ExportedVariableInfo,
+    JavascriptParser, Statement,
   },
   JavascriptParserPlugin,
 };
@@ -509,7 +510,7 @@ impl AMDDefineDependencyParserPlugin {
                 FreeName::True => None,
               })
               .unwrap_or(rename_identifier.to_string());
-            parser.set_variable(name.to_string(), variable);
+            parser.set_variable(name.to_string(), ExportedVariableInfo::Name(variable));
           }
 
           parser.in_try = in_try;
@@ -569,7 +570,7 @@ impl AMDDefineDependencyParserPlugin {
                     FreeName::True => None,
                   })
                   .unwrap_or(rename_identifier.to_string());
-                parser.set_variable(name.to_string(), variable);
+                parser.set_variable(name.to_string(), ExportedVariableInfo::Name(variable));
               }
 
               parser.in_try = in_try;

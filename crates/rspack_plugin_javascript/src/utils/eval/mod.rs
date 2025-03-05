@@ -71,7 +71,7 @@ pub struct BasicEvaluatedExpression {
   bigint: Option<Bigint>,
   regexp: Option<Regexp>,
   array: Option<Vec<String>>,
-  identifier: Option<String>,
+  identifier: Option<ExportedVariableInfo>,
   root_info: Option<ExportedVariableInfo>,
   members: Option<Vec<Atom>>,
   members_optionals: Option<Vec<bool>>,
@@ -431,7 +431,7 @@ impl BasicEvaluatedExpression {
 
   pub fn set_identifier(
     &mut self,
-    name: String,
+    name: ExportedVariableInfo,
     root_info: ExportedVariableInfo,
     members: Option<Vec<Atom>>,
     members_optionals: Option<Vec<bool>>,
@@ -498,7 +498,7 @@ impl BasicEvaluatedExpression {
     self.string.as_ref().expect("make sure string exist")
   }
 
-  pub fn identifier(&self) -> &str {
+  pub fn identifier(&self) -> &ExportedVariableInfo {
     assert!(self.is_identifier());
     self
       .identifier
@@ -623,12 +623,13 @@ pub fn evaluate_to_identifier(
   truthy: Option<bool>,
   start: u32,
   end: u32,
+  get_members: Option<Vec<Atom>>,
 ) -> BasicEvaluatedExpression {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
   eval.set_identifier(
-    identifier,
+    ExportedVariableInfo::Name(identifier),
     ExportedVariableInfo::Name(root_info),
-    None,
+    get_members,
     None,
     None,
   );
