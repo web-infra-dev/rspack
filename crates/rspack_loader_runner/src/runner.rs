@@ -1,5 +1,6 @@
 use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
+use json::object::Object;
 use rspack_error::{error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_fs::ReadableFileSystem;
 use rspack_sources::SourceMap;
@@ -99,6 +100,7 @@ async fn create_loader_context<Context>(
     plugin,
     resource_data,
     diagnostics: vec![],
+    extra: Object::new(),
   };
 
   if let Some(plugin) = loader_context.plugin.clone() {
@@ -209,6 +211,7 @@ pub struct LoaderResult {
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: HashMap<String, String>,
+  pub extra: Object,
 }
 
 impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderResult> {
@@ -234,6 +237,7 @@ impl<Context> TryFrom<LoaderContext<Context>> for TWithDiagnosticArray<LoaderRes
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,
         parse_meta: loader_context.parse_meta,
+        extra: loader_context.extra,
       }
       .with_diagnostic(loader_context.diagnostics),
     )
