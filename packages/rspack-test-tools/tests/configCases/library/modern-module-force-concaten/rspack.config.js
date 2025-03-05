@@ -47,35 +47,35 @@ module.exports = {
 			const handler = compilation => {
 				compilation.hooks.afterProcessAssets.tap("testcase", assets => {
 					expect(assets["a.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "a.js.snap"),
+						path.join(__dirname, "__snapshot__", "a.js.txt"),
 						"ESM export should concat"
 					);
 					expect(assets["b.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "b.js.snap"),
+						path.join(__dirname, "__snapshot__", "b.js.txt"),
 						".cjs should bail out"
 					);
 					expect(assets["c.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "c.js.snap"),
+						path.join(__dirname, "__snapshot__", "c.js.txt"),
 						"unambiguous should bail out"
 					);
 					expect(assets["d.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "d.js.snap"),
+						path.join(__dirname, "__snapshot__", "d.js.txt"),
 						".mjs should concat"
 					);
 					expect(assets["e.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "e.js.snap"),
+						path.join(__dirname, "__snapshot__", "e.js.txt"),
 						".cjs should bail out when bundling"
 					);
 					expect(assets["f.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "f.js.snap"),
+						path.join(__dirname, "__snapshot__", "f.js.txt"),
 						"external module should bail out when bundling"
 					);
 					expect(assets["g.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "g.js.snap"),
+						path.join(__dirname, "__snapshot__", "g.js.txt"),
 						"harmony export should concat, even with bailout reason"
 					);
 					expect(assets["h.js"]._value).toMatchFileSnapshot(
-						path.join(__dirname, "__snapshot__", "h.js.snap"),
+						path.join(__dirname, "__snapshot__", "h.js.txt"),
 						"asset as entry should not be concatenated"
 					);
 				});

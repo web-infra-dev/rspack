@@ -7,5 +7,5 @@ it("css urls should works", async () => {
 		path.resolve(__dirname, "bundle.css"),
 		"utf-8"
 	);
-	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle.css.snap'));
+	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle.css.txt'));
 });
