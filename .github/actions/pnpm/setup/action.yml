@@ -1,4 +1,4 @@
-name: pnpm cache
+name: nodejs and pnpm setup
 
 description: Install Node.js with pnpm global cache
 
@@ -7,18 +7,6 @@ inputs:
     default: "20"
     required: false
     type: string
-  frozen-lockfile:
-    default: false
-    required: false
-    type: boolean
-  run-install:
-    default: true
-    required: false
-    type: boolean
-  save-if:
-    default: false
-    required: false
-    type: boolean
 
 runs:
   using: composite
@@ -52,7 +40,6 @@ runs:
         standalone: true
 
     - name: Get pnpm store directory
-      if: ${{ inputs.run-install == 'true' }}
       id: pnpm-cache
       shell: bash
       run: |
@@ -63,31 +50,3 @@ runs:
         fi
         pnpm config set store-dir $global_store_path/$(pnpm -v) --location project
         echo "STORE_PATH is $(pnpm store path)"
-        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-    - name: Restore pnpm cache
-      id: restore
-      if: ${{ inputs.run-install == 'true' && runner.environment == 'github-hosted' }}
-      uses: actions/cache/restore@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
-      with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          node-cache-${{ runner.os }}-pnpm-
-
-    - name: Install dependencies
-      shell: bash
-      if: ${{ inputs.run-install == 'true' }}
-      run: |
-        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
-          pnpm install --frozen-lockfile --prefer-offline
-        else
-          pnpm install --no-frozen-lockfile --prefer-offline
-        fi
-
-    - name: Save pnpm cache
-      uses: actions/cache/save@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
-      if: ${{ inputs.run-install == 'true' && runner.environment == 'github-hosted' && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
-      with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
