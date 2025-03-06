@@ -16,18 +16,12 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
-use rspack_util::{
-  atom::Atom,
-  ext::DynHash,
-};
-use rustc_hash::{
-  FxHashMap as HashMap,
-  FxHashSet as HashSet,
-};
+use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
 use crate::{
-  Compilation, DependencyConditionFn, property_access, ConnectionState, DependencyCondition,
+  property_access, Compilation, ConnectionState, DependencyCondition, DependencyConditionFn,
   DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
 };
 
