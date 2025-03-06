@@ -57,4 +57,3 @@ runs:
       uses: ./.github/actions/rustup/cache
       with:
         key: ${{ inputs.shared-key }}
-        save-if: ${{ github.ref_name == 'main' }}
