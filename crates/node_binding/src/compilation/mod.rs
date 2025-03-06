@@ -575,25 +575,26 @@ impl JsCompilation {
     f: Function,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
+    todo!()
 
-    callbackify(env, f, async {
-      let compiler_id = compilation.compiler_id();
+    // callbackify(env, f, async {
+    //   let compiler_id = compilation.compiler_id();
 
-      let modules = compilation
-        .rebuild_module(
-          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
-          |modules| {
-            modules
-              .into_iter()
-              .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
-              .collect::<Vec<_>>()
-          },
-        )
-        .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    //   let modules = compilation
+    //     .rebuild_module(
+    //       IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
+    //       |modules| {
+    //         modules
+    //           .into_iter()
+    //           .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
+    //           .collect::<Vec<_>>()
+    //       },
+    //     )
+    //     .await
+    //     .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
-      Ok(modules)
-    })
+    //   Ok(modules)
+    // })
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -611,49 +612,50 @@ impl JsCompilation {
   ) -> Result<()> {
     let compilation = self.as_ref()?;
 
-    callbackify(env, callback, async {
-      let module_executor = compilation
-        .module_executor
-        .as_ref()
-        .expect("should have module executor");
-      let res = module_executor
-        .import_module(
-          request,
-          layer,
-          public_path.map(|p| p.into()),
-          base_uri,
-          original_module_context.map(rspack_core::Context::from),
-          original_module.map(ModuleIdentifier::from),
-        )
-        .await;
+    todo!()
+    // callbackify(env, callback, async {
+    //   let module_executor = compilation
+    //     .module_executor
+    //     .as_ref()
+    //     .expect("should have module executor");
+    //   let res = module_executor
+    //     .import_module(
+    //       request,
+    //       layer,
+    //       public_path.map(|p| p.into()),
+    //       base_uri,
+    //       original_module_context.map(rspack_core::Context::from),
+    //       original_module.map(ModuleIdentifier::from),
+    //     )
+    //     .await;
 
-      let js_result = JsExecuteModuleResult {
-        cacheable: res.cacheable,
-        file_dependencies: res
-          .file_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        context_dependencies: res
-          .context_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        build_dependencies: res
-          .build_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        missing_dependencies: res
-          .missing_dependencies
-          .into_iter()
-          .map(|d| d.to_string_lossy().to_string())
-          .collect(),
-        id: res.id,
-        error: res.error,
-      };
-      Ok(js_result)
-    })
+    //   let js_result = JsExecuteModuleResult {
+    //     cacheable: res.cacheable,
+    //     file_dependencies: res
+    //       .file_dependencies
+    //       .into_iter()
+    //       .map(|d| d.to_string_lossy().to_string())
+    //       .collect(),
+    //     context_dependencies: res
+    //       .context_dependencies
+    //       .into_iter()
+    //       .map(|d| d.to_string_lossy().to_string())
+    //       .collect(),
+    //     build_dependencies: res
+    //       .build_dependencies
+    //       .into_iter()
+    //       .map(|d| d.to_string_lossy().to_string())
+    //       .collect(),
+    //     missing_dependencies: res
+    //       .missing_dependencies
+    //       .into_iter()
+    //       .map(|d| d.to_string_lossy().to_string())
+    //       .collect(),
+    //     id: res.id,
+    //     error: res.error,
+    //   };
+    //   Ok(js_result)
+    // })
   }
 
   #[napi(getter)]
@@ -752,40 +754,42 @@ impl JsCompilation {
       })
       .collect::<Vec<(BoxDependency, EntryOptions)>>();
 
-    callbackify(env, f, async move {
-      let dependency_ids = args
-        .iter()
-        .map(|(dependency, _)| *dependency.id())
-        .collect::<Vec<_>>();
+    // callbackify(env, f, async move {
+    //   let dependency_ids = args
+    //     .iter()
+    //     .map(|(dependency, _)| *dependency.id())
+    //     .collect::<Vec<_>>();
 
-      compilation
-        .add_include(args)
-        .await
-        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+    //   compilation
+    //     .add_include(args)
+    //     .await
+    //     .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
-      let results = dependency_ids
-        .into_iter()
-        .map(|dependency_id| {
-          let module_graph = compilation.get_module_graph();
-          match module_graph.get_module_by_dependency_id(&dependency_id) {
-            Some(module) => {
-              let js_module =
-                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-              (Either::B(()), Either::B(js_module))
-            }
-            None => (
-              Either::A(format!(
-                "Module created by {:?} cannot be found",
-                dependency_id
-              )),
-              Either::A(()),
-            ),
-          }
-        })
-        .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
+    //   let results = dependency_ids
+    //     .into_iter()
+    //     .map(|dependency_id| {
+    //       let module_graph = compilation.get_module_graph();
+    //       match module_graph.get_module_by_dependency_id(&dependency_id) {
+    //         Some(module) => {
+    //           let js_module =
+    //             JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+    //           (Either::B(()), Either::B(js_module))
+    //         }
+    //         None => (
+    //           Either::A(format!(
+    //             "Module created by {:?} cannot be found",
+    //             dependency_id
+    //           )),
+    //           Either::A(()),
+    //         ),
+    //       }
+    //     })
+    //     .collect::<Vec<(Either<String, ()>, Either<(), JsModuleWrapper>)>>();
 
-      Ok(JsAddIncludeCallbackArgs(results))
-    })
+    //   Ok(JsAddIncludeCallbackArgs(results))
+    // })
+
+    todo!()
   }
 }
 

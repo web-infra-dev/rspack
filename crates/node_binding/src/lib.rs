@@ -11,7 +11,12 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
-use napi::{bindgen_prelude::*, CallContext};
+use futures::future::LocalBoxFuture;
+use napi::{
+  bindgen_prelude::*,
+  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  CallContext, Ref,
+};
 use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
@@ -19,7 +24,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
-use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
+use rspack_napi::{napi::bindgen_prelude::within_runtime_if_available, spawn_local::SpawnLocalExt};
 
 mod asset;
 mod asset_condition;
@@ -111,10 +116,32 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   Ok(())
 }
 
+/// Run the given function with the compiler.
+async fn run<R>(
+  env: Env,
+  mut reference: Reference<JsCompiler>,
+  f: impl FnOnce(SharedReference<JsCompiler, &mut Compiler>) -> LocalBoxFuture<'static, Result<R>>,
+) -> Result<R> {
+  COMPILER_REFERENCES.with(|ref_cell| {
+    let mut references = ref_cell.borrow_mut();
+    references.insert(reference.compiler.id(), reference.downgrade());
+  });
+
+  let this = &mut *reference;
+  if this.state.running() {
+    return Err(concurrent_compiler_error());
+  }
+  let _guard = this.state.enter();
+  this.cleanup_last_compilation(&this.compiler.compilation);
+
+  let shared_reference = reference.share_with(env, |this| Ok(&mut this.compiler))?;
+  f(shared_reference).await
+}
+
 #[napi(custom_finalize)]
 pub struct JsCompiler {
   js_hooks_plugin: JsHooksAdapterPlugin,
-  compiler: Pin<Box<Compiler>>,
+  compiler: Compiler,
   state: CompilerState,
   include_dependencies_map: FxDashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
 }
@@ -189,7 +216,7 @@ impl JsCompiler {
     );
 
     Ok(Self {
-      compiler: Box::pin(Compiler::from(rspack)),
+      compiler: Compiler::from(rspack),
       state: CompilerState::init(),
       js_hooks_plugin,
       include_dependencies_map: Default::default(),
@@ -203,22 +230,35 @@ impl JsCompiler {
 
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
-  pub fn build(&mut self, env: Env, reference: Reference<JsCompiler>, f: Function) -> Result<()> {
-    unsafe {
-      self.run(env, reference, |compiler, _guard| {
-        callbackify(env, f, async move {
-          compiler.build().await.map_err(|e| {
+  pub fn build(
+    &self,
+    env: Env,
+    reference: Reference<JsCompiler>,
+    callback: Function<Result<()>, ()>,
+  ) -> Result<()> {
+    let ts_callback = callback
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()?;
+
+    env.spawn_local(move |env| async move {
+      run(env, reference, |mut compiler| {
+        Box::pin(async move {
+          let result = compiler.build().await.map_err(|e| {
             Error::new(
               napi::Status::GenericFailure,
               print_error_diagnostic(e, compiler.options.stats.colors),
             )
-          })?;
+          });
+          ts_callback.call_async(result).await?;
           tracing::info!("build ok");
-          drop(_guard);
           Ok(())
         })
       })
-    }
+      .await
+    })
   }
 
   /// Rebuild with the given option passed to the constructor
@@ -234,69 +274,33 @@ impl JsCompiler {
     f: Function,
   ) -> Result<()> {
     use std::collections::HashSet;
+    todo!()
 
-    unsafe {
-      self.run(env, reference, |compiler, _guard| {
-        callbackify(env, f, async move {
-          compiler
-            .rebuild(
-              HashSet::from_iter(changed_files.into_iter()),
-              HashSet::from_iter(removed_files.into_iter()),
-            )
-            .await
-            .map_err(|e| {
-              Error::new(
-                napi::Status::GenericFailure,
-                print_error_diagnostic(e, compiler.options.stats.colors),
-              )
-            })?;
-          tracing::info!("rebuild ok");
-          drop(_guard);
-          Ok(())
-        })
-      })
-    }
+    // unsafe {
+    //   self.run(env, reference, |compiler, _guard| {
+    //     callbackify(env, f, async move {
+    //       compiler
+    //         .rebuild(
+    //           HashSet::from_iter(changed_files.into_iter()),
+    //           HashSet::from_iter(removed_files.into_iter()),
+    //         )
+    //         .await
+    //         .map_err(|e| {
+    //           Error::new(
+    //             napi::Status::GenericFailure,
+    //             print_error_diagnostic(e, compiler.options.stats.colors),
+    //           )
+    //         })?;
+    //       tracing::info!("rebuild ok");
+    //       drop(_guard);
+    //       Ok(())
+    //     })
+    //   })
+    // }
   }
 }
 
 impl JsCompiler {
-  /// Run the given function with the compiler.
-  ///
-  /// ## Safety
-  /// 1. The caller must ensure that the `Compiler` is not moved or dropped during the lifetime of the callback.
-  /// 2. `CompilerStateGuard` should and only be dropped so soon as each `Compiler` is free of use.
-  ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
-  unsafe fn run<R>(
-    &mut self,
-    env: Env,
-    reference: Reference<JsCompiler>,
-    f: impl FnOnce(&'static mut Compiler, CompilerStateGuard) -> Result<R>,
-  ) -> Result<R> {
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(reference.compiler.id(), reference.downgrade());
-    });
-
-    if self.state.running() {
-      return Err(concurrent_compiler_error());
-    }
-    let _guard = self.state.enter();
-    let mut compiler = reference.share_with(env, |s| {
-      // SAFETY: The mutable reference to `Compiler` is exclusive. It's guaranteed by the running state guard.
-      Ok(unsafe { s.compiler.as_mut().get_unchecked_mut() })
-    })?;
-
-    self.cleanup_last_compilation(&compiler.compilation);
-
-    // SAFETY:
-    // 1. `Compiler` is pinned and stored on the heap.
-    // 2. `JsReference` (NAPI internal mechanism) keeps `Compiler` alive until its instance getting garbage collected.
-    f(
-      unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(*compiler) },
-      _guard,
-    )
-  }
-
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
     let compilation_id = compilation.id();
 

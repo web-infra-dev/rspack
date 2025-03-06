@@ -5,9 +5,9 @@ mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -343,34 +343,36 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
-    let results = self
-      .compilation
-      .assets()
-      .iter()
-      .filter_map(|(filename, asset)| {
-        // collect version info to new_emitted_asset_versions
-        if self
-          .options
-          .experiments
-          .incremental
-          .contains(IncrementalPasses::EMIT_ASSETS)
-        {
-          new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
-        }
-
-        if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-          if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-            return None;
+    let results = join_all(
+      self
+        .compilation
+        .assets()
+        .iter()
+        .filter_map(|(filename, asset)| {
+          // collect version info to new_emitted_asset_versions
+          if self
+            .options
+            .experiments
+            .incremental
+            .contains(IncrementalPasses::EMIT_ASSETS)
+          {
+            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
           }
-        }
 
-        Some(self.emit_asset(&self.options.output.path, filename, asset))
-      })
-      .collect::<FuturesResults<_>>();
+          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
+              return None;
+            }
+          }
+
+          Some(self.emit_asset(&self.options.output.path, filename, asset))
+        }),
+    )
+    .await;
 
     self.emitted_asset_versions = new_emitted_asset_versions;
     // return first error
-    for item in results.into_inner() {
+    for item in results {
       item?;
     }
 
@@ -496,23 +498,25 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    let _ = self
-      .emitted_asset_versions
-      .iter()
-      .filter_map(|(filename, _version)| {
-        if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
-          Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
-              let _ = self.output_filesystem.remove_file(&filename).await;
-            }
-          })
-        } else {
-          None
-        }
-      })
-      .collect::<FuturesResults<_>>();
+    let _ = join_all(
+      self
+        .emitted_asset_versions
+        .iter()
+        .filter_map(|(filename, _version)| {
+          if !assets.contains_key(filename) {
+            let filename = filename.to_owned();
+            Some(async {
+              if !clean_options.keep(filename.as_str()) {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              }
+            })
+          } else {
+            None
+          }
+        }),
+    )
+    .await;
 
     Ok(())
   }

@@ -3,6 +3,8 @@
 
 mod ext;
 mod js_values;
+mod runtime;
+pub mod spawn_local;
 mod utils;
 
 mod errors;

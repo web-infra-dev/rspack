@@ -96,23 +96,29 @@ impl ModuleExecutor {
     self.stop_receiver = Some(stop_receiver);
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
-    tokio::spawn(task::unconstrained(async move {
-      let _ = run_task_loop_with_event(
-        &mut ctx,
-        vec![Box::new(CtrlTask::new(event_receiver))],
-        |_, task| {
-          Box::new(OverwriteTask {
-            origin_task: task,
-            event_sender: event_sender.clone(),
-          })
-        },
-      )
-      .await;
+    std::thread::spawn(|| {
+      let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+      rt.block_on(task::unconstrained(async move {
+        let _ = run_task_loop_with_event(
+          &mut ctx,
+          vec![Box::new(CtrlTask::new(event_receiver))],
+          |_, task| {
+            Box::new(OverwriteTask {
+              origin_task: task,
+              event_sender: event_sender.clone(),
+            })
+          },
+        )
+        .await;
 
-      stop_sender
-        .send(ctx.transform_to_make_artifact())
-        .expect("should success");
-    }));
+        stop_sender
+          .send(ctx.transform_to_make_artifact())
+          .expect("should success");
+      }));
+    });
 
     Ok(())
   }

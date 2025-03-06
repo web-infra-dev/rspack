@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use futures::future::{join_all, try_join_all};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -24,7 +25,6 @@ use rspack_error::{
   Severity,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
@@ -1054,9 +1054,8 @@ impl Compilation {
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
-    let chunk_render_results = chunks
-      .iter()
-      .map(|chunk| async {
+    let chunk_render_results: Result<Vec<(ChunkUkey, ChunkRenderResult)>> =
+      try_join_all(chunks.iter().map(|chunk| async {
         let mut manifests = Vec::new();
         let mut diagnostics = Vec::new();
         plugin_driver
@@ -1072,12 +1071,9 @@ impl Compilation {
             diagnostics,
           },
         ))
-      })
-      .collect::<FuturesResults<Result<_>>>();
-    let chunk_render_results = chunk_render_results
-      .into_inner()
-      .into_iter()
-      .collect::<Result<UkeyMap<_, _>>>()?;
+      }))
+      .await;
+    let chunk_render_results = chunk_render_results?.into_iter().collect::<UkeyMap<_, _>>();
 
     let chunk_ukey_and_manifest = if mutations.is_some() {
       self.chunk_render_artifact.extend(chunk_render_results);
@@ -1880,14 +1876,11 @@ impl Compilation {
     }
     // create hash for other chunks
     let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      other_chunks
-        .into_iter()
-        .map(|chunk| async {
-          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-          Ok((*chunk, hash_result))
-        })
-        .collect::<FuturesResults<_>>()
-        .into_inner();
+      join_all(other_chunks.into_iter().map(|chunk| async {
+        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+        Ok((*chunk, hash_result))
+      }))
+      .await;
     try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
