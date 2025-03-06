@@ -100,7 +100,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     #[allow(unused_mut)]
     let mut carrier = HashMap::new();
 
-    #[cfg(feature = "otel")]
+    #[cfg(not(target_family = "wasm"))]
     {
       use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
       use tracing::Span;

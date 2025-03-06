@@ -19,7 +19,6 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
-use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
 
 mod asset;
 mod asset_condition;
@@ -393,6 +392,7 @@ pub fn register_global_trace(
         #[cfg(not(target_family = "wasm"))]
         "otel" => {
           use rspack_tracing::OtelTracer;
+          use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
           Box::new(within_runtime_if_available(OtelTracer::default))
         },
         "logger" => Box::new(StdoutTracer),
