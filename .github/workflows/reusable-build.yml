@@ -112,15 +112,22 @@ jobs:
         with:
           tool-cache: false
 
-      # Linux
+      # Linux in docker
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable && inputs.profile == 'ci'}}
         uses: ./.github/actions/docker-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
           profile: ${{ inputs.profile }}
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+
+      # Linux
+      - name: Build x86_64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable  && inputs.profile == 'ci' }}
+        run:
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+
       # runner these build in docker since we don't have github runner machine for it
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' && steps.check_cache.outputs.files_exists != 'true' && !inputs.skipable }}
