@@ -160,7 +160,6 @@ jobs:
       - name: Run rspack-ecosystem-ci
         run: |
           # prepare rspack
-          cp ./crates/node_binding/*.node ./npm/linux-x64-gnu/
 
           RSPACK_DIR=$(pwd)
           cd ..
