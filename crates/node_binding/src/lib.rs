@@ -337,6 +337,7 @@ enum TraceState {
   Off,
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[ctor]
 fn init() {
   panic::install_panic_handler();
