@@ -3,7 +3,7 @@ import { MultipleRunnerFactory } from "../runner";
 import { BasicCaseCreator } from "../test/creator";
 import { ECompilerType, type TTestConfig } from "../type";
 
-export type TConfigCaseConfig = Omit<
+export type TSerialCaseConfig = Omit<
 	TTestConfig<ECompilerType.Rspack>,
 	"validate"
 >;
@@ -30,10 +30,9 @@ const creator = new BasicCaseCreator({
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		})
 	],
-	runner: MultipleRunnerFactory,
-	concurrent: 3
+	runner: MultipleRunnerFactory
 });
 
-export function createConfigCase(name: string, src: string, dist: string) {
+export function createSerialCase(name: string, src: string, dist: string) {
 	creator.create(name, src, dist);
 }

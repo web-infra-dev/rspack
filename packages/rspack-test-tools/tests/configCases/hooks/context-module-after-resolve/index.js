@@ -1,11 +1,7 @@
 it("should compile", () => {
-	try {
+	expect(() => {
 		["foo.js"].map(file => {
 			require("./dir/" + file);
 		});
-	} catch (e) {
-		expect(e.message).toContain("Cannot find module './dir'")
-	}
-
-	expect.assertions(1)
+	}).toThrow("Cannot find module './dir'")
 });

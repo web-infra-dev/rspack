@@ -46,7 +46,8 @@ const configCreator = new BasicCaseCreator({
 			configFiles: ["rspack.config.js", "webpack.config.js"]
 		});
 		return [processor];
-	}
+	},
+	concurrent: 3
 });
 
 class NewCodeSplittingProcessor<

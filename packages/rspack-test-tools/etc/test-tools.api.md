@@ -268,6 +268,9 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 export function createNormalCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
+export function createSerialCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
 export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
 
 // @public (undocumented)
@@ -623,7 +626,7 @@ export interface IBasicGlobalContext {
     // (undocumented)
     clearTimeout: typeof clearTimeout;
     // (undocumented)
-    console: Console;
+    console: Record<string, (...args: any[]) => void>;
     // (undocumented)
     setTimeout: typeof setTimeout;
 }
@@ -633,7 +636,7 @@ export interface IBasicModuleScope extends ITestEnv {
     // (undocumented)
     [key: string]: any;
     // (undocumented)
-    console: Console;
+    console: Record<string, (...args: any[]) => void>;
     // (undocumented)
     expect: jest.Expect;
 }
@@ -1583,6 +1586,9 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
     file?: TBasicRunnerFile;
     esmMode?: EEsmMode;
 }) => Object | Promise<Object>;
+
+// @public (undocumented)
+export type TSerialCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
 
 // @public (undocumented)
 export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
