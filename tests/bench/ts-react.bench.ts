@@ -91,4 +91,8 @@ describe("TypeScript React project", () => {
 			module.identifier();
 		}
 	});
+
+	bench("stats.toJson()", () => {
+		const json = theCompilation.getStats().toJson();
+	});
 });
