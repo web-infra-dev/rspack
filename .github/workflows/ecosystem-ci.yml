@@ -164,8 +164,10 @@ jobs:
 
           RSPACK_DIR=$(pwd)
           cd ..
-          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-ci.git
+          git clone  https://github.com/web-infra-dev/rspack-ecosystem-ci.git
           cd rspack-ecosystem-ci
+          git checkout chore/debug_overrides
+          
           pnpm i --frozen-lockfile
 
           mkdir -p ./workspace
