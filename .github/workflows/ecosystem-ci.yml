@@ -145,7 +145,6 @@ jobs:
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
-          try-local-cache: false
 
       - name: Show restored binding
         shell: bash
