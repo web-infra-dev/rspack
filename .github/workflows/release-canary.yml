@@ -79,8 +79,11 @@ jobs:
           fetch-depth: 1
           ref: ${{inputs.commit}}
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7
