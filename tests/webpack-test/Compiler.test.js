@@ -8,10 +8,14 @@ const { Stats } = require("@rspack/core");
 const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
-const { normalizeFilteredTestName, FilteredStatus } = require("./lib/util/filterUtil");
+const {
+	normalizeFilteredTestName,
+	FilteredStatus
+} = require("./lib/util/filterUtil");
 
 describe("Compiler", () => {
 	jest.setTimeout(20000);
+
 	function compile(entry, options, callback, done = () => {}) {
 		const noOutputPath = !options.output || !options.output.path;
 		const webpack = require("@rspack/core");
@@ -119,31 +123,31 @@ describe("Compiler", () => {
 		);
 	});
 
-	// CHANGE: skip due to Rspack defaults to numerical module ids, unlike webpack's string-based ids
-	// TODO: ModuleInfoHeaderPlugin
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a single file"), done => {
-		compile("./c", {}, (stats, files) => {
-			expect(Object.keys(files)).toEqual(["/main.js"]);
-			const bundle = files["/main.js"];
-			expect(bundle).toMatch("function __webpack_require__(");
-			expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
-			expect(bundle).toMatch("./c.js");
-			expect(bundle).toMatch("./a.js");
-			expect(bundle).toMatch("This is a");
-			expect(bundle).toMatch("This is c");
-			expect(bundle).not.toMatch("2: function(");
-			expect(bundle).not.toMatch("window");
-			expect(bundle).not.toMatch("jsonp");
-			expect(bundle).not.toMatch("fixtures");
-			done();
+	it("should compile a single file", done => {
+		compile(
+			"./c",
+			{},
+			(stats, files) => {
+				expect(Object.keys(files)).toEqual(["/main.js"]);
+				const bundle = files["/main.js"];
+				expect(bundle).toMatch("function __webpack_require__(");
+				expect(bundle).toMatch(/__webpack_require__\(\/\*! \.\/a \*\/ \w+\);/);
+				expect(bundle).toMatch("./c.js");
+				expect(bundle).toMatch("./a.js");
+				expect(bundle).toMatch("This is a");
+				expect(bundle).toMatch("This is c");
+				expect(bundle).not.toMatch("2: function(");
+				expect(bundle).not.toMatch("window");
+				expect(bundle).not.toMatch("jsonp");
+				expect(bundle).not.toMatch("fixtures");
+				done();
 			},
 			done
 		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	// TODO: ModuleInfoHeaderPlugin
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a complex file"), done => {
+
+	it("should compile a complex file", done => {
 		compile(
 			"./main1",
 			{},
@@ -169,12 +173,7 @@ describe("Compiler", () => {
 		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	// TODO: ModuleInfoHeaderPlugin.js
-	it.skip(normalizeFilteredTestName(
-		FilteredStatus.TODO,
-		"should compile a file with transitive dependencies"
-	), done => {
+	it("should compile a file with transitive dependencies", done => {
 		compile(
 			"./abc",
 			{},
@@ -203,7 +202,7 @@ describe("Compiler", () => {
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status
-	// TODO: ModuleInfoHeaderPlugin CodeSplitting
+	// TODO: CodeSplitting
 	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with multiple chunks"), done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
