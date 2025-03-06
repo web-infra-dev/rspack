@@ -9,19 +9,23 @@ inputs:
   path:
     description: "Destination path"
     required: true
+  force-use-github:
+    description: "force download from github"
+    default: false
+    required: false
 
 runs:
   using: composite
   steps:
     - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ runner.environment == 'github-hosted' }}
+      if: ${{ inputs.force-use-github == 'true' || runner.environment == 'github-hosted' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
 #    - name: Download artifact from local
 #      uses: lynx-infra/download-artifact
-#      if: ${{ runner.environment == 'self-hosted' }}
+#      if: ${{ input.force-use-github != 'true' && runner.environment == 'self-hosted' }}
 #      with:
 #        name: ${{ inputs.name }}
 #        path: ${{ inputs.path }}

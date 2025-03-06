@@ -205,8 +205,6 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          mv-when-local: true
 
   e2e:
     name: E2E Testing
@@ -231,8 +229,6 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          link-when-local: true
 
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm/setup
@@ -297,8 +293,6 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          link-when-local: true
 
       - name: Show restored binding
         if: ${{ !inputs.skipable }}
@@ -413,8 +407,6 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-          try-local-cache: ${{ inputs.profile == 'ci' }}
-          link-when-local: true
 
       - name: Show restored binding
         shell: bash
