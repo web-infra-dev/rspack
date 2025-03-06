@@ -2,4 +2,5 @@
 profile = "default"
 # Use nightly for better access to the latest Rust features.
 # This date is aligned to stable release dates.
-channel = "nightly-2024-11-27" # v1.83.0
+# stable-2025-02-20 -> v1.85.0
+channel = "nightly-2024-11-27"
