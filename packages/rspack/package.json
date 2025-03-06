@@ -51,7 +51,7 @@
   "devDependencies": {
     "@rspack/tracing": "workspace:*",
     "@swc/core": "1.10.18",
-    "@swc/types": "0.1.17",
+    "@swc/types": "0.1.19",
     "@types/graceful-fs": "4.1.9",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",
@@ -75,7 +75,7 @@
     "@module-federation/runtime-tools": "0.8.4",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001700"
+    "caniuse-lite": "^1.0.30001702"
   },
   "peerDependencies": {
     "@rspack/tracing": "^1.x",
