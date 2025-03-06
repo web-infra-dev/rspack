@@ -14,7 +14,7 @@
     "xxhashjs": "^0.2.2",
     "yamljs": "^0.3.0",
     "mini-svg-data-uri": "^1.4.4",
-    "babel-loader": "^9.2.1",
+    "babel-loader": "^10.0.0",
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
     "@babel/preset-react": "^7.26.3",

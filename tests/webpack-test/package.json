@@ -22,7 +22,7 @@
     "@types/webpack-sources": "3.2.3",
     "@types/ws": "8.5.14",
     "@webdiscus/pug-loader": "^2.11.1",
-    "babel-loader": "^9.2.1",
+    "babel-loader": "^10.0.0",
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
     "css-loader": "^5.2.7",
