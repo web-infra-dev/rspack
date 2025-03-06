@@ -8013,7 +8013,7 @@ export const rspackOptions: z.ZodObject<{
                 }, {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer<ArrayBuffer>, z.ZodTypeDef, Buffer<ArrayBuffer>>, z.ZodObject<{
+                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer<ArrayBufferLike>, z.ZodTypeDef, Buffer<ArrayBufferLike>>, z.ZodObject<{
                     filename: z.ZodString;
                     module: z.ZodType<Module, z.ZodTypeDef, Module>;
                 }, "strict", z.ZodTypeAny, {
@@ -8033,7 +8033,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8044,7 +8044,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8060,7 +8060,7 @@ export const rspackOptions: z.ZodObject<{
                 }, {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer<ArrayBuffer>, z.ZodTypeDef, Buffer<ArrayBuffer>>, z.ZodObject<{
+                }>, z.ZodFunction<z.ZodTuple<[z.ZodType<Buffer<ArrayBufferLike>, z.ZodTypeDef, Buffer<ArrayBufferLike>>, z.ZodObject<{
                     filename: z.ZodString;
                     module: z.ZodType<Module, z.ZodTypeDef, Module>;
                 }, "strict", z.ZodTypeAny, {
@@ -8074,7 +8074,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8082,7 +8082,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8153,7 +8153,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8175,7 +8175,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8196,7 +8196,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8218,7 +8218,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8344,7 +8344,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8366,7 +8366,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8492,7 +8492,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8514,7 +8514,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8664,7 +8664,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -8686,7 +8686,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -9275,7 +9275,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -9297,7 +9297,7 @@ export const rspackOptions: z.ZodObject<{
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
                     mimetype?: string | undefined;
-                } | ((args_0: Buffer<ArrayBuffer>, args_1: {
+                } | ((args_0: Buffer<ArrayBufferLike>, args_1: {
                     module: Module;
                     filename: string;
                 }, ...args: unknown[]) => string) | undefined;
@@ -11265,8 +11265,8 @@ interface TransformConfig {
     react?: ReactConfig;
     // (undocumented)
     treatConstEnumAsEnum?: boolean;
-    // (undocumented)
     useDefineForClassFields?: boolean;
+    verbatimModuleSyntax?: boolean;
 }
 
 // @public (undocumented)
