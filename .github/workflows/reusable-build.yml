@@ -198,6 +198,17 @@ jobs:
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
+      # WASM
+      - name: Build wasm32-wasip1-threads with linux in Docker
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        uses: ./.github/actions/docker-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
+          plugin: false
+          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/artifact/upload
@@ -358,8 +369,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
-
-      
 
   bench:
     name: Bench
