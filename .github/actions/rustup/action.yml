@@ -49,7 +49,9 @@ runs:
     # install components for nightly toolchain
     - name: Install
       shell: bash
-      run: rustup toolchain install nightly-2024-11-27 -c rustc -c cargo -c rust-std ${{ inputs.clippy == 'true' && '-c clippy' || '' }} ${{ inputs.fmt == 'true' && '-c rustfmt' || '' }} ${{ inputs.docs == 'true' && '-c rust-docs' || '' }} ${{ inputs.miri == 'true' && '-c miri' || '' }}
+      run: |
+        channel=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
+        rustup toolchain install $channel -c rustc -c cargo -c rust-std ${{ inputs.clippy == 'true' && '-c clippy' || '' }} ${{ inputs.fmt == 'true' && '-c rustfmt' || '' }} ${{ inputs.docs == 'true' && '-c rust-docs' || '' }} ${{ inputs.miri == 'true' && '-c miri' || '' }}
 
     - name: Cache on ${{ github.ref_name }}
       uses: ./.github/actions/rustup/cache
