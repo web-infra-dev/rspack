@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
+  bindings, ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
   CompilerCompilation, CompilerOptions, DependencyType, ModuleType, ParserAndGenerator, Plugin,
   PluginContext, RenderManifestEntry, SourceType,
 };
@@ -23,7 +23,7 @@ pub struct AsyncWasmPlugin {
 #[plugin_hook(CompilerCompilation for AsyncWasmPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

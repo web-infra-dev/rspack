@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_collections::IdentifierMap;
 use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
+  bindings, merge_runtime, to_identifier, ApplyContext, BoxDependency, ChunkUkey,
   CodeGenerationExportsFinalNames, Compilation, CompilationOptimizeChunkModules, CompilationParams,
   CompilerCompilation, CompilerFinishMake, CompilerOptions, ConcatenatedModule,
   ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency, DependencyId,
@@ -409,7 +409,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 #[plugin_hook(CompilerCompilation for ModernModuleLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

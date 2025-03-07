@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  get_entry_runtime, property_access,
+  bindings, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
@@ -60,7 +60,7 @@ impl ExportPropertyLibraryPlugin {
 #[plugin_hook(CompilerCompilation for ExportPropertyLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

@@ -12,8 +12,8 @@ use napi::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  bindings, parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule,
+  ChunkUkey, CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
@@ -433,11 +433,11 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<bindings::Weak<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_compilation_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compiler_compilation_taps: RegisterFunction<bindings::Weak<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
@@ -662,7 +662,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<bindings::Weak<Compilation>, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -670,7 +670,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerCompilationTaps,
-  tap = CompilerCompilationTap<JsCompilationWrapper, ()> @ CompilerCompilationHook,
+  tap = CompilerCompilationTap<bindings::Weak<Compilation>, ()> @ CompilerCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerCompilation,
@@ -1078,11 +1078,10 @@ define_register!(
 impl CompilerThisCompilation for CompilerThisCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &mut bindings::Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+    self.function.call_with_sync(compilation.downgrade()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1094,11 +1093,10 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
 impl CompilerCompilation for CompilerCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &mut bindings::Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+    self.function.call_with_sync(compilation.downgrade()).await
   }
 
   fn stage(&self) -> i32 {

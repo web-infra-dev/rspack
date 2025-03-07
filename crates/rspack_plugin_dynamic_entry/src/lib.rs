@@ -6,8 +6,9 @@ use async_trait::async_trait;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
-  CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
+  bindings, ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation,
+  CompilerMake, CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -46,7 +47,7 @@ impl DynamicEntryPlugin {
 #[plugin_hook(CompilerCompilation for DynamicEntryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());

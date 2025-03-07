@@ -1,6 +1,7 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
+  bindings,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
@@ -83,7 +84,7 @@ impl UmdLibraryPlugin {
 #[plugin_hook(CompilerCompilation for UmdLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

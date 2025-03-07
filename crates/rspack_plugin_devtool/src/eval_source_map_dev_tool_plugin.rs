@@ -4,6 +4,7 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
+  bindings,
   rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
@@ -62,7 +63,7 @@ impl EvalSourceMapDevToolPlugin {
 #[plugin_hook(CompilerCompilation for EvalSourceMapDevToolPlugin)]
 async fn eval_source_map_devtool_plugin_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

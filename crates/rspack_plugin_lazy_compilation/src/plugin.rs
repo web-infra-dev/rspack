@@ -2,10 +2,10 @@ use std::sync::LazyLock;
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation,
-  CompilerId, CompilerOptions, DependencyType, EntryDependency, LibIdentOptions, Module,
-  ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PluginContext,
+  bindings, ApplyContext, BoxModule, Compilation, CompilationId, CompilationParams,
+  CompilerCompilation, CompilerId, CompilerOptions, DependencyType, EntryDependency,
+  LibIdentOptions, Module, ModuleFactory, ModuleFactoryCreateData, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -92,7 +92,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
 #[plugin_hook(CompilerCompilation for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

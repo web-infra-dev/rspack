@@ -36,6 +36,7 @@ bitflags           = { version = "2.6.0" }
 camino             = { version = "1.1.9" }
 concat-string      = { version = "1.0.1" }
 cow-utils          = { version = "0.1.3" }
+crossbeam-queue    = { version = "0.3.12" }
 css-module-lexer   = { version = "0.0.15" }
 dashmap            = { version = "6.1.0" }
 derive_more        = { version = "1.0.0" }

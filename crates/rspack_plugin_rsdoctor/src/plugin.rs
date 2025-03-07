@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use futures::future::BoxFuture;
 use rspack_collections::Identifier;
 use rspack_core::{
-  ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
+  bindings, ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
   CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
@@ -170,7 +170,7 @@ impl RsdoctorPlugin {
 #[plugin_hook(CompilerCompilation for RsdoctorPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   MODULE_UKEY_MAP.clear();

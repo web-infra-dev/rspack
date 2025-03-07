@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
+  bindings, ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
   CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
   CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
@@ -278,7 +278,7 @@ impl ProgressPlugin {
 #[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   if let ProgressPluginOptions::Default(options) = &self.options {
@@ -300,7 +300,7 @@ async fn this_compilation(
 #[plugin_hook(CompilerCompilation for ProgressPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self.handler(

@@ -153,6 +153,11 @@ pub async fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = MakeTaskContext::new(compilation, artifact, compilation.cache.clone());
-  run_task_loop(&mut ctx, init_tasks).await?;
+
+  let rt = tokio::runtime::Builder::new_multi_thread()
+    .enable_all()
+    .build()
+    .unwrap();
+  rt.block_on(run_task_loop(&mut ctx, init_tasks))?;
   Ok(ctx.transform_to_make_artifact())
 }

@@ -442,7 +442,9 @@ impl CompilerBuilder {
     let intermediate_filesystem = self.intermediate_filesystem.take();
     let output_filesystem = self.output_filesystem.take();
 
+    let allocator = todo!();
     Compiler::new(
+      allocator,
       String::new(),
       compiler_options,
       plugins,

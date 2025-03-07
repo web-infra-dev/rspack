@@ -1,7 +1,8 @@
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  Context, DependencyType, LibIdentOptions, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin, PluginContext,
+  bindings, ApplyContext, BoxModule, Compilation, CompilationParams, CompilerCompilation,
+  CompilerOptions, Context, DependencyType, LibIdentOptions, ModuleFactoryCreateData,
+  NormalModuleCreateData, NormalModuleFactoryFactorize, NormalModuleFactoryModule, Plugin,
+  PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -69,7 +70,7 @@ impl Plugin for DelegatedPlugin {
 #[plugin_hook(CompilerCompilation for DelegatedPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

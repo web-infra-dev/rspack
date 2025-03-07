@@ -4316,6 +4316,8 @@ dependencies = [
  "itertools 0.14.0",
  "json",
  "mime_guess",
+ "napi",
+ "napi-derive",
  "num-bigint",
  "once_cell",
  "paste",
@@ -4334,6 +4336,7 @@ dependencies = [
  "rspack_hook",
  "rspack_loader_runner",
  "rspack_macros",
+ "rspack_napi",
  "rspack_paths",
  "rspack_regex",
  "rspack_resolver",
@@ -4591,7 +4594,10 @@ dependencies = [
 name = "rspack_napi"
 version = "0.2.0"
 dependencies = [
+ "crossbeam-queue",
+ "futures",
  "napi",
+ "once_cell",
  "oneshot",
  "rspack_error",
  "tokio",
