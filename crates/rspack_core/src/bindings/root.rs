@@ -1,6 +1,7 @@
 use std::{
   marker::PhantomData,
   ops::{Deref, DerefMut},
+  thread::{self, ThreadId},
 };
 
 use derive_more::Debug;
@@ -8,14 +9,16 @@ use napi::{
   bindgen_prelude::{Reference, ToNapiValue, WeakReference},
   sys::{napi_env, napi_value},
 };
+use rspack_napi::next_tick;
 
 use crate::Compilation;
 
 #[derive(Debug)]
 pub struct Root<T: 'static> {
+  thread_id: ThreadId,
   raw: *mut T,
   #[debug(skip)]
-  reference: Reference<()>,
+  reference: Option<Reference<()>>,
 }
 
 unsafe impl<T: Send> Send for Root<T> {}
@@ -23,12 +26,16 @@ unsafe impl<T: Sync> Sync for Root<T> {}
 
 impl<T> Root<T> {
   pub fn from_value_ptr(raw: *mut T, reference: Reference<()>) -> Self {
-    Self { raw, reference }
+    Self {
+      thread_id: thread::current().id(),
+      raw,
+      reference: Some(reference),
+    }
   }
 
   pub fn downgrade(&self) -> Weak<Compilation> {
     Weak {
-      i: self.reference.downgrade(),
+      i: self.reference.as_ref().unwrap().downgrade(),
       _ty: PhantomData,
     }
   }
@@ -48,29 +55,14 @@ impl<T> DerefMut for Root<T> {
   }
 }
 
-// impl Root<Compilation> {
-//   pub fn new(val: Compilation) -> Self {
-//     // 只能在 js 线程调用
-
-//     let env = bindings::GlobalScope::get_env();
-//     let mut instance = bindings::object::Compilation(val)
-//       .into_instance(&env)
-//       .unwrap(); // TODO: use napi_throw_error
-//     let reference = unsafe {
-//       Reference::<()>::from_value_ptr(&mut *instance as *mut _ as *mut c_void, env.raw()).unwrap()
-//       // TODO: use napi_throw_error
-//     };
-
-//     Self {
-//       raw: &mut instance.0 as *mut _,
-//       reference,
-//     }
-//   }
-// }
-
 impl<T> Drop for Root<T> {
   fn drop(&mut self) {
-    // 不在 js 线程时，需要在 js 线程中 drop
+    if self.thread_id != thread::current().id() {
+      let reference = self.reference.take();
+      next_tick(move || {
+        drop(reference);
+      })
+    }
   }
 }
 

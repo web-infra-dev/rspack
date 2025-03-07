@@ -8,11 +8,15 @@ use napi::{sys, Env};
 use waker::{LocalWaker, WakerEvent};
 
 use self::runtime::LocalRuntime;
+use crate::next_tick::QUEUE;
 
 extern "C" fn on_wake(
   _env: sys::napi_env,
   _callback_info: sys::napi_callback_info,
 ) -> sys::napi_value {
+  while let Some(f) = QUEUE.pop() {
+    f();
+  }
   ptr::null_mut()
 }
 

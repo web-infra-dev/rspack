@@ -8,9 +8,10 @@ version     = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-futures      = { workspace = true }
-napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
-once_cell    = { workspace = true }
-oneshot      = "0.1.8"
-rspack_error = { workspace = true }
-tokio        = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+crossbeam-queue = { workspace = true }
+futures         = { workspace = true }
+napi            = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
+once_cell       = { workspace = true }
+oneshot         = "0.1.8"
+rspack_error    = { workspace = true }
+tokio           = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

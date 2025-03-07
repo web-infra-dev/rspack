@@ -43,6 +43,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_loader_runner = { workspace = true }
 rspack_macros = { workspace = true }
+rspack_napi = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }

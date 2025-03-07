@@ -3,6 +3,8 @@
 
 mod ext;
 mod js_values;
+mod next_tick;
+pub use next_tick::next_tick;
 mod runtime;
 pub mod spawn_local;
 mod utils;

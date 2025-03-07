@@ -24,8 +24,8 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  bindings, fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger,
-  PluginDriver, ResolverFactory, SharedPluginDriver,
+  bindings, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
