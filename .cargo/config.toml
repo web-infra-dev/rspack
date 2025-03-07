@@ -61,6 +61,3 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
-
-[registries.crates-io]
-index = "sparse+https://index.crates.io/"
