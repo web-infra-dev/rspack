@@ -1,40 +1,57 @@
 import type { JsModule } from "@rspack/binding";
-
-import type { Compiler } from "../..";
-import getBackend, {
-	type LazyCompilationDefaultBackendOptions
-} from "./backend";
+import type { Compiler, LazyCompilationOptions } from "../..";
+import { Module } from "../../Module";
+import getBackend from "./backend";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
+import { lazyCompilationMiddleware } from "./middleware";
+
+const REGISTERED_COMPILERS = new WeakSet();
 
 export default class LazyCompilationPlugin {
+	static pluginName = "LazyCompilationPlugin";
 	cacheable: boolean;
 	entries: boolean;
 	imports: boolean;
 	test?: RegExp | ((m: JsModule) => boolean);
-	backend?: LazyCompilationDefaultBackendOptions;
+	options: LazyCompilationOptions;
 
-	constructor(
-		cacheable: boolean,
-		entries: boolean,
-		imports: boolean,
-		test?: RegExp | ((m: JsModule) => boolean),
-		backend?: LazyCompilationDefaultBackendOptions
-	) {
-		this.cacheable = cacheable;
-		this.entries = entries;
-		this.imports = imports;
+	constructor(userOptions: LazyCompilationOptions) {
+		const options = userOptions ?? {};
+		this.options = options;
+		// @ts-expect-error cacheable is hidden field
+		this.cacheable = options.cacheable ?? true;
+		this.entries = options.entries ?? true;
+		this.imports = options.imports ?? true;
+		const test =
+			typeof options.test === "function"
+				? (jsModule: JsModule) =>
+						(options.test as (jsModule: Module) => boolean)!.call(
+							options,
+							Module.__from_binding(jsModule)
+						)
+				: options.test;
 		this.test = test;
-		this.backend = backend;
 	}
 
 	apply(compiler: Compiler) {
+		const logger = compiler.getInfrastructureLogger("LazyCompilationPlugin");
+
+		if (REGISTERED_COMPILERS.has(compiler)) {
+			logger.error("LazyCompilationPlugin is applied multiple times");
+			return;
+		}
+		REGISTERED_COMPILERS.add(compiler);
+
 		const { state, backend } = getBackend({
-			client: require.resolve(
-				`../hot/lazy-compilation-${
-					compiler.options.externalsPresets.node ? "node" : "web"
-				}.js`
-			),
-			...this.backend
+			...this.options,
+			backend: {
+				client: require.resolve(
+					`../hot/lazy-compilation-${
+						compiler.options.externalsPresets.node ? "node" : "web"
+					}.js`
+				),
+				...this.options.backend
+			}
 		});
 
 		new BuiltinLazyCompilationPlugin(
@@ -82,9 +99,10 @@ export default class LazyCompilationPlugin {
 		);
 
 		compiler.hooks.shutdown.tapAsync("LazyCompilationPlugin", callback => {
+			REGISTERED_COMPILERS.delete(compiler);
 			state.dispose(callback);
 		});
 	}
 }
 
-export { LazyCompilationPlugin };
+export { LazyCompilationPlugin, lazyCompilationMiddleware };
