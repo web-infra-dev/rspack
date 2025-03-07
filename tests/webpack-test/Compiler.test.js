@@ -201,14 +201,12 @@ describe("Compiler", () => {
 		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	// TODO: CodeSplitting
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with multiple chunks"), done => {
+	it("should compile a file with multiple chunks", done => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
-			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
+			expect(Object.keys(files).sort().reverse()).toEqual(["/main.js", "/798.js"]);
 			const bundle = files["/main.js"];
-			const chunk = files["/394.js"];
+			const chunk = files["/798.js"];
 			expect(bundle).toMatch("function __webpack_require__(");
 			expect(bundle).toMatch("__webpack_require__(/*! ./b */");
 			expect(chunk).not.toMatch("__webpack_require__(/* ./b */");
@@ -225,7 +223,7 @@ describe("Compiler", () => {
 			expect(bundle).toMatch("webpackChunk");
 			expect(chunk).toMatch('self["webpackChunk"] || []).push');
 			done();
-		});
+		}, done);
 	});
 
 	// CHANGE: skip with custom test name for tracking alignment status

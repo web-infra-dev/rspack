@@ -36,12 +36,19 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk 1`] = `
-"chunk (runtime: main) 726.js xx bytes <{909}> [rendered]
+"chunk (runtime: main) 272.js (id hint: ) xx bytes <{909}> ={29}= ={726}= [rendered]
+  > ./index.js 17:4-21:6
+  > ./index.js 2:4-5:6
+  > ./index.js 9:4-13:6
+  ./a.js xx bytes [built] [code generated]
+chunk (runtime: main) 29.js xx bytes <{909}> ={272}= [rendered]
+  > ./index.js 17:4-21:6
+  ./c.js xx bytes [built] [code generated]
+chunk (runtime: main) 726.js xx bytes <{909}> ={272}= [rendered]
   > ./index.js 9:4-13:6
   ./b.js xx bytes [built] [code generated]
-chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{726}< [entry] [rendered]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{272}< >{29}< >{726}< [entry] [rendered]
   > ./ main
-  dependent modules xx bytes [dependent] 2 modules
   ./index.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully"
 `;
