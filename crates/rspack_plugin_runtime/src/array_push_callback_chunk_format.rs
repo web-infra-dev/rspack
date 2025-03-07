@@ -124,7 +124,7 @@ fn render_chunk(
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
 
     source.add(RawStringSource::from(format!(
-      r#"({}['{}'] = {}['{}'] || []).push([[{}], "#,
+      r#"({}["{}"] = {}["{}"] || []).push([[{}], "#,
       global_object,
       chunk_loading_global,
       global_object,
