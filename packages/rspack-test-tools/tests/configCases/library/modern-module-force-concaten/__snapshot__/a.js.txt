@@ -1,0 +1,5 @@
+
+;// CONCATENATED MODULE: ./a.js
+const a = 'a'
+
+export { a };

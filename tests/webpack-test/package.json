@@ -16,7 +16,7 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@babel/preset-react": "^7.22.15",
+    "@babel/preset-react": "^7.26.3",
     "@types/node": "^20.17.19",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",

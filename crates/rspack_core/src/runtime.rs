@@ -136,7 +136,7 @@ impl RuntimeSpec {
 
 pub type RuntimeKey = String;
 
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeMode {
   #[default]
   Empty = 0,
@@ -332,7 +332,7 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
   Ordering::Equal
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeSpecMap<T> {
   pub mode: RuntimeMode,
   pub map: HashMap<RuntimeKey, T>,

@@ -25,6 +25,7 @@ export interface RspackCLIOptions {
 	argv?: Record<string, any>;
 	configName?: string[];
 	configLoader?: string;
+	nodeEnv?: string;
 }
 
 export interface RspackBuildCLIOptions extends RspackCLIOptions {
@@ -35,7 +36,6 @@ export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	analyze?: boolean;
 	profile?: boolean;
 	env?: Record<string, any>;
-	nodeEnv?: string;
 	outputPath?: string;
 }
 

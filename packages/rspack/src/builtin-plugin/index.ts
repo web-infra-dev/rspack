@@ -73,3 +73,4 @@ export * from "./DllEntryPlugin";
 export * from "./DllReferenceAgencyPlugin";
 export * from "./RsdoctorPlugin";
 export * from "./SubresourceIntegrityPlugin";
+export * from "./ModuleInfoHeaderPlugin";

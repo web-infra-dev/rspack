@@ -10,6 +10,7 @@
 import type * as binding from "@rspack/binding";
 import {
 	type AssetInfo,
+	type Dependency,
 	type ExternalObject,
 	type JsCompatSourceOwned,
 	type JsCompilation,
@@ -25,7 +26,6 @@ import { ChunkGraph } from "./ChunkGraph";
 import { ChunkGroup } from "./ChunkGroup";
 import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
-import { Dependency } from "./Dependency";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
 import { type CodeGenerationResult, Module } from "./Module";
@@ -576,7 +576,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		newSourceOrFunction: Source | ((source: Source) => Source),
 		assetInfoUpdateOrFunction?:
 			| AssetInfo
-			| ((assetInfo: AssetInfo) => AssetInfo)
+			| ((assetInfo: AssetInfo) => AssetInfo | undefined)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSourceOwned
@@ -597,11 +597,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction === undefined
-				? assetInfoUpdateOrFunction
-				: typeof assetInfoUpdateOrFunction === "function"
-					? assetInfo => assetInfoUpdateOrFunction(assetInfo)
-					: assetInfoUpdateOrFunction
+			assetInfoUpdateOrFunction
 		);
 	}
 
@@ -1231,8 +1227,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 class AddIncludeDispatcher {
 	#inner: binding.JsCompilation["addInclude"];
 	#running: boolean;
-	#args: [string, binding.RawDependency, binding.JsEntryOptions | undefined][] =
-		[];
+	#args: [
+		string,
+		binding.EntryDependency,
+		binding.JsEntryOptions | undefined
+	][] = [];
 	#cbs: ((err?: null | WebpackError, module?: Module) => void)[] = [];
 
 	#execute = () => {
@@ -1261,7 +1260,7 @@ class AddIncludeDispatcher {
 				const cb = cbs[i];
 				cb(
 					errMsg ? new WebpackError(errMsg) : null,
-					Module.__from_binding(moduleBinding)
+					moduleBinding ? Module.__from_binding(moduleBinding) : undefined
 				);
 			}
 		});
@@ -1297,10 +1296,8 @@ export class EntryData {
 	}
 
 	private constructor(binding: binding.JsEntryData) {
-		this.dependencies = binding.dependencies.map(Dependency.__from_binding);
-		this.includeDependencies = binding.includeDependencies.map(
-			Dependency.__from_binding
-		);
+		this.dependencies = binding.dependencies;
+		this.includeDependencies = binding.includeDependencies;
 		this.options = binding.options;
 	}
 }

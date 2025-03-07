@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.2.7-alpha.0",
+  "version": "1.2.7",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
@@ -72,7 +72,7 @@
     "jest-cli": "29.7.0",
     "jest-environment-node": "29.7.0",
     "lint-staged": "^15.4.3",
-    "prettier": "3.5.2",
+    "prettier": "3.5.3",
     "prettier-2": "npm:prettier@2.8.8",
     "rimraf": "^5.0.10",
     "ts-jest": "29.2.6",

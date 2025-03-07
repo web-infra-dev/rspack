@@ -32,8 +32,7 @@ describeByWalk(
 		dist: path.resolve(
 			__dirname,
 			`./js/new-incremental/webpack-test/hot-async-node`
-		),
-		exclude: [/move-between-runtime/]
+		)
 	}
 );
 
@@ -45,7 +44,6 @@ describeByWalk(
 	},
 	{
 		source: path.resolve(__dirname, "../../../tests/webpack-test/hotCases"),
-		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-node`),
-		exclude: [/move-between-runtime/]
+		dist: path.resolve(__dirname, `./js/new-incremental/webpack-test/hot-node`)
 	}
 );

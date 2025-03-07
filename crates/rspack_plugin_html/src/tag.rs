@@ -8,7 +8,7 @@ use serde::{
   Deserialize, Deserializer, Serialize, Serializer,
 };
 use swc_core::{atoms::Atom, common::DUMMY_SP};
-use swc_html::ast::{Attribute, Element, Namespace};
+use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 
 use crate::config::{HtmlRspackPluginBaseOptions, HtmlScriptLoading};
 
@@ -279,7 +279,13 @@ impl From<HtmlPluginTag> for Element {
         .sorted_unstable_by(|a, b| a.attr_name.cmp(&b.attr_name))
         .map(Attribute::from)
         .collect::<Vec<_>>(),
-      children: vec![],
+      children: tag.inner_html.map_or(vec![], |inner_html| {
+        vec![Child::Text(Text {
+          span: DUMMY_SP,
+          data: Atom::from(inner_html),
+          raw: None,
+        })]
+      }),
       content: None,
       is_self_closing: tag.void_tag,
       namespace: Namespace::HTML,

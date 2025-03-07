@@ -281,7 +281,6 @@ impl BuilderContext {
       BuiltinPluginOptions::RealContentHashPlugin => {
         plugins.push(rspack_plugin_real_content_hash::RealContentHashPlugin::default().boxed())
       }
-
       // Module and chunk ID plugins
       BuiltinPluginOptions::NamedModuleIdsPlugin => {
         plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed())

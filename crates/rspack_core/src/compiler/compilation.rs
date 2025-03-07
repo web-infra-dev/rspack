@@ -1417,14 +1417,46 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.cgm_hash_artifact.remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let mg = self.get_module_graph();
+      let mut affected_modules = mutations.get_affected_modules_with_module_graph(&mg);
+      for mutation in mutations.iter() {
+        match mutation {
+          Mutation::ModuleSetAsync { module } => {
+            affected_modules.insert(*module);
+          }
+          Mutation::ModuleSetId { module } => {
+            affected_modules.insert(*module);
+            affected_modules.extend(
+              mg.get_incoming_connections(module)
+                .filter_map(|c| c.original_module_identifier),
+            );
+          }
+          Mutation::ChunkAdd { chunk } => {
+            affected_modules.extend(self.chunk_graph.get_chunk_modules_identifier(chunk));
+          }
+          Mutation::ChunkSetId { chunk } => {
+            let chunk = self.chunk_by_ukey.expect_get(chunk);
+            affected_modules.extend(
+              chunk
+                .groups()
+                .iter()
+                .flat_map(|group| {
+                  let group = self.chunk_group_by_ukey.expect_get(group);
+                  group.origins()
+                })
+                .filter_map(|origin| origin.module),
+            );
+          }
+          _ => {}
+        }
+      }
       let logger = self.get_logger("rspack.incremental.modulesHashes");
       logger.log(format!(
         "{} modules are affected, {} in total",
-        modules.len(),
-        self.get_module_graph().modules().len()
+        affected_modules.len(),
+        mg.modules().len()
       ));
-      modules
+      affected_modules
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
@@ -1452,7 +1484,13 @@ impl Compilation {
       for revoked_module in revoked_modules {
         self.code_generation_results.remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let modules: IdentifierSet = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleSetHashes { module } => Some(*module),
+          _ => None,
+        })
+        .collect();
       let logger = self.get_logger("rspack.incremental.modulesCodegen");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -1486,7 +1524,13 @@ impl Compilation {
           .cgm_runtime_requirements_artifact
           .remove(&revoked_module);
       }
-      let modules = mutations.get_affected_modules_with_chunk_graph(self);
+      let modules: IdentifierSet = mutations
+        .iter()
+        .filter_map(|mutation| match mutation {
+          Mutation::ModuleSetHashes { module } => Some(*module),
+          _ => None,
+        })
+        .collect();
       let logger = self.get_logger("rspack.incremental.modulesRuntimeRequirements");
       logger.log(format!(
         "{} modules are affected, {} in total",
@@ -2157,7 +2201,11 @@ impl Compilation {
       })
       .collect::<Result<_>>()?;
     for (module, hashes) in results {
-      ChunkGraph::set_module_hashes(self, module, hashes);
+      if ChunkGraph::set_module_hashes(self, module, hashes)
+        && let Some(mutations) = self.incremental.mutations_write()
+      {
+        mutations.add(Mutation::ModuleSetHashes { module });
+      }
     }
     Ok(())
   }

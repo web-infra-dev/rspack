@@ -17,6 +17,12 @@ impl ChunkRenderOccasion {
     Self { storage }
   }
 
+  pub fn begin_idle(&self) {
+    if let Some(s) = &self.storage {
+      s.begin_idle();
+    }
+  }
+
   pub async fn use_cache<G, F>(
     &self,
     compilation: &Compilation,

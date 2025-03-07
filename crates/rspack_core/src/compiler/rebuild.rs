@@ -62,11 +62,6 @@ impl Compiler {
 
       new_compilation.hot_index = self.compilation.hot_index + 1;
 
-      if let Some(mutations) = new_compilation.incremental.mutations_write()
-        && let Some(old_mutations) = self.compilation.incremental.mutations_write()
-      {
-        mutations.swap_modules_with_chunk_graph_cache(old_mutations);
-      }
       if new_compilation
         .incremental
         .can_read_mutations(IncrementalPasses::MAKE)

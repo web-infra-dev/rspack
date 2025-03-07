@@ -18,6 +18,8 @@ import { CacheFacade as CacheFacade_2 } from './lib/CacheFacade';
 import type { Callback } from '@rspack/lite-tapable';
 import { Compiler as Compiler_2 } from '..';
 import { default as default_2 } from './util/hash';
+import { Dependency } from '@rspack/binding';
+import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
 import { ExternalObject } from '@rspack/binding';
@@ -43,7 +45,6 @@ import type { JsContextModuleFactoryAfterResolveData } from '@rspack/binding';
 import type { JsContextModuleFactoryBeforeResolveData } from '@rspack/binding';
 import type { JsCreateData } from '@rspack/binding';
 import type { JsDependenciesBlock } from '@rspack/binding';
-import type { JsDependency } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import type { JsFactoryMeta } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
@@ -850,7 +851,7 @@ export class Compilation {
     startTime?: number;
     // (undocumented)
     unseal(): void;
-    updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void;
+    updateAsset(filename: string, newSourceOrFunction: Source | ((source: Source) => Source), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void;
     // (undocumented)
     get warnings(): RspackError[];
     set warnings(warnings: RspackError[]);
@@ -1409,23 +1410,7 @@ class DependenciesBlock {
     readonly dependencies: Dependency[];
 }
 
-// @public (undocumented)
-class Dependency {
-    // (undocumented)
-    static __from_binding(binding: JsDependency): Dependency;
-    // (undocumented)
-    static __to_binding(data: Dependency): JsDependency;
-    // (undocumented)
-    readonly category: string;
-    // (undocumented)
-    critical: boolean;
-    // (undocumented)
-    get ids(): string[] | undefined;
-    // (undocumented)
-    readonly request: string | undefined;
-    // (undocumented)
-    readonly type: string;
-}
+export { Dependency }
 
 // @public (undocumented)
 type DependencyLocation = any;
@@ -1718,11 +1703,7 @@ class EntryData {
     options: binding.JsEntryOptions;
 }
 
-// @public (undocumented)
-interface EntryDependency {
-    // (undocumented)
-    request: string;
-}
+export { EntryDependency }
 
 // @public
 export type EntryDependOn = string | string[];
@@ -5268,6 +5249,8 @@ declare namespace rspackExports {
         StatsModule,
         Stats,
         RuntimeModule,
+        EntryDependency,
+        Dependency,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -6557,8 +6540,6 @@ export const rspackOptions: z.ZodObject<{
             test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
         }, "strip", z.ZodTypeAny, {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6574,10 +6555,10 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         }, {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6593,6 +6574,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
         outputModule: z.ZodOptional<z.ZodBoolean>;
@@ -6697,8 +6680,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6714,6 +6695,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -6765,8 +6748,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -6782,6 +6763,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -8751,8 +8734,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -8768,6 +8749,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -9362,8 +9345,6 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
-            imports?: boolean | undefined;
             backend?: {
                 client?: string | undefined;
                 listen?: number | {
@@ -9379,6 +9360,8 @@ export const rspackOptions: z.ZodObject<{
                 protocol?: "http" | "https" | undefined;
                 server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
             } | undefined;
+            test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
+            imports?: boolean | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;

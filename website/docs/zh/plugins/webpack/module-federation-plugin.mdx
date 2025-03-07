@@ -158,17 +158,14 @@ export default {
 
 - 构建产物中存在未降级语法？
 
-  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation/runtime` 和 `@module-federation/sdk`。示例如下：
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
 
   ```js title="rspack.config.mjs"
   export default {
     module: {
       rules: [
         {
-          include: [
-            /@module-federation[\\/]sdk/,
-            /@module-federation[\\/]runtime/,
-          ],
+          include: [/@module-federation[\\/]/],
           use: {
             loader: 'builtin:swc-loader',
             options: {

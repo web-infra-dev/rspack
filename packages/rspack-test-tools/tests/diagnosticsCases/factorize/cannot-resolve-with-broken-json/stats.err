@@ -1,0 +1,8 @@
+ERROR in ./index.js 1:8-14
+  × JSON parse error: control character (/u0000-/u001F) found while parsing a string at line 3 column 0 in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-broken-json/node_modules/foo/package.json'
+   ╭─[3:0]
+ 1 │ {
+ 2 │   "name": "foo
+ 3 │ }
+   · ▲
+   ╰────
