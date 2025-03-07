@@ -23,13 +23,13 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
-  ResolverFactory, Root, SharedPluginDriver,
+  bindings, fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger,
+  PluginDriver, ResolverFactory, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Root<Compilation>, params: &mut CompilationParams));
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut bindings::Root<Compilation>, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be AsyncParallelHook
@@ -79,7 +79,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Root<Compilation>,
+  pub compilation: bindings::Root<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -154,7 +154,7 @@ impl Compiler {
       id,
       compiler_path,
       options: options.clone(),
-      compilation: Root::new(Compilation::new(
+      compilation: bindings::Root::new(Compilation::new(
         id,
         options,
         plugin_driver.clone(),
@@ -223,7 +223,7 @@ impl Compiler {
     //   ),
     // );
     // IGNORE: Root<T> cannot be sent between threads safely
-    self.compilation = Root::new(Compilation::new(
+    self.compilation = bindings::Root::new(Compilation::new(
       self.id,
       self.options.clone(),
       self.plugin_driver.clone(),

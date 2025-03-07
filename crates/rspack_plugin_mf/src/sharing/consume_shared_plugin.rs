@@ -7,11 +7,12 @@ use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
-  DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
-  NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, Root, RuntimeGlobals,
+  bindings, ApplyContext, BoxModule, ChunkUkey, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationParams, CompilerOptions,
+  CompilerThisCompilation, Context, DependencyCategory, DependencyType, ModuleExt,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryCreateModule,
+  NormalModuleFactoryFactorize, Plugin, PluginContext, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -353,7 +354,7 @@ impl ConsumeSharedPlugin {
 #[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
 async fn this_compilation(
   &self,
-  compilation: &mut Root<Compilation>,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

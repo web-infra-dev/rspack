@@ -12,8 +12,8 @@ use napi::{
 };
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule, ChunkUkey,
-  CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  bindings, parse_resource, AfterResolveResult, AssetEmittedInfo, BeforeResolveResult, BoxModule,
+  ChunkUkey, CodeGenerationResults, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
@@ -40,8 +40,8 @@ use rspack_core::{
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, Root,
-  RuntimeGlobals, Scheme, Weak,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
+  Scheme,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -433,7 +433,7 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<Weak<Compilation>, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<bindings::Weak<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
@@ -662,7 +662,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<Weak<Compilation>, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<bindings::Weak<Compilation>, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -1078,7 +1078,7 @@ define_register!(
 impl CompilerThisCompilation for CompilerThisCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Root<Compilation>,
+    compilation: &mut bindings::Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
     let weak = compilation.downgrade();

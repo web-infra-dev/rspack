@@ -91,6 +91,7 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
+pub use rspack_core::bindings::object::*;
 use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
 use rspack_util::fx_hash::FxDashMap;
 pub use runtime::*;

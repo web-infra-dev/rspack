@@ -21,6 +21,10 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class Compilation {
+  get hash(): string | null
+}
+
 export declare class EntryDataDto {
   get dependencies(): JsDependency[]
   get includeDependencies(): JsDependency[]

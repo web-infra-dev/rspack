@@ -8,14 +8,14 @@ use async_trait::async_trait;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
+  bindings, ApplyContext, BoxModule, Compilation, CompilationAfterOptimizeModules,
   CompilationAfterProcessAssets, CompilationBuildModule, CompilationChunkIds,
   CompilationFinishModules, CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationOptimizeModules,
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
   CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
-  ModuleIdentifier, Plugin, PluginContext, Root,
+  ModuleIdentifier, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -278,7 +278,7 @@ impl ProgressPlugin {
 #[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
-  _compilation: &mut Root<Compilation>,
+  _compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   if let ProgressPluginOptions::Default(options) = &self.options {

@@ -1,5 +1,6 @@
 use std::{
   ffi::c_void,
+  marker::PhantomData,
   ops::{Deref, DerefMut},
 };
 
@@ -11,10 +12,7 @@ use napi::{
 use napi_derive::napi;
 use rspack_error::{miette::IntoDiagnostic, Result};
 
-use crate::Compilation;
-
-#[napi]
-struct CompilationTemplate(Compilation);
+use crate::{bindings, Compilation};
 
 #[derive(Debug)]
 pub struct Root<T: 'static> {
@@ -25,6 +23,15 @@ pub struct Root<T: 'static> {
 
 unsafe impl<T: Send> Send for Root<T> {}
 unsafe impl<T: Sync> Sync for Root<T> {}
+
+impl<T> Root<T> {
+  pub fn downgrade(&self) -> Weak<Compilation> {
+    Weak {
+      i: self.reference.downgrade(),
+      _ty: PhantomData,
+    }
+  }
+}
 
 impl<T> Deref for Root<T> {
   type Target = T;
@@ -44,8 +51,10 @@ impl Root<Compilation> {
   pub fn new(val: Compilation) -> Self {
     // 只能在 js 线程调用
 
-    let env = todo!();
-    let mut instance = CompilationTemplate(val).into_instance(env).unwrap(); // TODO: use napi_throw_error
+    let env = bindings::GlobalScope::get_env();
+    let mut instance = bindings::object::Compilation(val)
+      .into_instance(&env)
+      .unwrap(); // TODO: use napi_throw_error
     let reference = unsafe {
       Reference::<()>::from_value_ptr(&mut *instance as *mut _ as *mut c_void, env.raw()).unwrap()
       // TODO: use napi_throw_error
@@ -54,13 +63,6 @@ impl Root<Compilation> {
     Self {
       raw: &mut instance.0 as *mut _,
       reference,
-    }
-  }
-
-  pub fn downgrade(&self) -> Weak<Compilation> {
-    Weak {
-      raw: self.raw,
-      reference: self.reference.downgrade(),
     }
   }
 }
@@ -73,18 +75,16 @@ impl<T> Drop for Root<T> {
 
 #[derive(Debug)]
 pub struct Weak<T> {
-  raw: *mut T,
   #[debug(skip)]
-  reference: WeakReference<()>,
+  i: WeakReference<()>,
+  _ty: PhantomData<T>,
 }
-
-// Weak 不可以解引用，不安全
 
 unsafe impl<T: Send> Send for Weak<T> {}
 unsafe impl<T: Sync> Sync for Weak<T> {}
 
 impl<T> ToNapiValue for Weak<T> {
   unsafe fn to_napi_value(env: napi_env, val: Self) -> napi::Result<napi_value> {
-    ToNapiValue::to_napi_value(env, val.reference)
+    ToNapiValue::to_napi_value(env, val.i)
   }
 }
