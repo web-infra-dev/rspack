@@ -26,6 +26,7 @@ use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 use rspack_napi::{napi::bindgen_prelude::within_runtime_if_available, spawn_local::SpawnLocalExt};
 
+mod allocator;
 mod asset;
 mod asset_condition;
 mod chunk;
@@ -93,7 +94,6 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
-pub use rspack_core::bindings::object::*;
 use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
@@ -204,6 +204,7 @@ impl JsCompiler {
       };
 
     let rspack = rspack_core::Compiler::new(
+      Box::new(allocator::NapiAllocator::new(env)),
       compiler_path,
       compiler_options,
       plugins,
@@ -306,7 +307,6 @@ impl JsCompiler {
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
     let compilation_id = compilation.id();
 
-    JsCompilationWrapper::cleanup_last_compilation(compilation_id);
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);

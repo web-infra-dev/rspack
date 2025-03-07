@@ -5,6 +5,7 @@ mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+use derive_more::Debug;
 use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -74,6 +75,8 @@ impl Default for CompilerId {
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
+  #[debug(skip)]
+  allocator: Box<dyn bindings::Allocator>,
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
@@ -95,6 +98,7 @@ impl Compiler {
   #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    allocator: Box<dyn bindings::Allocator>,
     compiler_path: String,
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
@@ -149,29 +153,31 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
+    let compilation = allocator.allocate_compilation(Compilation::new(
+      id,
+      options.clone(),
+      plugin_driver.clone(),
+      buildtime_plugin_driver.clone(),
+      resolver_factory.clone(),
+      loader_resolver_factory.clone(),
+      None,
+      cache.clone(),
+      old_cache.clone(),
+      Some(module_executor),
+      Default::default(),
+      Default::default(),
+      input_filesystem.clone(),
+      intermediate_filesystem.clone(),
+      output_filesystem.clone(),
+      false,
+    ));
 
     Self {
       id,
+      allocator,
       compiler_path,
-      options: options.clone(),
-      compilation: bindings::Root::new(Compilation::new(
-        id,
-        options,
-        plugin_driver.clone(),
-        buildtime_plugin_driver.clone(),
-        resolver_factory.clone(),
-        loader_resolver_factory.clone(),
-        None,
-        cache.clone(),
-        old_cache.clone(),
-        Some(module_executor),
-        Default::default(),
-        Default::default(),
-        input_filesystem.clone(),
-        intermediate_filesystem.clone(),
-        output_filesystem.clone(),
-        false,
-      )),
+      options,
+      compilation,
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -223,7 +229,7 @@ impl Compiler {
     //   ),
     // );
     // IGNORE: Root<T> cannot be sent between threads safely
-    self.compilation = bindings::Root::new(Compilation::new(
+    self.compilation = self.allocator.allocate_compilation(Compilation::new(
       self.id,
       self.options.clone(),
       self.plugin_driver.clone(),
