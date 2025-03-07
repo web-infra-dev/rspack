@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use std::sync::Arc;
 
-use criterion::criterion_group;
+use criterion::{criterion_group, criterion_main};
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -212,6 +212,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
 }
 
 criterion_group!(chunk_graph, build_chunk_graph_benchmark);
+criterion_main!(chunk_graph);
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.chunk_by_ukey = Default::default();
