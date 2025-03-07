@@ -1083,7 +1083,8 @@ impl Compilation {
     .await;
     let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
     for result in results {
-      let item: std::result::Result<(ChunkUkey, ChunkRenderResult), _> = result.unwrap();
+      let item: std::result::Result<(ChunkUkey, ChunkRenderResult), _> =
+        result.map_err(rspack_error::miette::Error::from_err)?;
       let (key, value) = item?;
       chunk_render_results.insert(key, value);
     }
