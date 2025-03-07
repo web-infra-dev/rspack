@@ -3,7 +3,9 @@ use swc_core::ecma::ast::MemberExpr;
 
 use super::BasicEvaluatedExpression;
 use crate::parser_plugin::JavascriptParserPlugin;
-use crate::visitors::{AllowedMemberTypes, JavascriptParser, MemberExpressionInfo};
+use crate::visitors::{
+  AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
+};
 
 pub fn eval_member_expression(
   parser: &mut JavascriptParser,
@@ -26,7 +28,7 @@ pub fn eval_member_expression(
         let mut eval =
           BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.hi().0);
         eval.set_identifier(
-          info.name,
+          ExportedVariableInfo::Name(info.name),
           info.root_info,
           Some(info.members),
           Some(info.members_optionals),

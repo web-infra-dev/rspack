@@ -25,6 +25,7 @@ use super::{
 };
 use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
 use crate::visitors::scope_info::FreeName;
+use crate::visitors::ExportedVariableInfo;
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
@@ -365,19 +366,37 @@ impl JavascriptParser<'_> {
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
       {
-        let drive = self.plugin_drive.clone();
-        if drive
-          .can_rename(self, &renamed_identifier)
-          .unwrap_or_default()
-        {
-          if !drive
-            .rename(self, init, &renamed_identifier)
+        if let ExportedVariableInfo::Name(renamed_identifier) = renamed_identifier {
+          let drive = self.plugin_drive.clone();
+          if drive
+            .can_rename(self, &renamed_identifier)
             .unwrap_or_default()
           {
-            self.set_variable(ident.sym.to_string(), renamed_identifier);
+            if !drive
+              .rename(self, init, &renamed_identifier)
+              .unwrap_or_default()
+            {
+              self.set_variable(
+                ident.sym.to_string(),
+                ExportedVariableInfo::Name(renamed_identifier),
+              );
+            }
+            continue;
           }
-          continue;
         }
+        // let drive = self.plugin_drive.clone();
+        // if drive
+        //   .can_rename(self, &renamed_identifier)
+        //   .unwrap_or_default()
+        // {
+        //   if !drive
+        //     .rename(self, init, &renamed_identifier)
+        //     .unwrap_or_default()
+        //   {
+        //     self.set_variable(ident.sym.to_string(), renamed_identifier);
+        //   }
+        //   continue;
+        // }
       }
       if !self
         .plugin_drive
@@ -804,16 +823,22 @@ impl JavascriptParser<'_> {
           .call_hooks_name(parser, |this, for_name| drive.rename(this, expr, for_name))
           .unwrap_or_default()
       {
-        let variable = parser
-          .get_variable_info(&rename_identifier)
-          .map(|info| info.free_name.as_ref())
-          .and_then(|free_name| free_name)
-          .and_then(|free_name| match free_name {
-            FreeName::String(s) => Some(s.to_string()),
-            FreeName::True => None,
-          })
-          .unwrap_or(rename_identifier);
-        return Some(variable);
+        match rename_identifier {
+          ExportedVariableInfo::Name(rename_identifier) => {
+            let variable = parser
+              .get_variable_info(&rename_identifier)
+              .map(|info| info.free_name.as_ref())
+              .and_then(|free_name| free_name)
+              .and_then(|free_name| match free_name {
+                FreeName::String(s) => Some(s.to_string()),
+                FreeName::True => None,
+              })
+              .unwrap_or(rename_identifier);
+            return Some(variable);
+          }
+          // TODO:
+          ExportedVariableInfo::VariableInfo(ident) => return None,
+        }
       }
       parser.walk_expression(expr);
       None
@@ -873,13 +898,13 @@ impl JavascriptParser<'_> {
       if let Some(this) = rename_this
         && !expr.is_arrow()
       {
-        parser.set_variable("this".to_string(), this)
+        parser.set_variable("this".to_string(), ExportedVariableInfo::Name(this))
       }
       for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
         if let Some(var_info) = var_info
           && let Some(param) = params.get(i)
         {
-          parser.set_variable(param.sym.to_string(), var_info);
+          parser.set_variable(param.sym.to_string(), ExportedVariableInfo::Name(var_info));
         }
       }
 
@@ -1006,13 +1031,17 @@ impl JavascriptParser<'_> {
               return;
             }
 
-            if drive
-              .call(self, expr, evaluated_callee.identifier())
-              .unwrap_or_default()
-            {
-              /* result2 */
-              self.enter_call -= 1;
-              return;
+            /* result2 */
+            if evaluated_callee.is_identifier() {
+              let ident = evaluated_callee.identifier();
+              if ident
+                .call_hooks_info(self, |this, for_name| drive.call(this, expr, for_name))
+                .unwrap_or_default()
+              {
+                // if let Some(true) = tt {
+                self.enter_call -= 1;
+                return;
+              }
             }
           }
 
@@ -1104,11 +1133,20 @@ impl JavascriptParser<'_> {
     });
   }
 
-  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<String> {
+  fn get_rename_identifier(&mut self, expr: &Expr) -> Option<ExportedVariableInfo> {
     let result = self.evaluate_expression(expr);
-    result
-      .is_identifier()
-      .then(|| result.identifier().to_string())
+    if result.is_identifier() {
+      match result.identifier() {
+        ExportedVariableInfo::Name(identifier) => {
+          Some(ExportedVariableInfo::Name(identifier.clone()))
+        }
+        ExportedVariableInfo::VariableInfo(variable_info_id) => {
+          Some(ExportedVariableInfo::VariableInfo(*variable_info_id))
+        }
+      }
+    } else {
+      None
+    }
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
@@ -1133,16 +1171,26 @@ impl JavascriptParser<'_> {
           })
           .unwrap_or_default()
         {
-          let variable = self
-            .get_variable_info(&rename_identifier)
-            .map(|info| info.free_name.as_ref())
-            .and_then(|free_name| free_name)
-            .and_then(|free_name| match free_name {
-              FreeName::String(s) => Some(s.to_string()),
-              FreeName::True => None,
-            })
-            .unwrap_or(rename_identifier);
-          self.set_variable(ident.sym.to_string(), variable);
+          match rename_identifier {
+            ExportedVariableInfo::Name(name) => {
+              let variable = self
+                .get_variable_info(&name)
+                .map(|info| info.free_name.as_ref())
+                .and_then(|free_name| free_name)
+                .and_then(|free_name| match free_name {
+                  FreeName::String(s) => Some(s.to_string()),
+                  FreeName::True => None,
+                })
+                .unwrap_or(name);
+              self.set_variable(ident.sym.to_string(), ExportedVariableInfo::Name(variable));
+            }
+            ExportedVariableInfo::VariableInfo(variable_info_id) => {
+              self.set_variable(
+                ident.sym.to_string(),
+                ExportedVariableInfo::VariableInfo(variable_info_id),
+              );
+            }
+          }
         }
         return;
       }
