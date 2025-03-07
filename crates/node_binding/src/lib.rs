@@ -267,32 +267,39 @@ impl JsCompiler {
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-    f: Function,
+    callback: Function<Result<()>, ()>,
   ) -> Result<()> {
     use std::collections::HashSet;
-    todo!()
 
-    // unsafe {
-    //   self.run(env, reference, |compiler, _guard| {
-    //     callbackify(env, f, async move {
-    //       compiler
-    //         .rebuild(
-    //           HashSet::from_iter(changed_files.into_iter()),
-    //           HashSet::from_iter(removed_files.into_iter()),
-    //         )
-    //         .await
-    //         .map_err(|e| {
-    //           Error::new(
-    //             napi::Status::GenericFailure,
-    //             print_error_diagnostic(e, compiler.options.stats.colors),
-    //           )
-    //         })?;
-    //       tracing::info!("rebuild ok");
-    //       drop(_guard);
-    //       Ok(())
-    //     })
-    //   })
-    // }
+    let ts_callback = callback
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()?;
+
+    env.spawn_local(move |env| async move {
+      run(env, reference, |mut compiler| {
+        Box::pin(async move {
+          let result = compiler
+            .rebuild(
+              HashSet::from_iter(changed_files.into_iter()),
+              HashSet::from_iter(removed_files.into_iter()),
+            )
+            .await
+            .map_err(|e| {
+              Error::new(
+                napi::Status::GenericFailure,
+                print_error_diagnostic(e, compiler.options.stats.colors),
+              )
+            });
+          ts_callback.call_async(result).await?;
+          tracing::info!("rebuild ok");
+          Ok(())
+        })
+      })
+      .await
+    })
   }
 }
 
