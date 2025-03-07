@@ -1,5 +1,5 @@
 ```js title=a_js-_c18a0.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js-_c18a0"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_c18a0"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -26,7 +26,7 @@ console.log("i-1");
 ```
 
 ```js title=a_js-_c18a1.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["a_js-_c18a1"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["a_js-_c18a1"], {
 "./a.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -53,7 +53,7 @@ console.log("i-2");
 ```
 
 ```js title=index.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index"], {
 "./i-1.js": (function () {
 console.log("i-1");
 
@@ -87,7 +87,7 @@ var __webpack_exports__ = (__webpack_exec__("./index.js"));
 ```
 
 ```js title=index2.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index2"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["index2"], {
 "./i-2.js": (function () {
 console.log("i-2");
 
