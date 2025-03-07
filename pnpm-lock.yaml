@@ -106,6 +106,9 @@ importers:
       '@rspack/binding-linux-x64-gnu':
         specifier: workspace:*
         version: link:../../npm/linux-x64-gnu
+      '@rspack/binding-wasm32-wasi':
+        specifier: workspace:*
+        version: link:../../npm/wasm32-wasi
       '@rspack/binding-win32-x64-msvc':
         specifier: workspace:*
         version: link:../../npm/win32-x64-msvc
@@ -137,6 +140,12 @@ importers:
   npm/darwin-x64: {}
 
   npm/linux-x64-gnu: {}
+
+  npm/wasm32-wasi:
+    dependencies:
+      '@napi-rs/wasm-runtime':
+        specifier: ^0.2.7
+        version: 0.2.7
 
   npm/win32-x64-msvc: {}
 
