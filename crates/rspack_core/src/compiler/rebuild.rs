@@ -7,7 +7,7 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  bindings, chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, fast_set,
+  bindings, chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId,
   incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
   RuntimeSpec, RuntimeSpecMap,
 };

@@ -9,7 +9,7 @@ use napi::{
   sys::{napi_env, napi_value},
 };
 
-use crate::{bindings, Compilation};
+use crate::Compilation;
 
 #[derive(Debug)]
 pub struct Root<T: 'static> {

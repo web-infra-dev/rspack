@@ -1,4 +1,7 @@
-use std::ffi::c_void;
+use std::{
+  ffi::{c_void, CString},
+  ptr,
+};
 
 use napi::{
   bindgen_prelude::{JavaScriptClassExt, Reference},
@@ -21,11 +24,17 @@ impl rspack_core::bindings::Allocator for NapiAllocator {
     &self,
     val: rspack_core::Compilation,
   ) -> rspack_core::bindings::Root<rspack_core::Compilation> {
-    let mut instance = Compilation(val).into_instance(&self.0).unwrap(); // TODO: use napi_throw_error
-    let reference = unsafe {
+    let Ok(mut instance) = Compilation(val).into_instance(&self.0) else {
+      let msg = CString::new("Failed to allocate Compilation: unable to create instance").unwrap();
+      unsafe { napi::sys::napi_throw_error(self.0.raw(), ptr::null_mut(), msg.as_ptr()) };
+      unreachable!()
+    };
+    let Ok(reference) = (unsafe {
       Reference::<()>::from_value_ptr(&mut *instance as *mut _ as *mut c_void, self.0.raw())
-        .unwrap()
-      // TODO: use napi_throw_error
+    }) else {
+      let msg = CString::new("Failed to allocate Compilation: unable to create reference").unwrap();
+      unsafe { napi::sys::napi_throw_error(self.0.raw(), ptr::null_mut(), msg.as_ptr()) };
+      unreachable!()
     };
     Root::from_value_ptr(&mut instance.0 as *mut _, reference)
   }
