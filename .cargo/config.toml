@@ -33,7 +33,7 @@ rustflags = [
   "-Aclippy::default_constructed_unit_structs",
   "-Zshare-generics=y", # make the current crate share its generic instantiations
   "-Zthreads=8" # parallel frontend https://blog.rust-lang.org/2023/11/09/parallel-rustc.html
-  
+
 ]
 
 # Fix napi breaking in test environment <https://github.com/napi-rs/napi-rs/issues/1005#issuecomment-1011034770>
@@ -61,3 +61,6 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+[registries.crates-io]
+index = "sparse+https://index.crates.io/"
