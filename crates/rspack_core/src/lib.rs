@@ -6,6 +6,9 @@
 #![feature(hash_raw_entry)]
 
 use std::{fmt, sync::Arc};
+
+mod bindings;
+pub use bindings::*;
 mod artifacts;
 pub use artifacts::*;
 mod dependencies_block;

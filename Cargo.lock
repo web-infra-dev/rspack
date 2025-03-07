@@ -4315,6 +4315,8 @@ dependencies = [
  "itertools 0.14.0",
  "json",
  "mime_guess",
+ "napi",
+ "napi-derive",
  "num-bigint",
  "once_cell",
  "paste",

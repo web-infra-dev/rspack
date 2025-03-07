@@ -24,7 +24,7 @@ use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
   fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  ResolverFactory, Root, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
@@ -79,7 +79,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: Root<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -154,7 +154,7 @@ impl Compiler {
       id,
       compiler_path,
       options: options.clone(),
-      compilation: Compilation::new(
+      compilation: Root::new(Compilation::new(
         id,
         options,
         plugin_driver.clone(),
@@ -171,7 +171,7 @@ impl Compiler {
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
-      ),
+      )),
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -201,27 +201,47 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    fast_set(
-      &mut self.compilation,
-      Compilation::new(
-        self.id,
-        self.options.clone(),
-        self.plugin_driver.clone(),
-        self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
-        self.loader_resolver_factory.clone(),
-        None,
-        self.cache.clone(),
-        self.old_cache.clone(),
-        Some(Default::default()),
-        Default::default(),
-        Default::default(),
-        self.input_filesystem.clone(),
-        self.intermediate_filesystem.clone(),
-        self.output_filesystem.clone(),
-        false,
-      ),
-    );
+    // fast_set(
+    //   &mut self.compilation,
+    //   Compilation::new(
+    //     self.id,
+    //     self.options.clone(),
+    //     self.plugin_driver.clone(),
+    //     self.buildtime_plugin_driver.clone(),
+    //     self.resolver_factory.clone(),
+    //     self.loader_resolver_factory.clone(),
+    //     None,
+    //     self.cache.clone(),
+    //     self.old_cache.clone(),
+    //     Some(Default::default()),
+    //     Default::default(),
+    //     Default::default(),
+    //     self.input_filesystem.clone(),
+    //     self.intermediate_filesystem.clone(),
+    //     self.output_filesystem.clone(),
+    //     false,
+    //   ),
+    // );
+    // IGNORE: Root<T> cannot be sent between threads safely
+    self.compilation = Root::new(Compilation::new(
+      self.id,
+      self.options.clone(),
+      self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
+      self.resolver_factory.clone(),
+      self.loader_resolver_factory.clone(),
+      None,
+      self.cache.clone(),
+      self.old_cache.clone(),
+      Some(Default::default()),
+      Default::default(),
+      Default::default(),
+      self.input_filesystem.clone(),
+      self.intermediate_filesystem.clone(),
+      self.output_filesystem.clone(),
+      false,
+    ));
+
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
       self.compilation.push_diagnostic(err.into());
     }
