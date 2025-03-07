@@ -29,7 +29,7 @@ use crate::{
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Root<Compilation>, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
 // should be AsyncParallelHook

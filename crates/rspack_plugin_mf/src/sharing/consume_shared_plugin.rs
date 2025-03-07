@@ -11,7 +11,7 @@ use rspack_core::{
   CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
   DependencyType, ModuleExt, ModuleFactoryCreateData, NormalModuleCreateData,
   NormalModuleFactoryCreateModule, NormalModuleFactoryFactorize, Plugin, PluginContext,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, RuntimeGlobals,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, Root, RuntimeGlobals,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -353,7 +353,7 @@ impl ConsumeSharedPlugin {
 #[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
 async fn this_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

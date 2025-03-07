@@ -40,8 +40,8 @@ use rspack_core::{
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, Root,
+  RuntimeGlobals, Scheme, Weak,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -433,7 +433,7 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<Weak<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
@@ -662,7 +662,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<Weak<Compilation>, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -1078,11 +1078,11 @@ define_register!(
 impl CompilerThisCompilation for CompilerThisCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &mut Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+    let weak = compilation.downgrade();
+    self.function.call_with_sync(weak).await
   }
 
   fn stage(&self) -> i32 {

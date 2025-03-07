@@ -15,7 +15,7 @@ use rspack_core::{
   CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
   CompilationSucceedModule, CompilerAfterEmit, CompilerCompilation, CompilerEmit,
   CompilerFinishMake, CompilerId, CompilerMake, CompilerOptions, CompilerThisCompilation,
-  ModuleIdentifier, Plugin, PluginContext,
+  ModuleIdentifier, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -278,7 +278,7 @@ impl ProgressPlugin {
 #[plugin_hook(CompilerThisCompilation for ProgressPlugin)]
 async fn this_compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   if let ProgressPluginOptions::Default(options) = &self.options {
