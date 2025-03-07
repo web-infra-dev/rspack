@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./dead.js": (function () {
 /* ESM default export */ function __WEBPACK_DEFAULT_EXPORT__() {
 	return "dead";
