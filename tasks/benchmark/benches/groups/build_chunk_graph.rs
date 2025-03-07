@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use std::sync::Arc;
 
-use criterion::criterion_group;
+use criterion::{criterion_group, criterion_main};
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
