@@ -201,32 +201,30 @@ describe("Compiler", () => {
 		);
 	});
 
-	// CHANGE: skip with custom test name for tracking alignment status
-	// TODO: CodeSplitting
-	it.skip(normalizeFilteredTestName(FilteredStatus.TODO, "should compile a file with multiple chunks"), done => {
-		compile("./chunks", {}, (stats, files) => {
-			expect(stats.chunks).toHaveLength(2);
-			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
-			const bundle = files["/main.js"];
-			const chunk = files["/394.js"];
-			expect(bundle).toMatch("function __webpack_require__(");
-			expect(bundle).toMatch("__webpack_require__(/*! ./b */");
-			expect(chunk).not.toMatch("__webpack_require__(/* ./b */");
-			expect(bundle).toMatch("./chunks.js");
-			expect(chunk).toMatch("./a.js");
-			expect(chunk).toMatch("./b.js");
-			expect(chunk).toMatch("This is a");
-			expect(bundle).not.toMatch("This is a");
-			expect(chunk).toMatch("This is b");
-			expect(bundle).not.toMatch("This is b");
-			expect(bundle).not.toMatch("4: function(");
-			expect(bundle).not.toMatch("fixtures");
-			expect(chunk).not.toMatch("fixtures");
-			expect(bundle).toMatch("webpackChunk");
-			expect(chunk).toMatch('self["webpackChunk"] || []).push');
-			done();
-		});
-	});
+    it("should compile a file with multiple chunks", done => {
+        compile("./chunks", {}, (stats, files) => {
+            expect(stats.chunks).toHaveLength(2);
+            expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
+            const bundle = files["/main.js"];
+            const chunk = files["/394.js"];
+            expect(bundle).toMatch("function __webpack_require__(");
+            expect(bundle).toMatch("__webpack_require__(/*! ./b */");
+            expect(chunk).not.toMatch("__webpack_require__(/* ./b */");
+            expect(bundle).toMatch("./chunks.js");
+            expect(chunk).toMatch("./a.js");
+            expect(chunk).toMatch("./b.js");
+            expect(chunk).toMatch("This is a");
+            expect(bundle).not.toMatch("This is a");
+            expect(chunk).toMatch("This is b");
+            expect(bundle).not.toMatch("This is b");
+            expect(bundle).not.toMatch("4: function(");
+            expect(bundle).not.toMatch("fixtures");
+            expect(chunk).not.toMatch("fixtures");
+            expect(bundle).toMatch("webpackChunk");
+            expect(chunk).toMatch('self["webpackChunk"] || []).push');
+            done();
+        });
+    });
 
 	// CHANGE: skip with custom test name for tracking alignment status
 	// cspell:word asmjs
