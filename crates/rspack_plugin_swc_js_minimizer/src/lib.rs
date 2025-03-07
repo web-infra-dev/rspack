@@ -14,8 +14,8 @@ use regex::Regex;
 use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawStringSource, SourceExt};
 use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
-  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin, PluginContext,
+  bindings, AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilerCompilation, Plugin, PluginContext,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
@@ -129,7 +129,7 @@ impl SwcJsMinimizerRspackPlugin {
 #[plugin_hook(CompilerCompilation for SwcJsMinimizerRspackPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

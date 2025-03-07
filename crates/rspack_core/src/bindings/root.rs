@@ -1,16 +1,13 @@
 use std::{
-  ffi::c_void,
   marker::PhantomData,
   ops::{Deref, DerefMut},
 };
 
 use derive_more::Debug;
 use napi::{
-  bindgen_prelude::{JavaScriptClassExt, ObjectFinalize, Reference, ToNapiValue, WeakReference},
+  bindgen_prelude::{Reference, ToNapiValue, WeakReference},
   sys::{napi_env, napi_value},
 };
-use napi_derive::napi;
-use rspack_error::{miette::IntoDiagnostic, Result};
 
 use crate::{bindings, Compilation};
 

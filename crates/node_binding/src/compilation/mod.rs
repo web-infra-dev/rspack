@@ -9,11 +9,9 @@ use std::ptr::NonNull;
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::BoxDependency;
 use rspack_core::CompilationId;
-use rspack_core::EntryOptions;
 use rspack_core::FactorizeInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
@@ -446,10 +444,9 @@ impl Compilation {
 
   #[napi]
   pub fn get_stats(&self, reference: Reference<Compilation>, env: Env) -> Result<JsStats> {
-    // let shared_reference =
-    //   reference.share_with(env, |compilation| Ok(compilation.0.get_stats()))?;
-    // Ok(JsStats::new(shared_reference))
-    todo!()
+    let shared_reference =
+      reference.share_with(env, |compilation| Ok(compilation.0.get_stats()))?;
+    Ok(JsStats::new(shared_reference))
   }
 
   #[napi]
@@ -808,6 +805,7 @@ unsafe impl Send for JsCompilationWrapper {}
 
 impl JsCompilationWrapper {
   pub fn new(compilation: &rspack_core::Compilation) -> Self {
+    panic!("JsCompilationWrapper panic");
     #[allow(clippy::unwrap_used)]
     Self {
       id: compilation.id(),

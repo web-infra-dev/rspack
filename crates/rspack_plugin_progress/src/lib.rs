@@ -300,7 +300,7 @@ async fn this_compilation(
 #[plugin_hook(CompilerCompilation for ProgressPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   self.handler(

@@ -6,21 +6,14 @@ extern crate napi_derive;
 extern crate rspack_allocator;
 
 use std::cell::RefCell;
-use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use compiler::{Compiler, CompilerState, CompilerStateGuard};
+use compiler::{Compiler, CompilerState};
 use futures::future::LocalBoxFuture;
-use napi::{
-  bindgen_prelude::*,
-  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  CallContext, Ref,
-};
+use napi::{bindgen_prelude::*, CallContext};
 use rspack_collections::UkeyMap;
-use rspack_core::{
-  BoxDependency, Compilation, CompilerId, EntryOptions, ModuleIdentifier, PluginExt,
-};
+use rspack_core::{BoxDependency, CompilerId, EntryOptions, ModuleIdentifier, PluginExt};
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
@@ -304,7 +297,7 @@ impl JsCompiler {
 }
 
 impl JsCompiler {
-  fn cleanup_last_compilation(&self, compilation: &Compilation) {
+  fn cleanup_last_compilation(&self, compilation: &rspack_core::Compilation) {
     let compilation_id = compilation.id();
 
     JsChunkWrapper::cleanup_last_compilation(compilation_id);

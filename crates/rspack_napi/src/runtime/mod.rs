@@ -4,15 +4,14 @@ mod waker;
 
 use std::{future::Future, ptr};
 
-use napi::{sys, threadsafe_function::ThreadsafeFunction, Env};
+use napi::{sys, Env};
 use waker::{LocalWaker, WakerEvent};
 
 use self::runtime::LocalRuntime;
-use crate::runtime::executor::ThreadNotifyRef;
 
 extern "C" fn on_wake(
   _env: sys::napi_env,
-  callback_info: sys::napi_callback_info,
+  _callback_info: sys::napi_callback_info,
 ) -> sys::napi_value {
   ptr::null_mut()
 }

@@ -6,8 +6,8 @@ use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
 use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
-use rspack_core::{get_undo_path, AssetInfo, ChunkGraph};
 use rspack_core::{
+  bindings,
   rspack_sources::{
     ConcatSource, RawStringSource, SourceMap, SourceMapSource, WithoutOriginalOptions,
   },
@@ -17,6 +17,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
+use rspack_core::{get_undo_path, AssetInfo, ChunkGraph};
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
@@ -489,7 +490,7 @@ despite it was not able to fulfill desired ordering with these modules:
 #[plugin_hook(CompilerCompilation for PluginCssExtract)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::ExtractCSS, Arc::new(CssModuleFactory));

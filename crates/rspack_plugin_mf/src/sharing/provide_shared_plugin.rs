@@ -4,9 +4,10 @@ use std::{fmt, sync::Arc};
 use async_trait::async_trait;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
-  CompilerFinishMake, CompilerOptions, DependencyType, EntryOptions, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PluginContext,
+  bindings, ApplyContext, BoxDependency, BoxModule, Compilation, CompilationParams,
+  CompilerCompilation, CompilerFinishMake, CompilerOptions, DependencyType, EntryOptions,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  PluginContext,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -156,7 +157,7 @@ impl ProvideSharedPlugin {
 #[plugin_hook(CompilerCompilation for ProvideSharedPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
