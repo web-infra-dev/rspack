@@ -385,7 +385,7 @@ jobs:
           shared-key: build-bench-${{ inputs.target }}-${{ inputs.profile }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
+        uses: taiki-e/install-action@1426bdb9e21b806f1cae604ab3dfc05e174bf885 # v2
         with:
           tool: cargo-codspeed@2.7.2
 
