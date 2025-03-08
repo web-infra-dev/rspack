@@ -220,7 +220,7 @@ jobs:
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
       - name: Upload wasm artifact
-        id: upload-artifact
+        id: upload-wasm-artifact
         uses: ./.github/actions/artifact/upload
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
