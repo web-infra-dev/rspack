@@ -92,8 +92,8 @@ importers:
         specifier: 5.1.4
         version: 5.1.4(webpack@5.98.0)
       zx:
-        specifier: 8.3.2
-        version: 8.3.2
+        specifier: 8.4.0
+        version: 8.4.0
 
   crates/node_binding:
     optionalDependencies:
@@ -697,8 +697,8 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
       zx:
-        specifier: 8.3.2
-        version: 8.3.2
+        specifier: 8.4.0
+        version: 8.4.0
 
   tests/bench:
     dependencies:
@@ -8493,8 +8493,8 @@ packages:
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
-  zx@8.3.2:
-    resolution: {integrity: sha512-qjTunv1NClO05jDaUjrNZfpqC9yvNCchge/bzOcQevsh1aM5qE3TG6MY24kuQKlOWx+7vNuhqO2wa9nQCIGvZA==}
+  zx@8.4.0:
+    resolution: {integrity: sha512-b5+gbUT0akQ5vVuBuHgp0viQx2ZYCuooVD41Z7g47sN0diLsAvB2XteHcp5lec90CNEQ9o7TkXsE3ksaJrZHGw==}
     engines: {node: '>= 12.17.0'}
     hasBin: true
 
@@ -16963,7 +16963,4 @@ snapshots:
 
   zwitch@2.0.4: {}
 
-  zx@8.3.2:
-    optionalDependencies:
-      '@types/fs-extra': 11.0.4
-      '@types/node': 20.17.19
+  zx@8.4.0: {}
