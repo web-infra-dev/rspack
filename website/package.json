@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@rstack-dev/doc-ui": "1.7.2",
-    "axios": "^1.7.9",
+    "axios": "^1.8.2",
     "markdown-to-jsx": "^7.7.4",
     "mermaid": "^11.4.1",
     "react": "^19.0.0",
