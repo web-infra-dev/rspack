@@ -51,7 +51,7 @@ indoc              = { version = "2.0.5" }
 insta              = { version = "1.42.0" }
 itertools          = { version = "0.14.0" }
 json               = { version = "0.12.4" }
-lightningcss       = { version = "1.0.0-alpha.63" }
+lightningcss       = { version = "1.0.0-alpha.64" }
 linked_hash_set    = { version = "0.1.5" }
 mimalloc           = { version = "0.2.3", package = "mimalloc-rspack" }
 mime_guess         = { version = "2.0.5" }

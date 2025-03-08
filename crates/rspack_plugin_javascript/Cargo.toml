@@ -35,7 +35,6 @@ rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-stacker = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",
@@ -52,6 +51,9 @@ swc_core = { workspace = true, features = [
 swc_node_comments = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+stacker = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

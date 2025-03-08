@@ -68,7 +68,7 @@ fn parse_with_lexer(
     }
   };
 
-  #[cfg(debug_assertions)]
+  #[cfg(all(debug_assertions, not(target_family = "wasm")))]
   {
     // Adjust stack to avoid stack overflow.
     stacker::maybe_grow(
@@ -77,7 +77,7 @@ fn parse_with_lexer(
       inner,
     )
   }
-  #[cfg(not(debug_assertions))]
+  #[cfg(any(not(debug_assertions), target_family = "wasm"))]
   inner()
 }
 

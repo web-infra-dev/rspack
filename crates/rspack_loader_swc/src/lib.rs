@@ -147,7 +147,7 @@ impl Loader<RunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     #[allow(unused_mut)]
     let mut inner = || self.loader_impl(loader_context);
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, not(target_family = "wasm")))]
     {
       // Adjust stack to avoid stack overflow.
       stacker::maybe_grow(
@@ -156,7 +156,7 @@ impl Loader<RunnerContext> for SwcLoader {
         inner,
       )
     }
-    #[cfg(not(debug_assertions))]
+    #[cfg(any(not(debug_assertions), target_family = "wasm"))]
     inner()
   }
 }

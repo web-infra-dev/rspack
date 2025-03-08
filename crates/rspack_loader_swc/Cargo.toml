@@ -35,13 +35,15 @@ rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
-stacker                  = { workspace = true }
 swc                      = { workspace = true, features = ["manual-tokio-runtime"] }
 swc_config               = { workspace = true }
 swc_core                 = { workspace = true, features = ["base", "ecma_ast", "common"] }
 tokio                    = { workspace = true }
 tracing                  = { workspace = true }
 url                      = "2.5.0"
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+stacker = { workspace = true }
 
 [build-dependencies]
 cargo_toml = { version = "0.21.0" }

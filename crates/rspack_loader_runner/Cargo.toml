@@ -10,7 +10,7 @@ anymap      = { workspace = true }
 async-trait = { workspace = true }
 derive_more = { workspace = true, features = ["debug"] }
 rustc-hash  = { workspace = true }
-tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
+tokio       = { workspace = true, features = ["test-util"] }
 
 once_cell          = { workspace = true }
 regex              = { workspace = true }
