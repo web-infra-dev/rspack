@@ -2,7 +2,7 @@
   "name": "webpack-examples",
   "private": true,
   "devDependencies": {
-    "core-js": "3.40.0",
+    "core-js": "3.41.0",
     "neo-async": "2.6.2",
     "acorn": "^8.14.1",
     "date-fns": "^4.1.0",
