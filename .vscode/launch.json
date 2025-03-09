@@ -14,6 +14,22 @@
       "cwd": "${workspaceFolder}"
     },
     {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Jest Test",
+      "program": "node",
+      "args": [
+        "--experimental-vm-modules",
+        "../../node_modules/jest-cli/bin/jest",
+        "--runInBand",
+        "${input:pickTestFile}",
+        "-t",
+        "${input:pickPattern}"
+      ],
+      "cwd": "${workspaceFolder}/packages/rspack-test-tools",
+      "initCommands": ["settings set target.process.follow-fork-mode child"]
+    },
+    {
       "name": "Attach JavaScript",
       "processId": "${command:PickProcess}",
       "request": "attach",
@@ -31,6 +47,11 @@
   ],
   "inputs": [
     {
+      "id": "pickTest",
+      "type": "command",
+      "command": "extension.pickTest",
+    },
+    {
       "id": "rspackCommand",
       "type": "pickString",
       "options": [
@@ -45,6 +66,21 @@
       "type": "promptString",
       "description": "the rspack config path of your project",
       "default": "examples/basic/rspack.config.cjs"
+    },
+    {
+      "id": "pickTestFile",
+      "type": "command",
+      "command": "shellCommand.execute",
+      "args": {
+        "command":"ls -alh packages/rspack-test-tools/tests/*.test.js | awk {'print $9'}",
+        "description": "pick test file"
+      }
+    },
+    {
+      "id": "pickPattern",
+      "type": "promptString",
+      "description": "pattern to filter test files",
+      "default": ""
     }
   ]
 }
