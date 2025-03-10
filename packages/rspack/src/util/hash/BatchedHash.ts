@@ -38,7 +38,11 @@ export default class BatchedHash extends Hash {
 				this.string += data;
 				return this;
 			}
-			this.hash.update(this.string, this.encoding);
+			if (this.string && this.encoding) {
+				this.hash.update(this.string, this.encoding);
+			} else if (this.string) {
+				this.hash.update(Buffer.from(this.string));
+			}
 			this.string = undefined;
 		}
 		if (typeof data === "string") {
@@ -49,8 +53,10 @@ export default class BatchedHash extends Hash {
 			) {
 				this.string = data;
 				this.encoding = inputEncoding;
-			} else {
+			} else if (inputEncoding) {
 				this.hash.update(data, inputEncoding);
+			} else {
+				this.hash.update(Buffer.from(data));
 			}
 		} else {
 			this.hash.update(data);
@@ -69,8 +75,12 @@ export default class BatchedHash extends Hash {
 	 */
 	digest(encoding?: string): string | Buffer {
 		if (this.string !== undefined) {
-			this.hash.update(this.string, this.encoding);
+			if (this.string && this.encoding) {
+				this.hash.update(this.string, this.encoding);
+			} else if (this.string) {
+				this.hash.update(Buffer.from(this.string));
+			}
 		}
-		return this.hash.digest(encoding as string);
+		return this.hash.digest(encoding!);
 	}
 }
