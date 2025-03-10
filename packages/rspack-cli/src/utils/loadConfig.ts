@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { util, type MultiRspackOptions, type RspackOptions } from "@rspack/core";
+import {
+	util,
+	type MultiRspackOptions,
+	type RspackOptions
+} from "@rspack/core";
 import type { RspackCLIOptions } from "../types";
 import { crossImport } from "./crossImport";
 import findConfig from "./findConfig";
