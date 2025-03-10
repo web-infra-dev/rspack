@@ -4414,6 +4414,7 @@ name = "rspack_futures"
 version = "0.2.0"
 dependencies = [
  "async-scoped",
+ "tokio",
 ]
 
 [[package]]
