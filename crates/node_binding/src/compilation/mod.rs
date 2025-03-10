@@ -183,9 +183,9 @@ impl JsCompilation {
         .modules()
         .keys()
         .filter_map(|module_id| {
-          compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
-          })
+          compilation
+            .module_by_identifier(module_id)
+            .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -200,9 +200,9 @@ impl JsCompilation {
         .built_modules()
         .iter()
         .filter_map(|module_id| {
-          compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
-          })
+          compilation
+            .module_by_identifier(module_id)
+            .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -590,7 +590,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
+              .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compiler_id))
               .collect::<Vec<_>>()
           },
         )
@@ -778,8 +778,7 @@ impl JsCompilation {
 
           match module_graph.get_module_by_dependency_id(&dependency_id) {
             Some(module) => {
-              let js_module =
-                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+              let js_module = JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id());
               Either::B(js_module)
             }
             None => Either::A("build failed with unknown error".to_string()),

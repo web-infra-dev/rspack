@@ -46,8 +46,8 @@ impl JsModuleGraph {
 
     let (compilation, module_graph) = self.as_ref()?;
     let module = module_graph.get_module_by_dependency_id(&dependency_id);
-    let js_module = module
-      .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id()));
+    let js_module =
+      module.map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()));
     Ok(js_module)
   }
 
@@ -69,7 +69,7 @@ impl JsModuleGraph {
       match module_graph.connection_by_dependency_id(&dependency_id) {
         Some(connection) => module_graph
           .module_by_identifier(&connection.resolved_module)
-          .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
+          .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
         None => None,
       },
     )
@@ -111,10 +111,7 @@ impl JsModuleGraph {
   pub fn get_issuer(&self, module: &JsModule) -> napi::Result<Option<JsModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     let issuer = module_graph.get_issuer(&module.identifier);
-    Ok(
-      issuer
-        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
-    )
+    Ok(issuer.map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())))
   }
 
   #[napi]
@@ -210,7 +207,7 @@ impl JsModuleGraph {
     Ok(match module_graph.get_parent_module(&dependency_id) {
       Some(identifier) => compilation
         .module_by_identifier(identifier)
-        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())),
+        .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
       None => None,
     })
   }

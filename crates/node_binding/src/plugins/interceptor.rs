@@ -1198,9 +1198,8 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(JsModuleWrapper::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;
@@ -1223,9 +1222,8 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(JsModuleWrapper::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;
@@ -1248,9 +1246,8 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(JsModuleWrapper::new(
-        module.identifier(),
-        Some(NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap()),
+      .call_with_sync(JsModuleWrapper::with_ptr(
+        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .await?;

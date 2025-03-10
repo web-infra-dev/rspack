@@ -266,9 +266,7 @@ impl JsModule {
           .filter_map(|inner_module_info| {
             compilation
               .module_by_identifier(&inner_module_info.id)
-              .map(|module| {
-                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
-              })
+              .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
           })
           .collect::<Vec<_>>();
         Either::A(inner_modules)
@@ -385,15 +383,20 @@ pub struct JsModuleWrapper {
 unsafe impl Send for JsModuleWrapper {}
 
 impl JsModuleWrapper {
-  pub fn new(
-    identifier: ModuleIdentifier,
-    module: Option<NonNull<dyn Module>>,
-    compiler_id: CompilerId,
-  ) -> Self {
-    #[allow(clippy::unwrap_used)]
+  pub fn with_ref(module: &dyn Module, compiler_id: CompilerId) -> Self {
     Self {
-      identifier,
-      module,
+      identifier: module.identifier(),
+      module: None,
+      compiler_id,
+    }
+  }
+
+  pub fn with_ptr(module_ptr: NonNull<dyn Module>, compiler_id: CompilerId) -> Self {
+    let module = unsafe { module_ptr.as_ref() };
+
+    Self {
+      identifier: module.identifier(),
+      module: Some(module_ptr),
       compiler_id,
     }
   }

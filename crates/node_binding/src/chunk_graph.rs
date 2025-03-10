@@ -42,7 +42,7 @@ impl JsChunkGraph {
     Ok(
       modules
         .iter()
-        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id()))
+        .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
         .collect::<Vec<_>>(),
     )
   }
@@ -59,7 +59,7 @@ impl JsChunkGraph {
       modules
         .iter()
         .filter_map(|module| module_graph.module_by_identifier(module))
-        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id()))
+        .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
         .collect::<Vec<_>>(),
     )
   }
@@ -114,7 +114,7 @@ impl JsChunkGraph {
           SourceType::from(source_type.as_str()),
           &compilation.get_module_graph(),
         )
-        .map(|module| JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id()))
+        .map(|module| JsModuleWrapper::with_ref(module, compilation.compiler_id()))
         .collect(),
     )
   }

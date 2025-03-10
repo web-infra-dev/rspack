@@ -622,11 +622,7 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
     Self {
       filename: value.filename,
-      module: JsModuleWrapper::new(
-        value.module.identifier(),
-        None,
-        value.compilation.compiler_id(),
-      ),
+      module: JsModuleWrapper::with_ref(value.module, value.compilation.compiler_id()),
     }
   }
 }

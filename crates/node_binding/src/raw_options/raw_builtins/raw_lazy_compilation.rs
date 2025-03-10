@@ -53,9 +53,8 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
-      .blocking_call_with_sync(JsModuleWrapper::new(
-        m.identifier(),
-        Some(NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap()),
+      .blocking_call_with_sync(JsModuleWrapper::with_ptr(
+        NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
       .expect("failed to invoke lazyCompilation.test");
