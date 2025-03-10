@@ -90,7 +90,7 @@ export type HtmlRspackPluginOptions = {
 	chunksSortMode?: "auto" | "manual";
 
 	/**
-	 * The SRI hash algorithm, disabled by default.
+	 * Configure the SRI hash algorithm, which is disabled by default.
 	 * @deprecated Use `experiments.SubresourceIntegrityPlugin` instead.
 	 */
 	sri?: "sha256" | "sha384" | "sha512";
