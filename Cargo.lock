@@ -5237,6 +5237,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash 2.1.0",
  "serde_json",
+ "tokio",
  "tracing",
 ]
 
