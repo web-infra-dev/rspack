@@ -1195,6 +1195,13 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
     // (undocumented)
     getGlobal(name: string): unknown;
     // (undocumented)
+    protected getModuleContent(file: TBasicRunnerFile): [
+        {
+        exports: Record<string, unknown>;
+    },
+    string
+    ];
+    // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)
     protected _webOptions: IBasicRunnerOptions<T>;
