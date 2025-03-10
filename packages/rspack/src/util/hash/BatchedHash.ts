@@ -58,6 +58,10 @@ export default class BatchedHash extends Hash {
 		return this;
 	}
 
+	digest(): Buffer;
+
+	digest(encoding: string): string;
+
 	/**
 	 * Calculates the digest {@link https://nodejs.org/api/crypto.html#crypto_hash_digest_encoding}
 	 * @param encoding encoding of the return value
@@ -67,6 +71,6 @@ export default class BatchedHash extends Hash {
 		if (this.string !== undefined) {
 			this.hash.update(this.string, this.encoding);
 		}
-		return this.hash.digest(encoding);
+		return this.hash.digest(encoding as string);
 	}
 }
