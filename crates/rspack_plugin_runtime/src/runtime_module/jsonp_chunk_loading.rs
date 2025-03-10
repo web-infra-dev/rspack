@@ -227,7 +227,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(async {
+      let res = block_on(tokio::task::unconstrained(async {
         hooks
           .link_prefetch
           .call(LinkPrefetchData {
@@ -239,7 +239,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
             },
           })
           .await
-      })?;
+      }))?;
 
       let source_with_prefetch = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPrefetch),
@@ -312,7 +312,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .to_string();
 
       let chunk_ukey = self.chunk.expect("The chunk should be attached");
-      let res = block_on(async {
+      let res = block_on(tokio::task::unconstrained(async {
         hooks
           .link_preload
           .call(LinkPreloadData {
@@ -324,7 +324,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
             },
           })
           .await
-      })?;
+      }))?;
 
       let source_with_preload = compilation.runtime_template.render(
         &self.template_id(TemplateId::WithPreload),
