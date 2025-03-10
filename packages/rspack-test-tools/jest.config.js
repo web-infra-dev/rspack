@@ -41,7 +41,8 @@ const config = {
 							? process.argv.indexOf("-t")
 							: process.argv.indexOf("--test")) + 1
 					]
-				: undefined
+				: undefined,
+		printLogger: process.argv.includes("--verbose")
 	}
 };
 

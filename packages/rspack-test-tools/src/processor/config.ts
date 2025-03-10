@@ -96,5 +96,10 @@ export class ConfigProcessor<
 				outputModule ? ".mjs" : ".js"
 			}`;
 		}
+		if (!global.printLogger) {
+			options.infrastructureLogging = {
+				level: "error"
+			};
+		}
 	}
 }
