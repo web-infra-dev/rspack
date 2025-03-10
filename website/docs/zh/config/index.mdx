@@ -66,6 +66,68 @@ Rspack 支持以下配置文件格式：
 
 > `CommonJS` 和 `ES modules`的区别请参考 [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)。
 
+## 扩展配置
+
+Rspack 支持使用 `extends` 属性从其他文件或包中扩展配置。这允许你创建一个基础配置，并针对不同的环境或用例进行扩展。
+
+### 基本用法
+
+你可以通过在 `extends` 属性中指定文件路径来扩展另一个配置文件：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // 覆盖或添加到基础配置
+  output: {
+    path: path.resolve(__dirname, 'build'),
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+### 扩展多个配置
+
+你可以通过提供路径数组来扩展多个配置。配置从右到左合并，这意味着最右边的配置将被合并到最左边的配置中，依此类推：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: ['./base.rspack.config.js', './dev.rspack.config.js'],
+  // 额外的配置选项
+  plugins: [
+    // 添加更多插件
+  ],
+};
+```
+
+### 从 Node 模块扩展
+
+你还可以从安装在 node_modules 中的包扩展配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: 'some-rspack-config-package',
+  // 覆盖或添加到包的配置
+};
+```
+
+### 嵌套扩展
+
+配置可以有自己的 `extends` 属性，允许嵌套配置继承：
+
+```js title="base.rspack.config.js"
+module.exports = {
+  extends: './core.rspack.config.js',
+  // 基础配置选项
+};
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // 特定环境的配置选项
+};
+```
+
 ## TypeScript 配置文件
 
 在使用 `rspack.config.ts` 时，你需要使用支持 TypeScript 的运行时，或者安装额外的依赖来解析 TypeScript 文件，你可以选择以下任意一种：

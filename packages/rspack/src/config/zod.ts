@@ -1463,6 +1463,7 @@ const performance = z
 export const rspackOptions = z.strictObject({
 	name: name.optional(),
 	dependencies: dependencies.optional(),
+	extends: z.union([z.string(), z.array(z.string())]).optional(),
 	entry: entry.optional(),
 	output: output.optional(),
 	target: target.optional(),

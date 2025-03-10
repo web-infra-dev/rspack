@@ -5566,6 +5566,7 @@ export type RspackFutureOptions = {
 export type RspackOptions = {
     name?: Name;
     dependencies?: Dependencies;
+    extends?: string | string[];
     entry?: Entry;
     output?: Output;
     target?: Target;
@@ -5601,6 +5602,7 @@ export type RspackOptions = {
 export const rspackOptions: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     dependencies: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    extends: z.ZodOptional<z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>>;
     entry: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>, z.ZodObject<{
         import: z.ZodUnion<[z.ZodString, z.ZodArray<z.ZodString, "many">]>;
         runtime: z.ZodOptional<z.ZodUnion<[z.ZodLiteral<false>, z.ZodString]>>;
@@ -9157,6 +9159,7 @@ export const rspackOptions: z.ZodObject<{
     devServer?: t.DevServer | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args: unknown[]) => boolean))[] | undefined;
     bail?: boolean | undefined;
+    extends?: string | string[] | undefined;
 }, {
     dependencies?: string[] | undefined;
     context?: string | undefined;
@@ -9768,6 +9771,7 @@ export const rspackOptions: z.ZodObject<{
     devServer?: t.DevServer | undefined;
     ignoreWarnings?: (RegExp | ((args_0: Error, args_1: Compilation, ...args: unknown[]) => boolean))[] | undefined;
     bail?: boolean | undefined;
+    extends?: string | string[] | undefined;
 }>;
 
 // @public (undocumented)

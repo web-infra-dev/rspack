@@ -66,6 +66,68 @@ Note that Rspack will first search JS configuration file and then TS configurati
 
 > See [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES modules`.
 
+## Extending Configurations
+
+Rspack supports extending configurations from other files or packages using the `extends` property. This allows you to create a base configuration and extend it for different environments or use cases.
+
+### Basic Usage
+
+You can extend a configuration from another file by specifying the path to the file in the `extends` property:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // Override or add to the base configuration
+  output: {
+    path: path.resolve(__dirname, 'build'),
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+### Extending Multiple Configurations
+
+You can extend multiple configurations by providing an array of paths. Configurations are merged from right to left, meaning that the rightmost configuration will be merged into the leftmost one, and so on:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: ['./base.rspack.config.js', './dev.rspack.config.js'],
+  // Additional configuration options
+  plugins: [
+    // Add more plugins
+  ],
+};
+```
+
+### Extending from Node Modules
+
+You can also extend configurations from packages installed in your node_modules:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: 'some-rspack-config-package',
+  // Override or add to the package's configuration
+};
+```
+
+### Nested Extends
+
+Configurations can have their own `extends` property, allowing for nested configuration inheritance:
+
+```js title="base.rspack.config.js"
+module.exports = {
+  extends: './core.rspack.config.js',
+  // Base configuration options
+};
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // Environment-specific configuration options
+};
+```
+
 ## TypeScript configuration file
 
 When using `rspack.config.ts`, you need to use a runtime that supports TypeScript, or install additional dependencies to resolve TypeScript files. You can choose one of the following:

@@ -2731,6 +2731,11 @@ export type RspackOptions = {
 	 */
 	dependencies?: Dependencies;
 	/**
+	 * Configuration files to extend from. The configurations are merged from right to left,
+	 * with the rightmost configuration taking precedence.
+	 */
+	extends?: string | string[];
+	/**
 	 * The entry point of the application.
 	 */
 	entry?: Entry;
