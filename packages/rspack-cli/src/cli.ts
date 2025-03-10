@@ -44,14 +44,7 @@ export class RspackCLI {
 		process.env.RSPACK_CONFIG_VALIDATE ??= "loose";
 		process.env.WATCHPACK_WATCHER_LIMIT =
 			process.env.WATCHPACK_WATCHER_LIMIT || "20";
-		const nodeEnv = process?.env?.NODE_ENV;
-		const rspackCommandDefaultEnv =
-			rspackCommand === "build" ? "production" : "development";
-		if (typeof options.nodeEnv === "string") {
-			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
-		} else {
-			process.env.NODE_ENV = nodeEnv || rspackCommandDefaultEnv;
-		}
+
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
 
@@ -124,9 +117,6 @@ export class RspackCLI {
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const isBuild = command === "build";
 		const isServe = command === "serve";
-		const commandDefaultEnv: "production" | "development" = isBuild
-			? "production"
-			: "development";
 
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.entry) {
@@ -165,7 +155,7 @@ export class RspackCLI {
 			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
-				item.mode = commandDefaultEnv ?? "none";
+				item.mode = isBuild ? "production" : "development";
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {

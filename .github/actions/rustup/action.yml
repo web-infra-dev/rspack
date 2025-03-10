@@ -46,46 +46,14 @@ runs:
         echo 'save-cache: ${{ inputs.save-cache }}'
         echo 'shared-key: ${{ inputs.shared-key }}'
 
-    - name: Remove `profile` line on MacOS
-      shell: bash
-      if: runner.os == 'macOS'
-      run: sed -i '' '/profile/d' rust-toolchain.toml
-
-    - name: Remove `profile` line on non-MacOS
-      shell: bash
-      if: runner.os != 'macOS'
-      run: sed -i '/profile/d' rust-toolchain.toml
-
-    - name: Set minimal
-      shell: bash
-      run: rustup set profile minimal
-
-    - name: Add Miri
-      shell: bash
-      if: ${{ inputs.miri == 'true' }}
-      run: rustup component add miri
-
-    - name: Add Clippy
-      shell: bash
-      if: ${{ inputs.clippy == 'true' }}
-      run: rustup component add clippy
-
-    - name: Add Rustfmt
-      shell: bash
-      if: ${{ inputs.fmt == 'true' }}
-      run: rustup component add rustfmt
-
-    - name: Add docs
-      shell: bash
-      if: ${{ inputs.docs == 'true' }}
-      run: rustup component add rust-docs
-
+    # install components for nightly toolchain
     - name: Install
       shell: bash
-      run: rustup show
+      run: |
+        channel=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
+        rustup toolchain install $channel -c rustc -c cargo -c rust-std ${{ inputs.clippy == 'true' && '-c clippy' || '' }} ${{ inputs.fmt == 'true' && '-c rustfmt' || '' }} ${{ inputs.docs == 'true' && '-c rust-docs' || '' }} ${{ inputs.miri == 'true' && '-c miri' || '' }}
 
     - name: Cache on ${{ github.ref_name }}
-      uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2
-      if: ${{ runner.environment == 'github-hosted' }}
+      uses: ./.github/actions/rustup/cache
       with:
-        shared-key: ${{ inputs.shared-key }}
+        key: ${{ inputs.shared-key }}

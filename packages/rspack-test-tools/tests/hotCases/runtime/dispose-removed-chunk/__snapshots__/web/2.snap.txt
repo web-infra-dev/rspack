@@ -8,7 +8,7 @@
 - Bundle: b_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 35
-- Update: b_js.LAST_HASH.hot-update.js, size: 366
+- Update: b_js.LAST_HASH.hot-update.js, size: 426
 - Update: main.LAST_HASH.hot-update.js, size: 182
 
 ## Manifest
@@ -35,7 +35,11 @@
 ```js
 "use strict";
 self["webpackHotUpdate"]('b_js', {
-"./b.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+"./b.js": 
+/*!**************!*\
+  !*** ./b.js ***!
+  \**************/
+(function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__WEBPACK_DEFAULT_EXPORT__)

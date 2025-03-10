@@ -150,6 +150,7 @@ Rslib
 rspack
 Rspack
 rspackplugin
+Rspeedy
 rspress
 Rspress
 rstack

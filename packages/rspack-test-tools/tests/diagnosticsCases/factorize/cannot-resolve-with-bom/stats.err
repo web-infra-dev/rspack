@@ -1,0 +1,8 @@
+ERROR in ./index.js 1:8-20
+  × JSON parse error: BOM character found in '<TEST_TOOLS_ROOT>/tests/diagnosticsCases/factorize/cannot-resolve-with-bom/node_modules/bommodule/package.json'
+   ╭─[1:0]
+ 1 │ ﻿{
+   · ▲
+ 2 │   "name": "bommodule"
+ 3 │ }
+   ╰────

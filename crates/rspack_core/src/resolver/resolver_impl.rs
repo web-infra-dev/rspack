@@ -11,6 +11,7 @@ use rspack_error::{
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
 use rspack_paths::AssertUtf8;
+use rspack_util::location::try_line_column_length_to_offset_length;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::{boxfs::BoxFS, ResolveResult, Resource};
@@ -300,6 +301,66 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::IOError(error) => diagnostic!("{}", error).boxed(),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    rspack_resolver::ResolveError::JSON(error) => {
+      if let Some(content) = &error.content {
+        let rope = ropey::Rope::from(&**content);
+        let Some((offset, _)) =
+          try_line_column_length_to_offset_length(&rope, error.line, error.column, 0)
+        else {
+          return diagnostic!(
+            "JSON parse error: {:?} in '{}'",
+            error,
+            error.path.display()
+          )
+          .boxed();
+        };
+        drop(rope);
+
+        fn ceil_char_boundary(content: &str, mut index: usize) -> usize {
+          if index > content.len() {
+            return content.len();
+          }
+
+          while !content.is_char_boundary(index) {
+            if index == 0 {
+              return 0;
+            }
+            index = index.saturating_sub(1);
+          }
+
+          index
+        }
+
+        let offset = ceil_char_boundary(content, offset);
+
+        if content[offset..].starts_with('\u{feff}') {
+          return TraceableError::from_file(
+            content.clone(),
+            offset,
+            offset,
+            "JSON parse error".to_string(),
+            format!("BOM character found in '{}'", error.path.display()),
+          )
+          .boxed();
+        }
+
+        TraceableError::from_file(
+          content.clone(),
+          offset,
+          offset,
+          "JSON parse error".to_string(),
+          format!("{} in '{}'", error.message, error.path.display()),
+        )
+        .boxed()
+      } else {
+        diagnostic!(
+          "JSON parse error: {:?} in '{}'",
+          error,
+          error.path.display()
+        )
+        .boxed()
+      }
+    }
     _ => diagnostic!("{}", error).boxed(),
   }
 }

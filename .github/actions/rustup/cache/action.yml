@@ -1,0 +1,29 @@
+name: rust cache
+
+description: Cache rust dependencies to github or local
+
+inputs:
+  key:
+    required: true
+#  save-if:
+#    default: false
+#    required: false
+#    type: boolean
+
+runs:
+  using: composite
+  steps:
+    - name: Cache to github
+      if: ${{ runner.environment == 'github-hosted' }}
+      uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2
+      with:
+        shared-key: ${{ inputs.key }}
+        save-if: ${{ github.ref_name == 'main' }}
+#    - name: Cache to local
+#      uses: lynx-infra/cache
+#      if: ${{ runner.environment == 'self-hosted' }}
+#      with:
+#        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+#        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+#        restore-keys: |
+#          node-cache-${{ runner.os }}-pnpm-

@@ -56,7 +56,7 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
         PathData::default()
           .hash(&hash)
           .content_hash(&hash)
-          .id("\" + wasmModuleId + \"")
+          .id(&PathData::prepare_id("\" + wasmModuleId + \""))
           .runtime(chunk.runtime().as_str()),
       )
       .always_ok();

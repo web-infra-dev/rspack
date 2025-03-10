@@ -1,105 +1,50 @@
 {
   "configurations": [
     {
-      "name": "debug-js",
-      "port": 9229,
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Rspack",
+      "program": "node",
+      "args": [
+        "packages/rspack-cli/bin/rspack.js",
+        "${input:rspackCommand}",
+        "-c",
+        "${input:rspackConfigPath}"
+      ],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Attach JavaScript",
+      "processId": "${command:PickProcess}",
       "request": "attach",
       "skipFiles": [
-        "<node_internals>/**"
+          "<node_internals>/**"
       ],
-      "sourceMaps": true,
-      "continueOnAttach": true,
-      "type": "node",
-      "presentation": {
-        "hidden": true
-      }
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-jest",
-      "program": "node",
-      "args": [
-        "--inspect-brk",
-        "../../node_modules/.bin/jest",
-        "--workerThreads"
-      ],
-      "cwd": "${workspaceFolder}/packages/rspack"
-    },
+      "type": "node"
+     },
     {
       "type": "lldb",
       "request": "attach",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "pid": "${command:pickMyProcess}",
-      "name": "debug-rust-attach"
+      "name": "Attach Rust",
+      "pid": "${command:pickMyProcess}"
     },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-basic",
-      "program": "node",
-      "args": [
-        "--inspect-brk",
-        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
-        "-c",
-        "rspack.config.js"
-      ],
-      "cwd": "${workspaceFolder}/examples/issue-11673",
-      "presentation": {
-        "hidden": true
-      }
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
-      "name": "debug-rust-angular",
-      "program": "node",
-      "args": [
-        "--inspect-brk",
-        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
-        "-c",
-        "./rspack.config.js"
-      ],
-      "cwd": "${workspaceFolder}/examples/angular",
-      "presentation": {
-        "hidden": true
-      }
-    }
   ],
-  "compounds": [
+  "inputs": [
     {
-      "name": "debug-basic",
-      "configurations": [
-        "debug-js",
-        "debug-rust-basic"
+      "id": "rspackCommand",
+      "type": "pickString",
+      "options": [
+        "build",
+        "dev"
       ],
-      "stopAll": true,
-      "presentation": {
-        "group": "examples",
-        "order": 1
-      }
+      "description": "choose build or dev mode",
+      "default": "dev"
     },
     {
-      "name": "debug-angular",
-      "configurations": [
-        "debug-js",
-        "debug-rust-angular"
-      ],
-      "presentation": {
-        "group": "examples",
-        "order": 2
-      }
+      "id": "rspackConfigPath",
+      "type": "promptString",
+      "description": "the rspack config path of your project",
+      "default": "examples/basic/rspack.config.cjs"
     }
   ]
 }

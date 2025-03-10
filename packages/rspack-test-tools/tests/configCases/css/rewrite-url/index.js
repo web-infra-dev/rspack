@@ -8,9 +8,9 @@ it("should rewrite the css url()", function () {
 	expect(a.startsWith("./")).toBe(false);
 	expect(a.includes("./logo.png")).toBe(false);
 	expect(a.endsWith(".png")).toBe(true);
-	expect(a).toMatchSnapshot();
+	expect(a).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'a.txt'));
 	const b = /b: url\((.*)\);/.exec(css)[1];
-	expect(b).toMatchSnapshot();
+	expect(b).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'b.txt'));
 	const c = /c: url\((.*)\);/.exec(css)[1];
 	expect(c).toBe("#ccc");
 	const d = /d: url\((.*)\);/.exec(css)[1];

@@ -3,8 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development rspack serve",
-    "build": "cross-env NODE_ENV=production rspack build"
+    "dev": "rspack dev",
+    "build": "rspack build",
+    "preview": "rspack preview"
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -16,7 +17,6 @@
     "@rspack/plugin-react-refresh": "^1.0.1",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "cross-env": "^7.0.3",
     "react-refresh": "^0.16.0"
   }
 }

@@ -21,7 +21,32 @@ export class CommonJsRunner<
 > extends BasicRunner<T> {
 	protected createGlobalContext(): IBasicGlobalContext {
 		return {
-			console: console,
+			console: {
+				log: (...args: any[]) => {
+					console.log(...args);
+				},
+				warn: (...args: any[]) => {
+					console.warn(...args);
+				},
+				error: (...args: any[]) => {
+					console.error(...args);
+				},
+				info: (...args: any[]) => {
+					console.info(...args);
+				},
+				debug: (...args: any[]) => {
+					console.debug(...args);
+				},
+				trace: (...args: any[]) => {
+					console.trace(...args);
+				},
+				assert: (...args: any[]) => {
+					console.assert(...args);
+				},
+				clear: () => {
+					console.clear();
+				}
+			},
 			setTimeout: ((
 				cb: (...args: any[]) => void,
 				ms: number | undefined,
@@ -46,6 +71,7 @@ export class CommonJsRunner<
 				});
 				return m;
 			},
+			__SNAPSHOT__: path.join(this._options.source, "__snapshot__"),
 			...this._options.env
 		};
 		return baseModuleScope;

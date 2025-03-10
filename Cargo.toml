@@ -66,7 +66,7 @@ quote              = { version = "1.0.38" }
 rayon              = { version = "1.10.0" }
 regex              = { version = "1.11.1" }
 ropey              = "1.6.1"
-rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.1" }
+rspack_resolver    = { features = ["package_json_raw_json_api"], version = "0.5.2" }
 rspack_sources     = { version = "0.4.7" }
 rustc-hash         = { version = "2.1.0" }
 serde              = { version = "1.0.217" }
@@ -216,6 +216,161 @@ lto       = "fat"
 opt-level = 3
 panic     = "abort"
 strip     = true
+
+[profile.release.package]
+
+[profile.release.package.regex-syntax]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_module]
+opt-level = "s"
+
+[profile.release.package.handlebars]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_transforms_proposal]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_es2022]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_rsdoctor]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_compat_es3]
+opt-level = "s"
+
+[profile.release.package.h2]
+opt-level = "s"
+
+[profile.release.package.backtrace]
+opt-level = "s"
+
+[profile.release.package.aho-corasick]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_lints]
+opt-level = "s"
+
+[profile.release.package.miette]
+opt-level = "s"
+
+[profile.release.package.pnp]
+opt-level = "s"
+
+[profile.release.package.opentelemetry-otlp]
+opt-level = "s"
+
+[profile.release.package.fancy-regex]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_loader]
+opt-level = "s"
+
+[profile.release.package.chrono]
+opt-level = "s"
+
+[profile.release.package.once_cell]
+opt-level = "s"
+
+[profile.release.package.rustc-demangle]
+opt-level = "s"
+
+[profile.release.package.regress]
+opt-level = "s"
+
+[profile.release.package.indicatif]
+opt-level = "s"
+
+[profile.release.package.gimli]
+opt-level = "s"
+
+[profile.release.package.regex]
+opt-level = "s"
+
+[profile.release.package.rspack_error]
+opt-level = "s"
+
+[profile.release.package.opentelemetry_sdk]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_progress]
+opt-level = "s"
+
+[profile.release.package.num-bigint]
+opt-level = "s"
+
+[profile.release.package.tonic]
+opt-level = "s"
+
+[profile.release.package.swc_error_reporters]
+opt-level = "s"
+
+[profile.release.package.http]
+opt-level = "s"
+
+[profile.release.package.idna]
+opt-level = "s"
+
+[profile.release.package.addr2line]
+opt-level = "s"
+
+[profile.release.package.color-backtrace]
+opt-level = "s"
+
+[profile.release.package.glob]
+opt-level = "s"
+
+[profile.release.package.hyper-util]
+opt-level = "s"
+
+[profile.release.package.wasmparser]
+opt-level = "s"
+
+[profile.release.package.data-encoding]
+opt-level = "s"
+
+[profile.release.package.jsonc-parser]
+opt-level = "s"
+
+[profile.release.package.opentelemetry]
+opt-level = "s"
+
+[profile.release.package.textwrap]
+opt-level = "s"
+
+[profile.release.package.console]
+opt-level = "s"
+
+[profile.release.package.hashlink]
+opt-level = "s"
+
+[profile.release.package.hyper]
+opt-level = "s"
+
+[profile.release.package.opentelemetry-proto]
+opt-level = "s"
+
+[profile.release.package.swc_ecma_ext_transforms]
+opt-level = "s"
+
+[profile.release.package.tracing-opentelemetry]
+opt-level = "s"
+
+[profile.release.package.icu_normalizer]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_banner]
+opt-level = "s"
+
+[profile.release.package.anyhow]
+opt-level = "s"
+
+[profile.release.package.tracing-chrome]
+opt-level = "s"
+
+[profile.release.package.oneshot]
+opt-level = "s"
 
 # This is for CI build based on release but with faster build time
 [profile.ci]

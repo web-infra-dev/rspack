@@ -43,12 +43,11 @@ export function createDiffCase(name: string, src: string, dist: string) {
 	});
 
 	rimrafSync(dist);
-	const buildTask: Promise<void> | null = tester.compile();
 
 	const prefix = path.basename(name);
 	describe(`${prefix}:check`, () => {
 		beforeAll(async () => {
-			await buildTask;
+			await tester.compile();
 			compareMap.clear();
 			await tester.check(env);
 		});
