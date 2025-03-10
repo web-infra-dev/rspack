@@ -23,9 +23,8 @@ Array [
       "main",
     },
   },
-  BatchedHash {
-    "encoding": undefined,
-    "hash": WasmHash {
+  WasmHashAdapter {
+    "wasmHash": WasmHash {
       "buffered": 0,
       "chunkSize": 32,
       "digestSize": 16,
@@ -65578,7 +65577,6 @@ Array [
         "type": "Buffer",
       },
     },
-    "string": undefined,
   },
 ]
 ```
