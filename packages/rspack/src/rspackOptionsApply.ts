@@ -16,10 +16,6 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
-<<<<<<< HEAD
-import type { Module } from "./Module";
-=======
->>>>>>> afa1671ee (refactor: introduce lazycompilation-middleware)
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,

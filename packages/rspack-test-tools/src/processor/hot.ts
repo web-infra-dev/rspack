@@ -16,6 +16,7 @@ import { BasicProcessor, type IBasicProcessorOptions } from "./basic";
 export interface IHotProcessorOptions<T extends ECompilerType>
 	extends Omit<IBasicProcessorOptions<T>, "runable"> {
 	target: TCompilerOptions<T>["target"];
+	checkSteps?: boolean;
 }
 
 export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
@@ -80,6 +81,11 @@ export class HotProcessor<T extends ECompilerType> extends BasicProcessor<T> {
 
 	async afterAll(context: ITestContext) {
 		await super.afterAll(context);
+
+		if (context.getTestConfig().checkSteps === false) {
+			return;
+		}
+
 		if (
 			this.updateOptions.updateIndex + 1 !==
 			this.updateOptions.totalUpdates
