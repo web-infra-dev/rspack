@@ -8,7 +8,6 @@ import {
 	isReservedRuntimeGlobal
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
-import { toBuffer } from "../util";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 
@@ -318,10 +317,15 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					}
 					const hash = createHash(getCompiler().options.output.hashFunction!);
 					queried.call(Chunk.__from_binding(chunk), hash);
-					const digestResult = hash.digest(
-						getCompiler().options.output.hashDigest
-					);
-					return toBuffer(digestResult);
+					let digestResult: Buffer | string;
+					if (getCompiler().options.output.hashDigest) {
+						digestResult = hash.digest(
+							getCompiler().options.output.hashDigest as string
+						);
+					} else {
+						digestResult = hash.digest();
+					}
+					return Buffer.from(digestResult);
 				};
 			}
 		),
