@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Compiler, LazyCompilationOptions } from "../..";
-import { Module } from "../../Module";
+import type { Module } from "../../Module";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
 export const LAZY_COMPILATION_PREFIX = "/lazy-compilation-using-";
@@ -32,13 +32,13 @@ export const lazyCompilationMiddleware = (
 			};
 		},
 		// @ts-expect-error internal option
-		options.cacheable ?? false,
+		options.cacheable ?? true,
 		options.entries ?? true,
 		options.imports ?? true,
 		typeof options.test === "function"
-			? js_module => {
+			? module => {
 					const test = options.test as (module: Module) => boolean;
-					return test(Module.__from_binding(js_module));
+					return test(module);
 				}
 			: options.test
 	).apply(compiler);
@@ -62,6 +62,7 @@ const lazyCompilationMiddlewareInternal = (
 
 		const keys = req.url.slice(LAZY_COMPILATION_PREFIX.length).split("@");
 		req.socket.setNoDelay(true);
+
 		res.setHeader("content-type", "text/event-stream");
 		res.writeHead(200);
 		res.write("\n");

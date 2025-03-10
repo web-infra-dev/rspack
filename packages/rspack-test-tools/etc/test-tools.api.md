@@ -882,6 +882,8 @@ export interface IHotNewIncrementalProcessorOptions<T extends ECompilerType> ext
 // @public (undocumented)
 export interface IHotProcessorOptions<T extends ECompilerType> extends Omit<IBasicProcessorOptions<T>, "runable"> {
     // (undocumented)
+    checkSteps?: boolean;
+    // (undocumented)
     target: TCompilerOptions<T>["target"];
 }
 
@@ -1625,6 +1627,7 @@ export type TTestConfig<T extends ECompilerType> = {
     modules?: Record<string, Object>;
     timeout?: number;
     concurrent?: boolean;
+    checkSteps?: boolean;
 };
 
 // @public (undocumented)
