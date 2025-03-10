@@ -33,9 +33,12 @@ impl CssUrlDependency {
     &self,
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
-    runtime: Option<&RuntimeSpec>,
   ) -> Option<String> {
-    let code_gen_result = compilation.code_generation_results.get(identifier, runtime);
+    // Here we need the asset module's runtime to get the code generation result, which is not equal to
+    // the css module's runtime, but actually multiple runtime optimization doesn't affect asset module,
+    // in different runtime asset module will always have the same code generation result, so we use
+    // `runtime: None` to get the only one code generation result
+    let code_gen_result = compilation.code_generation_results.get(identifier, None);
     if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
       Some(url.inner().to_string())
     } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
@@ -104,15 +107,11 @@ impl DependencyTemplate for CssUrlDependency {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let TemplateContext {
-      compilation,
-      runtime,
-      ..
-    } = code_generatable_context;
+    let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
       .get_module_graph()
       .module_graph_module_by_dependency_id(self.id())
-      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation, *runtime)
+      && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       let target_url = css_escape_string(&target_url);
       let content = if self.replace_function {
