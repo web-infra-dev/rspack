@@ -7,8 +7,8 @@ use std::{
 };
 
 use dashmap::DashMap;
+use futures::future::join_all;
 use indexmap::IndexMap;
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_ast::javascript::Ast;
 use rspack_cacheable::{
@@ -616,7 +616,7 @@ impl Module for ConcatenatedModule {
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
@@ -648,14 +648,15 @@ impl Module for ConcatenatedModule {
     // Prepare a ReplaceSource for the final source
     //
     let arc_map = Arc::new(module_to_info_map);
-    let tmp: Vec<rspack_error::Result<(rspack_collections::Identifier, ModuleInfo)>> = arc_map
-      .par_iter()
-      .map(|(id, info)| {
-        let updated_module_info =
-          self.analyze_module(compilation, Arc::clone(&arc_map), info.clone(), runtime)?;
+
+    let tmp: Vec<Result<(Identifier, ModuleInfo)>> =
+      join_all(arc_map.iter().map(|(id, info)| async {
+        let updated_module_info = self
+          .analyze_module(compilation, Arc::clone(&arc_map), info.clone(), runtime)
+          .await?;
         Ok((*id, updated_module_info))
-      })
-      .collect::<Vec<_>>();
+      }))
+      .await;
 
     let mut updated_pairs = vec![];
     for item in tmp {
@@ -1681,7 +1682,7 @@ impl ConcatenatedModule {
   }
 
   /// Using `ModuleIdentifier` instead of `ModuleInfo` to work around rustc borrow checker
-  fn analyze_module(
+  async fn analyze_module(
     &self,
     compilation: &Compilation,
     module_info_map: Arc<IdentifierIndexMap<ModuleInfo>>,
@@ -1696,7 +1697,9 @@ impl ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&module_id)
         .unwrap_or_else(|| panic!("should have module {module_id}"));
-      let codegen_res = module.code_generation(compilation, runtime, Some(concatenation_scope))?;
+      let codegen_res = module
+        .code_generation(compilation, runtime, Some(concatenation_scope))
+        .await?;
 
       let CodeGenerationResult {
         mut inner,

@@ -5268,6 +5268,7 @@ dependencies = [
 name = "rspack_plugin_sri"
 version = "0.2.0"
 dependencies = [
+ "async-trait",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more 1.0.0",

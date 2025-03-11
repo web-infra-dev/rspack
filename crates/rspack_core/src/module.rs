@@ -292,7 +292,7 @@ pub trait Module:
   ///
   /// Code generation will often iterate through every `source_types` given by the module
   /// to provide multiple code generation results for different `source_type`s.
-  fn code_generation(
+  async fn code_generation(
     &self,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
@@ -719,7 +719,7 @@ mod test {
           unreachable!()
         }
 
-        fn code_generation(
+        async fn code_generation(
           &self,
           _compilation: &Compilation,
           _runtime: Option<&RuntimeSpec>,
