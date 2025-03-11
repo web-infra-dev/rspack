@@ -109,6 +109,7 @@ export declare class JsChunkGroup {
   isInitial(): boolean
   getParents(): JsChunkGroup[]
   getRuntimeChunk(): JsChunk
+  getEntrypointChunk(): JsChunk
   getFiles(): Array<string>
   getModulePreOrderIndex(module: JsModule): number | null
   getModulePostOrderIndex(module: JsModule): number | null

@@ -116,7 +116,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             chunk.get_all_referenced_async_entrypoints(&compilation.chunk_group_by_ukey)
           {
             let entrypoint = compilation.chunk_group_by_ukey.expect_get(&entrypoint);
-            chunks.insert(entrypoint.get_entry_point_chunk());
+            chunks.insert(entrypoint.get_entrypoint_chunk());
           }
           chunks
         }
