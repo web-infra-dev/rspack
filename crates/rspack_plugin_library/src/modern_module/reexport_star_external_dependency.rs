@@ -22,13 +22,18 @@ pub struct ModernModuleReexportStarExternalDependency {
 }
 
 impl ModernModuleReexportStarExternalDependency {
-  pub fn new(request: Atom, target_request: ExternalRequest, external_type: ExternalType) -> Self {
+  pub fn new(
+    id: DependencyId,
+    request: Atom,
+    target_request: ExternalRequest,
+    external_type: ExternalType,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_esm_dependency(request.as_str(), None);
     Self {
+      id,
       request,
       target_request,
       external_type,
-      id: DependencyId::new(),
       resource_identifier,
       factorize_info: Default::default(),
     }

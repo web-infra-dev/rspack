@@ -245,6 +245,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
               if let Some(external_module) = import_module.as_external_module() {
                 let new_dep = ModernModuleImportDependency::new(
+                  *block_dep.id(),
                   import_dependency.request.as_str().into(),
                   external_module.request.clone(),
                   external_module.external_type.clone(),
@@ -252,12 +253,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                   import_dependency.get_attributes().cloned(),
                 );
 
-                deps_to_replace.push((
-                  *block_id,
-                  block_dep.clone(),
-                  new_dep.clone(),
-                  import_dep_connection.dependency_id,
-                ));
+                deps_to_replace.push(new_dep);
               }
             }
           }
@@ -265,14 +261,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    for (block_id, dep, new_dep, connection_id) in deps_to_replace.iter() {
-      let block = mg.block_by_id_mut(block_id).expect("should have block");
-      let dep_id = dep.id();
-      block.remove_dependency_id(*dep_id);
-      let boxed_dep = Box::new(new_dep.clone()) as BoxDependency;
-      block.add_dependency_id(*new_dep.id());
+    for dep in deps_to_replace {
+      mg.revoke_dependency(dep.id(), false);
+      let boxed_dep = Box::new(dep) as BoxDependency;
       mg.add_dependency(boxed_dep);
-      mg.revoke_dependency(connection_id, true);
     }
   }
 
@@ -348,12 +340,13 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                   }
 
                   let new_dep = ModernModuleReexportStarExternalDependency::new(
+                    *dep_id,
                     reexport_dep.request.as_str().into(),
                     external_module.request.clone(),
                     external_module.external_type.clone(),
                   );
 
-                  deps_to_replace.push((module_id, *dep_id, new_dep.clone()));
+                  deps_to_replace.push(new_dep);
                 }
               }
             }
@@ -362,15 +355,12 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    for (module_id, dep, new_dep) in deps_to_replace.iter() {
-      let importer = mg
-        .module_by_identifier_mut(module_id)
-        .expect("should have module");
-
-      let boxed_dep = Box::new(new_dep.clone()) as BoxDependency;
-      importer.remove_dependency_id(*dep);
-      importer.add_dependency_id(*new_dep.id());
+    for new_dep in deps_to_replace {
+      let dep_id = *new_dep.id();
+      let boxed_dep = Box::new(new_dep) as BoxDependency;
       mg.add_dependency(boxed_dep);
+      mg.revoke_dependency(&dep_id, false);
+      external_connections.retain(|item| item != &dep_id);
     }
 
     for connection in external_connections.iter() {
