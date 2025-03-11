@@ -18,6 +18,7 @@
     "build:ci": "node scripts/build.js --profile ci",
     "build:profiling": "node scripts/build.js --profile profiling",
     "build:release": "node scripts/build.js --profile release",
+    "build:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
     "move-binding": "node scripts/move-binding",
     "test": "tsc -p tsconfig.type-test.json"
   },
@@ -28,7 +29,8 @@
     "@napi-rs/cli": "3.0.0-alpha.73",
     "@napi-rs/wasm-runtime": "^0.2.7",
     "emnapi": "^1.3.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "@emnapi/core": "^1.3.1"
   },
   "napi": {
     "binaryName": "rspack",
