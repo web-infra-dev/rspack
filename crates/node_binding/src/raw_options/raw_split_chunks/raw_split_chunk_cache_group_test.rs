@@ -6,21 +6,21 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 use rspack_regex::RspackRegex;
 
-use crate::JsModuleWrapper;
+use crate::ModuleWrapper;
 
 pub(super) type RawCacheGroupTest =
   Either3<String, RspackRegex, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
 #[napi(object, object_from_js = false)]
 pub struct JsCacheGroupTestCtx {
-  #[napi(ts_type = "JsModule")]
-  pub module: JsModuleWrapper,
+  #[napi(ts_type = "Module")]
+  pub module: ModuleWrapper,
 }
 
 impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   fn from(value: CacheGroupTestFnCtx<'a>) -> Self {
     JsCacheGroupTestCtx {
-      module: JsModuleWrapper::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleWrapper::with_ref(value.module, value.compilation.compiler_id()),
     }
   }
 }

@@ -13,10 +13,10 @@ use rspack_plugin_lazy_compilation::{
 };
 use rspack_regex::RspackRegex;
 
-use crate::JsModuleWrapper;
+use crate::ModuleWrapper;
 
 #[derive(Debug)]
-pub struct RawLazyCompilationTest<F = ThreadsafeFunction<JsModuleWrapper, Option<bool>>>(
+pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleWrapper, Option<bool>>>(
   pub Either<RspackRegex, F>,
 );
 
@@ -40,7 +40,7 @@ impl<F: ToNapiValue> ToNapiValue for RawLazyCompilationTest<F> {
 
 #[derive(Debug)]
 pub struct LazyCompilationTestFn {
-  tsfn: ThreadsafeFunction<JsModuleWrapper, Option<bool>>,
+  tsfn: ThreadsafeFunction<ModuleWrapper, Option<bool>>,
 }
 
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
@@ -53,7 +53,7 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     #[allow(clippy::unwrap_used)]
     let res = self
       .tsfn
-      .blocking_call_with_sync(JsModuleWrapper::with_ptr(
+      .blocking_call_with_sync(ModuleWrapper::with_ptr(
         NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))

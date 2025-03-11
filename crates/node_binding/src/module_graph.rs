@@ -6,7 +6,7 @@ use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 use rustc_hash::FxHashSet;
 
 use crate::{
-  DependencyObject, JsExportsInfo, JsModule, JsModuleGraphConnectionWrapper, JsModuleWrapper,
+  DependencyObject, JsExportsInfo, JsModuleGraphConnectionWrapper, Module, ModuleWrapper,
 };
 
 #[napi]
@@ -34,12 +34,9 @@ impl JsModuleGraph {
 impl JsModuleGraph {
   #[napi(
     ts_args_type = "dependency: Dependency",
-    ts_return_type = "JsModule | null"
+    ts_return_type = "Module | null"
   )]
-  pub fn get_module(
-    &self,
-    js_dependency: DependencyObject,
-  ) -> napi::Result<Option<JsModuleWrapper>> {
+  pub fn get_module(&self, js_dependency: DependencyObject) -> napi::Result<Option<ModuleWrapper>> {
     let Some(dependency_id) = js_dependency.dependency_id() else {
       return Ok(None);
     };
@@ -47,18 +44,18 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
     let module = module_graph.get_module_by_dependency_id(&dependency_id);
     let js_module =
-      module.map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()));
+      module.map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()));
     Ok(js_module)
   }
 
   #[napi(
     ts_args_type = "dependency: Dependency",
-    ts_return_type = "JsModule | null"
+    ts_return_type = "Module | null"
   )]
   pub fn get_resolved_module(
     &self,
     js_dependency: DependencyObject,
-  ) -> napi::Result<Option<JsModuleWrapper>> {
+  ) -> napi::Result<Option<ModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
 
     let Some(dependency_id) = js_dependency.dependency_id() else {
@@ -69,7 +66,7 @@ impl JsModuleGraph {
       match module_graph.connection_by_dependency_id(&dependency_id) {
         Some(connection) => module_graph
           .module_by_identifier(&connection.resolved_module)
-          .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
+          .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
         None => None,
       },
     )
@@ -79,7 +76,7 @@ impl JsModuleGraph {
   pub fn get_used_exports(
     &self,
     env: Env,
-    js_module: &JsModule,
+    js_module: &Module,
     js_runtime: Either<String, Vec<String>>,
   ) -> napi::Result<Option<Either<bool, Vec<JsString>>>> {
     let (_, module_graph) = self.as_ref()?;
@@ -107,15 +104,15 @@ impl JsModuleGraph {
     })
   }
 
-  #[napi(ts_return_type = "JsModule | null")]
-  pub fn get_issuer(&self, module: &JsModule) -> napi::Result<Option<JsModuleWrapper>> {
+  #[napi(ts_return_type = "Module | null")]
+  pub fn get_issuer(&self, module: &Module) -> napi::Result<Option<ModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     let issuer = module_graph.get_issuer(&module.identifier);
-    Ok(issuer.map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())))
+    Ok(issuer.map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())))
   }
 
   #[napi]
-  pub fn get_exports_info(&self, module: &JsModule) -> napi::Result<JsExportsInfo> {
+  pub fn get_exports_info(&self, module: &Module) -> napi::Result<JsExportsInfo> {
     let (compilation, module_graph) = self.as_ref()?;
     let exports_info = module_graph.get_exports_info(&module.identifier);
     Ok(JsExportsInfo::new(exports_info, compilation))
@@ -147,7 +144,7 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_outgoing_connections(
     &self,
-    module: &JsModule,
+    module: &Module,
   ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
@@ -163,7 +160,7 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_outgoing_connections_in_order(
     &self,
-    module: &JsModule,
+    module: &Module,
   ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
@@ -177,7 +174,7 @@ impl JsModuleGraph {
   #[napi(ts_return_type = "JsModuleGraphConnection[]")]
   pub fn get_incoming_connections(
     &self,
-    module: &JsModule,
+    module: &Module,
   ) -> napi::Result<Vec<JsModuleGraphConnectionWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
     Ok(
@@ -192,12 +189,12 @@ impl JsModuleGraph {
 
   #[napi(
     ts_args_type = "dependency: Dependency",
-    ts_return_type = "JsModule | null"
+    ts_return_type = "Module | null"
   )]
   pub fn get_parent_module(
     &self,
     js_dependency: DependencyObject,
-  ) -> napi::Result<Option<JsModuleWrapper>> {
+  ) -> napi::Result<Option<ModuleWrapper>> {
     let (compilation, module_graph) = self.as_ref()?;
 
     let Some(dependency_id) = js_dependency.dependency_id() else {
@@ -207,7 +204,7 @@ impl JsModuleGraph {
     Ok(match module_graph.get_parent_module(&dependency_id) {
       Some(identifier) => compilation
         .module_by_identifier(identifier)
-        .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
+        .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id())),
       None => None,
     })
   }
@@ -227,7 +224,7 @@ impl JsModuleGraph {
   }
 
   #[napi]
-  pub fn is_async(&self, module: &JsModule) -> napi::Result<bool> {
+  pub fn is_async(&self, module: &Module) -> napi::Result<bool> {
     let (compilation, _) = self.as_ref()?;
     Ok(ModuleGraph::is_async(compilation, &module.identifier))
   }

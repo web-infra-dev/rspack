@@ -6,7 +6,7 @@ use rspack_core::{ChunkGroup, ChunkGroupUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{JsChunkWrapper, JsModule, JsModuleWrapper};
+use crate::{JsChunkWrapper, Module, ModuleWrapper};
 
 #[napi]
 pub struct JsChunkGroup {
@@ -71,7 +71,7 @@ impl JsChunkGroup {
         module: origin.module.and_then(|module_id| {
           compilation
             .module_by_identifier(&module_id)
-            .map(|module| JsModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
         }),
         request: match &origin.request {
           Some(request) => Some(env.create_string(request)?),
@@ -138,7 +138,7 @@ impl JsChunkGroup {
   }
 
   #[napi]
-  pub fn get_module_pre_order_index(&self, module: &JsModule) -> napi::Result<Option<u32>> {
+  pub fn get_module_pre_order_index(&self, module: &Module) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
     Ok(
       chunk_group
@@ -148,7 +148,7 @@ impl JsChunkGroup {
   }
 
   #[napi]
-  pub fn get_module_post_order_index(&self, module: &JsModule) -> napi::Result<Option<u32>> {
+  pub fn get_module_post_order_index(&self, module: &Module) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
 
     Ok(
@@ -223,7 +223,7 @@ impl ToNapiValue for JsChunkGroupWrapper {
 
 #[napi(object, object_from_js = false)]
 pub struct JsChunkGroupOrigin {
-  #[napi(ts_type = "JsModule | undefined")]
-  pub module: Option<JsModuleWrapper>,
+  #[napi(ts_type = "Module | undefined")]
+  pub module: Option<ModuleWrapper>,
   pub request: Option<JsString>,
 }

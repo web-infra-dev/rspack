@@ -4,7 +4,6 @@ import {
 	BuiltinPluginName,
 	type JsCacheGroupTestCtx,
 	type JsChunk,
-	type JsModule,
 	type RawCacheGroupOptions,
 	type RawSplitChunksOptions
 } from "@rspack/binding";
@@ -44,7 +43,7 @@ function toRawSplitChunksOptions(
 
 	function getName(name: any) {
 		interface Context {
-			module: JsModule;
+			module: Module;
 			chunks: JsChunk[];
 			cacheGroupKey: string;
 		}
@@ -54,11 +53,7 @@ function toRawSplitChunksOptions(
 				if (typeof ctx.module === "undefined") {
 					return name(undefined);
 				}
-				return name(
-					Module.__from_binding(ctx.module),
-					getChunks(ctx.chunks),
-					ctx.cacheGroupKey
-				);
+				return name(ctx.module, getChunks(ctx.chunks), ctx.cacheGroupKey);
 			};
 		}
 		return name;
@@ -72,7 +67,7 @@ function toRawSplitChunksOptions(
 					moduleGraph: compiler._lastCompilation!.moduleGraph,
 					chunkGraph: compiler._lastCompilation!.chunkGraph
 				};
-				return test(Module.__from_binding(ctx.module), info);
+				return test(ctx.module, info);
 			};
 		}
 		return test;

@@ -3,7 +3,7 @@
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 
-use napi::bindgen_prelude::{check_status, JavaScriptClassExt, ToNapiValue};
+use napi::bindgen_prelude::{check_status, ClassInstance, JavaScriptClassExt, ToNapiValue};
 use napi::sys::{self, napi_env};
 use napi::{Env, Result};
 
@@ -20,8 +20,11 @@ pub struct OneShotInstanceRef<T: 'static> {
 impl<T: JavaScriptClassExt + 'static> OneShotInstanceRef<T> {
   pub fn new(env: napi_env, val: T) -> Result<Self> {
     let env_wrapper = Env::from_raw(env);
-    let mut instance = val.into_instance(&env_wrapper)?;
+    let instance = val.into_instance(&env_wrapper)?;
+    return Self::from_instance(env, instance);
+  }
 
+  pub fn from_instance(env: napi_env, mut instance: ClassInstance<T>) -> Result<Self> {
     let mut napi_ref = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_reference(env, instance.value, 1, &mut napi_ref) })?;
 

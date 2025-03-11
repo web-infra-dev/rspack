@@ -35,7 +35,7 @@ export class ModuleGraphConnection {
 			module: {
 				enumerable: true,
 				get(): Module | null {
-					return binding.module ? Module.__from_binding(binding.module) : null;
+					return binding.module;
 				}
 			},
 			dependency: {
@@ -47,17 +47,13 @@ export class ModuleGraphConnection {
 			resolvedModule: {
 				enumerable: true,
 				get(): Module | null {
-					return binding.resolvedModule
-						? Module.__from_binding(binding.resolvedModule)
-						: null;
+					return binding.resolvedModule;
 				}
 			},
 			originModule: {
 				enumerable: true,
 				get(): Module | null {
-					return binding.originModule
-						? Module.__from_binding(binding.originModule)
-						: null;
+					return binding.originModule;
 				}
 			}
 		});
