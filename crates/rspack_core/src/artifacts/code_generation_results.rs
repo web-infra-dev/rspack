@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use crate::{
   AssetInfo, ChunkInitFragments, ConcatenationScope, ModuleIdentifier, PublicPath, RuntimeGlobals,
-  RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
+  RuntimeSpec, RuntimeSpecMap, SourceType,
 };
 
 #[derive(Clone, Debug)]
@@ -202,23 +202,6 @@ impl CodeGenerationResults {
     self.module_generation_result_map.is_empty() && self.map.is_empty()
   }
 
-  pub fn get_one(&self, module_identifier: &ModuleIdentifier) -> Option<&CodeGenerationResult> {
-    self
-      .map
-      .get(module_identifier)
-      .and_then(|spec| match spec.mode {
-        RuntimeMode::Empty => None,
-        RuntimeMode::SingleEntry => spec
-          .single_value
-          .and_then(|result_id| self.module_generation_result_map.get(&result_id)),
-        RuntimeMode::Map => spec
-          .map
-          .values()
-          .next()
-          .and_then(|result_id| self.module_generation_result_map.get(result_id)),
-      })
-  }
-
   pub fn insert(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -236,7 +219,7 @@ impl CodeGenerationResults {
 
   pub fn remove(&mut self, module_identifier: &ModuleIdentifier) -> Option<()> {
     let runtime_map = self.map.remove(module_identifier)?;
-    for result in runtime_map.get_values() {
+    for result in runtime_map.values() {
       self.module_generation_result_map.remove(result)?;
     }
     Some(())
@@ -261,24 +244,23 @@ impl CodeGenerationResults {
           })
       } else {
         if entry.size() > 1 {
-          let results = entry.get_values();
-          if results.len() != 1 {
+          let mut values = entry.values();
+          let results: FxHashSet<_> = entry.values().collect();
+          if results.len() > 1 {
             panic!(
               "No unique code generation entry for unspecified runtime for {module_identifier} ",
             );
           }
 
-          return results
-            .first()
-            .copied()
+          return values
+            .next()
             .and_then(|m| self.module_generation_result_map.get(m))
             .unwrap_or_else(|| panic!("Expected value exists"));
         }
 
         entry
-          .get_values()
-          .first()
-          .copied()
+          .values()
+          .next()
           .and_then(|m| self.module_generation_result_map.get(m))
           .unwrap_or_else(|| panic!("Expected value exists"))
       }

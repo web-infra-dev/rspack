@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./bar.js": (function () {
 const a = "bar";
 

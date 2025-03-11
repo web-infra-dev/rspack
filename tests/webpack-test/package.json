@@ -20,7 +20,7 @@
     "@types/node": "^20.17.23",
     "@types/watchpack": "^2.4.4",
     "@types/webpack-sources": "3.2.3",
-    "@types/ws": "8.5.14",
+    "@types/ws": "8.18.0",
     "@webdiscus/pug-loader": "^2.11.1",
     "babel-loader": "^10.0.0",
     "coffee-loader": "^1.0.1",

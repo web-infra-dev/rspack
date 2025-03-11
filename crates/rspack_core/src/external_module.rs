@@ -177,7 +177,7 @@ pub struct ExternalModule {
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
-  pub user_request: String,
+  user_request: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -228,6 +228,14 @@ impl ExternalModule {
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
     }
+  }
+
+  pub fn user_request(&self) -> &str {
+    &self.user_request
+  }
+
+  pub fn user_request_mut(&mut self) -> &mut String {
+    &mut self.user_request
   }
 
   pub fn get_external_type(&self) -> &ExternalType {

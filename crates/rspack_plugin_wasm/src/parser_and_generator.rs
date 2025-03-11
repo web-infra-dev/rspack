@@ -314,6 +314,11 @@ fn render_wasm_name(
     .get_asset_path_with_info(
       wasm_filename_template,
       PathData::default()
+        .module_id_optional(
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, normal_module.id())
+            .map(|s| PathData::prepare_id(s.as_str()))
+            .as_deref(),
+        )
         .filename(&normal_module.resource_resolved_data().resource)
         .content_hash(hash)
         .hash(hash),
