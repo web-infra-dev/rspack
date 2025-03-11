@@ -20,4 +20,4 @@ tracing            = { workspace = true }
 trybuild           = { version = "1.0.101", features = ["diff"] }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_cacheable"]
+ignored = ["tracing", "rspack_cacheable", "async-trait"]
