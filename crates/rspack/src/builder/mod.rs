@@ -446,7 +446,6 @@ impl CompilerBuilder {
   }
 
   /// Build [`Compiler`] from options and plugins.
-  #[must_use]
   pub fn build(&mut self) -> Result<Compiler> {
     let mut builder_context = BuilderContext::default();
     let compiler_options = self.options_builder.build(&mut builder_context)?;
@@ -892,7 +891,6 @@ impl CompilerOptionsBuilder {
   ///
   /// [`BuilderContext`]: crate::builder::BuilderContext
   /// [`CompilerOptions`]: rspack_core::options::CompilerOptions
-  #[must_use]
   pub fn build(&mut self, builder_context: &mut BuilderContext) -> Result<CompilerOptions> {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
@@ -1537,7 +1535,6 @@ impl NodeOptionBuilder {
   /// Build [`NodeOption`] from options.
   ///
   /// [`NodeOption`]: rspack_core::options::NodeOption
-  #[must_use]
   fn build(
     &mut self,
     target_properties: &TargetProperties,
@@ -1664,7 +1661,6 @@ impl ModuleOptionsBuilder {
   /// Normally, you don't need to call this function, it's used internally by [`CompilerBuilder::build`].
   ///
   /// [`ModuleOptions`]: rspack_core::options::ModuleOptions
-  #[must_use]
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
@@ -2625,7 +2621,6 @@ impl OutputOptionsBuilder {
   ///
   /// [`OutputOptions`]: rspack_core::options::OutputOptions
   #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
-  #[must_use]
   fn build(
     &mut self,
     builder_context: &mut BuilderContext,
@@ -2809,40 +2804,38 @@ impl OutputOptionsBuilder {
 
     let chunk_format = if let Some(chunk_format) = self.chunk_format.take() {
       chunk_format
-    } else {
-      if let Some(tp) = tp {
-        let help_message = if is_affected_by_browserslist {
-          "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
-        } else {
-          "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly."
-        };
+    } else if let Some(tp) = tp {
+      let help_message = if is_affected_by_browserslist {
+        "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
+      } else {
+        "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly."
+      };
 
-        if output_module {
-          if tp.dynamic_import() {
-            "module".to_string()
-          } else if tp.document() {
-            "array-push".to_string()
-          } else {
-            return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n{help_message}")).into());
-          }
+      if output_module {
+        if tp.dynamic_import() {
+          "module".to_string()
         } else if tp.document() {
           "array-push".to_string()
-        } else if tp.require() || tp.node_builtins() {
-          "commonjs".to_string()
-        } else if tp.import_scripts() {
-          "array-push".to_string()
         } else {
-          return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n{help_message}")).into());
+          return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n{help_message}")).into());
         }
+      } else if tp.document() {
+        "array-push".to_string()
+      } else if tp.require() || tp.node_builtins() {
+        "commonjs".to_string()
+      } else if tp.import_scripts() {
+        "array-push".to_string()
       } else {
-        return Err(
-          BuilderError::Option(
-            "output.chunk_format".to_string(),
-            "Chunk format can't be selected by default when no target is specified".to_string(),
-          )
-          .into(),
-        );
+        return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n{help_message}")).into());
       }
+    } else {
+      return Err(
+        BuilderError::Option(
+          "output.chunk_format".to_string(),
+          "Chunk format can't be selected by default when no target is specified".to_string(),
+        )
+        .into(),
+      );
     };
 
     match &*chunk_format {
@@ -3385,7 +3378,6 @@ impl OptimizationOptionsBuilder {
   /// Build [`Optimization`] from options.
   ///
   /// [`Optimization`]: rspack_core::options::Optimization
-  #[must_use]
   fn build(
     &mut self,
     builder_context: &mut BuilderContext,
@@ -3745,7 +3737,6 @@ impl ExperimentsBuilder {
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
-  #[must_use]
   fn build(
     &mut self,
     _builder_context: &mut BuilderContext,
