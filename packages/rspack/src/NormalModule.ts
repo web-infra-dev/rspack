@@ -21,7 +21,11 @@ Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
 	value(this: binding.NormalModule) {
-		return this._originalSource();
+		const originalSource = this._originalSource();
+		if (originalSource) {
+			return JsSource.__from_binding(originalSource);
+		}
+		return null;
 	}
 });
 Object.defineProperty(binding.NormalModule.prototype, "emitFile", {

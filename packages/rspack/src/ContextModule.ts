@@ -14,7 +14,11 @@ Object.defineProperty(binding.ContextModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
 	value(this: binding.ContextModule) {
-		return this._originalSource();
+		const originalSource = this._originalSource();
+		if (originalSource) {
+			return JsSource.__from_binding(originalSource);
+		}
+		return null;
 	}
 });
 Object.defineProperty(binding.ContextModule.prototype, "emitFile", {

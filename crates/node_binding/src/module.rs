@@ -278,17 +278,8 @@ unsafe impl Send for ModuleObject {}
 
 impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
-    let type_id = if module.as_normal_module().is_some() {
-      TypeId::of::<rspack_core::NormalModule>()
-    } else if module.as_concatenated_module().is_some() {
-      TypeId::of::<rspack_core::ConcatenatedModule>()
-    } else if module.as_context_module().is_some() {
-      TypeId::of::<rspack_core::ContextModule>()
-    } else {
-      TypeId::of::<dyn rspack_core::Module>()
-    };
     Self {
-      type_id,
+      type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       module: None,
       compiler_id,
@@ -298,14 +289,8 @@ impl ModuleObject {
   pub fn with_ptr(module_ptr: NonNull<dyn rspack_core::Module>, compiler_id: CompilerId) -> Self {
     let module = unsafe { module_ptr.as_ref() };
 
-    let type_id = if module.as_context_module().is_some() {
-      TypeId::of::<rspack_core::ContextModule>()
-    } else {
-      TypeId::of::<dyn rspack_core::Module>()
-    };
-
     Self {
-      type_id,
+      type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       module: Some(module_ptr),
       compiler_id,

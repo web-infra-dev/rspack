@@ -14,7 +14,11 @@ Object.defineProperty(binding.ConcatenatedModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,
 	value(this: binding.ConcatenatedModule) {
-		return this._originalSource();
+		const originalSource = this._originalSource();
+		if (originalSource) {
+			return JsSource.__from_binding(originalSource);
+		}
+		return null;
 	}
 });
 Object.defineProperty(binding.ConcatenatedModule.prototype, "emitFile", {
