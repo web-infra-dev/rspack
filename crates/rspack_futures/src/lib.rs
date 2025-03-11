@@ -1,9 +1,12 @@
+pub mod scope;
+
 use std::{
   future::Future,
   ops::{Deref, DerefMut},
 };
 
 use async_scoped::{Scope, TokioScope};
+pub use scope::scope;
 
 /// Run futures in parallel.
 ///
