@@ -196,19 +196,9 @@ impl ReadableFileSystem for NativeFileSystem {
     tokio::fs::read(file).await.map_err(Error::from)
   }
 
-  async fn async_read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let dir = dir.to_path_buf();
-    let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
-    let mut res = vec![];
-    while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-    Ok(res)
-  }
-
   fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
-    for entry in std::fs::read_dir(dir)? {
+    for entry in fs::read_dir(dir)? {
       let entry = entry?;
       res.push(entry.file_name().to_string_lossy().to_string());
     }
@@ -242,19 +232,9 @@ impl ReadableFileSystem for NativeFileSystem {
     fs::read(file).map_err(Error::from)
   }
 
-  async fn async_read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let dir = dir.to_path_buf();
-    let mut reader = tokio::fs::read_dir(dir).await.map_err(Error::from)?;
-    let mut res = vec![];
-    while let Some(entry) = reader.next_entry().await.map_err(Error::from)? {
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-    Ok(res)
-  }
-
   fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let mut res = vec![];
-    for entry in std::fs::read_dir(dir)? {
+    for entry in fs::read_dir(dir)? {
       let entry = entry?;
       res.push(entry.file_name().to_string_lossy().to_string());
     }

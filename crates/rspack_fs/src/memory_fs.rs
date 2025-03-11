@@ -267,10 +267,6 @@ impl ReadableFileSystem for MemoryFileSystem {
     ReadableFileSystem::read(self, file)
   }
 
-  async fn async_read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self._read_dir(dir)
-  }
-
   fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     self._read_dir(dir)
   }
