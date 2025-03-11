@@ -345,6 +345,7 @@ impl Compiler {
 
     let mut new_emitted_asset_versions = HashMap::default();
     let _ = unsafe {
+      // SAFETY: await immediately, trust caller to handle the future correctly
       TokioScope::scope_and_collect(|s| {
         self
           .compilation
