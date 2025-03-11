@@ -344,6 +344,7 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
+    // SAFETY: await immediately and trust caller to poll future entirely
     let _ = unsafe {
       TokioScope::scope_and_collect(|s| {
         self

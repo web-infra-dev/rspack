@@ -1055,6 +1055,7 @@ impl Compilation {
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
+    // SAFETY: await immediately and trust caller to poll future entirely
     let (_, results) = unsafe {
       async_scoped::TokioScope::scope_and_collect(
         |s: &mut TokioScope<'_, Result<(ChunkUkey, ChunkRenderResult)>>| {
