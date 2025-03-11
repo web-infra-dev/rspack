@@ -596,7 +596,7 @@ impl Module for NormalModule {
   }
 
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
