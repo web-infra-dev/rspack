@@ -36,9 +36,8 @@ function getHotCreator(target: TTarget, documentType: EDocumentType) {
 						documentType
 					})
 				],
-				runner: HotRunnerFactory
-				// TODO: enable concurrent then rspack will be hanged
-				// concurrent: true
+				runner: HotRunnerFactory,
+				concurrent: true
 			})
 		);
 	}

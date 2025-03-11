@@ -1,6 +1,6 @@
 ```js title=dynamic-1_js-_5ebd0.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-1_js-_5ebd0"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-1_js-_5ebd0"], {
 "./dynamic-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
@@ -16,7 +16,7 @@ console.log("dynamic-1");
 ```
 
 ```js title=dynamic-1_js-_5ebd1.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-1_js-_5ebd1"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-1_js-_5ebd1"], {
 "./dynamic-1.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -39,7 +39,7 @@ console.log("shared");
 
 ```js title=dynamic-2_js-_72240.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-2_js-_72240"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-2_js-_72240"], {
 "./dynamic-2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* ESM import */var _shared__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./shared.js");
@@ -55,7 +55,7 @@ console.log("dynamic-2");
 ```
 
 ```js title=dynamic-2_js-_72241.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["dynamic-2_js-_72241"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["dynamic-2_js-_72241"], {
 "./dynamic-2.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
@@ -77,7 +77,7 @@ console.log("shared");
 ```
 
 ```js title=main.js
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./index.js": (function (__unused_webpack_module, __unused_webpack_exports, __webpack_require__) {
 __webpack_require__.e(/* import() */ "dynamic-1_js-_5ebd1").then(__webpack_require__.bind(__webpack_require__, "./dynamic-1.js"));
 __webpack_require__.e(/* import() */ "dynamic-2_js-_72241").then(__webpack_require__.bind(__webpack_require__, "./dynamic-2.js"));

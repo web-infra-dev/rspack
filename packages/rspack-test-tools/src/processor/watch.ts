@@ -308,6 +308,12 @@ export class WatchProcessor<
 			(
 				options as TCompilerOptions<ECompilerType.Rspack>
 			).experiments!.rspackFuture!.bundlerInfo!.force ??= false;
+
+			if (!global.printLogger) {
+				options.infrastructureLogging = {
+					level: "error"
+				};
+			}
 		};
 	}
 

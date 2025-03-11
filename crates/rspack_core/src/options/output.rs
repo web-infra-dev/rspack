@@ -221,12 +221,21 @@ pub struct PathData<'a> {
   pub id: Option<&'a str>,
 }
 
+static MATCH_ID_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#"^"\s\+*\s*(.*)\s*\+\s*"$"#).expect("invalid Regex"));
 static PREPARE_ID_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 
 impl<'a> PathData<'a> {
   pub fn prepare_id(v: &str) -> Cow<str> {
-    PREPARE_ID_REGEX.replace_all(v, "_")
+    if let Some(caps) = MATCH_ID_REGEX.captures(v) {
+      Cow::Owned(format!(
+        "\" + ({} + \"\").replace(/(^[.-]|[^a-zA-Z0-9_-])+/g, \"_\") + \"",
+        caps.get(1).expect("capture group should exist").as_str()
+      ))
+    } else {
+      PREPARE_ID_REGEX.replace_all(v, "_")
+    }
   }
 
   pub fn filename(mut self, v: &'a str) -> Self {

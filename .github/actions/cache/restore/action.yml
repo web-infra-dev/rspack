@@ -1,0 +1,40 @@
+name: cache
+
+description: Automatically save and restore cache to local or github
+
+inputs:
+  key:
+    description: "An explicit key for restoring the cache"
+    required: true
+  path:
+    description: "A list of files, directories, and wildcard patterns to restore"
+    required: true
+  restore-keys:
+    description: "An ordered multiline string listing the prefix-matched keys, that are used for restoring stale cache if no cache hit occurred for key. Note `cache-hit` returns false in this case."
+    required: false
+
+outputs:
+  cache-hit:
+    description: 'A boolean value to indicate an exact match was found for the primary key'
+    value: ${{ steps.github-cache.outputs.cache-hit }}
+#    value: ${{ steps.github-cache.outputs.cache-hit || steps.local-cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore cache to github
+      id: github-cache
+      if: ${{ runner.environment == 'github-hosted' }}
+      uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+        restore-keys: ${{ inputs.restore-keys }}
+#    - name: Restore cache to local
+#      id: local-cache
+#      if: ${{ runner.environment == 'self-hosted' }}
+#      uses: lynx-infra/cache/restore@ad9f115f5b15348eb208a52ec6f7ffa82e8108df # main
+#      with:
+#        key: ${{ inputs.key }}
+#        path: ${{ inputs.path }}
+#        restore-keys: ${{ inputs.restore-keys }}

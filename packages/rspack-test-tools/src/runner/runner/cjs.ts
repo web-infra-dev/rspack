@@ -11,6 +11,10 @@ import type {
 } from "../type";
 import { BasicRunner } from "./basic";
 
+declare global {
+	var printLogger: boolean;
+}
+
 const define = (...args: unknown[]) => {
 	const factory = args.pop() as () => {};
 	factory();
@@ -21,7 +25,42 @@ export class CommonJsRunner<
 > extends BasicRunner<T> {
 	protected createGlobalContext(): IBasicGlobalContext {
 		return {
-			console: console,
+			console: {
+				log: (...args: any[]) => {
+					if (printLogger) {
+						console.log(...args);
+					}
+				},
+				warn: (...args: any[]) => {
+					if (printLogger) {
+						console.warn(...args);
+					}
+				},
+				error: (...args: any[]) => {
+					console.error(...args);
+				},
+				info: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				debug: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				trace: (...args: any[]) => {
+					if (printLogger) {
+						console.info(...args);
+					}
+				},
+				assert: (...args: any[]) => {
+					console.assert(...args);
+				},
+				clear: () => {
+					console.clear();
+				}
+			},
 			setTimeout: ((
 				cb: (...args: any[]) => void,
 				ms: number | undefined,

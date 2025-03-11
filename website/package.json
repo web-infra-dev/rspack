@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@rstack-dev/doc-ui": "1.7.2",
-    "axios": "^1.7.9",
+    "axios": "^1.8.2",
     "markdown-to-jsx": "^7.7.4",
     "mermaid": "^11.4.1",
     "react": "^19.0.0",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@rspress/plugin-rss": "1.42.1",
+    "@rspress/plugin-rss": "1.43.1",
     "@types/node": "^20.17.23",
     "@types/react": "^19.0.10",
     "@types/semver": "^7.5.8",
@@ -37,7 +37,7 @@
     "prettier": "3.5.3",
     "rsbuild-plugin-google-analytics": "1.0.3",
     "rsbuild-plugin-open-graph": "1.0.2",
-    "rspress": "1.42.1",
+    "rspress": "1.43.1",
     "rspress-plugin-font-open-sans": "1.0.0",
     "rspress-plugin-sitemap": "^1.1.1",
     "typescript": "^5.7.3"

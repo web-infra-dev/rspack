@@ -1,0 +1,48 @@
+name: pnpm install dependencies
+
+description: Run pnpm install
+
+inputs:
+  frozen-lockfile:
+    default: false
+    required: false
+    type: boolean
+  save-if:
+    default: false
+    required: false
+    type: boolean
+
+runs:
+  using: composite
+  steps:
+    - name: Get store path
+      id: store-path
+      shell: bash
+      run: |
+        echo "STORE_PATH is $(pnpm store path)"
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - name: Restore pnpm cache
+      id: restore
+      uses: ./.github/actions/cache/restore
+      with:
+        path: ${{ steps.store-path.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-full-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          node-cache-${{ runner.os }}-pnpm-full-
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [[ "${{ inputs.frozen-lockfile}}" == 'true' ]]; then
+          pnpm install --frozen-lockfile --prefer-offline
+        else
+          pnpm install --no-frozen-lockfile --prefer-offline
+        fi
+
+    - name: Save pnpm cache
+      uses: ./.github/actions/cache/save
+      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      with:
+        path: ${{ steps.store-path.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-full-${{ hashFiles('pnpm-lock.yaml') }}

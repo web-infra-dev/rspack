@@ -60,7 +60,7 @@ async function build() {
 
 		let cp = spawn("napi", args, {
 			stdio: "inherit",
-			shell: true
+			shell: true,
 		});
 
 		cp.on("error", reject);
