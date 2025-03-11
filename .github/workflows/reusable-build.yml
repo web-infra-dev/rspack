@@ -201,10 +201,33 @@ jobs:
       - name: Upload artifact
         id: upload-artifact
         uses: ./.github/actions/artifact/upload
-        if: ${{ steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        if: ${{ inputs.target != 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/*.node
+          try-local-cache: ${{ inputs.profile == 'ci' }}
+          mv-when-local: true
+
+      # WASM
+      - name: Build wasm32-wasip1-threads with linux in Docker
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        uses: ./.github/actions/docker-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
+          plugin: false
+          pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
+
+      - name: Upload wasm artifact
+        id: upload-wasm-artifact
+        uses: ./.github/actions/artifact/upload
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && steps.check_cache.outputs.exists != 'true' && !inputs.skipable }}
+        with:
+          name: bindings-wasm32-wasi
+          path: crates/node_binding/rspack.wasm32-wasi.wasm
+          try-local-cache: ${{ inputs.profile == 'ci' }}
+          mv-when-local: true
 
   e2e:
     name: E2E Testing
@@ -358,8 +381,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{ github.sha }}
-
-      
 
   bench:
     name: Bench

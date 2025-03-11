@@ -7,12 +7,14 @@ repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+otel = ["opentelemetry", "opentelemetry-otlp", "opentelemetry_sdk", "tracing-opentelemetry"]
 
 [dependencies]
-opentelemetry         = "0.26.0"
-opentelemetry-otlp    = "0.26.0"
-opentelemetry_sdk     = { version = "0.26.0", features = ["rt-tokio"] }
+opentelemetry         = { version = "0.26.0", optional = true }
+opentelemetry-otlp    = { version = "0.26.0", optional = true }
+opentelemetry_sdk     = { version = "0.26.0", features = ["rt-tokio"], optional = true }
 tracing               = { workspace = true }
 tracing-chrome        = "0.7.2"
-tracing-opentelemetry = "0.27.0"
+tracing-opentelemetry = { version = "0.27.0", optional = true }
 tracing-subscriber    = { workspace = true, features = ["env-filter"] }

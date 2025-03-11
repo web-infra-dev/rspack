@@ -148,10 +148,15 @@ impl JsModule {
   pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
     let (_, module) = self.as_ref()?;
 
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.user_request()),
-      Err(_) => Either::B(()),
-    })
+    if let Ok(normal_module) = module.try_as_normal_module() {
+      return Ok(Either::A(normal_module.user_request()));
+    }
+
+    if let Ok(external_module) = module.try_as_external_module() {
+      return Ok(Either::A(external_module.user_request()));
+    }
+
+    Ok(Either::B(()))
   }
 
   #[napi(setter)]
@@ -161,6 +166,8 @@ impl JsModule {
         let module: &mut dyn Module = self.as_mut()?;
         if let Ok(normal_module) = module.try_as_normal_module_mut() {
           *normal_module.user_request_mut() = val;
+        } else if let Ok(external_module) = module.try_as_external_module_mut() {
+          *external_module.user_request_mut() = val;
         }
       }
       Either::B(_) => {}

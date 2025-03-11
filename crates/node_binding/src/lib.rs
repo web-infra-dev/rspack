@@ -19,7 +19,6 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
 use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
-use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
 
 mod asset;
 mod asset_condition;
@@ -88,7 +87,7 @@ pub use resolver::*;
 use resolver_factory::*;
 pub use resource_data::*;
 pub use rsdoctor::*;
-use rspack_tracing::{ChromeTracer, OtelTracer, StdoutTracer, Tracer};
+use rspack_tracing::{ChromeTracer, StdoutTracer, Tracer};
 pub use runtime::*;
 use rustc_hash::FxHashMap;
 pub use source::*;
@@ -337,6 +336,7 @@ enum TraceState {
   Off,
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[ctor]
 fn init() {
   panic::install_panic_handler();
@@ -389,7 +389,12 @@ pub fn register_global_trace(
     if let TraceState::Off = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "chrome" => Box::new(ChromeTracer::default()),
-        "otel" => Box::new(within_runtime_if_available(OtelTracer::default)),
+        #[cfg(not(target_family = "wasm"))]
+        "otel" => {
+          use rspack_tracing::OtelTracer;
+          use rspack_napi::napi::bindgen_prelude::within_runtime_if_available;
+          Box::new(within_runtime_if_available(OtelTracer::default))
+        },
         "logger" => Box::new(StdoutTracer),
         _ => anyhow::bail!(
           "Unexpected layer: {}, supported layers: 'chrome', 'logger', 'console' and 'otel' ",
