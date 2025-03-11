@@ -137,7 +137,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
     let chunk_ukey = self.chunk_ukey;
-    let res = block_on(async {
+    let res = block_on(tokio::task::unconstrained(async {
       hooks
         .create_script
         .call(CreateScriptData {
@@ -149,7 +149,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
           },
         })
         .await
-    })?;
+    }))?;
 
     Ok(
       RawStringSource::from(

@@ -274,7 +274,8 @@ type HtmlRspackPluginOptions = {
       name: '`sri`',
       type: '`"sha256"" | "sha384"" | "sha512"" | undefined`',
       default: '`undefined`',
-      description: 'The SRI hash algorithm, disabled by default.',
+      description:
+        '<p>**Deprecated**: use [`SubresourceIntegrityPlugin`](./subresource-integrity-plugin) instead.</p><p>Configure the SRI hash algorithm, which is disabled by default.</p>',
     },
     {
       name: '`minify`',

@@ -272,7 +272,8 @@ type HtmlRspackPluginOptions = {
       name: '`sri`',
       type: '`"sha256"" | "sha384"" | "sha512"" | undefined`',
       default: '`undefined`',
-      description: 'SRI hash 算法，默认不开启 SRI',
+      description:
+        '<p>**已废弃**：请使用 [`SubresourceIntegrityPlugin`](./subresource-integrity-plugin) 代替。</p><p>配置 SRI hash 算法，默认不开启 SRI。</p>',
     },
     {
       name: '`minify`',

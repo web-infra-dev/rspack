@@ -200,6 +200,7 @@ npm/**/*.node
 !npm/darwin-arm64/
 !npm/darwin-x64/
 !npm/linux-x64-gnu/
+!npm/wasm32-wasi
 !npm/win32-x64-msvc/
 
 # Precompiled config schema
