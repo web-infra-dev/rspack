@@ -4,9 +4,8 @@ use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
-  parse_resource, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation,
-  CompilationAsset, CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, ResourceData,
-  ResourceParsedData, RuntimeModuleStage, SourceType,
+  BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
+  CompilerId, LibIdentOptions, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
@@ -17,7 +16,7 @@ use rspack_util::source_map::SourceMapKind;
 use super::JsCompatSourceOwned;
 use crate::{
   AssetInfo, ContextModule, DependencyWrapper, JsChunkWrapper, JsCodegenerationResults,
-  JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, JsResourceData, ToJsCompatSource,
+  JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, NormalModule, ToJsCompatSource,
   COMPILER_REFERENCES,
 };
 
@@ -108,16 +107,6 @@ impl Module {
     })
   }
 
-  #[napi(getter)]
-  pub fn resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(&normal_module.resource_resolved_data().resource),
-      Err(_) => Either::B(()),
-    })
-  }
-
   #[napi]
   pub fn identifier(&mut self) -> napi::Result<&str> {
     let (_, module) = self.as_ref()?;
@@ -132,65 +121,6 @@ impl Module {
     Ok(match module.name_for_condition() {
       Some(s) => Either::A(s.to_string()),
       None => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.request()),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.user_request()),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(setter)]
-  pub fn set_user_request(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    match val {
-      Either::A(val) => {
-        let module: &mut dyn rspack_core::Module = self.as_mut()?;
-        if let Ok(normal_module) = module.try_as_normal_module_mut() {
-          *normal_module.user_request_mut() = val;
-        }
-      }
-      Either::B(_) => {}
-    }
-    Ok(())
-  }
-
-  #[napi(getter)]
-  pub fn raw_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => Either::A(normal_module.raw_request()),
-      Err(_) => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.try_as_normal_module() {
-      Ok(normal_module) => match normal_module.factory_meta() {
-        Some(meta) => Either::A(JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
-        }),
-        None => Either::B(()),
-      },
-      Err(_) => Either::B(()),
     })
   }
 
@@ -299,51 +229,6 @@ impl Module {
     )
   }
 
-  #[napi(getter)]
-  pub fn resource_resolve_data(&mut self) -> napi::Result<Either<JsResourceData, ()>> {
-    let (_, module) = self.as_ref()?;
-    Ok(match module.as_normal_module() {
-      Some(module) => Either::A(module.resource_resolved_data().into()),
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn match_resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    let (_, module) = self.as_ref()?;
-    Ok(match module.as_normal_module() {
-      Some(module) => match &module.match_resource() {
-        Some(match_resource) => Either::A(&match_resource.resource),
-        None => Either::B(()),
-      },
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(setter)]
-  pub fn set_match_resource(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    match val {
-      Either::A(val) => {
-        let module: &mut dyn rspack_core::Module = self.as_mut()?;
-        if let Ok(normal_module) = module.try_as_normal_module_mut() {
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&val).expect("Should parse resource");
-          *normal_module.match_resource_mut() = Some(
-            ResourceData::new(val)
-              .path(path)
-              .query_optional(query)
-              .fragment_optional(fragment),
-          );
-        }
-      }
-      Either::B(_) => {}
-    }
-    Ok(())
-  }
-
   #[napi(js_name = "_emitFile")]
   pub fn emit_file(
     &mut self,
@@ -363,7 +248,11 @@ impl Module {
   }
 }
 
-type ModuleInstanceRef = Either<OneShotInstanceRef<ContextModule>, OneShotInstanceRef<Module>>;
+type ModuleInstanceRef = Either3<
+  OneShotInstanceRef<NormalModule>,
+  OneShotInstanceRef<ContextModule>,
+  OneShotInstanceRef<Module>,
+>;
 
 type ModuleInstanceRefs = IdentifierMap<ModuleInstanceRef>;
 
@@ -388,7 +277,9 @@ unsafe impl Send for ModuleWrapper {}
 
 impl ModuleWrapper {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
-    let type_id = if module.as_context_module().is_some() {
+    let type_id = if module.as_normal_module().is_some() {
+      TypeId::of::<rspack_core::NormalModule>()
+    } else if module.as_context_module().is_some() {
       TypeId::of::<rspack_core::ContextModule>()
     } else {
       TypeId::of::<dyn rspack_core::Module>()
@@ -458,13 +349,15 @@ impl ToNapiValue for ModuleWrapper {
         std::collections::hash_map::Entry::Occupied(mut entry) => {
           let instance_ref = entry.get_mut();
           let instance = match instance_ref {
-            Either::A(context_module) => &mut context_module.module,
-            Either::B(module) => &mut **module,
+            Either3::A(normal_module) => &mut normal_module.module,
+            Either3::B(context_module) => &mut context_module.module,
+            Either3::C(module) => &mut **module,
           };
           instance.module = val.module;
           match instance_ref {
-            Either::A(r) => ToNapiValue::to_napi_value(env, r),
-            Either::B(r) => ToNapiValue::to_napi_value(env, r),
+            Either3::A(r) => ToNapiValue::to_napi_value(env, r),
+            Either3::B(r) => ToNapiValue::to_napi_value(env, r),
+            Either3::C(r) => ToNapiValue::to_napi_value(env, r),
           }
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
@@ -488,18 +381,23 @@ impl ToNapiValue for ModuleWrapper {
                 Ok(())
               };
 
-              let instance_ref = if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
+              let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
+                let instance = NormalModule { module: js_module }.into_instance(&env_wrapper)?;
+                set_named_properties(instance.as_object(&env_wrapper))?;
+                entry.insert(Either3::A(OneShotInstanceRef::from_instance(env, instance)?))
+              } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
                 let instance = ContextModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either::A(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either3::B(OneShotInstanceRef::from_instance(env, instance)?))
               } else {
                 let instance = js_module.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either::B(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either3::C(OneShotInstanceRef::from_instance(env, instance)?))
               };
               match instance_ref {
-                Either::A(r) => ToNapiValue::to_napi_value(env, r),
-                Either::B(r) => ToNapiValue::to_napi_value(env, r),
+                Either3::A(r) => ToNapiValue::to_napi_value(env, r),
+                Either3::B(r) => ToNapiValue::to_napi_value(env, r),
+                Either3::C(r) => ToNapiValue::to_napi_value(env, r),
               }
             },
             None => {

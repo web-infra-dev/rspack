@@ -24,14 +24,8 @@ export declare class ExternalObject<T> {
 export declare class ContextModule {
   get context(): string | undefined
   _originalSource(): JsCompatSource | undefined
-  get resource(): string | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get request(): string | undefined
-  get userRequest(): string | undefined
-  set userRequest(val: string | undefined)
-  get rawRequest(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
@@ -302,6 +296,22 @@ export declare class JsStats {
 export declare class Module {
   get context(): string | undefined
   _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get type(): string
+  get layer(): string | undefined
+  get _blocks(): JsDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  get modules(): Module[] | undefined
+  get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+}
+
+export declare class NormalModule {
+  get context(): string | undefined
+  _originalSource(): JsCompatSource | undefined
   get resource(): string | undefined
   identifier(): string
   nameForCondition(): string | undefined
@@ -315,7 +325,6 @@ export declare class Module {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get modules(): Module[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined

@@ -1,8 +1,8 @@
 use napi::{Either, Env, JsString};
 
 use crate::{
-  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsFactoryMeta,
-  JsLibIdentOptions, Module,
+  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsLibIdentOptions,
+  Module,
 };
 
 #[napi]
@@ -22,11 +22,6 @@ impl ContextModule {
     self.module.original_source(env)
   }
 
-  #[napi(getter)]
-  pub fn resource(&mut self) -> napi::Result<Either<&String, ()>> {
-    self.module.resource()
-  }
-
   #[napi]
   pub fn identifier(&mut self) -> napi::Result<&str> {
     self.module.identifier()
@@ -35,31 +30,6 @@ impl ContextModule {
   #[napi]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     self.module.name_for_condition()
-  }
-
-  #[napi(getter)]
-  pub fn request(&mut self) -> napi::Result<Either<&str, ()>> {
-    self.module.request()
-  }
-
-  #[napi(getter)]
-  pub fn user_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    self.module.user_request()
-  }
-
-  #[napi(setter)]
-  pub fn set_user_request(&mut self, val: Either<String, ()>) -> napi::Result<()> {
-    self.module.set_user_request(val)
-  }
-
-  #[napi(getter)]
-  pub fn raw_request(&mut self) -> napi::Result<Either<&str, ()>> {
-    self.module.raw_request()
-  }
-
-  #[napi(getter)]
-  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
-    self.module.factory_meta()
   }
 
   #[napi(getter)]

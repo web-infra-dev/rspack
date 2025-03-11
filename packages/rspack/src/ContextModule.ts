@@ -1,7 +1,7 @@
 import { type AssetInfo, ContextModule } from "@rspack/binding";
 import type { Source } from "webpack-sources";
-import { DependenciesBlock } from "../DependenciesBlock";
-import { JsSource } from "../util/source";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { JsSource } from "./util/source";
 
 if (!ContextModule.prototype.hasOwnProperty("blocks")) {
 	Object.defineProperty(ContextModule.prototype, "blocks", {

@@ -5,15 +5,52 @@ import { Compilation } from "./Compilation";
 import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 
+import * as binding from "@rspack/binding";
+import type { Source } from "webpack-sources";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { JsSource } from "./util/source";
+
+if (!binding.NormalModule.prototype.hasOwnProperty("blocks")) {
+	Object.defineProperty(binding.NormalModule.prototype, "blocks", {
+		enumerable: true,
+		get(this: binding.NormalModule) {
+			return this._blocks.map(block => DependenciesBlock.__from_binding(block));
+		}
+	});
+}
+if (!binding.NormalModule.prototype.hasOwnProperty("originalSource")) {
+	Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
+		enumerable: true,
+		value(this: binding.NormalModule) {
+			return null;
+		}
+	});
+}
+if (!binding.NormalModule.prototype.hasOwnProperty("emitFile")) {
+	Object.defineProperty(binding.NormalModule.prototype, "emitFile", {
+		enumerable: true,
+		value(
+			this: binding.NormalModule,
+			filename: string,
+			source: Source,
+			assetInfo?: binding.AssetInfo
+		) {
+			return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
+		}
+	});
+}
+
+interface NormalModuleCompilationHooks {
+	loader: liteTapable.SyncHook<[LoaderContext, Module]>;
+	readResourceForScheme: any;
+	readResource: liteTapable.HookMap<
+		liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
+	>;
+}
+
 const compilationHooksMap = new WeakMap<
 	Compilation,
-	{
-		loader: liteTapable.SyncHook<[LoaderContext, Module]>;
-		readResourceForScheme: any;
-		readResource: liteTapable.HookMap<
-			liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
-		>;
-	}
+	NormalModuleCompilationHooks
 >();
 
 const createFakeHook = <T extends Record<string, any>>(
@@ -68,45 +105,62 @@ const deprecateAllProperties = <O extends object>(
 	return newObj;
 };
 
-export class NormalModule {
-	static getCompilationHooks(compilation: Compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
+if (!binding.NormalModule.hasOwnProperty("getCompilationHooks")) {
+	Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
+		enumerable: true,
+		value(compilation: Compilation): NormalModuleCompilationHooks {
+			if (!(compilation instanceof Compilation)) {
+				throw new TypeError(
+					"The 'compilation' argument must be an instance of Compilation"
+				);
+			}
+			let hooks = compilationHooksMap.get(compilation);
+			if (hooks === undefined) {
+				hooks = {
+					loader: new liteTapable.SyncHook(["loaderContext", "module"]),
+					// TODO webpack 6 deprecate
+					readResourceForScheme: new liteTapable.HookMap(scheme => {
+						const hook = hooks!.readResource.for(scheme);
+						return createFakeHook({
+							tap: (options: string, fn: any) =>
+								hook.tap(options, (loaderContext: LoaderContext) =>
+									fn(loaderContext.resource)
+								),
+							tapAsync: (options: string, fn: any) =>
+								hook.tapAsync(
+									options,
+									(loaderContext: LoaderContext, callback: any) =>
+										fn(loaderContext.resource, callback)
+								),
+							tapPromise: (options: string, fn: any) =>
+								hook.tapPromise(options, (loaderContext: LoaderContext) =>
+									fn(loaderContext.resource)
+								)
+						}) as any;
+					}),
+					readResource: new liteTapable.HookMap(
+						() => new liteTapable.AsyncSeriesBailHook(["loaderContext"])
+					)
+				};
+				compilationHooksMap.set(compilation, hooks);
+			}
+			return hooks;
 		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				loader: new liteTapable.SyncHook(["loaderContext", "module"]),
-				// TODO webpack 6 deprecate
-				readResourceForScheme: new liteTapable.HookMap(scheme => {
-					const hook = hooks!.readResource.for(scheme);
-					return createFakeHook({
-						tap: (options: string, fn: any) =>
-							hook.tap(options, (loaderContext: LoaderContext) =>
-								fn(loaderContext.resource)
-							),
-						tapAsync: (options: string, fn: any) =>
-							hook.tapAsync(
-								options,
-								(loaderContext: LoaderContext, callback: any) =>
-									fn(loaderContext.resource, callback)
-							),
-						tapPromise: (options: string, fn: any) =>
-							hook.tapPromise(options, (loaderContext: LoaderContext) =>
-								fn(loaderContext.resource)
-							)
-					}) as any;
-				}),
-				readResource: new liteTapable.HookMap(
-					() => new liteTapable.AsyncSeriesBailHook(["loaderContext"])
-				)
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
+	});
 }
 
-export default NormalModule;
+declare interface NormalModule extends binding.NormalModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+	get blocks(): DependenciesBlock[];
+	originalSource(): Source | null;
+	emitFile(
+		filename: string,
+		source: Source,
+		assetInfo?: binding.AssetInfo
+	): void;
+}
+
+export const NormalModule = binding.NormalModule as unknown as NormalModule & {
+	getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
+};
