@@ -10,7 +10,7 @@ import {
 
 import { Chunk } from "../Chunk";
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
+import type { Module } from "../Module";
 import type {
 	OptimizationSplitChunksCacheGroup,
 	OptimizationSplitChunksOptions

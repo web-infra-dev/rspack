@@ -1,5 +1,5 @@
 import type { Dependency, JsModuleGraphConnection } from "@rspack/binding";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 
 const MODULE_GRAPH_CONNECTION_MAPPINGS = new WeakMap<
 	JsModuleGraphConnection,

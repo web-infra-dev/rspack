@@ -16,7 +16,7 @@ import type {
 	RspackOptionsNormalized,
 	RspackPluginFunction
 } from ".";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import {
 	APIPlugin,
 	ArrayPushCallbackChunkFormatPlugin,

@@ -11,16 +11,6 @@ export type LocalJsFilename = JsFilename;
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
-
-import type { Source } from 'webpack-sources';
-
-export interface Module {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
-	get blocks(): DependenciesBlock[];
-	originalSource(): Source | null;
-	emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
-}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

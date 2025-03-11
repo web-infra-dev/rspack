@@ -1,11 +1,11 @@
 import {
+	type AssetInfo,
 	type Dependency,
 	type JsCodegenerationResult,
 	type JsContextModuleFactoryAfterResolveData,
 	type JsContextModuleFactoryBeforeResolveData,
 	type JsCreateData,
-	Module,
-	AssetInfo
+	Module
 } from "@rspack/binding";
 import type { Source } from "webpack-sources";
 
@@ -217,6 +217,16 @@ if (!Module.prototype.hasOwnProperty("emitFile")) {
 			return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
 		}
 	});
+}
+
+declare module "@rspack/binding" {
+	interface Module {
+		buildInfo: Record<string, any>;
+		buildMeta: Record<string, any>;
+		get blocks(): DependenciesBlock[];
+		originalSource(): Source | null;
+		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
+	}
 }
 
 export { Module } from "@rspack/binding";

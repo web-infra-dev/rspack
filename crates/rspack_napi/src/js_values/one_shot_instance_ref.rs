@@ -23,7 +23,7 @@ impl<T: JavaScriptClassExt + 'static> OneShotInstanceRef<T> {
   pub fn new(env: napi_env, val: T) -> Result<Self> {
     let env_wrapper = Env::from_raw(env);
     let instance = val.into_instance(&env_wrapper)?;
-    return Self::from_instance(env, instance);
+    Self::from_instance(env, instance)
   }
 
   pub fn from_instance(env: napi_env, mut instance: ClassInstance<T>) -> Result<Self> {

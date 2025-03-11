@@ -1,6 +1,6 @@
 import type { Dependency, JsModuleGraph } from "@rspack/binding";
 import { ExportsInfo } from "./ExportsInfo";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import { ModuleGraphConnection } from "./ModuleGraphConnection";
 
 export default class ModuleGraph {

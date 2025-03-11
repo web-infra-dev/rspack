@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
-import { CodeGenerationResult, Module } from "../Module";
+import { CodeGenerationResult, type Module } from "../Module";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,

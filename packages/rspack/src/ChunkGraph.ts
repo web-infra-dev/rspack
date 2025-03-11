@@ -4,7 +4,7 @@ import type { RuntimeSpec } from "./util/runtime";
 import { Chunk } from "./Chunk";
 import { ChunkGroup } from "./ChunkGroup";
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import { toJsRuntimeSpec } from "./util/runtime";
 
 export class ChunkGraph {

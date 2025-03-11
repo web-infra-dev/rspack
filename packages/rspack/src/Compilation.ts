@@ -28,7 +28,7 @@ import type { Compiler } from "./Compiler";
 import type { ContextModuleFactory } from "./ContextModuleFactory";
 import { Entrypoint } from "./Entrypoint";
 import { cutOffLoaderExecution } from "./ErrorHelpers";
-import { type CodeGenerationResult, Module } from "./Module";
+import type { CodeGenerationResult, Module } from "./Module";
 import ModuleGraph from "./ModuleGraph";
 import type { NormalModuleFactory } from "./NormalModuleFactory";
 import type { ResolverFactory } from "./ResolverFactory";

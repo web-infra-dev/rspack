@@ -1,7 +1,7 @@
 import type { JsChunkGroup } from "@rspack/binding";
 
 import { Chunk } from "./Chunk";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 
 const CHUNK_GROUP_MAPPINGS = new WeakMap<JsChunkGroup, ChunkGroup>();
 
