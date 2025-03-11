@@ -481,24 +481,6 @@ checksum = "50fd5174866dc2fa2ddc96e8fb800852d37f064f32a45c7b7c2f8fa2c64c77fa"
 
 [[package]]
 name = "browserslist-rs"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf0ca73de70c3da94e4194e4a01fe732378f55d47cf4c0588caab22a0dbfa14"
-dependencies = [
- "ahash 0.8.11",
- "chrono",
- "either",
- "indexmap 2.7.1",
- "itertools 0.13.0",
- "nom",
- "once_cell",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "browserslist-rs"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74c973b79d9b6b89854493185ab760c6ef8e54bcfad10ad4e33991e46b374ac8"
@@ -2705,13 +2687,13 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.63"
+version = "1.0.0-alpha.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a75fcbcdbcc84fc1ae7c60c31f99337560b620757a9bfc1c9f84df3cff8ac24"
+checksum = "a296273515b1036d06fce6c1d6bfc11347083458e1765ae4a70d6288cdb15521"
 dependencies = [
  "ahash 0.8.11",
  "bitflags 2.6.0",
- "browserslist-rs 0.16.0",
+ "browserslist-rs",
  "const-str",
  "cssparser",
  "cssparser-color",
@@ -3680,7 +3662,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07852df2dda2f0ab8c3407a6fd19e9389563af11c20f6c299bd07ff9fc96d6ae"
 dependencies = [
  "anyhow",
- "browserslist-rs 0.17.0",
+ "browserslist-rs",
  "dashmap 5.5.3",
  "from_variant",
  "once_cell",
@@ -4413,6 +4395,7 @@ name = "rspack_futures"
 version = "0.2.0"
 dependencies = [
  "async-scoped",
+ "futures",
 ]
 
 [[package]]
