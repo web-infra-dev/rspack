@@ -57,6 +57,11 @@ use rspack_core::{
   Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
   StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
 };
+use rspack_error::{
+  miette::{self, Diagnostic},
+  thiserror::{self, Error},
+  Result,
+};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -64,6 +69,16 @@ use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 use target::{get_targets_properties, TargetProperties};
+
+/// Error type for builder
+#[derive(Debug, Clone, Error, Diagnostic)]
+#[diagnostic()]
+#[non_exhaustive]
+pub enum BuilderError {
+  /// Invalid option
+  #[error("Invalid option '{0}': {1}")]
+  Option(/* Accessor */ String, /* Error message */ String),
+}
 
 /// Builder trait
 pub trait Builder {
@@ -432,9 +447,9 @@ impl CompilerBuilder {
 
   /// Build [`Compiler`] from options and plugins.
   #[must_use]
-  pub fn build(&mut self) -> Compiler {
+  pub fn build(&mut self) -> Result<Compiler> {
     let mut builder_context = BuilderContext::default();
-    let compiler_options = self.options_builder.build(&mut builder_context);
+    let compiler_options = self.options_builder.build(&mut builder_context)?;
     let mut plugins = builder_context.take_plugins(&compiler_options);
     plugins.append(&mut self.plugins);
 
@@ -442,7 +457,7 @@ impl CompilerBuilder {
     let intermediate_filesystem = self.intermediate_filesystem.take();
     let output_filesystem = self.output_filesystem.take();
 
-    Compiler::new(
+    Ok(Compiler::new(
       String::new(),
       compiler_options,
       plugins,
@@ -452,7 +467,7 @@ impl CompilerBuilder {
       input_filesystem,
       None,
       None,
-    )
+    ))
   }
 }
 
@@ -878,7 +893,7 @@ impl CompilerOptionsBuilder {
   /// [`BuilderContext`]: crate::builder::BuilderContext
   /// [`CompilerOptions`]: rspack_core::options::CompilerOptions
   #[must_use]
-  pub fn build(&mut self, builder_context: &mut BuilderContext) -> CompilerOptions {
+  pub fn build(&mut self, builder_context: &mut BuilderContext) -> Result<CompilerOptions> {
     let name = self.name.take();
     let context = f!(self.context.take(), || {
       std::env::current_dir()
@@ -926,7 +941,7 @@ impl CompilerOptionsBuilder {
 
     // apply experiments defaults
     let mut experiments_builder = f!(self.experiments.take(), Experiments::builder);
-    let mut experiments = experiments_builder.build(builder_context, development, production);
+    let mut experiments = experiments_builder.build(builder_context, development, production)?;
     // Disable experiments cache if global cache is set to `Disabled`
     if matches!(cache, CacheOptions::Disabled) {
       experiments.cache = ExperimentCacheOptions::Disabled;
@@ -954,7 +969,7 @@ impl CompilerOptionsBuilder {
       css,
       &target_properties,
       &mode,
-    );
+    )?;
 
     // apply output defaults
     let is_affected_by_browserslist = target.iter().any(|t| t.starts_with("browserslist"));
@@ -968,7 +983,7 @@ impl CompilerOptionsBuilder {
       development,
       &self.entry,
       future_defaults,
-    );
+    )?;
 
     // apply devtool plugin
     let devtool_flags = DevtoolFlags::from(devtool);
@@ -1131,8 +1146,8 @@ impl CompilerOptionsBuilder {
     }
 
     // apply node defaults
-    let node =
-      f!(self.node.take(), <Option<NodeOption>>::builder).build(&target_properties, output_module);
+    let node = f!(self.node.take(), <Option<NodeOption>>::builder)
+      .build(&target_properties, output_module)?;
 
     // apply optimization defaults
     let optimization = f!(self.optimization.take(), Optimization::builder).build(
@@ -1140,7 +1155,7 @@ impl CompilerOptionsBuilder {
       development,
       production,
       css,
-    );
+    )?;
 
     // apply resolve defaults
     let resolve = {
@@ -1228,7 +1243,7 @@ impl CompilerOptionsBuilder {
 
     let amd = self.amd.take();
 
-    CompilerOptions {
+    Ok(CompilerOptions {
       name,
       context,
       output,
@@ -1245,7 +1260,7 @@ impl CompilerOptionsBuilder {
       amd,
       bail,
       __references: Default::default(),
-    }
+    })
   }
 }
 
@@ -1527,7 +1542,7 @@ impl NodeOptionBuilder {
     &mut self,
     target_properties: &TargetProperties,
     output_module: bool,
-  ) -> Option<NodeOption> {
+  ) -> Result<Option<NodeOption>> {
     match self {
       NodeOptionBuilder::True {
         dirname,
@@ -1559,13 +1574,13 @@ impl NodeOptionBuilder {
             *filename = Some(NodeFilenameOption::WarnMock);
           }
         }
-        Some(NodeOption {
+        Ok(Some(NodeOption {
           dirname: expect!(dirname.take()),
           global: expect!(global.take()),
           filename: expect!(filename.take()),
-        })
+        }))
       }
-      NodeOptionBuilder::False => None,
+      NodeOptionBuilder::False => Ok(None),
     }
   }
 }
@@ -1657,7 +1672,7 @@ impl ModuleOptionsBuilder {
     css: bool,
     target_properties: &TargetProperties,
     mode: &Mode,
-  ) -> ModuleOptions {
+  ) -> Result<ModuleOptions> {
     let parser = self.parser.get_or_insert(ParserOptionsMap::default());
 
     if !parser.contains_key("asset") {
@@ -1762,7 +1777,7 @@ impl ModuleOptionsBuilder {
 
     let default_rules = default_rules(async_web_assembly, css);
 
-    ModuleOptions {
+    Ok(ModuleOptions {
       rules: vec![
         ModuleRule {
           rules: Some(default_rules),
@@ -1776,7 +1791,7 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-    }
+    })
   }
 }
 
@@ -2621,7 +2636,7 @@ impl OutputOptionsBuilder {
     development: bool,
     entry: &IndexMap<String, EntryDescription>,
     _future_defaults: bool,
-  ) -> OutputOptions {
+  ) -> Result<OutputOptions> {
     let tp = target_properties;
 
     let path = f!(self.path.take(), || { context.as_path().join("dist") });
@@ -2792,8 +2807,9 @@ impl OutputOptionsBuilder {
       )
     });
 
-    // TODO: do not panic
-    let chunk_format = f!(self.chunk_format.take(), || {
+    let chunk_format = if let Some(chunk_format) = self.chunk_format.take() {
+      chunk_format
+    } else {
       if let Some(tp) = tp {
         let help_message = if is_affected_by_browserslist {
           "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
@@ -2807,7 +2823,7 @@ impl OutputOptionsBuilder {
           } else if tp.document() {
             "array-push".to_string()
           } else {
-            panic!("For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n{help_message}");
+            return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default ESM chunk format available:\nESM exports can be chosen when 'import()' is available.\nJSONP Array push can be chosen when 'document' is available.\n{help_message}")).into());
           }
         } else if tp.document() {
           "array-push".to_string()
@@ -2816,12 +2832,18 @@ impl OutputOptionsBuilder {
         } else if tp.import_scripts() {
           "array-push".to_string()
         } else {
-          panic!("For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n{help_message}");
+          return Err(BuilderError::Option("output.chunk_format".to_string(), format!("For the selected environment is no default script chunk format available:\nJSONP Array push can be chosen when 'document' or 'importScripts' is available.\nCommonJs exports can be chosen when 'require' or node builtins are available.\n{help_message}")).into());
         }
       } else {
-        panic!("Chunk format can't be selected by default when no target is specified");
+        return Err(
+          BuilderError::Option(
+            "output.chunk_format".to_string(),
+            "Chunk format can't be selected by default when no target is specified".to_string(),
+          )
+          .into(),
+        );
       }
-    });
+    };
 
     match &*chunk_format {
       "array-push" => {
@@ -3068,7 +3090,7 @@ impl OutputOptionsBuilder {
     environment.module = tp.map(|t| conditionally_optimistic!(t.module, output_module));
     environment.document = tp.map(|t| optimistic!(t.document));
 
-    OutputOptions {
+    Ok(OutputOptions {
       path,
       pathinfo,
       clean,
@@ -3110,7 +3132,7 @@ impl OutputOptionsBuilder {
       script_type,
       environment,
       compare_before_emit: self.compare_before_emit.take().unwrap_or(true),
-    }
+    })
   }
 }
 
@@ -3370,7 +3392,7 @@ impl OptimizationOptionsBuilder {
     development: bool,
     production: bool,
     _css: bool,
-  ) -> Optimization {
+  ) -> Result<Optimization> {
     let remove_available_modules = d!(self.remove_available_modules, false);
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
@@ -3417,7 +3439,13 @@ impl OptimizationOptionsBuilder {
           .push(BuiltinPluginOptions::NaturalModuleIdsPlugin);
       }
       _ => {
-        panic!("moduleIds: {module_ids} is not implemented");
+        return Err(
+          BuilderError::Option(
+            "optimization.module_ids".to_string(),
+            format!("{module_ids} is not implemented"),
+          )
+          .into(),
+        );
       }
     }
 
@@ -3467,7 +3495,13 @@ impl OptimizationOptionsBuilder {
       }
 
       _ => {
-        panic!("chunkIds: {chunk_ids} is not implemented");
+        return Err(
+          BuilderError::Option(
+            "optimization.chunk_ids".to_string(),
+            format!("{chunk_ids} is not implemented"),
+          )
+          .into(),
+        );
       }
     }
 
@@ -3583,7 +3617,7 @@ impl OptimizationOptionsBuilder {
         ));
     }
 
-    Optimization {
+    Ok(Optimization {
       remove_available_modules,
       side_effects,
       provided_exports,
@@ -3593,7 +3627,7 @@ impl OptimizationOptionsBuilder {
       concatenate_modules,
       avoid_entry_iife,
       real_content_hash,
-    }
+    })
   }
 }
 
@@ -3717,7 +3751,7 @@ impl ExperimentsBuilder {
     _builder_context: &mut BuilderContext,
     development: bool,
     production: bool,
-  ) -> Experiments {
+  ) -> Result<Experiments> {
     let layers = d!(self.layers, false);
     let incremental = f!(self.incremental.take(), || {
       if !production {
@@ -3744,14 +3778,14 @@ impl ExperimentsBuilder {
 
     let parallel_code_splitting = d!(self.parallel_code_splitting, false);
 
-    Experiments {
+    Ok(Experiments {
       layers,
       incremental,
       top_level_await,
       rspack_future,
       parallel_code_splitting,
       cache,
-    }
+    })
   }
 }
 
@@ -3772,7 +3806,8 @@ mod test {
     let compiler_options = CompilerOptions::builder()
       .mode(Mode::Production)
       .target(vec!["web".to_string()])
-      .build(&mut context);
+      .build(&mut context)
+      .unwrap();
     context.plugins.sort_by_key(|p| p.tag());
 
     type BuiltinPluginOptionsTag = <BuiltinPluginOptions as EnumTag>::Tag;
