@@ -11,6 +11,26 @@ export type LocalJsFilename = JsFilename;
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export interface Module {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface NormalModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface ConcatenatedModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface ContextModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -26,6 +46,7 @@ export declare class ConcatenatedModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
@@ -42,6 +63,7 @@ export declare class ContextModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
@@ -126,7 +148,7 @@ export declare class JsChunkGraph {
   getChunkEntryDependentChunksIterable(chunk: JsChunk): JsChunk[]
   getChunkModulesIterableBySourceType(chunk: JsChunk, sourceType: string): Module[]
   getModuleChunks(module: Module): JsChunk[]
-  getModuleId(jsModule: Module): string | null
+  getModuleId(module: Module): string | null
   getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
   getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
 }
@@ -273,7 +295,7 @@ export declare class JsExportsInfo {
 export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
-  getUsedExports(jsModule: Module, jsRuntime: string | Array<string>): boolean | Array<string> | null
+  getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
   getConnection(dependency: Dependency): JsModuleGraphConnection | null
@@ -314,6 +336,7 @@ export declare class Module {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
   get type(): string
   get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]

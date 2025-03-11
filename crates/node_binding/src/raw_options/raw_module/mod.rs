@@ -22,7 +22,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 
 use crate::RawResolveOptions;
-use crate::{JsFilename, ModuleWrapper};
+use crate::{JsFilename, ModuleObject};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -615,14 +615,14 @@ struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 pub struct RawAssetGeneratorDataUrlFnCtx {
   pub filename: String,
   #[napi(ts_type = "Module")]
-  pub module: ModuleWrapper,
+  pub module: ModuleObject,
 }
 
 impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
   fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
     Self {
       filename: value.filename,
-      module: ModuleWrapper::with_ref(value.module, value.compilation.compiler_id()),
+      module: ModuleObject::with_ref(value.module, value.compilation.compiler_id()),
     }
   }
 }

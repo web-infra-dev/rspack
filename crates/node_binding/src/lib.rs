@@ -110,7 +110,7 @@ thread_local! {
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
   let revoked_modules = external.take();
-  ModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
   Ok(())
 }
 
@@ -320,7 +320,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
-    ModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    ModuleObject::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }

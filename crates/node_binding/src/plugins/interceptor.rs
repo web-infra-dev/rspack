@@ -82,7 +82,7 @@ use crate::{
   JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch,
   JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
   JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleWrapper,
+  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleObject,
   ToJsCompatSourceOwned,
 };
 
@@ -466,15 +466,15 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_build_module_taps: RegisterFunction<ModuleWrapper, ()>,
+  pub register_compilation_build_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_still_valid_module_taps: RegisterFunction<ModuleWrapper, ()>,
+  pub register_compilation_still_valid_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Module) => void); stage: number; }>"
   )]
-  pub register_compilation_succeed_module_taps: RegisterFunction<ModuleWrapper, ()>,
+  pub register_compilation_succeed_module_taps: RegisterFunction<ModuleObject, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>"
   )]
@@ -729,7 +729,7 @@ define_register!(
 /* Compilation Hooks */
 define_register!(
   RegisterCompilationBuildModuleTaps,
-  tap = CompilationBuildModuleTap<ModuleWrapper, ()> @ CompilationBuildModuleHook,
+  tap = CompilationBuildModuleTap<ModuleObject, ()> @ CompilationBuildModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationBuildModule,
@@ -737,7 +737,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationStillValidModuleTaps,
-  tap = CompilationStillValidModuleTap<ModuleWrapper, ()> @ CompilationStillValidModuleHook,
+  tap = CompilationStillValidModuleTap<ModuleObject, ()> @ CompilationStillValidModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationStillValidModule,
@@ -745,7 +745,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationSucceedModuleTaps,
-  tap = CompilationSucceedModuleTap<ModuleWrapper, ()> @ CompilationSucceedModuleHook,
+  tap = CompilationSucceedModuleTap<ModuleObject, ()> @ CompilationSucceedModuleHook,
   cache = true,
   sync = false,
   kind = RegisterJsTapKind::CompilationSucceedModule,
@@ -1199,7 +1199,7 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleWrapper::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
@@ -1223,7 +1223,7 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleWrapper::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))
@@ -1247,7 +1247,7 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     #[allow(clippy::unwrap_used)]
     let _ = self
       .function
-      .call_with_sync(ModuleWrapper::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
         compiler_id,
       ))

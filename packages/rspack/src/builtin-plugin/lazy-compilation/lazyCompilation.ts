@@ -1,4 +1,5 @@
-import { BuiltinPluginName, type Module } from "@rspack/binding";
+import { BuiltinPluginName } from "@rspack/binding";
+import type { Module } from "../../Module";
 
 import { create } from "../base";
 

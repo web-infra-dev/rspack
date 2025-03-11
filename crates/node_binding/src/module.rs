@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationAsset,
-  CompilerId, LibIdentOptions, ModuleIdentifier, RuntimeModuleStage, SourceType,
+  CompilerId, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
 };
 use rspack_napi::{
   napi::bindgen_prelude::*, threadsafe_function::ThreadsafeFunction, OneShotInstanceRef,
@@ -15,9 +15,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, ContextModule, DependencyWrapper, JsChunkWrapper, JsCodegenerationResults,
-  JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, NormalModule, ToJsCompatSource,
-  COMPILER_REFERENCES,
+  AssetInfo, ConcatenatedModule, ContextModule, DependencyWrapper, JsChunkWrapper,
+  JsCodegenerationResults, JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, NormalModule,
+  ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -125,6 +125,21 @@ impl Module {
   }
 
   #[napi(getter)]
+  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
+    let (_, module) = self.as_ref()?;
+
+    Ok(match module.as_normal_module() {
+      Some(normal_module) => match normal_module.factory_meta() {
+        Some(meta) => Either::A(JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        }),
+        None => Either::B(()),
+      },
+      None => Either::B(()),
+    })
+  }
+
+  #[napi(getter)]
   pub fn get_type(&mut self) -> napi::Result<&str> {
     let (_, module) = self.as_ref()?;
 
@@ -227,37 +242,46 @@ impl Module {
   }
 }
 
-type ModuleInstanceRef = Either3<
+type ModuleInstanceNapiRef = Either4<
   OneShotInstanceRef<NormalModule>,
+  OneShotInstanceRef<ConcatenatedModule>,
   OneShotInstanceRef<ContextModule>,
   OneShotInstanceRef<Module>,
 >;
 
-type ModuleInstanceRefs = IdentifierMap<ModuleInstanceRef>;
+type ModuleInstanceRef<'a> =
+  Either4<&'a NormalModule, &'a ConcatenatedModule, &'a ContextModule, &'a Module>;
 
-type ModuleInstanceRefsByCompilerId = RefCell<UkeyMap<CompilerId, ModuleInstanceRefs>>;
+type ModuleInstanceMutRef<'a> =
+  Either4<&'a mut NormalModule, &'a mut ConcatenatedModule, &'a mut ContextModule, &'a mut Module>;
+
+type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
+
+type ModuleInstanceNapiRefsByCompilerId = RefCell<UkeyMap<CompilerId, ModuleInstanceNapiRefs>>;
 
 thread_local! {
-  static MODULE_INSTANCE_REFS: ModuleInstanceRefsByCompilerId = Default::default();
+  static MODULE_INSTANCE_REFS: ModuleInstanceNapiRefsByCompilerId = Default::default();
 }
 
-// The difference between ModuleWrapper and Module is:
-// ModuleWrapper maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
+// The difference between ModuleObject and Module is:
+// ModuleObject maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
 //
-// This means that when transferring a Module from Rust to JS, you must use ModuleWrapper instead.
-pub struct ModuleWrapper {
+// This means that when transferring a Module from Rust to JS, you must use ModuleObject instead.
+pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
   module: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
 }
 
-unsafe impl Send for ModuleWrapper {}
+unsafe impl Send for ModuleObject {}
 
-impl ModuleWrapper {
+impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
     let type_id = if module.as_normal_module().is_some() {
       TypeId::of::<rspack_core::NormalModule>()
+    } else if module.as_concatenated_module().is_some() {
+      TypeId::of::<rspack_core::ConcatenatedModule>()
     } else if module.as_context_module().is_some() {
       TypeId::of::<rspack_core::ContextModule>()
     } else {
@@ -311,7 +335,7 @@ impl ModuleWrapper {
   }
 }
 
-impl ToNapiValue for ModuleWrapper {
+impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
@@ -328,15 +352,17 @@ impl ToNapiValue for ModuleWrapper {
         std::collections::hash_map::Entry::Occupied(mut entry) => {
           let instance_ref = entry.get_mut();
           let instance = match instance_ref {
-            Either3::A(normal_module) => &mut normal_module.module,
-            Either3::B(context_module) => &mut context_module.module,
-            Either3::C(module) => &mut **module,
+            Either4::A(normal_module) => &mut normal_module.module,
+            Either4::B(concatenated_module) => &mut concatenated_module.module,
+            Either4::C(context_module) => &mut context_module.module,
+            Either4::D(module) => &mut **module,
           };
           instance.module = val.module;
           match instance_ref {
-            Either3::A(r) => ToNapiValue::to_napi_value(env, r),
-            Either3::B(r) => ToNapiValue::to_napi_value(env, r),
-            Either3::C(r) => ToNapiValue::to_napi_value(env, r),
+            Either4::A(r) => ToNapiValue::to_napi_value(env, r),
+            Either4::B(r) => ToNapiValue::to_napi_value(env, r),
+            Either4::C(r) => ToNapiValue::to_napi_value(env, r),
+            Either4::D(r) => ToNapiValue::to_napi_value(env, r),
           }
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
@@ -363,20 +389,25 @@ impl ToNapiValue for ModuleWrapper {
               let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
                 let instance = NormalModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either3::A(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either4::A(OneShotInstanceRef::from_instance(env, instance)?))
+              } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
+                let instance = ConcatenatedModule { module: js_module }.into_instance(&env_wrapper)?;
+                set_named_properties(instance.as_object(&env_wrapper))?;
+                entry.insert(Either4::B(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
                 let instance = ContextModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either3::B(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either4::C(OneShotInstanceRef::from_instance(env, instance)?))
               } else {
                 let instance = js_module.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either3::C(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either4::D(OneShotInstanceRef::from_instance(env, instance)?))
               };
               match instance_ref {
-                Either3::A(r) => ToNapiValue::to_napi_value(env, r),
-                Either3::B(r) => ToNapiValue::to_napi_value(env, r),
-                Either3::C(r) => ToNapiValue::to_napi_value(env, r),
+                Either4::A(r) => ToNapiValue::to_napi_value(env, r),
+                Either4::B(r) => ToNapiValue::to_napi_value(env, r),
+                Either4::C(r) => ToNapiValue::to_napi_value(env, r),
+                Either4::D(r) => ToNapiValue::to_napi_value(env, r),
               }
             },
             None => {
@@ -392,24 +423,60 @@ impl ToNapiValue for ModuleWrapper {
   }
 }
 
-impl FromNapiValue for ModuleWrapper {
+impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let instance: Either<&mut ContextModule, &mut Module> =
-      FromNapiValue::from_napi_value(env, napi_val)?;
+    let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
-    let (js_module, type_id) = match instance {
-      Either::A(context_module) => (
-        &mut context_module.module,
-        TypeId::of::<rspack_core::ContextModule>(),
-      ),
-      Either::B(module) => (module, TypeId::of::<dyn rspack_core::Module>()),
-    };
+    Ok(match instance {
+      Either4::A(normal_module) => Self {
+        type_id: TypeId::of::<rspack_core::NormalModule>(),
+        identifier: normal_module.module.identifier,
+        module: normal_module.module.module.take(),
+        compiler_id: normal_module.module.compiler_id,
+      },
+      Either4::B(concatenated_module) => Self {
+        type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
+        identifier: concatenated_module.module.identifier,
+        module: concatenated_module.module.module.take(),
+        compiler_id: concatenated_module.module.compiler_id,
+      },
+      Either4::C(context_module) => Self {
+        type_id: TypeId::of::<rspack_core::ContextModule>(),
+        identifier: context_module.module.identifier,
+        module: context_module.module.module.take(),
+        compiler_id: context_module.module.compiler_id,
+      },
+      Either4::D(module) => Self {
+        type_id: TypeId::of::<dyn rspack_core::Module>(),
+        identifier: module.identifier,
+        module: module.module.take(),
+        compiler_id: module.compiler_id,
+      },
+    })
+  }
+}
 
-    Ok(ModuleWrapper {
-      type_id,
-      identifier: js_module.identifier,
-      module: js_module.module.take(),
-      compiler_id: js_module.compiler_id,
+pub struct ModuleObjectRef {
+  pub(crate) identifier: ModuleIdentifier,
+}
+
+impl FromNapiValue for ModuleObjectRef {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
+
+    Ok(match instance {
+      Either4::A(normal_module) => Self {
+        identifier: normal_module.module.identifier,
+      },
+      Either4::B(concatenated_module) => Self {
+        identifier: concatenated_module.module.identifier,
+      },
+      Either4::C(context_module) => Self {
+        identifier: context_module.module.identifier,
+      },
+      Either4::D(module) => Self {
+        identifier: module.identifier,
+      },
     })
   }
 }

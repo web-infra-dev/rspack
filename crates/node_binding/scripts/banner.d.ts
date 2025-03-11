@@ -11,6 +11,26 @@ export type LocalJsFilename = JsFilename;
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
+
+export interface Module {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface NormalModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface ConcatenatedModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
+
+export interface ContextModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */

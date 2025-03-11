@@ -1,8 +1,8 @@
 use napi::{Either, Env, JsString};
 
 use crate::{
-  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsLibIdentOptions,
-  Module, ModuleWrapper,
+  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsFactoryMeta,
+  JsLibIdentOptions, Module, ModuleObject,
 };
 
 #[napi]
@@ -30,6 +30,11 @@ impl ConcatenatedModule {
   #[napi]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     self.module.name_for_condition()
+  }
+
+  #[napi(getter)]
+  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
+    self.module.factory_meta()
   }
 
   #[napi(getter)]
@@ -82,7 +87,7 @@ impl ConcatenatedModule {
   }
 
   #[napi(getter, ts_return_type = "Module[] | undefined")]
-  pub fn modules(&mut self) -> napi::Result<Either<Vec<ModuleWrapper>, ()>> {
+  pub fn modules(&mut self) -> napi::Result<Either<Vec<ModuleObject>, ()>> {
     let (compilation, module) = self.module.as_ref()?;
 
     Ok(match module.as_concatenated_module() {
@@ -93,7 +98,7 @@ impl ConcatenatedModule {
           .filter_map(|inner_module_info| {
             compilation
               .module_by_identifier(&inner_module_info.id)
-              .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+              .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
           })
           .collect::<Vec<_>>();
         Either::A(inner_modules)

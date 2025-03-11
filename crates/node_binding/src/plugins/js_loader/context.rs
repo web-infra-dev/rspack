@@ -9,7 +9,7 @@ use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
 use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
 use tracing::Span;
 
-use crate::{JsResourceData, JsRspackError, ModuleWrapper};
+use crate::{JsResourceData, JsRspackError, ModuleObject};
 
 #[napi(object)]
 pub struct JsLoaderItem {
@@ -63,7 +63,7 @@ pub struct JsLoaderContext {
   #[napi(js_name = "_moduleIdentifier", ts_type = "Readonly<string>")]
   pub module_identifier: String,
   #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleWrapper,
+  pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
@@ -108,7 +108,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
       module_identifier: module.identifier().to_string(),
-      module: ModuleWrapper::with_ptr(
+      module: ModuleObject::with_ptr(
         NonNull::new(module as *const dyn Module as *mut dyn Module).unwrap(),
         cx.context.compiler_id,
       ),

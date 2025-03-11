@@ -5,8 +5,8 @@ use napi_derive::napi;
 use rspack_core::{ChunkGraph, Compilation, SourceType};
 
 use crate::{
-  JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsRuntimeSpec, Module,
-  ModuleWrapper,
+  JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsRuntimeSpec, ModuleObject,
+  ModuleObjectRef,
 };
 
 #[napi]
@@ -31,7 +31,7 @@ impl JsChunkGraph {
 #[napi]
 impl JsChunkGraph {
   #[napi(ts_return_type = "Module[]")]
-  pub fn get_chunk_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleWrapper>> {
+  pub fn get_chunk_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     let module_graph = compilation.get_module_graph();
@@ -42,13 +42,13 @@ impl JsChunkGraph {
     Ok(
       modules
         .iter()
-        .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+        .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi(ts_return_type = "Module[]")]
-  pub fn get_chunk_entry_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleWrapper>> {
+  pub fn get_chunk_entry_modules(&self, chunk: &JsChunk) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     let modules = compilation
@@ -59,7 +59,7 @@ impl JsChunkGraph {
       modules
         .iter()
         .filter_map(|module| module_graph.module_by_identifier(module))
-        .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+        .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         .collect::<Vec<_>>(),
     )
   }
@@ -103,7 +103,7 @@ impl JsChunkGraph {
     &self,
     chunk: &JsChunk,
     source_type: String,
-  ) -> Result<Vec<ModuleWrapper>> {
+  ) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -114,13 +114,13 @@ impl JsChunkGraph {
           SourceType::from(source_type.as_str()),
           &compilation.get_module_graph(),
         )
-        .map(|module| ModuleWrapper::with_ref(module, compilation.compiler_id()))
+        .map(|module| ModuleObject::with_ref(module, compilation.compiler_id()))
         .collect(),
     )
   }
 
-  #[napi(ts_return_type = "JsChunk[]")]
-  pub fn get_module_chunks(&self, module: &Module) -> Result<Vec<JsChunkWrapper>> {
+  #[napi(ts_args_type = "module: Module", ts_return_type = "JsChunk[]")]
+  pub fn get_module_chunks(&self, module: ModuleObjectRef) -> Result<Vec<JsChunkWrapper>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -133,11 +133,11 @@ impl JsChunkGraph {
     )
   }
 
-  #[napi]
-  pub fn get_module_id(&self, js_module: &Module) -> napi::Result<Option<&str>> {
+  #[napi(ts_args_type = "module: Module")]
+  pub fn get_module_id(&self, module: ModuleObjectRef) -> napi::Result<Option<&str>> {
     let compilation = self.as_ref()?;
     Ok(
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, js_module.identifier)
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier)
         .map(|module_id| module_id.as_str()),
     )
   }
@@ -145,7 +145,7 @@ impl JsChunkGraph {
   #[napi(ts_args_type = "module: Module, runtime: string | string[] | undefined")]
   pub fn get_module_hash(
     &self,
-    js_module: &Module,
+    js_module: ModuleObjectRef,
     js_runtime: JsRuntimeSpec,
   ) -> napi::Result<Option<&str>> {
     let compilation = self.as_ref()?;

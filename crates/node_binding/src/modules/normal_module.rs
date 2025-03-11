@@ -1,5 +1,5 @@
 use napi::{Either, Env, JsString};
-use rspack_core::{parse_resource, Module as _, ResourceData, ResourceParsedData};
+use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
 use crate::{
   AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsFactoryMeta,
@@ -89,17 +89,7 @@ impl NormalModule {
 
   #[napi(getter)]
   pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
-    let (_, module) = self.module.as_ref()?;
-
-    Ok(match module.as_normal_module() {
-      Some(normal_module) => match normal_module.factory_meta() {
-        Some(meta) => Either::A(JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
-        }),
-        None => Either::B(()),
-      },
-      None => Either::B(()),
-    })
+    self.module.factory_meta()
   }
 
   #[napi(getter)]

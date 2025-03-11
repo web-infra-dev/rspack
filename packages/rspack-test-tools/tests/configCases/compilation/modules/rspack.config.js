@@ -17,6 +17,7 @@ class Plugin {
 					const module = Array.from(compilation.modules).find(
 						module => module.rawRequest === "./index.js"
 					);
+					console.log("module", module, module.blocks);
 					const block = module.blocks[0];
 					const dependency = module.dependencies[0];
 					expect(block.dependencies[0].request).toBe("./a");

@@ -37,7 +37,7 @@ use crate::JsCompatSource;
 use crate::JsModuleGraph;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
-use crate::ModuleWrapper;
+use crate::ModuleObject;
 use crate::ToJsCompatSource;
 use crate::COMPILER_REFERENCES;
 use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
@@ -174,7 +174,7 @@ impl JsCompilation {
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn modules(&self) -> Result<Vec<ModuleWrapper>> {
+  pub fn modules(&self) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -185,14 +185,14 @@ impl JsCompilation {
         .filter_map(|module_id| {
           compilation
             .module_by_identifier(module_id)
-            .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
   }
 
   #[napi(getter, ts_return_type = "Array<Module>")]
-  pub fn built_modules(&self) -> Result<Vec<ModuleWrapper>> {
+  pub fn built_modules(&self) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -202,7 +202,7 @@ impl JsCompilation {
         .filter_map(|module_id| {
           compilation
             .module_by_identifier(module_id)
-            .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -590,7 +590,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| ModuleWrapper::with_ref(module.as_ref(), compiler_id))
+              .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
               .collect::<Vec<_>>()
           },
         )
@@ -778,20 +778,20 @@ impl JsCompilation {
 
           match module_graph.get_module_by_dependency_id(&dependency_id) {
             Some(module) => {
-              let js_module = ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id());
+              let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
               Either::B(js_module)
             }
             None => Either::A("build failed with unknown error".to_string()),
           }
         })
-        .collect::<Vec<Either<String, ModuleWrapper>>>();
+        .collect::<Vec<Either<String, ModuleObject>>>();
 
       Ok(JsAddIncludeCallbackArgs(results))
     })
   }
 }
 
-pub struct JsAddIncludeCallbackArgs(Vec<Either<String, ModuleWrapper>>);
+pub struct JsAddIncludeCallbackArgs(Vec<Either<String, ModuleObject>>);
 
 impl ToNapiValue for JsAddIncludeCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {

@@ -1,8 +1,8 @@
 use napi::{Either, Env, JsString};
 
 use crate::{
-  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsLibIdentOptions,
-  Module,
+  AssetInfo, DependencyWrapper, JsCompatSource, JsDependenciesBlockWrapper, JsFactoryMeta,
+  JsLibIdentOptions, Module,
 };
 
 #[napi]
@@ -30,6 +30,11 @@ impl ContextModule {
   #[napi]
   pub fn name_for_condition(&mut self) -> napi::Result<Either<String, ()>> {
     self.module.name_for_condition()
+  }
+
+  #[napi(getter)]
+  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
+    self.module.factory_meta()
   }
 
   #[napi(getter)]
