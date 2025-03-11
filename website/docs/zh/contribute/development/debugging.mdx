@@ -4,8 +4,30 @@
 
 1. 安装 `go install github.com/go-delve/delve/cmd/dlv@latest`
 2. 安装 VS Code 扩展 [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) 和 [CodeLLDB](https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb)
-3. 通过执行 `pnpm install && pnpm -w build:cli:debug` 构建 `@rspack/cli` 和 napi binding
-4. 在 VS Code 的 `Run and Debug` 栏中, 选择 `debug-rspack` 开始调试 `@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
+3. 通过执行 `pnpm install && pnpm -w build:cli:dev` 构建 `@rspack/cli` 和 napi binding
+4. 在 VS Code 的 `Run and Debug` 栏中, 选择 `Debug Rspack` 开始调试 `@rspack/cli` 的启动过程。 该任务可以在 `.vscode/launch.json` 中配置，会同时启动 Node 和 Rust 的调试器。
+
+:::note
+其他工具集成的一般是 Rspack 的 release 版本，其中并不包含调试信息，这时候需要使用对应的含有debug 的版本进行override替换，方可调试。
+:::
+
+### 常见调试场景指南
+
+#### 调试 Rust
+
+只需在指定的 Rust 代码处设置断点后启动 `Debug Rspack` 即可进行调试。
+
+#### 调试 JavaScript
+
+启动 `Debug Rspack` 时，选择 `--inspect` 或 `--inspect-brk` 选项，然后启动 `Attach JavaScript` 并选择相应进程的 PID 即可。
+
+#### 调试已启动的 Rspack 进程
+
+当 Rspack 被集成到其他框架或工具（如 Nx）中时，可能难以独立使用 Launch 模式启动 Rspack。此时，可以通过 attach 模式调试代码。启动 `Attach Rust` 并选择 Rspack 所属进程的 PID 即可,启动 `Attach JavaScript` 即可调试 JavaScript。
+
+#### 调试发生死锁的 Rspack 进程
+
+当使用 `Attach Rust` 将调试器 attach 到 Rspack 所属进程后，点击 Debugger 的 Pause 按钮即可在死锁现场设置断点。
 
 ## Tracing
 
@@ -88,118 +110,3 @@ Process 23110 stopped
    247
 Target 0: (node) stopped.
 ```
-
-## 混合调试
-
-本节旨在说明 JavaScript 和 Rust 混合调试的方法。
-
-### 准备工作
-
-为了说明这个过程，我将使用一个例子。首先介绍一下我使用的环境和例子。
-
-- System: macos
-- IDE: vscode
-- Debugging target: `rspack build ${projectRoot}/basic`
-
-首先，你需要在调试模式下构建 rspack。为此，请在项目的根目录中执行以下命令：
-
-```bash
-npm run build:binding:dev
-npm run build:js
-```
-
-### 在 VS Code 中设置 `launch.json`
-
-需要在 `.vscode/launch.json` 中配置两个调试配置。
-
-- 给 node 添加 attach:
-
-```jsonc
-{
-  "name": "attach:node",
-  "request": "attach", // refer: https://code.visualstudio.com/docs/editor/debugging#_launch-versus-attach-configurations
-  "type": "node",
-  // `9229` is the default port of message
-  "port": 9229,
-}
-```
-
-- 和 lldb 的 launch 配置
-
-```jsonc
-{
-  "name": "launch:rust-from-node",
-  "request": "launch",
-  "type": "lldb", // it means we use `lldb` to launch the binary file of `node`
-  "program": "node",
-  "args": [
-    "--inspect",
-    "--enable-source-maps",
-    "${workspaceFolder}/packages/rspack-cli/bin/rspack",
-    "build",
-    "-c",
-    "${workspaceFolder}/examples/basic/rspack.config.js",
-  ],
-  // `cwd` is just for rspack find the correctly entry.
-  "cwd": "${workspaceFolder}/examples/basic/",
-}
-```
-
-之后，我们可以利用 [compounds](https://code.visualstudio.com/docs/editor/debugging#_compound-launch-configurations) 合并这两个命令：
-
-```json
-{
-  "name": "mix-debug",
-  "configurations": ["attach:node", "launch:rust-from-node"]
-}
-```
-
-最终，你的 `launch.json` 应如下所示:
-
-```json
-{
-  "configurations": [
-    {
-      "name": "attach:node",
-      "request": "attach",
-      "type": "node",
-      "port": 9229
-    },
-    {
-      "name": "launch:rust-from-node",
-      "request": "launch",
-      "type": "lldb",
-      "program": "node",
-      "args": [
-        "--inspect",
-        "--enable-source-maps",
-        "${workspaceFolder}/packages/rspack-cli/bin/rspack",
-        "build",
-        "-c",
-        "${workspaceFolder}/examples/basic/rspack.config.js"
-      ],
-      "cwd": "${workspaceFolder}/examples/basic/"
-    }
-  ],
-  "compounds": [
-    {
-      "name": "mix-debug",
-      "configurations": ["attach:node", "launch:rust-from-node"]
-    }
-  ]
-}
-```
-
-### Debugging 尝试
-
-接下来，我们可以引入一些断点并开始调试。
-
-结果如下:
-
-<video width="640" height="480" controls>
-  <source
-    src="https://github.com/web-infra-dev/rspack/assets/30187863/106983f7-a59e-4d9e-9001-552f4441d88b"
-    type="video/mp4"
-  />
-  Your browser does not support the video tag.
-</video>

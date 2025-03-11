@@ -1,0 +1,6 @@
+.m {
+  color: red;
+}
+.n {
+  color: blue;
+}

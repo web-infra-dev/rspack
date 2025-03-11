@@ -7,7 +7,8 @@ import {
 	commonOptions,
 	commonOptionsForBuildAndServe,
 	ensureEnvObject,
-	setBuiltinEnvArg
+	setBuiltinEnvArg,
+	setDefaultNodeEnv
 } from "../utils/options";
 
 export class ServeCommand implements RspackCommand {
@@ -40,7 +41,9 @@ export class ServeCommand implements RspackCommand {
 					}
 				}),
 			async options => {
+				setDefaultNodeEnv(options, "development");
 				setBuiltinEnvArg(ensureEnvObject(options), "SERVE", true);
+
 				const rspackOptions = {
 					...options,
 					argv: {

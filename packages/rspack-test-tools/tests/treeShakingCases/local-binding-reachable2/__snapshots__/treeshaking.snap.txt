@@ -1,6 +1,6 @@
 ```js title=main.js
 "use strict";
-(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+(self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./Layout.js": (function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
   defaults: () => (defaults)

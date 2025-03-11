@@ -106,7 +106,7 @@ jobs:
               - 'Cargo.lock'
       - name: Install cargo-deny
         if: steps.filter.outputs.src == 'true'
-        uses: taiki-e/install-action@3fc1605ecf43c14c7dd5ac06a4a629031ed3bdbd # v2
+        uses: taiki-e/install-action@f87f9990b09867202953bff9aa0c80e23ee16bb7 # v2
         with:
           tool: cargo-deny@0.16
       - name: Check licenses
@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: crate-ci/typos@db35ee91e80fbb447f33b0e5fbddb24d2a1a884f # v1.29.10
+      - uses: crate-ci/typos@72f3776b6edc3a10a567b8e43fd0524b2a3f1419 # v1.30.1
         with:
           files: .
 
@@ -138,12 +138,16 @@ jobs:
               - pnpm-lock.yaml
               - '**/*.{ts,js,mjs,tsx,jsx}'
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Lint js
         if: steps.changes.outputs.src == 'true'
         run: pnpm run lint-ci:js
+        
       - name: Prettier
         if: steps.changes.outputs.src == 'true'
         run: pnpm run format-ci:js
@@ -151,6 +155,20 @@ jobs:
       - name: Check Dependency Version
         if: steps.changes.outputs.src == 'true'
         run: pnpm run check-dependency-version
+
+      - name: API change check
+        if: steps.changes.outputs.src == 'true'
+        run: |
+          echo "===================================="
+          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
+          echo "$ pnpm build:js && pnpm api-extractor:local"
+          echo "===================================="
+          pnpm build:js
+          pnpm api-extractor:ci
+      
+      - name: Documentation coverage check
+        if: steps.changes.outputs.src == 'true'
+        run: pnpm doc-coverage
 
   lint-website:
     name: Lint and format website
@@ -160,8 +178,11 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Run
         run: |
@@ -196,8 +217,11 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
         with:
           frozen-lockfile: true
 
@@ -216,10 +240,8 @@ jobs:
           fmt: true
           shared-key: check
 
-      - name: Pnpm Cache # Required by some tests
-        uses: ./.github/actions/pnpm-cache
-        with:
-          run-install: false
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
 
       - name: Run Cargo Check
         run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
@@ -249,7 +271,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           shared-key: check
-      - uses: cargo-bins/cargo-binstall@6010abb1da3dbaae07e8823fa57c0cd7cf183245 # v1.11.1
+      - uses: cargo-bins/cargo-binstall@acd08f184561622f67f0e4406a62a10f656777a9 # v1.12.0
       - run: cargo binstall --no-confirm cargo-shear --force
       - run: cargo shear
 

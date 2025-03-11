@@ -34,17 +34,33 @@ export class BasicCaseCreator<T extends ECompilerType> {
     // (undocumented)
     create(name: string, src: string, dist: string, temp?: string): ITester | undefined;
     // (undocumented)
+    protected createConcurrentEnv(): ITestEnv & IConcurrentTestEnv;
+    // (undocumented)
     protected createEnv(testConfig: TTestConfig<T>): ITestEnv;
     // (undocumented)
     protected createTester(name: string, src: string, dist: string, temp: string | void, testConfig: TTestConfig<T>): ITester;
     // (undocumented)
+    protected currentConcurrent: number;
+    // (undocumented)
     protected describe(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    // (undocumented)
+    protected describeConcurrent(name: string, tester: ITester, testConfig: TTestConfig<T>): void;
+    // (undocumented)
+    protected getMaxConcurrent(): number;
     // (undocumented)
     protected _options: IBasicCaseCreatorOptions<T>;
     // (undocumented)
     protected readTestConfig(src: string): TTestConfig<T>;
     // (undocumented)
+    protected registerConcurrentTask(name: string, starter: () => void): () => void;
+    // (undocumented)
+    protected shouldRun(name: string): boolean;
+    // (undocumented)
     protected skip(name: string, reason: string | boolean): void;
+    // (undocumented)
+    protected tasks: [string, () => void][];
+    // (undocumented)
+    protected tryRunTask(): void;
 }
 
 // @public (undocumented)
@@ -250,6 +266,9 @@ export function createHotStepCase(name: string, src: string, dist: string, targe
 
 // @public (undocumented)
 export function createNormalCase(name: string, src: string, dist: string): void;
+
+// @public (undocumented)
+export function createSerialCase(name: string, src: string, dist: string): void;
 
 // @public (undocumented)
 export function createStatsAPICase(name: string, src: string, dist: string, testConfig: string): void;
@@ -578,6 +597,8 @@ export interface IBasicCaseCreatorOptions<T extends ECompilerType> {
     // (undocumented)
     clean?: boolean;
     // (undocumented)
+    concurrent?: boolean | number;
+    // (undocumented)
     contextValue?: Record<string, unknown>;
     // (undocumented)
     describe?: boolean;
@@ -605,7 +626,7 @@ export interface IBasicGlobalContext {
     // (undocumented)
     clearTimeout: typeof clearTimeout;
     // (undocumented)
-    console: Console;
+    console: Record<string, (...args: any[]) => void>;
     // (undocumented)
     setTimeout: typeof setTimeout;
 }
@@ -615,7 +636,7 @@ export interface IBasicModuleScope extends ITestEnv {
     // (undocumented)
     [key: string]: any;
     // (undocumented)
-    console: Console;
+    console: Record<string, (...args: any[]) => void>;
     // (undocumented)
     expect: jest.Expect;
 }
@@ -686,6 +707,14 @@ export interface ICompareOptions {
     runtimeModules?: TCompareModules;
     // (undocumented)
     snapshot?: string;
+}
+
+// @public (undocumented)
+interface IConcurrentTestEnv {
+    // (undocumented)
+    clear: () => void;
+    // (undocumented)
+    run: () => Promise<void>;
 }
 
 // @public (undocumented)
@@ -1166,6 +1195,13 @@ export class JSDOMWebRunner<T extends ECompilerType = ECompilerType.Rspack> exte
     // (undocumented)
     getGlobal(name: string): unknown;
     // (undocumented)
+    protected getModuleContent(file: TBasicRunnerFile): [
+        {
+        exports: Record<string, unknown>;
+    },
+    string
+    ];
+    // (undocumented)
     run(file: string): Promise<unknown>;
     // (undocumented)
     protected _webOptions: IBasicRunnerOptions<T>;
@@ -1559,6 +1595,9 @@ export type TRunnerRequirer = (currentDirectory: string, modulePath: string[] | 
 }) => Object | Promise<Object>;
 
 // @public (undocumented)
+export type TSerialCaseConfig = Omit<TTestConfig<ECompilerType.Rspack>, "validate">;
+
+// @public (undocumented)
 export type TStatsAPICaseConfig = Omit<IStatsAPIProcessorOptions<ECompilerType.Rspack>, "name" | "compilerType"> & {
     description: string;
 };
@@ -1573,12 +1612,13 @@ export type TTestConfig<T extends ECompilerType> = {
     beforeExecute?: () => void;
     afterExecute?: () => void;
     moduleScope?: (ms: IBasicModuleScope, stats?: TCompilerStatsCompilation<T>) => IBasicModuleScope;
-    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T>, stringStats: String) => boolean;
+    checkStats?: (stepName: string, jsonStats: TCompilerStatsCompilation<T> | undefined, stringStats: String) => boolean;
     findBundle?: (index: number, options: TCompilerOptions<T>, stepName?: string) => string | string[];
     bundlePath?: string[];
     nonEsmThis?: (p: string | string[]) => Object;
     modules?: Record<string, Object>;
     timeout?: number;
+    concurrent?: boolean;
 };
 
 // @public (undocumented)

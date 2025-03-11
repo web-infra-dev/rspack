@@ -136,7 +136,7 @@ impl RuntimeSpec {
 
 pub type RuntimeKey = String;
 
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeMode {
   #[default]
   Empty = 0,
@@ -332,7 +332,7 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
   Ordering::Equal
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeSpecMap<T> {
   pub mode: RuntimeMode,
   pub map: HashMap<RuntimeKey, T>,
@@ -433,14 +433,37 @@ impl<T> RuntimeSpecMap<T> {
     }
   }
 
-  pub fn get_values(&self) -> Vec<&T> {
+  pub fn values(&self) -> RuntimeSpecMapValues<T> {
     match self.mode {
-      RuntimeMode::Empty => vec![],
-      RuntimeMode::SingleEntry => vec![self
-        .single_value
-        .as_ref()
-        .expect("Expected single value exists")],
-      RuntimeMode::Map => self.map.values().collect(),
+      RuntimeMode::Empty => RuntimeSpecMapValues::Empty,
+      RuntimeMode::SingleEntry => RuntimeSpecMapValues::SingleEntry(self.single_value.iter()),
+      RuntimeMode::Map => RuntimeSpecMapValues::Map(self.map.values()),
+    }
+  }
+}
+
+pub enum RuntimeSpecMapValues<'a, T> {
+  Empty,
+  SingleEntry(std::option::Iter<'a, T>),
+  Map(hash_map::Values<'a, RuntimeKey, T>),
+}
+
+impl<'a, T> Iterator for RuntimeSpecMapValues<'a, T> {
+  type Item = &'a T;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      RuntimeSpecMapValues::Empty => None,
+      RuntimeSpecMapValues::SingleEntry(i) => i.next(),
+      RuntimeSpecMapValues::Map(i) => i.next(),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      RuntimeSpecMapValues::Empty => (0, Some(0)),
+      RuntimeSpecMapValues::SingleEntry(i) => i.size_hint(),
+      RuntimeSpecMapValues::Map(i) => i.size_hint(),
     }
   }
 }

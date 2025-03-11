@@ -21,6 +21,10 @@ export const commonOptions = (yargs: yargs.Argv) => {
 			default: "register",
 			describe:
 				"Specify the loader to load the config file, can be `native` or `register`."
+		},
+		nodeEnv: {
+			string: true,
+			describe: "sets `process.env.NODE_ENV` to be specified value"
 		}
 	});
 };
@@ -52,10 +56,6 @@ export const commonOptionsForBuildAndServe = (yargs: yargs.Argv) => {
 				type: "array",
 				string: true,
 				describe: "env passed to config function"
-			},
-			nodeEnv: {
-				string: true,
-				describe: "sets process.env.NODE_ENV to be specified value"
 			},
 			devtool: {
 				type: "boolean",
@@ -143,4 +143,16 @@ export function ensureEnvObject<T extends Record<string, unknown>>(
 	}
 	options.env = options.env || {};
 	return options.env as T;
+}
+
+export function setDefaultNodeEnv(
+	options: yargs.Arguments,
+	defaultEnv: string
+) {
+	if (process.env.NODE_ENV !== undefined) {
+		return;
+	}
+
+	process.env.NODE_ENV =
+		typeof options.nodeEnv === "string" ? options.nodeEnv : defaultEnv;
 }

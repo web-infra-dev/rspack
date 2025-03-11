@@ -129,6 +129,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     if failed {
       return None;
     }
+    let old_deps = std::mem::take(&mut parser.dependencies);
+
     if let Some(success_expr) = &success_expr {
       match success_expr.func {
         Either::Left(func) => {
@@ -142,6 +144,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
         },
       }
     }
+    deps.extend(std::mem::replace(&mut parser.dependencies, old_deps));
+
     let source_map: SharedSourceMap = parser.source_map.clone();
     let mut block = AsyncDependenciesBlock::new(
       *parser.module_identifier,

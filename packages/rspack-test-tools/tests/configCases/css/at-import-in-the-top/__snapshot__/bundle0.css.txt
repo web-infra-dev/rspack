@@ -1,0 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto");
+@import url("https://fonts.googleapis.com/css2?family=Inter");
+.c {
+	color: pink;
+}
+
+
+
+
+.a {
+	color: blue;
+}
+
+
+
+.b {
+	color: red;
+}
+

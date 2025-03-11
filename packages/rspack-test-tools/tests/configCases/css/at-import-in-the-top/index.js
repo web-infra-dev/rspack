@@ -9,5 +9,5 @@ it("at-import-in-the-top", async () => {
 		"utf-8"
 	);
 
-	expect(css).toMatchSnapshot();
+	expect(css).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
 });

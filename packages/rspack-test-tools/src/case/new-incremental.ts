@@ -36,7 +36,8 @@ function getHotCreator(target: TTarget, documentType: EDocumentType) {
 						documentType
 					})
 				],
-				runner: HotRunnerFactory
+				runner: HotRunnerFactory,
+				concurrent: true
 			})
 		);
 	}
@@ -101,7 +102,8 @@ const watchCreator = new BasicCaseCreator({
 						watchState
 					)
 		);
-	}
+	},
+	concurrent: true
 });
 
 export function createWatchNewIncrementalCase(

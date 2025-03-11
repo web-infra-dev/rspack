@@ -2,9 +2,7 @@ import type { JsModule } from "@rspack/binding";
 
 import type { Compiler } from "../..";
 import getBackend, {
-	dispose,
-	type LazyCompilationDefaultBackendOptions,
-	moduleImpl
+	type LazyCompilationDefaultBackendOptions
 } from "./backend";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
 
@@ -30,7 +28,7 @@ export default class LazyCompilationPlugin {
 	}
 
 	apply(compiler: Compiler) {
-		const backend = getBackend({
+		const { state, backend } = getBackend({
 			client: require.resolve(
 				`../hot/lazy-compilation-${
 					compiler.options.externalsPresets.node ? "node" : "web"
@@ -40,7 +38,7 @@ export default class LazyCompilationPlugin {
 		});
 
 		new BuiltinLazyCompilationPlugin(
-			moduleImpl,
+			args => state.module(args),
 			this.cacheable,
 			this.entries,
 			this.imports,
@@ -84,7 +82,7 @@ export default class LazyCompilationPlugin {
 		);
 
 		compiler.hooks.shutdown.tapAsync("LazyCompilationPlugin", callback => {
-			dispose(callback);
+			state.dispose(callback);
 		});
 	}
 }

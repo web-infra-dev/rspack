@@ -36,12 +36,19 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for async-commons-chunk 1`] = `
-"chunk (runtime: main) 726.js xx bytes <{909}> [rendered]
+"chunk (runtime: main) 272.js (id hint: ) xx bytes <{909}> ={29}= ={726}= [rendered]
+  > ./index.js 17:4-21:6
+  > ./index.js 2:4-5:6
+  > ./index.js 9:4-13:6
+  ./a.js xx bytes [built] [code generated]
+chunk (runtime: main) 29.js xx bytes <{909}> ={272}= [rendered]
+  > ./index.js 17:4-21:6
+  ./c.js xx bytes [built] [code generated]
+chunk (runtime: main) 726.js xx bytes <{909}> ={272}= [rendered]
   > ./index.js 9:4-13:6
   ./b.js xx bytes [built] [code generated]
-chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{726}< [entry] [rendered]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) >{272}< >{29}< >{726}< [entry] [rendered]
   > ./ main
-  dependent modules xx bytes [dependent] 2 modules
   ./index.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully"
 `;
@@ -497,8 +504,8 @@ Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for immutable 1`] = `
-"asset db899090d3fd46fc.js xx KiB [emitted] [immutable] (name: main)
-asset 7342054f673663df.js xx bytes [emitted] [immutable]"
+"asset a618085316d097fd.js xx KiB [emitted] [immutable] (name: main)
+asset cc8bb03cea0d9f6f.js xx bytes [emitted] [immutable]"
 `;
 
 exports[`StatsTestCases should print correct stats for import-context-filter 1`] = `
@@ -1323,12 +1330,12 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 "default:
   assets by path *.br xx KiB
     asset default-xxx.js.br xx KiB [emitted]
-    asset default-xxx.js.map.br xx bytes [emitted]
+    asset default-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
     asset default-xxx.js.gz xx KiB [emitted]
-    asset default-xxx.js.map.gz xx bytes [emitted]
     asset default-xxx.js.gz xx bytes [emitted]
+    asset default-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset default-xxx.js xx KiB [emitted] (name: main)
@@ -1340,12 +1347,12 @@ exports[`StatsTestCases should print correct stats for related-assets 1`] = `
 relatedAssets:
   assets by path *.br xx KiB
     asset relatedAssets-xxx.js.br xx KiB [emitted]
-    asset relatedAssets-xxx.js.map.br xx bytes [emitted]
+    asset relatedAssets-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
     asset relatedAssets-xxx.js.gz xx KiB [emitted]
-    asset relatedAssets-xxx.js.map.gz xx bytes [emitted]
     asset relatedAssets-xxx.js.gz xx bytes [emitted]
+    asset relatedAssets-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset relatedAssets-xxx.js xx KiB [emitted] (name: main)
@@ -1367,12 +1374,12 @@ exclude1:
 exclude2:
   assets by path *.br xx KiB
     asset exclude2-xxx.js.br xx KiB [emitted]
-    asset exclude2-xxx.js.map.br xx bytes [emitted]
+    asset exclude2-xxx.js.br xx bytes [emitted]
     + 6 assets
   assets by path *.gz xx KiB
     asset exclude2-xxx.js.gz xx KiB [emitted]
-    asset exclude2-xxx.js.map.gz xx bytes [emitted]
     asset exclude2-xxx.js.gz xx bytes [emitted]
+    asset exclude2-xxx.js.map.gz xx bytes [emitted]
     + 5 assets
   assets by path *.js xx KiB
     asset exclude2-xxx.js xx KiB [emitted] (name: main)
@@ -2240,6 +2247,19 @@ chunk (runtime: main) main.js (main) (id hint: common) xx bytes (javascript) xx 
   > ./ main
   ./index.js xx bytes [built] [code generated]
 production (Rspack x.x.x) compiled successfully"
+`;
+
+exports[`StatsTestCases should print correct stats for split-chunks-cache-group-filename 1`] = `
+"Entrypoint main xx KiB = 990.vendors.js xx bytes 961.vendors.js xx bytes 727.vendors.js xx bytes main.js xx KiB
+chunk (runtime: main) 727.vendors.js (id hint: vendors) xx bytes [initial] [rendered] split chunk (cache group: vendors)
+  ./node_modules/c.js xx bytes [built] [code generated]
+chunk (runtime: main) main.js (main) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
+  ./index.js xx bytes [built] [code generated]
+chunk (runtime: main) 961.vendors.js (id hint: vendors) xx bytes [initial] [rendered]
+  ./node_modules/b.js xx bytes [built] [code generated]
+chunk (runtime: main) 990.vendors.js (id hint: vendors) xx bytes [initial] [rendered]
+  ./node_modules/a.js xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
 `;
 
 exports[`StatsTestCases should print correct stats for split-chunks-chunk-name 1`] = `

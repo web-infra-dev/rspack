@@ -21,7 +21,7 @@ it("data imports", async () => {
 
 	expect(
 		fs.readFileSync(path.resolve(__dirname, "bundle0.css"), "utf-8")
-	).toMatchSnapshot();
+	).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'bundle0.css.txt'));
 	expect(inlineSvg).toBe(
 		'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>'
 	);

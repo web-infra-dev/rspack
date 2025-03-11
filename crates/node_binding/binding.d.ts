@@ -115,7 +115,7 @@ export declare class JsChunkGroup {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
@@ -260,6 +260,7 @@ export declare class JsModule {
   libIdent(options: JsLibIdentOptions): string | null
   get resourceResolveData(): JsResourceData | undefined
   get matchResource(): string | undefined
+  set matchResource(val: string | undefined)
   emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
@@ -389,10 +390,11 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void

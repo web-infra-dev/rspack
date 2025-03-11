@@ -90,8 +90,11 @@ jobs:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

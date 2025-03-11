@@ -8,12 +8,12 @@ it("should rewrite the css url() in css variables", function () {
 	expect(a.startsWith("./")).toBe(false);
 	expect(a.includes("./logo.png")).toBe(false);
 	expect(a.endsWith(".png")).toBe(true);
-	expect(a).toMatchSnapshot();
+	expect(a).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'a.txt'));
 	const b = /--b: url\((.*)\);/.exec(css)[1];
 	expect(b.startsWith("./")).toBe(false);
 	expect(b.includes("./logo.png")).toBe(false);
 	expect(b.endsWith(".png")).toBe(true);
-	expect(b).toMatchSnapshot();
+	expect(b).toMatchFileSnapshot(path.join(__SNAPSHOT__, 'b.txt'));
 	const c = /--c: (.*?);/.exec(css)[1];
 	expect(c).toBe(JSON.stringify(""));
 });
