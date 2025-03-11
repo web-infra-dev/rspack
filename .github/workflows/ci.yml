@@ -101,7 +101,7 @@ jobs:
       target: wasm32-wasip1-threads
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
-      skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
+      skipable: true
       full-install: false
       test: false
 
