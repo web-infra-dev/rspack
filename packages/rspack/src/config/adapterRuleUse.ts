@@ -3,6 +3,7 @@ import type { ResolveRequest } from "enhanced-resolve";
 
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
+import type { Module } from "../Module";
 import { resolvePluginImport } from "../builtin-loader";
 import {
 	type FeatureOptions,
@@ -21,7 +22,6 @@ import type {
 	RuleSetUseItem,
 	Target
 } from "./types";
-import { Module } from "../Module";
 
 export const BUILTIN_LOADER_PREFIX = "builtin:";
 
