@@ -185,27 +185,6 @@ impl Module {
     Ok(module.size(ty.as_ref(), Some(compilation)))
   }
 
-  #[napi(getter, ts_return_type = "Module[] | undefined")]
-  pub fn modules(&mut self) -> napi::Result<Either<Vec<ModuleWrapper>, ()>> {
-    let (compilation, module) = self.as_ref()?;
-
-    Ok(match module.try_as_concatenated_module() {
-      Ok(concatenated_module) => {
-        let inner_modules = concatenated_module
-          .get_modules()
-          .iter()
-          .filter_map(|inner_module_info| {
-            compilation
-              .module_by_identifier(&inner_module_info.id)
-              .map(|module| ModuleWrapper::with_ref(module.as_ref(), compilation.compiler_id()))
-          })
-          .collect::<Vec<_>>();
-        Either::A(inner_modules)
-      }
-      Err(_) => Either::B(()),
-    })
-  }
-
   #[napi(getter)]
   pub fn use_source_map(&mut self) -> napi::Result<bool> {
     let (_, module) = self.as_ref()?;

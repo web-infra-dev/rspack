@@ -21,6 +21,22 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class ConcatenatedModule {
+  get context(): string | undefined
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get type(): string
+  get layer(): string | undefined
+  get _blocks(): JsDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  get modules(): Module[] | undefined
+}
+
 export declare class ContextModule {
   get context(): string | undefined
   _originalSource(): JsCompatSource | undefined
@@ -303,7 +319,6 @@ export declare class Module {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get modules(): Module[] | undefined
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
