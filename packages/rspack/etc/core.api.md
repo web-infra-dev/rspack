@@ -1776,6 +1776,8 @@ class Entrypoint extends ChunkGroup {
     // (undocumented)
     static __from_binding(binding: JsChunkGroup): Entrypoint;
     // (undocumented)
+    getEntrypointChunk(): Readonly<Chunk | null>;
+    // (undocumented)
     getRuntimeChunk(): Readonly<Chunk | null>;
 }
 

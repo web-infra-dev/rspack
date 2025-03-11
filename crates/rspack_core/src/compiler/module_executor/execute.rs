@@ -138,7 +138,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
     );
     entrypoint.connect_chunk(chunk);
     entrypoint.set_runtime_chunk(chunk.ukey());
-    entrypoint.set_entry_point_chunk(chunk.ukey());
+    entrypoint.set_entrypoint_chunk(chunk.ukey());
 
     compilation.chunk_group_by_ukey.add(entrypoint);
 

@@ -4283,6 +4283,7 @@ version = "0.2.0"
 dependencies = [
  "anymap3",
  "async-recursion",
+ "async-scoped",
  "async-trait",
  "bitflags 2.6.0",
  "cow-utils",
