@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::JsString;
 use napi_derive::napi;
@@ -16,8 +16,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, DependencyWrapper, JsChunkWrapper, JsCodegenerationResults, JsCompatSource,
-  JsCompiler, JsDependenciesBlockWrapper, JsResourceData, ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, ContextModule, DependencyWrapper, JsChunkWrapper, JsCodegenerationResults,
+  JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, JsResourceData, ToJsCompatSource,
+  COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -41,7 +42,7 @@ pub struct Module {
 }
 
 impl Module {
-  fn as_ref(&mut self) -> napi::Result<(&Compilation, &dyn rspack_core::Module)> {
+  pub(crate) fn as_ref(&mut self) -> napi::Result<(&Compilation, &dyn rspack_core::Module)> {
     match self.compiler_reference.get() {
       Some(this) => {
         let compilation = &this.compiler.compilation;
@@ -66,7 +67,7 @@ impl Module {
     }
   }
 
-  fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
+  pub(crate) fn as_mut(&mut self) -> napi::Result<&'static mut dyn rspack_core::Module> {
     match self.module.as_mut() {
       Some(module) => {
         // SAFETY:
@@ -362,7 +363,9 @@ impl Module {
   }
 }
 
-type ModuleInstanceRefs = IdentifierMap<OneShotInstanceRef<Module>>;
+type ModuleInstanceRef = Either<OneShotInstanceRef<ContextModule>, OneShotInstanceRef<Module>>;
+
+type ModuleInstanceRefs = IdentifierMap<ModuleInstanceRef>;
 
 type ModuleInstanceRefsByCompilerId = RefCell<UkeyMap<CompilerId, ModuleInstanceRefs>>;
 
@@ -375,6 +378,7 @@ thread_local! {
 //
 // This means that when transferring a Module from Rust to JS, you must use ModuleWrapper instead.
 pub struct ModuleWrapper {
+  type_id: TypeId,
   identifier: ModuleIdentifier,
   module: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
@@ -384,7 +388,13 @@ unsafe impl Send for ModuleWrapper {}
 
 impl ModuleWrapper {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
+    let type_id = if module.as_context_module().is_some() {
+      TypeId::of::<rspack_core::ContextModule>()
+    } else {
+      TypeId::of::<dyn rspack_core::Module>()
+    };
     Self {
+      type_id,
       identifier: module.identifier(),
       module: None,
       compiler_id,
@@ -394,7 +404,14 @@ impl ModuleWrapper {
   pub fn with_ptr(module_ptr: NonNull<dyn rspack_core::Module>, compiler_id: CompilerId) -> Self {
     let module = unsafe { module_ptr.as_ref() };
 
+    let type_id = if module.as_context_module().is_some() {
+      TypeId::of::<rspack_core::ContextModule>()
+    } else {
+      TypeId::of::<dyn rspack_core::Module>()
+    };
+
     Self {
+      type_id,
       identifier: module.identifier(),
       module: Some(module_ptr),
       compiler_id,
@@ -439,10 +456,16 @@ impl ToNapiValue for ModuleWrapper {
 
       match refs.entry(val.identifier) {
         std::collections::hash_map::Entry::Occupied(mut entry) => {
-          let r = entry.get_mut();
-          let instance = &mut **r;
+          let instance_ref = entry.get_mut();
+          let instance = match instance_ref {
+            Either::A(context_module) => &mut context_module.module,
+            Either::B(module) => &mut **module,
+          };
           instance.module = val.module;
-          ToNapiValue::to_napi_value(env, r)
+          match instance_ref {
+            Either::A(r) => ToNapiValue::to_napi_value(env, r),
+            Either::B(r) => ToNapiValue::to_napi_value(env, r),
+          }
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
           match COMPILER_REFERENCES.with(|ref_cell| {
@@ -457,12 +480,27 @@ impl ToNapiValue for ModuleWrapper {
                 compiler_reference,
               };
               let env_wrapper = Env::from_raw(env);
-              let instance = js_module.into_instance(&env_wrapper)?;
-              let mut instance_object = instance.as_object(&env_wrapper);
-              instance_object.set_named_property("buildInfo", env_wrapper.create_object()?)?;
-              instance_object.set_named_property("buildMeta", env_wrapper.create_object()?)?;
-              let r = entry.insert(OneShotInstanceRef::from_instance(env, instance)?);
-              ToNapiValue::to_napi_value(env, r)
+              let env_wrapper_ref = &env_wrapper;
+
+              let set_named_properties = &mut |mut object: Object| -> napi::Result<()> {
+                object.set_named_property("buildInfo", env_wrapper_ref.create_object()?)?;
+                object.set_named_property("buildMeta", env_wrapper_ref.create_object()?)?;
+                Ok(())
+              };
+
+              let instance_ref = if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
+                let instance = ContextModule { module: js_module }.into_instance(&env_wrapper)?;
+                set_named_properties(instance.as_object(&env_wrapper))?;
+                entry.insert(Either::A(OneShotInstanceRef::from_instance(env, instance)?))
+              } else {
+                let instance = js_module.into_instance(&env_wrapper)?;
+                set_named_properties(instance.as_object(&env_wrapper))?;
+                entry.insert(Either::B(OneShotInstanceRef::from_instance(env, instance)?))
+              };
+              match instance_ref {
+                Either::A(r) => ToNapiValue::to_napi_value(env, r),
+                Either::B(r) => ToNapiValue::to_napi_value(env, r),
+              }
             },
             None => {
               Err(napi::Error::from_reason(format!(
@@ -479,12 +517,22 @@ impl ToNapiValue for ModuleWrapper {
 
 impl FromNapiValue for ModuleWrapper {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
-    let mut instance: ClassInstance<Module> = FromNapiValue::from_napi_value(env, napi_val)?;
+    let instance: Either<&mut ContextModule, &mut Module> =
+      FromNapiValue::from_napi_value(env, napi_val)?;
+
+    let (js_module, type_id) = match instance {
+      Either::A(context_module) => (
+        &mut context_module.module,
+        TypeId::of::<rspack_core::ContextModule>(),
+      ),
+      Either::B(module) => (module, TypeId::of::<dyn rspack_core::Module>()),
+    };
 
     Ok(ModuleWrapper {
-      identifier: instance.identifier,
-      module: instance.module.take(),
-      compiler_id: instance.compiler_id,
+      type_id,
+      identifier: js_module.identifier,
+      module: js_module.module.take(),
+      compiler_id: js_module.compiler_id,
     })
   }
 }
