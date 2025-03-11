@@ -20,9 +20,9 @@
     "dev": "tsc -b -w",
     "test": "pnpm run --stream /^test:.*/",
     "testu": "pnpm run --stream /^test:.*/ -u",
-    "test:base": "cross-env NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
-    "test:hot": "cross-env RSPACK_HOT_TEST=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
-    "test:diff": "cross-env RSPACK_DIFF=true NO_COLOR=1 node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
+    "test:base": "cross-env node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.js --passWithNoTests",
+    "test:hot": "cross-env RSPACK_HOT_TEST=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.hot.js --passWithNoTests",
+    "test:diff": "cross-env RSPACK_DIFF=true node --no-warnings --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --logHeapUsage --colors --config ./jest.config.diff.js --passWithNoTests",
     "api-extractor": "api-extractor run --verbose",
     "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
   },

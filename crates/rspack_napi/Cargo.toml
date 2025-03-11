@@ -12,4 +12,4 @@ json         = { workspace = true }
 napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
 oneshot      = "0.1.8"
 rspack_error = { workspace = true }
-tokio        = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+tokio        = { workspace = true, features = ["sync"] }

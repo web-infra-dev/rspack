@@ -318,7 +318,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
                 .expect("should have mgm");
 
               if let Some(external_module) = import_module.as_external_module() {
-                if reexport_dep.request == external_module.user_request {
+                if reexport_dep.request == external_module.user_request() {
                   if let Some(connections) =
                     module_id_to_connections.get(reexport_connection.module_identifier())
                   {

@@ -264,7 +264,12 @@ impl CopyRspackPlugin {
     logger.debug(format!("reading '{}'...", absolute_filename));
     // TODO inputFileSystem
 
-    let source_vec = match tokio::fs::read(absolute_filename.clone()).await {
+    #[cfg(not(target_family = "wasm"))]
+    let data = tokio::fs::read(absolute_filename.clone()).await;
+    #[cfg(target_family = "wasm")]
+    let data = std::fs::read(absolute_filename.clone());
+
+    let source_vec = match data {
       Ok(data) => {
         logger.debug(format!("read '{}'...", absolute_filename));
 

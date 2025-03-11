@@ -325,7 +325,7 @@ fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
     .always_ok()
 }
 
-fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<String> {
+fn externals_require_array(external_type: &str, externals: &[&ExternalModule]) -> Result<String> {
   Ok(
     externals
       .iter()
@@ -333,8 +333,8 @@ fn externals_require_array(typ: &str, externals: &[&ExternalModule]) -> Result<S
         let request = match &m.request {
           ExternalRequest::Single(r) => r,
           ExternalRequest::Map(map) => map
-            .get(typ)
-            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
+            .get(external_type)
+            .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
         // TODO: check if external module is optional
         let primary =
@@ -356,13 +356,13 @@ fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
     modules
       .iter()
       .map(|m| {
-        let typ = "root";
+        let external_type = "root";
         let request = match &m.request {
           ExternalRequest::Single(r) => r.iter(),
           ExternalRequest::Map(map) => map
-            .get(typ)
+            .get(external_type)
             .map(|r| r.iter())
-            .ok_or_else(|| error!("Missing external configuration for type: {typ}"))?,
+            .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
         Ok(format!("root{}", accessor_to_object_access(request)))
       })

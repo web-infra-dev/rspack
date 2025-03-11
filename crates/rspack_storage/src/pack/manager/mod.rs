@@ -48,7 +48,7 @@ impl ScopeManager {
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();
     let root_meta = self.root_meta.clone();
-    block_on(async move {
+    block_on(tokio::task::unconstrained(async move {
       let mut scopes_guard = scopes.lock().await;
       match update_scopes(
         &mut scopes_guard,
@@ -71,7 +71,7 @@ impl ScopeManager {
         }
         Err(e) => Err(e),
       }
-    })?;
+    }))?;
 
     let strategy = self.strategy.clone();
     let scopes = self.scopes.clone();

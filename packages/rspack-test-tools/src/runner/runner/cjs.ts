@@ -11,6 +11,10 @@ import type {
 } from "../type";
 import { BasicRunner } from "./basic";
 
+declare global {
+	var printLogger: boolean;
+}
+
 const define = (...args: unknown[]) => {
 	const factory = args.pop() as () => {};
 	factory();
@@ -23,22 +27,32 @@ export class CommonJsRunner<
 		return {
 			console: {
 				log: (...args: any[]) => {
-					console.log(...args);
+					if (printLogger) {
+						console.log(...args);
+					}
 				},
 				warn: (...args: any[]) => {
-					console.warn(...args);
+					if (printLogger) {
+						console.warn(...args);
+					}
 				},
 				error: (...args: any[]) => {
 					console.error(...args);
 				},
 				info: (...args: any[]) => {
-					console.info(...args);
+					if (printLogger) {
+						console.info(...args);
+					}
 				},
 				debug: (...args: any[]) => {
-					console.debug(...args);
+					if (printLogger) {
+						console.info(...args);
+					}
 				},
 				trace: (...args: any[]) => {
-					console.trace(...args);
+					if (printLogger) {
+						console.info(...args);
+					}
 				},
 				assert: (...args: any[]) => {
 					console.assert(...args);

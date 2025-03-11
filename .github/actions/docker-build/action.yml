@@ -26,6 +26,10 @@ inputs:
     required: false
     default: ""
     type: string
+  plugin:
+    required: false
+    default: true
+    type: boolean
 
 runs:
   using: composite
@@ -46,7 +50,7 @@ runs:
           echo "Corepack version: $(corepack --version)"
           corepack enable
 
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
+          RUST_TARGET=${{ inputs.target }} ${{ inputs.plugin == 'false' && 'DISABLE_PLUGIN=1' || '' }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}
         '
         if [[ ! -n "$CARGO_HOME" ]]; then
