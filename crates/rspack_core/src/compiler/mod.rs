@@ -5,7 +5,6 @@ mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
-use async_scoped::TokioScope;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
@@ -345,33 +344,35 @@ impl Compiler {
 
     let mut new_emitted_asset_versions = HashMap::default();
     // SAFETY: await immediately, trust caller to handle the future correctly
-    let _ = unsafe {
-      TokioScope::scope_and_collect(|s| {
-        self
-          .compilation
-          .assets()
-          .iter()
-          .for_each(|(filename, asset)| {
-            // collect version info to new_emitted_asset_versions
-            if self
-              .options
-              .experiments
-              .incremental
-              .contains(IncrementalPasses::EMIT_ASSETS)
-            {
-              new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
-            }
 
-            if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-              if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-                return;
-              }
-            }
+    rspack_futures::scope(|token| {
+      self
+        .compilation
+        .assets()
+        .iter()
+        .for_each(|(filename, asset)| {
+          // collect version info to new_emitted_asset_versions
+          if self
+            .options
+            .experiments
+            .incremental
+            .contains(IncrementalPasses::EMIT_ASSETS)
+          {
+            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
+          }
 
-            s.spawn(self.emit_asset(&self.options.output.path, filename, asset));
-          })
-      })
-    }
+          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
+              return;
+            }
+          }
+          let path = self.options.output.path.clone();
+          let s = unsafe { token.used((&self, &path, filename, asset)) };
+          s.spawn(|(this, path, filename, asset)| async move {
+            this.emit_asset(path, filename, asset).await
+          });
+        })
+    })
     .await;
 
     self.emitted_asset_versions = new_emitted_asset_versions;
