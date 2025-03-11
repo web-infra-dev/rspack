@@ -1055,7 +1055,7 @@ impl Compilation {
       self.chunk_by_ukey.keys().copied().collect()
     };
     let results = rspack_futures::scope::<_, rspack_error::Result<_>>(|token| {
-      chunks.iter().for_each(|chunk| {
+      for chunk in chunks.iter() {
         // # Safety
         //
         // I await early, and I trust the upper call and runtime to handle it correctly.
@@ -1077,7 +1077,7 @@ impl Compilation {
             },
           ))
         });
-      });
+      }
     })
     .await;
     let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();

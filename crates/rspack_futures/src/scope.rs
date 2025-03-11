@@ -101,7 +101,7 @@ impl<'a, O> Token<'a, O> {
 
 impl<'used, T: 'used, O> Spawner<'_, 'used, T, O> {
   /// Spawn task from used reference
-  pub fn spawn<F, Fut: 'used>(self, f: F)
+  pub fn spawn<F, Fut>(self, f: F)
   where
     // TODO Use AsyncOnce
     F: FnOnce(T) -> Fut + 'static,
