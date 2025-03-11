@@ -15,7 +15,7 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, ConcatenatedModule, ContextModule, DependencyWrapper, JsChunkWrapper,
+  AssetInfo, ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper,
   JsCodegenerationResults, JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, NormalModule,
   ToJsCompatSource, COMPILER_REFERENCES,
 };
@@ -242,18 +242,29 @@ impl Module {
   }
 }
 
-type ModuleInstanceNapiRef = Either4<
+type ModuleInstanceNapiRef = Either5<
   OneShotInstanceRef<NormalModule>,
   OneShotInstanceRef<ConcatenatedModule>,
   OneShotInstanceRef<ContextModule>,
+  OneShotInstanceRef<ExternalModule>,
   OneShotInstanceRef<Module>,
 >;
 
-type ModuleInstanceRef<'a> =
-  Either4<&'a NormalModule, &'a ConcatenatedModule, &'a ContextModule, &'a Module>;
+type ModuleInstanceRef<'a> = Either5<
+  &'a NormalModule,
+  &'a ConcatenatedModule,
+  &'a ContextModule,
+  &'a ExternalModule,
+  &'a Module,
+>;
 
-type ModuleInstanceMutRef<'a> =
-  Either4<&'a mut NormalModule, &'a mut ConcatenatedModule, &'a mut ContextModule, &'a mut Module>;
+type ModuleInstanceMutRef<'a> = Either5<
+  &'a mut NormalModule,
+  &'a mut ConcatenatedModule,
+  &'a mut ContextModule,
+  &'a mut ExternalModule,
+  &'a mut Module,
+>;
 
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
@@ -337,17 +348,19 @@ impl ToNapiValue for ModuleObject {
         std::collections::hash_map::Entry::Occupied(mut entry) => {
           let instance_ref = entry.get_mut();
           let instance = match instance_ref {
-            Either4::A(normal_module) => &mut normal_module.module,
-            Either4::B(concatenated_module) => &mut concatenated_module.module,
-            Either4::C(context_module) => &mut context_module.module,
-            Either4::D(module) => &mut **module,
+            Either5::A(normal_module) => &mut normal_module.module,
+            Either5::B(concatenated_module) => &mut concatenated_module.module,
+            Either5::C(context_module) => &mut context_module.module,
+            Either5::D(external_module) => &mut external_module.module,
+            Either5::E(module) => &mut **module,
           };
           instance.module = val.module;
           match instance_ref {
-            Either4::A(r) => ToNapiValue::to_napi_value(env, r),
-            Either4::B(r) => ToNapiValue::to_napi_value(env, r),
-            Either4::C(r) => ToNapiValue::to_napi_value(env, r),
-            Either4::D(r) => ToNapiValue::to_napi_value(env, r),
+            Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+            Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+            Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+            Either5::D(r) =>ToNapiValue::to_napi_value(env, r),
+            Either5::E(r) => ToNapiValue::to_napi_value(env, r),
           }
         }
         std::collections::hash_map::Entry::Vacant(entry) => {
@@ -374,25 +387,30 @@ impl ToNapiValue for ModuleObject {
               let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
                 let instance = NormalModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either4::A(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either5::A(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
                 let instance = ConcatenatedModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either4::B(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either5::B(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
                 let instance = ContextModule { module: js_module }.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either4::C(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either5::C(OneShotInstanceRef::from_instance(env, instance)?))
+              } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
+                let instance = ExternalModule { module: js_module }.into_instance(&env_wrapper)?;
+                set_named_properties(instance.as_object(&env_wrapper))?;
+                entry.insert(Either5::D(OneShotInstanceRef::from_instance(env, instance)?))
               } else {
                 let instance = js_module.into_instance(&env_wrapper)?;
                 set_named_properties(instance.as_object(&env_wrapper))?;
-                entry.insert(Either4::D(OneShotInstanceRef::from_instance(env, instance)?))
+                entry.insert(Either5::E(OneShotInstanceRef::from_instance(env, instance)?))
               };
               match instance_ref {
-                Either4::A(r) => ToNapiValue::to_napi_value(env, r),
-                Either4::B(r) => ToNapiValue::to_napi_value(env, r),
-                Either4::C(r) => ToNapiValue::to_napi_value(env, r),
-                Either4::D(r) => ToNapiValue::to_napi_value(env, r),
+                Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+                Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+                Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+                Either5::D(r) => ToNapiValue::to_napi_value(env, r),
+                Either5::E(r) => ToNapiValue::to_napi_value(env, r),
               }
             },
             None => {
@@ -413,25 +431,31 @@ impl FromNapiValue for ModuleObject {
     let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
     Ok(match instance {
-      Either4::A(normal_module) => Self {
+      Either5::A(normal_module) => Self {
         type_id: TypeId::of::<rspack_core::NormalModule>(),
         identifier: normal_module.module.identifier,
         module: normal_module.module.module.take(),
         compiler_id: normal_module.module.compiler_id,
       },
-      Either4::B(concatenated_module) => Self {
+      Either5::B(concatenated_module) => Self {
         type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
         identifier: concatenated_module.module.identifier,
         module: concatenated_module.module.module.take(),
         compiler_id: concatenated_module.module.compiler_id,
       },
-      Either4::C(context_module) => Self {
+      Either5::C(context_module) => Self {
         type_id: TypeId::of::<rspack_core::ContextModule>(),
         identifier: context_module.module.identifier,
         module: context_module.module.module.take(),
         compiler_id: context_module.module.compiler_id,
       },
-      Either4::D(module) => Self {
+      Either5::D(external_module) => Self {
+        type_id: TypeId::of::<rspack_core::ContextModule>(),
+        identifier: external_module.module.identifier,
+        module: external_module.module.module.take(),
+        compiler_id: external_module.module.compiler_id,
+      },
+      Either5::E(module) => Self {
         type_id: TypeId::of::<dyn rspack_core::Module>(),
         identifier: module.identifier,
         module: module.module.take(),
@@ -450,16 +474,19 @@ impl FromNapiValue for ModuleObjectRef {
     let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
     Ok(match instance {
-      Either4::A(normal_module) => Self {
+      Either5::A(normal_module) => Self {
         identifier: normal_module.module.identifier,
       },
-      Either4::B(concatenated_module) => Self {
+      Either5::B(concatenated_module) => Self {
         identifier: concatenated_module.module.identifier,
       },
-      Either4::C(context_module) => Self {
+      Either5::C(context_module) => Self {
         identifier: context_module.module.identifier,
       },
-      Either4::D(module) => Self {
+      Either5::D(external_module) => Self {
+        identifier: external_module.module.identifier,
+      },
+      Either5::E(module) => Self {
         identifier: module.identifier,
       },
     })

@@ -60,12 +60,15 @@ const {
     }
   },
 })
+export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
+export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
 export const EntryDataDto = __napiModule.exports.EntryDataDto
 export const EntryDataDTO = __napiModule.exports.EntryDataDTO
 export const EntryDependency = __napiModule.exports.EntryDependency
 export const EntryOptionsDto = __napiModule.exports.EntryOptionsDto
 export const EntryOptionsDTO = __napiModule.exports.EntryOptionsDTO
+export const ExternalModule = __napiModule.exports.ExternalModule
 export const JsChunk = __napiModule.exports.JsChunk
 export const JsChunkGraph = __napiModule.exports.JsChunkGraph
 export const JsChunkGroup = __napiModule.exports.JsChunkGroup
@@ -77,12 +80,13 @@ export const JsDependencies = __napiModule.exports.JsDependencies
 export const JsDependenciesBlock = __napiModule.exports.JsDependenciesBlock
 export const JsEntries = __napiModule.exports.JsEntries
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo
-export const JsModule = __napiModule.exports.JsModule
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph
 export const JsModuleGraphConnection = __napiModule.exports.JsModuleGraphConnection
 export const JsResolver = __napiModule.exports.JsResolver
 export const JsResolverFactory = __napiModule.exports.JsResolverFactory
 export const JsStats = __napiModule.exports.JsStats
+export const Module = __napiModule.exports.Module
+export const NormalModule = __napiModule.exports.NormalModule
 export const RawExternalItemFnCtx = __napiModule.exports.RawExternalItemFnCtx
 export const BuiltinPluginName = __napiModule.exports.BuiltinPluginName
 export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace

@@ -1,5 +1,7 @@
 class Plugin {
 	apply(compiler) {
+		const { ExternalModule } = compiler.webpack;
+
 		compiler.hooks.afterEmit.tap("AutoExternalPlugin", compilation => {
 			const externalModules = Array.from(compilation.modules).filter(module =>
 				module.identifier().startsWith("external ")
@@ -8,6 +10,9 @@ class Plugin {
 			expect(externalModules.length).toBe(1);
 
 			externalModules.forEach(module => {
+				expect(module instanceof ExternalModule).toBe(true);
+				expect(module.constructor.name).toBe("ExternalModule");
+
 				expect(module.userRequest).toBe("external");
 			});
 		});

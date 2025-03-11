@@ -31,6 +31,11 @@ export interface ContextModule {
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
+
+export interface ExternalModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
@@ -116,6 +121,24 @@ export declare class EntryOptionsDto {
   set layer(layer: string | undefined)
 }
 export type EntryOptionsDTO = EntryOptionsDto
+
+export declare class ExternalModule {
+  get context(): string | undefined
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
+  get factoryMeta(): JsFactoryMeta | undefined
+  get type(): string
+  get layer(): string | undefined
+  get _blocks(): JsDependenciesBlock[]
+  get dependencies(): Dependency[]
+  size(ty?: string | undefined | null): number
+  get useSourceMap(): boolean
+  libIdent(options: JsLibIdentOptions): string | null
+  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  get userRequest(): string | undefined
+  set userRequest(val: string | undefined)
+}
 
 export declare class JsChunk {
   get name(): string | undefined

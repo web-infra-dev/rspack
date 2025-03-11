@@ -31,6 +31,11 @@ export interface ContextModule {
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
+
+export interface ExternalModule {
+	buildInfo: Record<string, any>;
+	buildMeta: Record<string, any>;
+}
 /* -- banner.d.ts end -- */
 
 /* -- napi-rs generated below -- */
