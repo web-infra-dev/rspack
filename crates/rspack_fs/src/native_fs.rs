@@ -195,6 +195,15 @@ impl ReadableFileSystem for NativeFileSystem {
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
     tokio::fs::read(file).await.map_err(Error::from)
   }
+
+  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    for entry in fs::read_dir(dir)? {
+      let entry = entry?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
+  }
 }
 
 #[cfg(target_family = "wasm")]
@@ -221,6 +230,15 @@ impl ReadableFileSystem for NativeFileSystem {
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
     fs::read(file).map_err(Error::from)
+  }
+
+  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    for entry in fs::read_dir(dir)? {
+      let entry = entry?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
   }
 }
 
