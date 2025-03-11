@@ -89,7 +89,8 @@ const bindings = fs
 	.readdirSync(ARTIFACTS, {
 		withFileTypes: true
 	})
-	.filter(item => item.isDirectory())
+	// We are not going to release wasm yet
+	.filter(item => item.isDirectory() && !item.name.includes("wasm"))
 	.map(item => path.join(ARTIFACTS, item.name));
 
 const optionalDependencies = {};

@@ -898,7 +898,7 @@ impl CodeSplitter {
           entrypoint.module_post_order_indices = post_order_indices;
 
           let entry_chunk = compilation.chunk_by_ukey.expect_get_mut(&entry_chunk_ukey);
-          entrypoint.set_entry_point_chunk(entry_chunk_ukey);
+          entrypoint.set_entrypoint_chunk(entry_chunk_ukey);
 
           if initial {
             compilation
@@ -1161,7 +1161,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
         .expect("unreachable");
       let entry_point_chunk = compilation
         .chunk_by_ukey
-        .expect_get(&entrypoint.get_entry_point_chunk());
+        .expect_get(&entrypoint.get_entrypoint_chunk());
       let entry_point_chunk_ukey = entry_point_chunk.ukey();
       let referenced_chunks =
         entry_point_chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey);
@@ -1173,7 +1173,7 @@ Or do you want to use the entrypoints '{name}' and '{entry_runtime}' independent
           let dep_entrypoint = compilation
             .chunk_group_by_ukey
             .expect_get_mut(dep_entrypoint_ukey);
-          let dependency_chunk_ukey = dep_entrypoint.get_entry_point_chunk();
+          let dependency_chunk_ukey = dep_entrypoint.get_entrypoint_chunk();
           if referenced_chunks.contains(&dependency_chunk_ukey) {
             // cycle dep
             compilation

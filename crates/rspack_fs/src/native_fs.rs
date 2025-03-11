@@ -28,6 +28,8 @@ impl NativeFileSystem {
     }
   }
 }
+
+#[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl WritableFileSystem for NativeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
@@ -70,6 +72,52 @@ impl WritableFileSystem for NativeFileSystem {
     FileMetadata::try_from(metadata)
   }
 }
+
+#[cfg(target_family = "wasm")]
+#[async_trait::async_trait]
+impl WritableFileSystem for NativeFileSystem {
+  async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
+    fs::create_dir(dir).map_err(Error::from)
+  }
+
+  async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    fs::create_dir_all(dir).map_err(Error::from)
+  }
+
+  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
+    fs::write(file, data).map_err(Error::from)
+  }
+
+  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+    fs::remove_file(file).map_err(Error::from)
+  }
+
+  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+    let dir = dir.to_path_buf();
+    fs::remove_dir_all(dir).map_err(Error::from)
+  }
+
+  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let dir = dir.to_path_buf();
+    let mut res = vec![];
+    let reader = fs::read_dir(dir).map_err(Error::from)?;
+    for entry in reader {
+      let entry = entry.map_err(Error::from)?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
+  }
+
+  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    fs::read(file).map_err(Error::from)
+  }
+
+  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+    let metadata = fs::metadata(file).map_err(Error::from)?;
+    FileMetadata::try_from(metadata)
+  }
+}
+
 impl From<FileType> for FileMetadata {
   fn from(value: FileType) -> Self {
     FileMetadata {
@@ -85,6 +133,7 @@ impl From<FileType> for FileMetadata {
   }
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
@@ -145,6 +194,51 @@ impl ReadableFileSystem for NativeFileSystem {
 
   async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
     tokio::fs::read(file).await.map_err(Error::from)
+  }
+
+  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    for entry in fs::read_dir(dir)? {
+      let entry = entry?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
+  }
+}
+
+#[cfg(target_family = "wasm")]
+#[async_trait::async_trait]
+impl ReadableFileSystem for NativeFileSystem {
+  fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+    fs::read(path).map_err(Error::from)
+  }
+
+  fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::metadata(path)?;
+    meta.try_into()
+  }
+
+  fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let meta = fs::symlink_metadata(path)?;
+    meta.try_into()
+  }
+
+  fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let path = dunce::canonicalize(path)?;
+    Ok(path.assert_utf8())
+  }
+
+  async fn async_read(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+    fs::read(file).map_err(Error::from)
+  }
+
+  fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+    let mut res = vec![];
+    for entry in fs::read_dir(dir)? {
+      let entry = entry?;
+      res.push(entry.file_name().to_string_lossy().to_string());
+    }
+    Ok(res)
   }
 }
 
