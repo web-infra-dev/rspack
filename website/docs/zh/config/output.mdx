@@ -213,7 +213,7 @@ export default {
 
 **示例**
 
-比如将 `output.publicPath` 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
+比如将 [output.publicPath](#outputpublicpath) 设置为 `https://example.com/`，并将 `output.crossOriginLoading` 设置为 `'anonymous'`：
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
@@ -1606,7 +1606,7 @@ export default {
 ## output.publicPath
 
 - **类型：** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **默认值：** targets 为 `'web'` 或 `'webworker'` 时为 `'auto'`
+- **默认值：** [target](/config/target) 为 `'web'` 或 `'webworker'` 时为 `'auto'`，否则为 `undefined`
 
 此选项决定了引用的资源的 URL 前缀，如: 图片、文件等等。
 
@@ -1639,21 +1639,41 @@ export default {
 
 对于所有 asset 资源，它们的请求 URL 看起来像是这样：`https://cdn.example.com/assets/logo.png`。
 
-**动态设置 publicPath**
+### 动态设置 publicPath
 
-在运行时代码中，你可以通过 `__webpack_public_path__` 来动态设置 `publicPath`，`__webpack_public_path__` 会覆盖 Rspack 配置中的 `publicPath`，但只能对异步加载的资源生效。
+在 JavaScript 代码中，你可以通过 [`__webpack_public_path__`](/api/runtime-api/module-variables#__webpack_public_path__) 来动态设置 `publicPath`。
+
+`__webpack_public_path__` 会覆盖 Rspack 配置中的 `output.publicPath`，但它只能对异步加载的资源生效，不会对 HTML 中通过 `<script src="...">` 加载的资源生效。
 
 首先创建一个 `publicPath.js`：
 
 ```js title="publicPath.js"
-__webpack_public_path__ = 'https://cdn.example.com/assets/';
+__webpack_public_path__ =
+  location.hostname === 'foo.com'
+    ? 'https://cdn1.com/assets/'
+    : 'https://cdn2.com/assets/';
 ```
 
-然后在入口文件的第一行引入它即可：
+然后在入口文件的第一行引入它，以确保 `publicPath` 在异步资源被加载之前被设置：
 
 ```js title="entry.js"
 import './publicPath.js';
 import './others.js';
+```
+
+### 自动 publicPath
+
+在某些情况下，你可能事先并不知道 `publicPath` 应该设置为什么值。这时 Rspack 可以通过解析一些变量来自动计算出 `publicPath` 的值，这些变量包括 [import.meta.url](/api/runtime-api/module-variables#importmetaurl)、[document.currentScript](https://developer.mozilla.org/en-US/docs/Web/API/Document/currentScript)、`script.src` 或 `self.location`。
+
+你只需要将 `output.publicPath` 设置为 `'auto'` 即可：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    // 当 `target` 为 `'web'` 或 `'webworker'` 时，这是默认值
+    publicPath: 'auto',
+  },
+};
 ```
 
 ## output.scriptType
@@ -1834,7 +1854,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `""`
 
-为 Worker 设置一个公共路径，默认为 `output.publicPath` 的值。只有在 Worker 脚本位于与其他脚本不同的路径时才使用此选项。
+为 Worker 设置一个公共路径，默认为 [output.publicPath](#outputpublicpath) 的值。只有在 Worker 脚本位于与其他脚本不同的路径时才使用此选项。
 
 ```js title="rspack.config.mjs"
 export default {
