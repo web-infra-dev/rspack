@@ -693,7 +693,7 @@ impl ChunkGraph {
     for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
       let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
       if chunk_group.kind.is_entrypoint() {
-        let entry_point_chunk = chunk_group.get_entry_point_chunk();
+        let entry_point_chunk = chunk_group.get_entrypoint_chunk();
         let cgc = self.expect_chunk_graph_chunk(&entry_point_chunk);
         for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
           let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
