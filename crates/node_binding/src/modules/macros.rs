@@ -152,11 +152,6 @@ macro_rules! impl_module_methods {
         self.module.size(ty)
       }
 
-      #[napi(getter)]
-      pub fn use_source_map(&mut self) -> napi::Result<bool> {
-        self.module.use_source_map()
-      }
-
       #[napi]
       pub fn lib_ident(
         &mut self,

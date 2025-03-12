@@ -46,8 +46,6 @@ impl Module {
     let mut object = instance.as_object(env);
     let (_, module) = (*instance).as_ref()?;
 
-    object.set_named_property("type", env.create_string(module.module_type().as_str())?)?;
-
     #[js_function]
     fn context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
       let this = ctx.this_unchecked::<Object>();
@@ -103,15 +101,17 @@ impl Module {
     }
 
     object.define_properties(&[
+      Property::new("type")?
+        .with_value(&env.create_string(module.module_type().as_str())?)
+        .with_property_attributes(PropertyAttributes::Enumerable),
       Property::new("context")?.with_getter(context_getter),
       Property::new("layer")?.with_getter(layer_getter),
       Property::new("useSourceMap")?.with_getter(use_source_map_getter),
       Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
       Property::new("factoryMeta")?.with_getter(factory_meta_getter),
+      Property::new("buildInfo")?.with_value(&env.create_object()?),
+      Property::new("buildMeta")?.with_value(&env.create_object()?),
     ])?;
-
-    object.set_named_property("buildInfo", env.create_object()?)?;
-    object.set_named_property("buildMeta", env.create_object()?)?;
 
     Ok(instance)
   }
@@ -236,12 +236,6 @@ impl Module {
 
     let ty = ty.map(|s| SourceType::from(s.as_str()));
     Ok(module.size(ty.as_ref(), Some(compilation)))
-  }
-
-  #[napi(getter)]
-  pub fn use_source_map(&mut self) -> napi::Result<bool> {
-    let (_, module) = self.as_ref()?;
-    Ok(module.get_source_map_kind().source_map())
   }
 
   #[napi]

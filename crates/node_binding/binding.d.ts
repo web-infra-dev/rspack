@@ -52,7 +52,6 @@ export declare class ConcatenatedModule {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -64,7 +63,6 @@ export declare class ContextModule {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -121,7 +119,6 @@ export declare class ExternalModule {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -348,7 +345,6 @@ export declare class Module {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
@@ -368,7 +364,6 @@ export declare class NormalModule {
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
-  get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
