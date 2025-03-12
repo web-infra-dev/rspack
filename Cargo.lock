@@ -4150,6 +4150,7 @@ dependencies = [
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
  "rspack_loader_swc",
+ "rspack_loader_ts_go",
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_css",
@@ -4547,6 +4548,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_loader_ts_go"
+version = "0.2.0"
+dependencies = [
+ "async-trait",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_loader_runner",
+]
+
+[[package]]
 name = "rspack_macros"
 version = "0.2.0"
 dependencies = [
@@ -4624,6 +4637,7 @@ dependencies = [
  "rspack_loader_runner",
  "rspack_loader_swc",
  "rspack_loader_testing",
+ "rspack_loader_ts_go",
  "rspack_napi",
  "rspack_napi_macros",
  "rspack_paths",

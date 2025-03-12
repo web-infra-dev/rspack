@@ -190,3 +190,33 @@ async fn preact_refresh() {
   let errors: Vec<_> = compiler.compilation.get_errors().collect();
   assert!(errors.is_empty());
 }
+
+#[cfg(feature = "loader_ts_go")]
+#[tokio::test(flavor = "multi_thread")]
+async fn ts_go() {
+  let mut compiler = Compiler::builder()
+    .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ts-go"))
+    .entry("main", "./src/index.ts")
+    .module(ModuleOptions::builder().rule(ModuleRule {
+      test: Some(RuleSetCondition::Regexp(
+        RspackRegex::new("\\.ts$").unwrap(),
+      )),
+      effect: ModuleRuleEffect {
+        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+          loader: "builtin:ts-go-loader".to_string(),
+          options: None,
+        }]),
+        ..Default::default()
+      },
+      ..Default::default()
+    }))
+    .enable_loader_ts_go()
+    .build()
+    .unwrap();
+
+  compiler.build().await.unwrap();
+
+  let errors: Vec<_> = compiler.compilation.get_errors().collect();
+  dbg!(&errors);
+  assert!(errors.is_empty());
+}

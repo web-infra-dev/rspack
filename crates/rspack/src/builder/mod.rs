@@ -508,6 +508,14 @@ impl CompilerBuilder {
   }
 }
 
+#[cfg(feature = "loader_ts_go")]
+impl CompilerBuilder {
+  /// Enable support for builtin:ts-go-loader.
+  pub fn enable_loader_ts_go(&mut self) -> &mut Self {
+    self.plugin(Box::new(rspack_loader_ts_go::TypeScriptLoaderPlugin::new()))
+  }
+}
+
 impl Builder for CompilerOptions {
   type Item = CompilerOptionsBuilder;
 

@@ -19,6 +19,7 @@ use rspack_loader_lightningcss::{config::Config, LIGHTNINGCSS_LOADER_IDENTIFIER}
 use rspack_loader_preact_refresh::PREACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_react_refresh::REACT_REFRESH_LOADER_IDENTIFIER;
 use rspack_loader_swc::{SwcLoader, SWC_LOADER_IDENTIFIER};
+use rspack_loader_ts_go::TYPESCRIPT_LOADER_IDENTIFIER;
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
@@ -104,6 +105,12 @@ pub async fn get_builtin_loader(builtin: &str, options: Option<&str>) -> Result<
   if builtin.starts_with(PREACT_REFRESH_LOADER_IDENTIFIER) {
     return Ok(Arc::new(
       rspack_loader_preact_refresh::PreactRefreshLoader::default().with_identifier(builtin.into()),
+    ));
+  }
+
+  if builtin.starts_with(TYPESCRIPT_LOADER_IDENTIFIER) {
+    return Ok(Arc::new(
+      rspack_loader_ts_go::TypeScriptLoader::default().with_identifier(builtin.into()),
     ));
   }
 

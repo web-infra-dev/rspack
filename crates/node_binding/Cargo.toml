@@ -59,13 +59,13 @@ serde_json         = { workspace = true }
 swc_core           = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio              = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 
-
 rspack_loader_lightningcss             = { workspace = true }
 rspack_loader_preact_refresh           = { workspace = true }
 rspack_loader_react_refresh            = { workspace = true }
 rspack_loader_runner                   = { workspace = true }
 rspack_loader_swc                      = { workspace = true }
 rspack_loader_testing                  = { workspace = true }
+rspack_loader_ts_go                    = { workspace = true }
 rspack_plugin_asset                    = { workspace = true }
 rspack_plugin_banner                   = { workspace = true }
 rspack_plugin_context_replacement      = { workspace = true }
