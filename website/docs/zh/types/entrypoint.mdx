@@ -13,7 +13,8 @@ type Entrypoint = {
   isInitial(): boolean; // 是否在页面初始加载
   getFiles(): ReadonlyArray<string>; // 关联的文件列表
   getParents(): ReadonlyArray<ChunkGroup>; // 父 chunk group 列表
-  getRuntimeChunk(): Readonly<Chunk | null>; // 包含 webpack 启动代码的 chunk
+  getRuntimeChunk(): Readonly<Chunk | null>; // 获取该 entrypoint 的 runtime chunk（runtime chunk 指包含 runtime 代码的 chunk。一般情况下 runtime chunk 和 entrypoint chunk 是同一个 chunk，只有在通过 dependOn 或 optimization.runtimeChunk 将 runtime 单独拆到一个 chunk 时才指向不同的 chunk）
+  getEntrypointChunk(): Readonly<Chunk | null>; // 获取该 entrypoint 的 entrypoint chunk（指包含 entry 模块的 chunk）
 };
 ```
 
