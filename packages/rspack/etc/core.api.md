@@ -4041,9 +4041,13 @@ type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
 // @public (undocumented)
-export const NormalModule: binding.NormalModule & {
-    getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
-};
+export const NormalModule: typeof NormalModule_2;
+
+// @public (undocumented)
+class NormalModule_2 extends binding.NormalModule {
+    // (undocumented)
+    static getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
+}
 
 // @public (undocumented)
 interface NormalModuleCompilationHooks {

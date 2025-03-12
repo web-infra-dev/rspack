@@ -34,12 +34,4 @@ Object.defineProperty(binding.ExternalModule.prototype, "emitFile", {
 	}
 });
 
-declare module "@rspack/binding" {
-	interface ExternalModule {
-		get blocks(): DependenciesBlock[];
-		originalSource(): Source | null;
-		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
-	}
-}
-
 export { ExternalModule } from "@rspack/binding";

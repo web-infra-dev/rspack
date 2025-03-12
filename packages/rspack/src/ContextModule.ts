@@ -34,12 +34,4 @@ Object.defineProperty(binding.ContextModule.prototype, "emitFile", {
 	}
 });
 
-declare module "@rspack/binding" {
-	interface ContextModule {
-		get blocks(): DependenciesBlock[];
-		originalSource(): Source | null;
-		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
-	}
-}
-
 export { ContextModule } from "@rspack/binding";
