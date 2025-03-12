@@ -191,6 +191,7 @@ Undelayed
 unplugin
 valorkin
 vant
+verkada
 viktoriialurie
 weapp
 Webpack
