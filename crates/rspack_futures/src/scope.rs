@@ -137,7 +137,7 @@ impl<'scope, T, O> Spawner<'scope, '_, T, O> {
   /// Spawn task from used reference
   pub fn spawn<F, Fut>(self, f: F)
   where
-    // TODO Use AsyncOnce
+    // TODO Use AsyncFnOnce
     F: FnOnce(T) -> Fut + 'static,
     Fut: Future<Output = O> + Send + 'scope,
     T: Send + Sync + 'scope,
