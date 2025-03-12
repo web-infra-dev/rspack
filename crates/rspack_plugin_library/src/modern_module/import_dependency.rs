@@ -25,6 +25,7 @@ pub struct ModernModuleImportDependency {
 
 impl ModernModuleImportDependency {
   pub fn new(
+    id: DependencyId,
     request: Atom,
     target_request: ExternalRequest,
     external_type: ExternalType,
@@ -34,11 +35,11 @@ impl ModernModuleImportDependency {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
     Self {
+      id,
       request,
       target_request,
       external_type,
       range,
-      id: DependencyId::new(),
       attributes,
       resource_identifier,
       factorize_info: Default::default(),
