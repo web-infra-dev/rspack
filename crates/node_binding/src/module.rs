@@ -1,6 +1,6 @@
 use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
-use napi::JsString;
+use napi::{CallContext, JsString, NapiRaw};
 use napi_derive::napi;
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
@@ -41,6 +41,81 @@ pub struct Module {
 }
 
 impl Module {
+  pub(crate) fn custom_into_instance(self, env: &Env) -> napi::Result<ClassInstance<Self>> {
+    let mut instance = self.into_instance(env)?;
+    let mut object = instance.as_object(env);
+    let (_, module) = (*instance).as_ref()?;
+
+    object.set_named_property("type", env.create_string(module.module_type().as_str())?)?;
+
+    #[js_function]
+    fn context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(match module.get_context() {
+        Some(ctx) => Either::A(ctx.to_string()),
+        None => Either::B(()),
+      })
+    }
+
+    #[js_function]
+    fn layer_getter(ctx: CallContext) -> napi::Result<Either<&String, ()>> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(match module.get_layer() {
+        Some(layer) => Either::A(layer),
+        None => Either::B(()),
+      })
+    }
+
+    #[js_function]
+    fn use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(module.get_source_map_kind().source_map())
+    }
+
+    #[js_function]
+    fn use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(module.get_source_map_kind().source_map())
+    }
+
+    #[js_function]
+    fn factory_meta_getter(ctx: CallContext) -> napi::Result<Either<JsFactoryMeta, ()>> {
+      let this = ctx.this_unchecked::<Object>();
+      let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+      let (_, module) = wrapped_value.as_ref()?;
+      Ok(match module.as_normal_module() {
+        Some(normal_module) => match normal_module.factory_meta() {
+          Some(meta) => Either::A(JsFactoryMeta {
+            side_effect_free: meta.side_effect_free,
+          }),
+          None => Either::B(()),
+        },
+        None => Either::B(()),
+      })
+    }
+
+    object.define_properties(&[
+      Property::new("context")?.with_getter(context_getter),
+      Property::new("layer")?.with_getter(layer_getter),
+      Property::new("useSourceMap")?.with_getter(use_source_map_getter),
+      Property::new("useSimpleSourceMap")?.with_getter(use_simple_source_map_getter),
+      Property::new("factoryMeta")?.with_getter(factory_meta_getter),
+    ])?;
+
+    object.set_named_property("buildInfo", env.create_object()?)?;
+    object.set_named_property("buildMeta", env.create_object()?)?;
+
+    Ok(instance)
+  }
+
   pub(crate) fn as_ref(&mut self) -> napi::Result<(&Compilation, &dyn rspack_core::Module)> {
     match self.compiler_reference.get() {
       Some(this) => {
@@ -84,17 +159,7 @@ impl Module {
 
 #[napi]
 impl Module {
-  #[napi(getter)]
-  pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.get_context() {
-      Some(ctx) => Either::A(ctx.to_string()),
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(js_name = "_originalSource")]
+  #[napi(js_name = "_originalSource", enumerable = false)]
   pub fn original_source(&mut self, env: &Env) -> napi::Result<Either<JsCompatSource, ()>> {
     let (_, module) = self.as_ref()?;
 
@@ -124,39 +189,12 @@ impl Module {
     })
   }
 
-  #[napi(getter)]
-  pub fn factory_meta(&mut self) -> napi::Result<Either<JsFactoryMeta, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.as_normal_module() {
-      Some(normal_module) => match normal_module.factory_meta() {
-        Some(meta) => Either::A(JsFactoryMeta {
-          side_effect_free: meta.side_effect_free,
-        }),
-        None => Either::B(()),
-      },
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(getter)]
-  pub fn get_type(&mut self) -> napi::Result<&str> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(module.module_type().as_str())
-  }
-
-  #[napi(getter)]
-  pub fn layer(&mut self) -> napi::Result<Either<&String, ()>> {
-    let (_, module) = self.as_ref()?;
-
-    Ok(match module.get_layer() {
-      Some(layer) => Either::A(layer),
-      None => Either::B(()),
-    })
-  }
-
-  #[napi(getter, js_name = "_blocks", ts_return_type = "JsDependenciesBlock[]")]
+  #[napi(
+    getter,
+    js_name = "_blocks",
+    ts_return_type = "JsDependenciesBlock[]",
+    enumerable = false
+  )]
   pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlockWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
@@ -209,7 +247,7 @@ impl Module {
   #[napi]
   pub fn lib_ident(
     &mut self,
-    env: Env,
+    env: &Env,
     options: JsLibIdentOptions,
   ) -> napi::Result<Option<JsString>> {
     let (_, module) = self.as_ref()?;
@@ -223,7 +261,7 @@ impl Module {
     )
   }
 
-  #[napi(js_name = "_emitFile")]
+  #[napi(js_name = "_emitFile", enumerable = false)]
   pub fn emit_file(
     &mut self,
     filename: String,
@@ -376,33 +414,21 @@ impl ToNapiValue for ModuleObject {
                 compiler_reference,
               };
               let env_wrapper = Env::from_raw(env);
-              let env_wrapper_ref = &env_wrapper;
-
-              let set_named_properties = &mut |mut object: Object| -> napi::Result<()> {
-                object.set_named_property("buildInfo", env_wrapper_ref.create_object()?)?;
-                object.set_named_property("buildMeta", env_wrapper_ref.create_object()?)?;
-                Ok(())
-              };
 
               let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
-                let instance = NormalModule { module: js_module }.into_instance(&env_wrapper)?;
-                set_named_properties(instance.as_object(&env_wrapper))?;
+                let instance = NormalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::A(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
-                let instance = ConcatenatedModule { module: js_module }.into_instance(&env_wrapper)?;
-                set_named_properties(instance.as_object(&env_wrapper))?;
+                let instance = ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::B(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
-                let instance = ContextModule { module: js_module }.into_instance(&env_wrapper)?;
-                set_named_properties(instance.as_object(&env_wrapper))?;
+                let instance = ContextModule { module: js_module }.custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::C(OneShotInstanceRef::from_instance(env, instance)?))
               } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
-                let instance = ExternalModule { module: js_module }.into_instance(&env_wrapper)?;
-                set_named_properties(instance.as_object(&env_wrapper))?;
+                let instance = ExternalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::D(OneShotInstanceRef::from_instance(env, instance)?))
               } else {
-                let instance = js_module.into_instance(&env_wrapper)?;
-                set_named_properties(instance.as_object(&env_wrapper))?;
+                let instance = js_module.custom_into_instance(&env_wrapper)?;
                 entry.insert(Either5::E(OneShotInstanceRef::from_instance(env, instance)?))
               };
               match instance_ref {

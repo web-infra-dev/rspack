@@ -13,28 +13,26 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export interface Module {
+	readonly type: string;
+	get context(): string | undefined;
+	get layer(): string | undefined;
+	get factoryMeta(): JsFactoryMeta | undefined
+	get useSourceMap(): boolean;
+	get useSimpleSourceMap(): boolean;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
 
-export interface NormalModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface NormalModule extends Module {
 }
 
-export interface ConcatenatedModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ConcatenatedModule extends Module {
 }
 
-export interface ContextModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ContextModule extends Module {
 }
 
-export interface ExternalModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ExternalModule extends Module {
 }
 /* -- banner.d.ts end -- */
 

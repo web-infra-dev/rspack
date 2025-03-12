@@ -24,6 +24,7 @@ import { Dependency } from '@rspack/binding';
 import { EntryDependency } from '@rspack/binding';
 import { RawEvalDevToolModulePluginOptions as EvalDevToolModulePluginOptions } from '@rspack/binding';
 import { EventEmitter } from 'events';
+import { ExternalModule } from '@rspack/binding';
 import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
@@ -2138,6 +2139,8 @@ export type ExternalItemValue = string | boolean | string[] | ExternalItemUmdVal
 * when libraryTarget and externalsType is not 'umd'
 */
 | ExternalItemObjectValue;
+
+export { ExternalModule }
 
 // @public
 export type Externals = ExternalItem | ExternalItem[];
@@ -5200,6 +5203,7 @@ declare namespace rspackExports {
         NormalModule,
         ContextModule,
         ConcatenatedModule,
+        ExternalModule,
         NormalModuleFactory,
         RuntimeGlobals,
         StatsAsset,

@@ -13,28 +13,26 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export interface Module {
+	readonly type: string;
+	get context(): string | undefined;
+	get layer(): string | undefined;
+	get factoryMeta(): JsFactoryMeta | undefined
+	get useSourceMap(): boolean;
+	get useSimpleSourceMap(): boolean;
 	buildInfo: Record<string, any>;
 	buildMeta: Record<string, any>;
 }
 
-export interface NormalModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface NormalModule extends Module {
 }
 
-export interface ConcatenatedModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ConcatenatedModule extends Module {
 }
 
-export interface ContextModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ContextModule extends Module {
 }
 
-export interface ExternalModule {
-	buildInfo: Record<string, any>;
-	buildMeta: Record<string, any>;
+export interface ExternalModule extends Module {
 }
 /* -- banner.d.ts end -- */
 
@@ -47,30 +45,22 @@ export declare class ExternalObject<T> {
   }
 }
 export declare class ConcatenatedModule {
-  get context(): string | undefined
+  get modules(): Module[] | undefined
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
-  get modules(): Module[] | undefined
 }
 
 export declare class ContextModule {
-  get context(): string | undefined
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
@@ -123,21 +113,17 @@ export declare class EntryOptionsDto {
 export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
-  get context(): string | undefined
+  get userRequest(): string | undefined
+  set userRequest(val: string | undefined)
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
-  get userRequest(): string | undefined
-  set userRequest(val: string | undefined)
 }
 
 export declare class JsChunk {
@@ -356,13 +342,9 @@ export declare class JsStats {
 }
 
 export declare class Module {
-  get context(): string | undefined
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
@@ -372,26 +354,22 @@ export declare class Module {
 }
 
 export declare class NormalModule {
-  get context(): string | undefined
-  _originalSource(): JsCompatSource | undefined
   get resource(): string | undefined
-  identifier(): string
-  nameForCondition(): string | undefined
   get request(): string | undefined
   get userRequest(): string | undefined
   set userRequest(val: string | undefined)
   get rawRequest(): string | undefined
-  get factoryMeta(): JsFactoryMeta | undefined
-  get type(): string
-  get layer(): string | undefined
+  get resourceResolveData(): JsResourceData | undefined
+  get matchResource(): string | undefined
+  set matchResource(val: string | undefined)
+  _originalSource(): JsCompatSource | undefined
+  identifier(): string
+  nameForCondition(): string | undefined
   get _blocks(): JsDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   get useSourceMap(): boolean
   libIdent(options: JsLibIdentOptions): string | null
-  get resourceResolveData(): JsResourceData | undefined
-  get matchResource(): string | undefined
-  set matchResource(val: string | undefined)
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
