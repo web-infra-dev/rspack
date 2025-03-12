@@ -1,0 +1,8 @@
+---
+source: crates/rspack/tests/errors.rs
+expression: error
+---
+Invalid option 'output.chunk_format': For the selected environment is no default script chunk format available:
+JSONP Array push can be chosen when 'document' or 'importScripts' is available.
+CommonJs exports can be chosen when 'require' or node builtins are available.
+Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly.

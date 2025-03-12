@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
-use rspack_paths::Utf8Path;
-use rspack_paths::Utf8PathBuf;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::{FileMetadata, Result};
 

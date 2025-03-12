@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
@@ -75,7 +75,7 @@
     "@module-federation/runtime-tools": "0.8.4",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001702"
+    "caniuse-lite": "^1.0.30001703"
   },
   "peerDependencies": {
     "@rspack/tracing": "^1.x",

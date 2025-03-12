@@ -119,6 +119,13 @@ impl JsChunkGroup {
     Ok(JsChunkWrapper::new(chunk_ukey, compilation))
   }
 
+  #[napi(ts_return_type = "JsChunk")]
+  pub fn get_entrypoint_chunk(&self) -> napi::Result<JsChunkWrapper> {
+    let (compilation, chunk_group) = self.as_ref()?;
+    let chunk_ukey = chunk_group.get_entrypoint_chunk();
+    Ok(JsChunkWrapper::new(chunk_ukey, compilation))
+  }
+
   #[napi]
   pub fn get_files(&self) -> napi::Result<Vec<&String>> {
     let (compilation, chunk_group) = self.as_ref()?;

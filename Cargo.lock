@@ -4142,6 +4142,7 @@ dependencies = [
  "insta",
  "regex",
  "rspack_core",
+ "rspack_error",
  "rspack_fs",
  "rspack_hash",
  "rspack_ids",
@@ -4283,6 +4284,7 @@ version = "0.2.0"
 dependencies = [
  "anymap3",
  "async-recursion",
+ "async-scoped",
  "async-trait",
  "bitflags 2.6.0",
  "cow-utils",

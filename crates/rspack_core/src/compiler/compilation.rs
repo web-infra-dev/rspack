@@ -8,6 +8,7 @@ use std::{
   },
 };
 
+use async_scoped::TokioScope;
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
