@@ -202,10 +202,17 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
     };
     let key = Arc::<str>::from(key);
     let mut define_record = DefineRecord::from_code(code.clone());
+    let recurse = std::sync::OnceLock::new();
+    let recurse_typeof = std::sync::OnceLock::new();
     if !is_typeof {
       walk_data.can_rename.insert(key.clone());
       define_record = define_record
         .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
+          // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
+          if recurse.get().is_some() {
+            return None;
+          }
+          recurse.get_or_init(|| ());
           let evaluated = parser
             .evaluate(
               to_code(&record.code, None, None).into_owned(),
@@ -230,6 +237,11 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
 
     define_record = define_record
       .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
+        // Avoid endless recursion, for example: new DefinePlugin({ "typeof a": "typeof a" })
+        if recurse_typeof.get().is_some() {
+          return None;
+        }
+        recurse_typeof.get_or_init(|| ());
         let code = to_code(&record.code, None, None);
         let typeof_code = if is_typeof {
           code
