@@ -218,7 +218,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let mut external_connections = HashSet::default();
 
   // Remove `import()` runtime.
-  for (_, module) in &mg.modules() {
+  for module in mg.modules().values() {
     for block_id in module.get_blocks() {
       let block = mg.block_by_id(block_id).expect("should have block");
       for block_dep_id in block.get_dependencies() {
