@@ -27,7 +27,7 @@ async fn basic_compile(fs: Arc<dyn FileSystem>, sm: bool) {
     builder.devtool(Devtool::SourceMap);
   }
 
-  let mut compiler = builder.build();
+  let mut compiler = builder.build().unwrap();
 
   compiler.run().await.unwrap();
 

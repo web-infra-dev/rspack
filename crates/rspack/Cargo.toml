@@ -21,6 +21,7 @@ enum-tag     = { workspace = true }
 indexmap     = { workspace = true, features = ["rayon"] }
 regex        = { workspace = true }
 rspack_core  = { workspace = true }
+rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_hash  = { workspace = true }
 rspack_ids   = { workspace = true }

@@ -32,7 +32,8 @@ async fn lightningcss() {
     }))
     .experiments(Experiments::builder().css(true))
     .enable_loader_lightningcss()
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 
@@ -77,7 +78,8 @@ async fn swc() {
     }))
     .experiments(Experiments::builder().css(true))
     .enable_loader_swc()
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 
@@ -128,7 +130,8 @@ async fn react_refresh() {
     .experiments(Experiments::builder().css(true))
     .enable_loader_swc()
     .enable_loader_react_refresh()
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 
@@ -179,7 +182,8 @@ async fn preact_refresh() {
     .experiments(Experiments::builder().css(true))
     .enable_loader_swc()
     .enable_loader_preact_refresh()
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 

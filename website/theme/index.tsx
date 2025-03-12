@@ -2,7 +2,7 @@ import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
 import { NoSSR, useLang, usePageData } from 'rspress/runtime';
-import Theme from 'rspress/theme';
+import { Layout as BaseLayout } from 'rspress/theme';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
@@ -25,7 +25,7 @@ const Layout = () => {
         },
       }}
     >
-      <Theme.Layout
+      <BaseLayout
         beforeNavTitle={<NavIcon />}
         beforeNav={
           ANNOUNCEMENT_URL && (
@@ -52,10 +52,6 @@ const Layout = () => {
   );
 };
 
-export * from 'rspress/theme';
+export { Layout, HomeLayout };
 
-export default {
-  ...Theme,
-  Layout,
-  HomeLayout,
-};
+export * from 'rspress/theme';
