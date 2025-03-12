@@ -1,20 +1,29 @@
 class Plugin {
+	/**
+	 * @param {import("@rspack/core").Compiler} compiler
+	 */
 	apply(compiler) {
 		const { ExternalModule } = compiler.webpack;
 
 		compiler.hooks.afterEmit.tap("AutoExternalPlugin", compilation => {
-			const externalModules = Array.from(compilation.modules).filter(module =>
-				module.identifier().startsWith("external ")
-			);
+			const externalModules = Array.from(compilation.modules).filter(module => module instanceof ExternalModule);
 
 			expect(externalModules.length).toBe(1);
 
-			externalModules.forEach(module => {
-				expect(module instanceof ExternalModule).toBe(true);
-				expect(module.constructor.name).toBe("ExternalModule");
+			const module = externalModules[0];
 
-				expect(module.userRequest).toBe("external");
-			});
+			expect(module.constructor.name).toBe("ExternalModule");
+
+			expect(module.userRequest).toBe("external");
+
+			expect(module.type).toBe("javascript/auto");
+			expect("context" in module).toBe(true);
+			expect("layer" in module).toBe(true);
+			expect("factoryMeta" in module).toBe(true);
+			expect(module.useSourceMap).toBe(false);
+			expect(module.useSimpleSourceMap).toBe(false);
+			expect("buildMeta" in module).toBe(true);
+			expect("buildMeta" in module).toBe(true);
 		});
 	}
 }

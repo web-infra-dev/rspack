@@ -149,15 +149,10 @@ Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
 	}
 });
 
-declare module "@rspack/binding" {
-	interface NormalModule {
-		get blocks(): DependenciesBlock[];
-		originalSource(): Source | null;
-		emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
-	}
+declare class NormalModule extends binding.NormalModule {
+	static getCompilationHooks(
+		compilation: Compilation
+	): NormalModuleCompilationHooks;
 }
 
-export const NormalModule =
-	binding.NormalModule as unknown as binding.NormalModule & {
-		getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
-	};
+export default binding.NormalModule as unknown as typeof NormalModule;
