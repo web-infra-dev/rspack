@@ -210,7 +210,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
       define_record = define_record
         .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
           // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
-          if recurse.swap(true, Ordering::Relaxed) {
+          if recurse.swap(true, Ordering::Acquire) {
             return None;
           }
           let evaluated = parser
@@ -222,7 +222,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
               evaluated.set_range(start, end);
               evaluated
             });
-          recurse.store(false, Ordering::Relaxed);
+          recurse.store(false, Ordering::Release);
           evaluated
         }))
         .with_on_expression(Box::new(
@@ -239,7 +239,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
     define_record = define_record
       .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
         // Avoid endless recursion, for example: new DefinePlugin({ "typeof a": "typeof a" })
-        if recurse_typeof.swap(true, Ordering::Relaxed) {
+        if recurse_typeof.swap(true, Ordering::Acquire) {
           return None;
         }
         let code = to_code(&record.code, None, None);
@@ -254,7 +254,7 @@ pub(super) fn walk_definitions(definitions: &DefineValue) -> WalkData {
             evaluated.set_range(start, end);
             evaluated
           });
-        recurse_typeof.store(false, Ordering::Relaxed);
+        recurse_typeof.store(false, Ordering::Release);
         evaluated
       }))
       .with_on_typeof(Box::new(move |record, parser, start, end| {
