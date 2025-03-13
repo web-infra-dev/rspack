@@ -35,6 +35,7 @@ mod utils;
 struct JsonParserAndGenerator {
   pub exports_depth: u32,
   pub parse: ParseOption,
+  pub json_parse: bool,
 }
 
 #[cacheable_dyn]
@@ -193,7 +194,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let is_js_object = final_json.is_object() || final_json.is_array();
         let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
-        let json_expr = if is_js_object && json_str.len() > 20 {
+        let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
             "JSON.parse('{}')",
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
@@ -244,14 +245,19 @@ impl Plugin for JsonPlugin {
   ) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|p, _| {
+      Box::new(|p, g| {
         let p = p
           .and_then(|p| p.get_json())
           .expect("should have JsonParserOptions");
 
+        let g = g
+          .and_then(|g| g.get_json())
+          .expect("should have JsonGeneratorOptions");
+
         Box::new(JsonParserAndGenerator {
           exports_depth: p.exports_depth.expect("should have exports_depth"),
           parse: p.parse.clone(),
+          json_parse: g.json_parse.expect("should have json_parse"),
         })
       }),
     );
