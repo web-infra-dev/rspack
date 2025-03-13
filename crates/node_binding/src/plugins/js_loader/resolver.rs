@@ -27,10 +27,14 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 #[cacheable]
 #[derive(Debug)]
-pub struct JsLoader(pub Identifier);
+pub struct JsLoader(pub Identifier, pub bool /* parallel */);
 
 #[cacheable_dyn]
-impl Loader<RunnerContext> for JsLoader {}
+impl Loader<RunnerContext> for JsLoader {
+  fn parallel(&self) -> bool {
+    self.1
+  }
+}
 
 impl Identifiable for JsLoader {
   fn identifier(&self) -> Identifier {
@@ -190,7 +194,7 @@ pub(crate) async fn resolve_loader(
       } else {
         resource
       };
-      Ok(Some(Arc::new(JsLoader(ident.into()))))
+      Ok(Some(Arc::new(JsLoader(ident.into(), l.parallel))))
     }
     ResolveResult::Ignored => Err(error!(
       "Failed to resolve loader: loader_request={prev}, context={context}"

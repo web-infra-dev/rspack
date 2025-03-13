@@ -241,6 +241,9 @@ const applyExperimentsDefaults = (
 
 	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
 	D(experiments, "parallelCodeSplitting", false);
+
+	// IGNORE(experiments.parallelLoader): Rspack specific configuration for parallel loader execution
+	D(experiments, "parallelLoader", false);
 };
 
 const applybundlerInfoDefaults = (

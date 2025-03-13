@@ -32,18 +32,11 @@ use crate::{JsFilename, ModuleObject, RawResolveOptions};
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
 #[napi(object)]
+#[derive(Debug)]
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
-}
-
-impl Debug for RawModuleRuleUse {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.loader)
-      .field("options", &self.options)
-      .finish()
-  }
+  pub parallel: Option<bool>,
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -795,6 +788,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
+            parallel: rule_use.parallel.unwrap_or_default(),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -809,6 +803,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
+                  parallel: rule_use.parallel.unwrap_or_default(),
                 })
                 .collect::<Vec<_>>()
             })

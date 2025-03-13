@@ -455,7 +455,8 @@ const ruleSetLoaderOptions = z
 const ruleSetLoaderWithOptions = z.strictObject({
 	ident: z.string().optional(),
 	loader: ruleSetLoader,
-	options: ruleSetLoaderOptions.optional()
+	options: ruleSetLoaderOptions.optional(),
+	parallel: z.boolean().optional()
 }) satisfies z.ZodType<t.RuleSetLoaderWithOptions>;
 
 const ruleSetUseItem = ruleSetLoader.or(
@@ -486,6 +487,7 @@ const baseRuleSetRule = z.strictObject({
 	layer: z.string().optional(),
 	loader: ruleSetLoader.optional(),
 	options: ruleSetLoaderOptions.optional(),
+	parallel: z.boolean().optional(),
 	use: ruleSetUse.optional(),
 	parser: z.record(z.any()).optional(),
 	generator: z.record(z.any()).optional(),
@@ -1397,7 +1399,8 @@ const experiments = z.strictObject({
 	incremental: z.boolean().or(incremental).optional(),
 	parallelCodeSplitting: z.boolean().optional(),
 	futureDefaults: z.boolean().optional(),
-	rspackFuture: rspackFutureOptions.optional()
+	rspackFuture: rspackFutureOptions.optional(),
+	parallelLoader: z.boolean().optional()
 }) satisfies z.ZodType<t.Experiments>;
 //#endregion
 

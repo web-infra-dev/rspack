@@ -368,7 +368,8 @@ export const getNormalizedRspackOptions = (
 						} satisfies Incremental)
 					: options
 			),
-			parallelCodeSplitting: experiments.parallelCodeSplitting
+			parallelCodeSplitting: experiments.parallelCodeSplitting,
+			parallelLoader: experiments.parallelLoader
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -608,6 +609,7 @@ export interface ExperimentsNormalized {
 	parallelCodeSplitting?: boolean;
 	futureDefaults?: boolean;
 	rspackFuture?: RspackFutureOptions;
+	parallelLoader?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((

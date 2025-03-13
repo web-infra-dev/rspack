@@ -75,7 +75,8 @@
     "@module-federation/runtime-tools": "0.11.1",
     "@rspack/binding": "workspace:*",
     "@rspack/lite-tapable": "1.0.1",
-    "caniuse-lite": "^1.0.30001706"
+    "caniuse-lite": "^1.0.30001706",
+    "tinypool": "^1.0.2"
   },
   "peerDependencies": {
     "@rspack/tracing": "^1.x",

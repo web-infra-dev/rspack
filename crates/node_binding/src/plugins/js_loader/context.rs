@@ -16,6 +16,7 @@ pub struct JsLoaderItem {
 
   // data
   pub data: serde_json::Value,
+  pub parallel: bool,
 
   // status
   pub normal_executed: bool,
@@ -29,6 +30,7 @@ impl From<&LoaderItem<RunnerContext>> for JsLoaderItem {
       r#type: value.r#type().to_string(),
 
       data: value.data().clone(),
+      parallel: value.parallel(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
     }

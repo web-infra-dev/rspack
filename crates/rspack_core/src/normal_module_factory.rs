@@ -281,6 +281,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            parallel: false,
           }
         }));
         scheme = get_scheme(unresolved_resource);

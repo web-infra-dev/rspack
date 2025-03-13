@@ -835,6 +835,8 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
+	parallel?: boolean;
+
 	options?: RuleSetLoaderOptions;
 };
 
@@ -897,6 +899,9 @@ export type RuleSetRule = {
 
 	/** A loader options */
 	options?: RuleSetLoaderOptions;
+
+	/** Parallel loader */
+	parallel?: boolean;
 
 	/** An array to pass the Loader package name and its options.  */
 	use?: RuleSetUse;
@@ -2623,6 +2628,10 @@ export type Experiments = {
 	 * Enable future Rspack features default options.
 	 */
 	rspackFuture?: RspackFutureOptions;
+	/**
+	 * Enable parallel loader
+	 */
+	parallelLoader?: boolean;
 };
 //#endregion
 

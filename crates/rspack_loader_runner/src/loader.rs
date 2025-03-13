@@ -38,6 +38,7 @@ pub struct LoaderItem<Context> {
   fragment: Option<String>,
   /// Data shared between pitching and normal
   data: serde_json::Value,
+  parallel: bool,
   r#type: String,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
@@ -84,6 +85,11 @@ impl<C> LoaderItem<C> {
   #[inline]
   pub fn data(&self) -> &serde_json::Value {
     &self.data
+  }
+
+  #[inline]
+  pub fn parallel(&self) -> bool {
+    self.parallel
   }
 
   #[inline]
@@ -197,10 +203,17 @@ where
     // noop
     Ok(())
   }
+  fn parallel(&self) -> bool {
+    false
+  }
 }
 
-impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
+impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C>
+where
+  C: Send,
+{
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    let parallel = loader.parallel();
     if let Some((r#type, ident)) = loader.identifier().split_once('|') {
       let ResourceParsedData {
         path,
@@ -214,6 +227,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         query,
         fragment,
         data: serde_json::Value::Null,
+        parallel,
         r#type: r#type.to_string(),
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
@@ -233,6 +247,7 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       query,
       fragment,
       data: serde_json::Value::Null,
+      parallel,
       r#type: String::default(),
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),

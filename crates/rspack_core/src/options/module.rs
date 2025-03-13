@@ -930,6 +930,8 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Enable parallel loader on JS
+  pub parallel: bool,
 }
 
 pub type FnUse =

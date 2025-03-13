@@ -87,7 +87,7 @@ export interface Diagnostic {
 	severity: "error" | "warning";
 }
 
-interface LoaderExperiments {
+export interface LoaderExperiments {
 	emitDiagnostic(diagnostic: Diagnostic): void;
 }
 
@@ -424,7 +424,9 @@ export function createRawModuleRuleUses(
 	const allUses = Array.isArray(uses)
 		? [...uses].map(normalizeRuleSetUseItem)
 		: [normalizeRuleSetUseItem(uses)];
-	return createRawModuleRuleUsesImpl(allUses, path, options);
+	let a = createRawModuleRuleUsesImpl(allUses, path, options);
+	console.log(a);
+	return a;
 }
 
 type GetLoaderOptions = (
@@ -516,7 +518,8 @@ function createRawModuleRuleUsesImpl(
 				options.compiler,
 				isBuiltin
 			),
-			options: o
+			options: o,
+			parallel: use.parallel
 		};
 	});
 }

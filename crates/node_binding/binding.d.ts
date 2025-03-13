@@ -822,6 +822,7 @@ export interface JsLoaderItem {
   loader: string
   type: string
   data: any
+  parallel: boolean
   normalExecuted: boolean
   pitchExecuted: boolean
 }
@@ -2038,6 +2039,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  parallel?: boolean
 }
 
 export interface RawNodeOption {
