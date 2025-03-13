@@ -1,1 +1,1 @@
-module.exports = () => "webpack.ids.DeterministicModuleIdsPlugingq";
+module.exports = () => "webpack.ids.DeterministicModuleIdsPlugin";
