@@ -689,13 +689,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           // Make sure the output directory exists
           if let Some(parent) = dest_path.parent() {
             fs::create_dir_all(parent).unwrap_or_else(|e| {
-              logger.warn(&format!("Failed to create directory {:?}: {}", parent, e));
+              logger.warn(format!("Failed to create directory {:?}: {}", parent, e));
             });
           }
 
           // Make sure the file exists before trying to set permissions
           if !dest_path.exists() {
-            logger.warn(&format!(
+            logger.warn(format!(
               "Destination file {:?} does not exist, cannot copy permissions",
               dest_path
             ));
@@ -703,7 +703,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
 
           if let Err(e) = fs::set_permissions(dest_path, permissions) {
-            logger.warn(&format!(
+            logger.warn(format!(
               "Failed to copy permissions from {:?} to {:?}: {}",
               source_path, dest_path, e
             ));
