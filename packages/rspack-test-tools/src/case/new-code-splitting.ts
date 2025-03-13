@@ -47,7 +47,7 @@ const configCreator = new BasicCaseCreator({
 		});
 		return [processor];
 	},
-	concurrent: 3
+	concurrent: true
 });
 
 class NewCodeSplittingProcessor<

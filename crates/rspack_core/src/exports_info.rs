@@ -1,12 +1,13 @@
-use std::borrow::Cow;
-use std::collections::hash_map::Entry;
-use std::collections::BTreeMap;
-use std::collections::VecDeque;
-use std::hash::Hash;
-use std::rc::Rc;
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering::Relaxed;
-use std::sync::Arc;
+use std::{
+  borrow::Cow,
+  collections::{hash_map::Entry, BTreeMap, VecDeque},
+  hash::Hash,
+  rc::Rc,
+  sync::{
+    atomic::{AtomicU32, Ordering::Relaxed},
+    Arc,
+  },
+};
 
 use either::Either;
 use itertools::Itertools;
@@ -14,20 +15,14 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_collections::impl_item_ukey;
-use rspack_collections::Ukey;
-use rspack_collections::UkeySet;
-use rspack_util::atom::Atom;
-use rspack_util::ext::DynHash;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_collections::{impl_item_ukey, Ukey, UkeySet};
+use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 
-use crate::Compilation;
-use crate::DependencyConditionFn;
 use crate::{
-  property_access, ConnectionState, DependencyCondition, DependencyId, ModuleGraph,
-  ModuleIdentifier, Nullable, RuntimeSpec,
+  property_access, Compilation, ConnectionState, DependencyCondition, DependencyConditionFn,
+  DependencyId, ModuleGraph, ModuleIdentifier, Nullable, RuntimeSpec,
 };
 
 #[cacheable]

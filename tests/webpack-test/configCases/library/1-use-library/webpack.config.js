@@ -163,6 +163,46 @@ module.exports = (env, { testPath }) => [
 		]
 	},
 	{
+		resolve: {
+			alias: {
+				library: path.resolve(testPath, "../0-create-library/true-iife-umd.js")
+			}
+		},
+		plugins: [
+			new webpack.DefinePlugin({
+				NAME: JSON.stringify("true-iife-umd")
+			})
+		]
+	},
+	// TODO: Port https://github.com/webpack/webpack/pull/18929 to pass the following test.
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(testPath, "../0-create-library/false-iife-umd.js")
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("false-iife-umd")
+	// 		})
+	// 	]
+	// },
+	// {
+	// 	resolve: {
+	// 		alias: {
+	// 			library: path.resolve(
+	// 				testPath,
+	// 				"../0-create-library/false-iife-umd2.js"
+	// 			)
+	// 		}
+	// 	},
+	// 	plugins: [
+	// 		new webpack.DefinePlugin({
+	// 			NAME: JSON.stringify("false-iife-umd2")
+	// 		})
+	// 	]
+	// },
+	{
 		entry: "./this-test.js",
 		resolve: {
 			alias: {
@@ -251,7 +291,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs2-external.js"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -268,7 +312,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs2-iife-external.js"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -285,7 +333,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs2-external-eval.js"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -302,7 +354,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs2-external-eval-source-map.js"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -321,7 +377,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs-static-external.js"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -338,7 +398,11 @@ module.exports = (env, { testPath }) => [
 					testPath,
 					"../0-create-library/commonjs2-split-chunks/"
 				),
-				external: path.resolve(__dirname, "node_modules/external.js")
+				external: path.resolve(__dirname, "node_modules/external.js"),
+				"external-named": path.resolve(
+					__dirname,
+					"node_modules/external-named.js"
+				)
 			}
 		},
 		plugins: [
@@ -426,6 +490,7 @@ module.exports = (env, { testPath }) => [
 			})
 		]
 	},
+
 	{
 		resolve: {
 			alias: {
