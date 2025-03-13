@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import NormalModule from "../NormalModule";
+import { NormalModule } from "../NormalModule";
 import * as ModuleFilenameHelpers from "./ModuleFilenameHelpers";
 
 import type { Compiler } from "../Compiler";

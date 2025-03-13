@@ -63,6 +63,7 @@ import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { Module } from '@rspack/binding';
+import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
 import { RawCssExtractPluginOption } from '@rspack/binding';
 import type { RawFuncUseCtx } from '@rspack/binding';
@@ -4040,24 +4041,7 @@ type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 // @public (undocumented)
 type NormalizedStatsOptions = KnownNormalizedStatsOptions & Omit<StatsOptions, keyof KnownNormalizedStatsOptions> & Record<string, any>;
 
-// @public (undocumented)
-export const NormalModule: typeof NormalModule_2;
-
-// @public (undocumented)
-class NormalModule_2 extends binding.NormalModule {
-    // (undocumented)
-    static getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
-}
-
-// @public (undocumented)
-interface NormalModuleCompilationHooks {
-    // (undocumented)
-    loader: liteTapable.SyncHook<[LoaderContext, Module]>;
-    // (undocumented)
-    readResource: liteTapable.HookMap<liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>>;
-    // (undocumented)
-    readResourceForScheme: any;
-}
+export { NormalModule }
 
 // @public (undocumented)
 type NormalModuleCreateData = binding.JsNormalModuleFactoryCreateModuleArgs & {

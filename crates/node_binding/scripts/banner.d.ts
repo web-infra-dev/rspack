@@ -23,7 +23,22 @@ export interface Module {
 	buildMeta: Record<string, any>;
 }
 
+interface NormalModuleConstructor {
+	new (): NormalModule;
+	readonly prototype: NormalModule;
+}
+
+export var NormalModule: NormalModuleConstructor;
+
 export interface NormalModule extends Module {
+	get resource(): string | undefined;
+	get request(): string | undefined
+	get userRequest(): string | undefined
+	set userRequest(val: string | undefined)
+	get rawRequest(): string | undefined
+	get resourceResolveData(): JsResourceData | undefined
+	get matchResource(): string | undefined
+	set matchResource(val: string | undefined)
 }
 
 export interface ConcatenatedModule extends Module {

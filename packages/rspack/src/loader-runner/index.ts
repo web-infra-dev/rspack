@@ -29,7 +29,7 @@ import {
 import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import NormalModule from "../NormalModule";
+import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
 	BUILTIN_LOADER_PREFIX,

@@ -23,7 +23,22 @@ export interface Module {
 	buildMeta: Record<string, any>;
 }
 
+interface NormalModuleConstructor {
+	new (): NormalModule;
+	readonly prototype: NormalModule;
+}
+
+export var NormalModule: NormalModuleConstructor;
+
 export interface NormalModule extends Module {
+	get resource(): string | undefined;
+	get request(): string | undefined
+	get userRequest(): string | undefined
+	set userRequest(val: string | undefined)
+	get rawRequest(): string | undefined
+	get resourceResolveData(): JsResourceData | undefined
+	get matchResource(): string | undefined
+	set matchResource(val: string | undefined)
 }
 
 export interface ConcatenatedModule extends Module {
@@ -349,24 +364,6 @@ export declare class Module {
   _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
 }
 
-export declare class NormalModule {
-  get resource(): string | undefined
-  get request(): string | undefined
-  get userRequest(): string | undefined
-  set userRequest(val: string | undefined)
-  get rawRequest(): string | undefined
-  get resourceResolveData(): JsResourceData | undefined
-  get matchResource(): string | undefined
-  set matchResource(val: string | undefined)
-  _originalSource(): JsCompatSource | undefined
-  identifier(): string
-  nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
-}
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData

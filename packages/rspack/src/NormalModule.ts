@@ -149,10 +149,10 @@ Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
 	}
 });
 
-declare class NormalModule extends binding.NormalModule {
-	static getCompilationHooks(
-		compilation: Compilation
-	): NormalModuleCompilationHooks;
+declare module "@rspack/binding" {
+	interface NormalModuleConstructor {
+		getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
+	}
 }
 
-export default binding.NormalModule as unknown as typeof NormalModule;
+export { NormalModule } from "@rspack/binding";
