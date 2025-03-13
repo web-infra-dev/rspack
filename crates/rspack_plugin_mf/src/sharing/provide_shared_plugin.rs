@@ -185,7 +185,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let entries = self
     .resolved_provide_map
     .read()

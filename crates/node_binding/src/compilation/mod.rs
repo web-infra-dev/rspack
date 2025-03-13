@@ -20,7 +20,6 @@ use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
-use crate::utils::callbackify;
 use crate::EntryDependency;
 use crate::JsAddingRuntimeModule;
 use crate::JsChunk;
@@ -33,7 +32,6 @@ use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
 use crate::ToJsCompatSource;
-use crate::COMPILER_REFERENCES;
 use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 

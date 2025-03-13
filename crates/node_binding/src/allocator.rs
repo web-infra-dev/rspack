@@ -1,7 +1,4 @@
-use std::{
-  ffi::{c_void, CString},
-  ptr,
-};
+use std::ffi::c_void;
 
 use napi::{
   bindgen_prelude::{JavaScriptClassExt, Reference},

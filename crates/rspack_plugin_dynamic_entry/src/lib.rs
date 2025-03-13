@@ -55,7 +55,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for DynamicEntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let entry_fn = &self.entry;
   let decs = entry_fn().await?;
   for EntryDynamicResult { import, options } in decs {

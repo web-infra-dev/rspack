@@ -67,7 +67,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ContainerPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),

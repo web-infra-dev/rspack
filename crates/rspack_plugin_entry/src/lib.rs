@@ -41,7 +41,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for EntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let this = &self.inner;
   compilation
     .add_entry(this.dependency.clone(), this.options.clone())

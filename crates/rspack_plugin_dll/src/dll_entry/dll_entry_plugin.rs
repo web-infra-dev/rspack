@@ -66,7 +66,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for DllEntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   compilation
     .add_entry(
       Box::new(DllEntryDependency::new(&self.options)),

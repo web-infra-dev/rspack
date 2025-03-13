@@ -441,15 +441,17 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compiler_make_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compiler_make_taps: RegisterFunction<bindings::Root<Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_finish_make_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compiler_finish_make_taps:
+    RegisterFunction<bindings::Root<Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
-  pub register_compiler_should_emit_taps: RegisterFunction<JsCompilationWrapper, Option<bool>>,
+  pub register_compiler_should_emit_taps:
+    RegisterFunction<bindings::Root<Compilation>, Option<bool>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -678,7 +680,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerMakeTaps,
-  tap = CompilerMakeTap<JsCompilationWrapper, Promise<()>> @ CompilerMakeHook,
+  tap = CompilerMakeTap<bindings::Root<Compilation>, Promise<()>> @ CompilerMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerMake,
@@ -686,7 +688,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerFinishMakeTaps,
-  tap = CompilerFinishMakeTap<JsCompilationWrapper, Promise<()>> @ CompilerFinishMakeHook,
+  tap = CompilerFinishMakeTap<bindings::Root<Compilation>, Promise<()>> @ CompilerFinishMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerFinishMake,
@@ -694,7 +696,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerShouldEmitTaps,
-  tap = CompilerShouldEmitTap<JsCompilationWrapper, Option<bool>> @ CompilerShouldEmitHook,
+  tap = CompilerShouldEmitTap<bindings::Root<Compilation>, Option<bool>> @ CompilerShouldEmitHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerShouldEmit,
@@ -1106,9 +1108,8 @@ impl CompilerCompilation for CompilerCompilationTap {
 
 #[async_trait]
 impl CompilerMake for CompilerMakeTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(&self, compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1118,9 +1119,8 @@ impl CompilerMake for CompilerMakeTap {
 
 #[async_trait]
 impl CompilerFinishMake for CompilerFinishMakeTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(&self, compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1130,9 +1130,11 @@ impl CompilerFinishMake for CompilerFinishMakeTap {
 
 #[async_trait]
 impl CompilerShouldEmit for CompilerShouldEmitTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut bindings::Root<Compilation>,
+  ) -> rspack_error::Result<Option<bool>> {
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1142,7 +1144,7 @@ impl CompilerShouldEmit for CompilerShouldEmitTap {
 
 #[async_trait]
 impl CompilerEmit for CompilerEmitTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1153,7 +1155,7 @@ impl CompilerEmit for CompilerEmitTap {
 
 #[async_trait]
 impl CompilerAfterEmit for CompilerAfterEmitTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(&self, _compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1166,7 +1168,7 @@ impl CompilerAfterEmit for CompilerAfterEmitTap {
 impl CompilerAssetEmitted for CompilerAssetEmittedTap {
   async fn run(
     &self,
-    _compilation: &Compilation,
+    _compilation: &bindings::Root<Compilation>,
     filename: &str,
     info: &AssetEmittedInfo,
   ) -> rspack_error::Result<()> {

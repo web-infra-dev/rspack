@@ -212,7 +212,7 @@ fn render_startup(
 }
 
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_make(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let mut mg = compilation.get_module_graph_mut();
   let modules = mg.modules();
   let module_ids = modules.keys().cloned().collect::<Vec<_>>();

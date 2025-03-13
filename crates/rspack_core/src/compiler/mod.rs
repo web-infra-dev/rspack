@@ -34,13 +34,13 @@ define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut bindings::Ro
 // should be SyncHook, but rspack need call js hook
 define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut bindings::Root<Compilation>, params: &mut CompilationParams));
 // should be AsyncParallelHook
-define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
 // should be SyncBailHook, but rspack need call js hook
-define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation:&mut bindings::Root<Compilation>) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &bindings::Root<Compilation>, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
