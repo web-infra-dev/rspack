@@ -402,7 +402,11 @@ ${runtime.javascript.disposedModules.map(i => `- ${i}`).join("\n")}
 		: ""
 }
 
-				`.trim();
+				`
+			.replaceAll(/%3A(\d+)%2F/g, (match, capture) => {
+				return match.replace(capture, "PORT");
+			})
+			.trim();
 
 		env.expect(content).toMatchFileSnapshot(snapshotPath);
 	}

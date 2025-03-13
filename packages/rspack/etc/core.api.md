@@ -7,7 +7,6 @@
 /// <reference types="node" />
 
 import type { Abortable } from 'node:events';
-import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
@@ -63,7 +62,6 @@ import type { JsStats } from '@rspack/binding';
 import type { JsStatsCompilation } from '@rspack/binding';
 import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
-import type { ListenOptions } from 'node:net';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
 import { RawCopyPattern } from '@rspack/binding';
@@ -77,16 +75,12 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import type { SecureContextOptions } from 'node:tls';
-import type { ServerOptions } from 'node:http';
 import type { ServerResponse } from 'node:http';
-import type { Socket } from 'node:net';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
 import { SyncHook } from '@rspack/lite-tapable';
 import { SyncWaterfallHook } from '@rspack/lite-tapable';
-import type { TlsOptions } from 'node:tls';
 import type * as webpackDevServer from 'webpack-dev-server';
 
 // @public (undocumented)
@@ -2031,6 +2025,8 @@ interface Experiments_2 {
         cleanup: () => Promise<void>;
     };
     // (undocumented)
+    lazyCompilationMiddleware: typeof lazyCompilationMiddleware;
+    // (undocumented)
     RemoveDuplicateModulesPlugin: typeof RemoveDuplicateModulesPlugin;
     // (undocumented)
     RsdoctorPlugin: typeof RsdoctorPlugin;
@@ -3227,19 +3223,17 @@ type KnownStatsProfile = {
 export type Layer = string | null;
 
 // @public (undocumented)
-interface LazyCompilationDefaultBackendOptions {
-    client?: string;
-    listen?: number | ListenOptions | ((server: Server) => void);
-    protocol?: "http" | "https";
-    server?: ServerOptions<typeof IncomingMessage> | ServerOptionsHttps<typeof IncomingMessage, typeof ServerResponse> | (() => Server);
-}
+const lazyCompilationMiddleware: (compiler: Compiler, options?: LazyCompilationOptions) => (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
 
 // @public
 export type LazyCompilationOptions = {
-    backend?: LazyCompilationDefaultBackendOptions;
     imports?: boolean;
     entries?: boolean;
     test?: RegExp | ((module: Module) => boolean);
+    backend?: {
+        client?: string;
+        host?: string;
+    };
 };
 
 // @public
@@ -6215,7 +6209,6 @@ export const rspackOptions: z.ZodObject<{
         compareBeforeEmit: z.ZodOptional<z.ZodBoolean>;
     }, "strict", z.ZodTypeAny, {
         module?: boolean | undefined;
-        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -6250,6 +6243,7 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
+        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -6314,7 +6308,6 @@ export const rspackOptions: z.ZodObject<{
         strictModuleExceptionHandling?: boolean | undefined;
     }, {
         module?: boolean | undefined;
-        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -6349,6 +6342,7 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
+        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -6478,106 +6472,33 @@ export const rspackOptions: z.ZodObject<{
         lazyCompilation: z.ZodUnion<[z.ZodOptional<z.ZodBoolean>, z.ZodObject<{
             backend: z.ZodOptional<z.ZodObject<{
                 client: z.ZodOptional<z.ZodString>;
-                listen: z.ZodOptional<z.ZodUnion<[z.ZodUnion<[z.ZodNumber, z.ZodObject<{
-                    port: z.ZodOptional<z.ZodNumber>;
-                    host: z.ZodOptional<z.ZodString>;
-                    backlog: z.ZodOptional<z.ZodNumber>;
-                    path: z.ZodOptional<z.ZodString>;
-                    exclusive: z.ZodOptional<z.ZodBoolean>;
-                    readableAll: z.ZodOptional<z.ZodBoolean>;
-                    writableAll: z.ZodOptional<z.ZodBoolean>;
-                    ipv6Only: z.ZodOptional<z.ZodBoolean>;
-                }, "strip", z.ZodTypeAny, {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                }, {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                }>]>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodVoid>]>>;
-                protocol: z.ZodOptional<z.ZodEnum<["http", "https"]>>;
-                server: z.ZodOptional<z.ZodUnion<[z.ZodRecord<z.ZodString, z.ZodAny>, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodAny>]>>;
+                host: z.ZodOptional<z.ZodString>;
             }, "strip", z.ZodTypeAny, {
                 client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
+                host?: string | undefined;
             }, {
                 client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
+                host?: string | undefined;
             }>>;
             imports: z.ZodOptional<z.ZodBoolean>;
             entries: z.ZodOptional<z.ZodBoolean>;
             test: z.ZodOptional<z.ZodUnion<[z.ZodType<RegExp, z.ZodTypeDef, RegExp>, z.ZodFunction<z.ZodTuple<[z.ZodType<Module, z.ZodTypeDef, Module>], z.ZodUnknown>, z.ZodBoolean>]>>;
         }, "strip", z.ZodTypeAny, {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         }, {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         }>]>;
         asyncWebAssembly: z.ZodOptional<z.ZodBoolean>;
         outputModule: z.ZodOptional<z.ZodBoolean>;
@@ -6682,23 +6603,12 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -6750,23 +6660,12 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -8736,23 +8635,12 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -8955,7 +8843,6 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     output?: {
         module?: boolean | undefined;
-        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -8990,6 +8877,7 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
+        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -9347,23 +9235,12 @@ export const rspackOptions: z.ZodObject<{
         } | undefined;
         lazyCompilation?: boolean | {
             entries?: boolean | undefined;
-            backend?: {
-                client?: string | undefined;
-                listen?: number | {
-                    port?: number | undefined;
-                    host?: string | undefined;
-                    backlog?: number | undefined;
-                    path?: string | undefined;
-                    exclusive?: boolean | undefined;
-                    readableAll?: boolean | undefined;
-                    writableAll?: boolean | undefined;
-                    ipv6Only?: boolean | undefined;
-                } | ((args_0: any, ...args: unknown[]) => void) | undefined;
-                protocol?: "http" | "https" | undefined;
-                server?: Record<string, any> | ((...args: unknown[]) => any) | undefined;
-            } | undefined;
             test?: RegExp | ((args_0: Module, ...args: unknown[]) => boolean) | undefined;
             imports?: boolean | undefined;
+            backend?: {
+                client?: string | undefined;
+                host?: string | undefined;
+            } | undefined;
         } | undefined;
         asyncWebAssembly?: boolean | undefined;
         outputModule?: boolean | undefined;
@@ -9566,7 +9443,6 @@ export const rspackOptions: z.ZodObject<{
     }>>) | undefined;
     output?: {
         module?: boolean | undefined;
-        path?: string | undefined;
         chunkLoading?: string | false | undefined;
         asyncChunks?: boolean | undefined;
         publicPath?: string | ((args_0: PathData, args_1: AssetInfo | undefined, ...args: unknown[]) => string) | undefined;
@@ -9601,6 +9477,7 @@ export const rspackOptions: z.ZodObject<{
             root?: string | undefined;
         } | undefined;
         umdNamedDefine?: boolean | undefined;
+        path?: string | undefined;
         pathinfo?: boolean | "verbose" | undefined;
         clean?: boolean | {
             keep?: string | undefined;
@@ -10123,27 +10000,6 @@ type SafeParseSuccess<Output> = {
 
 // @public (undocumented)
 export type ScriptType = false | "text/javascript" | "module";
-
-// @public (undocumented)
-interface Server {
-    // (undocumented)
-    address(): AddressInfo;
-    // (undocumented)
-    close(callback: (err?: any) => void): void;
-    // (undocumented)
-    listen(listenOptions?: number | ListenOptions): void;
-    // (undocumented)
-    off(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "request", callback: (req: IncomingMessage, res: ServerResponse) => void): void;
-    // (undocumented)
-    on(event: "connection", callback: (socket: Socket) => void): void;
-    // (undocumented)
-    on(event: "listening", callback: (err?: Error) => void): void;
-}
-
-// @public (undocumented)
-type ServerOptionsHttps<Request extends typeof IncomingMessage = typeof IncomingMessage, Response extends typeof ServerResponse = typeof ServerResponse> = SecureContextOptions & TlsOptions & ServerOptions<Request, Response>;
 
 // @public (undocumented)
 export type Shared = (SharedItem | SharedObject)[] | SharedObject;

@@ -4,7 +4,8 @@ import {
 	type Compiler,
 	type Configuration,
 	rspack,
-	type RspackOptions as RspackConfig
+	type RspackOptions as RspackConfig,
+	experiments
 } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import WebpackDevServer from "webpack-dev-server";
@@ -39,6 +40,15 @@ class Rspack {
 			}
 		});
 		const DevServerConstructor = this.wds ? WebpackDevServer : RspackDevServer;
+		if (compiler.options.experiments.lazyCompilation) {
+			const middleware = experiments.lazyCompilationMiddleware(compiler, compiler.options.experiments.lazyCompilation)
+			compiler.options.devServer ??= {};
+			const setupMiddlewares = compiler.options.devServer.setupMiddlewares;
+			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
+				const old = setupMiddlewares ? setupMiddlewares(middlewares, server) : middlewares;
+				return [middleware, ...old]
+			}
+		}
 		this.devServer = new DevServerConstructor(
 			compiler.options.devServer ?? ({} as any),
 			compiler
@@ -77,6 +87,16 @@ class Rspack {
 			}
 		});
 		const DevServerConstructor = this.wds ? WebpackDevServer : RspackDevServer;
+
+		if (compiler.options.experiments.lazyCompilation) {
+			const middleware = experiments.lazyCompilationMiddleware(compiler, compiler.options.experiments.lazyCompilation)
+			compiler.options.devServer ??= {};
+			const setupMiddleware = compiler.options.devServer.setupMiddlewares;
+			compiler.options.devServer.setupMiddlewares = (middlewares, server) => {
+				const old = setupMiddleware ? setupMiddleware(middlewares, server) : middlewares;
+				return [middleware, ...old]
+			}
+		}
 		this.devServer = new DevServerConstructor(
 			compiler.options.devServer ?? ({} as any),
 			compiler
