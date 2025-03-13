@@ -835,6 +835,8 @@ export type RuleSetLoaderWithOptions = {
 
 	loader: RuleSetLoader;
 
+	parallel?: boolean;
+
 	options?: RuleSetLoaderOptions;
 };
 
@@ -897,6 +899,9 @@ export type RuleSetRule = {
 
 	/** A loader options */
 	options?: RuleSetLoaderOptions;
+
+	/** Parallel loader */
+	parallel?: boolean;
 
 	/** An array to pass the Loader package name and its options.  */
 	use?: RuleSetUse;
@@ -2639,6 +2644,11 @@ export type Experiments = {
 	 * @default false
 	 */
 	buildHttp?: HttpUriOptions;
+	/**
+	 * Enable parallel loader
+	 * @default false
+	 */
+	parallelLoader?: boolean;
 };
 //#endregion
 

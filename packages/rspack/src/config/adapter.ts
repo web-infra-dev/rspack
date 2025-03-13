@@ -264,7 +264,8 @@ const getRawModuleRule = (
 		rule.use = [
 			{
 				loader: rule.loader,
-				options: rule.options
+				options: rule.options,
+				parallel: rule.parallel
 			}
 		];
 	}

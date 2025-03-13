@@ -1940,6 +1940,7 @@ export type Experiments = {
     futureDefaults?: boolean;
     rspackFuture?: RspackFutureOptions;
     buildHttp?: HttpUriOptions;
+    parallelLoader?: boolean;
 };
 
 // @public (undocumented)
@@ -1984,6 +1985,8 @@ export interface ExperimentsNormalized {
     outputModule?: boolean;
     // (undocumented)
     parallelCodeSplitting?: boolean;
+    // (undocumented)
+    parallelLoader?: boolean;
     // (undocumented)
     rspackFuture?: RspackFutureOptions;
     // (undocumented)
@@ -3381,12 +3384,11 @@ class LoaderObject {
     // (undocumented)
     static __to_binding(loader: LoaderObject): JsLoaderItem;
     // (undocumented)
-    get data(): any;
-    set data(data: any);
-    // (undocumented)
     fragment: string;
     // (undocumented)
     ident: string;
+    // @internal
+    loaderItem: JsLoaderItem;
     // (undocumented)
     normal?: Function;
     // (undocumented)
@@ -3394,6 +3396,8 @@ class LoaderObject {
     set normalExecuted(value: boolean);
     // (undocumented)
     options?: string | object;
+    // (undocumented)
+    parallel?: boolean;
     // (undocumented)
     path: string;
     // (undocumented)
@@ -5385,6 +5389,7 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 export type RuleSetLoaderWithOptions = {
     ident?: string;
     loader: RuleSetLoader;
+    parallel?: boolean;
     options?: RuleSetLoaderOptions;
 };
 
@@ -5414,6 +5419,7 @@ export type RuleSetRule = {
     layer?: string;
     loader?: RuleSetLoader;
     options?: RuleSetLoaderOptions;
+    parallel?: boolean;
     use?: RuleSetUse;
     parser?: Record<string, any>;
     generator?: Record<string, any>;

@@ -42,6 +42,7 @@ Object {
     layers: false,
     lazyCompilation: false,
     parallelCodeSplitting: true,
+    parallelLoader: false,
     rspackFuture: Object {
       bundlerInfo: Object {
         bundler: rspack,

@@ -45,5 +45,11 @@ export default defineConfig([
 			cssExtractHmr: "./src/runtime/cssExtractHmr.ts"
 		},
 		target: ["es2015"]
+	},
+	{
+		...commonConfig,
+		entry: {
+			worker: "./src/loader-runner/worker.ts"
+		},
 	}
 ]);
