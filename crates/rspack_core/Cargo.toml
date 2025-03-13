@@ -25,8 +25,8 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
-napi = { workspace = true }
-napi-derive = { workspace = true }
+napi = { workspace = true, optional = true }
+napi-derive = { workspace = true, optional = true }
 num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
@@ -44,7 +44,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_loader_runner = { workspace = true }
 rspack_macros = { workspace = true }
-rspack_napi = { workspace = true }
+rspack_napi = { workspace = true, optional = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
@@ -81,3 +81,6 @@ pretty_assertions = { version = "1.4.1" }
 
 [lints]
 workspace = true
+
+[features]
+napi = ["dep:napi", "dep:napi-derive", "dep:rspack_napi"]

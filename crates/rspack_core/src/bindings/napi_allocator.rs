@@ -4,17 +4,17 @@ use once_cell::sync::OnceCell;
 use crate::Compilation;
 
 thread_local! {
-  static ALLOCATOR: OnceCell<Box<dyn Allocator>> = OnceCell::default();
+  static NAPI_ALLOCATOR: OnceCell<Box<dyn NapiAllocator>> = OnceCell::default();
 }
 
-pub trait Allocator {
+pub trait NapiAllocator {
   fn allocate_compilation(&self, val: Box<Compilation>) -> napi::Result<Reference<()>>;
 }
 
 pub fn with_thread_local_allocator<T>(
-  f: impl FnOnce(&Box<dyn Allocator>) -> napi::Result<T>,
+  f: impl FnOnce(&Box<dyn NapiAllocator>) -> napi::Result<T>,
 ) -> napi::Result<T> {
-  ALLOCATOR.with(|once_cell| match once_cell.get() {
+  NAPI_ALLOCATOR.with(|once_cell| match once_cell.get() {
     Some(allocator) => f(allocator),
     None => Err(napi::Error::new(
       napi::Status::GenericFailure,
@@ -23,8 +23,8 @@ pub fn with_thread_local_allocator<T>(
   })
 }
 
-pub fn set_thread_local_allocator(allocator: Box<dyn Allocator>) {
-  ALLOCATOR.with(|once_cell| {
+pub fn set_thread_local_allocator(allocator: Box<dyn NapiAllocator>) {
+  NAPI_ALLOCATOR.with(|once_cell| {
     once_cell.get_or_init(|| allocator);
   })
 }

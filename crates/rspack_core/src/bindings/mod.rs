@@ -1,4 +1,7 @@
 mod root;
 pub use root::*;
-mod allocator;
-pub use allocator::*;
+
+#[cfg(feature = "napi")]
+mod napi_allocator;
+#[cfg(feature = "napi")]
+pub use napi_allocator::*;
