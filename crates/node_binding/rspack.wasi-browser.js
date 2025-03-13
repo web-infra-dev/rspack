@@ -60,6 +60,7 @@ const {
     }
   },
 })
+export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
 export const ConcatenatedModule = __napiModule.exports.ConcatenatedModule
 export const ContextModule = __napiModule.exports.ContextModule
 export const Dependency = __napiModule.exports.Dependency
@@ -77,7 +78,6 @@ export const JsCompiler = __napiModule.exports.JsCompiler
 export const JsContextModuleFactoryAfterResolveData = __napiModule.exports.JsContextModuleFactoryAfterResolveData
 export const JsContextModuleFactoryBeforeResolveData = __napiModule.exports.JsContextModuleFactoryBeforeResolveData
 export const JsDependencies = __napiModule.exports.JsDependencies
-export const JsDependenciesBlock = __napiModule.exports.JsDependenciesBlock
 export const JsEntries = __napiModule.exports.JsEntries
 export const JsExportsInfo = __napiModule.exports.JsExportsInfo
 export const JsModuleGraph = __napiModule.exports.JsModuleGraph

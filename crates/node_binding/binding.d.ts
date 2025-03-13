@@ -59,12 +59,17 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export declare class AsyncDependenciesBlock {
+  get dependencies(): Dependency[]
+  get blocks(): AsyncDependenciesBlock[]
+}
+
 export declare class ConcatenatedModule {
   get modules(): Module[] | undefined
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -75,7 +80,7 @@ export declare class ContextModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -131,7 +136,7 @@ export declare class ExternalModule {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
@@ -171,7 +176,7 @@ export declare class JsChunkGraph {
   getModuleChunks(module: Module): JsChunk[]
   getModuleId(module: Module): string | null
   getModuleHash(module: Module, runtime: string | string[] | undefined): string | null
-  getBlockChunkGroup(jsBlock: JsDependenciesBlock): JsChunkGroup | null
+  getBlockChunkGroup(jsBlock: AsyncDependenciesBlock): JsChunkGroup | null
 }
 
 export declare class JsChunkGroup {
@@ -291,11 +296,6 @@ export declare class JsDependencies {
   get removedBuildDependencies(): Array<string>
 }
 
-export declare class JsDependenciesBlock {
-  get dependencies(): Dependency[]
-  get blocks(): JsDependenciesBlock[]
-}
-
 export declare class JsEntries {
   clear(): void
   get size(): number
@@ -357,7 +357,7 @@ export declare class Module {
   _originalSource(): JsCompatSource | undefined
   identifier(): string
   nameForCondition(): string | undefined
-  get _blocks(): JsDependenciesBlock[]
+  get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
