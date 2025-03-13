@@ -1,4 +1,4 @@
-import type { JsModule } from "@rspack/binding";
+import type { Module } from "../../Module";
 
 import type { Compiler } from "../..";
 import getBackend, {
@@ -10,14 +10,14 @@ export default class LazyCompilationPlugin {
 	cacheable: boolean;
 	entries: boolean;
 	imports: boolean;
-	test?: RegExp | ((m: JsModule) => boolean);
+	test?: RegExp | ((module: Module) => boolean);
 	backend?: LazyCompilationDefaultBackendOptions;
 
 	constructor(
 		cacheable: boolean,
 		entries: boolean,
 		imports: boolean,
-		test?: RegExp | ((m: JsModule) => boolean),
+		test?: RegExp | ((module: Module) => boolean),
 		backend?: LazyCompilationDefaultBackendOptions
 	) {
 		this.cacheable = cacheable;

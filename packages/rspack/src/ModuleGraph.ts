@@ -1,6 +1,6 @@
 import type { Dependency, JsModuleGraph } from "@rspack/binding";
 import { ExportsInfo } from "./ExportsInfo";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import { ModuleGraphConnection } from "./ModuleGraphConnection";
 
 export default class ModuleGraph {
@@ -15,29 +15,23 @@ export default class ModuleGraph {
 	}
 
 	getModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getModule(dependency);
-		return binding ? Module.__from_binding(binding) : null;
+		return this.#inner.getModule(dependency);
 	}
 
 	getResolvedModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getResolvedModule(dependency);
-		return binding ? Module.__from_binding(binding) : null;
+		return this.#inner.getResolvedModule(dependency);
 	}
 
 	getParentModule(dependency: Dependency): Module | null {
-		const binding = this.#inner.getParentModule(dependency);
-		return binding ? Module.__from_binding(binding) : null;
+		return this.#inner.getParentModule(dependency);
 	}
 
 	getIssuer(module: Module): Module | null {
-		const binding = this.#inner.getIssuer(Module.__to_binding(module));
-		return binding ? Module.__from_binding(binding) : null;
+		return this.#inner.getIssuer(module);
 	}
 
 	getExportsInfo(module: Module): ExportsInfo {
-		return ExportsInfo.__from_binding(
-			this.#inner.getExportsInfo(Module.__to_binding(module))
-		);
+		return ExportsInfo.__from_binding(this.#inner.getExportsInfo(module));
 	}
 
 	getConnection(dependency: Dependency): ModuleGraphConnection | null {
@@ -47,13 +41,13 @@ export default class ModuleGraph {
 
 	getOutgoingConnections(module: Module): ModuleGraphConnection[] {
 		return this.#inner
-			.getOutgoingConnections(Module.__to_binding(module))
+			.getOutgoingConnections(module)
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
 
 	getIncomingConnections(module: Module): ModuleGraphConnection[] {
 		return this.#inner
-			.getIncomingConnections(Module.__to_binding(module))
+			.getIncomingConnections(module)
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
 
@@ -62,12 +56,12 @@ export default class ModuleGraph {
 	}
 
 	isAsync(module: Module): boolean {
-		return this.#inner.isAsync(Module.__to_binding(module));
+		return this.#inner.isAsync(module);
 	}
 
 	getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[] {
 		return this.#inner
-			.getOutgoingConnectionsInOrder(Module.__to_binding(module))
+			.getOutgoingConnectionsInOrder(module)
 			.map(binding => ModuleGraphConnection.__from_binding(binding));
 	}
 }

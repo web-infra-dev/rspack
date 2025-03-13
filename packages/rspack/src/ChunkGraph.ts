@@ -4,7 +4,7 @@ import type { RuntimeSpec } from "./util/runtime";
 import { Chunk } from "./Chunk";
 import { ChunkGroup } from "./ChunkGroup";
 import { DependenciesBlock } from "./DependenciesBlock";
-import { Module } from "./Module";
+import type { Module } from "./Module";
 import { toJsRuntimeSpec } from "./util/runtime";
 
 export class ChunkGraph {
@@ -19,21 +19,15 @@ export class ChunkGraph {
 	}
 
 	getChunkModules(chunk: Chunk): ReadonlyArray<Module> {
-		return this.#inner
-			.getChunkModules(Chunk.__to_binding(chunk))
-			.map(binding => Module.__from_binding(binding));
+		return this.#inner.getChunkModules(Chunk.__to_binding(chunk));
 	}
 
 	getChunkModulesIterable(chunk: Chunk): Iterable<Module> {
-		return this.#inner
-			.getChunkModules(Chunk.__to_binding(chunk))
-			.map(binding => Module.__from_binding(binding));
+		return this.#inner.getChunkModules(Chunk.__to_binding(chunk));
 	}
 
 	getChunkEntryModulesIterable(chunk: Chunk): Iterable<Module> {
-		return this.#inner
-			.getChunkEntryModules(Chunk.__to_binding(chunk))
-			.map(binding => Module.__from_binding(binding));
+		return this.#inner.getChunkEntryModules(Chunk.__to_binding(chunk));
 	}
 
 	getNumberOfEntryModules(chunk: Chunk): number {
@@ -50,35 +44,30 @@ export class ChunkGraph {
 		chunk: Chunk,
 		sourceType: string
 	): Iterable<Module> {
-		return this.#inner
-			.getChunkModulesIterableBySourceType(
-				Chunk.__to_binding(chunk),
-				sourceType
-			)
-			.map(binding => Module.__from_binding(binding));
+		return this.#inner.getChunkModulesIterableBySourceType(
+			Chunk.__to_binding(chunk),
+			sourceType
+		);
 	}
 
 	getModuleChunks(module: Module): Chunk[] {
 		return this.#inner
-			.getModuleChunks(Module.__to_binding(module))
+			.getModuleChunks(module)
 			.map(binding => Chunk.__from_binding(binding));
 	}
 
 	getModuleChunksIterable(module: Module): Iterable<Chunk> {
 		return this.#inner
-			.getModuleChunks(Module.__to_binding(module))
+			.getModuleChunks(module)
 			.map(binding => Chunk.__from_binding(binding));
 	}
 
 	getModuleId(module: Module): string | null {
-		return this.#inner.getModuleId(Module.__to_binding(module));
+		return this.#inner.getModuleId(module);
 	}
 
 	getModuleHash(module: Module, runtime: RuntimeSpec): string | null {
-		return this.#inner.getModuleHash(
-			Module.__to_binding(module),
-			toJsRuntimeSpec(runtime)
-		);
+		return this.#inner.getModuleHash(module, toJsRuntimeSpec(runtime));
 	}
 
 	getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null {

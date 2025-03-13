@@ -35,9 +35,9 @@ use crate::JsChunkGroupWrapper;
 use crate::JsChunkWrapper;
 use crate::JsCompatSource;
 use crate::JsModuleGraph;
-use crate::JsModuleWrapper;
 use crate::JsStatsOptimizationBailout;
 use crate::LocalJsFilename;
+use crate::ModuleObject;
 use crate::ToJsCompatSource;
 use crate::COMPILER_REFERENCES;
 use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
@@ -173,8 +173,8 @@ impl JsCompilation {
       .transpose()
   }
 
-  #[napi(getter, ts_return_type = "Array<JsModule>")]
-  pub fn modules(&self) -> Result<Vec<JsModuleWrapper>> {
+  #[napi(getter, ts_return_type = "Array<Module>")]
+  pub fn modules(&self) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -183,16 +183,16 @@ impl JsCompilation {
         .modules()
         .keys()
         .filter_map(|module_id| {
-          compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
-          })
+          compilation
+            .module_by_identifier(module_id)
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
   }
 
-  #[napi(getter, ts_return_type = "Array<JsModule>")]
-  pub fn built_modules(&self) -> Result<Vec<JsModuleWrapper>> {
+  #[napi(getter, ts_return_type = "Array<Module>")]
+  pub fn built_modules(&self) -> Result<Vec<ModuleObject>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -200,9 +200,9 @@ impl JsCompilation {
         .built_modules()
         .iter()
         .filter_map(|module_id| {
-          compilation.module_by_identifier(module_id).map(|module| {
-            JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id())
-          })
+          compilation
+            .module_by_identifier(module_id)
+            .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         })
         .collect::<Vec<_>>(),
     )
@@ -590,7 +590,7 @@ impl JsCompilation {
           |modules| {
             modules
               .into_iter()
-              .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
+              .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
               .collect::<Vec<_>>()
           },
         )
@@ -697,7 +697,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void"
+    ts_args_type = "args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, Module][]) => void"
   )]
   pub fn add_include(
     &mut self,
@@ -778,21 +778,20 @@ impl JsCompilation {
 
           match module_graph.get_module_by_dependency_id(&dependency_id) {
             Some(module) => {
-              let js_module =
-                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+              let js_module = ModuleObject::with_ref(module.as_ref(), compilation.compiler_id());
               Either::B(js_module)
             }
             None => Either::A("build failed with unknown error".to_string()),
           }
         })
-        .collect::<Vec<Either<String, JsModuleWrapper>>>();
+        .collect::<Vec<Either<String, ModuleObject>>>();
 
       Ok(JsAddIncludeCallbackArgs(results))
     })
   }
 }
 
-pub struct JsAddIncludeCallbackArgs(Vec<Either<String, JsModuleWrapper>>);
+pub struct JsAddIncludeCallbackArgs(Vec<Either<String, ModuleObject>>);
 
 impl ToNapiValue for JsAddIncludeCallbackArgs {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {

@@ -5,15 +5,53 @@ import { Compilation } from "./Compilation";
 import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
 
+import * as binding from "@rspack/binding";
+import type { Source } from "webpack-sources";
+import { DependenciesBlock } from "./DependenciesBlock";
+import { JsSource } from "./util/source";
+
+Object.defineProperty(binding.NormalModule.prototype, "blocks", {
+	enumerable: true,
+	configurable: true,
+	get(this: binding.NormalModule) {
+		return this._blocks.map(block => DependenciesBlock.__from_binding(block));
+	}
+});
+Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
+	enumerable: true,
+	configurable: true,
+	value(this: binding.NormalModule) {
+		const originalSource = this._originalSource();
+		if (originalSource) {
+			return JsSource.__from_binding(originalSource);
+		}
+		return null;
+	}
+});
+Object.defineProperty(binding.NormalModule.prototype, "emitFile", {
+	enumerable: true,
+	configurable: true,
+	value(
+		this: binding.NormalModule,
+		filename: string,
+		source: Source,
+		assetInfo?: binding.AssetInfo
+	) {
+		return this._emitFile(filename, JsSource.__to_binding(source), assetInfo);
+	}
+});
+
+interface NormalModuleCompilationHooks {
+	loader: liteTapable.SyncHook<[LoaderContext, Module]>;
+	readResourceForScheme: any;
+	readResource: liteTapable.HookMap<
+		liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
+	>;
+}
+
 const compilationHooksMap = new WeakMap<
 	Compilation,
-	{
-		loader: liteTapable.SyncHook<[LoaderContext, Module]>;
-		readResourceForScheme: any;
-		readResource: liteTapable.HookMap<
-			liteTapable.AsyncSeriesBailHook<[LoaderContext], string | Buffer>
-		>;
-	}
+	NormalModuleCompilationHooks
 >();
 
 const createFakeHook = <T extends Record<string, any>>(
@@ -68,8 +106,10 @@ const deprecateAllProperties = <O extends object>(
 	return newObj;
 };
 
-export class NormalModule {
-	static getCompilationHooks(compilation: Compilation) {
+Object.defineProperty(binding.NormalModule, "getCompilationHooks", {
+	enumerable: true,
+	configurable: true,
+	value(compilation: Compilation): NormalModuleCompilationHooks {
 		if (!(compilation instanceof Compilation)) {
 			throw new TypeError(
 				"The 'compilation' argument must be an instance of Compilation"
@@ -107,6 +147,12 @@ export class NormalModule {
 		}
 		return hooks;
 	}
+});
+
+declare module "@rspack/binding" {
+	interface NormalModuleConstructor {
+		getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
+	}
 }
 
-export default NormalModule;
+export { NormalModule } from "@rspack/binding";

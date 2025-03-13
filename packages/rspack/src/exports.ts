@@ -30,6 +30,9 @@ export type { ChunkGroup } from "./ChunkGroup";
 export type { Module, ResolveData, ResourceDataWithData } from "./Module";
 export { MultiStats } from "./MultiStats";
 export { NormalModule } from "./NormalModule";
+export { ContextModule } from "./ContextModule";
+export { ConcatenatedModule } from "./ConcatenatedModule";
+export { ExternalModule } from "./ExternalModule";
 export type { NormalModuleFactory } from "./NormalModuleFactory";
 export { RuntimeGlobals } from "./RuntimeGlobals";
 export type {

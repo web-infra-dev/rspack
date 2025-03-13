@@ -29,7 +29,6 @@ import {
 import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
 import { NormalModule } from "../NormalModule";
 import { NonErrorEmittedError, type RspackError } from "../RspackError";
 import {
@@ -745,7 +744,7 @@ export async function runLoaders(
 					diagnostic.severity === "warning"
 						? `ModuleWarning: ${diagnostic.message}`
 						: `ModuleError: ${diagnostic.message}`,
-				moduleIdentifier: context._module.moduleIdentifier
+				moduleIdentifier: context._module.identifier()
 			});
 			compiler._lastCompilation!.__internal__pushDiagnostic(
 				formatDiagnostic(d)
@@ -782,7 +781,7 @@ export async function runLoaders(
 
 	loaderContext._compiler = compiler;
 	loaderContext._compilation = compiler._lastCompilation!;
-	loaderContext._module = Module.__from_binding(context._module);
+	loaderContext._module = context._module;
 
 	loaderContext.getOptions = () => {
 		const loader = getCurrentLoader(loaderContext);

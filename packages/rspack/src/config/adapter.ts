@@ -28,7 +28,6 @@ import {
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
@@ -720,10 +719,7 @@ function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
 		return (source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => {
-			return dataUrl(source, {
-				...context,
-				module: Module.__from_binding(context.module)
-			});
+			return dataUrl(source, context);
 		};
 	}
 	throw new Error(
