@@ -433,11 +433,11 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<bindings::Weak<Compilation>, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<bindings::Root<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_compilation_taps: RegisterFunction<bindings::Weak<Compilation>, ()>,
+  pub register_compiler_compilation_taps: RegisterFunction<bindings::Root<Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
@@ -662,7 +662,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<bindings::Weak<Compilation>, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<bindings::Root<Compilation>, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -670,7 +670,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerCompilationTaps,
-  tap = CompilerCompilationTap<bindings::Weak<Compilation>, ()> @ CompilerCompilationHook,
+  tap = CompilerCompilationTap<bindings::Root<Compilation>, ()> @ CompilerCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerCompilation,
@@ -1081,7 +1081,7 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     compilation: &mut bindings::Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(compilation.downgrade()).await
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1096,7 +1096,7 @@ impl CompilerCompilation for CompilerCompilationTap {
     compilation: &mut bindings::Root<Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(compilation.downgrade()).await
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {

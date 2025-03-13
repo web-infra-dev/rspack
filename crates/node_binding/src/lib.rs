@@ -197,7 +197,6 @@ impl JsCompiler {
       };
 
     let rspack = rspack_core::Compiler::new(
-      Box::new(allocator::NapiAllocator::new(env)),
       compiler_path,
       compiler_options,
       plugins,
@@ -442,4 +441,10 @@ pub fn cleanup_global_trace() {
     }
     *state = TraceState::Off;
   });
+}
+
+#[module_exports]
+fn node_init(mut exports: Object, env: Env) -> Result<()> {
+  rspack_core::bindings::set_thread_local_allocator(Box::new(allocator::NapiAllocator::new(env)));
+  Ok(())
 }

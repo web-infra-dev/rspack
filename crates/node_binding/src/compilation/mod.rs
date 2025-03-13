@@ -12,14 +12,11 @@ use napi_derive::napi;
 use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::CompilationId;
-use rspack_core::FactorizeInfo;
-use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
 use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rustc_hash::FxHashMap;
 
 use super::{JsFilename, PathWithInfo};
 use crate::entry::JsEntryOptions;
@@ -41,10 +38,10 @@ use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
 use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
-pub struct Compilation(pub(crate) rspack_core::Compilation);
+pub struct JsCompilation(pub(crate) Box<rspack_core::Compilation>);
 
 #[napi]
-impl Compilation {
+impl JsCompilation {
   #[napi(
     ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
@@ -443,7 +440,7 @@ impl Compilation {
   }
 
   #[napi]
-  pub fn get_stats(&self, reference: Reference<Compilation>, env: Env) -> Result<JsStats> {
+  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     let shared_reference =
       reference.share_with(env, |compilation| Ok(compilation.0.get_stats()))?;
     Ok(JsStats::new(shared_reference))

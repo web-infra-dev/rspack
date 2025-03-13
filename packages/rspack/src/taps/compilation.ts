@@ -303,7 +303,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					const digestResult = hash.digest(
 						getCompiler().options.output.hashDigest
 					);
-					return Buffer.from(digestResult);
+					// TODO: 不知道为啥，类型错误了
+					return Buffer.from(digestResult as any);
 				};
 			}
 		),

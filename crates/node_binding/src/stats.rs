@@ -16,7 +16,7 @@ use rspack_napi::{
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{identifier::JsIdentifier, Compilation};
+use crate::{identifier::JsIdentifier, JsCompilation};
 
 thread_local! {
   static MODULE_DESCRIPTOR_REFS: RefCell<HashMap<Identifier, OneShotRef>> = Default::default();
@@ -1029,11 +1029,11 @@ impl ToNapiValue for JsStatsCompilationWrapper {
 
 #[napi]
 pub struct JsStats {
-  inner: SharedReference<Compilation, Stats<'static>>,
+  inner: SharedReference<JsCompilation, Stats<'static>>,
 }
 
 impl JsStats {
-  pub fn new(inner: SharedReference<Compilation, Stats<'static>>) -> Self {
+  pub fn new(inner: SharedReference<JsCompilation, Stats<'static>>) -> Self {
     Self { inner }
   }
 }

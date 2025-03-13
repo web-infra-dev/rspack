@@ -21,59 +21,6 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export declare class Compilation {
-  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
-  getAssets(): Readonly<JsAsset>[]
-  getAsset(name: string): JsAsset | null
-  getAssetSource(name: string): JsCompatSource | null
-  get modules(): Array<JsModule>
-  get builtModules(): Array<JsModule>
-  getOptimizationBailout(): Array<JsStatsOptimizationBailout>
-  getChunks(): JsChunk[]
-  getNamedChunkKeys(): Array<string>
-  getNamedChunk(name: string): JsChunk | null
-  getNamedChunkGroupKeys(): Array<string>
-  getNamedChunkGroup(name: string): JsChunkGroup
-  setAssetSource(name: string, source: JsCompatSource): void
-  deleteAssetSource(name: string): void
-  getAssetFilenames(): Array<string>
-  hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
-  deleteAsset(filename: string): void
-  renameAsset(filename: string, newName: string): void
-  get entrypoints(): JsChunkGroup[]
-  get chunkGroups(): JsChunkGroup[]
-  get hash(): string | null
-  dependencies(): JsDependencies
-  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
-  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
-  pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
-  pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
-  getErrors(): Array<JsRspackError>
-  getWarnings(): Array<JsRspackError>
-  getStats(): JsStats
-  getAssetPath(filename: LocalJsFilename, data: JsPathData): string
-  getAssetPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
-  getPath(filename: LocalJsFilename, data: JsPathData): string
-  getPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
-  addFileDependencies(deps: Array<string>): void
-  addContextDependencies(deps: Array<string>): void
-  addMissingDependencies(deps: Array<string>): void
-  addBuildDependencies(deps: Array<string>): void
-  /**
-   * This is a very unsafe function.
-   * Please don't use this at the moment.
-   * Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
-   */
-  rebuildModule(moduleIdentifiers: Array<string>, f: any): void
-  importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
-  get entries(): JsEntries
-  addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
-  get moduleGraph(): JsModuleGraph
-  get chunkGraph(): JsChunkGraph
-  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
-}
-
 export declare class Dependency {
   get type(): string
   get category(): string
@@ -165,6 +112,59 @@ export declare class JsChunkGroup {
   getFiles(): Array<string>
   getModulePreOrderIndex(module: JsModule): number | null
   getModulePostOrderIndex(module: JsModule): number | null
+}
+
+export declare class JsCompilation {
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSourceOwned) => JsCompatSourceOwned), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
+  getAssets(): Readonly<JsAsset>[]
+  getAsset(name: string): JsAsset | null
+  getAssetSource(name: string): JsCompatSource | null
+  get modules(): Array<JsModule>
+  get builtModules(): Array<JsModule>
+  getOptimizationBailout(): Array<JsStatsOptimizationBailout>
+  getChunks(): JsChunk[]
+  getNamedChunkKeys(): Array<string>
+  getNamedChunk(name: string): JsChunk | null
+  getNamedChunkGroupKeys(): Array<string>
+  getNamedChunkGroup(name: string): JsChunkGroup
+  setAssetSource(name: string, source: JsCompatSource): void
+  deleteAssetSource(name: string): void
+  getAssetFilenames(): Array<string>
+  hasAsset(name: string): boolean
+  emitAsset(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  deleteAsset(filename: string): void
+  renameAsset(filename: string, newName: string): void
+  get entrypoints(): JsChunkGroup[]
+  get chunkGroups(): JsChunkGroup[]
+  get hash(): string | null
+  dependencies(): JsDependencies
+  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
+  spliceDiagnostic(start: number, end: number, replaceWith: Array<JsRspackDiagnostic>): void
+  pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
+  pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
+  getErrors(): Array<JsRspackError>
+  getWarnings(): Array<JsRspackError>
+  getStats(): JsStats
+  getAssetPath(filename: LocalJsFilename, data: JsPathData): string
+  getAssetPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
+  getPath(filename: LocalJsFilename, data: JsPathData): string
+  getPathWithInfo(filename: LocalJsFilename, data: JsPathData): PathWithInfo
+  addFileDependencies(deps: Array<string>): void
+  addContextDependencies(deps: Array<string>): void
+  addMissingDependencies(deps: Array<string>): void
+  addBuildDependencies(deps: Array<string>): void
+  /**
+   * This is a very unsafe function.
+   * Please don't use this at the moment.
+   * Using async and mutable reference to `Compilation` at the same time would likely to cause data races.
+   */
+  rebuildModule(moduleIdentifiers: Array<string>, f: any): void
+  importModule(request: string, layer: string | undefined | null, publicPath: JsFilename | undefined | null, baseUri: string | undefined | null, originalModule: string | undefined | null, originalModuleContext: string | undefined | null, callback: any): void
+  get entries(): JsEntries
+  addRuntimeModule(chunk: JsChunk, runtimeModule: JsAddingRuntimeModule): void
+  get moduleGraph(): JsModuleGraph
+  get chunkGraph(): JsChunkGraph
+  addInclude(args: [string, EntryDependency, JsEntryOptions | undefined][], callback: (errMsg: Error | null, results: [string | null, JsModule][]) => void): void
 }
 
 export declare class JsCompiler {

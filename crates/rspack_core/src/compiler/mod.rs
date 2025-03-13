@@ -76,7 +76,6 @@ impl Default for CompilerId {
 pub struct Compiler {
   id: CompilerId,
   #[debug(skip)]
-  allocator: Box<dyn bindings::Allocator>,
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
@@ -98,7 +97,6 @@ impl Compiler {
   #[instrument(skip_all)]
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    allocator: Box<dyn bindings::Allocator>,
     compiler_path: String,
     options: CompilerOptions,
     plugins: Vec<BoxPlugin>,
@@ -153,7 +151,7 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-    let compilation = allocator.allocate_compilation(Compilation::new(
+    let compilation = bindings::Root::new(Compilation::new(
       id,
       options.clone(),
       plugin_driver.clone(),
@@ -174,7 +172,6 @@ impl Compiler {
 
     Self {
       id,
-      allocator,
       compiler_path,
       options,
       compilation,
@@ -228,8 +225,7 @@ impl Compiler {
     //     false,
     //   ),
     // );
-    // IGNORE: Root<T> cannot be sent between threads safely
-    self.compilation = self.allocator.allocate_compilation(Compilation::new(
+    self.compilation = bindings::Root::new(Compilation::new(
       self.id,
       self.options.clone(),
       self.plugin_driver.clone(),

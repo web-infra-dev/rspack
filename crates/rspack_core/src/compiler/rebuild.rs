@@ -7,8 +7,9 @@ use rspack_paths::ArcPath;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId, incremental::IncrementalPasses,
-  ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor, RuntimeSpec, RuntimeSpecMap,
+  bindings, chunk_graph_chunk::ChunkId, chunk_graph_module::ModuleId,
+  incremental::IncrementalPasses, ChunkGraph, ChunkKind, Compilation, Compiler, ModuleExecutor,
+  RuntimeSpec, RuntimeSpecMap,
 };
 
 impl Compiler {
@@ -160,7 +161,7 @@ impl Compiler {
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
       // fast_set(&mut self.compilation, new_compilation);
       // IGNORE: Root<T> cannot be sent between threads safely
-      self.compilation = self.allocator.allocate_compilation(new_compilation);
+      self.compilation = bindings::Root::new(new_compilation);
 
       if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
         self.compilation.push_diagnostic(err.into());
