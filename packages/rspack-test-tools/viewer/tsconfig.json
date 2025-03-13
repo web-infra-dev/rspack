@@ -5,15 +5,27 @@
     "moduleResolution": "node",
     "strict": true,
     "target": "ES6",
-    "outDir": "./dist",
-    "lib": ["dom", "es5", "es2015.collection", "es2015.promise"],
+    "outDir": "../dist",
+    "lib": [
+      "dom",
+      "es5",
+      "es2015.collection",
+      "es2015.promise"
+    ],
     "types": [],
     "baseUrl": "./node_modules",
     "jsx": "preserve",
     "esModuleInterop": true,
-    "typeRoots": ["node_modules/@types"],
+    "typeRoots": [
+      "node_modules/@types"
+    ],
     "paths": {}
   },
-  "include": ["viewer/**/*", "src/type.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "**/*",
+    "../src/type.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

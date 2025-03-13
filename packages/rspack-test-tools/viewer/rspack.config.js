@@ -1,4 +1,4 @@
-const { rspack } = require("@rspack/core");
+const { rspack, experiments } = require("../../rspack");
 const path = require("node:path");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 
@@ -6,17 +6,17 @@ const prod = process.env.NODE_ENV === "production";
 
 module.exports = {
 	entry: {
-		diff: "./viewer/entries/diff.tsx"
+		diff: "./entries/diff.tsx"
 	},
 	resolve: {
-		extensions: ["*", ".js", ".jsx", ".tsx", ".ts"],
-		tsConfig: path.resolve(__dirname, "tsconfig.assets.json")
+		extensions: [".js", ".jsx", ".tsx", ".ts", ".css", ".less"],
+		tsConfig: path.resolve(__dirname, "./tsconfig.json")
 	},
 	devtool: false,
 	output: {
 		globalObject: "self",
 		filename: "[name].bundle.js",
-		path: path.resolve(__dirname, "template")
+		path: path.resolve(__dirname, "../template")
 	},
 	module: {
 		rules: [
@@ -68,9 +68,12 @@ module.exports = {
 			}
 		]
 	},
+	experiments: {
+		css: true
+	},
 	plugins: [
 		new rspack.HtmlRspackPlugin({
-			template: "./viewer/templates/diff.html",
+			template: "./templates/diff.html",
 			filename: "[name].html"
 		}),
 		new MonacoWebpackPlugin({
