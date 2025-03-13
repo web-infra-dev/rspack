@@ -18,7 +18,6 @@
     "build:cli:release:x64": "pnpm --filter @rspack/binding build:release:x64 && npm run build:js",
     "build:cli:release:linux": "pnpm --filter @rspack/binding build:release:linux && npm run build:js",
     "build:cli:release:win": "pnpm --filter @rspack/binding build:release:win && npm run build:js",
-    "build:viewer": "pnpm --filter \"@rspack/*\" build:viewer",
     "test:js": "pnpm -r run test",
     "format:rs": "cargo fmt --all",
     "format:js": "pnpm run format-ci:js --write",
