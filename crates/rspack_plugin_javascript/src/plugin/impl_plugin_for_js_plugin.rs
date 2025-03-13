@@ -4,11 +4,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_core::{
-  get_js_chunk_filename_template, AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
-  DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
-  Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  bindings, get_js_chunk_filename_template, AssetInfo, ChunkGraph, ChunkKind, ChunkUkey,
+  Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest, CompilerCompilation,
+  CompilerOptions, DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType,
+  ParserAndGenerator, PathData, Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals,
+  SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -21,7 +22,7 @@ use crate::{JsPlugin, JsPluginInner};
 #[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   // ESMModulesPlugin

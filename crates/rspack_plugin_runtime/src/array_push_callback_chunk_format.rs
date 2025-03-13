@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  bindings, ApplyContext, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin, PluginContext, RuntimeGlobals,
 };
@@ -25,7 +25,7 @@ pub struct ArrayPushCallbackChunkFormatPlugin;
 #[plugin_hook(CompilerCompilation for ArrayPushCallbackChunkFormatPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

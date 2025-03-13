@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, RawSource, ReplaceSource};
 use rspack_core::{
-  get_css_chunk_filename_template,
+  bindings, get_css_chunk_filename_template,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
   Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
@@ -238,7 +238,7 @@ impl CssPlugin {
 #[plugin_hook(CompilerCompilation for CssPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());

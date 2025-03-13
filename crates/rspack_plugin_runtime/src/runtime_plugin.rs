@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use async_trait::async_trait;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
-  get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
+  bindings, get_css_chunk_filename_template, get_js_chunk_filename_template, has_hash_placeholder,
   ApplyContext, ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,
   CompilerOptions, ModuleIdentifier, Plugin, PluginContext, PublicPath, RuntimeGlobals,
@@ -180,7 +180,7 @@ impl RuntimePlugin {
 #[plugin_hook(CompilerCompilation for RuntimePlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

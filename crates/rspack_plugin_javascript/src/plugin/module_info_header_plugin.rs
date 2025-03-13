@@ -7,7 +7,7 @@ use rspack_cacheable::with::AsVecConverter;
 use rspack_collections::Identifiable;
 use rspack_core::rspack_sources::{ConcatSource, RawStringSource, SourceExt};
 use rspack_core::{
-  to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
+  bindings, to_comment_with_nl, ApplyContext, BoxModule, BuildMetaExportsType, ChunkGraph,
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   CompilerOptions, ExportInfo, ExportInfoProvided, ExportsInfo, ModuleGraph, ModuleIdentifier,
   Plugin, PluginContext, UsageState,
@@ -163,7 +163,7 @@ impl ModuleInfoHeaderPlugin {
 #[plugin_hook(CompilerCompilation for ModuleInfoHeaderPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

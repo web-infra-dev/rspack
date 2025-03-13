@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use rspack_core::{
-  ApplyContext, Compilation, CompilerOptions, CompilerShouldEmit, Plugin, PluginContext,
+  bindings, ApplyContext, Compilation, CompilerOptions, CompilerShouldEmit, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -17,7 +17,7 @@ impl Default for NoEmitOnErrorsPlugin {
 }
 
 #[plugin_hook(CompilerShouldEmit for NoEmitOnErrorsPlugin)]
-async fn should_emit(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+async fn should_emit(&self, compilation: &mut bindings::Root<Compilation>) -> Result<Option<bool>> {
   if compilation.get_errors().next().is_some() {
     Ok(Some(false))
   } else {

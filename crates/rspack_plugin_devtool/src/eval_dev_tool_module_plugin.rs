@@ -6,6 +6,7 @@ use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_collections::UkeySet;
 use rspack_core::{
+  bindings,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, CompilerOptions, Plugin, PluginContext,
@@ -72,7 +73,7 @@ impl EvalDevToolModulePlugin {
 #[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
 async fn eval_devtool_plugin_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

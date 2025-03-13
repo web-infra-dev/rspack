@@ -17,6 +17,7 @@ use lightningcss::{
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  bindings,
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
@@ -142,7 +143,7 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<_>> = Default::default();

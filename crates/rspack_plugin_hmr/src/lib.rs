@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
+  bindings,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{RawStringSource, SourceExt},
   ApplyContext, AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
@@ -34,7 +35,7 @@ pub struct HotModuleReplacementPlugin;
 #[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
@@ -57,7 +58,9 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
+  let compilation = &mut **compilation;
+
   let Some(CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,

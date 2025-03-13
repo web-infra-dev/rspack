@@ -26,6 +26,8 @@ use std::{
 /// }
 /// ```
 #[derive(Default)]
+
+// IGNORE: 我们不应当使用 FuturesResults，它会阻塞当前线程
 pub struct FuturesResults<T> {
   inner: Vec<T>,
 }

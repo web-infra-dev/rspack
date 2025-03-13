@@ -1,7 +1,7 @@
 use rspack_core::{
-  ApplyContext, BoxModule, ChunkInitFragments, Compilation, CompilationParams, CompilerCompilation,
-  CompilerOptions, InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment, Plugin,
-  PluginContext,
+  bindings, ApplyContext, BoxModule, ChunkInitFragments, Compilation, CompilationParams,
+  CompilerCompilation, CompilerOptions, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  NormalInitFragment, Plugin, PluginContext,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -15,7 +15,7 @@ pub struct APIPlugin;
 #[plugin_hook(CompilerCompilation for APIPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

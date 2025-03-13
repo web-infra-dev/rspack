@@ -2,6 +2,7 @@ use std::{cmp::Ordering, sync::Arc};
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
+  bindings,
   chunk_graph_chunk::ChunkId,
   rspack_sources::{ReplaceSource, Source},
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationAssets,
@@ -246,7 +247,7 @@ fn add_minssing_integrities(
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
-pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn handle_assets(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let integrities = process_chunks(&self.options.hash_func_names, compilation);
   let mut compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
@@ -278,7 +279,10 @@ pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for SubresourceIntegrityPlugin)]
-pub async fn detect_unresolved_integrity(&self, compilation: &mut Compilation) -> Result<()> {
+pub async fn detect_unresolved_integrity(
+  &self,
+  compilation: &mut bindings::Root<Compilation>,
+) -> Result<()> {
   let mut contain_unresolved_files = vec![];
   for chunk in compilation.chunk_by_ukey.values() {
     for file in chunk.files() {

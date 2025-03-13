@@ -6,7 +6,7 @@ use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::SourceExt;
 use rspack_core::ExportInfoProvided;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
+  bindings, get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
   FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, ModuleIdentifier,
@@ -194,7 +194,7 @@ impl AssignLibraryPlugin {
 #[plugin_hook(CompilerCompilation for AssignLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut bindings::Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
@@ -424,7 +424,7 @@ fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {

@@ -6,9 +6,10 @@ use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use async_scoped::TokioScope;
+use derive_more::Debug;
+use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -24,23 +25,23 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
+  bindings, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
   ResolverFactory, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut bindings::Root<Compilation>, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut bindings::Root<Compilation>, params: &mut CompilationParams));
 // should be AsyncParallelHook
-define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
 // should be SyncBailHook, but rspack need call js hook
-define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation:&mut bindings::Root<Compilation>) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut bindings::Root<Compilation>));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &bindings::Root<Compilation>, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -75,12 +76,13 @@ impl Default for CompilerId {
 #[derive(Debug)]
 pub struct Compiler {
   id: CompilerId,
+  #[debug(skip)]
   pub compiler_path: String,
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: bindings::Root<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -150,29 +152,30 @@ impl Compiler {
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
+    let compilation = bindings::Root::new(Compilation::new(
+      id,
+      options.clone(),
+      plugin_driver.clone(),
+      buildtime_plugin_driver.clone(),
+      resolver_factory.clone(),
+      loader_resolver_factory.clone(),
+      None,
+      cache.clone(),
+      old_cache.clone(),
+      Some(module_executor),
+      Default::default(),
+      Default::default(),
+      input_filesystem.clone(),
+      intermediate_filesystem.clone(),
+      output_filesystem.clone(),
+      false,
+    ));
 
     Self {
       id,
       compiler_path,
-      options: options.clone(),
-      compilation: Compilation::new(
-        id,
-        options,
-        plugin_driver.clone(),
-        buildtime_plugin_driver.clone(),
-        resolver_factory.clone(),
-        loader_resolver_factory.clone(),
-        None,
-        cache.clone(),
-        old_cache.clone(),
-        Some(module_executor),
-        Default::default(),
-        Default::default(),
-        input_filesystem.clone(),
-        intermediate_filesystem.clone(),
-        output_filesystem.clone(),
-        false,
-      ),
+      options,
+      compilation,
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -202,27 +205,46 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    fast_set(
-      &mut self.compilation,
-      Compilation::new(
-        self.id,
-        self.options.clone(),
-        self.plugin_driver.clone(),
-        self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
-        self.loader_resolver_factory.clone(),
-        None,
-        self.cache.clone(),
-        self.old_cache.clone(),
-        Some(Default::default()),
-        Default::default(),
-        Default::default(),
-        self.input_filesystem.clone(),
-        self.intermediate_filesystem.clone(),
-        self.output_filesystem.clone(),
-        false,
-      ),
-    );
+    // fast_set(
+    //   &mut self.compilation,
+    //   Compilation::new(
+    //     self.id,
+    //     self.options.clone(),
+    //     self.plugin_driver.clone(),
+    //     self.buildtime_plugin_driver.clone(),
+    //     self.resolver_factory.clone(),
+    //     self.loader_resolver_factory.clone(),
+    //     None,
+    //     self.cache.clone(),
+    //     self.old_cache.clone(),
+    //     Some(Default::default()),
+    //     Default::default(),
+    //     Default::default(),
+    //     self.input_filesystem.clone(),
+    //     self.intermediate_filesystem.clone(),
+    //     self.output_filesystem.clone(),
+    //     false,
+    //   ),
+    // );
+    self.compilation = bindings::Root::new(Compilation::new(
+      self.id,
+      self.options.clone(),
+      self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
+      self.resolver_factory.clone(),
+      self.loader_resolver_factory.clone(),
+      None,
+      self.cache.clone(),
+      self.old_cache.clone(),
+      Some(Default::default()),
+      Default::default(),
+      Default::default(),
+      self.input_filesystem.clone(),
+      self.intermediate_filesystem.clone(),
+      self.output_filesystem.clone(),
+      false,
+    ));
+
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
       self.compilation.push_diagnostic(err.into());
     }
@@ -498,23 +520,25 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    let _ = self
-      .emitted_asset_versions
-      .iter()
-      .filter_map(|(filename, _version)| {
-        if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
-          Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
-              let _ = self.output_filesystem.remove_file(&filename).await;
-            }
-          })
-        } else {
-          None
-        }
-      })
-      .collect::<FuturesResults<_>>();
+    let _ = join_all(
+      self
+        .emitted_asset_versions
+        .iter()
+        .filter_map(|(filename, _version)| {
+          if !assets.contains_key(filename) {
+            let filename = filename.to_owned();
+            Some(async {
+              if !clean_options.keep(filename.as_str()) {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              }
+            })
+          } else {
+            None
+          }
+        }),
+    )
+    .await;
 
     Ok(())
   }
