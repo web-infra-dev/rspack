@@ -8,7 +8,6 @@ version     = "0.2.0"
 [dependencies]
 anymap = { workspace = true }
 async-recursion = { workspace = true }
-async-scoped = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 cow-utils = { workspace = true }

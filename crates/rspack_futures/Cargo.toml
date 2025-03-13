@@ -11,3 +11,4 @@ futures = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 async-scoped = { workspace = true, features = ["use-tokio"] }
+tokio        = { version = "1", features = ["rt"] }

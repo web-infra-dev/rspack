@@ -1,7 +1,11 @@
+pub mod scope;
+
 use std::{
   future::Future,
   ops::{Deref, DerefMut},
 };
+
+pub use scope::scope;
 
 /// Run futures in parallel.
 ///
