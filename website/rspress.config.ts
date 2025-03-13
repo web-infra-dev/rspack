@@ -1,5 +1,5 @@
 import path from 'node:path';
-
+import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginRss } from '@rspress/plugin-rss';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -147,6 +147,7 @@ export default defineConfig({
       lazyCompilation: true,
     },
     plugins: [
+      pluginSass(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
         title: 'Rspack',

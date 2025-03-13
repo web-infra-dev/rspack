@@ -7,7 +7,8 @@ async fn basic() {
   let mut compiler = Compiler::builder()
     .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/basic"))
     .entry("main", "./src/index.js")
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 
@@ -24,7 +25,8 @@ async fn basic_sourcemap() {
     .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/basic"))
     .entry("main", "./src/index.js")
     .devtool(Devtool::SourceMap)
-    .build();
+    .build()
+    .unwrap();
 
   compiler.build().await.unwrap();
 

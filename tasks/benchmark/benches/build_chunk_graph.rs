@@ -115,7 +115,8 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
     .output_filesystem(fs.clone())
     .optimization(Optimization::builder().remove_available_modules(true))
     .experiments(Experiments::builder().incremental(IncrementalPasses::empty()))
-    .build();
+    .build()
+    .unwrap();
 
   let compiler_id = compiler.id();
 
