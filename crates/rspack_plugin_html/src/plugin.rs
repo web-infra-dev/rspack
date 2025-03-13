@@ -6,8 +6,8 @@ use std::{
 
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate, NoFilenameFn,
-  Plugin,
+  bindings, Compilation, CompilationId, CompilationProcessAssets, Filename, FilenameTemplate,
+  NoFilenameFn, Plugin,
 };
 use rspack_error::{miette, Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -184,7 +184,7 @@ async fn generate_html(
 }
 
 #[plugin_hook(CompilationProcessAssets for HtmlRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let config: &HtmlRspackPluginOptions = &self.config;
   let hooks = HtmlRspackPlugin::get_compilation_hooks(compilation.id());
 

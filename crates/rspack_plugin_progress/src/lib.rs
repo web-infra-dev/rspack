@@ -400,7 +400,7 @@ async fn finish_make(&self, _compilation: &mut bindings::Root<Compilation>) -> R
 }
 
 #[plugin_hook(CompilationFinishModules for ProgressPlugin)]
-async fn finish_modules(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, _compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0)
 }
 
@@ -454,12 +454,12 @@ fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationProcessAssets for ProgressPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, _compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("asset processing", 35)
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for ProgressPlugin)]
-async fn after_process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn after_process_assets(&self, _compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   self.sealing_hooks_report("after asset optimization", 36)
 }
 

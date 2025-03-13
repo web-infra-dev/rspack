@@ -74,15 +74,15 @@ use crate::{
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
-  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
-  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
-  JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper, JsNormalModuleFactoryCreateModuleArgs,
-  JsResolveArgs, JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput,
-  JsRsdoctorAssetPatch, JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
-  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
+  JsChunkAssetArgs, JsChunkWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
+  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
+  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
+  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData, JsModuleWrapper,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
+  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
+  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -501,7 +501,8 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_finish_modules_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compilation_finish_modules_taps:
+    RegisterFunction<bindings::Root<Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
   )]
@@ -527,11 +528,13 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compilation_process_assets_taps:
+    RegisterFunction<bindings::Root<Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compilation_after_process_assets_taps:
+    RegisterFunction<bindings::Root<Compilation>, ()>,
   #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_seal_taps: RegisterFunction<(), ()>,
   #[napi(
@@ -762,7 +765,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationFinishModulesTaps,
-  tap = CompilationFinishModulesTap<JsCompilationWrapper, Promise<()>> @ CompilationFinishModulesHook,
+  tap = CompilationFinishModulesTap<bindings::Root<Compilation>, Promise<()>> @ CompilationFinishModulesHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationFinishModules,
@@ -842,7 +845,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationProcessAssetsTaps,
-  tap = CompilationProcessAssetsTap<JsCompilationWrapper, Promise<()>> @ CompilationProcessAssetsHook,
+  tap = CompilationProcessAssetsTap<bindings::Root<Compilation>, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationProcessAssets,
@@ -850,7 +853,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationAfterProcessAssetsTaps,
-  tap = CompilationAfterProcessAssetsTap<JsCompilationWrapper, ()> @ CompilationAfterProcessAssetsHook,
+  tap = CompilationAfterProcessAssetsTap<bindings::Root<Compilation>, ()> @ CompilationAfterProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationAfterProcessAssets,
@@ -1289,9 +1292,8 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(&self, compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1490,9 +1492,8 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(&self, compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1502,9 +1503,8 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+  async fn run(&self, compilation: &mut bindings::Root<Compilation>) -> rspack_error::Result<()> {
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {

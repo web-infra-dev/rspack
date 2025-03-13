@@ -110,7 +110,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {

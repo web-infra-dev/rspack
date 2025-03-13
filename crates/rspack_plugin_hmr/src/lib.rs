@@ -58,7 +58,9 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut bindings::Root<Compilation>) -> Result<()> {
+  let compilation = &mut **compilation;
+
   let Some(CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,

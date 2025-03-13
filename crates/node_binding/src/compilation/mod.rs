@@ -1,21 +1,16 @@
 mod dependencies;
 pub mod entries;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
 use std::path::Path;
-use std::ptr::NonNull;
 
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::DatabaseItem;
 use rspack_core::rspack_sources::BoxSource;
-use rspack_core::CompilationId;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
-use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use super::{JsFilename, PathWithInfo};
@@ -780,67 +775,6 @@ impl ToNapiValue for JsAddIncludeCallbackArgs {
     }
 
     ToNapiValue::to_napi_value(env, js_array)
-  }
-}
-
-thread_local! {
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, OneShotRef>> = Default::default();
-}
-
-// The difference between JsCompilationWrapper and JsCompilation is:
-// JsCompilationWrapper maintains a cache to ensure that the corresponding instance of the same Compilation is unique on the JS side.
-//
-// This means that when transferring a JsCompilation from Rust to JS, you must use JsCompilationWrapper instead.
-pub struct JsCompilationWrapper {
-  id: CompilationId,
-  inner: NonNull<rspack_core::Compilation>,
-}
-
-unsafe impl Send for JsCompilationWrapper {}
-
-impl JsCompilationWrapper {
-  pub fn new(compilation: &rspack_core::Compilation) -> Self {
-    panic!("JsCompilationWrapper panic");
-    #[allow(clippy::unwrap_used)]
-    Self {
-      id: compilation.id(),
-      inner: NonNull::new(
-        compilation as *const rspack_core::Compilation as *mut rspack_core::Compilation,
-      )
-      .unwrap(),
-    }
-  }
-
-  pub fn cleanup_last_compilation(compilation_id: CompilationId) {
-    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut refs = ref_cell.borrow_mut();
-      refs.remove(&compilation_id);
-    });
-  }
-}
-
-impl ToNapiValue for JsCompilationWrapper {
-  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-    COMPILATION_INSTANCE_REFS.with(|ref_cell| {
-      let mut refs = ref_cell.borrow_mut();
-
-      match refs.entry(val.id) {
-        std::collections::hash_map::Entry::Occupied(entry) => {
-          let r = entry.get();
-          ToNapiValue::to_napi_value(env, r)
-        }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          // let js_compilation = Compilation {
-          //   id: val.id,
-          //   inner: val.inner,
-          // };
-          // let r = OneShotRef::new(env, js_compilation)?;
-          // let r = entry.insert(r);
-          // ToNapiValue::to_napi_value(env, r)
-          todo!()
-        }
-      }
-    })
   }
 }
 
