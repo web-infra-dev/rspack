@@ -8,7 +8,7 @@ We have already made most of the webpack plugin APIs compatible. You can visit [
 
 ## Writing Plugins Compatible with Rspack and Webpack
 
-In most cases, you don't need to do any extra work to make a webpack plugin run correctly in Rspack. However, you should avoid directly importing classes or methods from the `webpack` package. Instead, retrieve these classes or methods from the `compiler` object within your plugin.
+In most cases, you don't need to do any extra work to make a webpack plugin run correctly in Rspack. However, you should avoid directly importing classes or methods from the webpack package. Instead, retrieve these classes or methods from the `compiler` object within your plugin.
 
 ```js
 export class Plugin {
@@ -18,6 +18,20 @@ export class Plugin {
       NormalModule,
       sources: { RawSource }, // Retrieve class
     } = compiler.webpack;
+  }
+}
+```
+
+Although Rspack strives to be compatible with webpack's plugin API, you may still encounter some subtle differences between Rspack and webpack's plugin APIs. To determine whether your plugin is running in webpack or Rspack, you can check the `compiler.rspack` property:
+
+```js
+export class Plugin {
+  apply(compiler) {
+    if (compiler.rspack) {
+      // Logic for running in Rspack
+    } else {
+      // Logic for running in webpack
+    }
   }
 }
 ```
