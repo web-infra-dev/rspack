@@ -1,0 +1,27 @@
+name: cache
+
+description: Automatically save and restore cache to local or github
+
+inputs:
+  key:
+    description: "An explicit key for saving the cache"
+    required: true
+  path:
+    description: "A list of files, directories, and wildcard patterns to cache and restore"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Save cache to github
+      if: ${{ runner.environment == 'github-hosted' }}
+      uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      with:
+        key: ${{ inputs.key }}
+        path: ${{ inputs.path }}
+#    - name: Save cache to local
+#      if: ${{ runner.environment == 'self-hosted' }}
+#      uses: lynx-infra/cache/save@ad9f115f5b15348eb208a52ec6f7ffa82e8108df # main
+#      with:
+#        key: ${{ inputs.key }}
+#        path: ${{ inputs.path }}

@@ -5,6 +5,7 @@ mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+use async_scoped::TokioScope;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_error::Result;
@@ -365,38 +366,37 @@ impl Compiler {
       .await?;
 
     let mut new_emitted_asset_versions = HashMap::default();
-    let results = join_all(
-      self
-        .compilation
-        .assets()
-        .iter()
-        .filter_map(|(filename, asset)| {
-          // collect version info to new_emitted_asset_versions
-          if self
-            .options
-            .experiments
-            .incremental
-            .contains(IncrementalPasses::EMIT_ASSETS)
-          {
-            new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
-          }
-
-          if let Some(old_version) = self.emitted_asset_versions.get(filename) {
-            if old_version.as_str() == asset.info.version && !old_version.is_empty() {
-              return None;
+    // SAFETY: await immediately and trust caller to poll future entirely
+    let _ = unsafe {
+      TokioScope::scope_and_collect(|s| {
+        self
+          .compilation
+          .assets()
+          .iter()
+          .for_each(|(filename, asset)| {
+            // collect version info to new_emitted_asset_versions
+            if self
+              .options
+              .experiments
+              .incremental
+              .contains(IncrementalPasses::EMIT_ASSETS)
+            {
+              new_emitted_asset_versions.insert(filename.to_string(), asset.info.version.clone());
             }
-          }
 
-          Some(self.emit_asset(&self.options.output.path, filename, asset))
-        }),
-    )
+            if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+              if old_version.as_str() == asset.info.version && !old_version.is_empty() {
+                return;
+              }
+            }
+
+            s.spawn(self.emit_asset(&self.options.output.path, filename, asset));
+          })
+      })
+    }
     .await;
 
     self.emitted_asset_versions = new_emitted_asset_versions;
-    // return first error
-    for item in results {
-      item?;
-    }
 
     self
       .plugin_driver

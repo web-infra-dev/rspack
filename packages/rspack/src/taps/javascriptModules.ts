@@ -1,6 +1,7 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
 import { JavascriptModulesPlugin } from "../builtin-plugin";
+import { toBuffer } from "../util";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 
@@ -27,8 +28,7 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 					const digestResult = hash.digest(
 						getCompiler().options.output.hashDigest
 					);
-					// TODO: 不知道为啥，类型错误了
-					return Buffer.from(digestResult as any);
+					return toBuffer(digestResult);
 				};
 			}
 		)

@@ -1,0 +1,33 @@
+name: Upload Artifact
+
+description: Upload file to local or artifact to quickly share files between jobs
+
+inputs:
+  name:
+    description: "Artifact name"
+    default: "artifact"
+  path:
+    description: "A file, directory or wildcard pattern that describes what to upload"
+    required: true
+  force-use-github:
+    description: "force upload to github"
+    default: false
+    require: false
+
+runs:
+  using: composite
+  steps:
+    - name: Upload artifact to github
+      uses: actions/upload-artifact@v4
+      if: ${{ inputs.force-use-github == 'true' || runner.environment == 'github-hosted' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: error
+        overwrite: true
+#    - name: Upload artifact to local
+#      uses: lynx-infra/upload-artifact
+#      if: ${{ inputs.force-use-github != 'true' && runner.environment == 'self-hosted' }}
+#      with:
+#        name: ${{ inputs.name }}
+#        path: ${{ inputs.path }}

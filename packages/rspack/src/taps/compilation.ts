@@ -7,6 +7,7 @@ import {
 	__to_binding_runtime_globals
 } from "../RuntimeGlobals";
 import { tryRunOrWebpackError } from "../lib/HookWebpackError";
+import { toBuffer } from "../util";
 import { createHash } from "../util/createHash";
 import type { CreatePartialRegisters } from "./types";
 
@@ -303,8 +304,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 					const digestResult = hash.digest(
 						getCompiler().options.output.hashDigest
 					);
-					// TODO: 不知道为啥，类型错误了
-					return Buffer.from(digestResult as any);
+					return toBuffer(digestResult);
 				};
 			}
 		),

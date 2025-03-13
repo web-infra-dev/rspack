@@ -137,7 +137,9 @@ export class BasicCaseCreator<T extends ECompilerType> {
 			const description =
 				typeof this._options.description === "function"
 					? this._options.description(name, index)
-					: `step ${index ? `[${index}]` : ""} should pass`;
+					: index
+						? `step [${index}] should pass`
+						: "should pass";
 			it(
 				description,
 				async () => {

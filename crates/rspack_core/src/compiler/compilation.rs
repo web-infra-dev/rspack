@@ -8,8 +8,9 @@ use std::{
   },
 };
 
+use async_scoped::TokioScope;
 use dashmap::DashSet;
-use futures::future::{join_all, try_join_all};
+use futures::future::join_all;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -20,9 +21,9 @@ use rspack_cacheable::{
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
+use rspack_error::error;
 use rspack_error::{
-  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
-  Severity,
+  miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity, Severity,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -1055,27 +1056,40 @@ impl Compilation {
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
-    let chunk_render_results: Result<Vec<(ChunkUkey, ChunkRenderResult)>> =
-      try_join_all(chunks.iter().map(|chunk| async {
-        let mut manifests = Vec::new();
-        let mut diagnostics = Vec::new();
-        plugin_driver
-          .compilation_hooks
-          .render_manifest
-          .call(self, chunk, &mut manifests, &mut diagnostics)
-          .await?;
+    // SAFETY: await immediately and trust caller to poll future entirely
+    let (_, results) = unsafe {
+      async_scoped::TokioScope::scope_and_collect(
+        |s: &mut TokioScope<'_, Result<(ChunkUkey, ChunkRenderResult)>>| {
+          chunks.iter().for_each(|chunk| {
+            s.spawn(async {
+              let mut manifests = Vec::new();
+              let mut diagnostics = Vec::new();
+              plugin_driver
+                .compilation_hooks
+                .render_manifest
+                .call(self, chunk, &mut manifests, &mut diagnostics)
+                .await?;
 
-        Ok((
-          *chunk,
-          ChunkRenderResult {
-            manifests,
-            diagnostics,
-          },
-        ))
-      }))
-      .await;
-    let chunk_render_results = chunk_render_results?.into_iter().collect::<UkeyMap<_, _>>();
-
+              rspack_error::Result::Ok((
+                *chunk,
+                ChunkRenderResult {
+                  manifests,
+                  diagnostics,
+                },
+              ))
+            });
+          })
+        },
+      )
+    }
+    .await;
+    let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
+    for result in results {
+      let item: std::result::Result<(ChunkUkey, ChunkRenderResult), _> =
+        result.map_err(rspack_error::miette::Error::from_err)?;
+      let (key, value) = item?;
+      chunk_render_results.insert(key, value);
+    }
     let chunk_ukey_and_manifest = if mutations.is_some() {
       self.chunk_render_artifact.extend(chunk_render_results);
       self.chunk_render_artifact.clone()

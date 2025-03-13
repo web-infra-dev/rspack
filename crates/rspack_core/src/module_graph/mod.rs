@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, Dependency,
-  ExportProvided, ProvidedExports, RuntimeSpec, UsedExports,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, Compilation, DependenciesBlock,
+  Dependency, ExportProvided, ProvidedExports, RuntimeSpec, UsedExports,
 };
 mod module;
 pub use module::*;
@@ -83,6 +83,7 @@ pub struct ModuleGraphPartial {
   // Module's ExportsInfo is also a part of ModuleGraph
   exports_info_map: UkeyMap<ExportsInfo, ExportsInfoData>,
   export_info_map: UkeyMap<ExportInfo, ExportInfoData>,
+  // TODO try move condition as connection field
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
@@ -228,6 +229,7 @@ impl<'a> ModuleGraph<'a> {
   ) -> Option<BuildDependency> {
     let original_module_identifier = self.get_parent_module(dep_id).copied();
     let module_identifier = self.module_identifier_by_dependency_id(dep_id).copied();
+    let parent_block = self.get_parent_block(dep_id).copied();
 
     let Some(active_partial) = &mut self.active else {
       panic!("should have active partial");
@@ -240,14 +242,26 @@ impl<'a> ModuleGraph<'a> {
       active_partial
         .dependency_id_to_parents
         .insert(*dep_id, None);
+      active_partial.connection_to_condition.remove(dep_id);
+      if let Some(m_id) = original_module_identifier {
+        if let Some(Some(module)) = active_partial.modules.get_mut(&m_id) {
+          module.remove_dependency_id(*dep_id);
+        }
+      }
+      if let Some(b_id) = parent_block {
+        if let Some(Some(block)) = active_partial.blocks.get_mut(&b_id) {
+          block.remove_dependency_id(*dep_id);
+        }
+      }
     }
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
       if let Some(mgm) = self.module_graph_module_by_identifier_mut(original_module_identifier) {
         mgm.remove_outgoing_connection(dep_id);
-        // Because of mgm.all_dependencies is set when original module build success
-        // it does not need to remove dependency in mgm.all_dependencies.
+        if force {
+          mgm.all_dependencies.retain(|id| id != dep_id);
+        }
       }
     }
     // remove incoming from module graph module

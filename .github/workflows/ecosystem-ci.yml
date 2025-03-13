@@ -141,18 +141,20 @@ jobs:
       #          target: x86_64-unknown-linux-gnu
 
       - name: Download bindings
-        uses: ./.github/actions/download-artifact
+        uses: ./.github/actions/artifact/download
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
-          try-local-cache: false
 
       - name: Show restored binding
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Build JS
         run: pnpm run build:js

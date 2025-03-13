@@ -72,8 +72,11 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Pnpm Cache
-        uses: ./.github/actions/pnpm-cache
+      - name: Pnpm Setup
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

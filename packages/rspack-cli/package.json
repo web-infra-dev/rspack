@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "CLI for rspack",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -43,7 +43,7 @@
     "yargs": "17.7.2"
   },
   "devDependencies": {
-    "@rslib/core": "0.5.2",
+    "@rslib/core": "0.5.4",
     "@rspack/core": "workspace:*",
     "@rspack/tracing": "workspace:*",
     "@types/interpret": "^1.1.3",

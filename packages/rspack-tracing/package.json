@@ -1,6 +1,6 @@
 {
   "name": "@rspack/tracing",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "type": "module",
   "description": "Internal tracing package for rspack",
   "homepage": "https://rspack.dev",

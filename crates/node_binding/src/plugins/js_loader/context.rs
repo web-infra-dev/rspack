@@ -6,8 +6,6 @@ use rspack_core::{LoaderContext, Module, RunnerContext};
 use rspack_error::error;
 use rspack_loader_runner::{LoaderItem, State as LoaderState};
 use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
-use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
-use tracing::Span;
 
 use crate::{JsModuleWrapper, JsResourceData, JsRspackError};
 
@@ -99,11 +97,20 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   ) -> std::result::Result<Self, Self::Error> {
     let module = unsafe { cx.context.module.as_ref() };
 
+    #[allow(unused_mut)]
     let mut carrier = HashMap::new();
-    global::get_text_map_propagator(|propagator| {
-      let cx = Span::current().context();
-      propagator.inject_context(&cx, &mut carrier);
-    });
+
+    #[cfg(not(target_family = "wasm"))]
+    {
+      use rspack_tracing::otel::{opentelemetry::global, tracing::OpenTelemetrySpanExt as _};
+      use tracing::Span;
+
+      global::get_text_map_propagator(|propagator| {
+        let cx = Span::current().context();
+        propagator.inject_context(&cx, &mut carrier);
+      });
+    };
+
     #[allow(clippy::unwrap_used)]
     Ok(JsLoaderContext {
       resource_data: cx.resource_data.as_ref().into(),
