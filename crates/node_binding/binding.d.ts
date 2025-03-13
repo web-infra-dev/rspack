@@ -241,6 +241,7 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsModule {
+  get constructorName(): string
   get context(): string | undefined
   get originalSource(): JsCompatSource | undefined
   get resource(): string | undefined
@@ -263,6 +264,7 @@ export declare class JsModule {
   get matchResource(): string | undefined
   set matchResource(val: string | undefined)
   emitFile(filename: string, source: JsCompatSource, jsAssetInfo?: AssetInfo | undefined | null): void
+  get buildInfo(): Record<string, any>
 }
 
 export declare class JsModuleGraph {
@@ -395,7 +397,8 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
   LazyCompilationPlugin = 'LazyCompilationPlugin',
-  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin'
+  ModuleInfoHeaderPlugin = 'ModuleInfoHeaderPlugin',
+  FlightClientEntryPlugin = 'FlightClientEntryPlugin'
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -406,6 +409,11 @@ export interface ContextInfo {
 }
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export interface JsAction {
+  workers: Record<string, JsModuleInfo>
+  layer: Record<string, string>
+}
 
 export interface JsAddingRuntimeModule {
   name: string
@@ -667,6 +675,18 @@ export interface JsFactoryMeta {
   sideEffectFree?: boolean
 }
 
+export interface JsFlightClientEntryPluginState {
+  serverActions: Record<string, JsAction>
+  edgeServerActions: Record<string, JsAction>
+  serverActionModules: Record<string, JsModulePair>
+  edgeServerActionModules: Record<string, JsModulePair>
+  ssrModules: Record<string, JsModuleInfo>
+  edgeSsrModules: Record<string, JsModuleInfo>
+  rscModules: Record<string, JsModuleInfo>
+  edgeRscModules: Record<string, JsModuleInfo>
+  injectedClientEntries: Record<string, string>
+}
+
 export interface JsHtmlPluginAssets {
   publicPath: string
   js: Array<string>
@@ -773,6 +793,16 @@ export interface JsModuleDescriptor {
   identifier: string
   name: string
   id?: string
+}
+
+export interface JsModuleInfo {
+  moduleId: string
+  isAsync: boolean
+}
+
+export interface JsModulePair {
+  server?: JsModuleInfo
+  client?: JsModuleInfo
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -1022,6 +1052,13 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   runtimeRequirements: JsRuntimeGlobals
+}
+
+export interface JsShouldInvalidateCbCtx {
+  entryName: string
+  absolutePagePath: string
+  bundlePath: string
+  clientBrowserLoader: string
 }
 
 export interface JsStatsAsset {
@@ -1673,6 +1710,17 @@ export interface RawFallbackCacheGroupOptions {
 
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
+}
+
+export interface RawFlightClientEntryPluginOptions {
+  dev: boolean
+  appDir: string
+  isEdgeServer: boolean
+  encryptionKey: string
+  builtinAppLoader: boolean
+  shouldInvalidateCb: (ctx: JsShouldInvalidateCbCtx) => boolean
+  invalidateCb: () => void
+  stateCb: (state: JsFlightClientEntryPluginState) => void
 }
 
 export interface RawFuncUseCtx {

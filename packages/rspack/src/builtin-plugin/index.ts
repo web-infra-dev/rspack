@@ -74,3 +74,4 @@ export * from "./DllReferenceAgencyPlugin";
 export * from "./RsdoctorPlugin";
 export * from "./SubresourceIntegrityPlugin";
 export * from "./ModuleInfoHeaderPlugin";
+export * from "./FlightClientEntryPlugin";

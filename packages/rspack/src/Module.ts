@@ -234,10 +234,17 @@ export class Module {
 
 	constructor(module: JsModule) {
 		this.#inner = module;
-		this.buildInfo = {};
+
+		this.buildInfo = module.buildInfo;
 		this.buildMeta = {};
 
 		Object.defineProperties(this, {
+			constructorName: {
+				enumerable: true,
+				get: (): string => {
+					return module.constructorName;
+				}
+			},
 			type: {
 				enumerable: true,
 				get(): string | null {

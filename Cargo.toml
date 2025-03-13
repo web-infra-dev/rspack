@@ -109,8 +109,7 @@ pnp = { version = "0.9.0" }
 
 rspack_dojang = { version = "0.1.11" }
 
-
-# all rspack workspace dependencies
+next-custom-transforms                 = { path = "crates/next-custom-transforms" }
 rspack                                 = { version = "0.2.0", path = "crates/rspack" }
 rspack_allocator                       = { version = "0.2.0", path = "crates/rspack_allocator" }
 rspack_ast                             = { version = "0.2.0", path = "crates/rspack_ast" }
@@ -132,6 +131,8 @@ rspack_identifier                      = { version = "0.2.0", path = "crates/rsp
 rspack_ids                             = { version = "0.2.0", path = "crates/rspack_ids" }
 rspack_loader                          = { version = "0.2.0", path = "crates/rspack_loader" }
 rspack_loader_lightningcss             = { version = "0.2.0", path = "crates/rspack_loader_lightningcss" }
+rspack_loader_next_app                 = { version = "0.2.0", path = "crates/rspack_loader_next_app" }
+rspack_loader_next_swc                 = { version = "0.2.0", path = "crates/rspack_loader_next_swc" }
 rspack_loader_preact_refresh           = { version = "0.2.0", path = "crates/rspack_loader_preact_refresh" }
 rspack_loader_react_refresh            = { version = "0.2.0", path = "crates/rspack_loader_react_refresh" }
 rspack_loader_runner                   = { version = "0.2.0", path = "crates/rspack_loader_runner" }
@@ -168,6 +169,7 @@ rspack_plugin_merge                    = { version = "0.2.0", path = "crates/rsp
 rspack_plugin_merge_duplicate_chunks   = { version = "0.2.0", path = "crates/rspack_plugin_merge_duplicate_chunks" }
 rspack_plugin_mf                       = { version = "0.2.0", path = "crates/rspack_plugin_mf" }
 rspack_plugin_mini_css_extract         = { version = "0.2.0", path = "crates/rspack_plugin_mini_css_extract" }
+rspack_plugin_next_flight_client_entry = { path = "crates/rspack_plugin_next_flight_client_entry" }
 rspack_plugin_no_emit_on_errors        = { version = "0.2.0", path = "crates/rspack_plugin_no_emit_on_errors" }
 rspack_plugin_progress                 = { version = "0.2.0", path = "crates/rspack_plugin_progress" }
 rspack_plugin_real_content_hash        = { version = "0.2.0", path = "crates/rspack_plugin_real_content_hash" }
