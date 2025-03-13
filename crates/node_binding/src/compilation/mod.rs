@@ -6,29 +6,19 @@ use std::path::Path;
 use dependencies::JsDependencies;
 use entries::JsEntries;
 use napi_derive::napi;
-use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::BoxSource;
+use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_core::{rspack_sources::BoxSource, ModuleIdentifier};
 use rspack_error::Diagnostic;
-use rspack_napi::napi::bindgen_prelude::*;
-use rspack_napi::NapiResultExt;
+use rspack_napi::{napi::bindgen_prelude::*, spawn_local::SpawnLocalExt, NapiResultExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
+use rustc_hash::FxHashMap;
 
-use super::{JsFilename, PathWithInfo};
-use crate::entry::JsEntryOptions;
-use crate::EntryDependency;
-use crate::JsAddingRuntimeModule;
-use crate::JsChunk;
-use crate::JsChunkGraph;
-use crate::JsChunkGroupWrapper;
-use crate::JsChunkWrapper;
-use crate::JsCompatSource;
-use crate::JsModuleGraph;
-use crate::JsModuleWrapper;
-use crate::JsStatsOptimizationBailout;
-use crate::LocalJsFilename;
-use crate::ToJsCompatSource;
-use crate::{AssetInfo, JsAsset, JsPathData, JsStats};
-use crate::{JsRspackDiagnostic, JsRspackError};
+use crate::{
+  entry::JsEntryOptions, AssetInfo, EntryDependency, EntryOptions, JsAddingRuntimeModule, JsAsset,
+  JsChunk, JsChunkGraph, JsChunkGroupWrapper, JsChunkWrapper, JsCompatSource, JsFilename,
+  JsModuleGraph, JsModuleWrapper, JsPathData, JsRspackDiagnostic, JsRspackError, JsStats,
+  JsStatsOptimizationBailout, LocalJsFilename, PathWithInfo, ToJsCompatSource, COMPILER_REFERENCES,
+};
 
 #[napi]
 pub struct JsCompilation(pub(crate) Box<rspack_core::Compilation>);
@@ -116,18 +106,17 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset_source<'a>(
-    &self,
+    &'a self,
     env: &'a Env,
     name: String,
   ) -> Result<Option<JsCompatSource<'a>>> {
-    todo!()
-    // let compilation = &self.0;
+    let compilation = &self.0;
 
-    // compilation
-    //   .assets()
-    //   .get(&name)
-    //   .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
-    //   .transpose()
+    compilation
+      .assets()
+      .get(&name)
+      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source(env)))
+      .transpose()
   }
 
   #[napi(getter, ts_return_type = "Array<JsModule>")]
@@ -531,30 +520,36 @@ impl JsCompilation {
   pub fn rebuild_module(
     &mut self,
     env: Env,
+    mut reference: Reference<JsCompilation>,
     module_identifiers: Vec<String>,
-    f: Function,
+    callback: Function<Vec<JsModuleWrapper>, ()>,
   ) -> Result<()> {
-    let compilation = &mut self.0;
-    todo!()
+    let ts_callback = callback
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()?;
 
-    // callbackify(env, f, async {
-    //   let compiler_id = compilation.compiler_id();
+    env.spawn_local(move |_env| async move {
+      let compilation = &mut *reference.0;
 
-    //   let modules = compilation
-    //     .rebuild_module(
-    //       IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
-    //       |modules| {
-    //         modules
-    //           .into_iter()
-    //           .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
-    //           .collect::<Vec<_>>()
-    //       },
-    //     )
-    //     .await
-    //     .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      let compiler_id = compilation.compiler_id();
 
-    //   Ok(modules)
-    // })
+      let modules = compilation
+        .rebuild_module(
+          IdentifierSet::from_iter(module_identifiers.into_iter().map(ModuleIdentifier::from)),
+          |modules| {
+            modules
+              .into_iter()
+              .map(|module| JsModuleWrapper::new(module.identifier(), None, compiler_id))
+              .collect::<Vec<_>>()
+          },
+        )
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      ts_callback.call_async(modules).await
+    })
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -562,60 +557,67 @@ impl JsCompilation {
   pub fn import_module(
     &self,
     env: Env,
+    mut reference: Reference<JsCompilation>,
     request: String,
     layer: Option<String>,
     public_path: Option<JsFilename>,
     base_uri: Option<String>,
     original_module: Option<String>,
     original_module_context: Option<String>,
-    callback: Function,
+    callback: Function<JsExecuteModuleResult, ()>,
   ) -> Result<()> {
-    let compilation = &self.0;
+    let ts_callback = callback
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()?;
 
-    todo!()
-    // callbackify(env, callback, async {
-    //   let module_executor = compilation
-    //     .module_executor
-    //     .as_ref()
-    //     .expect("should have module executor");
-    //   let res = module_executor
-    //     .import_module(
-    //       request,
-    //       layer,
-    //       public_path.map(|p| p.into()),
-    //       base_uri,
-    //       original_module_context.map(rspack_core::Context::from),
-    //       original_module.map(ModuleIdentifier::from),
-    //     )
-    //     .await;
+    env.spawn_local(move |_env| async move {
+      let compilation = &mut *reference.0;
 
-    //   let js_result = JsExecuteModuleResult {
-    //     cacheable: res.cacheable,
-    //     file_dependencies: res
-    //       .file_dependencies
-    //       .into_iter()
-    //       .map(|d| d.to_string_lossy().to_string())
-    //       .collect(),
-    //     context_dependencies: res
-    //       .context_dependencies
-    //       .into_iter()
-    //       .map(|d| d.to_string_lossy().to_string())
-    //       .collect(),
-    //     build_dependencies: res
-    //       .build_dependencies
-    //       .into_iter()
-    //       .map(|d| d.to_string_lossy().to_string())
-    //       .collect(),
-    //     missing_dependencies: res
-    //       .missing_dependencies
-    //       .into_iter()
-    //       .map(|d| d.to_string_lossy().to_string())
-    //       .collect(),
-    //     id: res.id,
-    //     error: res.error,
-    //   };
-    //   Ok(js_result)
-    // })
+      let module_executor = compilation
+        .module_executor
+        .as_ref()
+        .expect("should have module executor");
+      let res = module_executor
+        .import_module(
+          request,
+          layer,
+          public_path.map(|p| p.into()),
+          base_uri,
+          original_module_context.map(rspack_core::Context::from),
+          original_module.map(ModuleIdentifier::from),
+        )
+        .await;
+
+      let result = JsExecuteModuleResult {
+        cacheable: res.cacheable,
+        file_dependencies: res
+          .file_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        context_dependencies: res
+          .context_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        build_dependencies: res
+          .build_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        missing_dependencies: res
+          .missing_dependencies
+          .into_iter()
+          .map(|d| d.to_string_lossy().to_string())
+          .collect(),
+        id: res.id,
+        error: res.error,
+      };
+      ts_callback.call_async(result).await
+    })
   }
 
   #[napi(getter)]
@@ -660,95 +662,104 @@ impl JsCompilation {
   pub fn add_include(
     &mut self,
     env: Env,
+    mut reference: Reference<JsCompilation>,
     js_args: Vec<(String, &mut EntryDependency, Option<JsEntryOptions>)>,
-    f: Function,
+    callback: Function<JsAddIncludeCallbackArgs, ()>,
   ) -> napi::Result<()> {
-    // let compilation = &mut self.0;
+    let ts_callback = callback
+      .build_threadsafe_function()
+      .callee_handled::<false>()
+      .max_queue_size::<1>()
+      .weak::<false>()
+      .build()?;
 
-    // let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
-    //   let references = ref_cell.borrow_mut();
-    //   references.get(&compilation.compiler_id()).cloned()
-    // }) else {
-    //   return Err(napi::Error::from_reason(
-    //     "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
-    //   ));
-    // };
-    // let Some(js_compiler) = compiler_reference.get_mut() else {
-    //   return Err(napi::Error::from_reason(
-    //     "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
-    //   ));
-    // };
-    // let include_dependencies_map = &mut js_compiler.include_dependencies_map;
+    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
+      let references = ref_cell.borrow_mut();
+      let compilation = &mut *reference.0;
+      references.get(&compilation.compiler_id()).cloned()
+    }) else {
+      return Err(napi::Error::from_reason(
+        "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let Some(js_compiler) = compiler_reference.get_mut() else {
+      return Err(napi::Error::from_reason(
+        "Unable to addInclude now. The Compiler has been garbage collected by JavaScript.",
+      ));
+    };
+    let include_dependencies_map = &mut js_compiler.include_dependencies_map;
 
-    // let args = js_args
-    //   .into_iter()
-    //   .map(|(js_context, js_dependency, js_options)| {
-    //     let layer = match &js_options {
-    //       Some(options) => options.layer.clone(),
-    //       None => None,
-    //     };
-    //     let options = match js_options {
-    //       Some(js_opts) => js_opts.into(),
-    //       None => EntryOptions::default(),
-    //     };
-    //     let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
-    //       && let Some(dependency) = map.get(&options)
-    //     {
-    //       js_dependency.dependency_id = Some(*dependency.id());
-    //       dependency.clone()
-    //     } else {
-    //       let dependency = js_dependency.resolve(js_context.into(), layer)?;
-    //       if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
-    //         map.insert(options.clone(), dependency.clone());
-    //       } else {
-    //         let mut map = FxHashMap::default();
-    //         map.insert(options.clone(), dependency.clone());
-    //         include_dependencies_map.insert(js_dependency.request.to_string(), map);
-    //       }
-    //       dependency
-    //     };
-    //     Ok((dependency, options))
-    //   })
-    //   .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()?;
+    let args = js_args
+      .into_iter()
+      .map(|(js_context, js_dependency, js_options)| {
+        let layer = match &js_options {
+          Some(options) => options.layer.clone(),
+          None => None,
+        };
+        let options = match js_options {
+          Some(js_opts) => js_opts.into(),
+          None => EntryOptions::default(),
+        };
+        let dependency = if let Some(map) = include_dependencies_map.get(&js_dependency.request)
+          && let Some(dependency) = map.get(&options)
+        {
+          js_dependency.dependency_id = Some(*dependency.id());
+          dependency.clone()
+        } else {
+          let dependency = js_dependency.resolve(js_context.into(), layer)?;
+          if let Some(map) = include_dependencies_map.get_mut(&js_dependency.request) {
+            map.insert(options.clone(), dependency.clone());
+          } else {
+            let mut map = FxHashMap::default();
+            map.insert(options.clone(), dependency.clone());
+            include_dependencies_map.insert(js_dependency.request.to_string(), map);
+          }
+          dependency
+        };
+        Ok((dependency, options))
+      })
+      .collect::<napi::Result<Vec<(rspack_core::BoxDependency, EntryOptions)>>>()?;
 
-    // callbackify(env, f, async move {
-    //   let dependency_ids = args
-    //     .iter()
-    //     .map(|(dependency, _)| *dependency.id())
-    //     .collect::<Vec<_>>();
+    env.spawn_local(move |_env| async move {
+      let compilation = &mut *reference.0;
 
-    //   compilation
-    //     .add_include(args)
-    //     .await
-    //     .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      let dependency_ids = args
+        .iter()
+        .map(|(dependency, _)| *dependency.id())
+        .collect::<Vec<_>>();
 
-    //   let module_graph = compilation.get_module_graph();
-    //   let results = dependency_ids
-    //     .into_iter()
-    //     .map(|dependency_id| {
-    //       if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
-    //         if let Some(factorize_info) = FactorizeInfo::get_from(dependency) {
-    //           if let Some(diagnostic) = factorize_info.diagnostics().first() {
-    //             return Either::A(diagnostic.to_string());
-    //           }
-    //         }
-    //       }
+      compilation
+        .add_include(args)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
 
-    //       match module_graph.get_module_by_dependency_id(&dependency_id) {
-    //         Some(module) => {
-    //           let js_module =
-    //             JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
-    //           Either::B(js_module)
-    //         }
-    //         None => Either::A("build failed with unknown error".to_string()),
-    //       }
-    //     })
-    //     .collect::<Vec<Either<String, JsModuleWrapper>>>();
+      let module_graph = compilation.get_module_graph();
+      let results = dependency_ids
+        .into_iter()
+        .map(|dependency_id| {
+          if let Some(dependency) = module_graph.dependency_by_id(&dependency_id) {
+            if let Some(factorize_info) = rspack_core::FactorizeInfo::get_from(dependency) {
+              if let Some(diagnostic) = factorize_info.diagnostics().first() {
+                return Either::A(diagnostic.to_string());
+              }
+            }
+          }
 
-    //   Ok(JsAddIncludeCallbackArgs(results))
-    // })
+          match module_graph.get_module_by_dependency_id(&dependency_id) {
+            Some(module) => {
+              let js_module =
+                JsModuleWrapper::new(module.identifier(), None, compilation.compiler_id());
+              Either::B(js_module)
+            }
+            None => Either::A("build failed with unknown error".to_string()),
+          }
+        })
+        .collect::<Vec<Either<String, JsModuleWrapper>>>();
 
-    todo!()
+      ts_callback
+        .call_async(JsAddIncludeCallbackArgs(results))
+        .await
+    })
   }
 }
 

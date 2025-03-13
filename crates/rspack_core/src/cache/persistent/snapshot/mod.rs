@@ -46,7 +46,7 @@ impl Snapshot {
     let default_strategy = StrategyHelper::compile_time();
     let helper = StrategyHelper::new(self.fs.clone());
     // TODO merge package version file
-    join_all(paths.map(|path| async {
+    let _ = join_all(paths.map(|path| async {
       let utf8_path = path.assert_utf8();
       // check path exists
       if self.fs.metadata(utf8_path).is_err() {

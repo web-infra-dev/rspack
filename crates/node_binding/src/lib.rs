@@ -444,7 +444,7 @@ pub fn cleanup_global_trace() {
 }
 
 #[module_exports]
-fn node_init(mut exports: Object, env: Env) -> Result<()> {
+fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::bindings::set_thread_local_allocator(Box::new(allocator::NapiAllocator::new(env)));
   Ok(())
 }
