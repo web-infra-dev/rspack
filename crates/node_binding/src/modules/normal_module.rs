@@ -72,7 +72,7 @@ impl NormalModule {
       Some(normal_module) => Either::A(
         normal_module
           .loaders()
-          .into_iter()
+          .iter()
           .map(|i| rspack_loader_runner::LoaderItem::<rspack_core::RunnerContext>::from(i.clone()))
           .map(|i| JsLoaderItem::from(&i))
           .collect::<Vec<_>>(),
