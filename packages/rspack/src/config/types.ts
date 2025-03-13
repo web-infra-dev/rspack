@@ -2732,7 +2732,7 @@ export type RspackOptions = {
 	dependencies?: Dependencies;
 	/**
 	 * Configuration files to extend from. The configurations are merged from right to left,
-	 * with the rightmost configuration taking precedence.
+	 * with the rightmost configuration taking precedence(only works when using @rspack/cli).
 	 */
 	extends?: string | string[];
 	/**

@@ -10,6 +10,10 @@ import PropertyType from '../../../components/PropertyType.tsx';
 - **类型：** `string | string[]`
 - **默认值：** `undefined`
 
+:::warning Warning
+**此选项在 Node API 中不受支持**：在使用 Node API 时，extends 选项将不会生效。使用此功能需要 @rspack/cli。
+:::
+
 ## 基本用法
 
 你可以通过在 `extends` 属性中指定文件路径来扩展另一个配置文件。路径可以是绝对路径或相对于配置文件的相对路径：

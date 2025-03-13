@@ -10,6 +10,10 @@ Used to extend configurations from other files or packages. This allows you to c
 - **Type:** `string | string[]`
 - **Default:** `undefined`
 
+:::warning Warning
+**This option is not supported via the Node API**: Extends will have no effect when using the Node API. @rspack/cli is required to use this feature.
+:::
+
 ## Basic Usage
 
 You can extend a configuration from another file by specifying the path to the file in the `extends` property. The path can be absolute or relative to the configuration file:
