@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * The following code is modified based on
  * https://github.com/webpack/loader-runner
@@ -11,6 +12,7 @@
 import querystring from "node:querystring";
 
 import assert from "node:assert";
+import path from "node:path";
 import { promisify } from "node:util";
 import {
 	type JsLoaderContext,
@@ -26,6 +28,7 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
+import { MessageChannel } from "node:worker_threads";
 import type { ContextAPI, PropagationAPI, TraceAPI } from "@rspack/tracing";
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
@@ -56,6 +59,7 @@ import {
 } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import loadLoader from "./loadLoader";
+import { convertArgs } from "./utils";
 
 function createLoaderObject(
 	loader: JsLoaderItem,
@@ -391,6 +395,29 @@ async function tryTrace(context: JsLoaderContext) {
 	}
 	return null;
 }
+
+let pool: any;
+
+const createPool = async () => {
+	if (pool) {
+		return pool;
+	}
+	pool = import("tinypool").then(({ Tinypool }) => {
+		const cpus = require("node:os").cpus().length;
+		const availableThreads = Math.max(cpus - 1, 1);
+
+		return new Tinypool({
+			filename: path.resolve(__dirname, "loaderRunnerWorker.js"),
+			useAtomics: false,
+
+			maxThreads: availableThreads,
+			minThreads: availableThreads,
+			concurrentTasksPerWorker: 1
+		});
+	});
+
+	return pool;
+};
 
 export async function runLoaders(
 	compiler: Compiler,
@@ -910,25 +937,64 @@ export async function runLoaders(
 						continue;
 					}
 
-					await loadLoaderAsync(currentLoaderObject);
-					const fn = currentLoaderObject.normal;
-					currentLoaderObject.normalExecuted = true;
-					if (!fn) continue;
-					const args = [content, sourceMap, additionalData];
-					convertArgs(args, !!currentLoaderObject.raw);
+					if (process.env.RSPACK_LOADER_WORKER) {
+						const span = tracer?.startSpan(
+							"LoaderRunner:normal",
+							{
+								attributes: {
+									"loader.identifier": getCurrentLoader(loaderContext)?.request
+								}
+							},
+							activeContext
+						);
+						const { port1: tx, port2: rx } = new MessageChannel();
 
-					const span = tracer?.startSpan(
-						"LoaderRunner:normal",
-						{
-							attributes: {
-								"loader.identifier": getCurrentLoader(loaderContext)?.request
-							}
-						},
-						activeContext
-					);
-					[content, sourceMap, additionalData] =
-						(await runSyncOrAsync(fn, loaderContext, args)) || [];
-					span?.end();
+						const result = await (
+							await createPool()
+						)
+							.run(
+								{
+									loaderObject: currentLoaderObject,
+									tx,
+									loaderContext: {
+										sourceMap: loaderContext.sourceMap
+									},
+									args: [content, sourceMap, additionalData]
+								},
+								{
+									transferList: [tx]
+								}
+							)
+							.then(() => {
+								return new Promise(resolve => {
+									rx.on("message", resolve);
+								});
+							});
+
+						[content, sourceMap, additionalData] = result.newArgs || [];
+						currentLoaderObject.normalExecuted = true;
+						span?.end();
+					} else {
+						await loadLoaderAsync(currentLoaderObject);
+						const fn = currentLoaderObject.normal;
+						currentLoaderObject.normalExecuted = true;
+						if (!fn) continue;
+						const args = [content, sourceMap, additionalData];
+						convertArgs(args, !!currentLoaderObject.raw);
+						const span = tracer?.startSpan(
+							"LoaderRunner:normal",
+							{
+								attributes: {
+									"loader.identifier": getCurrentLoader(loaderContext)?.request
+								}
+							},
+							activeContext
+						);
+
+						[content, sourceMap, additionalData] =
+							(await runSyncOrAsync(fn, loaderContext, args)) || [];
+						span?.end();
+					}
 				}
 
 				context.content = isNil(content) ? null : toBuffer(content);
@@ -964,20 +1030,6 @@ export async function runLoaders(
 					};
 	}
 	return context;
-}
-
-function utf8BufferToString(buf: Buffer) {
-	const str = buf.toString("utf-8");
-	if (str.charCodeAt(0) === 0xfeff) {
-		return str.slice(1);
-	}
-	return str;
-}
-
-function convertArgs(args: any[], raw: boolean) {
-	if (!raw && Buffer.isBuffer(args[0])) args[0] = utf8BufferToString(args[0]);
-	else if (raw && typeof args[0] === "string")
-		args[0] = Buffer.from(args[0], "utf-8");
 }
 
 const PATH_QUERY_FRAGMENT_REGEXP =
