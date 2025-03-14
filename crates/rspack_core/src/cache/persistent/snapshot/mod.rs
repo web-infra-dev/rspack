@@ -9,6 +9,7 @@ use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
+use tokio::task::spawn_blocking;
 
 pub use self::option::{PathMatcher, SnapshotOptions};
 use self::strategy::{Strategy, StrategyHelper, ValidateResult};
@@ -49,7 +50,11 @@ impl Snapshot {
     join_all(paths.map(|path| async {
       let utf8_path = path.assert_utf8();
       // check path exists
-      if self.fs.metadata(utf8_path).is_err() {
+      let fs = self.fs.clone();
+      let metadata_has_error = spawn_blocking(move || fs.metadata(utf8_path).is_ok())
+        .await
+        .unwrap_or(true);
+      if metadata_has_error {
         return;
       }
       // TODO directory path should check all sub file
