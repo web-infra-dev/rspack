@@ -1,0 +1,93 @@
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '../../../components/PropertyType.tsx';
+
+<WebpackLicense from="https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations" />
+
+# Extends
+
+Used to extend configurations from other files or packages. This allows you to create a base configuration and extend it for different environments or use cases.
+
+- **Type:** `string | string[]`
+- **Default:** `undefined`
+
+:::warning Warning
+**This option is not supported via the Node API**: Extends will have no effect when using the Node API. @rspack/cli is required to use this feature.
+:::
+
+## Basic Usage
+
+You can extend a configuration from another file by specifying the path to the file in the `extends` property. The path can be absolute or relative to the configuration file:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // Override or add to the base configuration
+  output: {
+    path: path.resolve(__dirname, 'build'),
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+:::tip
+When using relative paths, they are resolved relative to the configuration file that contains the `extends` property.
+:::
+
+## Multiple Configurations
+
+- **Type:** `string[]`
+- **Default:** `undefined`
+
+You can extend multiple configurations by providing an array of paths. Configurations are merged from right to left, meaning that the rightmost configuration will be merged into the leftmost one, and so on:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: ['./base.rspack.config.js', './dev.rspack.config.js'],
+  // Additional configuration options
+  plugins: [
+    // Add more plugins
+  ],
+};
+```
+
+:::info Merge Behavior
+
+When merging configurations:
+
+- Simple values are overwritten
+- Arrays are concatenated
+- Objects are deeply merged
+
+:::
+
+## Node Modules
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+You can also extend configurations from packages installed in your node_modules. The package should export a valid Rspack configuration:
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: 'some-rspack-config-package',
+  // Override or add to the package's configuration
+};
+```
+
+## Nested Extends
+
+Configurations can have their own `extends` property, allowing for nested configuration inheritance. The resolution is performed recursively:
+
+```js title="base.rspack.config.js"
+module.exports = {
+  extends: './core.rspack.config.js',
+  // Base configuration options
+};
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // Environment-specific configuration options
+};
+```

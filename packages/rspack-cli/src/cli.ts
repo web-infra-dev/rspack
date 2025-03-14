@@ -24,7 +24,11 @@ import type {
 	RspackCLILogger,
 	RspackCLIOptions
 } from "./types";
-import { type LoadedRspackConfig, loadRspackConfig } from "./utils/loadConfig";
+import {
+	type LoadedRspackConfig,
+	loadExtendedConfig,
+	loadRspackConfig
+} from "./utils/loadConfig";
 import { normalizeEnv } from "./utils/options";
 
 type Command = "serve" | "build";
@@ -212,12 +216,27 @@ export class RspackCLI {
 		)) as NonNullable<LoadedRspackConfig>;
 
 		if (typeof loadedConfig === "function") {
-			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			let functionResult = loadedConfig(options.argv?.env, options.argv);
 			// if return promise we should await its result
 			if (
-				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+				typeof (functionResult as unknown as Promise<unknown>).then ===
+				"function"
 			) {
-				loadedConfig = await loadedConfig;
+				functionResult = await functionResult;
+			}
+
+			loadedConfig = functionResult;
+
+			// Handle extends property for function configs
+			if ("extends" in loadedConfig && loadedConfig.extends) {
+				// Create a temporary config path for the function result
+				const tempConfigPath = path.resolve(process.cwd(), "rspack.config.js");
+				loadedConfig = await loadExtendedConfig(
+					loadedConfig,
+					tempConfigPath,
+					process.cwd(),
+					options
+				);
 			}
 		}
 
