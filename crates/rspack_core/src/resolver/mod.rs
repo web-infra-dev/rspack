@@ -11,6 +11,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
 use rspack_loader_runner::DescriptionData;
+use rspack_loader_runner::ResourceData;
 use rspack_paths::AssertUtf8;
 use rspack_paths::Utf8PathBuf;
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
@@ -87,6 +88,16 @@ impl Resource {
     buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
     buf.push_str(&self.fragment);
     buf
+  }
+}
+
+impl From<Resource> for ResourceData {
+  fn from(resource: Resource) -> Self {
+    Self::new(resource.full_path())
+      .path(resource.path)
+      .query(resource.query)
+      .fragment(resource.fragment)
+      .description_optional(resource.description_data)
   }
 }
 
