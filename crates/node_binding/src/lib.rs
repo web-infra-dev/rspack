@@ -22,6 +22,7 @@ use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod asset;
 mod asset_condition;
+mod async_dependency_block;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -32,7 +33,6 @@ mod compiler;
 mod context_module_factory;
 mod dependencies;
 mod dependency;
-mod dependency_block;
 mod diagnostic;
 mod error;
 mod exports_info;
@@ -60,6 +60,7 @@ mod utils;
 
 pub use asset::*;
 pub use asset_condition::*;
+pub use async_dependency_block::*;
 pub use chunk::*;
 pub use chunk_graph::*;
 pub use chunk_group::*;
@@ -69,7 +70,6 @@ pub use compilation::*;
 pub use context_module_factory::*;
 pub use dependencies::*;
 pub use dependency::*;
-pub use dependency_block::*;
 pub use diagnostic::*;
 pub use error::*;
 pub use exports_info::*;
@@ -306,7 +306,7 @@ impl JsCompiler {
     JsChunkWrapper::cleanup_last_compilation(compilation_id);
     JsChunkGroupWrapper::cleanup_last_compilation(compilation_id);
     DependencyWrapper::cleanup_last_compilation(compilation_id);
-    JsDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
+    AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
 }
 

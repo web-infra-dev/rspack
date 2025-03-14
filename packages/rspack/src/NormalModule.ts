@@ -1,22 +1,12 @@
 import util from "node:util";
+import * as binding from "@rspack/binding";
 import * as liteTapable from "@rspack/lite-tapable";
-
+import type { Source } from "webpack-sources";
 import { Compilation } from "./Compilation";
 import type { Module } from "./Module";
 import type { LoaderContext } from "./config";
-
-import * as binding from "@rspack/binding";
-import type { Source } from "webpack-sources";
-import { DependenciesBlock } from "./DependenciesBlock";
 import { JsSource } from "./util/source";
 
-Object.defineProperty(binding.NormalModule.prototype, "blocks", {
-	enumerable: true,
-	configurable: true,
-	get(this: binding.NormalModule) {
-		return this._blocks.map(block => DependenciesBlock.__from_binding(block));
-	}
-});
 Object.defineProperty(binding.NormalModule.prototype, "originalSource", {
 	enumerable: true,
 	configurable: true,

@@ -15,9 +15,9 @@ use rspack_util::source_map::SourceMapKind;
 
 use super::JsCompatSourceOwned;
 use crate::{
-  AssetInfo, ConcatenatedModule, ContextModule, DependencyWrapper, ExternalModule, JsChunkWrapper,
-  JsCodegenerationResults, JsCompatSource, JsCompiler, JsDependenciesBlockWrapper, NormalModule,
-  ToJsCompatSource, COMPILER_REFERENCES,
+  AssetInfo, AsyncDependenciesBlockWrapper, ConcatenatedModule, ContextModule, DependencyWrapper,
+  ExternalModule, JsChunkWrapper, JsCodegenerationResults, JsCompatSource, JsCompiler,
+  NormalModule, ToJsCompatSource, COMPILER_REFERENCES,
 };
 
 #[napi(object)]
@@ -191,11 +191,10 @@ impl Module {
 
   #[napi(
     getter,
-    js_name = "_blocks",
-    ts_return_type = "JsDependenciesBlock[]",
+    ts_return_type = "AsyncDependenciesBlock[]",
     enumerable = false
   )]
-  pub fn blocks(&mut self) -> napi::Result<Vec<JsDependenciesBlockWrapper>> {
+  pub fn blocks(&mut self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     let (compilation, module) = self.as_ref()?;
 
     let module_graph = compilation.get_module_graph();
@@ -206,7 +205,7 @@ impl Module {
         .filter_map(|block_id| {
           module_graph
             .block_by_id(block_id)
-            .map(|block| JsDependenciesBlockWrapper::new(block, compilation))
+            .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
         })
         .collect::<Vec<_>>(),
     )
