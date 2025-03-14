@@ -82,12 +82,12 @@ jobs:
       full-install: false
 
   test-mac:
-    name: Test Mac
+    name: Test Mac Arm64
     needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
-      target: x86_64-apple-darwin
+      target: aarch64-apple-darwin
       profile: "ci"
       runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
       skipable: ${{ needs.check-changed.outputs.changed  != 'true' }}
