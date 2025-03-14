@@ -82,7 +82,7 @@ jobs:
       full-install: false
 
   test-mac:
-    name: Test Mac Arm64
+    name: Test Mac ARM64
     needs: [get-runner-labels, check-changed]
     if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
