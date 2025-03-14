@@ -3,10 +3,10 @@ mod strategy;
 
 use std::{path::Path, sync::Arc};
 
+use futures::future::join_all;
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_futures::FuturesResults;
 use rspack_paths::{ArcPath, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -46,36 +46,35 @@ impl Snapshot {
     let default_strategy = StrategyHelper::compile_time();
     let helper = StrategyHelper::new(self.fs.clone());
     // TODO merge package version file
-    let _ = paths
-      .map(|path| async {
-        let utf8_path = path.assert_utf8();
-        // check path exists
-        if self.fs.metadata(utf8_path).is_err() {
+    join_all(paths.map(|path| async {
+      let utf8_path = path.assert_utf8();
+      // check path exists
+      if self.fs.metadata(utf8_path).is_err() {
+        return;
+      }
+      // TODO directory path should check all sub file
+      let path_str = utf8_path.as_str();
+      if self.options.is_immutable_path(path_str) {
+        return;
+      }
+      if self.options.is_managed_path(path_str) {
+        if let Some(v) = helper.package_version(path).await {
+          self.storage.set(
+            SCOPE,
+            path.as_os_str().as_encoded_bytes().to_vec(),
+            to_bytes::<_, ()>(&v, &()).expect("should to bytes success"),
+          );
           return;
         }
-        // TODO directory path should check all sub file
-        let path_str = utf8_path.as_str();
-        if self.options.is_immutable_path(path_str) {
-          return;
-        }
-        if self.options.is_managed_path(path_str) {
-          if let Some(v) = helper.package_version(path).await {
-            self.storage.set(
-              SCOPE,
-              path.as_os_str().as_encoded_bytes().to_vec(),
-              to_bytes::<_, ()>(&v, &()).expect("should to bytes success"),
-            );
-            return;
-          }
-        }
-        // compiler time
-        self.storage.set(
-          SCOPE,
-          path.as_os_str().as_encoded_bytes().to_vec(),
-          to_bytes::<_, ()>(&default_strategy, &()).expect("should to bytes success"),
-        );
-      })
-      .collect::<FuturesResults<_>>();
+      }
+      // compiler time
+      self.storage.set(
+        SCOPE,
+        path.as_os_str().as_encoded_bytes().to_vec(),
+        to_bytes::<_, ()>(&default_strategy, &()).expect("should to bytes success"),
+      );
+    }))
+    .await;
   }
 
   pub fn remove(&self, paths: impl Iterator<Item = &Path>) {
