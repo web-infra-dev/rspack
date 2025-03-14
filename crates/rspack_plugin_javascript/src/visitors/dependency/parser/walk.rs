@@ -1,30 +1,29 @@
 use std::borrow::Cow;
 
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{
-  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
-  GetterProp, Param, SetterProp, SimpleAssignTarget,
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
+    BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassExpr,
+    ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr, ExprOrSpread,
+    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident, IfStmt,
+    KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl, ModuleItem,
+    NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop,
+    PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt,
+    SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp,
+    UpdateExpr, VarDecl, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
+  },
 };
-use swc_core::ecma::ast::{BinExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause};
-use swc_core::ecma::ast::{Class, ClassExpr, ClassMember, CondExpr, DefaultDecl};
-use swc_core::ecma::ast::{DoWhileStmt, ExportDefaultDecl, Expr};
-use swc_core::ecma::ast::{ExprOrSpread, ExprStmt, MemberExpr, MemberProp, VarDeclOrExpr};
-use swc_core::ecma::ast::{FnExpr, ForHead, Function, Ident, KeyValueProp};
-use swc_core::ecma::ast::{ForInStmt, ForOfStmt, ForStmt, IfStmt, LabeledStmt, WithStmt};
-use swc_core::ecma::ast::{MetaPropExpr, NewExpr, ObjectLit, OptCall};
-use swc_core::ecma::ast::{ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Stmt, WhileStmt};
-use swc_core::ecma::ast::{OptChainExpr, Pat, ThisExpr, UnaryOp};
-use swc_core::ecma::ast::{Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, TaggedTpl};
-use swc_core::ecma::ast::{SwitchCase, SwitchStmt, Tpl, TryStmt, VarDecl, YieldExpr};
-use swc_core::ecma::ast::{ThrowStmt, UnaryExpr, UpdateExpr};
 
-use super::estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement};
 use super::{
+  estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
   AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
   TopLevelScope,
 };
-use crate::parser_plugin::{is_logic_op, JavascriptParserPlugin};
-use crate::visitors::scope_info::FreeName;
+use crate::{
+  parser_plugin::{is_logic_op, JavascriptParserPlugin},
+  visitors::scope_info::FreeName,
+};
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())

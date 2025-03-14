@@ -1,11 +1,15 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use std::cell::{Cell, RefCell};
-use std::ptr;
+use std::{
+  cell::{Cell, RefCell},
+  ptr,
+};
 
-use napi::bindgen_prelude::{check_status, ToNapiValue};
-use napi::sys::{self, napi_env};
-use napi::{CleanupEnvHook, Env, Result};
+use napi::{
+  bindgen_prelude::{check_status, ToNapiValue},
+  sys::{self, napi_env},
+  CleanupEnvHook, Env, Result,
+};
 
 thread_local! {
   static CLEANUP_ENV_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();

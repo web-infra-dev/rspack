@@ -12,9 +12,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
-use crate::common::FallbackCacheGroup;
-use crate::module_group::ModuleGroup;
-use crate::{CacheGroup, SplitChunkSizes};
+use crate::{common::FallbackCacheGroup, module_group::ModuleGroup, CacheGroup, SplitChunkSizes};
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 

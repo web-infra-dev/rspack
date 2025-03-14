@@ -2,13 +2,12 @@ use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use indexmap::IndexMap;
-use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::extract_hash_pattern;
-use crate::{merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec};
 use crate::{
-  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
+  merge_runtime, EntryData, EntryOptions, Filename, RuntimeSpec, CHUNK_HASH_PLACEHOLDER,
+  CONTENT_HASH_PLACEHOLDER, FULL_HASH_PLACEHOLDER, HASH_PLACEHOLDER,
 };
 
 pub fn get_entry_runtime(

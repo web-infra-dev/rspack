@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
-use napi::bindgen_prelude::*;
-use napi::{Env, NapiValue, Ref};
+use napi::{bindgen_prelude::*, Env, NapiValue, Ref};
 
 pub struct JsValueRef<T: NapiValue> {
   ref_: Ref<T>,

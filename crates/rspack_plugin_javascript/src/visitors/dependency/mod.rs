@@ -7,21 +7,24 @@ use std::sync::Arc;
 use rspack_ast::javascript::Program;
 use rspack_core::{
   AdditionalData, AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo,
-  ModuleLayer, ParserOptions,
+  BuildMeta, CompilerOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParserOptions,
+  ResourceData,
 };
-use rspack_core::{BuildMeta, CompilerOptions, ModuleIdentifier, ModuleType, ResourceData};
 use rspack_error::miette::Diagnostic;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::common::Mark;
-use swc_core::common::{comments::Comments, BytePos, SourceFile, SourceMap};
-use swc_core::ecma::atoms::Atom;
-
-pub use self::context_dependency_helper::{create_context_dependency, ContextModuleScanResult};
-pub use self::parser::{
-  estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo,
-  JavascriptParser, MemberExpressionInfo, RootName, TagInfoData, TopLevelScope,
+use swc_core::{
+  common::{comments::Comments, BytePos, Mark, SourceFile, SourceMap},
+  ecma::atoms::Atom,
 };
-pub use self::util::*;
+
+pub use self::{
+  context_dependency_helper::{create_context_dependency, ContextModuleScanResult},
+  parser::{
+    estree::*, AllowedMemberTypes, CallExpressionInfo, CallHooksName, ExportedVariableInfo,
+    JavascriptParser, MemberExpressionInfo, RootName, TagInfoData, TopLevelScope,
+  },
+  util::*,
+};
 use crate::BoxJavascriptParserPlugin;
 
 pub struct ScanDependenciesResult {

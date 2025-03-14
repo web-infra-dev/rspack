@@ -1,12 +1,11 @@
 use cow_utils::CowUtils;
 use rspack_collections::Identifier;
-use rspack_core::rspack_sources::{BoxSource, RawStringSource, SourceExt};
 use rspack_core::{
-  get_filename_without_hash_length, impl_runtime_module, ChunkUkey, Compilation, PathData,
-  RuntimeModule, RuntimeModuleStage,
+  get_filename_without_hash_length, impl_runtime_module,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
+  ChunkUkey, Compilation, PathData, RuntimeModule, RuntimeModuleStage,
 };
-use rspack_util::infallible::ResultInfallibleExt as _;
-use rspack_util::itoa;
+use rspack_util::{infallible::ResultInfallibleExt as _, itoa};
 
 #[impl_runtime_module]
 #[derive(Debug)]

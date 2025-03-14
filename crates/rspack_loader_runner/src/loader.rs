@@ -1,10 +1,9 @@
-use std::sync::LazyLock;
 use std::{
   fmt::Display,
   ops::Deref,
   sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
+    Arc, LazyLock,
   },
 };
 

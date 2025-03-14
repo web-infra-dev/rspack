@@ -3,8 +3,10 @@ use std::sync::{atomic::AtomicI32, Arc};
 use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::Identifier;
-use rspack_core::{Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, CompilationAsset, ModuleGraph};
-use rspack_core::{ChunkByUkey, ChunkGroupUkey};
+use rspack_core::{
+  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
+  ModuleGraph,
+};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 

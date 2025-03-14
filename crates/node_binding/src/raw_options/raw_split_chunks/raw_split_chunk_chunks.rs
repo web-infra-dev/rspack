@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use napi::{bindgen_prelude::Either3, JsString};
 use rspack_collections::DatabaseItem;
-use rspack_napi::string::JsStringExt;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
 use rspack_regex::RspackRegex;
 
 use crate::JsChunkWrapper;

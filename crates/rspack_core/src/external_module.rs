@@ -13,13 +13,13 @@ use crate::{
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier, AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleType, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleGraph, ModuleType,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, NAMESPACE_OBJECT_EXPORT,
 };
-use crate::{ChunkGraph, ModuleGraph};
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];

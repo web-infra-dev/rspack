@@ -1,15 +1,16 @@
 #![allow(clippy::only_used_in_recursion)]
-use std::borrow::Cow;
-use std::collections::hash_map::DefaultHasher;
-use std::collections::VecDeque;
-use std::hash::Hasher;
+use std::{
+  borrow::Cow,
+  collections::{hash_map::DefaultHasher, VecDeque},
+  hash::Hasher,
+};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
-use rspack_core::concatenated_module::{
-  is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
-};
 use rspack_core::{
+  concatenated_module::{
+    is_esm_dep_like, ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext,
+  },
   filter_runtime, merge_runtime, ApplyContext, Compilation, CompilationOptimizeChunkModules,
   CompilerOptions, ExportInfoProvided, ExtendedReferencedExport, LibIdentOptions, Logger, Module,
   ModuleExt, ModuleGraph, ModuleGraphModule, ModuleIdentifier, Plugin, PluginContext,

@@ -11,8 +11,9 @@ use swc_html::{
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
-use swc_html_minifier::option::MinifyOptions;
-use swc_html_minifier::{minify_document_with_custom_css_minifier, MinifyCss};
+use swc_html_minifier::{
+  minify_document_with_custom_css_minifier, option::MinifyOptions, MinifyCss,
+};
 
 use crate::config::HtmlRspackPluginOptions;
 

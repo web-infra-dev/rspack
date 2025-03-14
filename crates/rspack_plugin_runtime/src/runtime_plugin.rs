@@ -1,5 +1,4 @@
-use std::hash::Hash;
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use async_trait::async_trait;
 use rspack_collections::DatabaseItem;

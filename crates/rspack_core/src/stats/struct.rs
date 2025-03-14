@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::BoxSource;

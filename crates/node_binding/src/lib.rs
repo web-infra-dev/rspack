@@ -5,10 +5,12 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
-use std::cell::RefCell;
-use std::pin::Pin;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::{
+  cell::RefCell,
+  pin::Pin,
+  str::FromStr,
+  sync::{Arc, Mutex},
+};
 
 use compiler::{Compiler, CompilerState, CompilerStateGuard};
 use napi::{bindgen_prelude::*, CallContext};
@@ -96,9 +98,9 @@ pub use source::*;
 pub use stats::*;
 use swc_core::common::util::take::Take;
 use tracing::Level;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Layer, Registry};
+use tracing_subscriber::{
+  layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer, Registry,
+};
 pub use utils::*;
 
 thread_local! {

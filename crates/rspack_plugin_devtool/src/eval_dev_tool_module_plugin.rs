@@ -1,5 +1,4 @@
-use std::sync::LazyLock;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use dashmap::DashMap;
@@ -7,11 +6,9 @@ use derive_more::Debug;
 use rspack_collections::UkeySet;
 use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
-  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
-};
-use rspack_core::{
-  CompilationAdditionalModuleRuntimeRequirements, ModuleIdentifier, RuntimeGlobals,
+  ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;

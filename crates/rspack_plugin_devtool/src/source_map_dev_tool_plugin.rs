@@ -1,7 +1,9 @@
-use std::hash::Hasher;
-use std::path::{Component, PathBuf};
-use std::sync::{Arc, LazyLock};
-use std::{borrow::Cow, path::Path};
+use std::{
+  borrow::Cow,
+  hash::Hasher,
+  path::{Component, Path, PathBuf},
+  sync::{Arc, LazyLock},
+};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -18,8 +20,10 @@ use rspack_core::{
 use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::asset_condition::AssetConditions;
-use rspack_util::{identifier::make_paths_absolute, infallible::ResultInfallibleExt};
+use rspack_util::{
+  asset_condition::AssetConditions, identifier::make_paths_absolute,
+  infallible::ResultInfallibleExt,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 

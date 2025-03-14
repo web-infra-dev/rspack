@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use napi::bindgen_prelude::Either4;
 use napi_derive::napi;
-use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemValue};
-use rspack_core::{ExternalItemFnCtx, ResolveOptionsWithDependencyType, ResolverFactory};
+use rspack_core::{
+  ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
+  ResolveOptionsWithDependencyType, ResolverFactory,
+};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 

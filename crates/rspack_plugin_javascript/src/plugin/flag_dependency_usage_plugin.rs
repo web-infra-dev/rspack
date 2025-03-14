@@ -1,5 +1,4 @@
-use std::collections::hash_map::Entry;
-use std::collections::VecDeque;
+use std::collections::{hash_map::Entry, VecDeque};
 
 use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{

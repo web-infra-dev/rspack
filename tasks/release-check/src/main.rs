@@ -1,5 +1,4 @@
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
 use miette::{miette, Diagnostic, IntoDiagnostic, Report, Result};
 use thiserror::Error;

@@ -128,8 +128,7 @@ mod tests {
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 
-  use super::super::storage::MemoryStorage;
-  use super::{PathMatcher, Snapshot, SnapshotOptions};
+  use super::{super::storage::MemoryStorage, PathMatcher, Snapshot, SnapshotOptions};
 
   macro_rules! p {
     ($tt:tt) => {

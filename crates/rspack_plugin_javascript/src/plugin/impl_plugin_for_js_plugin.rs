@@ -1,10 +1,10 @@
-use std::hash::Hash;
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_core::{
-  get_js_chunk_filename_template, AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  get_js_chunk_filename_template,
+  rspack_sources::{BoxSource, CachedSource, SourceExt},
+  AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
   DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
@@ -15,8 +15,7 @@ use rspack_hash::RspackHash;
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
-use crate::{JsPlugin, JsPluginInner};
+use crate::{parser_and_generator::JavaScriptParserAndGenerator, JsPlugin, JsPluginInner};
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]
 async fn compilation(

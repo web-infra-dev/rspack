@@ -1,20 +1,15 @@
-use std::hash::Hash;
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::SourceExt;
-use rspack_core::ExportInfoProvided;
 use rspack_core::{
-  get_entry_runtime, property_access, ApplyContext, BoxModule, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, ModuleIdentifier,
-  RuntimeGlobals, UsageState,
-};
-use rspack_core::{
-  rspack_sources::{ConcatSource, RawStringSource},
-  to_identifier, Chunk, Compilation, LibraryOptions, PathData, Plugin, PluginContext, SourceType,
+  get_entry_runtime, property_access,
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
+  to_identifier, ApplyContext, BoxModule, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
+  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
+  CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided,
+  FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
+  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hash::RspackHash;

@@ -1,7 +1,7 @@
-use std::sync::LazyLock;
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
+  sync::LazyLock,
 };
 
 use cow_utils::CowUtils;

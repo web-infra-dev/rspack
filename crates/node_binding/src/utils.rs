@@ -1,6 +1,9 @@
 use futures::Future;
-use rspack_napi::napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi::napi::{bindgen_prelude::*, Env, NapiRaw, Result};
+use rspack_napi::napi::{
+  bindgen_prelude::*,
+  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  Env, NapiRaw, Result,
+};
 
 pub fn callbackify<R, F>(env: Env, f: Function, fut: F) -> Result<()>
 where

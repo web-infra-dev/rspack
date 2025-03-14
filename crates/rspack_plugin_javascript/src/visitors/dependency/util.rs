@@ -1,11 +1,14 @@
 use rspack_core::{ConstDependency, ErrorSpan, SpanExt};
-use rspack_error::miette::diagnostic;
-use rspack_error::{miette::Severity, DiagnosticKind, TraceableError};
+use rspack_error::{
+  miette::{diagnostic, Severity},
+  DiagnosticKind, TraceableError,
+};
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::common::{SourceFile, Spanned};
-use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::Atom;
+use swc_core::{
+  common::{SourceFile, Spanned},
+  ecma::{ast::*, atoms::Atom},
+};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 
@@ -40,8 +43,10 @@ pub(crate) mod expr_like {
   use std::any::Any;
 
   use rspack_util::ext::AsAny;
-  use swc_core::common::EqIgnoreSpan;
-  use swc_core::ecma::ast::{Expr, Ident, MemberExpr, ThisExpr};
+  use swc_core::{
+    common::EqIgnoreSpan,
+    ecma::ast::{Expr, Ident, MemberExpr, ThisExpr},
+  };
 
   pub trait DynEqIgnoreSpan: __::Sealed {
     fn dyn_eq_ignore_span(&self, other: &dyn Any) -> bool;
@@ -140,11 +145,12 @@ pub(crate) mod expr_like {
 }
 
 pub(crate) mod expr_matcher {
-  use std::sync::Arc;
-  use std::sync::LazyLock;
+  use std::sync::{Arc, LazyLock};
 
-  use swc_core::common::SourceMap;
-  use swc_core::ecma::{ast::Ident, parser::parse_file_as_expr};
+  use swc_core::{
+    common::SourceMap,
+    ecma::{ast::Ident, parser::parse_file_as_expr},
+  };
 
   use super::expr_like::*;
 

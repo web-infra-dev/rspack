@@ -1,5 +1,7 @@
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
+use std::{
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use derive_more::Debug;
 use rspack_core::{Chunk, Compilation, Module, SourceType};

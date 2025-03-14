@@ -1,24 +1,21 @@
 #![allow(clippy::comparison_chain)]
 
-use std::borrow::Cow;
-use std::hash::Hash;
-use std::sync::Arc;
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_collections::DatabaseItem;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, RawSource, ReplaceSource};
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
-  Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  SourceType,
-};
-use rspack_core::{
-  AssetInfo, ChunkGraph, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
+  rspack_sources::{
+    BoxSource, CachedSource, ConcatSource, RawSource, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
+  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
-  LibIdentOptions, ModuleGraph, PublicPath, RuntimeGlobals, SelfModuleFactory,
+  LibIdentOptions, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -26,11 +23,14 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::dependency::{CssLayer, CssMedia, CssSupports};
-use crate::parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator};
-use crate::runtime::CssLoadingRuntimeModule;
-use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
-use crate::{plugin::CssPluginInner, CssPlugin};
+use crate::{
+  dependency::{CssLayer, CssMedia, CssSupports},
+  parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
+  plugin::CssPluginInner,
+  runtime::CssLoadingRuntimeModule,
+  utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+  CssPlugin,
+};
 
 struct CssModuleDebugInfo<'a> {
   pub module: &'a dyn Module,

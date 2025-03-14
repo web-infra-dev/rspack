@@ -1,5 +1,4 @@
-use rspack_fs::Result;
-use rspack_fs::WritableFileSystem;
+use rspack_fs::{Result, WritableFileSystem};
 use rspack_paths::Utf8Path;
 
 /// Remove all files and directories in the given directory except the given directory
@@ -8,10 +7,10 @@ use rspack_paths::Utf8Path;
 /// ```
 /// #[tokio::test]
 /// async fn remove_dir_except() {
-///   use crate::rspack_fs::ReadableFileSystem;
-///   use crate::rspack_fs::WritableFileSystem;
-///   use crate::rspack_fs::WritableFileSystemExt;
-///   use crate::rspack_paths::Utf8Path;
+///   use crate::{
+///     rspack_fs::{ReadableFileSystem, WritableFileSystem, WritableFileSystemExt},
+///     rspack_paths::Utf8Path,
+///   };
 ///   let fs = crate::rspack_fs::NativeFileSystem;
 ///
 ///   // adding files and directories
