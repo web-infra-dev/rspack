@@ -18,10 +18,10 @@ These are the remaining configuration options supported by rspack.
 />
 
 :::info
-Different from Webpack, in Webpack, the default value of `amd` is `{}`, and the dependency analysis of AMD modules is enabled by default. However, since the usage of AMD modules is gradually decreasing at present, the default value of `amd` in Rspack is `false`, and the dependency analysis of AMD modules is disabled by default. If your project requires it, you can enable this function by yourself.
+Unlike webpack, where the default value of the `amd` option is `{}` (meaning AMD module dependency analysis is enabled by default), Rspack sets the default value of the `amd` option to `false`. This means AMD module dependency analysis is disabled by default in Rspack. This change was made because the usage of AMD modules is gradually decreasing. If your application requires it, you can enable this option by yourself.
 :::
 
-It supports the dependency analysis of AMD modules. Some old libraries are written according to the AMD specification. You can enable this configuration to be compatible with these libraries.
+Enable this option to support dependency analysis for AMD modules, which is helpful for compatibility with some older libraries written according to the AMD specification.
 
 ```js title="rspack.config.mjs"
 export default {

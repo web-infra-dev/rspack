@@ -18,10 +18,10 @@ import { ApiMeta } from '@components/ApiMeta';
 />
 
 :::info
-与 Webpack 不同，Webpack 中 amd 默认值为 `{}`，默认开启 AMD 模块的依赖分析，但由于目前 AMD 模块使用量逐步减少，所以 Rspack 中 amd 默认值为 `false`，默认关闭 AMD 模块的依赖分析。如项目有需要可自行开启该功能。
+与 webpack 不同，webpack 中 `amd` 选项的默认值为 `{}`， 即默认开启了 AMD 模块的依赖分析。但由于 AMD 模块的使用量正在逐步减少，Rspack 将 `amd` 选项的默认值设置为 `false`，即默认关闭了 AMD 模块的依赖分析。如果你的项目需要使用 AMD 模块，可以自行开启该选项。
 :::
 
-支持 AMD 模块的依赖分析，某些老旧的库是按照 AMD 规范编写的，兼容这些库可以开启该配置。
+开启此选项可以支持 AMD 模块的依赖分析，这对于兼容一些按照 AMD 规范编写的老旧库很有帮助。
 
 ```js title="rspack.config.mjs"
 export default {
