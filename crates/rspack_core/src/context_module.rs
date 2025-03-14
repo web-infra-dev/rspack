@@ -186,7 +186,10 @@ impl ContextModule {
       identifier: create_identifier(&options),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info: BuildInfo {
+        strict: true,
+        ..Default::default()
+      },
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
