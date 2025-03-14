@@ -307,11 +307,6 @@ jobs:
         run: |
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
-
-      - name: Run test
-        # reason for excluding https://github.com/napi-rs/napi-rs/issues/2200
-        run: cargo test --workspace --exclude rspack_node --exclude rspack -- --nocapture
-
       - name: Run rspack test
         run: cargo test -- --nocapture
 
