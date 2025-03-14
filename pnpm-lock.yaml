@@ -909,8 +909,8 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       css-loader:
-        specifier: ^5.2.7
-        version: 5.2.7(webpack@5.98.0(@swc/core@1.10.18(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
+        specifier: ^7.1.2
+        version: 7.1.2(@rspack/core@packages+rspack)(webpack@5.98.0(@swc/core@1.10.18(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0)))
       csv-to-markdown-table:
         specifier: ^1.4.1
         version: 1.4.1
@@ -4175,12 +4175,6 @@ packages:
 
   cspell-ban-words@0.0.4:
     resolution: {integrity: sha512-w+18WPFAEmo2F+Fr4L29+GdY5ckOLN95WPwb/arfrtuzzB5VzQRFyIujo0T7pq+xFE0Z2gjfLn33Wk/u5ctNQQ==}
-
-  css-loader@5.2.7:
-    resolution: {integrity: sha512-Q7mOvpBNBG7YrVGMxRxcBJZFL75o+cH2abNASdibkj/fffYD8qWbInZrD0S9ccI6vZclF3DsHE7njGlLtaHbhg==}
-    engines: {node: '>= 10.13.0'}
-    peerDependencies:
-      webpack: ^4.27.0 || ^5.0.0
 
   css-loader@7.1.2:
     resolution: {integrity: sha512-6WvYYn7l/XEGN8Xu2vWFt9nVzrCn39vKyTEFf/ExEyoksJjjSZV/0/35XPlMbpnr6VGhZIUg5yJrL8tGfes/FA==}
@@ -11613,20 +11607,6 @@ snapshots:
       which: 2.0.2
 
   cspell-ban-words@0.0.4: {}
-
-  css-loader@5.2.7(webpack@5.98.0(@swc/core@1.10.18(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
-    dependencies:
-      icss-utils: 5.1.0(postcss@8.5.3)
-      loader-utils: 2.0.4
-      postcss: 8.5.3
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.3)
-      postcss-modules-local-by-default: 4.0.5(postcss@8.5.3)
-      postcss-modules-scope: 3.2.0(postcss@8.5.3)
-      postcss-modules-values: 4.0.0(postcss@8.5.3)
-      postcss-value-parser: 4.2.0
-      schema-utils: 3.3.0
-      semver: 7.7.1
-      webpack: 5.98.0(@swc/core@1.10.18(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))
 
   css-loader@7.1.2(@rspack/core@1.2.8(@rspack/tracing@1.2.8)(@swc/helpers@0.5.15))(webpack@5.98.0(@swc/core@1.10.18(@swc/helpers@0.5.15))(webpack-cli@5.1.4(webpack@5.98.0))):
     dependencies:

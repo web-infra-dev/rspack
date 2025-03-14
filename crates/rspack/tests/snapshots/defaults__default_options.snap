@@ -1326,7 +1326,19 @@ CompilerOptions {
                 },
             ),
         ),
-        generator: None,
+        generator: Some(
+            GeneratorOptionsMap(
+                {
+                    "json": Json(
+                        JsonGeneratorOptions {
+                            json_parse: Some(
+                                true,
+                            ),
+                        },
+                    ),
+                },
+            ),
+        ),
         no_parse: None,
     },
     stats: StatsOptions {

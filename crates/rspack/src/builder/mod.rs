@@ -50,11 +50,11 @@ use rspack_core::{
   DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
   ExperimentCacheOptions, Experiments, ExternalItem, ExternalType, Filename, FilenameTemplate,
   GeneratorOptions, GeneratorOptionsMap, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath,
-  Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
+  NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo,
+  PublicPath, Resolve, RspackFuture, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption,
   StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
 };
 use rspack_error::{
@@ -1720,9 +1720,17 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    if css {
-      let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    if !generator.contains_key("json") {
+      generator.insert(
+        "json".to_string(),
+        GeneratorOptions::Json(JsonGeneratorOptions {
+          json_parse: Some(true),
+        }),
+      );
+    }
 
+    if css {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
       });

@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
@@ -9,14 +10,31 @@ import PropertyType from '@components/PropertyType';
 
 ## amd
 
-<PropertyType type="false | object" />
+<ApiMeta addedVersion="1.3.0" />
 
-设置 `require.amd` 或 `define.amd` 的值。设置 `amd` 为 `false` 会禁用 Rspack 的 AMD 支持。
+<PropertyType
+  type="false | object"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+:::info
+与 webpack 不同，webpack 中 `amd` 选项的默认值为 `{}`， 即默认开启了 AMD 模块的依赖分析。但由于 AMD 模块的使用量正在逐步减少，Rspack 将 `amd` 选项的默认值设置为 `false`，即默认关闭了 AMD 模块的依赖分析。如果你的项目需要使用 AMD 模块，可以自行开启该选项。
+:::
+
+开启此选项可以支持 AMD 模块的依赖分析，这对于兼容一些按照 AMD 规范编写的老旧库很有帮助。
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {}, // 开启 AMD 模块的依赖分析
+};
+```
+
+另外可以通过该配置设置 `require.amd` 或 `define.amd` 的值：
 
 ```js title="rspack.config.mjs"
 export default {
   amd: {
-    jQuery: true,
+    jQuery: true, // require.amd 和 define.amd 被设置为 { jQuery: true }
   },
 };
 ```

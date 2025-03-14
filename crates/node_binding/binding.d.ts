@@ -36,6 +36,7 @@ export interface NormalModule extends Module {
 	get userRequest(): string | undefined
 	set userRequest(val: string | undefined)
 	get rawRequest(): string | undefined
+	get loaders(): Array<JsLoaderItem> | undefined
 	get resourceResolveData(): JsResourceData | undefined
 	get matchResource(): string | undefined
 	set matchResource(val: string | undefined)
@@ -1746,13 +1747,14 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
+  json?: RawJsonGeneratorOptions
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -1872,6 +1874,10 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+}
+
+export interface RawJsonGeneratorOptions {
+  JSONParse?: boolean
 }
 
 export interface RawJsonParserOptions {

@@ -1,5 +1,6 @@
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
+import { ApiMeta } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/configuration/other-options/" />
 
@@ -9,14 +10,31 @@ These are the remaining configuration options supported by rspack.
 
 ## amd
 
-<PropertyType type="false | object" />
+<ApiMeta addedVersion="1.3.0" />
 
-Set the value of `require.amd` or `define.amd`. Setting `amd` to false will disable Rspack's AMD support.
+<PropertyType
+  type="false | object"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+:::info
+Unlike webpack, where the default value of the `amd` option is `{}` (meaning AMD module dependency analysis is enabled by default), Rspack sets the default value of the `amd` option to `false`. This means AMD module dependency analysis is disabled by default in Rspack. This change was made because the usage of AMD modules is gradually decreasing. If your application requires it, you can enable this option by yourself.
+:::
+
+Enable this option to support dependency analysis for AMD modules, which is helpful for compatibility with some older libraries written according to the AMD specification.
+
+```js title="rspack.config.mjs"
+export default {
+  amd: {}, // enable parsing AMD module dependencies
+};
+```
+
+In addition, you can set the values of `require.amd` or `define.amd` through this configuration:
 
 ```js title="rspack.config.mjs"
 export default {
   amd: {
-    jQuery: true,
+    jQuery: true, // `require.amd` and `define.amd` are set to `{ jQuery: true }`.
   },
 };
 ```

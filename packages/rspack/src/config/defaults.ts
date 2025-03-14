@@ -38,6 +38,7 @@ import type {
 	ExternalsPresets,
 	InfrastructureLogging,
 	JavascriptParserOptions,
+	JsonGeneratorOptions,
 	Library,
 	Loader,
 	Mode,
@@ -285,6 +286,12 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "importMeta", true);
 };
 
+const applyJsonGeneratorOptionsDefaults = (
+	generatorOptions: JsonGeneratorOptions
+) => {
+	D(generatorOptions, "JSONParse", true);
+};
+
 const applyModuleDefaults = (
 	module: ModuleOptions,
 	{
@@ -321,6 +328,10 @@ const applyModuleDefaults = (
 		"exportsDepth",
 		mode === "development" ? 1 : Number.MAX_SAFE_INTEGER
 	);
+
+	F(module.generator, "json", () => ({}));
+	assertNotNill(module.generator.json);
+	applyJsonGeneratorOptionsDefaults(module.generator.json);
 
 	if (css) {
 		F(module.parser, "css", () => ({}));
