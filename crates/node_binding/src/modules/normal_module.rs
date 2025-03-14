@@ -1,7 +1,7 @@
 use napi::Either;
 use rspack_core::{parse_resource, ResourceData, ResourceParsedData};
 
-use crate::{impl_module_methods, JsResourceData, Module};
+use crate::{impl_module_methods, plugins::JsLoaderItem, JsResourceData, Module};
 
 #[napi]
 pub struct NormalModule {
@@ -60,6 +60,23 @@ impl NormalModule {
 
     Ok(match module.as_normal_module() {
       Some(normal_module) => Either::A(normal_module.raw_request()),
+      None => Either::B(()),
+    })
+  }
+
+  #[napi(getter)]
+  pub fn loaders(&mut self) -> napi::Result<Either<Vec<JsLoaderItem>, ()>> {
+    let (_, module) = self.module.as_ref()?;
+
+    Ok(match module.as_normal_module() {
+      Some(normal_module) => Either::A(
+        normal_module
+          .loaders()
+          .iter()
+          .map(|i| rspack_loader_runner::LoaderItem::<rspack_core::RunnerContext>::from(i.clone()))
+          .map(|i| JsLoaderItem::from(&i))
+          .collect::<Vec<_>>(),
+      ),
       None => Either::B(()),
     })
   }
