@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Chunk } from "../Chunk";
-import { CodeGenerationResult, Module } from "../Module";
+import { CodeGenerationResult, type Module } from "../Module";
 import {
 	RuntimeGlobals,
 	__from_binding_runtime_globals,
@@ -87,8 +87,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return function (m: binding.JsModule) {
-					return queried.call(Module.__from_binding(m));
+				return function (module: Module) {
+					return queried.call(module);
 				};
 			}
 		),
@@ -101,8 +101,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return function (m: binding.JsModule) {
-					return queried.call(Module.__from_binding(m));
+				return function (module: Module) {
+					return queried.call(module);
 				};
 			}
 		),
@@ -114,8 +114,8 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 			},
 
 			function (queried) {
-				return function (m: binding.JsModule) {
-					return queried.call(Module.__from_binding(m));
+				return function (module: Module) {
+					return queried.call(module);
 				};
 			}
 		),

@@ -42,6 +42,7 @@ mod identifier;
 mod module;
 mod module_graph;
 mod module_graph_connection;
+mod modules;
 mod normal_module_factory;
 mod options;
 mod panic;
@@ -77,6 +78,7 @@ pub use html::*;
 pub use module::*;
 pub use module_graph::*;
 pub use module_graph_connection::*;
+pub use modules::*;
 pub use normal_module_factory::*;
 pub use options::*;
 pub use path_data::*;
@@ -107,7 +109,7 @@ thread_local! {
 fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
   let external = ctx.get::<&mut External<Vec<ModuleIdentifier>>>(0)?;
   let revoked_modules = external.take();
-  JsModuleWrapper::cleanup_by_module_identifiers(&revoked_modules);
+  ModuleObject::cleanup_by_module_identifiers(&revoked_modules);
   Ok(())
 }
 
@@ -317,7 +319,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
-    JsModuleWrapper::cleanup_by_compiler_id(&compiler_id);
+    ModuleObject::cleanup_by_compiler_id(&compiler_id);
     Ok(())
   }
 }

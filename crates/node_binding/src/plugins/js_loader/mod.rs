@@ -4,7 +4,7 @@ mod scheduler;
 
 use std::fmt::Debug;
 
-pub use context::JsLoaderContext;
+pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::bindgen_prelude::*;
 use rspack_core::{ApplyContext, CompilerOptions, Plugin, PluginContext};
 use rspack_error::Result;

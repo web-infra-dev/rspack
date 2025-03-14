@@ -11,7 +11,7 @@ use std::{
 
 use dashmap::DashSet;
 use derive_more::Debug;
-use futures::future::BoxFuture;
+use futures::future::{join_all, BoxFuture};
 use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
@@ -357,7 +357,7 @@ impl CopyRspackPlugin {
     })
   }
 
-  fn run_patter(
+  async fn run_patter(
     compilation: &Compilation,
     pattern: &CopyPattern,
     index: usize,
@@ -517,24 +517,22 @@ impl CopyRspackPlugin {
 
         let output_path = &compilation.options.output.path;
 
-        let copied_result = entries
-          .into_iter()
-          .map(|entry| async {
-            Self::analyze_every_entry(
-              entry,
-              pattern,
-              &context,
-              output_path,
-              from_type,
-              file_dependencies,
-              diagnostics,
-              compilation,
-              logger,
-              index,
-            )
-            .await
-          })
-          .collect::<rspack_futures::FuturesResults<Option<RunPatternResult>>>();
+        let copied_result = join_all(entries.into_iter().map(|entry| async {
+          Self::analyze_every_entry(
+            entry,
+            pattern,
+            &context,
+            output_path,
+            from_type,
+            file_dependencies,
+            diagnostics,
+            compilation,
+            logger,
+            index,
+          )
+          .await
+        }))
+        .await;
 
         if copied_result.is_empty() {
           if pattern.no_error_on_missing {
@@ -552,7 +550,7 @@ impl CopyRspackPlugin {
           return None;
         }
 
-        Some(copied_result.into_inner())
+        Some(copied_result)
       }
       Err(e) => {
         if pattern.no_error_on_missing {
@@ -594,11 +592,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let context_dependencies = DashSet::default();
   let diagnostics = Mutex::new(Vec::new());
 
-  let mut copied_result: Vec<(i32, RunPatternResult)> = self
-    .patterns
-    .iter()
-    .enumerate()
-    .map(|(index, pattern)| {
+  let mut copied_result: Vec<(i32, RunPatternResult)> =
+    join_all(self.patterns.iter().enumerate().map(|(index, pattern)| {
       CopyRspackPlugin::run_patter(
         compilation,
         pattern,
@@ -608,8 +603,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         &diagnostics,
         &logger,
       )
-    })
-    .collect::<Vec<_>>()
+    }))
+    .await
     .into_iter()
     .flatten()
     .flat_map(|item| {

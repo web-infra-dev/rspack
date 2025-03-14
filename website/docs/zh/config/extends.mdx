@@ -1,0 +1,92 @@
+import WebpackLicense from '@components/WebpackLicense';
+import PropertyType from '../../../components/PropertyType.tsx';
+
+<WebpackLicense from="https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations" />
+
+# 扩展配置
+
+用于从其他文件或包中扩展配置。这允许你创建一个基础配置，并针对不同的环境或用例进行扩展。
+
+- **类型：** `string | string[]`
+- **默认值：** `undefined`
+
+:::warning Warning
+**此选项在 Node API 中不受支持**：在使用 Node API 时，extends 选项将不会生效。使用此功能需要 @rspack/cli。
+:::
+
+## 基本用法
+
+你可以通过在 `extends` 属性中指定文件路径来扩展另一个配置文件。路径可以是绝对路径或相对于配置文件的相对路径：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // 覆盖或添加到基础配置
+  output: {
+    path: path.resolve(__dirname, 'build'),
+    filename: '[name].bundle.js',
+  },
+};
+```
+
+:::tip
+当使用相对路径时，它们是相对于包含 `extends` 属性的配置文件进行解析的。
+:::
+
+## 多个配置
+
+- **类型：** `string[]`
+- **默认值：** `undefined`
+
+你可以通过提供一个路径数组来扩展多个配置。配置从右到左合并，这意味着最右边的配置将被合并到最左边的配置中，以此类推：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: ['./base.rspack.config.js', './dev.rspack.config.js'],
+  // 额外的配置选项
+  plugins: [
+    // 添加更多插件
+  ],
+};
+```
+
+:::info 合并行为
+当合并配置时：
+
+- 简单值会被覆盖
+- 数组会被连接
+- 对象会被深度合并(deep merged)
+
+:::
+
+## Node 模块
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+你也可以从安装在 node_modules 中的包扩展配置。该包应该导出一个有效的 Rspack 配置：
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: 'some-rspack-config-package',
+  // 覆盖或添加到包的配置
+};
+```
+
+## 嵌套扩展
+
+配置可以有自己的 `extends` 属性，允许嵌套配置继承。解析过程是递归执行的：
+
+```js title="base.rspack.config.js"
+module.exports = {
+  extends: './core.rspack.config.js',
+  // 基础配置选项
+};
+```
+
+```js title="rspack.config.js"
+module.exports = {
+  extends: './base.rspack.config.js',
+  // 环境特定的配置选项
+};
+```

@@ -1237,6 +1237,15 @@ export type CssAutoGeneratorOptions = {
 /** Generator options for css/module modules. */
 export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
+/** Generator options for json modules. */
+export type JsonGeneratorOptions = {
+	/**
+	 * Use `JSON.parse` when the JSON string is longer than 20 characters.
+	 * @default true
+	 */
+	JSONParse?: boolean;
+};
+
 export type GeneratorOptionsByModuleTypeKnown = {
 	/** Generator options for asset modules. */
 	asset?: AssetGeneratorOptions;
@@ -1255,6 +1264,9 @@ export type GeneratorOptionsByModuleTypeKnown = {
 
 	/** Generator options for css/module modules. */
 	"css/module"?: CssModuleGeneratorOptions;
+
+	/** Generator options for json modules. */
+	json?: JsonGeneratorOptions;
 };
 
 export type GeneratorOptionsByModuleTypeUnknown = Record<
@@ -2730,6 +2742,11 @@ export type RspackOptions = {
 	 * An array of dependencies required by the project.
 	 */
 	dependencies?: Dependencies;
+	/**
+	 * Configuration files to extend from. The configurations are merged from right to left,
+	 * with the rightmost configuration taking precedence(only works when using @rspack/cli).
+	 */
+	extends?: string | string[];
 	/**
 	 * The entry point of the application.
 	 */

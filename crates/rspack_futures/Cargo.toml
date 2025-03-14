@@ -6,8 +6,5 @@ name        = "rspack_futures"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-futures = { workspace = true }
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-async-scoped = { workspace = true, features = ["use-tokio"] }
+[dependencies]
+tokio = { version = "1", features = ["rt"] }

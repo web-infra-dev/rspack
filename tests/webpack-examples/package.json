@@ -3,13 +3,11 @@
   "private": true,
   "devDependencies": {
     "core-js": "3.41.0",
-    "neo-async": "2.6.2",
     "acorn": "^8.14.1",
     "date-fns": "^4.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "prop-types": "^15.8.1",
-    "webpack-cli": "5.1.4",
     "toml": "^3.0.0",
     "xxhashjs": "^0.2.2",
     "yamljs": "^0.3.0",

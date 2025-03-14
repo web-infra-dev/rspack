@@ -6,7 +6,10 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
+  build_chunk_graph::{
+    code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
+    new_code_splitter::CodeSplitter as NewCodeSplitter,
+  },
   incremental::{IncrementalPasses, Mutation},
   ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, Logger,
   ModuleIdentifier,
@@ -22,6 +25,7 @@ pub struct CodeSplittingCache {
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
+  pub(crate) new_code_splitter: NewCodeSplitter,
   pub(crate) module_idx: HashMap<ModuleIdentifier, (u32, u32)>,
 }
 

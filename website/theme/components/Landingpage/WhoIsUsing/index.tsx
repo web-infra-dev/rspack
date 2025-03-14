@@ -23,6 +23,7 @@ import nioLogo from './assets/nio.svg';
 import sequoiaLogo from './assets/sequoia.svg';
 import tiktokLogo from './assets/tiktok.svg';
 import trellisLogo from './assets/trellis.svg';
+import verkadaLogo from './assets/verkada.png';
 
 type Company = {
   name: string;
@@ -134,6 +135,12 @@ const companyList: Company[] = [
     name: 'Khan Academy',
     logo: khanAcademyLogo,
     url: 'https://khanacademy.org/',
+    width: 180,
+  },
+  {
+    name: 'Verkada',
+    logo: verkadaLogo,
+    url: 'https://verkada.com',
     width: 180,
   },
 ];
