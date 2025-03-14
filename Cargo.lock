@@ -1133,6 +1133,7 @@ dependencies = [
  "dtoa-short",
  "itoa",
  "phf",
+ "serde",
  "smallvec",
 ]
 
@@ -2671,7 +2672,6 @@ dependencies = [
  "const-str",
  "cssparser",
  "cssparser-color",
- "dashmap 5.5.3",
  "data-encoding",
  "getrandom",
  "indexmap 2.7.1",
@@ -2682,7 +2682,6 @@ dependencies = [
  "parcel_sourcemap",
  "paste",
  "pathdiff",
- "rayon",
  "serde",
  "smallvec",
  "static-self",
@@ -3334,6 +3333,7 @@ dependencies = [
  "phf_codegen",
  "precomputed-hash",
  "rustc-hash 2.1.0",
+ "serde",
  "smallvec",
  "static-self",
 ]
@@ -5916,6 +5916,9 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "smartstring"
