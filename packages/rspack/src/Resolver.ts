@@ -12,6 +12,10 @@ type ResolveOptionsWithDependencyType = Resolve & {
 	resolveToContext?: boolean;
 };
 
+export type ResourceData = binding.JsResourceData;
+
+export type ResolveRequest = ResourceData;
+
 function isString(value: string | RegExp): value is string {
 	return typeof value === "string";
 }
@@ -24,7 +28,9 @@ export class Resolver {
 	}
 
 	resolveSync(context: object, path: string, request: string): string | false {
-		return this.binding.resolveSync(path, request);
+		const data = this.binding.resolveSync(path, request);
+		if (data === false) return data;
+		return data.resource;
 	}
 
 	resolve(
@@ -35,8 +41,12 @@ export class Resolver {
 		callback: ResolveCallback
 	): void {
 		try {
-			const res = this.binding.resolveSync(path, request);
-			callback(null, res);
+			const data = this.binding.resolveSync(path, request);
+			if (data === false) {
+				callback(null, false);
+				return;
+			}
+			callback(null, data.resource, data);
 		} catch (err) {
 			callback(err as ErrorWithDetails);
 		}
