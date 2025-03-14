@@ -403,6 +403,29 @@ ERROR in × It's not allowed to load an initial chunk on demand. The chunk name 
 Rspack x.x.x compiled with 2 errors in X.23"
 `;
 
+exports[`StatsTestCases should print correct stats for dynamic-import 1`] = `
+"asset common.js 1.01 MiB [emitted] (name: common) (id hint: vendors)
+asset pages/home.js xx KiB [emitted] (name: pages/home)
+asset runtime.js xx KiB [emitted] (name: runtime)
+asset main.js xx KiB [emitted] (name: main)
+Entrypoint main 1.02 MiB = runtime.js xx KiB common.js 1.01 MiB main.js xx KiB
+runtime modules xx KiB 12 modules
+cacheable modules 1.01 MiB
+  modules by path ../../../../node_modules/.pnpm/ 1 MiB
+    modules by path ../../../../node_modules/.pnpm/react@19.0.0/node_modules/react/ xx KiB 4 modules
+    modules by path ../../../../node_modules/.pnpm/react-dom@19.0.0_react@19.0.0/node_modules/react-dom/ xx KiB
+      modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
+      modules by path ../../../../node_modules/.pnpm/react-xxx.js xx KiB 2 modules
+    modules by path ../../../../node_modules/.pnpm/scheduler@0.25.0/node_modules/scheduler/ xx KiB
+      ../../../../node_modules/.pnpm/scheduler@0.25.0/node_modules/scheduler/index.js xx bytes [built] [code generated]
+      ../../../../node_modules/.pnpm/scheduler@0.25.0/node_modules/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
+  modules by path ./src/ xx KiB
+    ./src/index.js xx bytes [built] [code generated]
+    ./src/pages/home.js xx KiB [built] [code generated]
+  Xdir/dynamic-import/src/pages|lazy|/^\\\\.\\\\/.*$/|chunkName: pages/[request]|groupOptions: {}|namespace object xx bytes [built] [code generated]
+Rspack x.x.x compiled successfully in X.23"
+`;
+
 exports[`StatsTestCases should print correct stats for errors-space-error 1`] = `
 "assets by status xx bytes [cached] 1 asset
 ./loader!./index.js xx bytes [built] [code generated] [2 errors]
