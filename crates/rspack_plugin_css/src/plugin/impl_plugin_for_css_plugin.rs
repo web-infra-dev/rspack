@@ -15,7 +15,7 @@ use rspack_core::{
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   LibIdentOptions, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PublicPath, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  PublicPath, RenderManifestEntry, Root, RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -238,7 +238,7 @@ impl CssPlugin {
 #[plugin_hook(CompilerCompilation for CssPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());

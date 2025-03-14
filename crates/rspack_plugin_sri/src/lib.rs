@@ -17,7 +17,7 @@ use html::{alter_asset_tag_groups, before_asset_tag_generation};
 pub use integrity::SubresourceIntegrityHashFunction;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
-  CompilerThisCompilation, CrossOriginLoading, Plugin, PluginContext,
+  CompilerThisCompilation, CrossOriginLoading, Plugin, PluginContext, Root,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -78,7 +78,7 @@ impl SubresourceIntegrityPlugin {
 #[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
 async fn warn_non_web(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.push_diagnostic(Diagnostic::warn(
@@ -91,7 +91,7 @@ async fn warn_non_web(
 #[plugin_hook(CompilerThisCompilation for SubresourceIntegrityPlugin, stage = -10000)]
 async fn handle_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let ctx = SRICompilationContext {

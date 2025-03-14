@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRuntimeRequirementInTree,
   CompilerCompilation, CompilerMake, CompilerOptions, DependencyType, EntryOptions, EntryRuntime,
-  Filename, LibraryOptions, Plugin, PluginContext, RuntimeGlobals,
+  Filename, LibraryOptions, Plugin, PluginContext, Root, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -49,7 +49,7 @@ impl ContainerPlugin {
 #[plugin_hook(CompilerCompilation for ContainerPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
@@ -64,7 +64,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ContainerPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),

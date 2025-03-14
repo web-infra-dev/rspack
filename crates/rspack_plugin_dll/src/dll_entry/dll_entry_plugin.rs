@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerMake, CompilerOptions,
-  Context, DependencyType, EntryOptions, Plugin, PluginContext,
+  Context, DependencyType, EntryOptions, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -52,7 +52,7 @@ impl Plugin for DllEntryPlugin {
 #[plugin_hook(CompilerCompilation for DllEntryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
@@ -66,7 +66,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for DllEntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   compilation
     .add_entry(
       Box::new(DllEntryDependency::new(&self.options)),

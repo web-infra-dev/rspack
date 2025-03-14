@@ -1,7 +1,7 @@
 use rspack_collections::DatabaseItem;
 use rspack_core::{
   ApplyContext, ChunkGraph, Compilation, CompilerEmit, CompilerOptions, Context, EntryDependency,
-  Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, SourceType,
+  Filename, LibIdentOptions, PathData, Plugin, PluginContext, ProvidedExports, Root, SourceType,
 };
 use rspack_error::{Error, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -51,7 +51,7 @@ impl Plugin for LibManifestPlugin {
 }
 
 #[plugin_hook(CompilerEmit for LibManifestPlugin)]
-async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
+async fn emit(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let chunk_graph = &compilation.chunk_graph;
 
   let mut manifests: HashMap<String, String> = HashMap::default();

@@ -4,6 +4,7 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(hash_raw_entry)]
+#![feature(arbitrary_self_types)]
 
 use std::{fmt, sync::Arc};
 mod artifacts;
@@ -94,9 +95,10 @@ mod ukey;
 pub use ukey::*;
 pub mod resolver;
 pub use resolver::*;
+mod bindings;
 pub mod concatenated_module;
 pub mod reserved_names;
-
+pub use bindings::*;
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   get_scheme, parse_resource, AdditionalData, ResourceData, ResourceParsedData, Scheme,

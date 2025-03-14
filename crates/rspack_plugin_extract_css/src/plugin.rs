@@ -18,7 +18,7 @@ use rspack_core::{
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, RenderManifestEntry, Root,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
@@ -493,7 +493,7 @@ despite it was not able to fulfill desired ordering with these modules:
 #[plugin_hook(CompilerCompilation for PluginCssExtract)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::ExtractCSS, Arc::new(CssModuleFactory));

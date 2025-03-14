@@ -10,7 +10,7 @@ use rspack_core::{
   ApplyContext, ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration,
   CompilationAfterProcessAssets, CompilationId, CompilationModuleIds,
   CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationParams,
-  CompilerCompilation, CompilerOptions, Plugin, PluginContext,
+  CompilerCompilation, CompilerOptions, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -172,7 +172,7 @@ impl RsdoctorPlugin {
 #[plugin_hook(CompilerCompilation for RsdoctorPlugin)]
 async fn compilation(
   &self,
-  _compilation: &mut Compilation,
+  _compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   MODULE_UKEY_MAP.clear();
@@ -381,7 +381,7 @@ fn after_code_generation(&self, compilation: &mut Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RsdoctorPlugin, stage = 9999)]
-async fn after_process_asssets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_process_asssets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   if !self.has_chunk_graph_feature(RsdoctorPluginChunkGraphFeature::Assets) {
     return Ok(());
   }

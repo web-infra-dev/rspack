@@ -4,7 +4,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
   ApplyContext, ChunkGroup, ChunkGroupUkey, Compilation, CompilationAsset, CompilerAfterEmit,
-  CompilerOptions, Plugin, PluginContext,
+  CompilerOptions, Plugin, PluginContext, Root,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -131,7 +131,7 @@ impl SizeLimitsPlugin {
 }
 
 #[plugin_hook(CompilerAfterEmit for SizeLimitsPlugin)]
-async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
+async fn after_emit(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let hints = &self.options.hints;
   let max_asset_size = self.options.max_asset_size.unwrap_or(250000.0);
   let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250000.0);

@@ -8,7 +8,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
   ApplyContext, BoxModule, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation,
-  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, RuntimeGlobals,
+  CompilerOptions, ModuleIdentifier, Plugin, PluginContext, Root, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;
@@ -69,7 +69,7 @@ impl EvalDevToolModulePlugin {
 #[plugin_hook(CompilerCompilation for EvalDevToolModulePlugin)]
 async fn eval_devtool_plugin_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

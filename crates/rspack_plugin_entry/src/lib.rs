@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake,
   CompilerOptions, Context, DependencyType, EntryDependency, EntryOptions, Plugin, PluginContext,
+  Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -32,7 +33,7 @@ impl EntryPlugin {
 #[plugin_hook(CompilerCompilation for EntryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
@@ -40,7 +41,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for EntryPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let this = &self.inner;
   compilation
     .add_entry(this.dependency.clone(), this.options.clone())

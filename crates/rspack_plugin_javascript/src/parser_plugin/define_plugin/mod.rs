@@ -6,7 +6,7 @@ use itertools::Itertools;
 use parser::{walk_definitions, DefineParserPlugin};
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginContext,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginContext, Root,
 };
 use rspack_error::{
   miette::{self, Diagnostic},
@@ -43,7 +43,7 @@ struct ConflictingValuesError(String, String, String);
 #[plugin_hook(CompilerCompilation for DefinePlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   fn walk_definitions<'d, 's>(

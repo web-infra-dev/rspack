@@ -3,7 +3,8 @@ use std::fmt;
 use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_core::{
-  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions, PluginContext,
+  ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
+  PluginContext, Root,
 };
 use rspack_hook::{plugin, plugin_hook, Hook as _};
 use rspack_plugin_html::HtmlRspackPlugin;
@@ -434,7 +435,7 @@ impl rspack_core::Plugin for JsHooksAdapterPlugin {
 #[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
 async fn js_hooks_adapter_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
@@ -448,7 +449,7 @@ async fn js_hooks_adapter_compilation(
 #[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
 async fn html_hooks_adapter_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let mut hooks = HtmlRspackPlugin::get_compilation_hooks_mut(compilation.id());
@@ -483,7 +484,7 @@ async fn html_hooks_adapter_compilation(
 #[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
 async fn runtime_hooks_adapter_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let mut hooks = RuntimePlugin::get_compilation_hooks_mut(compilation.id());
@@ -502,7 +503,7 @@ async fn runtime_hooks_adapter_compilation(
 #[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
 async fn rsdoctor_hooks_adapter_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> rspack_error::Result<()> {
   let mut hooks = RsdoctorPlugin::get_compilation_hooks_mut(compilation.id());

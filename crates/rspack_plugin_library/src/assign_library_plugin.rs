@@ -9,7 +9,7 @@ use rspack_core::{
   Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
   CompilationParams, CompilerCompilation, CompilerOptions, EntryData, ExportInfoProvided,
   FilenameTemplate, LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions,
-  ModuleIdentifier, PathData, Plugin, PluginContext, RuntimeGlobals, SourceType, UsageState,
+  ModuleIdentifier, PathData, Plugin, PluginContext, Root, RuntimeGlobals, SourceType, UsageState,
 };
 use rspack_error::{error, error_bail, Result};
 use rspack_hash::RspackHash;
@@ -189,7 +189,7 @@ impl AssignLibraryPlugin {
 #[plugin_hook(CompilerCompilation for AssignLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
@@ -419,7 +419,7 @@ fn strict_runtime_bailout(
 }
 
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {

@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use rspack_core::{
   ApplyContext, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
   CompilerCompilation, CompilerOptions, DependencyType, ModuleType, ParserAndGenerator, Plugin,
-  PluginContext, RenderManifestEntry, SourceType,
+  PluginContext, RenderManifestEntry, Root, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -23,7 +23,7 @@ pub struct AsyncWasmPlugin {
 #[plugin_hook(CompilerCompilation for AsyncWasmPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

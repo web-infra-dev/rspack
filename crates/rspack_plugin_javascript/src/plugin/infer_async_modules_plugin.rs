@@ -3,7 +3,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   incremental::{IncrementalPasses, Mutation, Mutations},
   ApplyContext, Compilation, CompilationFinishModules, CompilerOptions, DependencyType, Logger,
-  ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  ModuleGraph, ModuleIdentifier, Plugin, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -13,7 +13,9 @@ use rspack_hook::{plugin, plugin_hook};
 pub struct InferAsyncModulesPlugin;
 
 #[plugin_hook(CompilationFinishModules for InferAsyncModulesPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Root<Compilation>) -> Result<()> {
+  let compilation = &mut **compilation;
+
   let modules: IdentifierSet = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::INFER_ASYNC_MODULES)

@@ -40,8 +40,8 @@ use rspack_core::{
   NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
   NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  Scheme,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, Root,
+  RuntimeGlobals, Scheme,
 };
 use rspack_hash::RspackHash;
 use rspack_hook::{Hook, Interceptor};
@@ -74,16 +74,15 @@ use crate::{
   JsAfterEmitData, JsAfterResolveData, JsAfterResolveOutput, JsAfterTemplateExecutionData,
   JsAlterAssetTagGroupsData, JsAlterAssetTagsData, JsAssetEmittedArgs,
   JsBeforeAssetTagGenerationData, JsBeforeEmitData, JsBeforeResolveArgs, JsBeforeResolveOutput,
-  JsChunkAssetArgs, JsChunkWrapper, JsCompilationWrapper,
-  JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
-  JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
-  JsCreateData, JsCreateScriptData, JsExecuteModuleArg, JsFactorizeArgs, JsFactorizeOutput,
-  JsLinkPrefetchData, JsLinkPreloadData, JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs,
-  JsResolveForSchemeArgs, JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch,
-  JsRsdoctorChunkGraph, JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch,
-  JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals, JsRuntimeModule, JsRuntimeModuleArg,
-  JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, ModuleObject,
-  ToJsCompatSourceOwned,
+  JsChunkAssetArgs, JsChunkWrapper, JsContextModuleFactoryAfterResolveDataWrapper,
+  JsContextModuleFactoryAfterResolveResult, JsContextModuleFactoryBeforeResolveDataWrapper,
+  JsContextModuleFactoryBeforeResolveResult, JsCreateData, JsCreateScriptData, JsExecuteModuleArg,
+  JsFactorizeArgs, JsFactorizeOutput, JsLinkPrefetchData, JsLinkPreloadData,
+  JsNormalModuleFactoryCreateModuleArgs, JsResolveArgs, JsResolveForSchemeArgs,
+  JsResolveForSchemeOutput, JsResolveOutput, JsRsdoctorAssetPatch, JsRsdoctorChunkGraph,
+  JsRsdoctorModuleGraph, JsRsdoctorModuleIdsPatch, JsRsdoctorModuleSourcesPatch, JsRuntimeGlobals,
+  JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeRequirementInTreeArg,
+  JsRuntimeRequirementInTreeResult, ModuleObject, ToJsCompatSourceOwned,
 };
 
 #[napi(object)]
@@ -434,23 +433,25 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_this_compilation_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compiler_this_compilation_taps: RegisterFunction<Root<rspack_core::Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_compilation_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compiler_compilation_taps: RegisterFunction<Root<rspack_core::Compilation>, ()>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compiler_make_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compiler_make_taps: RegisterFunction<Root<rspack_core::Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compiler_finish_make_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compiler_finish_make_taps:
+    RegisterFunction<Root<rspack_core::Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => boolean | undefined); stage: number; }>"
   )]
-  pub register_compiler_should_emit_taps: RegisterFunction<JsCompilationWrapper, Option<bool>>,
+  pub register_compiler_should_emit_taps:
+    RegisterFunction<Root<rspack_core::Compilation>, Option<bool>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -500,7 +501,8 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_finish_modules_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compilation_finish_modules_taps:
+    RegisterFunction<Root<rspack_core::Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
   )]
@@ -526,11 +528,13 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>"
   )]
-  pub register_compilation_process_assets_taps: RegisterFunction<JsCompilationWrapper, Promise<()>>,
+  pub register_compilation_process_assets_taps:
+    RegisterFunction<Root<rspack_core::Compilation>, Promise<()>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>"
   )]
-  pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilationWrapper, ()>,
+  pub register_compilation_after_process_assets_taps:
+    RegisterFunction<Root<rspack_core::Compilation>, ()>,
   #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_seal_taps: RegisterFunction<(), ()>,
   #[napi(
@@ -663,7 +667,7 @@ pub struct RegisterJsTaps {
 /* Compiler Hooks */
 define_register!(
   RegisterCompilerThisCompilationTaps,
-  tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,
+  tap = CompilerThisCompilationTap<Root<rspack_core::Compilation>, ()> @ CompilerThisCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerThisCompilation,
@@ -671,7 +675,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerCompilationTaps,
-  tap = CompilerCompilationTap<JsCompilationWrapper, ()> @ CompilerCompilationHook,
+  tap = CompilerCompilationTap<Root<rspack_core::Compilation>, ()> @ CompilerCompilationHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerCompilation,
@@ -679,7 +683,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerMakeTaps,
-  tap = CompilerMakeTap<JsCompilationWrapper, Promise<()>> @ CompilerMakeHook,
+  tap = CompilerMakeTap<Root<rspack_core::Compilation>, Promise<()>> @ CompilerMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerMake,
@@ -687,7 +691,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerFinishMakeTaps,
-  tap = CompilerFinishMakeTap<JsCompilationWrapper, Promise<()>> @ CompilerFinishMakeHook,
+  tap = CompilerFinishMakeTap<Root<rspack_core::Compilation>, Promise<()>> @ CompilerFinishMakeHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerFinishMake,
@@ -695,7 +699,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilerShouldEmitTaps,
-  tap = CompilerShouldEmitTap<JsCompilationWrapper, Option<bool>> @ CompilerShouldEmitHook,
+  tap = CompilerShouldEmitTap<Root<rspack_core::Compilation>, Option<bool>> @ CompilerShouldEmitHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilerShouldEmit,
@@ -761,7 +765,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationFinishModulesTaps,
-  tap = CompilationFinishModulesTap<JsCompilationWrapper, Promise<()>> @ CompilationFinishModulesHook,
+  tap = CompilationFinishModulesTap<Root<rspack_core::Compilation>, Promise<()>> @ CompilationFinishModulesHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationFinishModules,
@@ -841,7 +845,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationProcessAssetsTaps,
-  tap = CompilationProcessAssetsTap<JsCompilationWrapper, Promise<()>> @ CompilationProcessAssetsHook,
+  tap = CompilationProcessAssetsTap<Root<rspack_core::Compilation>, Promise<()>> @ CompilationProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationProcessAssets,
@@ -849,7 +853,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationAfterProcessAssetsTaps,
-  tap = CompilationAfterProcessAssetsTap<JsCompilationWrapper, ()> @ CompilationAfterProcessAssetsHook,
+  tap = CompilationAfterProcessAssetsTap<Root<rspack_core::Compilation>, ()> @ CompilationAfterProcessAssetsHook,
   cache = false,
   sync = false,
   kind = RegisterJsTapKind::CompilationAfterProcessAssets,
@@ -1079,11 +1083,10 @@ define_register!(
 impl CompilerThisCompilation for CompilerThisCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &mut Root<rspack_core::Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1095,11 +1098,10 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
 impl CompilerCompilation for CompilerCompilationTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
+    compilation: &mut Root<rspack_core::Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1109,9 +1111,11 @@ impl CompilerCompilation for CompilerCompilationTap {
 
 #[async_trait]
 impl CompilerMake for CompilerMakeTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1121,9 +1125,11 @@ impl CompilerMake for CompilerMakeTap {
 
 #[async_trait]
 impl CompilerFinishMake for CompilerFinishMakeTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1133,9 +1139,11 @@ impl CompilerFinishMake for CompilerFinishMakeTap {
 
 #[async_trait]
 impl CompilerShouldEmit for CompilerShouldEmitTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<Option<bool>> {
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1145,7 +1153,10 @@ impl CompilerShouldEmit for CompilerShouldEmitTap {
 
 #[async_trait]
 impl CompilerEmit for CompilerEmitTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1156,7 +1167,10 @@ impl CompilerEmit for CompilerEmitTap {
 
 #[async_trait]
 impl CompilerAfterEmit for CompilerAfterEmitTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
   }
 
@@ -1169,7 +1183,7 @@ impl CompilerAfterEmit for CompilerAfterEmitTap {
 impl CompilerAssetEmitted for CompilerAssetEmittedTap {
   async fn run(
     &self,
-    _compilation: &Compilation,
+    _compilation: &Root<rspack_core::Compilation>,
     filename: &str,
     info: &AssetEmittedInfo,
   ) -> rspack_error::Result<()> {
@@ -1287,9 +1301,11 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 
 #[async_trait]
 impl CompilationFinishModules for CompilationFinishModulesTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1489,9 +1505,11 @@ impl CompilationChunkAsset for CompilationChunkAssetTap {
 
 #[async_trait]
 impl CompilationProcessAssets for CompilationProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
+    self.function.call_with_promise(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1501,9 +1519,11 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
 
 #[async_trait]
 impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
-  async fn run(&self, compilation: &mut Compilation) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_sync(compilation).await
+  async fn run(
+    &self,
+    compilation: &mut Root<rspack_core::Compilation>,
+  ) -> rspack_error::Result<()> {
+    self.function.call_with_sync(compilation.clone()).await
   }
 
   fn stage(&self) -> i32 {

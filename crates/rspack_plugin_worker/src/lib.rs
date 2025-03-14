@@ -1,6 +1,6 @@
 use rspack_core::{
   ApplyContext, Compilation, CompilationParams, CompilerCompilation, CompilerOptions,
-  DependencyType, PluginContext,
+  DependencyType, PluginContext, Root,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -12,7 +12,7 @@ pub struct WorkerPlugin;
 #[plugin_hook(CompilerCompilation for WorkerPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

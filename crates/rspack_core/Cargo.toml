@@ -5,6 +5,7 @@ license     = "MIT"
 name        = "rspack_core"
 repository  = "https://github.com/web-infra-dev/rspack"
 version     = "0.2.0"
+
 [dependencies]
 anymap = { workspace = true }
 async-recursion = { workspace = true }
@@ -23,6 +24,8 @@ indoc = { workspace = true }
 itertools = { workspace = true }
 json = { workspace = true }
 mime_guess = { workspace = true }
+napi = { workspace = true, optional = true }
+napi-derive = { workspace = true, optional = true }
 num-bigint = "0.4.6"
 once_cell = { workspace = true }
 paste = { workspace = true }
@@ -40,6 +43,7 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_loader_runner = { workspace = true }
 rspack_macros = { workspace = true }
+rspack_napi = { workspace = true, optional = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_resolver = { workspace = true }
@@ -76,3 +80,7 @@ pretty_assertions = { version = "1.4.1" }
 
 [lints]
 workspace = true
+
+[features]
+default = ["napi"]
+napi    = ["dep:napi", "dep:napi-derive", "dep:rspack_napi"]
