@@ -20,7 +20,7 @@ use rspack_core::{
   rspack_sources::{
     MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
-  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
+  ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin, Root,
 };
 use rspack_error::{error, Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -142,7 +142,7 @@ async fn chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for LightningCssMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
   let all_warnings: RwLock<Vec<_>> = Default::default();

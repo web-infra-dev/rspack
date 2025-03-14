@@ -23,23 +23,23 @@ use crate::cache::{new_cache, Cache};
 use crate::incremental::IncrementalPasses;
 use crate::old_cache::Cache as OldCache;
 use crate::{
-  fast_set, include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
-  ResolverFactory, SharedPluginDriver,
+  include_hash, trim_dir, BoxPlugin, CleanOptions, CompilerOptions, Logger, PluginDriver,
+  ResolverFactory, Root, SharedPluginDriver,
 };
 use crate::{ContextModuleFactory, NormalModuleFactory};
 
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerThisCompilation: AsyncSeries(compilation: &mut Root<Compilation>, params: &mut CompilationParams));
 // should be SyncHook, but rspack need call js hook
-define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Compilation, params: &mut CompilationParams));
+define_hook!(CompilerCompilation: AsyncSeries(compilation: &mut Root<Compilation>, params: &mut CompilationParams));
 // should be AsyncParallelHook
-define_hook!(CompilerMake: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Compilation));
+define_hook!(CompilerMake: AsyncSeries(compilation: &mut Root<Compilation>));
+define_hook!(CompilerFinishMake: AsyncSeries(compilation: &mut Root<Compilation>));
 // should be SyncBailHook, but rspack need call js hook
-define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Compilation) -> bool);
-define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Compilation));
-define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
+define_hook!(CompilerShouldEmit: AsyncSeriesBail(compilation: &mut Root<Compilation>) -> bool);
+define_hook!(CompilerEmit: AsyncSeries(compilation: &mut Root<Compilation>));
+define_hook!(CompilerAfterEmit: AsyncSeries(compilation: &mut Root<Compilation>));
+define_hook!(CompilerAssetEmitted: AsyncSeries(compilation: &Root<Compilation>, filename: &str, info: &AssetEmittedInfo));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -79,7 +79,7 @@ pub struct Compiler {
   pub output_filesystem: Arc<dyn WritableFileSystem>,
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
-  pub compilation: Compilation,
+  pub compilation: Root<Compilation>,
   pub plugin_driver: SharedPluginDriver,
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -154,7 +154,7 @@ impl Compiler {
       id,
       compiler_path,
       options: options.clone(),
-      compilation: Compilation::new(
+      compilation: Root::new(Compilation::new(
         id,
         options,
         plugin_driver.clone(),
@@ -171,7 +171,7 @@ impl Compiler {
         intermediate_filesystem.clone(),
         output_filesystem.clone(),
         false,
-      ),
+      )),
       output_filesystem,
       intermediate_filesystem,
       plugin_driver,
@@ -201,27 +201,25 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.clear_cache();
 
-    fast_set(
-      &mut self.compilation,
-      Compilation::new(
-        self.id,
-        self.options.clone(),
-        self.plugin_driver.clone(),
-        self.buildtime_plugin_driver.clone(),
-        self.resolver_factory.clone(),
-        self.loader_resolver_factory.clone(),
-        None,
-        self.cache.clone(),
-        self.old_cache.clone(),
-        Some(Default::default()),
-        Default::default(),
-        Default::default(),
-        self.input_filesystem.clone(),
-        self.intermediate_filesystem.clone(),
-        self.output_filesystem.clone(),
-        false,
-      ),
-    );
+    self.compilation = Root::new(Compilation::new(
+      self.id,
+      self.options.clone(),
+      self.plugin_driver.clone(),
+      self.buildtime_plugin_driver.clone(),
+      self.resolver_factory.clone(),
+      self.loader_resolver_factory.clone(),
+      None,
+      self.cache.clone(),
+      self.old_cache.clone(),
+      Some(Default::default()),
+      Default::default(),
+      Default::default(),
+      self.input_filesystem.clone(),
+      self.intermediate_filesystem.clone(),
+      self.output_filesystem.clone(),
+      false,
+    ));
+
     if let Err(err) = self.cache.before_compile(&mut self.compilation).await {
       self.compilation.push_diagnostic(err.into());
     }

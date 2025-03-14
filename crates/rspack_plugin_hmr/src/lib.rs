@@ -12,7 +12,7 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
   CompilationProcessAssets, CompilationRecords, CompilerCompilation, CompilerOptions,
   DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext,
+  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, PluginContext, Root,
   RunnerContext, RuntimeGlobals, RuntimeModuleExt, RuntimeSpec,
 };
 use rspack_error::Result;
@@ -34,7 +34,7 @@ pub struct HotModuleReplacementPlugin;
 #[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
@@ -57,7 +57,9 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
+  let compilation = &mut **compilation;
+
   let Some(CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,

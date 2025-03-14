@@ -5,7 +5,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   ApplyContext, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationFinishModules, CompilationParams, CompilerCompilation, CompilerOptions, EntryData,
-  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext,
+  LibraryExport, LibraryOptions, LibraryType, ModuleIdentifier, Plugin, PluginContext, Root,
   RuntimeGlobals, UsageState,
 };
 use rspack_error::Result;
@@ -60,7 +60,7 @@ impl ExportPropertyLibraryPlugin {
 #[plugin_hook(CompilerCompilation for ExportPropertyLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
@@ -110,7 +110,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationFinishModules for ExportPropertyLibraryPlugin)]
-async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_modules(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
