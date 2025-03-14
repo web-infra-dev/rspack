@@ -33,6 +33,7 @@ const b = "b";
 ```js title=main.js
 (self["webpackChunkwebpack"] = self["webpackChunkwebpack"] || []).push([["main"], {
 "./child lazy recursive ^\\.\\/.*\\.js$": (function (module, __unused_webpack_exports, __webpack_require__) {
+"use strict";
 var map = {
   "./a.js": [
     "./child/a.js",
