@@ -129,15 +129,6 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
 
-  crates/rspack_fs_node:
-    devDependencies:
-      '@napi-rs/cli':
-        specifier: 2.18.4
-        version: 2.18.4
-      memfs:
-        specifier: 4.17.0
-        version: 4.17.0
-
   npm/darwin-arm64: {}
 
   npm/darwin-x64: {}
@@ -2088,11 +2079,6 @@ packages:
       monaco-editor: '>= 0.25.0 < 1'
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
-  '@napi-rs/cli@2.18.4':
-    resolution: {integrity: sha512-SgJeA4df9DE2iAEpr3M2H0OKl/yjtg1BnRI5/JyowS71tUWhrfSu2LT0V3vlHET+g1hBVlrO60PmEXwUEKp8Mg==}
-    engines: {node: '>= 10'}
-    hasBin: true
 
   '@napi-rs/cli@3.0.0-alpha.73':
     resolution: {integrity: sha512-HeZP2KnKynIoi42ooAf/0tx7nASx1Mo58BKSALv4f5j0C2L12Z687iAuzJWiwzgJ8puTzKzE7pCnB/byflIaAA==}
@@ -9738,8 +9724,6 @@ snapshots:
       monaco-editor: 0.52.2
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
-
-  '@napi-rs/cli@2.18.4': {}
 
   '@napi-rs/cli@3.0.0-alpha.73(@emnapi/runtime@1.3.1)(@types/node@20.17.24)(emnapi@1.3.1)':
     dependencies:

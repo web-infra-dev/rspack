@@ -124,7 +124,6 @@ rspack_core                            = { version = "0.2.0", path = "crates/rsp
 rspack_deps_graph                      = { version = "0.2.0", path = "crates/rspack_deps_graph" }
 rspack_error                           = { version = "0.2.0", path = "crates/rspack_error" }
 rspack_fs                              = { version = "0.2.0", path = "crates/rspack_fs" }
-rspack_fs_node                         = { version = "0.2.0", path = "crates/rspack_fs_node" }
 rspack_futures                         = { version = "0.2.0", path = "crates/rspack_futures" }
 rspack_hash                            = { version = "0.2.0", path = "crates/rspack_hash" }
 rspack_hook                            = { version = "0.2.0", path = "crates/rspack_hook" }
