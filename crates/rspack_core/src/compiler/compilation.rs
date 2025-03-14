@@ -8,7 +8,6 @@ use std::{
   },
 };
 
-use async_scoped::TokioScope;
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -1055,33 +1054,32 @@ impl Compilation {
     } else {
       self.chunk_by_ukey.keys().copied().collect()
     };
-    // SAFETY: await immediately and trust caller to poll future entirely
-    let (_, results) = unsafe {
-      async_scoped::TokioScope::scope_and_collect(
-        |s: &mut TokioScope<'_, Result<(ChunkUkey, ChunkRenderResult)>>| {
-          chunks.iter().for_each(|chunk| {
-            s.spawn(async {
-              let mut manifests = Vec::new();
-              let mut diagnostics = Vec::new();
-              plugin_driver
-                .compilation_hooks
-                .render_manifest
-                .call(self, chunk, &mut manifests, &mut diagnostics)
-                .await?;
+    let results = rspack_futures::scope::<_, Result<_>>(|token| {
+      chunks.iter().for_each(|chunk| {
+        // SAFETY: await immediately and trust caller to poll future entirely
+        let s = unsafe { token.used((&self, &plugin_driver, chunk)) };
 
-              rspack_error::Result::Ok((
-                *chunk,
-                ChunkRenderResult {
-                  manifests,
-                  diagnostics,
-                },
-              ))
-            });
-          })
-        },
-      )
-    }
+        s.spawn(|(this, plugin_driver, chunk)| async {
+          let mut manifests = Vec::new();
+          let mut diagnostics = Vec::new();
+          plugin_driver
+            .compilation_hooks
+            .render_manifest
+            .call(this, chunk, &mut manifests, &mut diagnostics)
+            .await?;
+
+          rspack_error::Result::Ok((
+            *chunk,
+            ChunkRenderResult {
+              manifests,
+              diagnostics,
+            },
+          ))
+        });
+      })
+    })
     .await;
+
     let mut chunk_render_results: UkeyMap<ChunkUkey, ChunkRenderResult> = Default::default();
     for result in results {
       let item: std::result::Result<(ChunkUkey, ChunkRenderResult), _> =

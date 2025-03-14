@@ -16,6 +16,7 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
+	type RawJsonGeneratorOptions,
 	type RawJsonParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
@@ -28,7 +29,6 @@ import {
 } from "@rspack/binding";
 
 import type { Compiler } from "../Compiler";
-import { Module } from "../Module";
 import { normalizeStatsPreset } from "../Stats";
 import { isNil } from "../util";
 import { parseResource } from "../util/identifier";
@@ -57,6 +57,7 @@ import type {
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
+	JsonGeneratorOptions,
 	JsonParserOptions,
 	Node,
 	Optimization,
@@ -663,6 +664,12 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+	if (type === "json") {
+		return {
+			type: "json",
+			json: getRawJsonGeneratorOptions(generator)
+		};
+	}
 
 	if (
 		[
@@ -720,10 +727,7 @@ function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
 	}
 	if (typeof dataUrl === "function" && dataUrl !== null) {
 		return (source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => {
-			return dataUrl(source, {
-				...context,
-				module: Module.__from_binding(context.module)
-			});
+			return dataUrl(source, context);
 		};
 	}
 	throw new Error(
@@ -748,6 +752,14 @@ function getRawCssAutoOrModuleGeneratorOptions(
 		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
 		esModule: options.esModule
+	};
+}
+
+function getRawJsonGeneratorOptions(
+	options: JsonGeneratorOptions
+): RawJsonGeneratorOptions {
+	return {
+		JSONParse: options.JSONParse
 	};
 }
 

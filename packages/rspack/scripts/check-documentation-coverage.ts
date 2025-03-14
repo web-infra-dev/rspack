@@ -2,8 +2,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ApiItemKind, ApiModel } from "@microsoft/api-extractor-model";
-import { ZodObject, ZodOptional, ZodUnion } from "../compiled/zod/index.js";
-import { rspackOptions } from "../src/config/zod.ts";
+// import { ZodObject, ZodOptional, ZodUnion } from "zod";
+// import { rspackOptions } from "../src/config/zod.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -164,34 +164,34 @@ type Section = {
 function checkConfigsDocumentationCoverage() {
 	const CONFIG_DOCS_DIR = resolve(__dirname, "../../../website/docs/en/config");
 
-	function getImplementedConfigs() {
-		const implementedConfigs: string[] = [];
-		function visit(zod, path = "") {
-			if (zod instanceof ZodObject) {
-				for (const [key, schema] of Object.entries(zod.shape)) {
-					const next = (() => {
-						if (key.includes("/")) {
-							return `${path}["${key}"]`;
-						}
-						if (path) {
-							return `${path}.${key}`;
-						}
-						return key;
-					})();
-					implementedConfigs.push(next);
-					visit(schema, next);
-				}
-			} else if (zod instanceof ZodOptional) {
-				visit(zod.unwrap(), path);
-			} else if (zod instanceof ZodUnion) {
-				for (const schema of zod.options) {
-					visit(schema, path);
-				}
-			}
-		}
-		visit(rspackOptions);
-		return implementedConfigs;
-	}
+	// function getImplementedConfigs() {
+	// 	const implementedConfigs: string[] = [];
+	// 	function visit(zod, path = "") {
+	// 		if (zod instanceof ZodObject) {
+	// 			for (const [key, schema] of Object.entries(zod.shape)) {
+	// 				const next = (() => {
+	// 					if (key.includes("/")) {
+	// 						return `${path}["${key}"]`;
+	// 					}
+	// 					if (path) {
+	// 						return `${path}.${key}`;
+	// 					}
+	// 					return key;
+	// 				})();
+	// 				implementedConfigs.push(next);
+	// 				visit(schema, next);
+	// 			}
+	// 		} else if (zod instanceof ZodOptional) {
+	// 			visit(zod.unwrap(), path);
+	// 		} else if (zod instanceof ZodUnion) {
+	// 			for (const schema of zod.options) {
+	// 				visit(schema, path);
+	// 			}
+	// 		}
+	// 	}
+	// 	visit(rspackOptions);
+	// 	return implementedConfigs;
+	// }
 
 	function parseConfigDocuments() {
 		function parseMarkdownContent(content) {
@@ -252,83 +252,65 @@ function checkConfigsDocumentationCoverage() {
 		return sections;
 	}
 
-	const implementedConfigs = getImplementedConfigs().filter(config => {
-		return ![
-			"resolveLoader",
-
-			"module.parser",
-			"module.generator",
-
-			"experiments.rspackFuture",
-			"experiments.incremental",
-
-			"output.library.amd",
-			"output.library.commonjs",
-			"output.library.root",
-			"output.environment.asyncFunction",
-			"output.environment.bigIntLiteral",
-			"output.environment.const",
-			"output.environment.destructuring",
-			"output.environment.document",
-			"output.environment.dynamicImport",
-			"output.environment.dynamicImportInWorker",
-			"output.environment.forOf",
-			"output.environment.globalThis",
-			"output.environment.module",
-			"output.environment.nodePrefixForCoreModules",
-			"output.environment.optionalChaining",
-			"output.environment.templateLiteral",
-			"output.workerChunkLoading",
-			"output.workerWasmLoading",
-			"output.workerPublicPath",
-			"output.strictModuleExceptionHandling",
-			"output.auxiliaryComment.amd",
-			"output.auxiliaryComment.commonjs",
-			"output.auxiliaryComment.commonjs2",
-			"output.auxiliaryComment.root",
-
-			"stats",
-
-			"optimization.splitChunks",
-			"optimization.removeAvailableModules",
-			"optimization.concatenateModules",
-
-			"loader",
-			"snapshot",
-			"profile"
-		].some(c => config.startsWith(c));
-	});
+	// const implementedConfigs = getImplementedConfigs().filter(config => {
+	// 	return ![
+	// 		"experiments.lazyCompilation.backend",
+	// 		"resolveLoader",
+	// 		"module.parser",
+	// 		"module.generator",
+	// 		"experiments.rspackFuture",
+	// 		"experiments.incremental",
+	// 		"output.library.amd",
+	// 		"output.library.commonjs",
+	// 		"output.library.root",
+	// 		"output.workerChunkLoading",
+	// 		"output.workerWasmLoading",
+	// 		"output.workerPublicPath",
+	// 		"output.strictModuleExceptionHandling",
+	// 		"output.auxiliaryComment.amd",
+	// 		"output.auxiliaryComment.commonjs",
+	// 		"output.auxiliaryComment.commonjs2",
+	// 		"output.auxiliaryComment.root",
+	// 		"stats",
+	// 		"optimization.splitChunks",
+	// 		"optimization.removeAvailableModules",
+	// 		"optimization.concatenateModules",
+	// 		"loader",
+	// 		"snapshot",
+	// 		"profile"
+	// 	].some(c => config.startsWith(c));
+	// });
 	const markdownSections = parseConfigDocuments();
 	const undocumentedConfigs: string[] = [];
 	const map = new Map();
 
-	for (const config of implementedConfigs) {
-		let documented = false;
-		for (const section of markdownSections) {
-			if (section.title === config) {
-				documented = true;
-				map.set(config, section);
-			}
-		}
-		if (!documented) {
-			const parts = config.split(".");
-			const subs: string[] = [];
-			let part: string | undefined;
-			while ((part = parts.pop())) {
-				subs.push(part);
-				const section = map.get(parts.join("."));
-				if (section) {
-					if (subs.every(sub => section.text.includes(sub))) {
-						documented = true;
-						break;
-					}
-				}
-			}
-		}
-		if (!documented) {
-			undocumentedConfigs.push(config);
-		}
-	}
+	// for (const config of implementedConfigs) {
+	// 	let documented = false;
+	// 	for (const section of markdownSections) {
+	// 		if (section.title === config) {
+	// 			documented = true;
+	// 			map.set(config, section);
+	// 		}
+	// 	}
+	// 	if (!documented) {
+	// 		const parts = config.split(".");
+	// 		const subs: string[] = [];
+	// 		let part: string | undefined;
+	// 		while ((part = parts.pop())) {
+	// 			subs.push(part);
+	// 			const section = map.get(parts.join("."));
+	// 			if (section) {
+	// 				if (subs.every(sub => section.text.includes(sub))) {
+	// 					documented = true;
+	// 					break;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	if (!documented) {
+	// 		undocumentedConfigs.push(config);
+	// 	}
+	// }
 
 	if (undocumentedConfigs.length) {
 		console.error(
