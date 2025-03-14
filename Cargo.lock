@@ -4379,20 +4379,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_fs_node"
-version = "0.2.0"
-dependencies = [
- "async-trait",
- "napi",
- "napi-build",
- "napi-derive",
- "rspack_error",
- "rspack_fs",
- "rspack_napi",
- "rspack_paths",
-]
-
-[[package]]
 name = "rspack_futures"
 version = "0.2.0"
 dependencies = [
@@ -4614,7 +4600,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_fs",
- "rspack_fs_node",
  "rspack_hash",
  "rspack_hook",
  "rspack_ids",
