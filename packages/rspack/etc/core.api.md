@@ -2248,6 +2248,7 @@ export type GeneratorOptionsByModuleTypeKnown = {
     css?: CssGeneratorOptions;
     "css/auto"?: CssAutoGeneratorOptions;
     "css/module"?: CssModuleGeneratorOptions;
+    json?: JsonGeneratorOptions;
 };
 
 // @public (undocumented)
@@ -2804,6 +2805,11 @@ interface JsMinifyOptions {
 
 // @public (undocumented)
 type JsonArray = JsonValue_2[];
+
+// @public
+export type JsonGeneratorOptions = {
+    JSONParse?: boolean;
+};
 
 // @public (undocumented)
 type JsonObject = { [index: string]: JsonValue } & {
@@ -5448,6 +5454,7 @@ declare namespace rspackExports {
         CssGeneratorOptions,
         CssAutoGeneratorOptions,
         CssModuleGeneratorOptions,
+        JsonGeneratorOptions,
         GeneratorOptionsByModuleTypeKnown,
         GeneratorOptionsByModuleTypeUnknown,
         GeneratorOptionsByModuleType,
@@ -8094,6 +8101,13 @@ export const rspackOptions: z.ZodObject<{
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
             }>>;
+            json: z.ZodOptional<z.ZodObject<{
+                JSONParse: z.ZodOptional<z.ZodBoolean>;
+            }, "strict", z.ZodTypeAny, {
+                JSONParse?: boolean | undefined;
+            }, {
+                JSONParse?: boolean | undefined;
+            }>>;
         }, "strict", z.ZodTypeAny, {
             css?: {
                 exportsOnly?: boolean | undefined;
@@ -8122,6 +8136,9 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
+            } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
             } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
@@ -8165,6 +8182,9 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
+            } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
             } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
@@ -8314,6 +8334,9 @@ export const rspackOptions: z.ZodObject<{
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
             } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
+            } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
                     encoding?: false | "base64" | undefined;
@@ -8461,6 +8484,9 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
+            } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
             } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
@@ -8633,6 +8659,9 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
+            } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
             } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
@@ -9244,6 +9273,9 @@ export const rspackOptions: z.ZodObject<{
                 esModule?: boolean | undefined;
                 exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only" | undefined;
                 localIdentName?: string | undefined;
+            } | undefined;
+            json?: {
+                JSONParse?: boolean | undefined;
             } | undefined;
             "asset/inline"?: {
                 dataUrl?: {
@@ -10779,6 +10811,7 @@ declare namespace t {
         CssGeneratorOptions,
         CssAutoGeneratorOptions,
         CssModuleGeneratorOptions,
+        JsonGeneratorOptions,
         GeneratorOptionsByModuleTypeKnown,
         GeneratorOptionsByModuleTypeUnknown,
         GeneratorOptionsByModuleType,

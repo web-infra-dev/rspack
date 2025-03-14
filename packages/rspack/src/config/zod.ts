@@ -664,13 +664,18 @@ const cssModuleGeneratorOptions = z.strictObject({
 	esModule: cssGeneratorEsModule.optional()
 }) satisfies z.ZodType<t.CssModuleGeneratorOptions>;
 
+const jsonGeneratorOptions = z.strictObject({
+	JSONParse: z.boolean().optional()
+}) satisfies z.ZodType<t.JsonGeneratorOptions>;
+
 const generatorOptionsByModuleTypeKnown = z.strictObject({
 	asset: assetGeneratorOptions.optional(),
 	"asset/inline": assetInlineGeneratorOptions.optional(),
 	"asset/resource": assetResourceGeneratorOptions.optional(),
 	css: cssGeneratorOptions.optional(),
 	"css/auto": cssAutoGeneratorOptions.optional(),
-	"css/module": cssModuleGeneratorOptions.optional()
+	"css/module": cssModuleGeneratorOptions.optional(),
+	json: jsonGeneratorOptions.optional()
 }) satisfies z.ZodType<t.GeneratorOptionsByModuleTypeKnown>;
 
 const generatorOptionsByModuleTypeUnknown = z.record(

@@ -1746,13 +1746,14 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
+  json?: RawJsonGeneratorOptions
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -1872,6 +1873,10 @@ export interface RawJavascriptParserOptions {
    * @experimental
    */
   importDynamic?: boolean
+}
+
+export interface RawJsonGeneratorOptions {
+  JSONParse?: boolean
 }
 
 export interface RawJsonParserOptions {

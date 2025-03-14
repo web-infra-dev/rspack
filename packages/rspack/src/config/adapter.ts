@@ -16,6 +16,7 @@ import {
 	type RawFuncUseCtx,
 	type RawGeneratorOptions,
 	type RawJavascriptParserOptions,
+	type RawJsonGeneratorOptions,
 	type RawJsonParserOptions,
 	type RawModuleRule,
 	type RawModuleRuleUse,
@@ -56,6 +57,7 @@ import type {
 	CssParserOptions,
 	GeneratorOptionsByModuleType,
 	JavascriptParserOptions,
+	JsonGeneratorOptions,
 	JsonParserOptions,
 	Node,
 	Optimization,
@@ -662,6 +664,12 @@ function getRawGeneratorOptions(
 			cssModule: getRawCssAutoOrModuleGeneratorOptions(generator)
 		};
 	}
+	if (type === "json") {
+		return {
+			type: "json",
+			json: getRawJsonGeneratorOptions(generator)
+		};
+	}
 
 	if (
 		[
@@ -744,6 +752,14 @@ function getRawCssAutoOrModuleGeneratorOptions(
 		exportsConvention: options.exportsConvention,
 		exportsOnly: options.exportsOnly,
 		esModule: options.esModule
+	};
+}
+
+function getRawJsonGeneratorOptions(
+	options: JsonGeneratorOptions
+): RawJsonGeneratorOptions {
+	return {
+		JSONParse: options.JSONParse
 	};
 }
 
