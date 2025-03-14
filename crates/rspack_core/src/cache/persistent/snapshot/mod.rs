@@ -54,7 +54,7 @@ impl Snapshot {
       let fs = self.fs.clone();
       let utf8_path_clone = utf8_path.to_owned();
       let metadata_has_error =
-        spawn_blocking(move || fs.clone().metadata(&utf8_path_clone).is_ok())
+        spawn_blocking(move || fs.clone().metadata(&utf8_path_clone).is_err())
           .await
           .unwrap_or(true);
       if metadata_has_error {
