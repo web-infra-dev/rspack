@@ -59,7 +59,7 @@ rspack_loader_swc            = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta = { workspace = true, features = ["filters"] }
-tokio = { workspace = true, features = ["rt-multi-thread", "rt"] }
+tokio = { workspace = true }
 
 [lints]
 workspace = true
