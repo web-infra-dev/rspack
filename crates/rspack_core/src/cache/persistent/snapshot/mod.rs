@@ -46,14 +46,17 @@ impl Snapshot {
   pub async fn add(&self, paths: impl Iterator<Item = &Path>) {
     let default_strategy = StrategyHelper::compile_time();
     let helper = StrategyHelper::new(self.fs.clone());
+
     // TODO merge package version file
     join_all(paths.map(|path| async {
       let utf8_path = path.assert_utf8();
       // check path exists
       let fs = self.fs.clone();
-      let metadata_has_error = spawn_blocking(move || fs.metadata(utf8_path).is_ok())
-        .await
-        .unwrap_or(true);
+      let utf8_path_clone = utf8_path.to_owned();
+      let metadata_has_error =
+        spawn_blocking(move || fs.clone().metadata(&utf8_path_clone).is_ok())
+          .await
+          .unwrap_or(true);
       if metadata_has_error {
         return;
       }
