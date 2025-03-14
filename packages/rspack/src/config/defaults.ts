@@ -240,7 +240,7 @@ const applyExperimentsDefaults = (
 	// rspackFuture.bundlerInfo default value is applied after applyDefaults
 
 	// IGNORE(experiments.parallelCodeSplitting): Rspack specific configuration for new code splitting algorithm
-	D(experiments, "parallelCodeSplitting", false);
+	D(experiments, "parallelCodeSplitting", true);
 };
 
 const applybundlerInfoDefaults = (
@@ -933,7 +933,7 @@ const applyOptimizationDefaults = (
 		css
 	}: { production: boolean; development: boolean; css: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", false);
+	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
 	F(optimization, "moduleIds", (): "natural" | "named" | "deterministic" => {
