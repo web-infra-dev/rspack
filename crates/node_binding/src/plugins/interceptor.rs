@@ -1086,7 +1086,7 @@ impl CompilerThisCompilation for CompilerThisCompilationTap {
     compilation: &mut Root<rspack_core::Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(compilation.clone()).await
+    self.function.call_with_sync(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1101,7 +1101,7 @@ impl CompilerCompilation for CompilerCompilationTap {
     compilation: &mut Root<rspack_core::Compilation>,
     _: &mut CompilationParams,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(compilation.clone()).await
+    self.function.call_with_sync(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1115,7 +1115,7 @@ impl CompilerMake for CompilerMakeTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_promise(compilation.clone()).await
+    self.function.call_with_promise(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1129,7 +1129,7 @@ impl CompilerFinishMake for CompilerFinishMakeTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_promise(compilation.clone()).await
+    self.function.call_with_promise(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1143,7 +1143,7 @@ impl CompilerShouldEmit for CompilerShouldEmitTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<Option<bool>> {
-    self.function.call_with_sync(compilation.clone()).await
+    self.function.call_with_sync(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1305,7 +1305,7 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_promise(compilation.clone()).await
+    self.function.call_with_promise(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1509,7 +1509,7 @@ impl CompilationProcessAssets for CompilationProcessAssetsTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_promise(compilation.clone()).await
+    self.function.call_with_promise(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {
@@ -1523,7 +1523,7 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
     &self,
     compilation: &mut Root<rspack_core::Compilation>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(compilation.clone()).await
+    self.function.call_with_sync(compilation.share()).await
   }
 
   fn stage(&self) -> i32 {

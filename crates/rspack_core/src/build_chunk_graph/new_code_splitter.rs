@@ -399,7 +399,7 @@ impl CodeSplitter {
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
 
-    for (entry, entry_data) in &compilation.entries {
+    for (entry, entry_data) in &*compilation.entries {
       let chunk_loading = !matches!(
         entry_data
           .options
@@ -419,7 +419,7 @@ impl CodeSplitter {
 
       entries.push(CreateChunkRoot::Entry(
         entry.clone(),
-        entry_data.clone(),
+        (**entry_data).clone(),
         Some(runtime.clone()),
       ));
 
@@ -739,7 +739,7 @@ impl CodeSplitter {
     let global_deps = compilation.global_entry.dependencies.iter();
     let global_included_deps = compilation.global_entry.include_dependencies.iter();
 
-    for (name, entry) in &compilation.entries {
+    for (name, entry) in &*compilation.entries {
       global_deps
         .clone()
         .chain(entry.dependencies.iter())

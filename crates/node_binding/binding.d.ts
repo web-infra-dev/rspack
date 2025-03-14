@@ -301,11 +301,11 @@ export declare class JsEntries {
   clear(): void
   get size(): number
   has(key: string): boolean
-  set(key: string, value: JsEntryData | EntryDataDto): void
+  set(key: string, entryDataObject: JsEntryData): void
   delete(key: string): boolean
-  get(key: string): EntryDataDto | undefined
+  get(key: string): JsEntryData
   keys(): Array<string>
-  values(): Array<EntryDataDto>
+  values(): JsEntryData[]
 }
 
 export declare class JsExportsInfo {

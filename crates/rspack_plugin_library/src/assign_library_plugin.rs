@@ -426,7 +426,7 @@ async fn finish_modules(&self, compilation: &mut Root<Compilation>) -> Result<()
       dependencies,
       options,
       ..
-    } = entry;
+    } = &**entry;
     let runtime = get_entry_runtime(entry_name, options, &compilation.entries);
     let library_options = options
       .library
