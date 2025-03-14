@@ -20,6 +20,7 @@ on:
           - rslib
           - examples
           - devserver
+          - plugin
       suiteRef:
         description: "suite ref to use"
         required: true
