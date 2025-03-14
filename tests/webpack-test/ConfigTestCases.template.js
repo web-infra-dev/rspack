@@ -91,7 +91,8 @@ const describeCases = config => {
 							}).not.toThrow();
 							optionsArr = [].concat(options);
 							optionsArr.forEach((options, idx) => {
-								if (options.amd === undefined) options.amd = {}; // TODO(AMD): remove this
+								// CHANGE: rspack does not enable AMD by default
+								if (options.amd === undefined) options.amd = {};
 								if (!options.context) options.context = testDirectory;
 								if (!options.mode) options.mode = "production";
 								if (!options.optimization) options.optimization = {};

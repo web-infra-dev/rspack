@@ -97,7 +97,8 @@ const describeCases = config => {
 							});
 							let options = {
 								...testConfig,
-								amd: {}, // TODO(AMD): remove this
+								// CHANGE: rspack does not enable AMD by default
+								amd: {},
 								context: casesPath,
 								entry: "./" + category.name + "/" + testName + "/",
 								target: config.target || "async-node",
