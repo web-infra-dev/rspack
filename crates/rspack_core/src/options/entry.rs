@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 
-use crate::{ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath};
+use crate::{ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath, Root};
 
-pub type Entry = IndexMap<String, EntryData>;
+pub type Entries = IndexMap<String, Root<EntryData>>;
 
 pub type EntryItem = Vec<String>;
 

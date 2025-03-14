@@ -52,7 +52,7 @@ use crate::{
   ChunkIdsArtifact, ChunkKind, ChunkRenderArtifact, ChunkRenderResult, ChunkUkey,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, DependenciesDiagnosticsArtifact, DependencyId,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  DependencyType, Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   Filename, ImportVarMap, LocalFilenameFn, Logger, ModuleFactory, ModuleGraph, ModuleGraphPartial,
   ModuleIdentifier, ModuleIdsArtifact, PathData, ResolverFactory, Root, RuntimeGlobals,
   RuntimeModule, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
@@ -163,7 +163,7 @@ pub struct Compilation {
   pub hot_index: u32,
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
-  pub entries: Entry,
+  pub entries: Root<Entries>,
   pub global_entry: EntryData,
   other_module_graph: Option<ModuleGraphPartial>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
@@ -560,7 +560,7 @@ impl Compilation {
           include_dependencies: vec![],
           options,
         };
-        self.entries.insert(name.to_owned(), data);
+        self.entries.insert(name.to_owned(), Root::new(data));
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
@@ -599,7 +599,7 @@ impl Compilation {
             include_dependencies: vec![entry_id],
             options,
           };
-          self.entries.insert(name, data);
+          self.entries.insert(name, Root::new(data));
         }
       } else {
         self.global_entry.include_dependencies.push(entry_id);

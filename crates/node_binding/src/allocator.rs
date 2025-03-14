@@ -13,7 +13,7 @@ use napi::{
   Env,
 };
 
-use crate::JsCompilation;
+use crate::{EntryDataDTO, JsCompilation, JsEntries};
 
 extern "C" fn on_destruct(_env: napi_env, _callback_info: napi_callback_info) -> napi_value {
   ptr::null_mut()
@@ -77,30 +77,57 @@ impl NapiAllocatorImpl {
     let destructor = Arc::new(NapiDestructorImpl::new(env)?);
     Ok(Self { env, destructor })
   }
-}
 
-impl rspack_core::NapiAllocator for NapiAllocatorImpl {
-  fn allocate_compilation(
-    &self,
-    i: Box<rspack_core::Compilation>,
-  ) -> napi::Result<rspack_core::ThreadSafeReference> {
-    let Ok(mut instance) = JsCompilation::new(i).into_instance(&self.env) else {
-      return Err(napi::Error::new(
+  fn allocate_instance<T>(&self, instance: T) -> napi::Result<rspack_core::ThreadSafeReference>
+  where
+    T: JavaScriptClassExt,
+  {
+    let mut instance = instance.into_instance(&self.env).map_err(|_| {
+      napi::Error::new(
         napi::Status::GenericFailure,
-        "Failed to allocate Compilation: unable to create instance",
-      ));
-    };
-    let Ok(reference) = (unsafe {
+        "Failed to allocate instance: unable to create instance",
+      )
+    })?;
+
+    let reference = unsafe {
       Reference::<()>::from_value_ptr(&mut *instance as *mut _ as *mut c_void, self.env.raw())
-    }) else {
-      return Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Failed to allocate Compilation: unable to create reference",
-      ));
+        .map_err(|_| {
+          napi::Error::new(
+            napi::Status::GenericFailure,
+            "Failed to allocate instance: unable to create reference",
+          )
+        })?
     };
+
     Ok(rspack_core::ThreadSafeReference::new(
       reference,
       self.destructor.clone(),
     ))
+  }
+}
+
+impl rspack_core::NapiAllocator for NapiAllocatorImpl {
+  #[inline(always)]
+  fn allocate_compilation(
+    &self,
+    val: Box<rspack_core::Compilation>,
+  ) -> napi::Result<rspack_core::ThreadSafeReference> {
+    self.allocate_instance(JsCompilation::new(val))
+  }
+
+  #[inline(always)]
+  fn allocate_entries(
+    &self,
+    val: Box<rspack_core::Entries>,
+  ) -> napi::Result<rspack_core::ThreadSafeReference> {
+    self.allocate_instance(JsEntries::new(val))
+  }
+
+  #[inline(always)]
+  fn allocate_entry_data(
+    &self,
+    val: Box<rspack_core::EntryData>,
+  ) -> napi::Result<rspack_core::ThreadSafeReference> {
+    self.allocate_instance(EntryDataDTO::new(val))
   }
 }

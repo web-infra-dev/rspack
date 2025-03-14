@@ -1,26 +1,21 @@
 mod dependencies;
-pub mod entries;
+mod entries;
 
-use std::cell::RefCell;
-use std::collections::HashMap;
 use std::path::Path;
-use std::ptr::NonNull;
 
 use dependencies::JsDependencies;
-use entries::JsEntries;
+pub use entries::*;
+use napi::sys::napi_value;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::BoxDependency;
-use rspack_core::Compilation;
-use rspack_core::CompilationId;
 use rspack_core::EntryOptions;
 use rspack_core::FactorizeInfo;
 use rspack_core::ModuleIdentifier;
 use rspack_error::Diagnostic;
 use rspack_napi::napi::bindgen_prelude::*;
 use rspack_napi::NapiResultExt;
-use rspack_napi::OneShotRef;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rustc_hash::FxHashMap;
 
@@ -636,12 +631,19 @@ impl JsCompilation {
     })
   }
 
-  #[napi(getter)]
-  pub fn entries(&mut self) -> Result<JsEntries> {
-    todo!()
-    // let compilation = self.0.as_mut();
-
-    // Ok(JsEntries::new(compilation))
+  #[napi(getter, ts_return_type = "JsEntries")]
+  pub fn entries(
+    &mut self,
+    env: Env,
+    reference: Reference<JsCompilation>,
+  ) -> napi::Result<napi_value> {
+    let compilation = self.0.as_mut();
+    Ok(unsafe {
+      let napi_value = ToNapiValue::to_napi_value(env.raw(), &mut compilation.entries)?;
+      let js_entries = JsEntries::from_napi_mut_ref(env.raw(), napi_value)?;
+      js_entries.compilation = Some(reference.downgrade());
+      napi_value
+    })
   }
 
   #[napi]
