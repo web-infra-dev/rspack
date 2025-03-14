@@ -1,5 +1,7 @@
-use swc_core::ecma::ast::{ClassExpr, Ident, ObjectPatProp, Prop};
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::ecma::{
+  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+  visit::{noop_visit_type, Visit, VisitWith},
+};
 
 #[derive(Clone, Debug)]
 pub struct ConcatenatedModuleIdent {

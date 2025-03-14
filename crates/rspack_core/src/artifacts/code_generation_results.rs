@@ -1,7 +1,9 @@
-use std::collections::hash_map::Entry;
-use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
-use std::sync::atomic::AtomicU32;
+use std::{
+  collections::hash_map::Entry,
+  hash::Hash,
+  ops::{Deref, DerefMut},
+  sync::atomic::AtomicU32,
+};
 
 use anymap::CloneAny;
 use rspack_collections::IdentifierMap;

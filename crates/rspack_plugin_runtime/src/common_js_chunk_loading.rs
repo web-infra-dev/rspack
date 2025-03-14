@@ -1,12 +1,13 @@
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, CompilationRuntimeRequirementInTree,
+  Plugin, PluginContext, RuntimeGlobals,
 };
-use rspack_core::{Plugin, PluginContext, RuntimeGlobals};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime_module::RequireChunkLoadingRuntimeModule;
-use crate::runtime_module::{is_enabled_for_chunk, ReadFileChunkLoadingRuntimeModule};
+use crate::runtime_module::{
+  is_enabled_for_chunk, ReadFileChunkLoadingRuntimeModule, RequireChunkLoadingRuntimeModule,
+};
 
 #[plugin]
 #[derive(Debug)]

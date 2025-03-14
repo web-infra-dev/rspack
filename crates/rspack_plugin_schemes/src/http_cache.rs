@@ -1,7 +1,9 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+  collections::HashMap,
+  path::{Path, PathBuf},
+  sync::Arc,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 use anyhow::Result;
 use async_trait::async_trait;

@@ -1,6 +1,8 @@
 use rspack_core::SpanExt;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Lit, PropName, Str};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{Lit, PropName, Str},
+};
 
 use super::BasicEvaluatedExpression;
 

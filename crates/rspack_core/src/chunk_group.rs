@@ -1,20 +1,20 @@
-use std::cmp::Ordering;
-use std::fmt::{self, Display};
+use std::{
+  cmp::Ordering,
+  fmt::{self, Display},
+};
 
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
-use rspack_collections::IdentifierMap;
-use rspack_collections::{DatabaseItem, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap, UkeySet};
 use rspack_error::{error, Result};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, DependencyLocation,
-  DynamicImportFetchPriority, Filename, ModuleLayer,
+  compare_chunk_group, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading,
+  ChunkUkey, Compilation, DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions,
+  ModuleIdentifier, ModuleLayer, PublicPath,
 };
-use crate::{ChunkLoading, ChunkUkey, Compilation};
-use crate::{LibraryOptions, ModuleIdentifier, PublicPath};
 
 #[derive(Debug, Clone)]
 pub struct OriginRecord {

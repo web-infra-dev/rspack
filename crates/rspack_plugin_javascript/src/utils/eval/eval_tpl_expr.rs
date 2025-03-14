@@ -1,6 +1,8 @@
 use rspack_core::SpanExt;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{TaggedTpl, Tpl};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{TaggedTpl, Tpl},
+};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;

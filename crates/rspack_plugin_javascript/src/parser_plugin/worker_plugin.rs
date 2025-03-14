@@ -1,5 +1,4 @@
-use std::hash::Hash;
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use itertools::Itertools;
 use regex::Regex;

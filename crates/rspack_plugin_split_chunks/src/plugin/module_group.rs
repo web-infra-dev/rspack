@@ -1,8 +1,9 @@
-use std::collections::{hash_map, HashMap};
-use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::{
+  collections::{hash_map, HashMap},
+  hash::{BuildHasherDefault, Hash, Hasher},
+};
 
-use dashmap::mapref::entry::Entry;
-use dashmap::DashMap;
+use dashmap::{mapref::entry::Entry, DashMap};
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
@@ -14,11 +15,15 @@ use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap, FxHasher};
 
 use super::ModuleGroupMap;
-use crate::module_group::{compare_entries, CacheGroupIdx, ModuleGroup};
-use crate::options::cache_group::CacheGroup;
-use crate::options::cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx};
-use crate::options::chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx};
-use crate::SplitChunksPlugin;
+use crate::{
+  module_group::{compare_entries, CacheGroupIdx, ModuleGroup},
+  options::{
+    cache_group::CacheGroup,
+    cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
+    chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx},
+  },
+  SplitChunksPlugin,
+};
 
 type ChunksKey = u64;
 

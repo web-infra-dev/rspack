@@ -1,5 +1,4 @@
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use napi::Either;
 use napi_derive::napi;

@@ -1,26 +1,26 @@
-use std::borrow::Cow;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use std::{
+  borrow::Cow,
+  collections::hash_map::DefaultHasher,
+  hash::{Hash, Hasher},
+};
 
 use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::Identifier;
-use rspack_core::rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
-use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation, FilenameTemplate,
-  GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId, ModuleIdentifier, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedName,
+  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  AssetInfo, BoxDependency, BuildMetaExportsType, ChunkGraph, Compilation,
+  DependencyType::WasmImport,
+  FilenameTemplate, GenerateContext, Module, ModuleDependency, ModuleGraph, ModuleId,
+  ModuleIdentifier, NormalModule, ParseContext, ParseResult, ParserAndGenerator, PathData,
+  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec, UsedName,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::infallible::ResultInfallibleExt as _;
-use rspack_util::itoa;
+use rspack_util::{infallible::ResultInfallibleExt as _, itoa};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
-use crate::dependency::WasmImportDependency;
-use crate::ModuleIdToFileName;
+use crate::{dependency::WasmImportDependency, ModuleIdToFileName};
 
 #[cacheable]
 #[derive(Debug)]

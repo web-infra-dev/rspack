@@ -1,14 +1,11 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  ChunkLoading, CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure, PathInfo,
-  WasmLoading,
+  ChunkLoading, CleanOptions, CrossOriginLoading, Environment, OnPolicyCreationFailure,
+  OutputOptions, PathInfo, TrustedTypes, WasmLoading,
 };
-use rspack_core::{OutputOptions, TrustedTypes};
 
-use crate::library::JsLibraryOptions;
-use crate::WithFalse;
-use crate::{JsCleanOptions, JsFilename};
+use crate::{library::JsLibraryOptions, JsCleanOptions, JsFilename, WithFalse};
 
 #[derive(Debug)]
 #[napi(object)]

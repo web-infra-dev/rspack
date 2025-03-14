@@ -13,9 +13,9 @@ use std::{borrow::Cow, hash::Hash};
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_collections::{DatabaseItem, UkeyMap};
-use rspack_core::incremental::Mutation;
 use rspack_core::{
-  ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType, DEFAULT_DELIMITER,
+  incremental::Mutation, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier,
+  SourceType, DEFAULT_DELIMITER,
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};

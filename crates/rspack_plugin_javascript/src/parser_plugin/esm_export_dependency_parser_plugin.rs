@@ -1,23 +1,26 @@
 use itertools::Itertools;
 use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, SpanExt};
-use swc_core::atoms::Atom;
-use swc_core::common::comments::CommentKind;
-use swc_core::common::Spanned;
+use swc_core::{
+  atoms::Atom,
+  common::{comments::CommentKind, Spanned},
+};
 
-use super::esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG};
 use super::{
+  esm_import_dependency_parser_plugin::{ESMSpecifierData, ESM_SPECIFIER_TAG},
   InnerGraphMapUsage, InnerGraphPlugin, JavascriptParserPlugin, DEFAULT_STAR_JS_WORD,
   JS_DEFAULT_KEYWORD,
 };
-use crate::dependency::{
-  DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
-  ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-  ESMImportSideEffectDependency,
-};
-use crate::utils::object_properties::get_attributes;
-use crate::visitors::{
-  ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-  TagInfoData,
+use crate::{
+  dependency::{
+    DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
+    ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
+    ESMImportSideEffectDependency,
+  },
+  utils::object_properties::get_attributes,
+  visitors::{
+    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
+    TagInfoData,
+  },
 };
 
 pub struct ESMExportDependencyParserPlugin;

@@ -1,12 +1,10 @@
-use std::fmt::Debug;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use napi::{
   bindgen_prelude::{FromNapiValue, Function, ToNapiValue, ValidateNapiValue},
   Either,
 };
-use rspack_core::{Filename, FilenameFn};
-use rspack_core::{LocalFilenameFn, PathData, PublicPath};
+use rspack_core::{Filename, FilenameFn, LocalFilenameFn, PathData, PublicPath};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use serde::Deserialize;
 

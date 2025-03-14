@@ -1,10 +1,13 @@
 use itertools::Itertools;
 use rspack_core::{ConstDependency, SpanExt};
 use rustc_hash::FxHashSet;
-use swc_core::common::Spanned;
-use swc_core::ecma::ast::{BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt};
-use swc_core::ecma::ast::{LabeledStmt, ObjectPatProp, Pat, Stmt, VarDeclOrExpr, WhileStmt};
-use swc_core::ecma::ast::{VarDecl, VarDeclKind, VarDeclarator};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    BlockStmt, DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt, LabeledStmt,
+    ObjectPatProp, Pat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, VarDeclarator, WhileStmt,
+  },
+};
 
 use crate::visitors::JavascriptParser;
 

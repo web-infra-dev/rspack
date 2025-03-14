@@ -1,8 +1,9 @@
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
-use crate::{old_cache::storage, CodeGenerationResult};
-use crate::{CodeGenerationJob, ModuleIdentifier, RuntimeSpec};
+use crate::{
+  old_cache::storage, CodeGenerationJob, CodeGenerationResult, ModuleIdentifier, RuntimeSpec,
+};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 

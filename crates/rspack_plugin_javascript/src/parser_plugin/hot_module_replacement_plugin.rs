@@ -1,16 +1,22 @@
 use rspack_core::{BoxDependency, DependencyRange, SpanExt};
-use swc_core::common::{Span, Spanned};
-use swc_core::ecma::ast::{CallExpr, Expr, Lit};
-use swc_core::ecma::atoms::Atom;
-
-use crate::dependency::{
-  import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
-  ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
-  ModuleHotDeclineDependency,
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::{
+    ast::{CallExpr, Expr, Lit},
+    atoms::Atom,
+  },
 };
-use crate::parser_plugin::JavascriptParserPlugin;
-use crate::utils::eval;
-use crate::visitors::{expr_name, JavascriptParser};
+
+use crate::{
+  dependency::{
+    import_emitted_runtime, ESMAcceptDependency, ImportMetaHotAcceptDependency,
+    ImportMetaHotDeclineDependency, ModuleArgumentDependency, ModuleHotAcceptDependency,
+    ModuleHotDeclineDependency,
+  },
+  parser_plugin::JavascriptParserPlugin,
+  utils::eval,
+  visitors::{expr_name, JavascriptParser},
+};
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
 

@@ -6,14 +6,17 @@ use futures::future::join_all;
 use pollster::block_on;
 use queue::TaskQueue;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tokio::sync::oneshot::Receiver;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{oneshot, oneshot::Receiver, Mutex};
 
-use super::data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions};
-use super::strategy::{ScopeStrategy, WriteScopeResult};
-use super::ScopeUpdates;
-use crate::error::{Error, ErrorType, ValidateResult};
-use crate::{ItemPairs, Result};
+use super::{
+  data::{PackOptions, PackScope, RootMeta, RootMetaState, RootOptions},
+  strategy::{ScopeStrategy, WriteScopeResult},
+  ScopeUpdates,
+};
+use crate::{
+  error::{Error, ErrorType, ValidateResult},
+  ItemPairs, Result,
+};
 
 type ScopeMap = HashMap<String, PackScope>;
 

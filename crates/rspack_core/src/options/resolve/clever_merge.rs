@@ -1,12 +1,12 @@
 use hashlink::LinkedHashMap;
 
-use super::value_type::{GetValueType, ValueType};
 use super::{
-  Alias, AliasFields, ConditionNames, DescriptionFiles, EnforceExtension, ExportsFields,
-  ExtensionAlias, Extensions, Fallback, FullySpecified, ImportsFields, MainFields, MainFiles,
-  Modules, PreferAbsolute, PreferRelative, Restrictions, Roots, Symlink, TsconfigOptions,
+  value_type::{GetValueType, ValueType},
+  Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
+  EnforceExtension, ExportsFields, ExtensionAlias, Extensions, Fallback, FullySpecified,
+  ImportsFields, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Resolve,
+  Restrictions, Roots, Symlink, TsconfigOptions,
 };
-use super::{ByDependency, DependencyCategoryStr, Resolve};
 
 pub(super) fn merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   _merge_resolve(first, second)

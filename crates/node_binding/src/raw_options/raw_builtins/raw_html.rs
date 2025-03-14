@@ -1,18 +1,15 @@
-use std::collections::HashMap;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_plugin_html::config::HtmlChunkSortMode;
-use rspack_plugin_html::config::HtmlInject;
-use rspack_plugin_html::config::HtmlRspackPluginBaseOptions;
-use rspack_plugin_html::config::HtmlRspackPluginOptions;
-use rspack_plugin_html::config::HtmlScriptLoading;
-use rspack_plugin_html::config::TemplateParameterFn;
-use rspack_plugin_html::config::TemplateParameters;
-use rspack_plugin_html::config::TemplateRenderFn;
-use rspack_plugin_html::sri::HtmlSriHashFunction;
+use rspack_plugin_html::{
+  config::{
+    HtmlChunkSortMode, HtmlInject, HtmlRspackPluginBaseOptions, HtmlRspackPluginOptions,
+    HtmlScriptLoading, TemplateParameterFn, TemplateParameters, TemplateRenderFn,
+  },
+  sri::HtmlSriHashFunction,
+};
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;

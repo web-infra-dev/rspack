@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -15,8 +14,7 @@ use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPath, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::itoa;
-use rspack_util::{fx_hash::FxIndexMap, json_stringify, source_map::SourceMapKind};
+use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 

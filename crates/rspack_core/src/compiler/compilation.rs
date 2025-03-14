@@ -19,9 +19,9 @@ use rspack_cacheable::{
 use rspack_collections::{
   DatabaseItem, Identifiable, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
 };
-use rspack_error::error;
 use rspack_error::{
-  miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity, Severity,
+  error, miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity,
+  Severity,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_futures::FuturesResults;
