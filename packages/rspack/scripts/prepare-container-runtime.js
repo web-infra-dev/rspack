@@ -11,6 +11,7 @@ const { code: downgradedRuntime } = swc.transformSync(runtime, {
 		target: "es2015"
 	}
 });
+
 const minimizedRuntime = swc.minifySync(downgradedRuntime, {
 	compress: false,
 	mangle: false,
