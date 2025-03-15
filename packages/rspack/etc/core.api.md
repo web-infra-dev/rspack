@@ -8878,6 +8878,7 @@ export const rspackOptions: z.ZodObject<{
         stream?: NodeJS.WritableStream | undefined;
     } | undefined;
     watch?: boolean | undefined;
+    extends?: string | string[] | undefined;
     output?: {
         module?: boolean | undefined;
         path?: string | undefined;
@@ -9076,7 +9077,6 @@ export const rspackOptions: z.ZodObject<{
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: t.DevServer | undefined;
     bail?: boolean | undefined;
-    extends?: string | string[] | undefined;
 }, {
     dependencies?: string[] | undefined;
     name?: string | undefined;
@@ -9493,6 +9493,7 @@ export const rspackOptions: z.ZodObject<{
         stream?: NodeJS.WritableStream | undefined;
     } | undefined;
     watch?: boolean | undefined;
+    extends?: string | string[] | undefined;
     output?: {
         module?: boolean | undefined;
         path?: string | undefined;
@@ -9691,7 +9692,6 @@ export const rspackOptions: z.ZodObject<{
     plugins?: (false | "" | 0 | t.RspackPluginInstance | t.WebpackPluginInstance | t.RspackPluginFunction | t.WebpackPluginFunction | null | undefined)[] | undefined;
     devServer?: t.DevServer | undefined;
     bail?: boolean | undefined;
-    extends?: string | string[] | undefined;
 }>;
 
 // @public (undocumented)
