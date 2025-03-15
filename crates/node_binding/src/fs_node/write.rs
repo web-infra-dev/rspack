@@ -8,7 +8,7 @@ use rspack_fs::{
 };
 use rspack_paths::Utf8Path;
 
-use crate::node::ThreadsafeNodeFS;
+use super::node::ThreadsafeNodeFS;
 
 fn map_error_to_fs_error(e: rspack_error::Error) -> Error {
   Error::Io(std::io::Error::new(

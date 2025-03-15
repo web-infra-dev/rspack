@@ -18,7 +18,8 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::IntermediateFileSystem;
-use rspack_fs_node::{NodeFileSystem, ThreadsafeNodeFS};
+
+use crate::fs_node::{NodeFileSystem, ThreadsafeNodeFS};
 
 mod asset;
 mod asset_condition;
@@ -37,6 +38,7 @@ mod diagnostic;
 mod error;
 mod exports_info;
 mod filename;
+mod fs_node;
 mod html;
 mod identifier;
 mod module;

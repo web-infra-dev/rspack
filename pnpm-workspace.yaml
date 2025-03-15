@@ -6,7 +6,6 @@ packages:
   - "packages/create-rspack/**"
   - "npm/*"
   - "crates/node_binding"
-  - "crates/rspack_fs_node"
   - "examples/**"
   - "!examples/three"
   - "tests/e2e"

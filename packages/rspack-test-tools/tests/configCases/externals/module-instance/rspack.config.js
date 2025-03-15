@@ -6,7 +6,9 @@ class Plugin {
 		const { ExternalModule } = compiler.webpack;
 
 		compiler.hooks.afterEmit.tap("AutoExternalPlugin", compilation => {
-			const externalModules = Array.from(compilation.modules).filter(module => module instanceof ExternalModule);
+			const externalModules = Array.from(compilation.modules).filter(
+				module => module instanceof ExternalModule
+			);
 
 			expect(externalModules.length).toBe(1);
 
