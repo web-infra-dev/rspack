@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use criterion::criterion_group;
+use criterion::{criterion_group, criterion_main};
 use rspack::builder::{Builder as _, Devtool};
 use rspack_benchmark::Criterion;
 use rspack_core::Compiler;
@@ -74,3 +74,4 @@ pub fn basic_benchmark(c: &mut Criterion) {
 }
 
 criterion_group!(basic, basic_benchmark);
+criterion_main!(basic);
