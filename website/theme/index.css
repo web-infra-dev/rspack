@@ -9,7 +9,7 @@ summary {
   --rp-c-brand-light: #ff7524;
   --rp-c-brand-lighter: #ff7524;
   --rp-c-link: var(--rp-c-brand);
-  --rp-c-brand-tint: rgba(255, 94, 0, 0.1);
+  --rp-c-brand-tint: rgba(255, 94, 0, 0.07);
 }
 
 .dark {
