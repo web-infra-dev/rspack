@@ -2,6 +2,7 @@ use rspack_core::{
   ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, SpanExt,
 };
 use rspack_regex::RspackRegex;
+use swc_core::atoms::atom;
 use swc_core::common::Spanned;
 use swc_core::ecma::ast::{CallExpr, Lit};
 
@@ -121,6 +122,7 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![atom!("context")]),
       ))
     } else {
       None

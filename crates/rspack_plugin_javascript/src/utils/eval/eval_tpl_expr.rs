@@ -3,7 +3,7 @@ use swc_core::common::Spanned;
 use swc_core::ecma::ast::{TaggedTpl, Tpl};
 
 use super::BasicEvaluatedExpression;
-use crate::visitors::JavascriptParser;
+use crate::visitors::{ExportedVariableInfo, JavascriptParser};
 
 #[derive(Debug, Clone, Copy)]
 pub enum TemplateStringKind {
@@ -88,14 +88,22 @@ pub fn eval_tagged_tpl_expression(
   tagged_tpl: &TaggedTpl,
 ) -> Option<BasicEvaluatedExpression> {
   let tag = scanner.evaluate_expression(&tagged_tpl.tag);
-  if !tag.is_identifier() || tag.identifier() != "String.raw" {
-    return None;
-  };
-  let kind = TemplateStringKind::Raw;
-  let tpl = &tagged_tpl.tpl;
-  let (quasis, parts) = get_simplified_template_result(scanner, kind, tpl);
-  let mut res =
-    BasicEvaluatedExpression::with_range(tagged_tpl.span().real_lo(), tagged_tpl.span().hi().0);
-  res.set_template_string(quasis, parts, kind);
-  Some(res)
+
+  if tag.is_identifier() {
+    if let ExportedVariableInfo::Name(id) = tag.identifier() {
+      if id == "String.raw" {
+        let kind = TemplateStringKind::Raw;
+        let tpl = &tagged_tpl.tpl;
+        let (quasis, parts) = get_simplified_template_result(scanner, kind, tpl);
+        let mut res = BasicEvaluatedExpression::with_range(
+          tagged_tpl.span().real_lo(),
+          tagged_tpl.span().hi().0,
+        );
+        res.set_template_string(quasis, parts, kind);
+        return Some(res);
+      }
+    }
+  }
+
+  None
 }

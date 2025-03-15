@@ -1,4 +1,4 @@
-mod call_hooks_name;
+pub mod call_hooks_name;
 pub mod estree;
 mod walk;
 mod walk_block_pre;
@@ -512,18 +512,25 @@ impl<'parser> JavascriptParser<'parser> {
     self.definitions_db.set(definitions, name, info);
   }
 
-  pub fn set_variable(&mut self, name: String, variable: String) {
+  pub fn set_variable(&mut self, name: String, variable: ExportedVariableInfo) {
     let id = self.definitions;
-    if name == variable {
-      self.definitions_db.delete(id, &name);
-    } else {
-      let variable = VariableInfo::create(
-        &mut self.definitions_db,
-        id,
-        Some(FreeName::String(variable)),
-        None,
-      );
-      self.definitions_db.set(id, name, variable);
+    match variable {
+      ExportedVariableInfo::Name(name2) => {
+        if name == name2 {
+          self.definitions_db.delete(id, &name2);
+        } else {
+          let variable = VariableInfo::create(
+            &mut self.definitions_db,
+            id,
+            Some(FreeName::String(name.clone())),
+            None,
+          );
+          self.definitions_db.set(id, name.clone(), variable);
+        }
+      }
+      ExportedVariableInfo::VariableInfo(variable_info_id) => {
+        self.definitions_db.set(id, name, variable_info_id);
+      }
     }
   }
 
@@ -1010,7 +1017,7 @@ impl JavascriptParser<'_> {
                 let mut eval =
                   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
                 eval.set_identifier(
-                  name.to_owned(),
+                  ExportedVariableInfo::VariableInfo(info.id()),
                   ExportedVariableInfo::VariableInfo(info.id()),
                   None,
                   None,
@@ -1021,16 +1028,17 @@ impl JavascriptParser<'_> {
                 None
               }
             } else {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
-              eval.set_identifier(
-                ident.sym.to_string(),
-                ExportedVariableInfo::Name(name.to_string()),
-                None,
-                None,
-                None,
-              );
-              Some(eval)
+              None
+              // let mut eval =
+              //   BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.hi.0);
+              // eval.set_identifier(
+              //   IdOrString::String(ident.sym.to_string()),
+              //   ExportedVariableInfo::Name(name.to_string()),
+              //   None,
+              //   None,
+              //   None,
+              // );
+              // Some(eval)
             }
           })
       }
@@ -1039,7 +1047,7 @@ impl JavascriptParser<'_> {
         let default_eval = || {
           let mut eval = BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.hi.0);
           eval.set_identifier(
-            "this".to_string(),
+            ExportedVariableInfo::Name("this".to_string()),
             ExportedVariableInfo::Name("this".to_string()),
             None,
             None,
