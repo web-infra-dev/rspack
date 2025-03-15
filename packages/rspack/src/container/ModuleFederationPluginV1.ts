@@ -1,9 +1,5 @@
 import type { Compiler } from "../Compiler";
-import type {
-	EntryRuntime,
-	ExternalsType,
-	LibraryOptions
-} from "../config";
+import type { EntryRuntime, ExternalsType, LibraryOptions } from "../config";
 import { externalsType } from "../config/zod";
 import { SharePlugin, type Shared } from "../sharing/SharePlugin";
 import { ShareRuntimePlugin } from "../sharing/ShareRuntimePlugin";
