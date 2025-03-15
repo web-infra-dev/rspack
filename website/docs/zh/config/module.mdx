@@ -788,6 +788,10 @@ export default {
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
+      // `json` 模块的生成器选项
+      json: {
+        JSONParse: true,
+      },
     },
   },
 };
@@ -1441,6 +1445,25 @@ export default {
     generator: {
       'css/module': {
         esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator.json.JSONParse
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+当 JSON 字符串长度大于 20 时，使用 `JSON.parse`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      json: {
+        JSONParse: false,
       },
     },
   },

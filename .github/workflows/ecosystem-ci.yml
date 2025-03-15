@@ -20,6 +20,7 @@ on:
           - rslib
           - examples
           - devserver
+          - plugin
       suiteRef:
         description: "suite ref to use"
         required: true
@@ -113,6 +114,7 @@ jobs:
               "examples",
               "devserver",
               "nuxt",
+              "plugin",
             ]
             if (suiteName !== "-") {
               suites = suites.filter(suite => suite === suiteName)

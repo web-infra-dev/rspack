@@ -394,6 +394,7 @@ pub enum GeneratorOptions {
   Css(CssGeneratorOptions),
   CssAuto(CssAutoGeneratorOptions),
   CssModule(CssModuleGeneratorOptions),
+  Json(JsonGeneratorOptions),
   Unknown,
 }
 
@@ -408,6 +409,7 @@ impl GeneratorOptions {
   get_variant!(get_css, Css, CssGeneratorOptions);
   get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
   get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
+  get_variant!(get_json, Json, JsonGeneratorOptions);
 
   pub fn asset_filename(&self) -> Option<&Filename> {
     self
@@ -654,6 +656,12 @@ impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
       ..Default::default()
     }
   }
+}
+
+#[cacheable]
+#[derive(Default, Debug, Clone, MergeFrom)]
+pub struct JsonGeneratorOptions {
+  pub json_parse: Option<bool>,
 }
 
 #[cacheable]

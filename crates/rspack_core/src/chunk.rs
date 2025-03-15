@@ -143,6 +143,10 @@ impl Chunk {
     &self.groups
   }
 
+  pub fn clear_groups(&mut self) {
+    self.groups.clear();
+  }
+
   pub fn add_group(&mut self, group: ChunkGroupUkey) {
     self.groups.insert(group);
   }

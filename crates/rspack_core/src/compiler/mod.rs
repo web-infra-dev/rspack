@@ -5,9 +5,9 @@ mod rebuild;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+use futures::future::join_all;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hook::define_hook;
 use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -500,23 +500,25 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    let _ = self
-      .emitted_asset_versions
-      .iter()
-      .filter_map(|(filename, _version)| {
-        if !assets.contains_key(filename) {
-          let filename = filename.to_owned();
-          Some(async {
-            if !clean_options.keep(filename.as_str()) {
-              let filename = Utf8Path::new(&self.options.output.path).join(filename);
-              let _ = self.output_filesystem.remove_file(&filename).await;
-            }
-          })
-        } else {
-          None
-        }
-      })
-      .collect::<FuturesResults<_>>();
+    join_all(
+      self
+        .emitted_asset_versions
+        .iter()
+        .filter_map(|(filename, _version)| {
+          if !assets.contains_key(filename) {
+            let filename = filename.to_owned();
+            Some(async {
+              if !clean_options.keep(filename.as_str()) {
+                let filename = Utf8Path::new(&self.options.output.path).join(filename);
+                let _ = self.output_filesystem.remove_file(&filename).await;
+              }
+            })
+          } else {
+            None
+          }
+        }),
+    )
+    .await;
 
     Ok(())
   }

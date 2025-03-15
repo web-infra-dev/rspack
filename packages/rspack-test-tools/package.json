@@ -64,7 +64,7 @@
     "source-map": "^0.7.4",
     "terser-webpack-plugin": "^5.3.14",
     "webpack": "5.98.0",
-    "webpack-merge": "5.9.0",
+    "webpack-merge": "5.10.0",
     "webpack-sources": "3.2.3"
   },
   "devDependencies": {
