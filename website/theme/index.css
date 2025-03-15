@@ -3,38 +3,17 @@ summary {
 }
 
 :root {
-  --rp-c-brand: #ff8b00;
-  --rp-c-brand-dark: #ff8b00;
-  --rp-c-brand-darker: #c26c1d;
-  --rp-c-brand-light: #f2a65a;
-  --rp-c-brand-lighter: #f2a65a;
+  --rp-c-brand: #ff5e00;
+  --rp-c-brand-dark: #ff704d;
+  --rp-c-brand-darker: #ff704d;
+  --rp-c-brand-light: #ff7524;
+  --rp-c-brand-lighter: #ff7524;
   --rp-c-link: var(--rp-c-brand);
-  --rp-c-brand-tint: rgba(250, 192, 61, 0.15);
-  --rp-code-title-bg: rgba(250, 192, 61, 0.1);
-  --rp-code-block-bg: #fefcf5;
-  --rp-custom-block-info-bg: rgba(250, 192, 61, 0.05);
-  --rp-custom-block-info-border: rgba(250, 192, 61, 0.5);
-  --rp-home-hero-image-width: 300px;
-  --rp-home-hero-name-background: linear-gradient(
-    120deg,
-    var(--rp-c-brand),
-    hsl(32.71deg 100% 70%)
-  );
-  --rp-home-mask-background-image: conic-gradient(
-    from 180deg at 50%50%,
-    var(--rp-c-brand-light) 0deg,
-    180deg,
-    #eeea8c 0deg
-  );
+  --rp-c-brand-tint: rgba(255, 94, 0, 0.1);
 }
 
 .dark {
-  --rp-code-title-bg: rgba(128, 128, 128, 0.2);
-  --rp-code-block-bg: #242424;
-}
-
-.rspress-home-hero-text {
-  max-width: none;
+  --rp-c-link: var(--rp-c-brand-light);
 }
 
 button:focus,
