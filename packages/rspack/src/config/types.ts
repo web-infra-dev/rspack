@@ -7,6 +7,7 @@ import type { Module } from "../Module";
 import type ModuleGraph from "../ModuleGraph";
 import type { LazyCompilationDefaultBackendOptions } from "../builtin-plugin/lazy-compilation/backend";
 import type { Chunk } from "../exports";
+import type { ResolveCallback } from "./adapterRuleUse";
 
 export type FilenameTemplate = string;
 
@@ -1437,11 +1438,7 @@ export type ExternalItemFunctionData = {
 	getResolve?: (
 		options?: ResolveOptions
 	) =>
-		| ((
-				context: string,
-				request: string,
-				callback: (err?: Error, result?: string) => void
-		  ) => void)
+		| ((context: string, request: string, callback: ResolveCallback) => void)
 		| ((context: string, request: string) => Promise<string>);
 };
 
