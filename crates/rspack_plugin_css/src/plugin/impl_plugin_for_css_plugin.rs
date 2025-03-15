@@ -12,7 +12,7 @@ use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
   Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
-  SourceType,
+  Root, SourceType,
 };
 use rspack_core::{
   AssetInfo, ChunkGraph, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
@@ -238,7 +238,7 @@ impl CssPlugin {
 #[plugin_hook(CompilerCompilation for CssPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::CssUrl, params.normal_module_factory.clone());

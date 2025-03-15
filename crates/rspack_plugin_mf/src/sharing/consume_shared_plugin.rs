@@ -6,6 +6,7 @@ use std::{fmt, path::Path, sync::Arc};
 use async_trait::async_trait;
 use regex::Regex;
 use rspack_cacheable::cacheable;
+use rspack_core::Root;
 use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationParams, CompilerOptions, CompilerThisCompilation, Context, DependencyCategory,
@@ -359,7 +360,7 @@ impl ConsumeSharedPlugin {
 #[plugin_hook(CompilerThisCompilation for ConsumeSharedPlugin)]
 async fn this_compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(

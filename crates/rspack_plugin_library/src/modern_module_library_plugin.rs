@@ -7,7 +7,7 @@ use rspack_core::{
   CodeGenerationExportsFinalNames, Compilation, CompilationOptimizeChunkModules, CompilationParams,
   CompilerCompilation, CompilerFinishMake, CompilerOptions, ConcatenatedModule,
   ConcatenatedModuleExportsDefinitions, DependenciesBlock, Dependency, DependencyId,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PluginContext, Root,
 };
 use rspack_error::{error_bail, Result};
 use rspack_hash::RspackHash;
@@ -212,7 +212,7 @@ fn render_startup(
 }
 
 #[plugin_hook(CompilerFinishMake for ModernModuleLibraryPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn finish_make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let mg = compilation.get_module_graph();
   let mut deps_to_replace: Vec<BoxDependency> = Vec::new();
   let mut external_connections = HashSet::default();
@@ -371,7 +371,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
 #[plugin_hook(CompilerCompilation for ModernModuleLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

@@ -11,11 +11,13 @@ use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawStringSource, SourceExt};
-use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
+  rspack_sources::{
+    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    SourceMapSourceOptions,
+  },
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin, PluginContext,
+  CompilerCompilation, Plugin, PluginContext, Root,
 };
 use rspack_error::miette::IntoDiagnostic;
 use rspack_error::{Diagnostic, Result};
@@ -129,7 +131,7 @@ impl SwcJsMinimizerRspackPlugin {
 #[plugin_hook(CompilerCompilation for SwcJsMinimizerRspackPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
@@ -150,7 +152,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationProcessAssets for SwcJsMinimizerRspackPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 

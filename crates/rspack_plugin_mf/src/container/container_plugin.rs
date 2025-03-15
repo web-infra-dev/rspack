@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::{
   ApplyContext, ChunkUkey, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerMake,
-  CompilerOptions,
+  CompilerOptions, Root,
 };
 use rspack_core::{
   Compilation, CompilationParams, DependencyType, EntryOptions, EntryRuntime, Filename,
@@ -52,7 +52,7 @@ impl ContainerPlugin {
 #[plugin_hook(CompilerCompilation for ContainerPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
@@ -67,7 +67,7 @@ async fn compilation(
 }
 
 #[plugin_hook(CompilerMake for ContainerPlugin)]
-async fn make(&self, compilation: &mut Compilation) -> Result<()> {
+async fn make(&self, compilation: &mut Root<Compilation>) -> Result<()> {
   let dep = ContainerEntryDependency::new(
     self.options.name.clone(),
     self.options.exposes.clone(),

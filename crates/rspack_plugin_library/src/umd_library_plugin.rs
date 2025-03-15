@@ -5,7 +5,7 @@ use rspack_core::{
   ApplyContext, Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, CompilerOptions, ExternalModule, ExternalRequest,
   FilenameTemplate, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, PathData, Plugin, PluginContext, Root,
   RuntimeGlobals, SourceType,
 };
 use rspack_error::{error, Result};
@@ -83,7 +83,7 @@ impl UmdLibraryPlugin {
 #[plugin_hook(CompilerCompilation for UmdLibraryPlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   _params: &mut CompilationParams,
 ) -> Result<()> {
   let mut hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());

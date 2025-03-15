@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 
-use crate::compilation::entries::EntryOptionsDTO;
+use crate::compilation::EntryOptionsDTO;
 use crate::JsChunkGroupWrapper;
 
 #[napi]

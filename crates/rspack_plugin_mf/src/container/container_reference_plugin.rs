@@ -5,7 +5,7 @@ use rspack_core::{
   ApplyContext, BoxModule, ChunkUkey, Compilation, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerOptions, DependencyType,
   ExternalType, ModuleExt, ModuleFactoryCreateData, NormalModuleFactoryFactorize, Plugin,
-  PluginContext, RuntimeGlobals,
+  PluginContext, Root, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -45,7 +45,7 @@ impl ContainerReferencePlugin {
 #[plugin_hook(CompilerCompilation for ContainerReferencePlugin)]
 async fn compilation(
   &self,
-  compilation: &mut Compilation,
+  compilation: &mut Root<Compilation>,
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(
