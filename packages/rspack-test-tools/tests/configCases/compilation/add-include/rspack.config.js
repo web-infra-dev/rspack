@@ -12,8 +12,12 @@ class Plugin {
 
 		const modules = {};
 
-		const fooDependency = EntryPlugin.createDependency(path.resolve(__dirname, "foo.js"));
-		const barDependency = EntryPlugin.createDependency(path.resolve(__dirname, "bar.js"));
+		const fooDependency = EntryPlugin.createDependency(
+			path.resolve(__dirname, "foo.js")
+		);
+		const barDependency = EntryPlugin.createDependency(
+			path.resolve(__dirname, "bar.js")
+		);
 
 		expect(fooDependency instanceof EntryDependency).toBeTruthy();
 
@@ -63,7 +67,9 @@ class Plugin {
 				new Promise(resolve => {
 					compilation.addInclude(
 						compiler.context,
-						EntryPlugin.createDependency(path.resolve(__dirname, "no-exist.js")),
+						EntryPlugin.createDependency(
+							path.resolve(__dirname, "no-exist.js")
+						),
 						{},
 						(err, module) => {
 							expect(err.message).toMatch(/Can't resolve/);
@@ -89,10 +95,14 @@ class Plugin {
 				);
 
 				const fooModule = compilation.moduleGraph.getModule(fooDependency);
-				expect(path.normalize(fooModule.request)).toBe(path.resolve(__dirname, "./foo.js"));
+				expect(path.normalize(fooModule.request)).toBe(
+					path.resolve(__dirname, "./foo.js")
+				);
 
 				const barModule = compilation.moduleGraph.getModule(barDependency);
-				expect(path.normalize(barModule.request)).toBe(path.resolve(__dirname, "./bar.js"));
+				expect(path.normalize(barModule.request)).toBe(
+					path.resolve(__dirname, "./bar.js")
+				);
 			});
 		});
 	}
