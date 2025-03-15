@@ -26,8 +26,7 @@ impl From<ResourceData> for JsResourceData {
       path: value.resource_path.map(|p| p.as_str().to_string()),
       query: value.resource_query,
       fragment: value.resource_fragment,
-      description_file_data: description_file_data
-        .map(|data| std::sync::Arc::unwrap_or_clone(data)),
+      description_file_data: description_file_data.map(std::sync::Arc::unwrap_or_clone),
       description_file_path: description_file_path.map(|path| path.to_string_lossy().into_owned()),
     }
   }
