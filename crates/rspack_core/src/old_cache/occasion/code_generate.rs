@@ -1,8 +1,10 @@
+use std::future::Future;
+
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
+use crate::CodeGenerationJob;
 use crate::{old_cache::storage, CodeGenerationResult};
-use crate::{CodeGenerationJob, ModuleIdentifier, RuntimeSpec};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
@@ -23,28 +25,32 @@ impl CodeGenerateOccasion {
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?job.module))]
-  pub fn use_cache(
+  pub async fn use_cache<G, F>(
     &self,
-    job: CodeGenerationJob,
-    provide: impl Fn(ModuleIdentifier, &RuntimeSpec) -> Result<CodeGenerationResult>,
-  ) -> (Result<CodeGenerationResult>, Vec<RuntimeSpec>, bool) {
+    job: &CodeGenerationJob,
+    provide: G,
+  ) -> (Result<CodeGenerationResult>, bool)
+  where
+    G: FnOnce() -> F,
+    F: Future<Output = Result<CodeGenerationResult>>,
+  {
     let storage = match &self.storage {
       Some(s) => s,
       None => {
-        let res = provide(job.module, &job.runtime);
-        return (res, job.runtimes, false);
+        let res = provide().await;
+        return (res, false);
       }
     };
     let cache_key = Identifier::from(format!("{}|{}", job.module, job.hash.encoded()));
     if let Some(value) = storage.get(&cache_key) {
-      (Ok(value), job.runtimes, true)
+      (Ok(value), true)
     } else {
-      match provide(job.module, &job.runtime) {
+      match provide().await {
         Ok(res) => {
           storage.set(cache_key, res.clone());
-          (Ok(res), job.runtimes, false)
+          (Ok(res), false)
         }
-        Err(err) => (Err(err), job.runtimes, false),
+        Err(err) => (Err(err), false),
       }
     }
   }

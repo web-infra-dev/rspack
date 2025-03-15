@@ -115,7 +115,7 @@ impl Module for DelegatedModule {
     })
   }
 
-  fn code_generation(
+  async fn code_generation(
     &self,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,

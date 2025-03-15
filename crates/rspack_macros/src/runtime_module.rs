@@ -117,6 +117,7 @@ pub fn impl_runtime_module(
     }
 
     #[rspack_cacheable::cacheable_dyn]
+    #[async_trait::async_trait]
     impl #impl_generics ::rspack_core::Module for #name #ty_generics #where_clause {
       fn module_type(&self) -> &::rspack_core::ModuleType {
         &::rspack_core::ModuleType::Runtime
@@ -163,7 +164,7 @@ pub fn impl_runtime_module(
         unreachable!()
       }
 
-      fn code_generation(
+      async fn code_generation(
         &self,
         compilation: &::rspack_core::Compilation,
         _runtime: Option<&::rspack_core::RuntimeSpec>,
