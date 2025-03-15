@@ -103,6 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
+  pub copy_permissions: Option<bool>,
   #[debug(skip)]
   pub transform: Option<Transformer>,
 }
@@ -123,6 +124,7 @@ pub struct RunPatternResult {
   pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
+  pub pattern_index: usize,
 }
 
 #[plugin]
@@ -161,6 +163,7 @@ impl CopyRspackPlugin {
     diagnostics: &Mutex<Vec<Diagnostic>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
+    pattern_index: usize,
   ) -> Option<RunPatternResult> {
     // Exclude directories
     if entry.is_dir() {
@@ -350,13 +353,14 @@ impl CopyRspackPlugin {
       info: pattern.info.clone(),
       force: pattern.force,
       priority: pattern.priority,
+      pattern_index,
     })
   }
 
   async fn run_patter(
     compilation: &Compilation,
     pattern: &CopyPattern,
-    _index: usize,
+    index: usize,
     file_dependencies: &DashSet<PathBuf>,
     context_dependencies: &DashSet<PathBuf>,
     diagnostics: &Mutex<Vec<Diagnostic>>,
@@ -524,6 +528,7 @@ impl CopyRspackPlugin {
             diagnostics,
             compilation,
             logger,
+            index,
           )
           .await
         }))
@@ -627,7 +632,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   ));
 
   copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+
+  // Keep track of source to destination file mappings for permission copying
+  let mut permission_copies = Vec::new();
+
   copied_result.into_iter().for_each(|(_priority, result)| {
+    let source_path = result.absolute_filename.clone();
+    let dest_path = compilation.options.output.path.join(&result.filename);
+
     if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
       if !result.force {
         return;
@@ -655,10 +667,51 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           source: Some(Arc::new(result.source)),
           info: asset_info,
         },
-      )
+      );
     }
+
+    // Store the paths for permission copying along with the pattern index
+    permission_copies.push((result.pattern_index, source_path, dest_path));
   });
   logger.time_end(start);
+
+  // Handle permission copying after all assets are emitted
+  for (pattern_index, source_path, dest_path) in permission_copies.iter() {
+    if let Some(pattern) = self.patterns.get(*pattern_index) {
+      if pattern.copy_permissions.unwrap_or(false) {
+        if let Ok(metadata) = fs::metadata(source_path) {
+          let permissions = metadata.permissions();
+          // Make sure the output directory exists
+          if let Some(parent) = dest_path.parent() {
+            fs::create_dir_all(parent).unwrap_or_else(|e| {
+              logger.warn(format!("Failed to create directory {:?}: {}", parent, e));
+            });
+          }
+
+          // Make sure the file exists before trying to set permissions
+          if !dest_path.exists() {
+            logger.warn(format!(
+              "Destination file {:?} does not exist, cannot copy permissions",
+              dest_path
+            ));
+            continue;
+          }
+
+          if let Err(e) = fs::set_permissions(dest_path, permissions) {
+            logger.warn(format!(
+              "Failed to copy permissions from {:?} to {:?}: {}",
+              source_path, dest_path, e
+            ));
+          } else {
+            logger.log(format!(
+              "Successfully copied permissions from {:?} to {:?}",
+              source_path, dest_path
+            ));
+          }
+        }
+      }
+    }
+  }
 
   Ok(())
 }

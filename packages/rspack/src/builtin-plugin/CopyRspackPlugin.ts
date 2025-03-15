@@ -31,6 +31,7 @@ export const CopyRspackPlugin = create(
 			pattern.noErrorOnMissing ??= false;
 			pattern.priority ??= 0;
 			pattern.globOptions ??= {};
+			pattern.copyPermissions ??= false;
 
 			return pattern as RawCopyPattern;
 		});

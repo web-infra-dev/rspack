@@ -434,3 +434,27 @@ export default {
   ],
 };
 ```
+
+### copyPermissions
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Whether to copy the file permissions from the source to the destination.
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/executable.sh',
+          copyPermissions: true, // Preserves the executable permission
+        },
+      ],
+    }),
+  ],
+};
+```
+
+This is particularly useful when copying executable files, scripts, or any files where permissions are important. When set to `true`, the plugin will attempt to set the same permissions on the destination file as the source file has.
