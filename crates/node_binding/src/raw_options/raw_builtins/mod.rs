@@ -16,13 +16,18 @@ mod raw_size_limits;
 mod raw_sri;
 mod raw_swc_js_minimizer;
 
-use napi::{bindgen_prelude::FromNapiValue, Env, JsUnknown};
+use napi::{
+  bindgen_prelude::{
+    External, FromNapiValue, Function, Object, Promise, ToNapiValue, WeakReference,
+  },
+  CallContext, Env, JsUnknown,
+};
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::RawOccurrenceChunkIdsPluginOptions;
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_sri::RawSubresourceIntegrityPluginOptions;
-use rspack_core::{BoxPlugin, Plugin, PluginExt};
+use rspack_core::{BoxPlugin, CompilerId, Plugin, PluginExt};
 use rspack_error::Result;
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
@@ -106,13 +111,39 @@ use self::{
   raw_runtime_chunk::RawRuntimeChunkOptions,
   raw_size_limits::RawSizeLimitsPluginOptions,
 };
-use crate::{entry::JsEntryPluginOptions, RawRsdoctorPluginOptions};
+use crate::{entry::JsEntryPluginOptions, RawRsdoctorPluginOptions, COMPILER_REFERENCES};
 use crate::{
-  plugins::JsLoaderRspackPlugin, JsLoaderRunner, RawContextReplacementPluginOptions,
-  RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
-  RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions,
-  RawSplitChunksOptions,
+  plugins::JsLoaderRspackPlugin, JsLoaderContext, JsLoaderRunner, JsLoaderRunnerGetter,
+  RawContextReplacementPluginOptions, RawDynamicEntryPluginOptions,
+  RawEvalDevToolModulePluginOptions, RawExternalItemWrapper, RawExternalsPluginOptions,
+  RawHttpExternalsRspackPluginOptions, RawSourceMapDevToolPluginOptions, RawSplitChunksOptions,
 };
+
+#[js_function(1)]
+fn get_loader_runner(ctx: CallContext) -> napi::Result<External<JsLoaderRunner>> {
+  let external = ctx.get::<&mut External<CompilerId>>(0)?;
+  let compiler_id = &**external;
+  COMPILER_REFERENCES.with(|ref_cell| {
+    if let Some(weak_reference) = ref_cell.borrow().get(compiler_id) {
+      let compiler_object = unsafe {
+        let napi_value = ToNapiValue::to_napi_value(ctx.env.raw(), weak_reference.clone())?;
+        Object::from_napi_value(ctx.env.raw(), napi_value)?
+      };
+      let run_loader = compiler_object
+        .get_named_property::<Function<JsLoaderContext, Promise<JsLoaderContext>>>("_runLoader")?;
+      let ts_fn: JsLoaderRunner = run_loader
+        .build_threadsafe_function::<JsLoaderContext>()
+        .weak::<true>()
+        .callee_handled::<false>()
+        .max_queue_size::<0>()
+        .build()?;
+      Ok(External::new(ts_fn))
+    } else {
+      // Err(napi::Error())
+      todo!()
+    }
+  })
+}
 
 #[napi(string_enum)]
 #[derive(Debug)]
@@ -214,7 +245,12 @@ pub struct BuiltinPlugin {
 }
 
 impl BuiltinPlugin {
-  pub fn append_to(self, _env: Env, plugins: &mut Vec<BoxPlugin>) -> rspack_error::Result<()> {
+  pub fn append_to(
+    self,
+    env: Env,
+    compiler_object: &mut Object,
+    plugins: &mut Vec<BoxPlugin>,
+  ) -> rspack_error::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
@@ -522,8 +558,20 @@ impl BuiltinPlugin {
         plugins.push(plugin);
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        plugins
-          .push(JsLoaderRspackPlugin::new(downcast_into::<JsLoaderRunner>(self.options)?).boxed());
+        compiler_object
+          .set_named_property("_runLoader", self.options)
+          .unwrap();
+
+        let loader_runner_getter: JsLoaderRunnerGetter = env
+          .create_function("get_loader_runner", get_loader_runner)
+          .unwrap() // TODO
+          .build_threadsafe_function::<External<CompilerId>>()
+          .weak::<true>()
+          .callee_handled::<false>()
+          .max_queue_size::<1>()
+          .build()
+          .unwrap();
+        plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)?;

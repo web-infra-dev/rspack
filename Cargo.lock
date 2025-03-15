@@ -4606,6 +4606,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "once_cell",
  "pollster",
  "ropey",
  "rspack_allocator",
