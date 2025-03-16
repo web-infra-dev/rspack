@@ -373,8 +373,7 @@ opt-level = "s"
 [profile.ci]
 codegen-units = 256
 inherits      = "release"
-## reduce little optimization to reduce build time
-lto = "thin"
+lto           = false
 ## reduce little optimization to reduce build time
 opt-level = 2
 
