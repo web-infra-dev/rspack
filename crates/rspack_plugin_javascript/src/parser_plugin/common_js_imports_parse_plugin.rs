@@ -3,6 +3,7 @@ use rspack_core::{
 };
 use rspack_core::{ContextNameSpaceObject, ContextOptions};
 use rspack_error::{DiagnosticExt, Severity};
+use rspack_util::atom::Atom;
 use swc_core::common::{Span, Spanned};
 use swc_core::ecma::ast::{CallExpr, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr};
 
@@ -273,13 +274,13 @@ impl CommonJsImportsParserPlugin {
     let callee = expr.callee()?;
     let is_require_expr = for_name == expr_name::REQUIRE || expr_matcher::is_module_require(callee); // FIXME: remove `module.require`
     let args = expr.args()?;
-
     if !is_require_expr || args.len() != 1 {
       return None;
     }
 
     let argument_expr = &args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
+
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
@@ -441,6 +442,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        None,
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.to_string(),
@@ -448,6 +450,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("resolve")]),
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE_WEAK.to_string(),
@@ -455,6 +458,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         Some(true),
         start,
         end,
+        Some(vec![Atom::from("resolveWeak")]),
       )),
       _ => None,
     }

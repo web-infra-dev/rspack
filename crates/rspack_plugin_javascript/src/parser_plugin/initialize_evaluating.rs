@@ -1,8 +1,12 @@
 use cow_utils::CowUtils;
 use rspack_core::SpanExt;
+use swc_core::ecma::ast::Ident;
 
 use super::JavascriptParserPlugin;
-use crate::utils::eval::BasicEvaluatedExpression;
+use crate::{
+  utils::eval::{self, BasicEvaluatedExpression},
+  visitors::{scope_info::FreeName, CallHooksName, ExportedVariableInfo},
+};
 
 const SLICE_METHOD_NAME: &str = "slice";
 const REPLACE_METHOD_NAME: &str = "replace";
