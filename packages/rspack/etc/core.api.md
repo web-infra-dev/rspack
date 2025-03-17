@@ -9,6 +9,7 @@
 import type { Abortable } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
+import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -43,7 +44,6 @@ import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
-import type { JsDependenciesBlock } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
@@ -245,6 +245,8 @@ interface Assumptions {
 
 // @public
 export type AsyncChunks = boolean;
+
+export { AsyncDependenciesBlock }
 
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
@@ -478,7 +480,7 @@ class ChunkGraph {
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
     // (undocumented)
-    getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null;
+    getBlockChunkGroup(depBlock: AsyncDependenciesBlock): ChunkGroup | null;
     // (undocumented)
     getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
     // (undocumented)
@@ -1343,18 +1345,6 @@ export type DefinePluginOptions = Record<string, CodeValue>;
 
 // @public
 export type Dependencies = Name[];
-
-// @public (undocumented)
-class DependenciesBlock {
-    // (undocumented)
-    static __from_binding(binding: JsDependenciesBlock): DependenciesBlock;
-    // (undocumented)
-    static __to_binding(block: DependenciesBlock): JsDependenciesBlock;
-    // (undocumented)
-    readonly blocks: DependenciesBlock[];
-    // (undocumented)
-    readonly dependencies: Dependency[];
-}
 
 export { Dependency }
 
@@ -4894,6 +4884,7 @@ declare namespace rspackExports {
         RuntimeModule,
         EntryDependency,
         Dependency,
+        AsyncDependenciesBlock,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
