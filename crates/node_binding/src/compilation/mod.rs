@@ -45,35 +45,22 @@ use crate::{JsRspackDiagnostic, JsRspackError};
 
 #[napi]
 pub struct JsCompilation {
+  #[allow(dead_code)]
   pub(crate) id: CompilationId,
   pub(crate) inner: NonNull<Compilation>,
 }
 
 impl JsCompilation {
   fn as_ref(&self) -> napi::Result<&'static Compilation> {
-    let compilation = unsafe { self.inner.as_ref() };
-    if compilation.id() == self.id {
-      return Ok(compilation);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-      self.id,
-      compilation.id()
-    )))
+    // SAFETY: The memory address of rspack_core::Compilation will not change,
+    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
+    Ok(unsafe { self.inner.as_ref() })
   }
 
   fn as_mut(&mut self) -> napi::Result<&'static mut Compilation> {
-    let compilation = unsafe { self.inner.as_mut() };
-    if compilation.id() == self.id {
-      return Ok(compilation);
-    }
-
-    Err(napi::Error::from_reason(format!(
-      "Unable to access compilation with id = {:?} now. The compilation have been removed on the Rust side. The latest compilation id is {:?}",
-      self.id,
-      compilation.id()
-    )))
+    // SAFETY: The memory address of rspack_core::Compilation will not change,
+    // so as long as the Compiler is not dropped, we can safely return a 'static reference.
+    Ok(unsafe { self.inner.as_mut() })
   }
 }
 
