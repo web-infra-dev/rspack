@@ -9,7 +9,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use futures::future::join_all;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -1931,12 +1930,23 @@ impl Compilation {
       }
     }
     // create hash for other chunks
-    let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      join_all(other_chunks.into_iter().map(|chunk| async {
-        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-        Ok((*chunk, hash_result))
-      }))
-      .await;
+
+    let other_chunks_hash_results = rspack_futures::scope::<_, _>(|token| {
+      other_chunks.iter().for_each(|chunk| {
+        // SAFETY: await immediately and trust caller to poll future entirely
+        let s = unsafe { token.used((&self, &plugin_driver, chunk)) };
+
+        s.spawn(|(this, plugin_driver, chunk)| async {
+          let hash_result = this.process_chunk_hash(**chunk, plugin_driver).await?;
+          Ok((**chunk, hash_result))
+        });
+      })
+    })
+    .await;
+    let other_chunks_hash_results = other_chunks_hash_results
+      .into_iter()
+      .map(|result| result.map_err(rspack_error::miette::Error::from_err))
+      .collect::<Result<Vec<_>>>()?;
     try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 
