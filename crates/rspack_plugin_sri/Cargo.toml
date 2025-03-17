@@ -23,6 +23,7 @@ rspack_collections              = { workspace = true }
 rspack_core                     = { workspace = true }
 rspack_error                    = { workspace = true }
 rspack_fs                       = { workspace = true }
+rspack_hash                     = { workspace = true }
 rspack_hook                     = { workspace = true }
 rspack_paths                    = { workspace = true }
 rspack_plugin_html              = { workspace = true }
@@ -32,6 +33,7 @@ rspack_util                     = { workspace = true }
 rustc-hash                      = { workspace = true }
 serde_json                      = { workspace = true }
 sha2                            = { workspace = true }
+tokio                           = { workspace = true }
 tracing                         = { workspace = true }
 urlencoding                     = { workspace = true }
 

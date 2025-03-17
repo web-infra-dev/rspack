@@ -18,10 +18,12 @@ rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
+rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_util        = { workspace = true }
 serde_json         = { workspace = true }
 swc_core           = { workspace = true, features = ["__ecma"] }
+tokio              = { workspace = true }
 tracing            = { workspace = true }
 wasmparser         = "0.222.0"
 

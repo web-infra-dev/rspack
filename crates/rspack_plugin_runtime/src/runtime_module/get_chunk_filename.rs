@@ -73,6 +73,7 @@ impl GetChunkFilenameRuntimeModule {
   }
 }
 
+#[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn name(&self) -> Identifier {
     self.id
@@ -89,7 +90,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     true
   }
 
-  fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
+  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<BoxSource> {
     let chunks = self
       .chunk
       .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(&chunk_ukey))

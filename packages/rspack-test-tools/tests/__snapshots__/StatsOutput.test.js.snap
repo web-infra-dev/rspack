@@ -58,7 +58,7 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (27eddb11e03f28d2)
+Rspack compiled successfully (b647003278ae1d01)
 `;
 
 exports[`statsOutput statsOutput/builtin-swc-loader-parse-error should print correct stats for 1`] = `

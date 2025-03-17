@@ -90,7 +90,7 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
-fn render_chunk(
+async fn render_chunk(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -112,7 +112,7 @@ fn render_chunk(
     .has_chunk_runtime_modules(chunk_ukey)
   {
     sources.add(RawStringSource::from_static("exports.runtime = "));
-    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey)?);
+    sources.add(render_chunk_runtime_modules(compilation, chunk_ukey).await?);
     sources.add(RawStringSource::from_static(";\n"));
   }
 

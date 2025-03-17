@@ -190,7 +190,7 @@ impl Task<MakeTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let runtime_module_source = runtime_module.generate(&compilation)?;
+      let runtime_module_source = runtime_module.generate(&compilation).await?;
       runtime_module_size.insert(
         runtime_module.identifier(),
         runtime_module_source.size() as f64,

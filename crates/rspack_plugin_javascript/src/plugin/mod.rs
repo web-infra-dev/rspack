@@ -617,7 +617,7 @@ impl JsPlugin {
       .chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
-      sources.add(render_runtime_modules(compilation, chunk_ukey)?);
+      sources.add(render_runtime_modules(compilation, chunk_ukey).await?);
       sources.add(RawStringSource::from(
         "/************************************************************************/\n",
       ));
@@ -1141,7 +1141,8 @@ impl JsPlugin {
     };
     hooks
       .render_chunk
-      .call(compilation, chunk_ukey, &mut render_source)?;
+      .call(compilation, chunk_ukey, &mut render_source)
+      .await?;
     let source_with_fragments = render_init_fragments(
       render_source.source,
       chunk_init_fragments,
