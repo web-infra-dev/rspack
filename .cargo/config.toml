@@ -61,3 +61,6 @@ rustflags = ["-C", "target-feature=+crt-static"]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+[unstable]
+gitoxide = true # use faster git implementation to speedup cargo build, related to https://github.com/rust-lang/cargo/issues/9177#issuecomment-1592956106
