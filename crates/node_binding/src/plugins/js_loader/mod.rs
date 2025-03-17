@@ -4,7 +4,7 @@ mod scheduler;
 
 use std::fmt::Debug;
 
-pub use context::JsLoaderContext;
+pub use context::{JsLoaderContext, JsLoaderItem};
 use napi::{bindgen_prelude::*, threadsafe_function::ThreadsafeFunction};
 use once_cell::sync::OnceCell;
 use rspack_core::{

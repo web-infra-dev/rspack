@@ -8,7 +8,7 @@ pub use context_replacement::*;
 pub use js_cleanup_plugin::*;
 pub use js_hooks_plugin::*;
 pub(super) use js_loader::{
-  JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRunner, JsLoaderRunnerGetter,
+  JsLoaderContext, JsLoaderItem, JsLoaderRspackPlugin, JsLoaderRunner, JsLoaderRunnerGetter,
 };
 pub mod buildtime_plugins;
 pub use interceptor::*;

@@ -12,10 +12,10 @@ use rspack_core::{
   CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
   DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonParserOptions,
-  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -346,6 +346,21 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
 
 #[derive(Debug, Default)]
 #[napi(object)]
+pub struct RawJsonGeneratorOptions {
+  #[napi(js_name = "JSONParse")]
+  pub json_parse: Option<bool>,
+}
+
+impl From<RawJsonGeneratorOptions> for JsonGeneratorOptions {
+  fn from(value: RawJsonGeneratorOptions) -> Self {
+    Self {
+      json_parse: value.json_parse,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrl>,
 }
@@ -466,7 +481,7 @@ impl From<RawJsonParserOptions> for JsonParserOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
   #[napi(
-    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module""#
+    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
@@ -475,6 +490,7 @@ pub struct RawGeneratorOptions {
   pub css: Option<RawCssGeneratorOptions>,
   pub css_auto: Option<RawCssAutoGeneratorOptions>,
   pub css_module: Option<RawCssModuleGeneratorOptions>,
+  pub json: Option<RawJsonGeneratorOptions>,
 }
 
 impl From<RawGeneratorOptions> for GeneratorOptions {
@@ -518,6 +534,12 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
         value
           .css_module
           .expect("should have an \"css_module\" when RawGeneratorOptions.type is \"css/module\"")
+          .into(),
+      ),
+      "json" => Self::Json(
+        value
+          .json
+          .expect("should have an \"json\" when RawGeneratorOptions.type is \"json\"")
           .into(),
       ),
       _ => panic!(

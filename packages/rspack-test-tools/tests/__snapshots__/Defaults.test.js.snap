@@ -168,7 +168,11 @@ Object {
         },
       },
     ],
-    generator: Object {},
+    generator: Object {
+      json: Object {
+        JSONParse: true,
+      },
+    },
     noParse: undefined,
     parser: Object {
       asset: Object {

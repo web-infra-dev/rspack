@@ -764,6 +764,16 @@ impl NormalModuleFactory {
             _ => unreachable!(),
           },
         ),
+        ModuleType::Json => rspack_util::merge_from_optional_with(
+          g.get("json").cloned(),
+          options,
+          |json_options, options| match (json_options, options) {
+            (GeneratorOptions::Json(a), GeneratorOptions::Json(b)) => {
+              GeneratorOptions::Json(a.merge_from(b))
+            }
+            _ => unreachable!(),
+          },
+        ),
         _ => options.cloned(),
       }
     });
@@ -798,9 +808,8 @@ impl NormalModuleFactory {
         | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
         | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
         | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
-        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_)) => {
-          global.merge_from(local)
-        }
+        | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
+        | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
         _ => global,
       },
     );

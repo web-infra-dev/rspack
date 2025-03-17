@@ -47,7 +47,7 @@ where
 mod test {
   use std::time::SystemTime;
 
-  use rspack_futures::FuturesResults;
+  use futures::future::join_all;
   use tokio::time::{sleep, Duration};
 
   use super::FutureConsumer;
@@ -76,14 +76,12 @@ mod test {
     let time1 = SystemTime::now().duration_since(start).unwrap();
 
     let start = SystemTime::now();
-    let data = vec![100, 200]
-      .into_iter()
-      .map(|item| async move {
-        sleep(Duration::from_millis(item)).await;
-        item
-      })
-      .collect::<FuturesResults<_>>();
-    for _ in data.into_inner() {
+    let data = join_all(vec![100, 200].into_iter().map(|item| async move {
+      sleep(Duration::from_millis(item)).await;
+      item
+    }))
+    .await;
+    for _ in data.iter() {
       sleep(Duration::from_millis(20)).await;
     }
     let time2 = SystemTime::now().duration_since(start).unwrap();

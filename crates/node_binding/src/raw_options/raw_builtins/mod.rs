@@ -17,9 +17,7 @@ mod raw_sri;
 mod raw_swc_js_minimizer;
 
 use napi::{
-  bindgen_prelude::{
-    External, FromNapiValue, Function, Object, Promise, ToNapiValue, WeakReference,
-  },
+  bindgen_prelude::{External, FromNapiValue, Function, Object, Promise, ToNapiValue},
   CallContext, Env, JsUnknown,
 };
 use napi_derive::napi;
