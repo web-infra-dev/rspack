@@ -438,3 +438,27 @@ export default {
   ],
 };
 ```
+
+### copyPermissions
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否将源文件的权限复制到目标文件。
+
+```js title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: 'src/executable.sh',
+          copyPermissions: true, // 保留可执行权限
+        },
+      ],
+    }),
+  ],
+};
+```
+
+这对于复制可执行文件、脚本或任何权限重要的文件特别有用。当设置为 `true` 时，插件将尝试在目标文件上设置与源文件相同的权限。
