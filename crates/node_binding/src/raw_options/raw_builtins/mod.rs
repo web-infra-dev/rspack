@@ -137,8 +137,9 @@ fn get_loader_runner(ctx: CallContext) -> napi::Result<External<JsLoaderRunner>>
         .build()?;
       Ok(External::new(ts_fn))
     } else {
-      // Err(napi::Error())
-      todo!()
+      Err(napi::Error::from_reason(
+        "Failed to get loader runner: the Compiler has been garbage collected by JavaScript.",
+      ))
     }
   })
 }
@@ -248,36 +249,58 @@ impl BuiltinPlugin {
     env: Env,
     compiler_object: &mut Object,
     plugins: &mut Vec<BoxPlugin>,
-  ) -> rspack_error::Result<()> {
+  ) -> napi::Result<()> {
     match self.name {
       // webpack also have these plugins
       BuiltinPluginName::DefinePlugin => {
-        let plugin = DefinePlugin::new(downcast_into(self.options)?).boxed();
+        let plugin = DefinePlugin::new(
+          downcast_into(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ProvidePlugin => {
-        let plugin = ProvidePlugin::new(downcast_into(self.options)?).boxed();
+        let plugin = ProvidePlugin::new(
+          downcast_into(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::BannerPlugin => {
-        let plugin =
-          BannerPlugin::new(downcast_into::<RawBannerPluginOptions>(self.options)?.try_into()?)
-            .boxed();
+        let plugin = BannerPlugin::new(
+          downcast_into::<RawBannerPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .try_into()
+            .map_err(|report: rspack_error::miette::Error| {
+              napi::Error::from_reason(report.to_string())
+            })?,
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::IgnorePlugin => {
-        let plugin =
-          IgnorePlugin::new(downcast_into::<RawIgnorePluginOptions>(self.options)?.into()).boxed();
+        let plugin = IgnorePlugin::new(
+          downcast_into::<RawIgnorePluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ProgressPlugin => {
-        let plugin =
-          ProgressPlugin::new(downcast_into::<RawProgressPluginOptions>(self.options)?.into())
-            .boxed();
+        let plugin = ProgressPlugin::new(
+          downcast_into::<RawProgressPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::EntryPlugin => {
-        let plugin_options = downcast_into::<JsEntryPluginOptions>(self.options)?;
+        let plugin_options = downcast_into::<JsEntryPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let context = plugin_options.context.into();
         let entry_request = plugin_options.entry;
         let options = plugin_options.options.into();
@@ -286,36 +309,44 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::DynamicEntryPlugin => {
         let plugin = DynamicEntryPlugin::new(
-          downcast_into::<RawDynamicEntryPluginOptions>(self.options)?.into(),
+          downcast_into::<RawDynamicEntryPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::ExternalsPlugin => {
-        let plugin_options = downcast_into::<RawExternalsPluginOptions>(self.options)?;
+        let plugin_options = downcast_into::<RawExternalsPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let externals = plugin_options
           .externals
           .into_iter()
           .map(|e| RawExternalItemWrapper(e).try_into())
-          .collect::<Result<Vec<_>>>()?;
+          .collect::<Result<Vec<_>>>()
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let plugin = ExternalsPlugin::new(plugin_options.r#type, externals).boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
       BuiltinPluginName::ElectronTargetPlugin => {
-        let context = downcast_into::<String>(self.options)?;
+        let context = downcast_into::<String>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         electron_target_plugin(context.into(), plugins);
       }
       BuiltinPluginName::EnableChunkLoadingPlugin => {
-        let chunk_loading_type = downcast_into::<String>(self.options)?;
+        let chunk_loading_type = downcast_into::<String>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
       }
       BuiltinPluginName::EnableLibraryPlugin => {
-        let library_type = downcast_into::<String>(self.options)?;
+        let library_type = downcast_into::<String>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         enable_library_plugin(library_type, plugins);
       }
       BuiltinPluginName::EnableWasmLoadingPlugin => {
-        let wasm_loading_type = downcast_into::<String>(self.options)?;
+        let wasm_loading_type = downcast_into::<String>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(enable_wasm_loading_plugin(
           wasm_loading_type.as_str().into(),
         ));
@@ -340,7 +371,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::LimitChunkCountPlugin => {
         let plugin = LimitChunkCountPlugin::new(
-          downcast_into::<RawLimitChunkCountPluginOptions>(self.options)?.into(),
+          downcast_into::<RawLimitChunkCountPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed();
         plugins.push(plugin);
@@ -356,31 +389,44 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
-        let options = downcast_into::<RawSplitChunksOptions>(self.options)?.into();
+        let options = downcast_into::<RawSplitChunksOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?
+          .into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
       BuiltinPluginName::RemoveDuplicateModulesPlugin => {
         plugins.push(RemoveDuplicateModulesPlugin::default().boxed());
       }
-      BuiltinPluginName::ShareRuntimePlugin => {
-        plugins.push(ShareRuntimePlugin::new(downcast_into::<bool>(self.options)?).boxed())
-      }
+      BuiltinPluginName::ShareRuntimePlugin => plugins.push(
+        ShareRuntimePlugin::new(
+          downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::ContainerPlugin => {
         plugins.push(
-          ContainerPlugin::new(downcast_into::<RawContainerPluginOptions>(self.options)?.into())
-            .boxed(),
+          ContainerPlugin::new(
+            downcast_into::<RawContainerPluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?
+              .into(),
+          )
+          .boxed(),
         );
       }
       BuiltinPluginName::ContainerReferencePlugin => {
         plugins.push(
           ContainerReferencePlugin::new(
-            downcast_into::<RawContainerReferencePluginOptions>(self.options)?.into(),
+            downcast_into::<RawContainerReferencePluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?
+              .into(),
           )
           .boxed(),
         );
       }
       BuiltinPluginName::ProvideSharedPlugin => {
-        let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)?
+        let mut provides: Vec<_> = downcast_into::<Vec<RawProvideOptions>>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?
           .into_iter()
           .map(Into::into)
           .collect();
@@ -389,7 +435,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::ConsumeSharedPlugin => plugins.push(
         ConsumeSharedPlugin::new(
-          downcast_into::<RawConsumeSharedPluginOptions>(self.options)?.into(),
+          downcast_into::<RawConsumeSharedPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed(),
       ),
@@ -416,7 +464,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::OccurrenceChunkIdsPlugin => plugins.push(
         OccurrenceChunkIdsPlugin::new(
-          downcast_into::<RawOccurrenceChunkIdsPluginOptions>(self.options)?.into(),
+          downcast_into::<RawOccurrenceChunkIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed(),
       ),
@@ -446,7 +496,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {
         let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into();
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
@@ -458,7 +510,9 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::EvalSourceMapDevToolPlugin => {
         let options: SourceMapDevToolPluginOptions =
-          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)?.into();
+          downcast_into::<RawSourceMapDevToolPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into();
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
@@ -471,7 +525,9 @@ impl BuiltinPlugin {
       BuiltinPluginName::EvalDevToolModulePlugin => {
         plugins.push(
           EvalDevToolModulePlugin::new(
-            downcast_into::<RawEvalDevToolModulePluginOptions>(self.options)?.into(),
+            downcast_into::<RawEvalDevToolModulePluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?
+              .into(),
           )
           .boxed(),
         );
@@ -482,63 +538,96 @@ impl BuiltinPlugin {
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())
       }
-      BuiltinPluginName::FlagDependencyUsagePlugin => {
-        plugins.push(FlagDependencyUsagePlugin::new(downcast_into::<bool>(self.options)?).boxed())
-      }
-      BuiltinPluginName::MangleExportsPlugin => {
-        plugins.push(MangleExportsPlugin::new(downcast_into::<bool>(self.options)?).boxed())
-      }
+      BuiltinPluginName::FlagDependencyUsagePlugin => plugins.push(
+        FlagDependencyUsagePlugin::new(
+          downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::MangleExportsPlugin => plugins.push(
+        MangleExportsPlugin::new(
+          downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::ModuleConcatenationPlugin => {
         plugins.push(ModuleConcatenationPlugin::default().boxed())
       }
       BuiltinPluginName::CssModulesPlugin => plugins.push(CssPlugin::default().boxed()),
       BuiltinPluginName::APIPlugin => plugins.push(APIPlugin::default().boxed()),
       BuiltinPluginName::RuntimeChunkPlugin => plugins.push(
-        RuntimeChunkPlugin::new(downcast_into::<RawRuntimeChunkOptions>(self.options)?.into())
-          .boxed(),
+        RuntimeChunkPlugin::new(
+          downcast_into::<RawRuntimeChunkOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
       ),
       BuiltinPluginName::SizeLimitsPlugin => {
-        let plugin =
-          SizeLimitsPlugin::new(downcast_into::<RawSizeLimitsPluginOptions>(self.options)?.into())
-            .boxed();
+        let plugin = SizeLimitsPlugin::new(
+          downcast_into::<RawSizeLimitsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed();
         plugins.push(plugin)
       }
 
       // rspack specific plugins
       BuiltinPluginName::HttpExternalsRspackPlugin => {
-        let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)?;
+        let plugin_options = downcast_into::<RawHttpExternalsRspackPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let plugin = http_externals_rspack_plugin(plugin_options.css, plugin_options.web_async);
         plugins.push(plugin);
       }
       BuiltinPluginName::SwcJsMinimizerRspackPlugin => {
         let plugin = SwcJsMinimizerRspackPlugin::new(
-          downcast_into::<RawSwcJsMinimizerRspackPluginOptions>(self.options)?.try_into()?,
+          downcast_into::<RawSwcJsMinimizerRspackPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .try_into()
+            .map_err(|report: rspack_error::miette::Error| {
+              napi::Error::from_reason(report.to_string())
+            })?,
         )
         .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::LightningCssMinimizerRspackPlugin => plugins.push(
         LightningCssMinimizerRspackPlugin::new(
-          downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)?.try_into()?,
+          downcast_into::<RawLightningCssMinimizerRspackPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .try_into()
+            .map_err(|report: rspack_error::miette::Error| {
+              napi::Error::from_reason(report.to_string())
+            })?,
         )
         .boxed(),
       ),
       BuiltinPluginName::CopyRspackPlugin => {
         let plugin = CopyRspackPlugin::new(
-          CopyRspackPluginOptions::from(downcast_into::<RawCopyRspackPluginOptions>(self.options)?)
-            .patterns,
+          CopyRspackPluginOptions::from(
+            downcast_into::<RawCopyRspackPluginOptions>(self.options)
+              .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+          )
+          .patterns,
         )
         .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::HtmlRspackPlugin => {
-        let plugin =
-          HtmlRspackPlugin::new(downcast_into::<RawHtmlRspackPluginOptions>(self.options)?.into())
-            .boxed();
+        let plugin = HtmlRspackPlugin::new(
+          downcast_into::<RawHtmlRspackPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::BundlerInfoRspackPlugin => {
-        let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)?;
+        let plugin_options = downcast_into::<RawBundlerInfoPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(
           BundlerInfoPlugin::new(
             plugin_options.version,
@@ -550,29 +639,30 @@ impl BuiltinPlugin {
       }
       BuiltinPluginName::CssExtractRspackPlugin => {
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
-          downcast_into::<RawCssExtractPluginOption>(self.options)?.into(),
+          downcast_into::<RawCssExtractPluginOption>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
         )
         .boxed();
         plugins.push(plugin);
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        compiler_object
-          .set_named_property("_runLoader", self.options)
-          .unwrap();
+        // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
+        // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
+        compiler_object.set_named_property("_runLoader", self.options)?;
 
         let loader_runner_getter: JsLoaderRunnerGetter = env
-          .create_function("get_loader_runner", get_loader_runner)
-          .unwrap() // TODO
+          .create_function("get_loader_runner", get_loader_runner)?
           .build_threadsafe_function::<External<CompilerId>>()
           .weak::<true>()
           .callee_handled::<false>()
           .max_queue_size::<1>()
-          .build()
-          .unwrap();
+          .build()?;
         plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
-        let options = downcast_into::<RawLazyCompilationOption>(self.options)?;
+        let options = downcast_into::<RawLazyCompilationOption>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let js_backend = JsBackend::from(&options);
         plugins.push(Box::new(
           rspack_plugin_lazy_compilation::plugin::LazyCompilationPlugin::new(
@@ -588,41 +678,53 @@ impl BuiltinPlugin {
         plugins.push(NoEmitOnErrorsPlugin::default().boxed());
       }
       BuiltinPluginName::ContextReplacementPlugin => {
-        let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)?;
-        let options = raw_options.try_into()?;
+        let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let options = raw_options
+          .try_into()
+          .map_err(|report: rspack_error::miette::Error| {
+            napi::Error::from_reason(report.to_string())
+          })?;
         plugins.push(ContextReplacementPlugin::new(options).boxed());
       }
       BuiltinPluginName::DllEntryPlugin => {
-        let raw_options = downcast_into::<RawDllEntryPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawDllEntryPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(DllEntryPlugin::new(options).boxed());
       }
       BuiltinPluginName::LibManifestPlugin => {
-        let raw_options = downcast_into::<RawLibManifestPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawLibManifestPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(LibManifestPlugin::new(options).boxed());
       }
       BuiltinPluginName::FlagAllModulesAsUsedPlugin => {
-        let raw_options = downcast_into::<RawFlagAllModulesAsUsedPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawFlagAllModulesAsUsedPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(FlagAllModulesAsUsedPlugin::new(raw_options.explanation).boxed())
       }
       BuiltinPluginName::DllReferenceAgencyPlugin => {
-        let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawDllReferenceAgencyPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(DllReferenceAgencyPlugin::new(options).boxed());
       }
       BuiltinPluginName::RsdoctorPlugin => {
-        let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawRsdoctorPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(RsdoctorPlugin::new(options).boxed());
       }
       BuiltinPluginName::SubresourceIntegrityPlugin => {
-        let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)?;
+        let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         let options = raw_options.into();
         plugins.push(SubresourceIntegrityPlugin::new(options).boxed());
       }
       BuiltinPluginName::ModuleInfoHeaderPlugin => {
-        let verbose = downcast_into::<bool>(self.options)?;
+        let verbose = downcast_into::<bool>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
         plugins.push(ModuleInfoHeaderPlugin::new(verbose).boxed());
       }
     }

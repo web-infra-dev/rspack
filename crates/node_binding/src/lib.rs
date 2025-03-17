@@ -153,8 +153,7 @@ impl JsCompiler {
     plugins.push(js_cleanup_plugin.boxed());
 
     for bp in builtin_plugins {
-      bp.append_to(env, &mut this, &mut plugins)
-        .map_err(|e| Error::from_reason(format!("{e}")))?;
+      bp.append_to(env, &mut this, &mut plugins)?;
     }
 
     let compiler_options: rspack_core::CompilerOptions = options

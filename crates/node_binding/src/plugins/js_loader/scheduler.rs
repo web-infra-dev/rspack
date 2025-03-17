@@ -3,7 +3,7 @@ use rspack_core::{
   diagnostics::CapturedLoaderError, AdditionalData, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext, BUILTIN_LOADER_PREFIX,
 };
-use rspack_error::{error, Result};
+use rspack_error::{error, miette::IntoDiagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
@@ -38,28 +38,31 @@ pub(crate) async fn loader_yield(
       let new_cx = runner
         .call_async(loader_context.try_into()?)
         .await
-        .unwrap()
+        .into_diagnostic()?
         .await
-        .unwrap();
+        .into_diagnostic()?;
       merge_loader_context(loader_context, new_cx)?;
     }
     None => {
       drop(read_guard);
+
+      #[allow(clippy::unwrap_used)]
       let compiler_id = self.compiler_id.get().unwrap();
+      #[allow(clippy::unwrap_used)]
       let runner = self
         .runner_getter
         .call_async(External::new(*compiler_id))
         .await
-        .unwrap()
+        .into_diagnostic()?
         .take()
         .unwrap();
 
       let new_cx = runner
         .call_async(loader_context.try_into()?)
         .await
-        .unwrap()
+        .into_diagnostic()?
         .await
-        .unwrap();
+        .into_diagnostic()?;
       merge_loader_context(loader_context, new_cx)?;
 
       let mut write_guard = self.runner.write().await;
