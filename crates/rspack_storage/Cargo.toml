@@ -13,7 +13,6 @@ async-trait  = { workspace = true }
 cow-utils    = { workspace = true }
 futures      = { workspace = true }
 itertools    = { workspace = true }
-pollster     = { workspace = true }
 rayon        = { workspace = true }
 rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
