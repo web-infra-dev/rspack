@@ -29,7 +29,6 @@ import { ExternalObject } from '@rspack/binding';
 import fs from 'graceful-fs';
 import { fs as fs_2 } from 'fs';
 import { HookMap } from '@rspack/lite-tapable';
-import type { IncomingMessage } from 'node:http';
 import { inspect } from 'node:util';
 import type { JsAddingRuntimeModule } from '@rspack/binding';
 import type { JsAfterEmitData } from '@rspack/binding';
@@ -60,6 +59,7 @@ import type { JsStatsError } from '@rspack/binding';
 import type { JsStatsWarning } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { Logger as Logger_2 } from './logging/Logger';
+import type { Middleware } from 'webpack-dev-server';
 import { Module } from '@rspack/binding';
 import { NormalModule } from '@rspack/binding';
 import { RawCopyPattern } from '@rspack/binding';
@@ -73,7 +73,6 @@ import { RawRuntimeChunkOptions } from '@rspack/binding';
 import { RawSubresourceIntegrityPluginOptions } from '@rspack/binding';
 import { Resolver as Resolver_2 } from './Resolver';
 import { RspackOptionsNormalized as RspackOptionsNormalized_2 } from '.';
-import type { ServerResponse } from 'node:http';
 import { RawSourceMapDevToolPluginOptions as SourceMapDevToolPluginOptions } from '@rspack/binding';
 import sources = require('../compiled/webpack-sources');
 import { SyncBailHook } from '@rspack/lite-tapable';
@@ -3123,17 +3122,15 @@ type KnownStatsProfile = {
 export type Layer = string | null;
 
 // @public (undocumented)
-const lazyCompilationMiddleware: (compiler: Compiler, options?: LazyCompilationOptions) => (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
+const lazyCompilationMiddleware: (compiler: Compiler, userOptions?: LazyCompilationOptions | boolean) => Middleware;
 
 // @public
 export type LazyCompilationOptions = {
     imports?: boolean;
     entries?: boolean;
     test?: RegExp | ((module: Module) => boolean);
-    backend?: {
-        client?: string;
-        host?: string;
-    };
+    client?: string;
+    serverUrl?: string;
 };
 
 // @public

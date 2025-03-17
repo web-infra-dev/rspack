@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Middleware } from "webpack-dev-server";
 import type { Compiler, LazyCompilationOptions } from "../..";
 import type { Module } from "../../Module";
 import { BuiltinLazyCompilationPlugin } from "./lazyCompilation";
@@ -12,10 +13,25 @@ const getDefaultClient = (compiler: Compiler): string =>
 		}.js`
 	);
 
+const noop = (
+	_req: IncomingMessage,
+	_res: ServerResponse,
+	next?: (err?: any) => void
+) => {
+	if (typeof next === "function") {
+		next();
+	}
+};
+
 export const lazyCompilationMiddleware = (
 	compiler: Compiler,
-	options: LazyCompilationOptions = {}
-) => {
+	userOptions: LazyCompilationOptions | boolean = {}
+): Middleware => {
+	if (userOptions === false) {
+		return noop;
+	}
+
+	const options = userOptions === true ? {} : userOptions;
 	const activeModules = new Map();
 	const filesByKey: Map<string, string> = new Map();
 	new BuiltinLazyCompilationPlugin(
@@ -26,7 +42,7 @@ export const lazyCompilationMiddleware = (
 			filesByKey.set(key, path);
 			const active = activeModules.get(key) > 0;
 			return {
-				client: `${options.backend?.client || getDefaultClient(compiler)}?${encodeURIComponent((options.backend?.host ?? "") + LAZY_COMPILATION_PREFIX)}`,
+				client: `${options.client || getDefaultClient(compiler)}?${encodeURIComponent((options.serverUrl ?? "") + LAZY_COMPILATION_PREFIX)}`,
 				data: key,
 				active
 			};
