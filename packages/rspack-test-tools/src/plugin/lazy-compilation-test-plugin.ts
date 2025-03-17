@@ -29,14 +29,12 @@ export class LazyCompilationTestPlugin {
 							: `${protocol}://${addr.address}:${addr.port}`;
 
 				middleware = experiments.lazyCompilationMiddleware(compiler, {
-					...options,
-					// @ts-expect-error no cache
+					// @ts-expect-error cacheable is hidden config only for tests
 					cacheable: false,
-					backend: {
-						...options.backend,
-						host: urlBase
-					}
+					serverUrl: urlBase,
+					...options
 				});
+
 				resolve(null);
 			});
 			server.on("request", (req, res) => {

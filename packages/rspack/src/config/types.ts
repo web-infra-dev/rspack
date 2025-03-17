@@ -2473,16 +2473,15 @@ export type LazyCompilationOptions = {
 	 */
 	test?: RegExp | ((module: Module) => boolean);
 
-	backend?: {
-		/**
-		 * The runtime code path for client
-		 */
-		client?: string;
-		/**
-		 * The host url
-		 */
-		host?: string;
-	};
+	/**
+	 * The runtime code path for client
+	 */
+	client?: string;
+
+	/**
+	 * The server url
+	 */
+	serverUrl?: string;
 };
 
 /**
