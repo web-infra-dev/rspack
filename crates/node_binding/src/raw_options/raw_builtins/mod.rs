@@ -118,7 +118,7 @@ use crate::{
 };
 
 #[js_function(1)]
-fn get_loader_runner(ctx: CallContext) -> napi::Result<External<JsLoaderRunner>> {
+fn get_loader_runner(ctx: CallContext) -> napi::Result<External<Option<JsLoaderRunner>>> {
   let external = ctx.get::<&mut External<CompilerId>>(0)?;
   let compiler_id = &**external;
   COMPILER_REFERENCES.with(|ref_cell| {
@@ -135,7 +135,7 @@ fn get_loader_runner(ctx: CallContext) -> napi::Result<External<JsLoaderRunner>>
         .callee_handled::<false>()
         .max_queue_size::<0>()
         .build()?;
-      Ok(External::new(ts_fn))
+      Ok(External::new(Some(ts_fn)))
     } else {
       Err(napi::Error::from_reason(
         "Failed to get loader runner: the Compiler has been garbage collected by JavaScript.",

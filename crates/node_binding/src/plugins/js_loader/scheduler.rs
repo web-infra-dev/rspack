@@ -46,6 +46,8 @@ pub(crate) async fn loader_yield(
     None => {
       drop(read_guard);
 
+      let mut write_guard = self.runner.write().await;
+
       #[allow(clippy::unwrap_used)]
       let compiler_id = self.compiler_id.get().unwrap();
       #[allow(clippy::unwrap_used)]
@@ -65,7 +67,6 @@ pub(crate) async fn loader_yield(
         .into_diagnostic()?;
       merge_loader_context(loader_context, new_cx)?;
 
-      let mut write_guard = self.runner.write().await;
       *write_guard = Some(runner);
     }
   };
