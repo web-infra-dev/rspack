@@ -19,7 +19,7 @@ rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_paths = { workspace = true }
 rustc-hash   = { workspace = true }
-tokio        = { workspace = true }
+tokio        = { workspace = true, features = ["time"] }
 tracing      = { workspace = true }
 
 [dev-dependencies]
