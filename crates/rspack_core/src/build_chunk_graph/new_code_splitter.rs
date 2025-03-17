@@ -1,8 +1,9 @@
-use std::borrow::Cow;
-use std::hash::BuildHasherDefault;
-use std::iter::once;
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
+use std::{
+  borrow::Cow,
+  hash::BuildHasherDefault,
+  iter::once,
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use dashmap::mapref::one::Ref;
 use indexmap::IndexSet;
@@ -12,18 +13,18 @@ use rspack_collections::{
   DatabaseItem, IdentifierDashMap, IdentifierHasher, IdentifierIndexMap, IdentifierIndexSet,
   IdentifierMap, IdentifierSet, Ukey, UkeyMap,
 };
-use rspack_error::Result;
-use rspack_error::{error, Diagnostic};
+use rspack_error::{error, Diagnostic, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_available_modules::remove_available_modules;
-use crate::incremental::{IncrementalPasses, Mutation};
 use crate::{
-  assign_depths, merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup,
-  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
-  DependenciesBlock, DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime,
-  GroupOptions, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  RuntimeSpec, SyntheticDependencyLocation,
+  assign_depths,
+  incremental::{IncrementalPasses, Mutation},
+  merge_runtime, AsyncDependenciesBlockIdentifier, Chunk, ChunkGroup, ChunkGroupKind,
+  ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, DependenciesBlock,
+  DependencyLocation, EntryData, EntryDependency, EntryOptions, EntryRuntime, GroupOptions,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  SyntheticDependencyLocation,
 };
 
 type ModuleDeps = HashMap<

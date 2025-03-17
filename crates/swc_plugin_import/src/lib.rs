@@ -22,8 +22,10 @@ use swc_core::{
   },
 };
 
-use crate::legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case};
-use crate::visit::IdentComponent;
+use crate::{
+  legacy_case::{identifier_to_legacy_kebab_case, identifier_to_legacy_snake_case},
+  visit::IdentComponent,
+};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

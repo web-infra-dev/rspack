@@ -2,8 +2,7 @@ use std::io::Write;
 
 use anyhow::Context;
 use miette::IntoDiagnostic;
-use termcolor::{Buffer, ColorSpec, StandardStreamLock, WriteColor};
-use termcolor::{ColorChoice, StandardStream};
+use termcolor::{Buffer, ColorChoice, ColorSpec, StandardStream, StandardStreamLock, WriteColor};
 
 use crate::Diagnostic;
 

@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_paths::Utf8Path;

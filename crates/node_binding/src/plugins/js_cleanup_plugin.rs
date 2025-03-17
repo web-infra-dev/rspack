@@ -1,12 +1,11 @@
 use async_trait::async_trait;
 use derive_more::Debug;
-use napi::bindgen_prelude::External;
-use napi::threadsafe_function::ThreadsafeFunction;
+use napi::{bindgen_prelude::External, threadsafe_function::ThreadsafeFunction};
 use rspack_collections::IdentifierSet;
-use rspack_core::{ApplyContext, CompilerOptions, PluginContext};
-use rspack_core::{CompilationRevokedModules, ModuleIdentifier};
-use rspack_hook::plugin;
-use rspack_hook::plugin_hook;
+use rspack_core::{
+  ApplyContext, CompilationRevokedModules, CompilerOptions, ModuleIdentifier, PluginContext,
+};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_napi::NapiResultExt;
 
 pub type CleanupRevokedModulesTsFn = ThreadsafeFunction<

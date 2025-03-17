@@ -1,12 +1,14 @@
 use std::{hash::Hash, sync::Arc};
 
 use anyhow::Error;
-use swc_core::common::{
-  errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
+use swc_core::{
+  common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS},
+  ecma::{
+    ast::{Module, Program as SwcProgram},
+    transforms::base::helpers::{HelperData, Helpers, HELPERS},
+    visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
+  },
 };
-use swc_core::ecma::ast::{Module, Program as SwcProgram};
-use swc_core::ecma::transforms::base::helpers::{HelperData, Helpers, HELPERS};
-use swc_core::ecma::visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith};
 use swc_error_reporters::handler::try_with_handler;
 use swc_node_comments::SwcComments;
 

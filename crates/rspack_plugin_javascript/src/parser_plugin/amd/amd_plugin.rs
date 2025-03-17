@@ -1,10 +1,14 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, SpanExt};
-use swc_core::ecma::ast::{CallExpr, Expr, MemberExpr};
-use swc_core::{common::Spanned, ecma::ast::UnaryExpr};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{CallExpr, Expr, MemberExpr, UnaryExpr},
+};
 
-use crate::utils::eval::{evaluate_to_identifier, evaluate_to_string, BasicEvaluatedExpression};
-use crate::visitors::JavascriptParser;
-use crate::JavascriptParserPlugin;
+use crate::{
+  utils::eval::{evaluate_to_identifier, evaluate_to_string, BasicEvaluatedExpression},
+  visitors::JavascriptParser,
+  JavascriptParserPlugin,
+};
 
 pub struct AMDParserPlugin;
 

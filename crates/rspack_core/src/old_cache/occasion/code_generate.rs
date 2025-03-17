@@ -3,8 +3,7 @@ use std::future::Future;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 
-use crate::CodeGenerationJob;
-use crate::{old_cache::storage, CodeGenerationResult};
+use crate::{old_cache::storage, CodeGenerationJob, CodeGenerationResult};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 

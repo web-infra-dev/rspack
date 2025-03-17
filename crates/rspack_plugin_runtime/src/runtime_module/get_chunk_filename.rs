@@ -13,8 +13,7 @@ use rspack_core::{
 use rspack_util::{infallible::ResultInfallibleExt, itoa};
 use rustc_hash::FxHashMap;
 
-use super::stringify_dynamic_chunk_map;
-use super::stringify_static_chunk_map;
+use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
 use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;

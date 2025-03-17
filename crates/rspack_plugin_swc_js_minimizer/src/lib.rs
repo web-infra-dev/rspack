@@ -2,31 +2,36 @@
 
 mod minify;
 
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::path::Path;
-use std::sync::{mpsc, LazyLock, Mutex};
+use std::{
+  collections::HashMap,
+  hash::Hash,
+  path::Path,
+  sync::{mpsc, LazyLock, Mutex},
+};
 
 use cow_utils::CowUtils;
 use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_core::rspack_sources::{ConcatSource, MapOptions, RawStringSource, SourceExt};
-use rspack_core::rspack_sources::{Source, SourceMapSource, SourceMapSourceOptions};
 use rspack_core::{
+  rspack_sources::{
+    ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    SourceMapSourceOptions,
+  },
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin, PluginContext,
 };
-use rspack_error::miette::IntoDiagnostic;
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{miette::IntoDiagnostic, Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JsPlugin};
 use rspack_util::asset_condition::AssetConditions;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_core::base::config::JsMinifyFormatOptions;
-pub use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaVersion};
-pub use swc_ecma_minifier::option::MangleOptions;
+pub use swc_ecma_minifier::option::{
+  terser::{TerserCompressorOptions, TerserEcmaVersion},
+  MangleOptions,
+};
 
 use self::minify::{match_object, minify};
 

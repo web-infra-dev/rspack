@@ -1,11 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
-use rspack_core::{AsContextDependency, Dependency, FactorizeInfo};
 use rspack_core::{
-  Compilation, DependencyRange, DependencyType, ExternalRequest, ExternalType, ImportAttributes,
-  RuntimeSpec,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyType, ExternalRequest, ExternalType, FactorizeInfo,
+  ImportAttributes, ModuleDependency, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_core::{DependencyCategory, DependencyId, DependencyTemplate};
-use rspack_core::{ModuleDependency, TemplateContext, TemplateReplaceSource};
 use rspack_plugin_javascript::dependency::create_resource_identifier_for_esm_dependency;
 use swc_core::ecma::atoms::Atom;
 

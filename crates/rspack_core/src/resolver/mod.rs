@@ -1,25 +1,25 @@
 mod boxfs;
 mod factory;
 mod resolver_impl;
-use std::borrow::Borrow;
-use std::fmt;
-use std::fs;
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::LazyLock;
+use std::{
+  borrow::Borrow,
+  fmt, fs,
+  path::PathBuf,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_error::{Error, MietteExt};
-use rspack_loader_runner::DescriptionData;
-use rspack_loader_runner::ResourceData;
-use rspack_paths::AssertUtf8;
-use rspack_paths::Utf8PathBuf;
+use rspack_loader_runner::{DescriptionData, ResourceData};
+use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 
-pub use self::factory::{ResolveOptionsWithDependencyType, ResolverFactory};
-pub use self::resolver_impl::{ResolveInnerOptions, Resolver};
+pub use self::{
+  factory::{ResolveOptionsWithDependencyType, ResolverFactory},
+  resolver_impl::{ResolveInnerOptions, Resolver},
+};
 use crate::{
   Context, DependencyCategory, DependencyType, ErrorSpan, ModuleIdentifier, Resolve,
   SharedPluginDriver,

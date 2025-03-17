@@ -24,8 +24,7 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{ext::DynHash, itoa, source_map::SourceMapKind, swc::join_atom};
-use rustc_hash::FxHasher;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
   ecma::{

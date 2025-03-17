@@ -8,11 +8,11 @@ use rspack_sources::{BoxSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, BuildInfo,
-  BuildMeta, CodeGenerationResult, Context, DependenciesBlock, DependencyId, Module,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info, module_update_hash,
+  BuildInfo, BuildMeta, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, Module, ModuleIdentifier, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType,
 };
-use crate::{module_update_hash, Compilation, ConcatenationScope, FactoryMeta};
 
 #[impl_source_map_config]
 #[cacheable]

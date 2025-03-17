@@ -1,6 +1,5 @@
 pub mod base64 {
-  use std::borrow::Cow;
-  use std::sync::LazyLock;
+  use std::{borrow::Cow, sync::LazyLock};
 
   use base64_simd::{Base64 as Raw, Error, STANDARD};
   use regex::Regex;

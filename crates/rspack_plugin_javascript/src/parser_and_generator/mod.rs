@@ -1,30 +1,33 @@
-use std::borrow::Cow;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
-use rspack_cacheable::with::Skip;
-use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::diagnostics::map_box_diagnostics_to_module_parse_diagnostics;
-use rspack_core::rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  remove_bom, render_init_fragments, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  ChunkGraph, Compilation, DependenciesBlock, DependencyId, DependencyRange, GenerateContext,
-  Module, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
+  remove_bom, render_init_fragments,
+  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, ChunkGraph, Compilation,
+  DependenciesBlock, DependencyId, DependencyRange, GenerateContext, Module, ModuleGraph,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::miette::Diagnostic;
-use rspack_error::{DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc_core::common::comments::Comments;
-use swc_core::common::input::SourceFileInput;
-use swc_core::common::{FileName, SyntaxContext};
-use swc_core::ecma::ast;
-use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Syntax};
+use rspack_error::{
+  miette::Diagnostic, DiagnosticExt, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
+use swc_core::{
+  common::{comments::Comments, input::SourceFileInput, FileName, SyntaxContext},
+  ecma::{
+    ast,
+    parser::{lexer::Lexer, EsSyntax, Syntax},
+  },
+};
 use swc_node_comments::SwcComments;
 
-use crate::dependency::ESMCompatibilityDependency;
-use crate::visitors::{scan_dependencies, swc_visitor::resolver};
-use crate::visitors::{semicolon, ScanDependenciesResult};
-use crate::{BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo};
+use crate::{
+  dependency::ESMCompatibilityDependency,
+  visitors::{scan_dependencies, semicolon, swc_visitor::resolver, ScanDependenciesResult},
+  BoxJavascriptParserPlugin, SideEffectsFlagPluginVisitor, SyntaxContextInfo,
+};
 
 #[cacheable]
 #[derive(Default)]

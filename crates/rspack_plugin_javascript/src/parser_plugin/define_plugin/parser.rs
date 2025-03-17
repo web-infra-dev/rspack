@@ -1,6 +1,10 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::LazyLock;
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, LazyLock,
+  },
+};
 
 use itertools::Itertools as _;
 use regex::Regex;

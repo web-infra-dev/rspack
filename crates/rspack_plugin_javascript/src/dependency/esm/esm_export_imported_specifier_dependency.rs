@@ -1,5 +1,4 @@
-use std::hash::BuildHasherDefault;
-use std::sync::Arc;
+use std::{hash::BuildHasherDefault, sync::Arc};
 
 use indexmap::{IndexMap, IndexSet};
 use rspack_cacheable::{
