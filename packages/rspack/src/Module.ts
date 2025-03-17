@@ -1,13 +1,8 @@
 import * as binding from "@rspack/binding";
 import type { Source } from "webpack-sources";
+import type { ResourceData } from "./Resolver";
 import { JsSource } from "./util/source";
 
-export type ResourceData = {
-	resource: string;
-	path: string;
-	query?: string;
-	fragment?: string;
-};
 export type ResourceDataWithData = ResourceData & {
 	data?: Record<string, any>;
 };
