@@ -6,6 +6,7 @@ import { ChunkGraph } from "../ChunkGraph";
 import type { Compilation, PathData } from "../Compilation";
 import { Module } from "../Module";
 import ModuleGraph from "../ModuleGraph";
+import type { ResolveCallback } from "./adapterRuleUse";
 import type * as t from "./types";
 import { ZodRspackCrossChecker } from "./utils";
 
@@ -886,14 +887,7 @@ const externalItemFunctionData = z.strictObject({
 				.or(
 					z
 						.function()
-						.args(
-							z.string(),
-							z.string(),
-							z
-								.function()
-								.args(z.instanceof(Error).optional(), z.string().optional())
-								.returns(z.void())
-						)
+						.args(z.string(), z.string(), z.custom<ResolveCallback>())
 						.returns(z.void())
 				)
 		)

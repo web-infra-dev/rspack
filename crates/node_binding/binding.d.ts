@@ -338,7 +338,7 @@ export declare class JsModuleGraphConnection {
 }
 
 export declare class JsResolver {
-  resolveSync(path: string, request: string): string | false
+  resolveSync(path: string, request: string): JsResourceData | false
   withOptions(raw?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
 }
 
@@ -888,6 +888,8 @@ export interface JsResourceData {
   query?: string
   /** Resource fragment with `#` prefix */
   fragment?: string
+  descriptionFileData?: any
+  descriptionFilePath?: string
 }
 
 export interface JsRsdoctorAsset {
