@@ -5,8 +5,8 @@ use napi_derive::napi;
 use rspack_core::{ChunkGraph, Compilation, SourceType};
 
 use crate::{
-  JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsDependenciesBlock, JsRuntimeSpec, ModuleObject,
-  ModuleObjectRef,
+  AsyncDependenciesBlock, JsChunk, JsChunkGroupWrapper, JsChunkWrapper, JsRuntimeSpec,
+  ModuleObject, ModuleObjectRef,
 };
 
 #[napi]
@@ -164,7 +164,7 @@ impl JsChunkGraph {
   #[napi(ts_return_type = "JsChunkGroup | null")]
   pub fn get_block_chunk_group(
     &self,
-    js_block: &JsDependenciesBlock,
+    js_block: &AsyncDependenciesBlock,
   ) -> napi::Result<Option<JsChunkGroupWrapper>> {
     let compilation = self.as_ref()?;
     Ok(

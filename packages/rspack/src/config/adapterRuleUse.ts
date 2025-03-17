@@ -1,9 +1,9 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
-import type { ResolveRequest } from "enhanced-resolve";
 
 import type { Compilation } from "../Compilation";
 import type { Compiler } from "../Compiler";
 import type { Module } from "../Module";
+import type { ResolveRequest } from "../Resolver";
 import { resolvePluginImport } from "../builtin-loader";
 import {
 	type FeatureOptions,

@@ -870,7 +870,7 @@ impl Compilation {
   }
 
   #[instrument("Compilation:code_generation", skip_all)]
-  fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
+  async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
     let logger = self.get_logger("rspack.Compilation");
     let mut codegen_cache_counter = match self.options.cache {
       CacheOptions::Disabled => None,
@@ -891,8 +891,12 @@ impl Compilation {
       }
     }
 
-    self.code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)?;
-    self.code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)?;
+    self
+      .code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)
+      .await?;
+    self
+      .code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)
+      .await?;
 
     if let Some(counter) = codegen_cache_counter {
       logger.cache_end(counter);
@@ -901,7 +905,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub(crate) fn code_generation_modules(
+  pub(crate) async fn code_generation_modules(
     &mut self,
     cache_counter: &mut Option<CacheCount>,
     modules: IdentifierSet,
@@ -930,34 +934,47 @@ impl Compilation {
       }
       jobs.extend(map.into_values());
     }
-    let results = jobs
-      .into_par_iter()
-      .map(|job| {
-        let module = job.module;
-        (
-          module,
-          self
-            .old_cache
+
+    let results = rspack_futures::scope::<_, _>(|token| {
+      jobs.into_iter().for_each(|job| {
+        // SAFETY: await immediately and trust caller to poll future entirely
+        let s = unsafe { token.used((&self, &module_graph, job)) };
+
+        s.spawn(|(this, module_graph, job)| async {
+          let options = &this.options;
+          let old_cache = &this.old_cache;
+
+          let module = module_graph
+            .module_by_identifier(&job.module)
+            .expect("should have module");
+          let codegen_res = old_cache
             .code_generate_occasion
-            .use_cache(job, |module, runtime| {
-              let module = module_graph
-                .module_by_identifier(&module)
-                .expect("should have module");
+            .use_cache(&job, || async {
               module
-                .code_generation(self, Some(runtime), None)
+                .code_generation(this, Some(&job.runtime), None)
+                .await
                 .map(|mut codegen_res| {
                   codegen_res.set_hash(
-                    &self.options.output.hash_function,
-                    &self.options.output.hash_digest,
-                    &self.options.output.hash_salt,
+                    &options.output.hash_function,
+                    &options.output.hash_digest,
+                    &options.output.hash_salt,
                   );
                   codegen_res
                 })
-            }),
-        )
+            })
+            .await;
+
+          (job.module, job.runtimes, codegen_res)
+        })
       })
-      .collect::<Vec<_>>();
-    for (module, (codegen_res, runtimes, from_cache)) in results {
+    })
+    .await;
+    let results = results
+      .into_iter()
+      .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+      .collect::<Result<Vec<_>>>()?;
+
+    for (module, runtimes, (codegen_res, from_cache)) in results {
       if let Some(counter) = cache_counter {
         if from_cache {
           counter.hit();
@@ -1513,7 +1530,7 @@ impl Compilation {
     } else {
       self.get_module_graph().modules().keys().copied().collect()
     };
-    self.code_generation(code_generation_modules)?;
+    self.code_generation(code_generation_modules).await?;
 
     plugin_driver
       .compilation_hooks
@@ -1633,7 +1650,7 @@ impl Compilation {
     self
       .create_hash(create_hash_chunks, plugin_driver.clone())
       .await?;
-    self.runtime_modules_code_generation()?;
+    self.runtime_modules_code_generation().await?;
     logger.time_end(start);
 
     let start = logger.time("create module assets");
@@ -2134,18 +2151,38 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  pub fn runtime_modules_code_generation(&mut self) -> Result<()> {
-    self.runtime_modules_code_generation_source = self
-      .runtime_modules
-      .par_iter()
-      .map(|(runtime_module_identifier, runtime_module)| -> Result<_> {
-        let result = runtime_module.code_generation(self, None, None)?;
-        let source = result
-          .get(&SourceType::Runtime)
-          .expect("should have source");
-        Ok((*runtime_module_identifier, source.clone()))
-      })
-      .collect::<Result<_>>()?;
+  pub async fn runtime_modules_code_generation(&mut self) -> Result<()> {
+    let results = rspack_futures::scope::<_, Result<_>>(|token| {
+      self
+        .runtime_modules
+        .iter()
+        .for_each(|(runtime_module_identifier, runtime_module)| {
+          let s = unsafe { token.used((&self, runtime_module_identifier, runtime_module)) };
+          s.spawn(
+            |(compilation, runtime_module_identifier, runtime_module)| async {
+              let result = runtime_module
+                .code_generation(compilation, None, None)
+                .await?;
+              let source = result
+                .get(&SourceType::Runtime)
+                .expect("should have source");
+              Ok((*runtime_module_identifier, source.clone()))
+            },
+          )
+        })
+    })
+    .await
+    .into_iter()
+    .map(|res| res.map_err(rspack_error::miette::Error::from_err))
+    .collect::<Result<Vec<_>>>()?;
+
+    let mut runtime_module_sources = IdentifierMap::<BoxSource>::default();
+    for result in results {
+      let (runtime_module_identifier, source) = result?;
+      runtime_module_sources.insert(runtime_module_identifier, source);
+    }
+
+    self.runtime_modules_code_generation_source = runtime_module_sources;
     self
       .code_generated_modules
       .extend(self.runtime_modules.keys().copied());

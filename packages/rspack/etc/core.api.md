@@ -9,6 +9,7 @@
 import type { Abortable } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import { AssetInfo } from '@rspack/binding';
+import { AsyncDependenciesBlock } from '@rspack/binding';
 import { AsyncParallelHook } from '@rspack/lite-tapable';
 import { AsyncSeriesBailHook } from '@rspack/lite-tapable';
 import * as binding from '@rspack/binding';
@@ -43,7 +44,6 @@ import { JsChunk } from '@rspack/binding';
 import type { JsChunkGraph } from '@rspack/binding';
 import type { JsChunkGroup } from '@rspack/binding';
 import { JsCompilation } from '@rspack/binding';
-import type { JsDependenciesBlock } from '@rspack/binding';
 import type { JsExportsInfo } from '@rspack/binding';
 import { JsHtmlPluginTag } from '@rspack/binding';
 import { JsLoaderItem } from '@rspack/binding';
@@ -246,6 +246,8 @@ interface Assumptions {
 // @public
 export type AsyncChunks = boolean;
 
+export { AsyncDependenciesBlock }
+
 // @public
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 
@@ -267,7 +269,7 @@ export const BannerPlugin: {
     new (args: BannerPluginArgument): {
         name: BuiltinPluginName;
         _args: [args: BannerPluginArgument];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -314,32 +316,6 @@ interface BaseModuleConfig {
     preserveImportMeta?: boolean;
     strict?: boolean;
     strictMode?: boolean;
-}
-
-// @public (undocumented)
-interface BaseResolveRequest {
-    	// (undocumented)
-    __innerRequest?: string;
-    	// (undocumented)
-    __innerRequest_relativePath?: string;
-    	// (undocumented)
-    __innerRequest_request?: string;
-    	// (undocumented)
-    context?: object;
-    	// (undocumented)
-    descriptionFileData?: JsonObject;
-    	// (undocumented)
-    descriptionFilePath?: string;
-    	// (undocumented)
-    descriptionFileRoot?: string;
-    	// (undocumented)
-    fullySpecified?: boolean;
-    	// (undocumented)
-    ignoreSymlinks?: boolean;
-    	// (undocumented)
-    path: string | false;
-    	// (undocumented)
-    relativePath?: string;
 }
 
 // @public
@@ -504,7 +480,7 @@ class ChunkGraph {
     // (undocumented)
     static __from_binding(binding: JsChunkGraph): ChunkGraph;
     // (undocumented)
-    getBlockChunkGroup(depBlock: DependenciesBlock): ChunkGroup | null;
+    getBlockChunkGroup(depBlock: AsyncDependenciesBlock): ChunkGroup | null;
     // (undocumented)
     getChunkEntryDependentChunksIterable(chunk: Chunk): Iterable<Chunk>;
     // (undocumented)
@@ -1216,7 +1192,7 @@ export const ContextReplacementPlugin: {
     new (resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any): {
         name: BuiltinPluginName;
         _args: [resourceRegExp: RegExp, newContentResource?: any, newContentRecursive?: any, newContentRegExp?: any];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1227,7 +1203,7 @@ export const CopyRspackPlugin: {
     new (copy: CopyRspackPluginOptions): {
         name: BuiltinPluginName;
         _args: [copy: CopyRspackPluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1358,7 +1334,7 @@ export const DefinePlugin: {
     new (define: DefinePluginOptions): {
         name: BuiltinPluginName;
         _args: [define: DefinePluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1369,18 +1345,6 @@ export type DefinePluginOptions = Record<string, CodeValue>;
 
 // @public
 export type Dependencies = Name[];
-
-// @public (undocumented)
-class DependenciesBlock {
-    // (undocumented)
-    static __from_binding(binding: JsDependenciesBlock): DependenciesBlock;
-    // (undocumented)
-    static __to_binding(block: DependenciesBlock): JsDependenciesBlock;
-    // (undocumented)
-    readonly blocks: DependenciesBlock[];
-    // (undocumented)
-    readonly dependencies: Dependency[];
-}
 
 export { Dependency }
 
@@ -1579,7 +1543,7 @@ const ElectronTargetPlugin: {
     new (context?: string | undefined): {
         name: BuiltinPluginName;
         _args: [context?: string | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1600,7 +1564,7 @@ const EnableChunkLoadingPluginInner: {
     new (type: string): {
         name: BuiltinPluginName;
         _args: [type: string];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
@@ -1633,7 +1597,7 @@ const EnableWasmLoadingPlugin: {
     new (type: string): {
         name: BuiltinPluginName;
         _args: [type: string];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1871,7 +1835,7 @@ export const EvalDevToolModulePlugin: {
     new (options: EvalDevToolModulePluginOptions): {
         name: BuiltinPluginName;
         _args: [options: EvalDevToolModulePluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -1884,7 +1848,7 @@ export const EvalSourceMapDevToolPlugin: {
     new (options: SourceMapDevToolPluginOptions): {
         name: BuiltinPluginName;
         _args: [options: SourceMapDevToolPluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -2053,7 +2017,7 @@ export type ExternalItemFunctionData = {
         issuer: string;
         issuerLayer?: string | null;
     };
-    getResolve?: (options?: ResolveOptions) => ((context: string, request: string, callback: (err?: Error, result?: string) => void) => void) | ((context: string, request: string) => Promise<string>);
+    getResolve?: (options?: ResolveOptions) => ((context: string, request: string, callback: ResolveCallback) => void) | ((context: string, request: string) => Promise<string>);
 };
 
 // @public
@@ -2138,7 +2102,7 @@ const FetchCompileAsyncWasmPlugin: {
     new (): {
         name: BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -2339,7 +2303,7 @@ const HtmlRspackPluginImpl: {
     new (c?: HtmlRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
         _args: [c?: HtmlRspackPluginOptions | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
@@ -2402,7 +2366,7 @@ export const IgnorePlugin: {
     new (options: IgnorePluginOptions): {
         name: BuiltinPluginName;
         _args: [options: IgnorePluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -2722,7 +2686,7 @@ interface JsMinifyOptions {
 }
 
 // @public (undocumented)
-type JsonArray = JsonValue_2[];
+type JsonArray = JsonValue[];
 
 // @public
 export type JsonGeneratorOptions = {
@@ -2730,22 +2694,10 @@ export type JsonGeneratorOptions = {
 };
 
 // @public (undocumented)
-type JsonObject = { [index: string]: JsonValue } & {
-    	[index: string]:
-    		| undefined
-    		| null
-    		| string
-    		| number
-    		| boolean
-    		| JsonObject
-    		| JsonValue[];
-};
-
-// @public (undocumented)
-type JsonObject_2 = {
-    [Key in string]: JsonValue_2;
+type JsonObject = {
+    [Key in string]: JsonValue;
 } & {
-    [Key in string]?: JsonValue_2 | undefined;
+    [Key in string]?: JsonValue | undefined;
 };
 
 // @public (undocumented)
@@ -2758,10 +2710,7 @@ export type JsonParserOptions = {
 type JsonPrimitive = string | number | boolean | null;
 
 // @public (undocumented)
-type JsonValue = null | string | number | boolean | JsonObject | JsonValue[];
-
-// @public (undocumented)
-type JsonValue_2 = JsonPrimitive | JsonObject_2 | JsonArray;
+type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 // @public (undocumented)
 type KnownAssetInfo = {
@@ -3262,7 +3211,7 @@ export const LightningCssMinimizerRspackPlugin: {
     new (options?: LightningCssMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
         _args: [options?: LightningCssMinimizerRspackPluginOptions | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -3299,7 +3248,7 @@ const LimitChunkCountPlugin: {
     new (options: LimitChunkCountOptions): {
         name: BuiltinPluginName;
         _args: [options: LimitChunkCountOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -3858,7 +3807,7 @@ const NativeSubresourceIntegrityPlugin: {
     new (options: NativeSubresourceIntegrityPluginOptions): {
         name: BuiltinPluginName;
         _args: [options: NativeSubresourceIntegrityPluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
@@ -3919,7 +3868,7 @@ const NodeTargetPlugin: {
     new (): {
         name: BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -3942,7 +3891,7 @@ export const NoEmitOnErrorsPlugin: {
     new (): {
         name: BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -4118,7 +4067,7 @@ const OriginEntryPlugin: {
     new (context: string, entry: string, options?: string | EntryOptions | undefined): {
         name: BuiltinPluginName;
         _args: [context: string, entry: string, options?: string | EntryOptions | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -4309,24 +4258,6 @@ export interface OutputNormalized {
 }
 
 // @public (undocumented)
-interface ParsedIdentifier {
-    	// (undocumented)
-    directory: boolean;
-    	// (undocumented)
-    file: boolean;
-    	// (undocumented)
-    fragment: string;
-    	// (undocumented)
-    internal: boolean;
-    	// (undocumented)
-    module: boolean;
-    	// (undocumented)
-    query: string;
-    	// (undocumented)
-    request: string;
-}
-
-// @public (undocumented)
 type ParserConfig = TsParserConfig | EsParserConfig;
 
 // @public
@@ -4432,7 +4363,7 @@ export const ProgressPlugin: {
     new (progress?: ProgressPluginArgument): {
         name: BuiltinPluginName;
         _args: [progress?: ProgressPluginArgument];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -4446,7 +4377,7 @@ export const ProvidePlugin: {
     new (provide: ProvidePluginOptions): {
         name: BuiltinPluginName;
         _args: [provide: ProvidePluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -4654,10 +4585,10 @@ type ReadFileSync = {
 type ReadJson = (path: PathOrFileDescriptor, callback: ReadJsonCallback) => void;
 
 // @public (undocumented)
-type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject_2) => void;
+type ReadJsonCallback = (err: NodeJS.ErrnoException | Error | null, data?: JsonObject) => void;
 
 // @public (undocumented)
-type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject_2;
+type ReadJsonSync = (path: PathOrFileDescriptor) => JsonObject;
 
 // @public (undocumented)
 type Readlink = {
@@ -4719,7 +4650,7 @@ const RemoveDuplicateModulesPlugin: {
     new (): {
         name: BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -4802,7 +4733,7 @@ class Resolver {
 }
 
 // @public (undocumented)
-type ResolveRequest = BaseResolveRequest & Partial<ParsedIdentifier>;
+type ResolveRequest = ResourceData;
 
 // @public (undocumented)
 class ResolverFactory {
@@ -4820,12 +4751,7 @@ export type ResolveTsConfig = string | {
 };
 
 // @public (undocumented)
-type ResourceData = {
-    resource: string;
-    path: string;
-    query?: string;
-    fragment?: string;
-};
+type ResourceData = binding.JsResourceData;
 
 // @public (undocumented)
 export type ResourceDataWithData = ResourceData & {
@@ -4865,7 +4791,7 @@ const RsdoctorPluginImpl: {
     new (c?: RsdoctorPluginOptions | undefined): {
         name: BuiltinPluginName;
         _args: [c?: RsdoctorPluginOptions | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler): BuiltinPlugin;
         apply(compiler: Compiler): void;
     };
@@ -4958,6 +4884,7 @@ declare namespace rspackExports {
         RuntimeModule,
         EntryDependency,
         Dependency,
+        AsyncDependenciesBlock,
         ModuleFilenameHelpers,
         Template,
         WebpackError,
@@ -5475,7 +5402,7 @@ const RuntimeChunkPlugin: {
     new (options: RawRuntimeChunkOptions): {
         name: BuiltinPluginName;
         _args: [options: RawRuntimeChunkOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -5624,7 +5551,7 @@ const RuntimePluginImpl: {
     new (): {
         name: binding.BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): binding.BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -5802,7 +5729,7 @@ export const SourceMapDevToolPlugin: {
     new (options: SourceMapDevToolPluginOptions): {
         name: BuiltinPluginName;
         _args: [options: SourceMapDevToolPluginOptions];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -6117,7 +6044,7 @@ export const SwcJsMinimizerRspackPlugin: {
     new (options?: SwcJsMinimizerRspackPluginOptions | undefined): {
         name: BuiltinPluginName;
         _args: [options?: SwcJsMinimizerRspackPluginOptions | undefined];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
@@ -6614,7 +6541,7 @@ export const WarnCaseSensitiveModulesPlugin: {
     new (): {
         name: BuiltinPluginName;
         _args: [];
-        affectedHooks: "done" | "environment" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "compilation" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
+        affectedHooks: "done" | "compilation" | "make" | "compile" | "emit" | "afterEmit" | "invalid" | "thisCompilation" | "afterDone" | "normalModuleFactory" | "contextModuleFactory" | "initialize" | "shouldEmit" | "infrastructureLog" | "beforeRun" | "run" | "assetEmitted" | "failed" | "shutdown" | "watchRun" | "watchClose" | "environment" | "afterEnvironment" | "afterPlugins" | "afterResolvers" | "beforeCompile" | "afterCompile" | "finishMake" | "entryOption" | "additionalPass" | undefined;
         raw(compiler: Compiler_2): BuiltinPlugin;
         apply(compiler: Compiler_2): void;
     };
