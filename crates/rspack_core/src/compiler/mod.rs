@@ -12,6 +12,7 @@ use rspack_hook::define_hook;
 use rspack_macros::cacheable;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
+use rspack_util::async_defer;
 use rspack_util::node_path::NodePath;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
@@ -199,7 +200,8 @@ impl Compiler {
     self.old_cache.end_idle();
     // TODO: clear the outdated cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.clear_cache();
+    let plugin_driver_clone = self.plugin_driver.clone();
+    let _defer_guard = async_defer(move || plugin_driver_clone.clear_cache());
 
     fast_set(
       &mut self.compilation,

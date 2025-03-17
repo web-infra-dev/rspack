@@ -1,10 +1,12 @@
 #![feature(int_roundings)]
 
+mod defer;
 mod merge;
 
 pub mod asset_condition;
 pub mod atom;
 pub mod comparators;
+pub use defer::*;
 pub mod diff_mode;
 pub mod ext;
 pub mod fx_hash;
