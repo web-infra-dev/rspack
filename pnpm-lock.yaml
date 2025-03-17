@@ -292,8 +292,8 @@ importers:
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
-        specifier: 0.8.4
-        version: 0.8.4
+        specifier: 0.11.0
+        version: 0.11.0
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -1982,17 +1982,35 @@ packages:
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
 
+  '@module-federation/error-codes@0.11.0':
+    resolution: {integrity: sha512-IyN5fi3KvB9WFeXeCVMdaGl/VI/Dejrx6Gqxrq5V74Tj7Us2VfcGyOUU7+AEue52gmq7qpIe0ctbr79RF16mWg==}
+
   '@module-federation/error-codes@0.8.4':
     resolution: {integrity: sha512-55LYmrDdKb4jt+qr8qE8U3al62ZANp3FhfVaNPOaAmdTh0jHdD8M3yf5HKFlr5xVkVO4eV/F/J2NCfpbh+pEXQ==}
+
+  '@module-federation/runtime-core@0.11.0':
+    resolution: {integrity: sha512-s1cZfrBZ47SfbMNPsc35yx66N4IjVl475ZtYRmsNq3/DHRJxk7AC5Be/O0Z5SHKYHVJydXhmqDT+kX7zMM+4dw==}
+
+  '@module-federation/runtime-tools@0.11.0':
+    resolution: {integrity: sha512-zSB4Ypg/zXCaljdSCMWPpCXQ1D4OSBeT9fHkj/Wb/5a+ZX02MicVhT/6y3g6rGG/3PqbP4jlQMhSC2jMv2Kcxg==}
 
   '@module-federation/runtime-tools@0.8.4':
     resolution: {integrity: sha512-fjVOsItJ1u5YY6E9FnS56UDwZgqEQUrWFnouRiPtK123LUuqUI9FH4redZoKWlE1PB0ir1Z3tnqy8eFYzPO38Q==}
 
+  '@module-federation/runtime@0.11.0':
+    resolution: {integrity: sha512-jUOMwMiyNs/Q7xhHhimCn4DOddEmj0IhSC7vqZojPzFyowRcmaKptGHD8pr5oA3RcCu1l1BOQMhSKbZbplTTXA==}
+
   '@module-federation/runtime@0.8.4':
     resolution: {integrity: sha512-yZeZ7z2Rx4gv/0E97oLTF3V6N25vglmwXGgoeju/W2YjsFvWzVtCDI7zRRb0mJhU6+jmSM8jP1DeQGbea/AiZQ==}
 
+  '@module-federation/sdk@0.11.0':
+    resolution: {integrity: sha512-px2BVTs/rJ9aYzQNkEhi5/qTMN7FSUO3wuaTc52Cc/bG4gq5dX8hYXUQNfi6dVhl6Zg2/2GtTX0ym7d7jjpYDg==}
+
   '@module-federation/sdk@0.8.4':
     resolution: {integrity: sha512-waABomIjg/5m1rPDBWYG4KUhS5r7OUUY7S+avpaVIY/tkPWB3ibRDKy2dNLLAMaLKq0u+B1qIdEp4NIWkqhqpg==}
+
+  '@module-federation/webpack-bundler-runtime@0.11.0':
+    resolution: {integrity: sha512-rq8dldquwNDtaLImucld0WMUAkfFfng1HQARMLc0jb9VO7KLqC6FH58Iph/4yaEJFW0V8RXDGnTDVXFnYSAa1Q==}
 
   '@module-federation/webpack-bundler-runtime@0.8.4':
     resolution: {integrity: sha512-HggROJhvHPUX7uqBD/XlajGygMNM1DG0+4OAkk8MBQe4a18QzrRNzZt6XQbRTSG4OaEoyRWhQHvYD3Yps405tQ==}
@@ -9293,21 +9311,46 @@ snapshots:
 
   '@microsoft/tsdoc@0.15.1': {}
 
+  '@module-federation/error-codes@0.11.0': {}
+
   '@module-federation/error-codes@0.8.4': {}
+
+  '@module-federation/runtime-core@0.11.0':
+    dependencies:
+      '@module-federation/error-codes': 0.11.0
+      '@module-federation/sdk': 0.11.0
+
+  '@module-federation/runtime-tools@0.11.0':
+    dependencies:
+      '@module-federation/runtime': 0.11.0
+      '@module-federation/webpack-bundler-runtime': 0.11.0
 
   '@module-federation/runtime-tools@0.8.4':
     dependencies:
       '@module-federation/runtime': 0.8.4
       '@module-federation/webpack-bundler-runtime': 0.8.4
 
+  '@module-federation/runtime@0.11.0':
+    dependencies:
+      '@module-federation/error-codes': 0.11.0
+      '@module-federation/runtime-core': 0.11.0
+      '@module-federation/sdk': 0.11.0
+
   '@module-federation/runtime@0.8.4':
     dependencies:
       '@module-federation/error-codes': 0.8.4
       '@module-federation/sdk': 0.8.4
 
+  '@module-federation/sdk@0.11.0': {}
+
   '@module-federation/sdk@0.8.4':
     dependencies:
       isomorphic-rslog: 0.0.6
+
+  '@module-federation/webpack-bundler-runtime@0.11.0':
+    dependencies:
+      '@module-federation/runtime': 0.11.0
+      '@module-federation/sdk': 0.11.0
 
   '@module-federation/webpack-bundler-runtime@0.8.4':
     dependencies:
