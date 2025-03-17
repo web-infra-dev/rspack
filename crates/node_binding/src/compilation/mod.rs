@@ -474,24 +474,13 @@ impl JsCompilation {
     )
   }
 
-  #[napi(ts_return_type = "JsStats")]
-  pub fn get_stats(&self, env: Env, reference: Reference<JsCompilation>) -> Result<Object> {
-    let compilation_object = unsafe {
-      let napi_value = ToNapiValue::to_napi_value(env.raw(), reference)?;
-      Object::from_napi_value(env.raw(), napi_value)?
-    };
+  #[napi]
+  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
+    Ok(JsStats::new(reference.share_with(env, |compilation| {
+      let compilation = compilation.as_ref()?;
 
-    let compilation = self.as_ref()?;
-    let js_stats = JsStats::new(compilation.get_stats());
-    let mut stats_object = js_stats.into_instance(&env)?.as_object(&env);
-
-    // Set the stats.compilation property on the JsObject to ensure that the Compilation
-    // is not garbage collected by JS while the stats Object holds a reference to rspack_core::Stats<'compilation>.
-    stats_object.define_properties(&[Property::new("compilation")?
-      .with_value(&compilation_object)
-      .with_property_attributes(PropertyAttributes::Enumerable)])?;
-
-    Ok(stats_object)
+      Ok(compilation.get_stats())
+    })?))
   }
 
   #[napi]

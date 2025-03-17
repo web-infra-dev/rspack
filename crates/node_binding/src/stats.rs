@@ -1029,11 +1029,11 @@ impl ToNapiValue for JsStatsCompilationWrapper {
 
 #[napi]
 pub struct JsStats {
-  inner: Stats<'static>,
+  inner: SharedReference<JsCompilation, Stats<'static>>,
 }
 
 impl JsStats {
-  pub fn new(inner: Stats<'static>) -> Self {
+  pub fn new(inner: SharedReference<JsCompilation, Stats<'static>>) -> Self {
     Self { inner }
   }
 }
