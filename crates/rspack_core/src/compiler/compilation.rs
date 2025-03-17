@@ -9,6 +9,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use futures::future::join_all;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -24,7 +25,6 @@ use rspack_error::{
   miette::diagnostic, Diagnostic, DiagnosticExt, InternalError, Result, RspackSeverity, Severity,
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_futures::FuturesResults;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_paths::ArcPath;
@@ -1932,14 +1932,11 @@ impl Compilation {
     }
     // create hash for other chunks
     let other_chunks_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
-      other_chunks
-        .into_iter()
-        .map(|chunk| async {
-          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
-          Ok((*chunk, hash_result))
-        })
-        .collect::<FuturesResults<_>>()
-        .into_inner();
+      join_all(other_chunks.into_iter().map(|chunk| async {
+        let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+        Ok((*chunk, hash_result))
+      }))
+      .await;
     try_process_chunk_hash_results(self, other_chunks_hash_results)?;
     logger.time_end(start);
 

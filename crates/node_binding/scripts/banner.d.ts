@@ -36,6 +36,7 @@ export interface NormalModule extends Module {
 	get userRequest(): string | undefined
 	set userRequest(val: string | undefined)
 	get rawRequest(): string | undefined
+	get loaders(): Array<JsLoaderItem> | undefined
 	get resourceResolveData(): JsResourceData | undefined
 	get matchResource(): string | undefined
 	set matchResource(val: string | undefined)

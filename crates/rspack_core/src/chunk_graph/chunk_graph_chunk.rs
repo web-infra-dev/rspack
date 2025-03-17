@@ -97,6 +97,10 @@ impl ChunkGraphChunk {
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
+
+  pub fn modules_mut(&mut self) -> &mut IdentifierSet {
+    &mut self.modules
+  }
 }
 
 fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {

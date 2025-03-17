@@ -788,6 +788,10 @@ export default {
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
+      // Generator options for `json` modules
+      json: {
+        JSONParse: true,
+      },
     },
   },
 };
@@ -1443,6 +1447,25 @@ export default {
     generator: {
       'css/module': {
         esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator.json.JSONParse
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Use `JSON.parse` when the JSON string is longer than 20 characters.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      json: {
+        JSONParse: false,
       },
     },
   },
