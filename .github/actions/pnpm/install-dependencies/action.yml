@@ -4,7 +4,7 @@ description: Run pnpm install
 
 inputs:
   frozen-lockfile:
-    default: false
+    default: true
     required: false
     type: boolean
   save-if:
